@@ -14,3 +14,26 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 }
+
+/* Gantt Chart CSS Variables - User customizable theming */
+:root {
+  /* Grid Colors */
+  --gantt-grid-line-color: #e0e0e0;
+  --gantt-cell-background: #ffffff;
+  --gantt-row-hover-background: #f8f9fa;
+
+  /* Dimensions */
+  --gantt-row-height: 40px;
+  --gantt-header-height: 40px;
+  --gantt-day-width: 40px;
+
+  /* Task Bar Styling */
+  --gantt-task-bar-default-color: #3b82f6;
+  --gantt-task-bar-text-color: #ffffff;
+  --gantt-task-bar-border-radius: 4px;
+  --gantt-task-bar-height: 28px;
+
+  /* Today Indicator */
+  --gantt-today-indicator-color: #ef4444;
+  --gantt-today-indicator-width: 2px;
+}
