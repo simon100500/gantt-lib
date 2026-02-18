@@ -30,12 +30,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. User sees Excel-like table styling with grid lines and cell-based appearance
   6. Developer can render tasks by passing a simple array: `{ id, name, startDate, endDate, color? }`
   7. Component uses UTC internally to prevent DST bugs
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Project scaffolding and build setup
-- [ ] 01-02: Date utilities and geometry engine
-- [ ] 01-03: Core rendering components (timeline, task bars, today indicator)
+- [ ] 01-01-PLAN.md — Project scaffolding and build setup
+- [ ] 01-02-PLAN.md — Date utilities and geometry engine (TDD)
+- [ ] 01-03-PLAN.md — Core rendering components (timeline, task bars, today indicator)
 
 ### Phase 2: Drag-and-Drop Interactions
 **Goal**: Interactive task bar manipulation via drag with 60fps performance
@@ -80,6 +80,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Core Rendering | 0/3 | Not started | - |
+| 1. Foundation & Core Rendering | 0/3 | Planning complete | - |
 | 2. Drag-and-Drop Interactions | 0/3 | Not started | - |
 | 3. Polish & Developer Experience | 0/4 | Not started | - |
