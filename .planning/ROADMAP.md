@@ -47,12 +47,12 @@ Plans:
   3. Component maintains smooth 60fps performance during drag operations with ~100 tasks
   4. Parent component receives callback with updated task data after drag completes
   5. Event listeners are properly cleaned up to prevent memory leaks
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Drag state management and hit detection
-- [ ] 02-02: Move and resize interaction handlers
-- [ ] 02-03: Performance optimization (React.memo, state isolation)
+- [ ] 02-01-PLAN.md — Drag state management and hit detection
+- [ ] 02-02-PLAN.md — Move and resize interaction handlers
+- [ ] 02-03-PLAN.md — Performance optimization and testing
 
 ### Phase 3: Polish & Developer Experience
 **Goal**: Production-ready library with excellent TypeScript support and distribution
@@ -81,5 +81,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Core Rendering | 3/3 | Complete    | 2026-02-18 |
-| 2. Drag-and-Drop Interactions | 0/3 | Not started | - |
+| 2. Drag-and-Drop Interactions | 0/3 | Ready to execute | - |
 | 3. Polish & Developer Experience | 0/4 | Not started | - |
