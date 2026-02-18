@@ -36,6 +36,8 @@ export interface GanttChartProps {
   rowHeight?: number;
   /** Height of the header row in pixels (default: 40) */
   headerHeight?: number;
+  /** Callback when tasks are modified via drag/resize */
+  onChange?: (tasks: Task[]) => void;
 }
 
 /**
@@ -56,6 +58,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   dayWidth = 40,
   rowHeight = 40,
   headerHeight = 40,
+  onChange,
 }) => {
   // Calculate month days once
   const monthDays = useMemo(() => getMonthDays(month), [month]);
@@ -97,6 +100,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               monthStart={monthStart}
               dayWidth={dayWidth}
               rowHeight={rowHeight}
+              onChange={(updatedTask) => {
+                // Create updated tasks array with the modified task
+                const updatedTasks = tasks.map((t) =>
+                  t.id === updatedTask.id ? updatedTask : t
+                );
+                onChange?.(updatedTasks);
+              }}
             />
           ))}
         </div>

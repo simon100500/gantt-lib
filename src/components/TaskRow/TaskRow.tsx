@@ -3,6 +3,8 @@
 import React, { useMemo } from 'react';
 import { parseUTCDate } from '../../utils/dateUtils';
 import { calculateTaskBar } from '../../utils/geometry';
+import { useTaskDrag } from '../../hooks/useTaskDrag';
+import { DragTooltip } from '../DragTooltip';
 import type { Task } from '../GanttChart';
 import styles from './TaskRow.module.css';
 
@@ -15,6 +17,8 @@ export interface TaskRowProps {
   dayWidth: number;
   /** Height of the task row in pixels */
   rowHeight: number;
+  /** Callback when task is modified via drag/resize */
+  onChange?: (updatedTask: Task) => void;
 }
 
 /**
@@ -29,7 +33,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.endDate === nextProps.task.endDate &&
     prevProps.task.color === nextProps.task.color &&
     prevProps.dayWidth === nextProps.dayWidth &&
-    prevProps.rowHeight === nextProps.rowHeight
+    prevProps.rowHeight === nextProps.rowHeight &&
+    prevProps.onChange === nextProps.onChange
   );
 };
 
@@ -40,7 +45,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onChange }) => {
     // Parse dates as UTC
     const taskStartDate = useMemo(() => parseUTCDate(task.startDate), [task.startDate]);
     const taskEndDate = useMemo(() => parseUTCDate(task.endDate), [task.endDate]);
@@ -54,22 +59,98 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Determine task bar color
     const barColor = task.color || 'var(--gantt-task-bar-default-color)';
 
+    // Handle drag end - call onChange with updated task
+    const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date }) => {
+      const updatedTask: Task = {
+        ...task,
+        startDate: result.startDate.toISOString(),
+        endDate: result.endDate.toISOString(),
+      };
+      onChange?.(updatedTask);
+    };
+
+    // Use drag hook for interactive drag/resize
+    const {
+      isDragging,
+      dragMode,
+      currentLeft,
+      currentWidth,
+      dragHandleProps,
+    } = useTaskDrag({
+      taskId: task.id,
+      initialStartDate: taskStartDate,
+      initialEndDate: taskEndDate,
+      monthStart,
+      dayWidth,
+      onDragEnd: handleDragEnd,
+      edgeZoneWidth: 12,
+    });
+
+    // Use dynamic position during drag
+    const displayLeft = isDragging ? currentLeft : left;
+    const displayWidth = isDragging ? currentWidth : width;
+
+    // Calculate dates for tooltip during drag
+    const tooltipStartDate = useMemo(() => {
+      if (!isDragging) return taskStartDate;
+      const dayOffset = Math.round(displayLeft / dayWidth);
+      return new Date(Date.UTC(
+        monthStart.getUTCFullYear(),
+        monthStart.getUTCMonth(),
+        monthStart.getUTCDate() + dayOffset
+      ));
+    }, [isDragging, displayLeft, dayWidth, monthStart, taskStartDate]);
+
+    const tooltipEndDate = useMemo(() => {
+      if (!isDragging) return taskEndDate;
+      const dayOffset = Math.round(displayLeft / dayWidth);
+      const durationDays = Math.round(displayWidth / dayWidth) - 1;
+      return new Date(Date.UTC(
+        monthStart.getUTCFullYear(),
+        monthStart.getUTCMonth(),
+        monthStart.getUTCDate() + dayOffset + durationDays
+      ));
+    }, [isDragging, displayLeft, displayWidth, dayWidth, monthStart, taskEndDate]);
+
+    // Get cursor position for tooltip (follow mouse)
+    const [cursorPosition, setCursorPosition] = React.useState({ x: 0, y: 0 });
+
+    const handleMouseMove = React.useCallback((e: React.MouseEvent) => {
+      if (isDragging) {
+        setCursorPosition({ x: e.clientX, y: e.clientY });
+      }
+    }, [isDragging]);
+
     return (
       <div
         className={styles.row}
         style={{ height: `${rowHeight}px` }}
+        onMouseMove={handleMouseMove}
       >
         <div
-          className={styles.taskBar}
+          className={`${styles.taskBar} ${isDragging ? styles.dragging : ''}`}
           style={{
-            left: `${left}px`,
-            width: `${width}px`,
+            left: `${displayLeft}px`,
+            width: `${displayWidth}px`,
             backgroundColor: barColor,
             height: 'var(--gantt-task-bar-height)',
+            cursor: dragHandleProps.style.cursor,
+            userSelect: dragHandleProps.style.userSelect,
           }}
+          onMouseDown={dragHandleProps.onMouseDown}
         >
+          <div className={`${styles.resizeHandle} ${styles.resizeHandleLeft}`} />
           <span className={styles.taskName}>{task.name}</span>
+          <div className={`${styles.resizeHandle} ${styles.resizeHandleRight}`} />
         </div>
+        {isDragging && (
+          <DragTooltip
+            x={cursorPosition.x}
+            y={cursorPosition.y}
+            startDate={tooltipStartDate}
+            endDate={tooltipEndDate}
+          />
+        )}
       </div>
     );
   },
