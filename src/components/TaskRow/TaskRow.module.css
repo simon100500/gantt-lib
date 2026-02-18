@@ -1,0 +1,42 @@
+/**
+ * TaskRow Component Styles
+ */
+
+.row {
+  position: relative;
+  width: 100%;
+  border-bottom: 1px solid var(--gantt-grid-line-color);
+  box-sizing: border-box;
+}
+
+.row:hover {
+  background-color: var(--gantt-row-hover-background);
+}
+
+.taskBar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: var(--gantt-task-bar-border-radius);
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.taskBar:hover {
+  opacity: 0.9;
+}
+
+.taskName {
+  color: var(--gantt-task-bar-text-color);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
