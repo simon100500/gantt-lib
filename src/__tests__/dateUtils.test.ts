@@ -78,7 +78,7 @@ describe('getMonthDays', () => {
 
 describe('getDayOffset', () => {
   it('should return 0 for same day', () => {
-    const date = new Date('2024-03-10T00:00:00Z');
+    const date = new Date('2024-03-01T00:00:00Z');
     const monthStart = new Date('2024-03-01T00:00:00Z');
     expect(getDayOffset(date, monthStart)).toBe(0);
   });

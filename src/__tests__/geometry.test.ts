@@ -39,7 +39,7 @@ describe('calculateTaskBar', () => {
     const result = calculateTaskBar(taskStart, taskEnd, monthStart, dayWidth);
 
     expect(result.left).toBe(-80); // -2 days * 40px
-    expect(result.width).toBe(120); // 3 days (inclusive) * 40px
+    expect(result.width).toBe(160); // 4 days (inclusive) * 40px (Feb 28, 29, Mar 1, 2)
   });
 
   it('should handle tasks spanning into next month', () => {
@@ -48,7 +48,7 @@ describe('calculateTaskBar', () => {
     const result = calculateTaskBar(taskStart, taskEnd, monthStart, dayWidth);
 
     expect(result.left).toBe(1080); // 27 days * 40px
-    expect(result.width).toBe(200); // 5 days (inclusive) * 40px
+    expect(result.width).toBe(240); // 6 days (inclusive) * 40px (Mar 28, 29, 30, 31, Apr 1, 2)
   });
 
   it('should add +1 to duration for inclusive end dates', () => {
