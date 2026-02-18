@@ -81,5 +81,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Core Rendering | 3/3 | Complete    | 2026-02-18 |
-| 2. Drag-and-Drop Interactions | 0/3 | Ready to execute | - |
+| 2. Drag-and-Drop Interactions | 2/3 | In Progress|  |
 | 3. Polish & Developer Experience | 0/4 | Not started | - |

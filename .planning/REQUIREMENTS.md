@@ -17,15 +17,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Interactions
 
-- [ ] **INT-01**: User can drag task bars horizontally to change start/end dates (move)
-- [ ] **INT-02**: User can drag task bar edges to change duration (resize)
+- [x] **INT-01**: User can drag task bars horizontally to change start/end dates (move)
+- [x] **INT-02**: User can drag task bar edges to change duration (resize)
 - [ ] **INT-03**: Component maintains 60fps performance during drag operations (~100 tasks)
-- [ ] **INT-04**: Parent component receives callback with updated task data after drag operation
+- [x] **INT-04**: Parent component receives callback with updated task data after drag operation
 
 ### Data & API
 
 - [ ] **API-01**: Component accepts simple array: `{ id, name, startDate, endDate, color? }`
-- [ ] **API-02**: Component provides `onChange` callback returning modified tasks array
+- [x] **API-02**: Component provides `onChange` callback returning modified tasks array
 - [ ] **API-03**: Simple API surface: `<Gantt tasks={tasks} onChange={handleTasksChange} />`
 - [ ] **API-04**: All dates handled as UTC internally to prevent DST bugs
 
@@ -88,12 +88,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REND-03 | Phase 1 | Pending |
 | REND-04 | Phase 1 | Pending |
 | REND-05 | Phase 1 | Pending |
-| INT-01 | Phase 2 | Pending |
-| INT-02 | Phase 2 | Pending |
+| INT-01 | Phase 2 | Complete |
+| INT-02 | Phase 2 | Complete |
 | INT-03 | Phase 2 | Pending |
-| INT-04 | Phase 2 | Pending |
+| INT-04 | Phase 2 | Complete |
 | API-01 | Phase 1 | Pending |
-| API-02 | Phase 2 | Pending |
+| API-02 | Phase 2 | Complete |
 | API-03 | Phase 3 | Pending |
 | API-04 | Phase 1 | Pending |
 | DX-01 | Phase 3 | Pending |
