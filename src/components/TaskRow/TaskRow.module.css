@@ -28,15 +28,28 @@
   cursor: grab;
 }
 
+/**
+ * Hover state - provides smooth visual feedback
+ * Transition disabled during drag (see .taskBar.dragging)
+ */
 .taskBar:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/**
+ * Dragging state - disables all transitions for performance
+ *
+ * CRITICAL: transition: none !important is required to override the
+ * default box-shadow transition on .taskBar. Without this, CSS transitions
+ * during drag cause lag/ghosting and break the 60fps performance target.
+ *
+ * Per research anti-pattern: "Using CSS transitions during drag causes lag/ghosting."
+ */
 .taskBar.dragging {
   cursor: grabbing;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   opacity: 1;
-  transition: none;
+  transition: none !important;
 }
 
 .taskName {
