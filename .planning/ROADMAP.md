@@ -33,8 +33,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project scaffolding and build setup
-- [ ] 01-02-PLAN.md — Date utilities and geometry engine (TDD)
+- [x] 01-01-PLAN.md — Project scaffolding and build setup
+- [x] 01-02-PLAN.md — Date utilities and geometry engine (TDD)
 - [ ] 01-03-PLAN.md — Core rendering components (timeline, task bars, today indicator)
 
 ### Phase 2: Drag-and-Drop Interactions
@@ -80,6 +80,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Core Rendering | 0/3 | Planning complete | - |
+| 1. Foundation & Core Rendering | 2/3 | In progress | 2026-02-18 |
 | 2. Drag-and-Drop Interactions | 0/3 | Not started | - |
 | 3. Polish & Developer Experience | 0/4 | Not started | - |

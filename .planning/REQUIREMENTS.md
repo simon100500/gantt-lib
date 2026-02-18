@@ -41,7 +41,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **QL-01**: React.memo on task components to prevent re-render storms
 - [ ] **QL-02**: Proper cleanup of event listeners to prevent memory leaks
-- [ ] **QL-03**: Unit tests for core date utilities and geometry calculations
+- [x] **QL-03**: Unit tests for core date utilities and geometry calculations
 
 ## v2 Requirements
 
@@ -103,7 +103,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DX-05 | Phase 1 | Pending |
 | QL-01 | Phase 2 | Pending |
 | QL-02 | Phase 2 | Pending |
-| QL-03 | Phase 1 | Pending |
+| QL-03 | Phase 1 | Completed |
 
 **Coverage:**
 - v1 requirements: 21 total
