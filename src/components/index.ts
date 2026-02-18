@@ -1,2 +1,2 @@
 // Components barrel export
-// This file will export all Gantt chart components
+export { GanttChart, type Task } from './GanttChart';
