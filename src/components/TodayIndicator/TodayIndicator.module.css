@@ -1,0 +1,11 @@
+/**
+ * TodayIndicator Component Styles
+ */
+
+.indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 10;
+  pointer-events: none;
+}
