@@ -48,3 +48,50 @@ export const calculateTaskBar = (
 export const calculateGridWidth = (daysInMonth: number, dayWidth: number): number => {
   return Math.round(daysInMonth * dayWidth);
 };
+
+/**
+ * Detect which edge zone the cursor is in on a task bar
+ * @param clientX - Mouse X coordinate relative to viewport
+ * @param taskBarElement - The task bar DOM element
+ * @param edgeZoneWidth - Width of edge zones in pixels (default: 12px)
+ * @returns 'left' if in left edge, 'right' if in right edge, 'move' if in middle
+ */
+export const detectEdgeZone = (
+  clientX: number,
+  taskBarElement: HTMLElement,
+  edgeZoneWidth: number = 12
+): 'left' | 'right' | 'move' => {
+  const rect = taskBarElement.getBoundingClientRect();
+  const relativeX = Math.round(clientX - rect.left);
+
+  // Check left edge zone
+  if (relativeX >= 0 && relativeX <= edgeZoneWidth) {
+    return 'left';
+  }
+
+  // Check right edge zone
+  const width = Math.round(rect.width);
+  if (relativeX >= width - edgeZoneWidth && relativeX <= width) {
+    return 'right';
+  }
+
+  // Middle area - move mode
+  return 'move';
+};
+
+/**
+ * Get appropriate cursor style for drag position
+ * @param position - The drag position (left edge, right edge, or move)
+ * @returns CSS cursor string for the position
+ */
+export const getCursorForPosition = (position: 'left' | 'right' | 'move'): string => {
+  switch (position) {
+    case 'left':
+    case 'right':
+      return 'ew-resize';
+    case 'move':
+      return 'grab';
+    default:
+      return 'default';
+  }
+};
