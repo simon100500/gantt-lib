@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { GanttChart, type Task } from '../components';
 
 /**
@@ -11,77 +12,85 @@ import { GanttChart, type Task } from '../components';
  * - Tasks with custom colors
  * - Tasks starting/ending today
  * - Tasks spanning across month boundaries
+ * - Drag-and-drop task editing
  */
 export default function Home() {
-  // Get current date for sample tasks
-  const now = new Date();
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth();
-  const currentDay = now.getUTCDate();
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    // Get current date for sample tasks
+    const now = new Date();
+    const currentYear = now.getUTCFullYear();
+    const currentMonth = now.getUTCMonth();
+    const currentDay = now.getUTCDate();
 
-  // Create date strings for sample tasks
-  const today = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
-  const yesterday = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay - 1).padStart(2, '0')}`;
-  const tomorrow = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay + 1).padStart(2, '0')}`;
-  const weekStart = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
-  const weekEnd = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-07`;
-  const midMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15`;
-  const monthEnd = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-28`;
+    // Create date strings for sample tasks
+    const today = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+    const yesterday = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay - 1).padStart(2, '0')}`;
+    const tomorrow = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay + 1).padStart(2, '0')}`;
+    const weekStart = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
+    const weekEnd = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-07`;
+    const midMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15`;
+    const monthEnd = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-28`;
 
-  const sampleTasks: Task[] = [
-    // Single-day tasks
-    {
-      id: '1',
-      name: 'Project Kickoff',
-      startDate: weekStart,
-      endDate: weekStart,
-      color: '#10b981', // Green
-    },
-    {
-      id: '2',
-      name: 'Today Task',
-      startDate: today,
-      endDate: today,
-      color: '#8b5cf6', // Purple
-    },
-    // Multi-day tasks
-    {
-      id: '3',
-      name: 'Sprint Planning',
-      startDate: weekStart,
-      endDate: weekEnd,
-      color: '#f59e0b', // Amber
-    },
-    {
-      id: '4',
-      name: 'Development Phase',
-      startDate: weekEnd,
-      endDate: midMonth,
-      color: '#3b82f6', // Blue (default)
-    },
-    {
-      id: '5',
-      name: 'Code Review',
-      startDate: yesterday,
-      endDate: tomorrow,
-      color: '#ef4444', // Red
-    },
-    // Long-duration task
-    {
-      id: '6',
-      name: 'Monthly Release',
-      startDate: '2026-02-01',
-      endDate: monthEnd,
-      color: '#ec4899', // Pink
-    },
-    // Task without custom color (uses default)
-    {
-      id: '7',
-      name: 'Documentation',
-      startDate: midMonth,
-      endDate: monthEnd,
-    },
-  ];
+    return [
+      // Single-day tasks
+      {
+        id: '1',
+        name: 'Project Kickoff',
+        startDate: weekStart,
+        endDate: weekStart,
+        color: '#10b981', // Green
+      },
+      {
+        id: '2',
+        name: 'Today Task',
+        startDate: today,
+        endDate: today,
+        color: '#8b5cf6', // Purple
+      },
+      // Multi-day tasks
+      {
+        id: '3',
+        name: 'Sprint Planning',
+        startDate: weekStart,
+        endDate: weekEnd,
+        color: '#f59e0b', // Amber
+      },
+      {
+        id: '4',
+        name: 'Development Phase',
+        startDate: weekEnd,
+        endDate: midMonth,
+        color: '#3b82f6', // Blue (default)
+      },
+      {
+        id: '5',
+        name: 'Code Review',
+        startDate: yesterday,
+        endDate: tomorrow,
+        color: '#ef4444', // Red
+      },
+      // Long-duration task
+      {
+        id: '6',
+        name: 'Monthly Release',
+        startDate: '2026-02-01',
+        endDate: monthEnd,
+        color: '#ec4899', // Pink
+      },
+      // Task without custom color (uses default)
+      {
+        id: '7',
+        name: 'Documentation',
+        startDate: midMonth,
+        endDate: monthEnd,
+      },
+    ] as Task[];
+  });
+
+  // Handle task updates from drag/resize operations
+  const handleTasksChange = (updatedTasks: Task[]) => {
+    setTasks(updatedTasks);
+  };
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
@@ -94,10 +103,11 @@ export default function Home() {
         <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Demo</h2>
         <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem', backgroundColor: '#f9fafb' }}>
           <GanttChart
-            tasks={sampleTasks}
+            tasks={tasks}
             month={new Date()}
             dayWidth={40}
             rowHeight={40}
+            onChange={handleTasksChange}
           />
         </div>
       </section>
