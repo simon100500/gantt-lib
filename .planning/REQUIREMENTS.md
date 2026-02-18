@@ -19,7 +19,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **INT-01**: User can drag task bars horizontally to change start/end dates (move)
 - [x] **INT-02**: User can drag task bar edges to change duration (resize)
-- [ ] **INT-03**: Component maintains 60fps performance during drag operations (~100 tasks)
+- [x] **INT-03**: Component maintains 60fps performance during drag operations (~100 tasks)
 - [x] **INT-04**: Parent component receives callback with updated task data after drag operation
 
 ### Data & API
@@ -39,7 +39,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Quality
 
-- [ ] **QL-01**: React.memo on task components to prevent re-render storms
+- [x] **QL-01**: React.memo on task components to prevent re-render storms
 - [ ] **QL-02**: Proper cleanup of event listeners to prevent memory leaks
 - [x] **QL-03**: Unit tests for core date utilities and geometry calculations
 
@@ -90,7 +90,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REND-05 | Phase 1 | Pending |
 | INT-01 | Phase 2 | Complete |
 | INT-02 | Phase 2 | Complete |
-| INT-03 | Phase 2 | Pending |
+| INT-03 | Phase 2 | Complete |
 | INT-04 | Phase 2 | Complete |
 | API-01 | Phase 1 | Pending |
 | API-02 | Phase 2 | Complete |
@@ -101,7 +101,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DX-03 | Phase 3 | Pending |
 | DX-04 | Phase 3 | Pending |
 | DX-05 | Phase 1 | Pending |
-| QL-01 | Phase 2 | Pending |
+| QL-01 | Phase 2 | Complete |
 | QL-02 | Phase 2 | Pending |
 | QL-03 | Phase 1 | Completed |
 
