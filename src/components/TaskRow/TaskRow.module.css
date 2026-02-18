@@ -24,11 +24,19 @@
   box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
-  transition: opacity 0.15s ease-in-out;
+  transition: box-shadow 0.15s ease;
+  cursor: grab;
 }
 
 .taskBar:hover {
-  opacity: 0.9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.taskBar.dragging {
+  cursor: grabbing;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+  transition: none;
 }
 
 .taskName {
@@ -39,4 +47,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.4);
+  cursor: ew-resize;
+}
+
+.resizeHandleLeft {
+  left: 0;
+}
+
+.resizeHandleRight {
+  right: 0;
+}
+
+.resizeZoneLeft {
+  cursor: ew-resize;
+}
+
+.resizeZoneRight {
+  cursor: ew-resize;
 }
