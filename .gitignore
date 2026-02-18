@@ -2,9 +2,11 @@
 node_modules
 /.pnp
 .pnp.js
+nul
 
 # Testing
 coverage
+src/app/test/
 
 # Next.js
 .next/
