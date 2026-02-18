@@ -8,8 +8,10 @@ import { parseISO, isValid } from 'date-fns';
  */
 export const parseUTCDate = (date: string | Date): Date => {
   if (typeof date === 'string') {
-    // Parse as UTC by appending Z
-    const parsed = new Date(`${date}T00:00:00Z`);
+    // If already an ISO string (contains 'T'), parse directly
+    // Otherwise, append UTC time for simple date strings (YYYY-MM-DD)
+    const dateStr = date.includes('T') ? date : `${date}T00:00:00Z`;
+    const parsed = new Date(dateStr);
     if (isNaN(parsed.getTime())) {
       throw new Error(`Invalid date string: ${date}`);
     }
