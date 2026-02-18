@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { getMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
@@ -75,6 +75,29 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
   }, [month]);
 
+  /**
+   * Stable callback for task updates
+   *
+   * NOTE: This callback intentionally depends on `tasks` to ensure the parent
+   * receives the correct task state. However, this means the callback reference
+   * changes when tasks change, which could cause TaskRow re-renders.
+   *
+   * To prevent re-render storms during drag:
+   * 1. The onChange callback is only called AFTER drag completes (mouseUp)
+   * 2. During drag, only the dragged TaskRow re-renders (due to its internal state)
+   * 3. Other TaskRows don't re-render because their props haven't changed
+   *
+   * The React.memo comparison in TaskRow excludes onChange from comparison,
+   * relying on the fact that onChange fires only after drag completes.
+   */
+  const handleTaskChange = useCallback((updatedTask: Task) => {
+    // Create updated tasks array with the modified task
+    const updatedTasks = tasks.map((t) =>
+      t.id === updatedTask.id ? updatedTask : t
+    );
+    onChange?.(updatedTasks);
+  }, [tasks, onChange]);
+
   return (
     <div className={styles.container}>
       <div className={styles.chartWrapper}>
@@ -100,13 +123,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               monthStart={monthStart}
               dayWidth={dayWidth}
               rowHeight={rowHeight}
-              onChange={(updatedTask) => {
-                // Create updated tasks array with the modified task
-                const updatedTasks = tasks.map((t) =>
-                  t.id === updatedTask.id ? updatedTask : t
-                );
-                onChange?.(updatedTasks);
-              }}
+              onChange={handleTaskChange}
             />
           ))}
         </div>

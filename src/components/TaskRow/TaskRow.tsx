@@ -23,7 +23,16 @@ export interface TaskRowProps {
 
 /**
  * Custom comparison function for React.memo
- * Only re-renders if task properties that affect rendering change
+ *
+ * Performance optimization: Only re-renders if task properties that affect rendering change.
+ *
+ * NOTE: onChange is intentionally excluded from this comparison because:
+ * 1. The parent (GanttChart) wraps onChange in useCallback for referential stability
+ * 2. onChange is only called AFTER drag completes (not during drag)
+ * 3. During drag, only the dragged TaskRow re-renders due to its internal drag state
+ * 4. Other TaskRows don't need to re-render when one task is dragged
+ *
+ * Excluding onChange prevents re-render storms when dragging tasks with ~100 tasks.
  */
 const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
   return (
@@ -33,8 +42,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.endDate === nextProps.task.endDate &&
     prevProps.task.color === nextProps.task.color &&
     prevProps.dayWidth === nextProps.dayWidth &&
-    prevProps.rowHeight === nextProps.rowHeight &&
-    prevProps.onChange === nextProps.onChange
+    prevProps.rowHeight === nextProps.rowHeight
+    // onChange excluded - see note above
   );
 };
 
