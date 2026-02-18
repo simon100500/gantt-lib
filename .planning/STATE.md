@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 1 of 3 (Foundation & Core Rendering)
-Plan: 2 of 3 in current phase
+Plan: 3 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-18 — Completed Plan 01-02: Date Utilities and Geometry Engine
+Last activity: 2026-02-19 — Re-executed Plan 01-01: Project Foundation Setup; Plan 01-02 already complete
 
-Progress: [████░░░░░░] 33%
+Progress: [██████░░░░] 67%
 
 ## Performance Metrics
 
@@ -34,6 +34,7 @@ Progress: [████░░░░░░] 33%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-foundation-core-rendering P01 | 5 minutes | 4 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -45,6 +46,10 @@ Recent decisions affecting current work:
 - **UTC-only date arithmetic:** Used native Date.UTC() methods instead of date-fns for core logic (date-fns UTC methods had timezone inconsistencies)
 - **Integer rounding for pixels:** All pixel values rounded with Math.round() to prevent sub-pixel rendering issues
 - **Inclusive end dates:** +1 added to task duration calculations to include end date in span
+- [Phase 01]: Use Next.js 15 with App Router (not Pages Router) for modern React patterns
+- [Phase 01]: TypeScript strict mode enabled for maximum type safety
+- [Phase 01]: date-fns for date handling (better than Moment.js for tree-shaking)
+- [Phase 01]: Vitest over Jest for faster test execution and ESM support
 
 ### Pending Todos
 
@@ -56,6 +61,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-18
-Stopped at: Completed Plan 01-02 - Date Utilities and Geometry Engine
+Last session: 2026-02-19
+Stopped at: Re-executed Plan 01-01 - Project Foundation Setup (SUMMARY created)
 Resume file: None
