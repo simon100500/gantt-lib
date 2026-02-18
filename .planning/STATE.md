@@ -11,30 +11,30 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 
 Phase: 1 of 3 (Foundation & Core Rendering)
 Plan: 3 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-19 — Re-executed Plan 01-01: Project Foundation Setup; Plan 01-02 already complete
+Status: Complete
+Last activity: 2026-02-19 — Completed Plan 01-03: Core Gantt Chart Rendering
 
-Progress: [██████░░░░] 67%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 4 min
-- Total execution time: 0.07 hours
+- Total plans completed: 3
+- Average duration: 6 min
+- Total execution time: 0.30 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation-core-rendering | 1 | 3 | 4 min |
+| 01-foundation-core-rendering | 3 | 3 | 6 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (4 min)
-- Trend: -
+- Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min)
+- Trend: Stable
 
 *Updated after each plan completion*
-| Phase 01-foundation-core-rendering P01 | 5 minutes | 4 tasks | 8 files |
+| Phase 01-foundation-core-rendering P01 | 8 minutes | 5 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -43,6 +43,10 @@ Progress: [██████░░░░] 67%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- **CSS Grid for component layout:** Used CSS Grid with explicit column widths for predictable, Excel-like cell boundaries
+- **React.memo with custom comparison on TaskRow:** Custom comparison function checks only task props that affect rendering
+- **CSS Variables for theming:** All styling values exposed as CSS variables for consumer customization
+- **'EEE d' date format:** Used date-fns format() with 'EEE d' pattern for clarity (e.g., "Mon 1")
 - **UTC-only date arithmetic:** Used native Date.UTC() methods instead of date-fns for core logic (date-fns UTC methods had timezone inconsistencies)
 - **Integer rounding for pixels:** All pixel values rounded with Math.round() to prevent sub-pixel rendering issues
 - **Inclusive end dates:** +1 added to task duration calculations to include end date in span
@@ -62,5 +66,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Re-executed Plan 01-01 - Project Foundation Setup (SUMMARY created)
+Stopped at: Completed Plan 01-03 - Core Gantt Chart Rendering (SUMMARY created)
 Resume file: None

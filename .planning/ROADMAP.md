@@ -12,7 +12,7 @@ Build a lightweight React/Next.js library for interactive Gantt charts. Starting
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Core Rendering** - Static Gantt chart with monthly timeline and task bars
+- [x] **Phase 1: Foundation & Core Rendering** - Static Gantt chart with monthly timeline and task bars
 - [ ] **Phase 2: Drag-and-Drop Interactions** - Interactive task manipulation via drag operations
 - [ ] **Phase 3: Polish & Developer Experience** - Production-ready library with TypeScript and distribution
 
@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md — Project scaffolding and build setup
 - [x] 01-02-PLAN.md — Date utilities and geometry engine (TDD)
-- [ ] 01-03-PLAN.md — Core rendering components (timeline, task bars, today indicator)
+- [x] 01-03-PLAN.md — Core rendering components (timeline, task bars, today indicator)
 
 ### Phase 2: Drag-and-Drop Interactions
 **Goal**: Interactive task bar manipulation via drag with 60fps performance
@@ -80,6 +80,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Core Rendering | 2/3 | In progress | 2026-02-18 |
+| 1. Foundation & Core Rendering | 3/3 | Complete | 2026-02-19 |
 | 2. Drag-and-Drop Interactions | 0/3 | Not started | - |
 | 3. Polish & Developer Experience | 0/4 | Not started | - |
