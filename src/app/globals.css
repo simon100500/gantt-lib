@@ -42,7 +42,7 @@ body {
   --gantt-weekend-border: #fca5a5;
 
   /* Calendar Grid - Separators */
-  --gantt-month-separator-width: 1px;
+  --gantt-month-separator-width: 2px;
   --gantt-month-separator-color: #a1a1a1;
   --gantt-week-separator-width: 1px;
   --gantt-week-separator-color: #f3f4f6;
