@@ -70,8 +70,8 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
       >
         {days.map((day, index) => {
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-          const nextDay = days[index + 1];
-          const isMonthBoundary = nextDay && nextDay.getMonth() !== day.getMonth();
+          const prevDay = days[index - 1];
+          const isMonthBoundary = index > 0 && prevDay && prevDay.getMonth() !== day.getMonth();
           return (
             <div key={`day-${index}`} className={`${styles.dayCell} ${isWeekend ? styles.weekendDay : ''} ${isMonthBoundary ? styles.monthBoundary : ''}`}>
               <span className={styles.dayLabel}>{format(day, 'd')}</span>

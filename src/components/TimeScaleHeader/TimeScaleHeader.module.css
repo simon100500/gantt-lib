@@ -19,16 +19,16 @@
 
 .monthCell {
   box-sizing: border-box;
-  padding: 0.25rem 0.5rem;
+  padding: 0.1rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
   color: #1f2937;
-  border-right: var(--gantt-month-separator-width, 1px) solid var(--gantt-month-separator-color, #a1a1a1);
+  border-left: var(--gantt-month-separator-width, 2px) solid var(--gantt-month-separator-color, #a1a1a1);
   text-align: left;
 }
 
-.monthCell:last-child {
-  border-right: none;
+.monthCell:first-child {
+  border-left: none;
 }
 
 /* Day row (bottom row) */
@@ -41,16 +41,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-right: var(--gantt-day-line-width, 1px) solid var(--gantt-day-line-color, #f3f4f6);
   box-sizing: border-box;
 }
 
-.dayCell:last-child {
-  border-right: none;
-}
-
 .monthBoundary {
-  border-right: var(--gantt-month-separator-width, 1px) solid var(--gantt-month-separator-color, #a1a1a1);
+  border-left: var(--gantt-month-separator-width, 2px) solid var(--gantt-month-separator-color, #a1a1a1);
 }
 
 .dayLabel {
