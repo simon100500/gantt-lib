@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import { parseUTCDate } from '../../utils/dateUtils';
 import { calculateTaskBar } from '../../utils/geometry';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
-import { DragTooltip } from '../DragTooltip';
 import type { Task } from '../GanttChart';
 import styles from './TaskRow.module.css';
 
@@ -99,42 +98,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const displayLeft = isDragging ? currentLeft : left;
     const displayWidth = isDragging ? currentWidth : width;
 
-    // Calculate dates for tooltip during drag
-    const tooltipStartDate = useMemo(() => {
-      if (!isDragging) return taskStartDate;
-      const dayOffset = Math.round(displayLeft / dayWidth);
-      return new Date(Date.UTC(
-        monthStart.getUTCFullYear(),
-        monthStart.getUTCMonth(),
-        monthStart.getUTCDate() + dayOffset
-      ));
-    }, [isDragging, displayLeft, dayWidth, monthStart, taskStartDate]);
-
-    const tooltipEndDate = useMemo(() => {
-      if (!isDragging) return taskEndDate;
-      const dayOffset = Math.round(displayLeft / dayWidth);
-      const durationDays = Math.round(displayWidth / dayWidth) - 1;
-      return new Date(Date.UTC(
-        monthStart.getUTCFullYear(),
-        monthStart.getUTCMonth(),
-        monthStart.getUTCDate() + dayOffset + durationDays
-      ));
-    }, [isDragging, displayLeft, displayWidth, dayWidth, monthStart, taskEndDate]);
-
-    // Get cursor position for tooltip (follow mouse)
-    const [cursorPosition, setCursorPosition] = React.useState({ x: 0, y: 0 });
-
-    const handleMouseMove = React.useCallback((e: React.MouseEvent) => {
-      if (isDragging) {
-        setCursorPosition({ x: e.clientX, y: e.clientY });
-      }
-    }, [isDragging]);
 
     return (
       <div
         className={styles.row}
         style={{ height: `${rowHeight}px` }}
-        onMouseMove={handleMouseMove}
       >
         <div
           className={`${styles.taskBar} ${isDragging ? styles.dragging : ''}`}
@@ -152,14 +120,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           <span className={styles.taskName}>{task.name}</span>
           <div className={`${styles.resizeHandle} ${styles.resizeHandleRight}`} />
         </div>
-        {isDragging && (
-          <DragTooltip
-            x={cursorPosition.x}
-            y={cursorPosition.y}
-            startDate={tooltipStartDate}
-            endDate={tooltipEndDate}
-          />
-        )}
       </div>
     );
   },
