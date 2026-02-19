@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 3 of 3 (Calendar grid improvements)
 Plan: 0 of ? in current phase
 Status: Phase added, not yet planned
-Last activity: 2026-02-19 — Phase 3 added
+Last activity: 2026-02-19 — Completed quick task 1: Remove drag popup
 
 Progress: [████████░░] 67%
 
@@ -82,6 +82,12 @@ None yet.
 ### Blockers/Concerns
 
 None yet.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | Remove drag popup | 2026-02-19 | 6fa4ece | [1-remove-drag-popup](./quick/1-remove-drag-popup/) |
 
 ## Session Continuity
 
