@@ -1,6 +1,19 @@
 # gantt-lib
 
-Лёгкий React/Next.js компонент диаграммы Ганта с drag-and-drop. Месячная шкала в стиле Excel — перемещайте и изменяйте размер задач прямо на сетке.
+Лёгкий React/Next.js компонент диаграммы Ганта с drag-and-drop. Перемещайте и изменяйте размер задач прямо на сетке.
+
+## Установка и запуск
+
+```bash
+git clone https://github.com/simon100500/gantt-lib.git
+cd gantt-lib
+npm i
+npm run dev
+```
+
+После запуска откройте [http://localhost:3000](http://localhost:3000) в браузере.
+
+![Скриншот](public/screen.png)
 
 ## Возможности
 
