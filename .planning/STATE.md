@@ -89,6 +89,7 @@ Recent decisions affecting current work:
 - [Phase 03]: Separate scroll refs (headerScrollRef, scrollContainerRef) for bidirectional sync capability
 - [Phase 03]: Conditional TodayIndicator rendering based on todayInRange check to prevent unnecessary rendering
 - [Quick 05]: External date labels positioned as siblings of taskBar using absolute positioning (right: 100% for left label, left: 100% for right label)
+- [Quick 06]: Drag guide lines using absolute positioning with full grid height and parent-child callback coordination pattern
 
 ### Pending Todos
 
@@ -105,6 +106,7 @@ None yet.
 | 1 | Remove drag popup | 2026-02-19 | 6fa4ece | [1-remove-drag-popup](./quick/1-remove-drag-popup/) |
 | 3 | Task bar date labels | 2026-02-19 | 8940b7c | [3-25-03](./quick/3-25-03/) |
 | 5 | External date labels | 2026-02-19 | dbfd429 | [5-label](./quick/5-label/) |
+| 6 | Drag guide lines | 2026-02-19 | 0b9d6ec | [6-guide-lines](./quick/6-guide-lines/) |
 | 7 | Fix month names to nominative case | 2026-02-19 | 16bf834 | [7-fix-month-names](./quick/7-fix-month-names/) |
 
 ## Session Continuity
