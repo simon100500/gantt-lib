@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
-import { format } from 'date-fns';
-import { getMonthDays } from '../../utils/dateUtils';
+import React, { useMemo, useCallback, useRef } from 'react';
+import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
+import GridBackground from '../GridBackground';
 import styles from './GanttChart.module.css';
 
 /**
@@ -28,8 +28,6 @@ export interface Task {
 export interface GanttChartProps {
   /** Array of tasks to display */
   tasks: Task[];
-  /** Month to display (defaults to current month) */
-  month?: Date | string;
   /** Width of each day column in pixels (default: 40) */
   dayWidth?: number;
   /** Height of each task row in pixels (default: 40) */
@@ -43,6 +41,10 @@ export interface GanttChartProps {
 /**
  * GanttChart component - displays tasks on a monthly timeline with Excel-like styling
  *
+ * The calendar automatically shows full months based on task date ranges.
+ * For example, if tasks span from March 25 to May 5, the calendar shows
+ * the complete months of March, April, and May (March 1 - May 31).
+ *
  * @example
  * ```tsx
  * <GanttChart
@@ -54,26 +56,52 @@ export interface GanttChartProps {
  */
 export const GanttChart: React.FC<GanttChartProps> = ({
   tasks,
-  month = new Date(),
   dayWidth = 40,
   rowHeight = 40,
   headerHeight = 40,
   onChange,
 }) => {
-  // Calculate month days once
-  const monthDays = useMemo(() => getMonthDays(month), [month]);
+  // Calculate multi-month date range from tasks
+  const dateRange = useMemo(() => getMultiMonthDays(tasks), [tasks]);
+
+  // Scroll refs for synchronized scrolling
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+
+  // Scroll sync handler - syncs header scroll with task area
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    if (headerScrollRef.current) {
+      headerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  }, []);
 
   // Calculate grid width
   const gridWidth = useMemo(
-    () => calculateGridWidth(monthDays.length, dayWidth),
-    [monthDays.length, dayWidth]
+    () => Math.round(dateRange.length * dayWidth),
+    [dateRange.length, dayWidth]
   );
 
-  // Get month start for calculations
+  // Calculate total grid height
+  const totalGridHeight = useMemo(
+    () => tasks.length * rowHeight,
+    [tasks.length, rowHeight]
+  );
+
+  // Get month start for calculations (first day of date range)
   const monthStart = useMemo(() => {
-    const date = typeof month === 'string' ? new Date(`${month}T00:00:00Z`) : month;
-    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
-  }, [month]);
+    if (dateRange.length === 0) {
+      return new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
+    }
+    const firstDay = dateRange[0];
+    return new Date(Date.UTC(firstDay.getUTCFullYear(), firstDay.getUTCMonth(), 1));
+  }, [dateRange]);
+
+  // Only render TodayIndicator if today is in the visible date range
+  const todayInRange = useMemo(() => {
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    return dateRange.some(day => day.getTime() === today.getTime());
+  }, [dateRange]);
 
   /**
    * Stable callback for task updates
@@ -105,31 +133,49 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   return (
     <div className={styles.container}>
       <div className={styles.chartWrapper}>
-        <TimeScaleHeader
-          days={monthDays}
-          dayWidth={dayWidth}
-          headerHeight={headerHeight}
-        />
+        {/* Header scroll container for synchronized scrolling */}
+        <div className={styles.headerScrollContainer} ref={headerScrollRef}>
+          <TimeScaleHeader
+            days={dateRange}
+            dayWidth={dayWidth}
+            headerHeight={headerHeight}
+          />
+        </div>
 
+        {/* Task area scroll container */}
         <div
-          className={styles.taskArea}
-          style={{
-            position: 'relative',
-            width: `${gridWidth}px`,
-          }}
+          className={styles.taskScrollContainer}
+          onScroll={handleScroll}
+          ref={scrollContainerRef}
         >
-          <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />
-
-          {tasks.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              monthStart={monthStart}
+          <div
+            className={styles.taskArea}
+            style={{
+              position: 'relative',
+              width: `${gridWidth}px`,
+            }}
+          >
+            {/* Grid background for vertical lines and weekend highlighting */}
+            <GridBackground
+              dateRange={dateRange}
               dayWidth={dayWidth}
-              rowHeight={rowHeight}
-              onChange={handleTaskChange}
+              totalHeight={totalGridHeight}
             />
-          ))}
+
+            {/* Today indicator - only render if today is in range */}
+            {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
+
+            {tasks.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                monthStart={monthStart}
+                dayWidth={dayWidth}
+                rowHeight={rowHeight}
+                onChange={handleTaskChange}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
