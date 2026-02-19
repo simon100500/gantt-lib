@@ -47,6 +47,8 @@ Progress: [███-------] 20%
 | Phase 03-calendar P03 | 2min | 2 tasks | 2 files |
 | Phase 03-calendar P04 | 2min | 4 tasks | 3 files |
 | Phase 04-npm-packaging P01 | 74 | 2 tasks | 4 files |
+| Phase 04-npm-packaging P03 | 60 | 2 tasks | 8 files |
+| Phase 04-npm-packaging P02 | 1 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -99,6 +101,10 @@ Recent decisions affecting current work:
 - [Phase 04-npm-packaging]: Turborepo for monorepo task orchestration
 - [Phase 04-npm-packaging]: npm workspaces pattern using packages/* glob
 - [Phase 04-npm-packaging]: Shared TypeScript base config without Next.js-specific options
+- [Phase 04-npm-packaging]: No transpilePackages in next.config.ts - library ships pre-compiled dist files
+- [Phase 04-npm-packaging]: Modal component moved to website-only - not part of library API
+- [Phase 04-npm-packaging]: Consumer CSS import pattern: import 'gantt-lib/styles.css' in layout.tsx
+- [Phase 04-npm-packaging]: Workspace dependency syntax: "gantt-lib": "*" for npm workspaces
 
 ### Pending Todos
 
