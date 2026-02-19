@@ -1,5 +1,5 @@
 import { defineConfig } from 'tsup';
-import preserveDirectives from 'esbuild-plugin-preserve-directives';
+import { preserveDirectivesPlugin } from 'esbuild-plugin-preserve-directives';
 
 export default defineConfig({
   entry: ['src/index.ts'],
@@ -10,9 +10,10 @@ export default defineConfig({
   sourcemap: true,
   external: ['react', 'react-dom', 'date-fns'],
   esbuildPlugins: [
-    preserveDirectives({
+    preserveDirectivesPlugin({
       directives: ['use client', 'use strict'],
       include: /\.(js|ts|jsx|tsx)$/,
+      exclude: /node_modules/,
     }),
   ],
   onSuccess: async () => {

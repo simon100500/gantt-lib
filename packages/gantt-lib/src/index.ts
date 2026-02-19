@@ -9,7 +9,7 @@ export { default as TaskRow } from './components/TaskRow';
 export { default as TimeScaleHeader } from './components/TimeScaleHeader';
 export { default as GridBackground } from './components/GridBackground';
 export { default as TodayIndicator } from './components/TodayIndicator';
-export { DragGuideLines } from './components/DragGuideLines/DragGuideLines';
+export { default as DragGuideLines } from './components/DragGuideLines/DragGuideLines';
 
 // Hooks
 export { useTaskDrag } from './hooks';
