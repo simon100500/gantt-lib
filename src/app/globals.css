@@ -34,8 +34,8 @@ body {
   --gantt-task-bar-height: 24px;
 
   /* Today Indicator */
-  --gantt-today-indicator-color: #ef4444;
-  --gantt-today-indicator-width: 1px;
+  --gantt-today-indicator-color: rgba(255, 0, 0, 0.2);
+  --gantt-today-indicator-width: 2px;
 
   /* Calendar Grid - Weekend */
   --gantt-weekend-background: #fff9f8;
@@ -43,9 +43,9 @@ body {
 
   /* Calendar Grid - Separators */
   --gantt-month-separator-width: 1px;
-  --gantt-month-separator-color: #8383ac;
+  --gantt-month-separator-color: #a1a1a1;
   --gantt-week-separator-width: 1px;
-  --gantt-week-separator-color: #d1d5db;
+  --gantt-week-separator-color: #f3f4f6;
   --gantt-day-line-width: 1px;
   --gantt-day-line-color: #f3f4f6;
 }

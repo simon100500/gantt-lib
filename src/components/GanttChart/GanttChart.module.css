@@ -12,19 +12,11 @@
 }
 
 .headerScrollContainer {
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-}
-
-.headerScrollContainer::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+  overflow: visible;
 }
 
 .taskScrollContainer {
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: visible;
   position: relative;
 }
 
