@@ -26,9 +26,9 @@ const generate100Tasks = (): Task[] => {
   const currentYear = now.getUTCFullYear();
   const currentMonth = now.getUTCMonth();
 
-  for (let i = 0; i < 20; i++) {
-    const startDay = (i * 3) % 25; // Days 0-24, deterministic
-    const duration = (i % 5) + 1;  // 1-5 days, deterministic
+  for (let i = 0; i < 30; i++) {
+    const startDay = (i * 3) % 45; // Days 0-24, deterministic
+    const duration = (i % 5) + 4;  // 1-5 days, deterministic
 
     tasks.push({
       id: `task-${i}`,
