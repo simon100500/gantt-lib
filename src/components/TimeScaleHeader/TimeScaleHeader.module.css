@@ -1,19 +1,47 @@
 /**
- * TimeScaleHeader Component Styles
+ * TimeScaleHeader Component Styles - Two-row header layout
  */
 
 .header {
+  display: flex;
+  flex-direction: column;
   background-color: var(--gantt-cell-background);
-  border-bottom: 1px solid var(--gantt-grid-line-color);
+  border-bottom: var(--gantt-month-separator-width, 2px) solid var(--gantt-month-separator-color, #374151);
+  box-sizing: border-box;
+}
+
+/* Month row (top row) */
+.monthRow {
+  display: flex;
+  border-bottom: var(--gantt-day-line-width, 1px) solid var(--gantt-day-line-color, #f3f4f6);
+  align-items: center;
+}
+
+.monthCell {
+  box-sizing: border-box;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1f2937;
+  border-right: var(--gantt-day-line-width, 1px) solid var(--gantt-day-line-color, #f3f4f6);
+  text-align: left;
+}
+
+.monthCell:last-child {
+  border-right: none;
+}
+
+/* Day row (bottom row) */
+.dayRow {
+  display: grid;
   box-sizing: border-box;
 }
 
 .dayCell {
-  border-right: 1px solid var(--gantt-grid-line-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem;
+  border-right: var(--gantt-day-line-width, 1px) solid var(--gantt-day-line-color, #f3f4f6);
   box-sizing: border-box;
 }
 
@@ -25,8 +53,4 @@
   font-size: 0.75rem;
   font-weight: 500;
   color: #374151;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
