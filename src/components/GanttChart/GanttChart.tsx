@@ -35,6 +35,8 @@ export interface GanttChartProps {
   rowHeight?: number;
   /** Height of the header row in pixels (default: 40) */
   headerHeight?: number;
+  /** Container height in pixels (default: 600) - adds vertical scrolling when tasks exceed this height */
+  containerHeight?: number;
   /** Callback when tasks are modified via drag/resize. Can receive either the new tasks array or a functional updater. */
   onChange?: (tasks: Task[] | ((currentTasks: Task[]) => Task[])) => void;
 }
@@ -60,6 +62,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   dayWidth = 40,
   rowHeight = 40,
   headerHeight = 40,
+  containerHeight = 600,
   onChange,
 }) => {
   // Calculate multi-month date range from tasks
@@ -144,7 +147,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
   return (
     <div className={styles.container}>
-      <div className={styles.chartWrapper}>
+      <div className={styles.chartWrapper} style={{ height: `${containerHeight}px` }}>
         {/* Header */}
         <div className={styles.headerScrollContainer}>
           <TimeScaleHeader

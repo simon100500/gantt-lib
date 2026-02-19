@@ -5,7 +5,8 @@
 }
 
 .chartWrapper {
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
   min-width: 100%;
   border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   background-color: var(--gantt-cell-background, #ffffff);
@@ -16,8 +17,10 @@
 }
 
 .taskScrollContainer {
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: visible;
   position: relative;
+  flex: 1;
 }
 
 .taskArea {
