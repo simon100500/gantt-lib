@@ -7,6 +7,7 @@
 - fda22ed: Add container height constraint and vertical scrolling
 - bd44d13: Make header sticky during vertical scroll
 - 632eaae: fix(scroll): restore horizontal scroll synchronization between header and tasks
+- 4bf3aee: fix(scroll): fix header month distribution and scrollbar offset
 
 ## What Was Built
 
@@ -23,7 +24,7 @@
 
 ## Issues Found and Fixed
 
-**Issue:** Initial implementation removed horizontal scroll synchronization completely - header wouldn't scroll horizontally with the grid.
+**Issue 1:** Initial implementation removed horizontal scroll synchronization completely - header wouldn't scroll horizontally with the grid.
 
 **Fix:** Restored horizontal scroll synchronization by:
 - Adding `overflow-x: auto` to `taskScrollContainer`
@@ -31,6 +32,14 @@
 - Adding `headerScrollRef` and `scrollContainerRef`
 - Adding `handleHeaderScroll` and `handleTaskScroll` callbacks
 - Connecting refs and `onScroll` handlers in JSX
+
+**Issue 2:** Month names were compressed and last dates showed without months (bare space).
+
+**Fix:** Wrapped `TimeScaleHeader` in a div with fixed `gridWidth` to ensure proper month distribution across full width.
+
+**Issue 3:** When scrolled to the right edge, header and grid were misaligned by scrollbar width.
+
+**Fix:** Added `scrollbar-gutter: stable` to `taskScrollContainer` to reserve space for vertical scrollbar and prevent content shift.
 
 ## Result
 
