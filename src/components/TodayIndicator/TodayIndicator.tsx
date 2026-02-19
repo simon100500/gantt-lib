@@ -46,7 +46,7 @@ const TodayIndicator: React.FC<TodayIndicatorProps> = ({ monthStart, dayWidth })
     ));
 
     const offset = getDayOffset(todayUTC, monthStart);
-    return Math.round(offset * dayWidth + dayWidth / 2);
+    return Math.round(offset * dayWidth);
   }, [isInMonth, monthStart, dayWidth, now]);
 
   if (!isInMonth || position === null) {
