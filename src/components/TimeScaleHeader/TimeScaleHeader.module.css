@@ -61,3 +61,11 @@
 .weekendDay .dayLabel {
   color: #dc2626;
 }
+
+.today {
+  background-color: #dc2626;
+}
+
+.today .dayLabel {
+  color: #ffffff;
+}
