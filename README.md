@@ -1,5 +1,7 @@
 # gantt-lib
 
+![Скриншот](docs/images/screen.png)
+
 Лёгкий React/Next.js компонент диаграммы Ганта с drag-and-drop. Перемещайте и изменяйте размер задач прямо на сетке.
 
 ## Установка
@@ -20,8 +22,6 @@ npm run dev
 ```
 
 После запуска откройте [http://localhost:3000](http://localhost:3000) в браузере.
-
-![Скриншот](packages/website/public/screen.png)
 
 ## Возможности
 
