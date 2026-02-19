@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { parseUTCDate } from '../../utils/dateUtils';
+import { parseUTCDate, formatDateLabel } from '../../utils/dateUtils';
 import { calculateTaskBar } from '../../utils/geometry';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import type { Task } from '../GanttChart';
@@ -98,27 +98,38 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const displayLeft = isDragging ? currentLeft : left;
     const displayWidth = isDragging ? currentWidth : width;
 
+    // Format date labels for display
+    const startDateLabel = formatDateLabel(taskStartDate);
+    const endDateLabel = formatDateLabel(taskEndDate);
 
     return (
       <div
         className={styles.row}
         style={{ height: `${rowHeight}px` }}
       >
-        <div
-          className={`${styles.taskBar} ${isDragging ? styles.dragging : ''}`}
-          style={{
-            left: `${displayLeft}px`,
-            width: `${displayWidth}px`,
-            backgroundColor: barColor,
-            height: 'var(--gantt-task-bar-height)',
-            cursor: dragHandleProps.style.cursor,
-            userSelect: dragHandleProps.style.userSelect,
-          }}
-          onMouseDown={dragHandleProps.onMouseDown}
-        >
-          <div className={`${styles.resizeHandle} ${styles.resizeHandleLeft}`} />
-          <span className={styles.taskName}>{task.name}</span>
-          <div className={`${styles.resizeHandle} ${styles.resizeHandleRight}`} />
+        <div className={styles.taskContainer}>
+          <span className={`${styles.dateLabel} ${styles.dateLabelLeft}`}>
+            {startDateLabel}
+          </span>
+          <div
+            className={`${styles.taskBar} ${isDragging ? styles.dragging : ''}`}
+            style={{
+              left: `${displayLeft}px`,
+              width: `${displayWidth}px`,
+              backgroundColor: barColor,
+              height: 'var(--gantt-task-bar-height)',
+              cursor: dragHandleProps.style.cursor,
+              userSelect: dragHandleProps.style.userSelect,
+            }}
+            onMouseDown={dragHandleProps.onMouseDown}
+          >
+            <div className={`${styles.resizeHandle} ${styles.resizeHandleLeft}`} />
+            <span className={styles.taskName}>{task.name}</span>
+            <div className={`${styles.resizeHandle} ${styles.resizeHandleRight}`} />
+          </div>
+          <span className={`${styles.dateLabel} ${styles.dateLabelRight}`}>
+            {endDateLabel}
+          </span>
         </div>
       </div>
     );
