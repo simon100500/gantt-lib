@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { parseUTCDate, formatDateLabel } from '../../utils/dateUtils';
 import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
@@ -109,6 +109,22 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const startDateLabel = formatDateLabel(currentStartDate);
     const endDateLabel = formatDateLabel(currentEndDate);
 
+    // Detect if task name overflows the bar
+    const [isNameOverflow, setIsNameOverflow] = useState(false);
+    const taskNameRef = useRef<HTMLSpanElement>(null);
+
+    useEffect(() => {
+      const nameEl = taskNameRef.current;
+      if (nameEl) {
+        // Check if text is wider than available space
+        // Available space = displayWidth - (dates + handles + padding)
+        // Approx: 35px per date label + 8px per handle + 16px padding = ~92px reserved
+        const reservedWidth = 92;
+        const availableWidth = displayWidth - reservedWidth;
+        setIsNameOverflow(nameEl.scrollWidth > availableWidth);
+      }
+    }, [displayWidth, task.name]);
+
     return (
       <div
         className={styles.row}
@@ -131,12 +147,27 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               {startDateLabel}
             </span>
             <div className={`${styles.resizeHandle} ${styles.resizeHandleLeft}`} />
-            <span className={styles.taskName}>{task.name}</span>
+            <span
+              ref={taskNameRef}
+              className={`${styles.taskName} ${isNameOverflow ? styles.taskNameHidden : ''}`}
+            >
+              {task.name}
+            </span>
             <div className={`${styles.resizeHandle} ${styles.resizeHandleRight}`} />
             <span className={`${styles.dateLabel} ${styles.dateLabelRight}`}>
               {endDateLabel}
             </span>
           </div>
+          {isNameOverflow && (
+            <span
+              className={styles.externalTaskName}
+              style={{
+                left: `${displayLeft + displayWidth}px`,
+              }}
+            >
+              {task.name}
+            </span>
+          )}
         </div>
       </div>
     );
