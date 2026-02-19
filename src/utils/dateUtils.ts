@@ -204,3 +204,15 @@ export const getMonthSpans = (
 
   return spans;
 };
+
+/**
+ * Format date as DD.MM (e.g., 25.03 for March 25th)
+ * @param date - Date to format
+ * @returns Formatted date string in DD.MM format
+ */
+export const formatDateLabel = (date: Date | string): string => {
+  const parsed = parseUTCDate(date);
+  const day = String(parsed.getUTCDate()).padStart(2, '0');
+  const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+  return `${day}.${month}`;
+};
