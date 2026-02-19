@@ -11,6 +11,23 @@
   background-color: var(--gantt-cell-background, #ffffff);
 }
 
+.headerScrollContainer {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.headerScrollContainer::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.taskScrollContainer {
+  overflow-x: auto;
+  overflow-y: visible;
+  position: relative;
+}
+
 .taskArea {
   position: relative;
   background-color: var(--gantt-cell-background, #ffffff);
