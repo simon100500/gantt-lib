@@ -23,9 +23,9 @@ body {
   --gantt-row-hover-background: #f8f9fa;
 
   /* Dimensions */
-  --gantt-row-height: 40px;
+  --gantt-row-height: 30px;
   --gantt-header-height: 40px;
-  --gantt-day-width: 40px;
+  --gantt-day-width: 30px;
 
   /* Task Bar Styling */
   --gantt-task-bar-default-color: #3b82f6;
@@ -35,15 +35,15 @@ body {
 
   /* Today Indicator */
   --gantt-today-indicator-color: #ef4444;
-  --gantt-today-indicator-width: 2px;
+  --gantt-today-indicator-width: 1px;
 
   /* Calendar Grid - Weekend */
-  --gantt-weekend-background: #fee2e2;
+  --gantt-weekend-background: #fff9f8;
   --gantt-weekend-border: #fca5a5;
 
   /* Calendar Grid - Separators */
-  --gantt-month-separator-width: 2px;
-  --gantt-month-separator-color: #374151;
+  --gantt-month-separator-width: 1px;
+  --gantt-month-separator-color: #8383ac;
   --gantt-week-separator-width: 1px;
   --gantt-week-separator-color: #d1d5db;
   --gantt-day-line-width: 1px;
