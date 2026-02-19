@@ -611,5 +611,33 @@ describe('useTaskDrag', () => {
       expect(result.current.currentLeft).not.toBe(initialLeft);
       expect(result.current.currentLeft).toBe(450); // 9 days * 50
     });
+
+    it('should recalculate position when monthStart changes (grid expansion)', () => {
+      const { result, rerender } = renderHook(
+        ({ options }) => useTaskDrag(options),
+        {
+          initialProps: {
+            options: mockOptions,
+          },
+        }
+      );
+
+      const initialLeft = result.current.currentLeft;
+      // Feb 10 is 9 days after Feb 1, so left = 9 * 40 = 360
+      expect(initialLeft).toBe(360);
+
+      // Simulate grid expanding to the left (monthStart moves to Jan 1)
+      rerender({
+        options: {
+          ...mockOptions,
+          monthStart: new Date(Date.UTC(2026, 0, 1)), // Jan 1, 2026
+        },
+      });
+
+      // Feb 10 is now 40 days after Jan 1 (31 days in Jan + 9 days in Feb)
+      // left = 40 * 40 = 1600
+      expect(result.current.currentLeft).not.toBe(initialLeft);
+      expect(result.current.currentLeft).toBe(1600); // 40 days * 40
+    });
   });
 });

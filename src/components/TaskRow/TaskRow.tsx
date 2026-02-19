@@ -38,6 +38,10 @@ export interface TaskRowProps {
  * 3. During drag, only the dragged TaskRow re-renders due to its internal drag state
  * 4. Other TaskRows don't need to re-render when one task is dragged
  *
+ * NOTE: monthStart MUST be included because task positions are calculated relative to it.
+ * When the grid expands (e.g., dragging a task left beyond the boundary), monthStart changes
+ * and all tasks need to re-render to update their positions.
+ *
  * Excluding onChange prevents re-render storms when dragging tasks with ~100 tasks.
  */
 const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
@@ -47,6 +51,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.startDate === nextProps.task.startDate &&
     prevProps.task.endDate === nextProps.task.endDate &&
     prevProps.task.color === nextProps.task.color &&
+    prevProps.monthStart.getTime() === nextProps.monthStart.getTime() &&
     prevProps.dayWidth === nextProps.dayWidth &&
     prevProps.rowHeight === nextProps.rowHeight
     // onChange excluded - see note above
