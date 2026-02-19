@@ -20,6 +20,10 @@
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   overflow-x: hidden;
   overflow-y: hidden;
+  /* Match taskScrollContainer scrollbar gutter so both have the same scroll range.
+     With classic scrollbars, scrollbar-gutter: stable reserves space even when
+     overflow is hidden, keeping header and grid scroll widths in sync. */
+  scrollbar-gutter: stable;
 }
 
 .taskScrollContainer {
