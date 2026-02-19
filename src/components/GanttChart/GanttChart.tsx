@@ -156,7 +156,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         style={{ height: `${containerHeight}px` }}
       >
         {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
-        <div className={styles.stickyHeader}>
+        <div className={styles.stickyHeader} style={{ width: `${gridWidth}px` }}>
           <TimeScaleHeader
             days={dateRange}
             dayWidth={dayWidth}
