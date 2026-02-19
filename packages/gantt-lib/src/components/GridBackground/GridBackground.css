@@ -1,4 +1,4 @@
-.gridBackground {
+.gantt-gb-gridBackground {
   position: absolute;
   top: 0;
   left: 0;
@@ -6,31 +6,31 @@
   pointer-events: none;
 }
 
-.weekendBlock {
+.gantt-gb-weekendBlock {
   position: absolute;
   top: 0;
   height: 100%;
   background-color: var(--gantt-weekend-background, #fee2e2);
 }
 
-.gridLine {
+.gantt-gb-gridLine {
   position: absolute;
   top: 0;
   height: 100%;
   background-color: var(--gantt-day-line-color, #f3f4f6);
 }
 
-.monthSeparator {
+.gantt-gb-monthSeparator {
   width: var(--gantt-month-separator-width, 2px);
   background-color: var(--gantt-month-separator-color, #374151);
 }
 
-.weekSeparator {
+.gantt-gb-weekSeparator {
   width: var(--gantt-week-separator-width, 1px);
   background-color: var(--gantt-week-separator-color, #d1d5db);
 }
 
-.dayLine {
+.gantt-gb-dayLine {
   width: var(--gantt-day-line-width, 1px);
   background-color: var(--gantt-day-line-color, #f3f4f6);
 }

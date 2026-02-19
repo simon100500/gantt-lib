@@ -2,18 +2,18 @@
  * TaskRow Component Styles
  */
 
-.row {
+.gantt-tr-row {
   position: relative;
   width: 100%;
   border-bottom: 1px solid var(--gantt-grid-line-color);
   box-sizing: border-box;
 }
 
-.row:hover {
+.gantt-tr-row:hover {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-.taskBar {
+.gantt-tr-taskBar {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -30,9 +30,9 @@
 
 /**
  * Hover state - provides smooth visual feedback
- * Transition disabled during drag (see .taskBar.dragging)
+ * Transition disabled during drag (see .gantt-tr-taskBar.gantt-tr-dragging)
  */
-.taskBar:hover {
+.gantt-tr-taskBar:hover {
   /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); */
 }
 
@@ -40,19 +40,19 @@
  * Dragging state - disables all transitions for performance
  *
  * CRITICAL: transition: none !important is required to override the
- * default box-shadow transition on .taskBar. Without this, CSS transitions
+ * default box-shadow transition on .gantt-tr-taskBar. Without this, CSS transitions
  * during drag cause lag/ghosting and break the 60fps performance target.
  *
  * Per research anti-pattern: "Using CSS transitions during drag causes lag/ghosting."
  */
-.taskBar.dragging {
+.gantt-tr-taskBar.gantt-tr-dragging {
   cursor: grabbing;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   opacity: 1;
   transition: none !important;
 }
 
-.taskName {
+.gantt-tr-taskName {
   color: var(--gantt-task-bar-text-color);
   font-size: 0.875rem;
   font-weight: 500;
@@ -62,7 +62,7 @@
   max-width: 100%;
 }
 
-.taskDuration {
+.gantt-tr-taskDuration {
   color: var(--gantt-task-bar-text-color);
   font-size: 0.875rem;
   font-weight: 500;
@@ -70,11 +70,11 @@
   margin-right: 4px;
 }
 
-.taskNameHidden {
+.gantt-tr-taskNameHidden {
   visibility: hidden;
 }
 
-.rightLabels {
+.gantt-tr-rightLabels {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -84,12 +84,12 @@
   pointer-events: none;
 }
 
-.dateLabelRight {
+.gantt-tr-dateLabelRight {
   position: static;
   margin-right: 0;
 }
 
-.externalTaskName {
+.gantt-tr-externalTaskName {
   font-size: 0.9rem;
   font-weight: 500;
   color: #00389f;
@@ -98,7 +98,7 @@
   margin-left: 4px;
 }
 
-.resizeHandle {
+.gantt-tr-resizeHandle {
   position: absolute;
   top: 0;
   width: 8px;
@@ -107,23 +107,23 @@
   cursor: ew-resize;
 }
 
-.resizeHandleLeft {
+.gantt-tr-resizeHandleLeft {
   left: 0;
 }
 
-.resizeHandleRight {
+.gantt-tr-resizeHandleRight {
   right: 0;
 }
 
-.resizeZoneLeft {
+.gantt-tr-resizeZoneLeft {
   cursor: ew-resize;
 }
 
-.resizeZoneRight {
+.gantt-tr-resizeZoneRight {
   cursor: ew-resize;
 }
 
-.taskContainer {
+.gantt-tr-taskContainer {
   position: relative;
   width: 100%;
   height: 100%;
@@ -131,7 +131,7 @@
   align-items: center;
 }
 
-.leftLabels {
+.gantt-tr-leftLabels {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -140,7 +140,7 @@
   pointer-events: none;
 }
 
-.dateLabel {
+.gantt-tr-dateLabel {
   font-size: 0.85rem;
   color: #666666;
   white-space: nowrap;
@@ -148,7 +148,7 @@
   user-select: none;
 }
 
-.dateLabelLeft {
+.gantt-tr-dateLabelLeft {
   position: absolute;
   right: 100%;
   margin-right: 6px;

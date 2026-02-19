@@ -8,7 +8,7 @@ import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
 import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
-import styles from './GanttChart.module.css';
+import './GanttChart.css';
 
 /**
  * Task data structure for Gantt chart
@@ -197,15 +197,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   }, []);
 
   return (
-    <div className={styles.container}>
+    <div className="gantt-container">
       <div
         ref={scrollContainerRef}
-        className={styles.scrollContainer}
+        className="gantt-scrollContainer"
         style={{ height: `${containerHeight}px`, cursor: 'grab' }}
         onMouseDown={handlePanStart}
       >
         {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
-        <div className={styles.stickyHeader} style={{ width: `${gridWidth}px` }}>
+        <div className="gantt-stickyHeader" style={{ width: `${gridWidth}px` }}>
           <TimeScaleHeader
             days={dateRange}
             dayWidth={dayWidth}
@@ -215,7 +215,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
         {/* Task area */}
         <div
-          className={styles.taskArea}
+          className="gantt-taskArea"
           style={{
             position: 'relative',
             width: `${gridWidth}px`,

@@ -5,7 +5,7 @@ import { parseUTCDate, formatDateLabel } from '../../utils/dateUtils';
 import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import type { Task } from '../GanttChart';
-import styles from './TaskRow.module.css';
+import './TaskRow.css';
 
 export interface TaskRowProps {
   /** Task data to render */
@@ -144,13 +144,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
     return (
       <div
-        className={styles.row}
+        className="gantt-tr-row"
         style={{ height: `${rowHeight}px` }}
       >
-        <div className={styles.taskContainer}>
+        <div className="gantt-tr-taskContainer">
           <div
             data-taskbar
-            className={`${styles.taskBar} ${isDragging ? styles.dragging : ''}`}
+            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''}`}
             style={{
               left: `${displayLeft}px`,
               width: `${displayWidth}px`,
@@ -161,36 +161,36 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
             onMouseDown={dragHandleProps.onMouseDown}
           >
-            <div className={`${styles.resizeHandle} ${styles.resizeHandleLeft}`} />
-            <span className={styles.taskDuration}>
+            <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
+            <span className="gantt-tr-taskDuration">
               {durationDays} д
             </span>
             <span
               ref={taskNameRef}
-              className={`${styles.taskName} ${isNameOverflow ? styles.taskNameHidden : ''}`}
+              className={`gantt-tr-taskName ${isNameOverflow ? 'gantt-tr-taskNameHidden' : ''}`}
             >
               — {task.name}
             </span>
-            <div className={`${styles.resizeHandle} ${styles.resizeHandleRight}`} />
+            <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />
           </div>
           <div
-            className={styles.leftLabels}
+            className="gantt-tr-leftLabels"
             style={{
               left: `${displayLeft}px`
             }}
           >
-            <span className={`${styles.dateLabel} ${styles.dateLabelLeft}`}>
+            <span className="gantt-tr-dateLabel gantt-tr-dateLabelLeft">
               {startDateLabel}–{endDateLabel}
             </span>
           </div>
           <div
-            className={styles.rightLabels}
+            className="gantt-tr-rightLabels"
             style={{
               left: `${displayLeft + displayWidth}px`,
             }}
           >
             {isNameOverflow && (
-              <span className={styles.externalTaskName}>
+              <span className="gantt-tr-externalTaskName">
                 {task.name}
               </span>
             )}

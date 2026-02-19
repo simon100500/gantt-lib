@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { getDayOffset, isToday } from '../../utils/dateUtils';
-import styles from './TodayIndicator.module.css';
+import './TodayIndicator.css';
 
 export interface TodayIndicatorProps {
   /** Start of the month for positioning calculations */
@@ -48,7 +48,7 @@ const TodayIndicator: React.FC<TodayIndicatorProps> = ({ monthStart, dayWidth })
 
   return (
     <div
-      className={styles.indicator}
+      className="gantt-ti-indicator"
       style={{
         left: `${position}px`,
         width: 'var(--gantt-today-indicator-width)',

@@ -2,7 +2,7 @@
  * TimeScaleHeader Component Styles - Two-row header layout
  */
 
-.header {
+.gantt-tsh-header {
   display: flex;
   flex-direction: column;
   background-color: var(--gantt-cell-background);
@@ -11,13 +11,13 @@
 }
 
 /* Month row (top row) */
-.monthRow {
+.gantt-tsh-monthRow {
   display: flex;
   border-bottom: var(--gantt-day-line-width, 1px) solid var(--gantt-day-line-color, #f3f4f6);
   align-items: center;
 }
 
-.monthCell {
+.gantt-tsh-monthCell {
   box-sizing: border-box;
   padding: 0.1rem 0.5rem;
   font-size: 0.75rem;
@@ -27,46 +27,46 @@
   text-align: left;
 }
 
-.monthCell:first-child {
+.gantt-tsh-monthCell:first-child {
   border-left: none;
 }
 
 /* Day row (bottom row) */
-.dayRow {
+.gantt-tsh-dayRow {
   display: grid;
   box-sizing: border-box;
 }
 
-.dayCell {
+.gantt-tsh-dayCell {
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
 }
 
-.monthBoundary {
+.gantt-tsh-monthBoundary {
   border-left: var(--gantt-month-separator-width, 2px) solid var(--gantt-month-separator-color, #a1a1a1);
 }
 
-.dayLabel {
+.gantt-tsh-dayLabel {
   font-size: 0.75rem;
   font-weight: 500;
   color: #374151;
 }
 
-.weekendDay {
+.gantt-tsh-weekendDay {
   background-color: var(--gantt-weekend-background, #fee2e2);
 }
 
-.weekendDay .dayLabel {
+.gantt-tsh-weekendDay .gantt-tsh-dayLabel {
   color: #dc2626;
 }
 
-.today {
+.gantt-tsh-today {
   background-color: #dc2626;
   border-radius: 0 4px 4px 0;
 }
 
-.today .dayLabel {
+.gantt-tsh-today .gantt-tsh-dayLabel {
   color: #ffffff;
 }

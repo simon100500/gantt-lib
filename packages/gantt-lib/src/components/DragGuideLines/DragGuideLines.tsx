@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import styles from './DragGuideLines.module.css';
+import './DragGuideLines.css';
 
 export interface DragGuideLinesProps {
   isDragging: boolean;
@@ -30,7 +30,7 @@ const DragGuideLines: React.FC<DragGuideLinesProps> = ({
     <>
       {showLeftLine && (
         <div
-          className={styles.guideLine}
+          className="gantt-dgl-guideLine"
           style={{
             left: `${left}px`,
             height: `${totalHeight}px`,
@@ -39,7 +39,7 @@ const DragGuideLines: React.FC<DragGuideLinesProps> = ({
       )}
       {showRightLine && (
         <div
-          className={styles.guideLine}
+          className="gantt-dgl-guideLine"
           style={{
             left: `${left + width}px`,
             height: `${totalHeight}px`,

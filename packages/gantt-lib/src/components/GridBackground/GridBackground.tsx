@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { calculateGridLines, calculateWeekendBlocks } from '../../utils/geometry';
 import type { GridLine } from '../../types';
-import styles from './GridBackground.module.css';
+import './GridBackground.css';
 
 export interface GridBackgroundProps {
   /** Array of dates to display (from getMultiMonthDays) */
@@ -59,7 +59,7 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
 
     return (
       <div
-        className={styles.gridBackground}
+        className="gantt-gb-gridBackground"
         style={{
           width: `${gridWidth}px`,
           height: `${totalHeight}px`,
@@ -69,7 +69,7 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
         {weekendBlocks.map((block, index) => (
           <div
             key={`weekend-${index}`}
-            className={styles.weekendBlock}
+            className="gantt-gb-weekendBlock"
             style={{
               left: `${block.left}px`,
               width: `${block.width}px`,
@@ -81,15 +81,15 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
         {gridLines.map((line, index) => {
           // Determine line type class based on flags
           const lineClass = line.isMonthStart
-            ? styles.monthSeparator
+            ? 'gantt-gb-monthSeparator'
             : line.isWeekStart
-              ? styles.weekSeparator
-              : styles.dayLine;
+              ? 'gantt-gb-weekSeparator'
+              : 'gantt-gb-dayLine';
 
           return (
             <div
               key={`gridline-${index}`}
-              className={`${styles.gridLine} ${lineClass}`}
+              className={`gantt-gb-gridLine ${lineClass}`}
               style={{
                 left: `${line.x}px`,
               }}

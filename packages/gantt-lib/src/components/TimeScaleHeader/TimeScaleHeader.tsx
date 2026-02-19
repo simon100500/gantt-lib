@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { getMonthSpans } from '../../utils/dateUtils';
 import type { MonthSpan } from '../../types';
-import styles from './TimeScaleHeader.module.css';
+import './TimeScaleHeader.css';
 
 export interface TimeScaleHeaderProps {
   /** Array of dates to display (from getMultiMonthDays) */
@@ -41,18 +41,18 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
 
   return (
     <div
-      className={styles.header}
+      className="gantt-tsh-header"
       style={{ height: `${headerHeight}px` }}
     >
       {/* Month row - top */}
       <div
-        className={styles.monthRow}
+        className="gantt-tsh-monthRow"
         style={{ height: `${rowHeight}px` }}
       >
         {monthSpans.map((span: MonthSpan, index: number) => (
           <div
             key={`month-${index}`}
-            className={styles.monthCell}
+            className="gantt-tsh-monthCell"
             style={{ width: `${span.days * dayWidth}px` }}
           >
             {format(span.month, 'LLLL yyyy', { locale: ru }).replace(/^./, (c) => c.toUpperCase())}
@@ -62,7 +62,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
 
       {/* Day row - bottom */}
       <div
-        className={styles.dayRow}
+        className="gantt-tsh-dayRow"
         style={{
           height: `${rowHeight}px`,
           gridTemplateColumns: dayGridTemplate,
@@ -74,13 +74,13 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
           const isMonthBoundary = index > 0 && prevDay && prevDay.getMonth() !== day.getMonth();
           // Use local date comparison for "today" (user's current date)
           const now = new Date();
-          const isTodayDate = 
+          const isTodayDate =
             day.getUTCFullYear() === now.getFullYear() &&
             day.getUTCMonth() === now.getMonth() &&
             day.getUTCDate() === now.getDate();
           return (
-            <div key={`day-${index}`} className={`${styles.dayCell} ${isWeekend ? styles.weekendDay : ''} ${isMonthBoundary ? styles.monthBoundary : ''} ${isTodayDate ? styles.today : ''}`}>
-              <span className={styles.dayLabel}>{format(day, 'd')}</span>
+            <div key={`day-${index}`} className={`gantt-tsh-dayCell ${isWeekend ? 'gantt-tsh-weekendDay' : ''} ${isMonthBoundary ? 'gantt-tsh-monthBoundary' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''}`}>
+              <span className="gantt-tsh-dayLabel">{format(day, 'd')}</span>
             </div>
           );
         })}
