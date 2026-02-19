@@ -13,8 +13,7 @@ Build a lightweight React/Next.js library for interactive Gantt charts. Starting
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & Core Rendering** - Static Gantt chart with monthly timeline and task bars
-- [x] **Phase 2: Drag-and-Drop Interactions** - Interactive task manipulation via drag operations (completed 2026-02-19)
-- [ ] **Phase 3: Polish & Developer Experience** - Production-ready library with TypeScript and distribution
+- [x] **Phase 2: Drag-and-Drop Interactions** - Interactive task manipulation via drag operations (completed 2003-02-19)
 
 ## Phase Details
 
@@ -53,33 +52,3 @@ Plans:
 - [x] 02-01-PLAN.md — Drag state management and hit detection
 - [x] 02-02-PLAN.md — Move and resize interaction handlers
 - [x] 02-03-PLAN.md — Performance optimization and testing
-
-### Phase 3: Polish & Developer Experience
-**Goal**: Production-ready library with excellent TypeScript support and distribution
-**Depends on**: Phase 2
-**Requirements**: API-03, DX-01, DX-02, DX-03, DX-04
-**Success Criteria** (what must be TRUE):
-  1. Developer gets full TypeScript support with exported types
-  2. Developer can install component with minimal dependencies
-  3. Bundle size is under 15KB gzipped
-  4. Component works as Next.js App Router client component
-  5. Developer can customize colors via CSS variables
-  6. API surface is simple: `<Gantt tasks={tasks} onChange={handleTasksChange} />`
-**Plans**: TBD
-
-Plans:
-- [ ] 03-01: TypeScript types and API surface
-- [ ] 03-02: CSS theming with CSS variables
-- [ ] 03-03: Bundle optimization and distribution setup
-- [ ] 03-04: Next.js App Router compatibility verification
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Foundation & Core Rendering | 3/3 | Complete    | 2026-02-18 |
-| 2. Drag-and-Drop Interactions | 3/3 | Complete    | 2026-02-19 |
-| 3. Polish & Developer Experience | 0/4 | Not started | - |
