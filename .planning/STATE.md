@@ -80,7 +80,8 @@ Recent decisions affecting current work:
 - [Phase 02]: Removed onChange from React.memo comparison (relies on useCallback stability + onChange fires after drag only)
 - [Phase 02]: Used !important on transition: none during drag to ensure override of hover transitions
 - [Phase 03]: Two-row header layout with months on top, days below for better information density
-- [Phase 03]: Russian locale (ru) for month names using date-fns format() with 'MMMM' pattern
+- [Phase 03]: Russian locale (ru) for month names using date-fns format() with 'LLLL' pattern (standalone nominative case)
+- [Quick 07]: Fixed month names to use 'LLLL' format for nominative case with capital letter
 - [Phase 03]: Flexbox for month row (dynamic-width cells), CSS Grid for day row (fixed-width columns)
 - [Phase 03]: Left-aligned month names, centered day numbers for visual hierarchy
 - [Phase 03]: Hidden scrollbar pattern using CSS scrollbar-width: none for header scroll container
@@ -104,6 +105,7 @@ None yet.
 | 1 | Remove drag popup | 2026-02-19 | 6fa4ece | [1-remove-drag-popup](./quick/1-remove-drag-popup/) |
 | 3 | Task bar date labels | 2026-02-19 | 8940b7c | [3-25-03](./quick/3-25-03/) |
 | 5 | External date labels | 2026-02-19 | dbfd429 | [5-label](./quick/5-label/) |
+| 7 | Fix month names to nominative case | 2026-02-19 | 16bf834 | [7-fix-month-names](./quick/7-fix-month-names/) |
 
 ## Session Continuity
 

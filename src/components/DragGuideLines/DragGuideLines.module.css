@@ -1,0 +1,9 @@
+.guideLine {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  background-color: var(--gantt-drag-guide-line-color, #3b82f6);
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0.6;
+}
