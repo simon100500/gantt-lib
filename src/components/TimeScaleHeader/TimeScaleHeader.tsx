@@ -55,7 +55,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
             className={styles.monthCell}
             style={{ width: `${span.days * dayWidth}px` }}
           >
-            {format(span.month, 'MMMM', { locale: ru })}
+            {format(span.month, 'LLLL', { locale: ru })}
           </div>
         ))}
       </div>
