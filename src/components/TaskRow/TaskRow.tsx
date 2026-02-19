@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { parseUTCDate, formatDateLabel } from '../../utils/dateUtils';
-import { calculateTaskBar } from '../../utils/geometry';
+import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import type { Task } from '../GanttChart';
 import styles from './TaskRow.module.css';
@@ -98,9 +98,16 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const displayLeft = isDragging ? currentLeft : left;
     const displayWidth = isDragging ? currentWidth : width;
 
-    // Format date labels for display
-    const startDateLabel = formatDateLabel(taskStartDate);
-    const endDateLabel = formatDateLabel(taskEndDate);
+    // Format date labels for display - update in real-time during drag
+    const currentStartDate = isDragging
+      ? pixelsToDate(displayLeft, monthStart, dayWidth)
+      : taskStartDate;
+    const currentEndDate = isDragging
+      ? pixelsToDate(displayLeft + displayWidth - dayWidth, monthStart, dayWidth)
+      : taskEndDate;
+
+    const startDateLabel = formatDateLabel(currentStartDate);
+    const endDateLabel = formatDateLabel(currentEndDate);
 
     return (
       <div

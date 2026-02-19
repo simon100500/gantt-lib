@@ -40,6 +40,22 @@ export const calculateTaskBar = (
 };
 
 /**
+ * Convert pixel position to date (inverse of calculateTaskBar)
+ * @param pixels - Position in pixels (left or width)
+ * @param monthStart - Start of the month/visible range
+ * @param dayWidth - Width of each day in pixels
+ * @returns Date calculated from pixel position
+ */
+export const pixelsToDate = (pixels: number, monthStart: Date, dayWidth: number): Date => {
+  const days = Math.round(pixels / dayWidth);
+  return new Date(Date.UTC(
+    monthStart.getUTCFullYear(),
+    monthStart.getUTCMonth(),
+    monthStart.getUTCDate() + days
+  ));
+};
+
+/**
  * Calculate total width for month grid
  * @param daysInMonth - Number of days in the month
  * @param dayWidth - Width of each day in pixels
