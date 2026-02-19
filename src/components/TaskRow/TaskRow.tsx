@@ -91,7 +91,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       monthStart,
       dayWidth,
       onDragEnd: handleDragEnd,
-      edgeZoneWidth: 12,
+      edgeZoneWidth: 20,
     });
 
     // Use dynamic position during drag
