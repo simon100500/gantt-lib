@@ -49,6 +49,10 @@
   border-right: none;
 }
 
+.monthBoundary {
+  border-right: var(--gantt-month-separator-width, 1px) solid var(--gantt-month-separator-color, #a1a1a1);
+}
+
 .dayLabel {
   font-size: 0.75rem;
   font-weight: 500;
