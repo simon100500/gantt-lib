@@ -52,3 +52,15 @@ Plans:
 - [x] 02-01-PLAN.md — Drag state management and hit detection
 - [x] 02-02-PLAN.md — Move and resize interaction handlers
 - [x] 02-03-PLAN.md — Performance optimization and testing
+
+### Phase 3: Доработать календарную сетку: рисовать сетку на весь проект при перетягивании полос, столбцы в заголовке делать одной ширины, сделать трёхуровневый заголовок (год, месяц, день), добавить бледные вертикальные линии в календарную сетку, добавить яркие разделители месяцев и чуть менее яркие - недель, закрашивать бледно-розовым выходные дни
+
+**Goal:** Multi-month calendar grid with two-row header (month names + day numbers), vertical grid lines, weekend highlighting, and synchronized header-body scrolling
+**Depends on:** Phase 2
+**Plans:** 4 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Multi-month date utilities and calendar type definitions
+- [ ] 03-02-PLAN.md — GridBackground component for vertical lines and weekend highlighting
+- [ ] 03-03-PLAN.md — Two-row TimeScaleHeader with month names and day numbers
+- [ ] 03-04-PLAN.md — GanttChart integration with synchronized scrolling
