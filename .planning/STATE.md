@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 2 - Drag-and-Drop Interactions
+**Current focus:** Phase 3 - Calendar grid improvements
 
 ## Current Position
 
-Phase: 2 of 2 (Drag-and-Drop Interactions)
-Plan: 3 of 3 in current phase
-Status: Plan 02-03 complete
-Last activity: 2026-02-19 — Performance optimization and testing complete
+Phase: 3 of 3 (Calendar grid improvements)
+Plan: 0 of ? in current phase
+Status: Phase added, not yet planned
+Last activity: 2026-02-19 — Phase 3 added
 
-Progress: [██████████] 100%
+Progress: [████████░░] 67%
 
 ## Performance Metrics
 
@@ -42,6 +42,10 @@ Progress: [██████████] 100%
 | Phase 02-drag-and-drop-interactions P03 | 5 | 4 tasks | 5 files |
 
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 3 added: Calendar grid improvements (full grid during drag, uniform column widths, three-level header, vertical grid lines, month/week separators, weekend highlighting)
 
 ### Decisions
 
@@ -82,5 +86,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 02-03-PLAN.md
-Resume file: .planning/phases/02-drag-and-drop-interactions/02-03-SUMMARY.md
+Stopped at: Phase 3 context gathered
+Resume file: .planning/phases/03-calendar/03-CONTEXT.md
