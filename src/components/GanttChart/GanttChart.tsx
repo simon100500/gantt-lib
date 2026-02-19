@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useMemo, useCallback, useRef } from 'react';
+import React, { useMemo, useCallback, useRef, useState } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
 import GridBackground from '../GridBackground';
+import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import styles from './GanttChart.module.css';
 
 /**
@@ -93,6 +94,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     return dateRange.some(day => day.getTime() === today.getTime());
   }, [dateRange]);
 
+  // Track drag state for guide lines
+  const [dragGuideLines, setDragGuideLines] = useState<{
+    isDragging: boolean;
+    dragMode: 'move' | 'resize-left' | 'resize-right' | null;
+    left: number;
+    width: number;
+  } | null>(null);
+
   /**
    * Stable callback for task updates
    *
@@ -119,6 +128,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       )
     );
   }, [onChange]);
+
+  const handleDragStateChange = useCallback((state: {
+    isDragging: boolean;
+    dragMode: 'move' | 'resize-left' | 'resize-right' | null;
+    left: number;
+    width: number;
+  }) => {
+    if (state.isDragging) {
+      setDragGuideLines(state);
+    } else {
+      setDragGuideLines(null);
+    }
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -151,6 +173,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             {/* Today indicator - only render if today is in range */}
             {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
 
+            {/* Drag guide lines - rendered during drag/resize operations */}
+            {dragGuideLines && (
+              <DragGuideLines
+                isDragging={dragGuideLines.isDragging}
+                dragMode={dragGuideLines.dragMode}
+                left={dragGuideLines.left}
+                width={dragGuideLines.width}
+                totalHeight={totalGridHeight}
+              />
+            )}
+
             {tasks.map((task) => (
               <TaskRow
                 key={task.id}
@@ -159,6 +192,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                 dayWidth={dayWidth}
                 rowHeight={rowHeight}
                 onChange={handleTaskChange}
+                onDragStateChange={handleDragStateChange}
               />
             ))}
           </div>
