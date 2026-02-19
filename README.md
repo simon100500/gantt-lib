@@ -2,7 +2,15 @@
 
 Лёгкий React/Next.js компонент диаграммы Ганта с drag-and-drop. Перемещайте и изменяйте размер задач прямо на сетке.
 
-## Установка и запуск
+## Установка
+
+### NPM (рекомендуется)
+
+```bash
+npm install gantt-lib
+```
+
+### Разработка/Contributing
 
 ```bash
 git clone https://github.com/simon100500/gantt-lib.git
@@ -13,7 +21,7 @@ npm run dev
 
 После запуска откройте [http://localhost:3000](http://localhost:3000) в браузере.
 
-![Скриншот](public/screen.png)
+![Скриншот](packages/website/public/screen.png)
 
 ## Возможности
 
@@ -28,7 +36,8 @@ npm run dev
 ## Быстрый старт
 
 ```tsx
-import { GanttChart, type Task } from '@/components';
+import { GanttChart, type Task } from 'gantt-lib';
+import 'gantt-lib/styles.css';
 
 const tasks: Task[] = [
   {
@@ -126,13 +135,22 @@ interface Task {
 
 ## Разработка
 
+Этот проект использует Turborepo для управления монорепо.
+
 ```bash
 npm install
-npm run dev      # Запустить dev-сервер на localhost:3000
-npm run test     # Запустить unit-тесты (Vitest)
-npm run test:ui  # Запустить тесты с браузерным UI
-npm run build    # Сборка для продакшена
-npm run lint     # ESLint
+npm run dev      # Запустить dev-сервер (website package)
+npm run build    # Собрать все пакеты
+npm run test     # Запустить unit-тесты (gantt-lib package)
+npm run lint     # ESLint для всех пакетов
+```
+
+### Структура монорепо
+
+```
+packages/
+  gantt-lib/    # Библиотека компонентов (npm package)
+  website/      # Demo-сайт на Next.js
 ```
 
 ## Стек
