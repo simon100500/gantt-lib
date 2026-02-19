@@ -43,3 +43,37 @@ export interface GridConfig {
   /** Height of each task row in pixels */
   rowHeight: number;
 }
+
+/**
+ * Represents a month span in the calendar header
+ */
+export interface MonthSpan {
+  /** First day of the month (UTC) */
+  month: Date;
+  /** Number of days this month spans in the visible range */
+  days: number;
+  /** Start index in the date range array */
+  startIndex: number;
+}
+
+/**
+ * Represents a vertical grid line
+ */
+export interface GridLine {
+  /** X position in pixels */
+  x: number;
+  /** True if this line is at the start of a month */
+  isMonthStart: boolean;
+  /** True if this line is at the start of a week (Monday) */
+  isWeekStart: boolean;
+}
+
+/**
+ * Represents a weekend background block
+ */
+export interface WeekendBlock {
+  /** Left position in pixels */
+  left: number;
+  /** Width in pixels */
+  width: number;
+}

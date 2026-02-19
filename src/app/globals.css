@@ -36,4 +36,16 @@ body {
   /* Today Indicator */
   --gantt-today-indicator-color: #ef4444;
   --gantt-today-indicator-width: 2px;
+
+  /* Calendar Grid - Weekend */
+  --gantt-weekend-background: #fee2e2;
+  --gantt-weekend-border: #fca5a5;
+
+  /* Calendar Grid - Separators */
+  --gantt-month-separator-width: 2px;
+  --gantt-month-separator-color: #374151;
+  --gantt-week-separator-width: 1px;
+  --gantt-week-separator-color: #d1d5db;
+  --gantt-day-line-width: 1px;
+  --gantt-day-line-color: #f3f4f6;
 }
