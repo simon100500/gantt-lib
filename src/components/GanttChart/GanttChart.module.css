@@ -27,6 +27,8 @@
   overflow-x: auto;
   position: relative;
   flex: 1;
+  /* Reserve space for scrollbar to prevent content shift */
+  scrollbar-gutter: stable;
 }
 
 .taskArea {

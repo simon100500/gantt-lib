@@ -173,11 +173,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
           className={styles.headerScrollContainer}
           onScroll={handleHeaderScroll}
         >
-          <TimeScaleHeader
-            days={dateRange}
-            dayWidth={dayWidth}
-            headerHeight={headerHeight}
-          />
+          <div style={{ width: `${gridWidth}px` }}>
+            <TimeScaleHeader
+              days={dateRange}
+              dayWidth={dayWidth}
+              headerHeight={headerHeight}
+            />
+          </div>
         </div>
 
         {/* Task area */}
