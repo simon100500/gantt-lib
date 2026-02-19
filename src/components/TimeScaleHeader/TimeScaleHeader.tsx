@@ -1,11 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { getMonthSpans } from '../../utils/dateUtils';
+import type { MonthSpan } from '../../types';
 import styles from './TimeScaleHeader.module.css';
 
 export interface TimeScaleHeaderProps {
-  /** Array of dates to display in the header */
+  /** Array of dates to display (from getMultiMonthDays) */
   days: Date[];
   /** Width of each day column in pixels */
   dayWidth: number;
@@ -14,33 +17,63 @@ export interface TimeScaleHeaderProps {
 }
 
 /**
- * TimeScaleHeader component - displays date headers for the Gantt chart
+ * TimeScaleHeader component - displays two-row date headers for the Gantt chart
  *
- * Shows day labels (e.g., "Mon 1", "Tue 2") across the top of the chart.
+ * Top row: Month names (Russian, left-aligned) spanning multiple day columns
+ * Bottom row: Day numbers (centered) in individual columns
  */
 const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
   days,
   dayWidth,
   headerHeight,
 }) => {
+  // Calculate month spans using the utility from dateUtils
+  const monthSpans = useMemo(() => getMonthSpans(days), [days]);
+
+  // Split header height evenly between two rows
+  const rowHeight = headerHeight / 2;
+
+  // Calculate grid template for day row
+  const dayGridTemplate = useMemo(
+    () => `repeat(${days.length}, ${dayWidth}px)`,
+    [days.length, dayWidth]
+  );
+
   return (
     <div
       className={styles.header}
-      style={{
-        height: `${headerHeight}px`,
-        display: 'grid',
-        gridTemplateColumns: `repeat(${days.length}, ${dayWidth}px)`,
-      }}
+      style={{ height: `${headerHeight}px` }}
     >
-      {days.map((day, index) => (
-        <div
-          key={index}
-          className={styles.dayCell}
-          style={{ width: `${dayWidth}px` }}
-        >
-          <span className={styles.dayLabel}>{format(day, 'EEE d')}</span>
-        </div>
-      ))}
+      {/* Month row - top */}
+      <div
+        className={styles.monthRow}
+        style={{ height: `${rowHeight}px` }}
+      >
+        {monthSpans.map((span: MonthSpan, index: number) => (
+          <div
+            key={`month-${index}`}
+            className={styles.monthCell}
+            style={{ width: `${span.days * dayWidth}px` }}
+          >
+            {format(span.month, 'MMMM', { locale: ru })}
+          </div>
+        ))}
+      </div>
+
+      {/* Day row - bottom */}
+      <div
+        className={styles.dayRow}
+        style={{
+          height: `${rowHeight}px`,
+          gridTemplateColumns: dayGridTemplate,
+        }}
+      >
+        {days.map((day, index) => (
+          <div key={`day-${index}`} className={styles.dayCell}>
+            <span className={styles.dayLabel}>{format(day, 'd')}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
