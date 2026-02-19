@@ -180,7 +180,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
           >
             <span className={`${styles.dateLabel} ${styles.dateLabelLeft}`}>
-              {startDateLabel} - {endDateLabel}
+              {startDateLabel}–{endDateLabel}
             </span>
           </div>
           <div

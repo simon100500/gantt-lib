@@ -64,6 +64,7 @@
 
 .today {
   background-color: #dc2626;
+  border-radius: 0 4px 4px 0;
 }
 
 .today .dayLabel {
