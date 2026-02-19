@@ -50,9 +50,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Drag state management and hit detection
-- [ ] 02-02-PLAN.md — Move and resize interaction handlers
-- [ ] 02-03-PLAN.md — Performance optimization and testing
+- [x] 02-01-PLAN.md — Drag state management and hit detection
+- [x] 02-02-PLAN.md — Move and resize interaction handlers
+- [x] 02-03-PLAN.md — Performance optimization and testing
 
 ### Phase 3: Polish & Developer Experience
 **Goal**: Production-ready library with excellent TypeScript support and distribution
@@ -81,5 +81,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Core Rendering | 3/3 | Complete    | 2026-02-18 |
-| 2. Drag-and-Drop Interactions | 2/3 | Complete    | 2026-02-19 |
+| 2. Drag-and-Drop Interactions | 3/3 | Complete    | 2026-02-19 |
 | 3. Polish & Developer Experience | 0/4 | Not started | - |
