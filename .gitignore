@@ -2,17 +2,22 @@
 node_modules
 /.pnp
 .pnp.js
-nul
 
 # Testing
 coverage
-src/app/test/
+*.tsbuildinfo
 
-# Next.js
+# Build outputs
+.turbo
 .next/
 out/
 build
-dist
+
+# Monorepo package builds
+packages/*/dist/
+packages/*/.next/
+packages/*/node_modules/.cache/
+packages/*/next-env.d.ts
 
 # Production
 *.log
@@ -23,7 +28,7 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
-.turbo
+nul
 
 # Debug
 .vscode/
@@ -38,7 +43,3 @@ yarn-error.log*
 
 # Vercel
 .vercel
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
