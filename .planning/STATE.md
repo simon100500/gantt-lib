@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 3 of 3 (Calendar grid improvements)
 Plan: 4 of 4 in current phase (4 completed, 0 remaining)
 Status: Phase 3 Complete - All calendar grid improvements done
-Last activity: 2026-02-19 — Completed quick task 7: Fix month names to nominative case
+Last activity: 2026-02-19 — Completed quick task 6: Drag guide lines
 
 Progress: [██████████] 100%
 
@@ -106,7 +106,7 @@ None yet.
 | 1 | Remove drag popup | 2026-02-19 | 6fa4ece | [1-remove-drag-popup](./quick/1-remove-drag-popup/) |
 | 3 | Task bar date labels | 2026-02-19 | 8940b7c | [3-25-03](./quick/3-25-03/) |
 | 5 | External date labels | 2026-02-19 | dbfd429 | [5-label](./quick/5-label/) |
-| 6 | Drag guide lines | 2026-02-19 | 0b9d6ec | [6-guide-lines](./quick/6-guide-lines/) |
+| 6 | Drag guide lines | 2026-02-19 | 5632162 | [6-guide-lines](./quick/6-guide-lines/) |
 | 7 | Fix month names to nominative case | 2026-02-19 | 16bf834 | [7-fix-month-names](./quick/7-fix-month-names/) |
 
 ## Session Continuity
