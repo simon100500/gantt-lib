@@ -2,6 +2,7 @@
   "name": "gantt-lib-monorepo",
   "version": "0.0.1",
   "private": true,
+  "workspaces": ["packages/*"],
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
