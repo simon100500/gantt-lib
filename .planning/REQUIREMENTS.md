@@ -26,15 +26,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **API-01**: Component accepts simple array: `{ id, name, startDate, endDate, color? }`
 - [x] **API-02**: Component provides `onChange` callback returning modified tasks array
-- [ ] **API-03**: Simple API surface: `<Gantt tasks={tasks} onChange={handleTasksChange} />`
+- [x] **API-03**: Simple API surface: `<Gantt tasks={tasks} onChange={handleTasksChange} />`
 - [ ] **API-04**: All dates handled as UTC internally to prevent DST bugs
 
 ### Developer Experience
 
-- [ ] **DX-01**: Full TypeScript support with exported types
-- [ ] **DX-02**: Minimal dependencies (prefer zero deps, or lightweight libs)
-- [ ] **DX-03**: Bundle size < 15KB gzipped
-- [ ] **DX-04**: Compatible with Next.js App Router (client component)
+- [x] **DX-01**: Full TypeScript support with exported types
+- [x] **DX-02**: Minimal dependencies (prefer zero deps, or lightweight libs)
+- [x] **DX-03**: Bundle size < 15KB gzipped
+- [x] **DX-04**: Compatible with Next.js App Router (client component)
 - [ ] **DX-05**: CSS variables for theming (users can customize colors)
 
 ### Quality
@@ -94,12 +94,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INT-04 | Phase 2 | Complete |
 | API-01 | Phase 1 | Pending |
 | API-02 | Phase 2 | Complete |
-| API-03 | Phase 3 | Pending |
+| API-03 | Phase 3 | Complete |
 | API-04 | Phase 1 | Pending |
-| DX-01 | Phase 3 | Pending |
-| DX-02 | Phase 3 | Pending |
-| DX-03 | Phase 3 | Pending |
-| DX-04 | Phase 3 | Pending |
+| DX-01 | Phase 3 | Complete |
+| DX-02 | Phase 3 | Complete |
+| DX-03 | Phase 3 | Complete |
+| DX-04 | Phase 3 | Complete |
 | DX-05 | Phase 1 | Pending |
 | QL-01 | Phase 2 | Complete |
 | QL-02 | Phase 2 | Pending |
