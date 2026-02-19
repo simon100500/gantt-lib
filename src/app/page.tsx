@@ -36,11 +36,12 @@ const generate100Tasks = (): Task[] => {
   const nextMonth = (currentMonth + 1) % 12;
   const nextMonthYear = nextMonth === 0 ? currentYear + 1 : currentYear;
 
-  for (let i = 0; i < 1000; i++) {
+  for (let i = 0; i < 20; i++) {
     const startDay = (i * 5) % 120; // Days 0-44, deterministic
     const duration = (i % 5) + 4;  // 4-8 days, deterministic
     // Spread tasks across two months for multi-month demo
-    const isCurrentMonth = i % 2 === 0;
+    // const isCurrentMonth = i % 2 === 0;
+    const isCurrentMonth = 1;
     const month = isCurrentMonth ? currentMonth : nextMonth;
     const year = isCurrentMonth ? currentYear : nextMonthYear;
 
@@ -49,7 +50,7 @@ const generate100Tasks = (): Task[] => {
       name: `Задача по графику ${i + 1}`,
       startDate: new Date(Date.UTC(year, month, startDay + 1)).toISOString(),
       endDate: new Date(Date.UTC(year, month, startDay + duration)).toISOString(),
-      color: i % 3 === 0 ? '#3b82f6' : i % 3 === 1 ? '#10b981' : undefined,
+      // color: i % 3 === 0 ? '#3b82f6' : i % 3 === 1 ? '#10b981' : undefined,
     });
   }
   return tasks;
