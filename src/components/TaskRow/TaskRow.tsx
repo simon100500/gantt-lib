@@ -120,14 +120,14 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
             onMouseDown={dragHandleProps.onMouseDown}
           >
-            <span className={`${styles.dateLabel} ${styles.dateLabelLeft}`} style={{position: 'absolute', right: '100%', marginRight: '4px', color: 'red', fontSize: '14px', fontWeight: 'bold'}}>
-              TEST-{startDateLabel}
+            <span className={`${styles.dateLabel} ${styles.dateLabelLeft}`}>
+              {startDateLabel}
             </span>
             <div className={`${styles.resizeHandle} ${styles.resizeHandleLeft}`} />
             <span className={styles.taskName}>{task.name}</span>
             <div className={`${styles.resizeHandle} ${styles.resizeHandleRight}`} />
-            <span className={`${styles.dateLabel} ${styles.dateLabelRight}`} style={{position: 'absolute', left: '100%', marginLeft: '4px', color: 'blue', fontSize: '14px', fontWeight: 'bold'}}>
-              TEST-{endDateLabel}
+            <span className={`${styles.dateLabel} ${styles.dateLabelRight}`}>
+              {endDateLabel}
             </span>
           </div>
         </div>
