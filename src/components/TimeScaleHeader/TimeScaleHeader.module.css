@@ -54,3 +54,11 @@
   font-weight: 500;
   color: #374151;
 }
+
+.weekendDay {
+  background-color: var(--gantt-weekend-background, #fee2e2);
+}
+
+.weekendDay .dayLabel {
+  color: #dc2626;
+}

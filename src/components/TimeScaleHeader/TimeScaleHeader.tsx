@@ -68,11 +68,14 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
           gridTemplateColumns: dayGridTemplate,
         }}
       >
-        {days.map((day, index) => (
-          <div key={`day-${index}`} className={styles.dayCell}>
-            <span className={styles.dayLabel}>{format(day, 'd')}</span>
-          </div>
-        ))}
+        {days.map((day, index) => {
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          return (
+            <div key={`day-${index}`} className={`${styles.dayCell} ${isWeekend ? styles.weekendDay : ''}`}>
+              <span className={styles.dayLabel}>{format(day, 'd')}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
