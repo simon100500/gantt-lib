@@ -65,8 +65,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   containerHeight = 600,
   onChange,
 }) => {
-  // Scroll refs for synchronization
-  const headerScrollRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Calculate multi-month date range from tasks
@@ -149,85 +147,60 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     }
   }, []);
 
-  /**
-   * Synchronize horizontal scrolling between header and task area
-   */
-  const handleHeaderScroll = useCallback(() => {
-    if (headerScrollRef.current && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
-    }
-  }, []);
-
-  const handleTaskScroll = useCallback(() => {
-    if (scrollContainerRef.current && headerScrollRef.current) {
-      headerScrollRef.current.scrollLeft = scrollContainerRef.current.scrollLeft;
-    }
-  }, []);
 
   return (
     <div className={styles.container}>
-      <div className={styles.chartWrapper} style={{ height: `${containerHeight}px` }}>
-        {/* Header */}
-        <div
-          ref={headerScrollRef}
-          className={styles.headerScrollContainer}
-          onScroll={handleHeaderScroll}
-        >
-          <div style={{ width: `${gridWidth}px` }}>
-            <TimeScaleHeader
-              days={dateRange}
-              dayWidth={dayWidth}
-              headerHeight={headerHeight}
-            />
-          </div>
+      <div
+        ref={scrollContainerRef}
+        className={styles.scrollContainer}
+        style={{ height: `${containerHeight}px` }}
+      >
+        {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
+        <div className={styles.stickyHeader}>
+          <TimeScaleHeader
+            days={dateRange}
+            dayWidth={dayWidth}
+            headerHeight={headerHeight}
+          />
         </div>
 
         {/* Task area */}
         <div
-          ref={scrollContainerRef}
-          className={styles.taskScrollContainer}
-          onScroll={handleTaskScroll}
+          className={styles.taskArea}
+          style={{
+            position: 'relative',
+            width: `${gridWidth}px`,
+          }}
         >
-          <div
-            className={styles.taskArea}
-            style={{
-              position: 'relative',
-              width: `${gridWidth}px`,
-            }}
-          >
-            {/* Grid background for vertical lines and weekend highlighting */}
-            <GridBackground
-              dateRange={dateRange}
-              dayWidth={dayWidth}
+          <GridBackground
+            dateRange={dateRange}
+            dayWidth={dayWidth}
+            totalHeight={totalGridHeight}
+          />
+
+          {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
+
+          {dragGuideLines && (
+            <DragGuideLines
+              isDragging={dragGuideLines.isDragging}
+              dragMode={dragGuideLines.dragMode}
+              left={dragGuideLines.left}
+              width={dragGuideLines.width}
               totalHeight={totalGridHeight}
             />
+          )}
 
-            {/* Today indicator - only render if today is in range */}
-            {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
-
-            {/* Drag guide lines - rendered during drag/resize operations */}
-            {dragGuideLines && (
-              <DragGuideLines
-                isDragging={dragGuideLines.isDragging}
-                dragMode={dragGuideLines.dragMode}
-                left={dragGuideLines.left}
-                width={dragGuideLines.width}
-                totalHeight={totalGridHeight}
-              />
-            )}
-
-            {tasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                monthStart={monthStart}
-                dayWidth={dayWidth}
-                rowHeight={rowHeight}
-                onChange={handleTaskChange}
-                onDragStateChange={handleDragStateChange}
-              />
-            ))}
-          </div>
+          {tasks.map((task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              monthStart={monthStart}
+              dayWidth={dayWidth}
+              rowHeight={rowHeight}
+              onChange={handleTaskChange}
+              onDragStateChange={handleDragStateChange}
+            />
+          ))}
         </div>
       </div>
     </div>
