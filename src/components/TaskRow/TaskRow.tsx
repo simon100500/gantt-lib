@@ -149,6 +149,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       >
         <div className={styles.taskContainer}>
           <div
+            data-taskbar
             className={`${styles.taskBar} ${isDragging ? styles.dragging : ''}`}
             style={{
               left: `${displayLeft}px`,

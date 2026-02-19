@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback, useRef, useState } from 'react';
+import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import TimeScaleHeader from '../TimeScaleHeader';
@@ -147,13 +147,62 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     }
   }, []);
 
+  // Pan (grab-scroll) on empty grid area
+  const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
+
+  const handlePanStart = useCallback((e: React.MouseEvent) => {
+    // Only pan on left click, skip if clicking on a task bar
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-taskbar]')) return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    panStateRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      scrollX: container.scrollLeft,
+      scrollY: container.scrollTop,
+    };
+    container.style.cursor = 'grabbing';
+    e.preventDefault();
+  }, []);
+
+  useEffect(() => {
+    const handlePanMove = (e: MouseEvent) => {
+      const pan = panStateRef.current;
+      if (!pan?.active) return;
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      container.scrollLeft = pan.scrollX - (e.clientX - pan.startX);
+      container.scrollTop = pan.scrollY - (e.clientY - pan.startY);
+    };
+
+    const handlePanEnd = () => {
+      if (!panStateRef.current?.active) return;
+      panStateRef.current = null;
+      const container = scrollContainerRef.current;
+      if (container) container.style.cursor = '';
+    };
+
+    window.addEventListener('mousemove', handlePanMove);
+    window.addEventListener('mouseup', handlePanEnd);
+    return () => {
+      window.removeEventListener('mousemove', handlePanMove);
+      window.removeEventListener('mouseup', handlePanEnd);
+    };
+  }, []);
 
   return (
     <div className={styles.container}>
       <div
         ref={scrollContainerRef}
         className={styles.scrollContainer}
-        style={{ height: `${containerHeight}px` }}
+        style={{ height: `${containerHeight}px`, cursor: 'grab' }}
+        onMouseDown={handlePanStart}
       >
         {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
         <div className={styles.stickyHeader} style={{ width: `${gridWidth}px` }}>
