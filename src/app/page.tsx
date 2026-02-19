@@ -46,7 +46,7 @@ const generate100Tasks = (): Task[] => {
 
     tasks.push({
       id: `task-${i}`,
-      name: `Task ${i + 1}`,
+      name: `Задача по графику ${i + 1}`,
       startDate: new Date(Date.UTC(year, month, startDay + 1)).toISOString(),
       endDate: new Date(Date.UTC(year, month, startDay + duration)).toISOString(),
       color: i % 3 === 0 ? '#3b82f6' : i % 3 === 1 ? '#10b981' : undefined,

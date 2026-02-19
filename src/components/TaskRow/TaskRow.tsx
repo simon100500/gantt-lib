@@ -154,20 +154,22 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               {task.name}
             </span>
             <div className={`${styles.resizeHandle} ${styles.resizeHandleRight}`} />
+          </div>
+          <div
+            className={styles.rightLabels}
+            style={{
+              left: `${displayLeft + displayWidth}px`,
+            }}
+          >
             <span className={`${styles.dateLabel} ${styles.dateLabelRight}`}>
               {endDateLabel}
             </span>
+            {isNameOverflow && (
+              <span className={styles.externalTaskName}>
+                {task.name}
+              </span>
+            )}
           </div>
-          {isNameOverflow && (
-            <span
-              className={styles.externalTaskName}
-              style={{
-                left: `${displayLeft + displayWidth}px`,
-              }}
-            >
-              {task.name}
-            </span>
-          )}
         </div>
       </div>
     );

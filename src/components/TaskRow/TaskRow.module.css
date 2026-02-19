@@ -66,16 +66,26 @@
   visibility: hidden;
 }
 
-.externalTaskName {
+.rightLabels {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.dateLabelRight {
+  position: static;
+  margin-right: 0;
+}
+
+.externalTaskName {
   font-size: 0.875rem;
   font-weight: 700;
   color: #333;
   white-space: nowrap;
-  pointer-events: none;
 }
 
 .resizeHandle {
@@ -124,9 +134,4 @@
 .dateLabelLeft {
   right: 100%;
   margin-right: 4px;
-}
-
-.dateLabelRight {
-  left: 100%;
-  margin-left: 4px;
 }
