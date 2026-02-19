@@ -2,21 +2,22 @@
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   z-index: 1000;
   background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
   animation: fadeIn 0.2s ease-out;
+  padding: 0;
 }
 
 .modal {
   background-color: white;
-  border-radius: 8px;
+  border-radius: 0;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  max-width: min(90vw, 1024px);
-  max-height: 90vh;
-  width: auto;
+  max-width: min(80vw, 2048px);
+  height: 80vh;
+  width: 100%;
   overflow: auto;
   position: relative;
   animation: scaleIn 0.2s ease-out;
@@ -59,6 +60,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -69,6 +71,7 @@
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { GanttChart, type Task } from '@/components';
 import { Modal } from '@/components/Modal/Modal';
-import styles from './modal.css';
+import styles from './modal.module.css';
 
 /**
  * Generate sample tasks for the modal demo
