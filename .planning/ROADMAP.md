@@ -69,7 +69,7 @@ Plans:
 
 **Goal:** Restructure the repo as an npm workspaces monorepo, extract the library into `packages/gantt-lib` (publishable as `gantt-lib`), and create a fresh `packages/website` demo site — proving the full install-and-use path works
 **Depends on:** Phase 3
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 - [ ] 04-01-PLAN.md — Root monorepo scaffolding (workspaces package.json, turbo.json, shared tsconfig)

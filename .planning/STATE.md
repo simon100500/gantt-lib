@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 3 - Calendar grid improvements
+**Current focus:** Phase 4 - npm-packaging
 
 ## Current Position
 
-Phase: 3 of 3 (Calendar grid improvements)
-Plan: 4 of 4 in current phase (4 completed, 0 remaining)
-Status: Phase 3 Complete - All calendar grid improvements done
-Last activity: 2026-02-19 — Completed quick task 9: Vertical scrolling with sticky header
+Phase: 4 of 4 (npm-packaging)
+Plan: 1 of ? in current phase (1 completed)
+Status: In Progress - Monorepo foundation complete
+Last activity: 2026-02-19 — Completed 04-01: Monorepo foundation
 
-Progress: [██████████] 100%
+Progress: [███-------] 20%
 
 ## Performance Metrics
 
@@ -30,6 +30,7 @@ Progress: [██████████] 100%
 | 01-foundation-core-rendering | 3 | 3 | 6 min |
 | 02-drag-and-drop-interactions | 3 | 3 | 20 min |
 | 03-calendar | 4 | 4 | 3 min |
+| 04-npm-packaging | 1 | ? | 1 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -45,12 +46,14 @@ Progress: [██████████] 100%
 | Phase 03-calendar P02 | 1 | 2 tasks | 3 files |
 | Phase 03-calendar P03 | 2min | 2 tasks | 2 files |
 | Phase 03-calendar P04 | 2min | 4 tasks | 3 files |
+| Phase 04-npm-packaging P01 | 74 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
 ### Roadmap Evolution
 
 - Phase 3 added: Calendar grid improvements (full grid during drag, uniform column widths, three-level header, vertical grid lines, month/week separators, weekend highlighting)
+- Phase 4 added: npm-packaging
 
 ### Decisions
 
@@ -90,6 +93,12 @@ Recent decisions affecting current work:
 - [Phase 03]: Conditional TodayIndicator rendering based on todayInRange check to prevent unnecessary rendering
 - [Quick 05]: External date labels positioned as siblings of taskBar using absolute positioning (right: 100% for left label, left: 100% for right label)
 - [Quick 06]: Drag guide lines using absolute positioning with full grid height and parent-child callback coordination pattern
+- [Phase 04]: Turborepo for monorepo task orchestration with build/dev/test/lint pipeline
+- [Phase 04]: npm workspaces pattern using packages/* glob for package discovery
+- [Phase 04]: Shared TypeScript base config without Next.js-specific options
+- [Phase 04-npm-packaging]: Turborepo for monorepo task orchestration
+- [Phase 04-npm-packaging]: npm workspaces pattern using packages/* glob
+- [Phase 04-npm-packaging]: Shared TypeScript base config without Next.js-specific options
 
 ### Pending Todos
 
@@ -113,13 +122,15 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 03-04 - GanttChart integration with synchronized scrolling
-**Phase 3 COMPLETE** - All calendar grid improvements finished
+Stopped at: Completed 04-01 - Monorepo foundation with Turborepo
 
-**Phase 3 Status:**
+**Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
 - 03-02: COMPLETE - GridBackground component for vertical lines and weekend highlighting (1 min)
 - 03-03: COMPLETE - Two-row TimeScaleHeader with month names and day numbers (2 min)
 - 03-04: COMPLETE - GanttChart integration with synchronized scrolling (2 min)
 
 **Phase 3 Total:** 4 plans, 9 min average, 3 calendar subsystem files enhanced
+
+**Phase 4 Status:** IN PROGRESS
+- 04-01: COMPLETE - Monorepo foundation (1 min)
