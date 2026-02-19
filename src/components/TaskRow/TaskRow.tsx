@@ -18,6 +18,13 @@ export interface TaskRowProps {
   rowHeight: number;
   /** Callback when task is modified via drag/resize */
   onChange?: (updatedTask: Task) => void;
+  /** Callback when task drag state changes (for rendering guide lines) */
+  onDragStateChange?: (state: {
+    isDragging: boolean;
+    dragMode: 'move' | 'resize-left' | 'resize-right' | null;
+    left: number;
+    width: number;
+  }) => void;
 }
 
 /**
@@ -53,7 +60,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onChange }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange }) => {
     // Parse dates as UTC
     const taskStartDate = useMemo(() => parseUTCDate(task.startDate), [task.startDate]);
     const taskEndDate = useMemo(() => parseUTCDate(task.endDate), [task.endDate]);
@@ -91,6 +98,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       monthStart,
       dayWidth,
       onDragEnd: handleDragEnd,
+      onDragStateChange,
       edgeZoneWidth: 20,
     });
 

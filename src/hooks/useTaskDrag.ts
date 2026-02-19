@@ -19,6 +19,13 @@ export interface UseTaskDragOptions {
   dayWidth: number;
   /** Callback when drag operation completes */
   onDragEnd?: (result: { id: string; startDate: Date; endDate: Date }) => void;
+  /** Callback for drag state changes (for parent components to render guide lines) */
+  onDragStateChange?: (state: {
+    isDragging: boolean;
+    dragMode: 'move' | 'resize-left' | 'resize-right' | null;
+    left: number;
+    width: number;
+  }) => void;
   /** Width of edge zones for resize detection (default: 12px) */
   edgeZoneWidth?: number;
 }
@@ -57,6 +64,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     monthStart,
     dayWidth,
     onDragEnd,
+    onDragStateChange,
     edgeZoneWidth = 12,
   } = options;
 
@@ -177,6 +185,16 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       setCurrentLeft(newLeft);
       setCurrentWidth(newWidth);
 
+      // Notify parent of position update
+      if (onDragStateChange) {
+        onDragStateChange({
+          isDragging: true,
+          dragMode: dragModeRef.current || null,
+          left: newLeft,
+          width: newWidth,
+        });
+      }
+
       rafIdRef.current = null;
     });
   }, [dayWidth, snapToGrid]);
@@ -221,6 +239,16 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     setIsDragging(false);
     setDragMode(null);
 
+    // Notify parent of drag end
+    if (onDragStateChange) {
+      onDragStateChange({
+        isDragging: false,
+        dragMode: null,
+        left: finalLeft,
+        width: finalWidth,
+      });
+    }
+
     // Notify parent of drag completion
     if (onDragEnd && mode) {
       onDragEnd({
@@ -229,7 +257,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         endDate: newEndDate,
       });
     }
-  }, [dayWidth, monthStart, onDragEnd, taskId]);
+  }, [dayWidth, monthStart, onDragEnd, onDragStateChange, taskId]);
 
   /**
    * Attach/remove window event listeners based on drag state
@@ -297,7 +325,17 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     // Update display state
     setIsDragging(true);
     setDragMode(mode);
-  }, [edgeZoneWidth]);
+
+    // Notify parent of drag start
+    if (onDragStateChange) {
+      onDragStateChange({
+        isDragging: true,
+        dragMode: mode,
+        left: currentLeftRef.current,
+        width: currentWidthRef.current,
+      });
+    }
+  }, [edgeZoneWidth, onDragStateChange]);
 
   /**
    * Get cursor style based on current position
