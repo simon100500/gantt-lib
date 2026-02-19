@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateTaskBar, calculateGridWidth } from '../utils/geometry';
+import { calculateTaskBar, calculateGridWidth, calculateGridLines, calculateWeekendBlocks } from '../utils/geometry';
 
 describe('calculateTaskBar', () => {
   const monthStart = new Date('2024-03-01T00:00:00Z');
@@ -118,5 +118,187 @@ describe('calculateGridWidth', () => {
   it('should handle zero days', () => {
     const result = calculateGridWidth(0, 40);
     expect(result).toBe(0);
+  });
+});
+
+describe('calculateGridLines', () => {
+  const dayWidth = 40;
+
+  it('should return empty array for empty date range', () => {
+    const result = calculateGridLines([], dayWidth);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should calculate x positions for single day', () => {
+    const dateRange = [new Date('2024-03-01T00:00:00Z')];
+    const result = calculateGridLines(dateRange, dayWidth);
+    expect(result).toHaveLength(2); // Start + end lines
+    expect(result[0].x).toBe(0);
+    expect(result[0].isMonthStart).toBe(true);
+    expect(result[1].x).toBe(40);
+  });
+
+  it('should detect month start correctly', () => {
+    const dateRange = [
+      new Date('2024-03-01T00:00:00Z'),
+      new Date('2024-03-02T00:00:00Z'),
+      new Date('2024-04-01T00:00:00Z')
+    ];
+    const result = calculateGridLines(dateRange, dayWidth);
+    expect(result[0].isMonthStart).toBe(true);
+    expect(result[1].isMonthStart).toBe(false);
+    expect(result[2].isMonthStart).toBe(true); // April 1
+  });
+
+  it('should detect week start (Monday) correctly', () => {
+    const dateRange = [
+      new Date('2024-03-10T00:00:00Z'), // Sunday
+      new Date('2024-03-11T00:00:00Z'), // Monday
+      new Date('2024-03-12T00:00:00Z')  // Tuesday
+    ];
+    const result = calculateGridLines(dateRange, dayWidth);
+    expect(result[0].isWeekStart).toBe(false);
+    expect(result[1].isWeekStart).toBe(true); // Monday
+    expect(result[2].isWeekStart).toBe(false);
+  });
+
+  it('should calculate correct x positions across multiple days', () => {
+    const dateRange = [
+      new Date('2024-03-01T00:00:00Z'),
+      new Date('2024-03-02T00:00:00Z'),
+      new Date('2024-03-03T00:00:00Z')
+    ];
+    const result = calculateGridLines(dateRange, dayWidth);
+    expect(result[0].x).toBe(0);
+    expect(result[1].x).toBe(40);
+    expect(result[2].x).toBe(80);
+    expect(result[3].x).toBe(120); // End line
+  });
+
+  it('should round all pixel values to integers', () => {
+    const dateRange = [
+      new Date('2024-03-01T00:00:00Z'),
+      new Date('2024-03-02T00:00:00Z')
+    ];
+    const oddDayWidth = 33.33;
+    const result = calculateGridLines(dateRange, oddDayWidth);
+    result.forEach(line => {
+      expect(Number.isInteger(line.x)).toBe(true);
+    });
+  });
+
+  it('should handle year boundary for month start', () => {
+    const dateRange = [
+      new Date('2024-12-31T00:00:00Z'),
+      new Date('2025-01-01T00:00:00Z'),
+      new Date('2025-01-02T00:00:00Z')
+    ];
+    const result = calculateGridLines(dateRange, dayWidth);
+    expect(result[0].isMonthStart).toBe(false); // Dec 31
+    expect(result[1].isMonthStart).toBe(true); // Jan 1
+    expect(result[2].isMonthStart).toBe(false); // Jan 2
+  });
+});
+
+describe('calculateWeekendBlocks', () => {
+  const dayWidth = 40;
+
+  it('should return empty array for empty date range', () => {
+    const result = calculateWeekendBlocks([], dayWidth);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should identify single Saturday', () => {
+    const dateRange = [
+      new Date('2024-03-09T00:00:00Z') // Saturday
+    ];
+    const result = calculateWeekendBlocks(dateRange, dayWidth);
+    expect(result).toHaveLength(1);
+    expect(result[0].left).toBe(0);
+    expect(result[0].width).toBe(40);
+  });
+
+  it('should identify single Sunday', () => {
+    const dateRange = [
+      new Date('2024-03-10T00:00:00Z') // Sunday
+    ];
+    const result = calculateWeekendBlocks(dateRange, dayWidth);
+    expect(result).toHaveLength(1);
+    expect(result[0].left).toBe(0);
+    expect(result[0].width).toBe(40);
+  });
+
+  it('should combine Saturday and Sunday into single block', () => {
+    const dateRange = [
+      new Date('2024-03-09T00:00:00Z'), // Saturday
+      new Date('2024-03-10T00:00:00Z')  // Sunday
+    ];
+    const result = calculateWeekendBlocks(dateRange, dayWidth);
+    expect(result).toHaveLength(1);
+    expect(result[0].left).toBe(0);
+    expect(result[0].width).toBe(80); // 2 days
+  });
+
+  it('should handle weekday range with no weekends', () => {
+    const dateRange = [
+      new Date('2024-03-11T00:00:00Z'), // Monday
+      new Date('2024-03-12T00:00:00Z'), // Tuesday
+      new Date('2024-03-13T00:00:00Z')  // Wednesday
+    ];
+    const result = calculateWeekendBlocks(dateRange, dayWidth);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should identify multiple weekend blocks', () => {
+    const dateRange = [
+      new Date('2024-03-09T00:00:00Z'), // Saturday (index 0)
+      new Date('2024-03-10T00:00:00Z'), // Sunday (index 1)
+      new Date('2024-03-11T00:00:00Z'), // Monday (index 2)
+      new Date('2024-03-16T00:00:00Z'), // Saturday (index 3)
+      new Date('2024-03-17T00:00:00Z')  // Sunday (index 4)
+    ];
+    const result = calculateWeekendBlocks(dateRange, dayWidth);
+    expect(result).toHaveLength(2);
+    expect(result[0].left).toBe(0);
+    expect(result[0].width).toBe(80); // First weekend (index 0-1)
+    expect(result[1].left).toBe(120); // Index 3 * 40px
+    expect(result[1].width).toBe(80); // Second weekend (index 3-4)
+  });
+
+  it('should handle range starting on weekend', () => {
+    const dateRange = [
+      new Date('2024-03-10T00:00:00Z'), // Sunday
+      new Date('2024-03-11T00:00:00Z'), // Monday
+      new Date('2024-03-12T00:00:00Z')  // Tuesday
+    ];
+    const result = calculateWeekendBlocks(dateRange, dayWidth);
+    expect(result).toHaveLength(1);
+    expect(result[0].left).toBe(0);
+    expect(result[0].width).toBe(40);
+  });
+
+  it('should handle range ending on weekend', () => {
+    const dateRange = [
+      new Date('2024-03-08T00:00:00Z'), // Friday
+      new Date('2024-03-09T00:00:00Z'), // Saturday
+      new Date('2024-03-10T00:00:00Z')  // Sunday
+    ];
+    const result = calculateWeekendBlocks(dateRange, dayWidth);
+    expect(result).toHaveLength(1);
+    expect(result[0].left).toBe(40);
+    expect(result[0].width).toBe(80);
+  });
+
+  it('should round all pixel values to integers', () => {
+    const dateRange = [
+      new Date('2024-03-09T00:00:00Z'), // Saturday
+      new Date('2024-03-10T00:00:00Z')  // Sunday
+    ];
+    const oddDayWidth = 33.33;
+    const result = calculateWeekendBlocks(dateRange, oddDayWidth);
+    result.forEach(block => {
+      expect(Number.isInteger(block.left)).toBe(true);
+      expect(Number.isInteger(block.width)).toBe(true);
+    });
   });
 });

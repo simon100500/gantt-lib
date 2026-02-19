@@ -95,3 +95,78 @@ export const getCursorForPosition = (position: 'left' | 'right' | 'move'): strin
       return 'default';
   }
 };
+
+/**
+ * Calculate grid line positions for a date range
+ * @param dateRange - Array of Date objects representing the visible range
+ * @param dayWidth - Width of each day column in pixels
+ * @returns Array of grid line objects with x position and flags
+ */
+export const calculateGridLines = (
+  dateRange: Date[],
+  dayWidth: number
+): Array<{ x: number; isMonthStart: boolean; isWeekStart: boolean }> => {
+  const lines: Array<{ x: number; isMonthStart: boolean; isWeekStart: boolean }> = [];
+
+  for (let i = 0; i < dateRange.length; i++) {
+    const date = dateRange[i];
+    const x = Math.round(i * dayWidth);
+    const isMonthStart = date.getUTCDate() === 1;
+    const isWeekStart = date.getUTCDay() === 1; // Monday
+
+    lines.push({ x, isMonthStart, isWeekStart });
+  }
+
+  // Add final line at the end of the range
+  if (dateRange.length > 0) {
+    lines.push({
+      x: Math.round(dateRange.length * dayWidth),
+      isMonthStart: false,
+      isWeekStart: false
+    });
+  }
+
+  return lines;
+};
+
+/**
+ * Calculate weekend background blocks for a date range
+ * @param dateRange - Array of Date objects representing the visible range
+ * @param dayWidth - Width of each day column in pixels
+ * @returns Array of weekend block objects with left position and width
+ */
+export const calculateWeekendBlocks = (
+  dateRange: Date[],
+  dayWidth: number
+): Array<{ left: number; width: number }> => {
+  const blocks: Array<{ left: number; width: number }> = [];
+  let inWeekend = false;
+  let weekendStartIndex = -1;
+
+  for (let i = 0; i < dateRange.length; i++) {
+    const date = dateRange[i];
+    const dayOfWeek = date.getUTCDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+
+    if (isWeekend && !inWeekend) {
+      // Start of a weekend block
+      inWeekend = true;
+      weekendStartIndex = i;
+    } else if (!isWeekend && inWeekend) {
+      // End of a weekend block
+      inWeekend = false;
+      const left = Math.round(weekendStartIndex * dayWidth);
+      const width = Math.round((i - weekendStartIndex) * dayWidth);
+      blocks.push({ left, width });
+    }
+  }
+
+  // Handle case where range ends on a weekend
+  if (inWeekend && weekendStartIndex >= 0) {
+    const left = Math.round(weekendStartIndex * dayWidth);
+    const width = Math.round((dateRange.length - weekendStartIndex) * dayWidth);
+    blocks.push({ left, width });
+  }
+
+  return blocks;
+};
