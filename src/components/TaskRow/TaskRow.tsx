@@ -117,9 +117,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       const nameEl = taskNameRef.current;
       if (nameEl) {
         // Check if text is wider than available space
-        // Available space = displayWidth - (dates + handles + padding)
-        // Approx: 35px per date label + 8px per handle + 16px padding = ~92px reserved
-        const reservedWidth = 92;
+        // Reserved space for dates and handles
+        const reservedWidth = 50;
         const availableWidth = displayWidth - reservedWidth;
         setIsNameOverflow(nameEl.scrollWidth > availableWidth);
       }
