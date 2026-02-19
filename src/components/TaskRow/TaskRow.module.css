@@ -82,9 +82,9 @@
 }
 
 .externalTaskName {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #333;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #555;
   white-space: nowrap;
   margin-left: 50px;
 }
@@ -130,6 +130,7 @@
   color: #666;
   white-space: nowrap;
   pointer-events: none;
+  margin-left: 4px;
 }
 
 .dateLabelLeft {
