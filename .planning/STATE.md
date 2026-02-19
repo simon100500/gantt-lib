@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 3 of 3 (Calendar grid improvements)
 Plan: 4 of 4 in current phase (4 completed, 0 remaining)
 Status: Phase 3 Complete - All calendar grid improvements done
-Last activity: 2026-02-19 — Completed 03-04: GanttChart integration with synchronized scrolling
+Last activity: 2026-02-19 — Completed quick task 7: Fix month names to nominative case
 
 Progress: [██████████] 100%
 
