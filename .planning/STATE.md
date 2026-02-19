@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 4 of 4 (npm-packaging)
-Plan: 4 of 5 in current phase (4 completed)
-Status: In Progress - Library source migration complete
-Last activity: 2026-02-19 — Completed 04-04: Library source migration
+Plan: 5 of 5 in current phase (5 completed)
+Status: COMPLETE - npm package build and verification complete
+Last activity: 2026-02-20 — Completed 04-05: Build and verify library
 
-Progress: [████████--] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 8 min
-- Total execution time: 1.62 hours
+- Total plans completed: 16
+- Average duration: 9 min
+- Total execution time: 2.4 hours
 
 **By Phase:**
 
@@ -30,7 +30,7 @@ Progress: [████████--] 80%
 | 01-foundation-core-rendering | 3 | 3 | 6 min |
 | 02-drag-and-drop-interactions | 3 | 3 | 20 min |
 | 03-calendar | 4 | 4 | 3 min |
-| 04-npm-packaging | 4 | ? | 2 min |
+| 04-npm-packaging | 5 | 5 | 2.4 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -50,6 +50,7 @@ Progress: [████████--] 80%
 | Phase 04-npm-packaging P03 | 60s | 2 tasks | 8 files |
 | Phase 04-npm-packaging P02 | 65s | 2 tasks | 4 files |
 | Phase 04-npm-packaging P04 | 3min | 2 tasks | 26 moved + 15 modified |
+| Phase 04-npm-packaging P05 | 10min | 2 tasks + 1 fix | 6 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,9 @@ Recent decisions affecting current work:
 - [Phase 04-npm-packaging]: Prefix all CSS class names to avoid collisions (gantt-*, gantt-tr-*, gantt-tsh-*, gantt-gb-*, gantt-ti-*, gantt-dgl-*)
 - [Phase 04-npm-packaging]: CSS aggregator pattern: @import all component CSS into styles.css
 - [Phase 04-npm-packaging]: Library index.ts imports styles.css to trigger tsup CSS emission
+- [Phase 04-npm-packaging]: Use named import for esbuild-plugin-preserve-directives (not default)
+- [Phase 04-npm-packaging]: CSS inlining for bundler emission (no @import statements)
+- [Phase 04-npm-packaging]: CSS variables for theming customization
 
 ### Pending Todos
 
@@ -134,8 +138,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-19
-Stopped at: Completed 04-04 - Library source migration with CSS conversion
+Last session: 2026-02-20
+Stopped at: Completed 04-05 - Build and verify library (Phase 4 COMPLETE)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -145,8 +149,11 @@ Stopped at: Completed 04-04 - Library source migration with CSS conversion
 
 **Phase 3 Total:** 4 plans, 9 min average, 3 calendar subsystem files enhanced
 
-**Phase 4 Status:** IN PROGRESS
+**Phase 4 Status:** COMPLETE
 - 04-01: COMPLETE - Monorepo foundation (1 min)
 - 04-02: COMPLETE - Library package scaffolding (1 min)
 - 04-03: COMPLETE - Website package creation (1 min)
 - 04-04: COMPLETE - Library source migration (3 min)
+- 04-05: COMPLETE - Build and verify library (10 min)
+
+**Phase 4 Total:** 5 plans, 2.4 min average, complete npm package with CJS + ESM bundles

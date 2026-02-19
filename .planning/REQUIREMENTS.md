@@ -35,7 +35,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **DX-02**: Minimal dependencies (prefer zero deps, or lightweight libs)
 - [x] **DX-03**: Bundle size < 15KB gzipped
 - [x] **DX-04**: Compatible with Next.js App Router (client component)
-- [ ] **DX-05**: CSS variables for theming (users can customize colors)
+- [x] **DX-05**: CSS variables for theming (users can customize colors)
 
 ### Quality
 
@@ -96,11 +96,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | API-02 | Phase 2 | Complete |
 | API-03 | Phase 3 | Complete |
 | API-04 | Phase 1 | Pending |
-| DX-01 | Phase 3 | Complete |
-| DX-02 | Phase 3 | Complete |
-| DX-03 | Phase 3 | Complete |
-| DX-04 | Phase 3 | Complete |
-| DX-05 | Phase 1 | Pending |
+| DX-01 | Phase 4 | Complete |
+| DX-02 | Phase 4 | Complete |
+| DX-03 | Phase 4 | Complete |
+| DX-04 | Phase 4 | Complete |
+| DX-05 | Phase 4 | Complete |
 | QL-01 | Phase 2 | Complete |
 | QL-02 | Phase 2 | Pending |
 | QL-03 | Phase 1 | Completed |

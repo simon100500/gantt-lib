@@ -69,11 +69,11 @@ Plans:
 
 **Goal:** Restructure the repo as an npm workspaces monorepo, extract the library into `packages/gantt-lib` (publishable as `gantt-lib`), and create a fresh `packages/website` demo site — proving the full install-and-use path works
 **Depends on:** Phase 3
-**Plans:** 1/5 plans executed
+**Plans:** 5/5 plans executed (COMPLETE)
 
 Plans:
-- [ ] 04-01-PLAN.md — Root monorepo scaffolding (workspaces package.json, turbo.json, shared tsconfig)
-- [ ] 04-02-PLAN.md — Library package config (gantt-lib package.json, tsup, tsconfig, vitest)
-- [ ] 04-03-PLAN.md — Website creation (Next.js 15 demo app, Modal moved to website-only)
-- [ ] 04-04-PLAN.md — Source migration (git mv, CSS modules → plain CSS, library index.ts)
-- [ ] 04-05-PLAN.md — Install, build, and verify (npm install, turbo build, dist artifact checks, human verify)
+- [x] 04-01-PLAN.md — Root monorepo scaffolding (workspaces package.json, turbo.json, shared tsconfig)
+- [x] 04-02-PLAN.md — Library package config (gantt-lib package.json, tsup, tsconfig, vitest)
+- [x] 04-03-PLAN.md — Website creation (Next.js 15 demo app, Modal moved to website-only)
+- [x] 04-04-PLAN.md — Source migration (git mv, CSS modules → plain CSS, library index.ts)
+- [x] 04-05-PLAN.md — Install, build, and verify (npm install, turbo build, dist artifact checks, human verify)
