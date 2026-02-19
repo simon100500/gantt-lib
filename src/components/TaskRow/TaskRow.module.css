@@ -86,6 +86,7 @@
   font-weight: 500;
   color: #555;
   white-space: nowrap;
+  user-select: none;
   margin-left: 50px;
 }
 
@@ -130,6 +131,7 @@
   color: #666;
   white-space: nowrap;
   pointer-events: none;
+  user-select: none;
   margin-left: 4px;
 }
 
