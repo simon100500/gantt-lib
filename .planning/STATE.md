@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 3 of 3 (Calendar grid improvements)
 Plan: 4 of 4 in current phase (4 completed, 0 remaining)
 Status: Phase 3 Complete - All calendar grid improvements done
-Last activity: 2026-02-19 — Completed quick task 6: Drag guide lines
+Last activity: 2026-02-19 — Completed quick task 9: Vertical scrolling with sticky header
 
 Progress: [██████████] 100%
 
@@ -108,6 +108,7 @@ None yet.
 | 5 | External date labels | 2026-02-19 | dbfd429 | [5-label](./quick/5-label/) |
 | 6 | Drag guide lines | 2026-02-19 | 5632162 | [6-guide-lines](./quick/6-guide-lines/) |
 | 7 | Fix month names to nominative case | 2026-02-19 | 16bf834 | [7-fix-month-names](./quick/7-fix-month-names/) |
+| 9 | Vertical scrolling with sticky header | 2026-02-19 | 632eaae | [9-sticky](./quick/9-sticky/) |
 
 ## Session Continuity
 
