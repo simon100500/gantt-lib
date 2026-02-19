@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 4 of 4 (npm-packaging)
-Plan: 1 of ? in current phase (1 completed)
-Status: In Progress - Monorepo foundation complete
-Last activity: 2026-02-19 — Completed 04-01: Monorepo foundation
+Plan: 4 of 5 in current phase (4 completed)
+Status: In Progress - Library source migration complete
+Last activity: 2026-02-19 — Completed 04-04: Library source migration
 
-Progress: [███-------] 20%
+Progress: [████████--] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 9 min
-- Total execution time: 1.28 hours
+- Total plans completed: 12
+- Average duration: 8 min
+- Total execution time: 1.62 hours
 
 **By Phase:**
 
@@ -30,7 +30,7 @@ Progress: [███-------] 20%
 | 01-foundation-core-rendering | 3 | 3 | 6 min |
 | 02-drag-and-drop-interactions | 3 | 3 | 20 min |
 | 03-calendar | 4 | 4 | 3 min |
-| 04-npm-packaging | 1 | ? | 1 min |
+| 04-npm-packaging | 4 | ? | 2 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -46,9 +46,10 @@ Progress: [███-------] 20%
 | Phase 03-calendar P02 | 1 | 2 tasks | 3 files |
 | Phase 03-calendar P03 | 2min | 2 tasks | 2 files |
 | Phase 03-calendar P04 | 2min | 4 tasks | 3 files |
-| Phase 04-npm-packaging P01 | 74 | 2 tasks | 4 files |
-| Phase 04-npm-packaging P03 | 60 | 2 tasks | 8 files |
-| Phase 04-npm-packaging P02 | 1 | 2 tasks | 4 files |
+| Phase 04-npm-packaging P01 | 74s | 2 tasks | 4 files |
+| Phase 04-npm-packaging P03 | 60s | 2 tasks | 8 files |
+| Phase 04-npm-packaging P02 | 65s | 2 tasks | 4 files |
+| Phase 04-npm-packaging P04 | 3min | 2 tasks | 26 moved + 15 modified |
 
 ## Accumulated Context
 
@@ -105,6 +106,11 @@ Recent decisions affecting current work:
 - [Phase 04-npm-packaging]: Modal component moved to website-only - not part of library API
 - [Phase 04-npm-packaging]: Consumer CSS import pattern: import 'gantt-lib/styles.css' in layout.tsx
 - [Phase 04-npm-packaging]: Workspace dependency syntax: "gantt-lib": "*" for npm workspaces
+- [Phase 04-npm-packaging]: Use git mv to preserve file history during migration
+- [Phase 04-npm-packaging]: Rename .module.css to .css (drop CSS Modules)
+- [Phase 04-npm-packaging]: Prefix all CSS class names to avoid collisions (gantt-*, gantt-tr-*, gantt-tsh-*, gantt-gb-*, gantt-ti-*, gantt-dgl-*)
+- [Phase 04-npm-packaging]: CSS aggregator pattern: @import all component CSS into styles.css
+- [Phase 04-npm-packaging]: Library index.ts imports styles.css to trigger tsup CSS emission
 
 ### Pending Todos
 
@@ -124,11 +130,12 @@ None yet.
 | 6 | Drag guide lines | 2026-02-19 | 5632162 | [6-guide-lines](./quick/6-guide-lines/) |
 | 7 | Fix month names to nominative case | 2026-02-19 | 16bf834 | [7-fix-month-names](./quick/7-fix-month-names/) |
 | 9 | Vertical scrolling with sticky header | 2026-02-19 | 632eaae | [9-sticky](./quick/9-sticky/) |
+| 10 | Update README for monorepo and npm package | 2026-02-19 | c90c399 | [10-readme](./quick/10-readme/) |
 
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 04-01 - Monorepo foundation with Turborepo
+Stopped at: Completed 04-04 - Library source migration with CSS conversion
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -140,3 +147,6 @@ Stopped at: Completed 04-01 - Monorepo foundation with Turborepo
 
 **Phase 4 Status:** IN PROGRESS
 - 04-01: COMPLETE - Monorepo foundation (1 min)
+- 04-02: COMPLETE - Library package scaffolding (1 min)
+- 04-03: COMPLETE - Website package creation (1 min)
+- 04-04: COMPLETE - Library source migration (3 min)
