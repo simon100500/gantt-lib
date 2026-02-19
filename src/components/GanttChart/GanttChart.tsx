@@ -36,8 +36,8 @@ export interface GanttChartProps {
   rowHeight?: number;
   /** Height of the header row in pixels (default: 40) */
   headerHeight?: number;
-  /** Callback when tasks are modified via drag/resize */
-  onChange?: (tasks: Task[]) => void;
+  /** Callback when tasks are modified via drag/resize. Can receive either the new tasks array or a functional updater. */
+  onChange?: (tasks: Task[] | ((currentTasks: Task[]) => Task[])) => void;
 }
 
 /**
@@ -78,9 +78,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   /**
    * Stable callback for task updates
    *
-   * NOTE: This callback intentionally depends on `tasks` to ensure the parent
-   * receives the correct task state. However, this means the callback reference
-   * changes when tasks change, which could cause TaskRow re-renders.
+   * FIXED: No longer depends on `tasks` to avoid stale closure bugs.
+   * Uses functional state update pattern: the callback receives an updater function
+   * that maps over the current tasks state, ensuring we always use the latest state.
+   *
+   * This prevents the "reverting" bug where dragging a second task causes the
+   * first task to revert to its original position.
    *
    * To prevent re-render storms during drag:
    * 1. The onChange callback is only called AFTER drag completes (mouseUp)
@@ -91,12 +94,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
    * relying on the fact that onChange fires only after drag completes.
    */
   const handleTaskChange = useCallback((updatedTask: Task) => {
-    // Create updated tasks array with the modified task
-    const updatedTasks = tasks.map((t) =>
-      t.id === updatedTask.id ? updatedTask : t
+    // Call onChange with a functional updater that receives the current tasks
+    onChange?.((currentTasks) =>
+      currentTasks.map((t) =>
+        t.id === updatedTask.id ? updatedTask : t
+      )
     );
-    onChange?.(updatedTasks);
-  }, [tasks, onChange]);
+  }, [onChange]);
 
   return (
     <div className={styles.container}>

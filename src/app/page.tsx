@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { GanttChart, type Task } from '../components';
 
 /**
@@ -26,9 +26,9 @@ const generate100Tasks = (): Task[] => {
   const currentYear = now.getUTCFullYear();
   const currentMonth = now.getUTCMonth();
 
-  for (let i = 0; i < 100; i++) {
-    const startDay = Math.floor(Math.random() * 25); // Days 0-24
-    const duration = Math.floor(Math.random() * 5) + 1; // 1-5 days
+  for (let i = 0; i < 20; i++) {
+    const startDay = (i * 3) % 25; // Days 0-24, deterministic
+    const duration = (i % 5) + 1;  // 1-5 days, deterministic
 
     tasks.push({
       id: `task-${i}`,
@@ -131,9 +131,10 @@ export default function Home() {
   );
 
   // Handle task updates from drag/resize operations
-  const handleTasksChange = (updatedTasks: Task[]) => {
-    setTasks(updatedTasks);
-  };
+  // Supports both direct task array and functional updater for robustness
+  const handleTasksChange = useCallback((updatedTasks: Task[] | ((currentTasks: Task[]) => Task[])) => {
+    setTasks(typeof updatedTasks === 'function' ? updatedTasks : () => updatedTasks);
+  }, []);
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
@@ -188,7 +189,7 @@ export default function Home() {
           overflowX: 'auto',
           fontSize: '0.875rem'
         }}>
-{`import { GanttChart, type Task } from '@/components';
+          {`import { GanttChart, type Task } from '@/components';
 
 const tasks: Task[] = [
   {
