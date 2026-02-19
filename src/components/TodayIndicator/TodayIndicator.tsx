@@ -18,36 +18,29 @@ export interface TodayIndicatorProps {
  * Satisfies REND-04 requirement for visual today indicator.
  */
 const TodayIndicator: React.FC<TodayIndicatorProps> = ({ monthStart, dayWidth }) => {
-  const now = new Date();
+  // Use local date for "today" (not UTC) - user's current date matters
+  const today = new Date();
+  const todayLocal = new Date(Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  ));
 
-  // Check if today is within the current month
+  // Check if today is within the current month (UTC comparison with local today)
   const isInMonth = useMemo(() => {
-    const todayUTC = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate()
-    ));
-    const monthYear = monthStart.getUTCFullYear();
-    const monthMonth = monthStart.getUTCMonth();
     return (
-      todayUTC.getUTCFullYear() === monthYear &&
-      todayUTC.getUTCMonth() === monthMonth
+      todayLocal.getUTCFullYear() === monthStart.getUTCFullYear() &&
+      todayLocal.getUTCMonth() === monthStart.getUTCMonth()
     );
-  }, [monthStart, now]);
+  }, [monthStart, todayLocal]);
 
   // Calculate position if today is in the month
   const position = useMemo(() => {
     if (!isInMonth) return null;
 
-    const todayUTC = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate()
-    ));
-
-    const offset = getDayOffset(todayUTC, monthStart);
+    const offset = getDayOffset(todayLocal, monthStart);
     return Math.round(offset * dayWidth);
-  }, [isInMonth, monthStart, dayWidth, now]);
+  }, [isInMonth, monthStart, dayWidth, todayLocal]);
 
   if (!isInMonth || position === null) {
     return null;
