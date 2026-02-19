@@ -31,7 +31,7 @@ body {
   --gantt-task-bar-default-color: #3b82f6;
   --gantt-task-bar-text-color: #ffffff;
   --gantt-task-bar-border-radius: 4px;
-  --gantt-task-bar-height: 28px;
+  --gantt-task-bar-height: 24px;
 
   /* Today Indicator */
   --gantt-today-indicator-color: #ef4444;

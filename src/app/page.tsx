@@ -182,8 +182,8 @@ export default function Home() {
         <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem', backgroundColor: '#f9fafb' }}>
           <GanttChart
             tasks={tasks}
-            dayWidth={40}
-            rowHeight={40}
+            dayWidth={30}
+            rowHeight={30}
             onChange={handleTasksChange}
           />
         </div>
