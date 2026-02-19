@@ -87,6 +87,7 @@ Recent decisions affecting current work:
 - [Phase 03]: Synchronized scrolling via scrollLeft assignment from task area onScroll to header scrollLeft
 - [Phase 03]: Separate scroll refs (headerScrollRef, scrollContainerRef) for bidirectional sync capability
 - [Phase 03]: Conditional TodayIndicator rendering based on todayInRange check to prevent unnecessary rendering
+- [Quick 05]: External date labels positioned as siblings of taskBar using absolute positioning (right: 100% for left label, left: 100% for right label)
 
 ### Pending Todos
 
@@ -102,6 +103,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 1 | Remove drag popup | 2026-02-19 | 6fa4ece | [1-remove-drag-popup](./quick/1-remove-drag-popup/) |
 | 3 | Task bar date labels | 2026-02-19 | 8940b7c | [3-25-03](./quick/3-25-03/) |
+| 5 | External date labels | 2026-02-19 | dbfd429 | [5-label](./quick/5-label/) |
 
 ## Session Continuity
 
