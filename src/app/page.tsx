@@ -36,7 +36,7 @@ const generate100Tasks = (): Task[] => {
   const nextMonth = (currentMonth + 1) % 12;
   const nextMonthYear = nextMonth === 0 ? currentYear + 1 : currentYear;
 
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 1000; i++) {
     const startDay = (i * 5) % 120; // Days 0-44, deterministic
     const duration = (i % 5) + 4;  // 4-8 days, deterministic
     // Spread tasks across two months for multi-month demo

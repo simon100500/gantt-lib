@@ -4,6 +4,158 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 
 /**
+ * Global drag manager that persists across HMR
+ *
+ * This singleton manages active drag operations at the module level,
+ * ensuring that drag state survives React Fast Refresh (HMR).
+ *
+ * The key insight: When HMR occurs during a drag operation:
+ * 1. The component unmounts and its useEffect cleanup removes window listeners
+ * 2. The component remounts with fresh refs (isDraggingRef = false)
+ * 3. But the user is still holding the mouse button!
+ * 4. Without module-level state, the drag operation is orphaned
+ *
+ * Solution: Store active drag state in module-level singleton and
+ * use a global cleanup effect to always handle mouseup/mousemove.
+ */
+interface ActiveDragState {
+  taskId: string;
+  mode: 'move' | 'resize-left' | 'resize-right';
+  startX: number;
+  initialLeft: number;
+  initialWidth: number;
+  currentLeft: number;
+  currentWidth: number;
+  dayWidth: number;
+  monthStart: Date;
+  onProgress: (left: number, width: number) => void;
+  onComplete: (finalLeft: number, finalWidth: number) => void;
+  onCancel: () => void;
+}
+
+let globalActiveDrag: ActiveDragState | null = null;
+let globalRafId: number | null = null;
+
+/**
+ * Complete the active drag operation
+ */
+function completeDrag() {
+  if (globalRafId !== null) {
+    cancelAnimationFrame(globalRafId);
+    globalRafId = null;
+  }
+
+  if (globalActiveDrag) {
+    const { onComplete, currentLeft, currentWidth } = globalActiveDrag;
+    const drag = globalActiveDrag;
+    globalActiveDrag = null;
+    onComplete(currentLeft, currentWidth);
+  }
+}
+
+/**
+ * Cancel the active drag operation
+ */
+function cancelDrag() {
+  if (globalRafId !== null) {
+    cancelAnimationFrame(globalRafId);
+    globalRafId = null;
+  }
+
+  if (globalActiveDrag) {
+    const { onCancel } = globalActiveDrag;
+    globalActiveDrag = null;
+    onCancel();
+  }
+}
+
+/**
+ * Snap pixel value to grid (day boundaries)
+ */
+function snapToGrid(pixels: number, dayWidth: number): number {
+  return Math.round(pixels / dayWidth) * dayWidth;
+}
+
+/**
+ * Global mouse move handler - attached once and persists across HMR
+ */
+function handleGlobalMouseMove(e: MouseEvent) {
+  if (!globalActiveDrag || globalRafId !== null) {
+    return;
+  }
+
+  globalRafId = requestAnimationFrame(() => {
+    if (!globalActiveDrag) {
+      globalRafId = null;
+      return;
+    }
+
+    const { startX, initialLeft, initialWidth, mode, dayWidth, onProgress } = globalActiveDrag;
+    const deltaX = e.clientX - startX;
+
+    let newLeft = initialLeft;
+    let newWidth = initialWidth;
+
+    switch (mode) {
+      case 'move':
+        newLeft = snapToGrid(initialLeft + deltaX, dayWidth);
+        break;
+      case 'resize-left':
+        const snappedLeft = snapToGrid(initialLeft + deltaX, dayWidth);
+        newLeft = snappedLeft;
+        const rightEdge = initialLeft + initialWidth;
+        newWidth = Math.max(dayWidth, rightEdge - snappedLeft);
+        break;
+      case 'resize-right':
+        const snappedWidth = snapToGrid(initialWidth + deltaX, dayWidth);
+        newWidth = Math.max(dayWidth, snappedWidth);
+        break;
+    }
+
+    // Update current values in global state for completion
+    globalActiveDrag.currentLeft = newLeft;
+    globalActiveDrag.currentWidth = newWidth;
+
+    onProgress(newLeft, newWidth);
+    globalRafId = null;
+  });
+}
+
+/**
+ * Global mouse up handler - attached once and persists across HMR
+ */
+function handleGlobalMouseUp() {
+  if (globalActiveDrag) {
+    completeDrag();
+  }
+}
+
+/**
+ * Track whether global listeners are attached
+ */
+let globalListenersAttached = false;
+
+/**
+ * Ensure global listeners are attached (idempotent)
+ */
+function ensureGlobalListeners() {
+  if (!globalListenersAttached) {
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    globalListenersAttached = true;
+  }
+}
+
+/**
+ * Cleanup global listeners - called when no components are using drag
+ * Note: In practice with HMR, we keep these attached for safety
+ */
+function cleanupGlobalListeners() {
+  // We keep global listeners attached to handle orphaned drags after HMR
+  // They will be cleaned up when the page is refreshed
+}
+
+/**
  * Options for useTaskDrag hook
  */
 export interface UseTaskDragOptions {
@@ -52,9 +204,9 @@ export interface UseTaskDragReturn {
 /**
  * Custom hook for managing task drag interactions
  *
- * Uses refs for high-frequency state updates to avoid React re-renders during drag.
- * Event listeners attached to window for reliable drag completion detection.
- * requestAnimationFrame used for smooth 60fps visual updates.
+ * HMR-SAFE: Uses module-level singleton to ensure drag state survives
+ * React Fast Refresh. Window event listeners are attached once at module
+ * level rather than per component instance.
  */
 export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   const {
@@ -68,32 +220,14 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     edgeZoneWidth = 12,
   } = options;
 
-  // High-frequency drag state (refs to avoid re-renders)
-  const isDraggingRef = useRef<boolean>(false);
-  const dragModeRef = useRef<'move' | 'resize-left' | 'resize-right' | null>(null);
-  const startXRef = useRef<number>(0);
-  const initialLeftRef = useRef<number>(0);
-  const initialWidthRef = useRef<number>(0);
-  const rafIdRef = useRef<number | null>(null);
+  // Track if this hook instance owns the current global drag
+  const isOwnerRef = useRef<boolean>(false);
 
   // Display state (triggers re-renders only when needed)
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragMode, setDragMode] = useState<'move' | 'resize-left' | 'resize-right' | null>(null);
   const [currentLeft, setCurrentLeft] = useState<number>(0);
   const [currentWidth, setCurrentWidth] = useState<number>(0);
-
-  // Refs for latest display values (sync with state)
-  const currentLeftRef = useRef<number>(0);
-  const currentWidthRef = useRef<number>(0);
-
-  // Sync display state refs
-  useEffect(() => {
-    currentLeftRef.current = currentLeft;
-  }, [currentLeft]);
-
-  useEffect(() => {
-    currentWidthRef.current = currentWidth;
-  }, [currentWidth]);
 
   /**
    * Calculate initial pixel position from dates
@@ -123,99 +257,38 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   }, [initialStartDate, initialEndDate, monthStart, dayWidth]);
 
   /**
-   * Convert pixel value to date (using UTC)
+   * Initialize position when dates or dayWidth changes
    */
-  const pixelToDate = useCallback((pixels: number, baseDate: Date): Date => {
-    const dayOffset = Math.round(pixels / dayWidth);
-    return new Date(Date.UTC(
-      baseDate.getUTCFullYear(),
-      baseDate.getUTCMonth(),
-      baseDate.getUTCDate() + dayOffset
-    ));
-  }, [dayWidth]);
+  useEffect(() => {
+    const { left, width } = getInitialPosition();
+    setCurrentLeft(left);
+    setCurrentWidth(width);
+  }, [getInitialPosition]);
 
   /**
-   * Snap pixel value to grid (day boundaries)
+   * Handle drag progress callback from global manager
    */
-  const snapToGrid = useCallback((pixels: number): number => {
-    return Math.round(pixels / dayWidth) * dayWidth;
-  }, [dayWidth]);
+  const handleProgress = useCallback((left: number, width: number) => {
+    setCurrentLeft(left);
+    setCurrentWidth(width);
+
+    if (onDragStateChange && isOwnerRef.current) {
+      const mode = globalActiveDrag?.mode || null;
+      onDragStateChange({
+        isDragging: true,
+        dragMode: mode,
+        left,
+        width,
+      });
+    }
+  }, [onDragStateChange]);
 
   /**
-   * Handle mouse move during drag
+   * Handle drag completion from global manager
    */
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDraggingRef.current || rafIdRef.current !== null) {
-      return;
-    }
-
-    // Schedule update via RAF for smooth 60fps
-    rafIdRef.current = requestAnimationFrame(() => {
-      const deltaX = e.clientX - startXRef.current;
-      const mode = dragModeRef.current;
-
-      if (!mode) {
-        rafIdRef.current = null;
-        return;
-      }
-
-      let newLeft = initialLeftRef.current;
-      let newWidth = initialWidthRef.current;
-
-      switch (mode) {
-        case 'move':
-          // Move: both left and width change (entire bar moves)
-          newLeft = snapToGrid(initialLeftRef.current + deltaX);
-          break;
-        case 'resize-left':
-          // Resize left: left changes, width adjusts to keep right edge fixed
-          const snappedLeft = snapToGrid(initialLeftRef.current + deltaX);
-          newLeft = snappedLeft;
-          const rightEdge = initialLeftRef.current + initialWidthRef.current;
-          newWidth = Math.max(dayWidth, rightEdge - snappedLeft);
-          break;
-        case 'resize-right':
-          // Resize right: only width changes (left edge fixed)
-          const snappedWidth = snapToGrid(initialWidthRef.current + deltaX);
-          newWidth = Math.max(dayWidth, snappedWidth);
-          break;
-      }
-
-      // Update display state (triggers re-render)
-      setCurrentLeft(newLeft);
-      setCurrentWidth(newWidth);
-
-      // Notify parent of position update
-      if (onDragStateChange) {
-        onDragStateChange({
-          isDragging: true,
-          dragMode: dragModeRef.current || null,
-          left: newLeft,
-          width: newWidth,
-        });
-      }
-
-      rafIdRef.current = null;
-    });
-  }, [dayWidth, snapToGrid]);
-
-  /**
-   * Handle mouse up (drag end)
-   */
-  const handleMouseUp = useCallback(() => {
-    if (!isDraggingRef.current) {
-      return;
-    }
-
-    // Cancel any pending RAF
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-
-    const mode = dragModeRef.current;
-    const finalLeft = currentLeftRef.current;
-    const finalWidth = currentWidthRef.current;
+  const handleComplete = useCallback((finalLeft: number, finalWidth: number) => {
+    const wasOwner = isOwnerRef.current;
+    isOwnerRef.current = false;
 
     // Calculate new dates from final pixel values
     const dayOffset = Math.round(finalLeft / dayWidth);
@@ -233,9 +306,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       monthStart.getUTCDate() + dayOffset + durationDays
     ));
 
-    // Reset drag state
-    isDraggingRef.current = false;
-    dragModeRef.current = null;
+    // Reset local state
     setIsDragging(false);
     setDragMode(null);
 
@@ -249,8 +320,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       });
     }
 
-    // Notify parent of drag completion
-    if (onDragEnd && mode) {
+    // Notify parent of drag completion (only if we were the owner)
+    if (onDragEnd && wasOwner) {
       onDragEnd({
         id: taskId,
         startDate: newStartDate,
@@ -260,35 +331,34 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   }, [dayWidth, monthStart, onDragEnd, onDragStateChange, taskId]);
 
   /**
-   * Attach/remove window event listeners based on drag state
+   * Handle drag cancellation (e.g., if HMR orphaned the drag)
    */
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+  const handleCancel = useCallback(() => {
+    isOwnerRef.current = false;
+    setIsDragging(false);
+    setDragMode(null);
 
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-
-        // Cancel any pending RAF
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-        }
-      };
+    if (onDragStateChange) {
+      onDragStateChange({
+        isDragging: false,
+        dragMode: null,
+        left: currentLeft,
+        width: currentWidth,
+      });
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [onDragStateChange, currentLeft, currentWidth]);
 
   /**
-   * Initialize position when dates or dayWidth changes
+   * Cleanup on unmount - if this instance owns the drag, cancel it
    */
   useEffect(() => {
-    const { left, width } = getInitialPosition();
-    setCurrentLeft(left);
-    setCurrentWidth(width);
-    initialLeftRef.current = left;
-    initialWidthRef.current = width;
-  }, [getInitialPosition]);
+    return () => {
+      if (isOwnerRef.current && globalActiveDrag) {
+        // We're unmounting while owning the drag - cancel it
+        cancelDrag();
+      }
+    };
+  }, []);
 
   /**
    * Handle mouse down on drag handle
@@ -315,12 +385,12 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       return;
     }
 
-    // Initialize drag state
-    isDraggingRef.current = true;
-    dragModeRef.current = mode;
-    startXRef.current = e.clientX;
-    initialLeftRef.current = currentLeftRef.current;
-    initialWidthRef.current = currentWidthRef.current;
+    // Get current position from state (this is what we see on screen)
+    const initialLeft = currentLeft;
+    const initialWidth = currentWidth;
+
+    // Mark this instance as the drag owner
+    isOwnerRef.current = true;
 
     // Update display state
     setIsDragging(true);
@@ -331,11 +401,30 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       onDragStateChange({
         isDragging: true,
         dragMode: mode,
-        left: currentLeftRef.current,
-        width: currentWidthRef.current,
+        left: initialLeft,
+        width: initialWidth,
       });
     }
-  }, [edgeZoneWidth, onDragStateChange]);
+
+    // Ensure global listeners are attached (idempotent)
+    ensureGlobalListeners();
+
+    // Store drag state in global singleton
+    globalActiveDrag = {
+      taskId,
+      mode,
+      startX: e.clientX,
+      initialLeft,
+      initialWidth,
+      currentLeft: initialLeft, // Initially same as initial
+      currentWidth: initialWidth, // Initially same as initial
+      dayWidth,
+      monthStart,
+      onProgress: handleProgress,
+      onComplete: handleComplete,
+      onCancel: handleCancel,
+    };
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel]);
 
   /**
    * Get cursor style based on current position

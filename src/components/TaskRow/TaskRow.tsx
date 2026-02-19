@@ -122,6 +122,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const startDateLabel = formatDateLabel(currentStartDate);
     const endDateLabel = formatDateLabel(currentEndDate);
 
+    // Calculate duration in days
+    const durationDays = Math.round(
+      (currentEndDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24)
+    ) + 1;
+
     // Detect if task name overflows the bar
     const [isNameOverflow, setIsNameOverflow] = useState(false);
     const taskNameRef = useRef<HTMLSpanElement>(null);
@@ -129,9 +134,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     useEffect(() => {
       const nameEl = taskNameRef.current;
       if (nameEl) {
-        // Check if text is wider than available space
-        // Reserved space for dates and handles
-        const reservedWidth = 20;
+        // Check if task name is wider than available space
+        // Reserved space for dates, duration, separator, and handles
+        const reservedWidth = 120;
         const availableWidth = displayWidth - reservedWidth;
         setIsNameOverflow(nameEl.scrollWidth > availableWidth);
       }
@@ -155,17 +160,27 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
             onMouseDown={dragHandleProps.onMouseDown}
           >
-            <span className={`${styles.dateLabel} ${styles.dateLabelLeft}`}>
-              {startDateLabel}
-            </span>
             <div className={`${styles.resizeHandle} ${styles.resizeHandleLeft}`} />
+            <span className={styles.taskDuration}>
+              {durationDays} д
+            </span>
             <span
               ref={taskNameRef}
               className={`${styles.taskName} ${isNameOverflow ? styles.taskNameHidden : ''}`}
             >
-              {task.name}
+              — {task.name}
             </span>
             <div className={`${styles.resizeHandle} ${styles.resizeHandleRight}`} />
+          </div>
+          <div
+            className={styles.leftLabels}
+            style={{
+              left: `${displayLeft}px`
+            }}
+          >
+            <span className={`${styles.dateLabel} ${styles.dateLabelLeft}`}>
+              {startDateLabel} - {endDateLabel}
+            </span>
           </div>
           <div
             className={styles.rightLabels}
@@ -173,9 +188,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               left: `${displayLeft + displayWidth}px`,
             }}
           >
-            <span className={`${styles.dateLabel} ${styles.dateLabelRight}`}>
-              {endDateLabel}
-            </span>
             {isNameOverflow && (
               <span className={styles.externalTaskName}>
                 {task.name}
