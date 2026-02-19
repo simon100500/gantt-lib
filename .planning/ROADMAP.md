@@ -64,3 +64,16 @@ Plans:
 - [x] 03-02-PLAN.md — GridBackground component for vertical lines and weekend highlighting
 - [x] 03-03-PLAN.md — Two-row TimeScaleHeader with month names and day numbers
 - [x] 03-04-PLAN.md — GanttChart integration with synchronized scrolling
+
+### Phase 4: npm-packaging
+
+**Goal:** Restructure the repo as an npm workspaces monorepo, extract the library into `packages/gantt-lib` (publishable as `gantt-lib`), and create a fresh `packages/website` demo site — proving the full install-and-use path works
+**Depends on:** Phase 3
+**Plans:** 5 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Root monorepo scaffolding (workspaces package.json, turbo.json, shared tsconfig)
+- [ ] 04-02-PLAN.md — Library package config (gantt-lib package.json, tsup, tsconfig, vitest)
+- [ ] 04-03-PLAN.md — Website creation (Next.js 15 demo app, Modal moved to website-only)
+- [ ] 04-04-PLAN.md — Source migration (git mv, CSS modules → plain CSS, library index.ts)
+- [ ] 04-05-PLAN.md — Install, build, and verify (npm install, turbo build, dist artifact checks, human verify)
