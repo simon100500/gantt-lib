@@ -18,12 +18,13 @@
   z-index: 10;
   background-color: var(--gantt-cell-background, #ffffff);
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 .taskScrollContainer {
   overflow-y: auto;
-  overflow-x: visible;
+  overflow-x: auto;
   position: relative;
   flex: 1;
 }

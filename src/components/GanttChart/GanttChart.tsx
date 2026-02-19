@@ -65,6 +65,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   containerHeight = 600,
   onChange,
 }) => {
+  // Scroll refs for synchronization
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // Calculate multi-month date range from tasks
   const dateRange = useMemo(() => getMultiMonthDays(tasks), [tasks]);
 
@@ -145,11 +149,30 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     }
   }, []);
 
+  /**
+   * Synchronize horizontal scrolling between header and task area
+   */
+  const handleHeaderScroll = useCallback(() => {
+    if (headerScrollRef.current && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
+    }
+  }, []);
+
+  const handleTaskScroll = useCallback(() => {
+    if (scrollContainerRef.current && headerScrollRef.current) {
+      headerScrollRef.current.scrollLeft = scrollContainerRef.current.scrollLeft;
+    }
+  }, []);
+
   return (
     <div className={styles.container}>
       <div className={styles.chartWrapper} style={{ height: `${containerHeight}px` }}>
         {/* Header */}
-        <div className={styles.headerScrollContainer}>
+        <div
+          ref={headerScrollRef}
+          className={styles.headerScrollContainer}
+          onScroll={handleHeaderScroll}
+        >
           <TimeScaleHeader
             days={dateRange}
             dayWidth={dayWidth}
@@ -158,7 +181,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         </div>
 
         {/* Task area */}
-        <div className={styles.taskScrollContainer}>
+        <div
+          ref={scrollContainerRef}
+          className={styles.taskScrollContainer}
+          onScroll={handleTaskScroll}
+        >
           <div
             className={styles.taskArea}
             style={{
