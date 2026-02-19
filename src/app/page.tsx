@@ -4,6 +4,14 @@ import { useState, useCallback } from 'react';
 import { GanttChart, type Task } from '../components';
 
 /**
+ * Multi-month Gantt chart demo
+ *
+ * The calendar automatically shows full months based on task date ranges.
+ * For example, if tasks span from March 25 to May 5, the calendar shows
+ * the complete months of March, April, and May (March 1 - May 31).
+ */
+
+/**
  * Generate 100 tasks for performance testing
  *
  * Performance Testing Instructions:
@@ -25,16 +33,22 @@ const generate100Tasks = (): Task[] => {
   const now = new Date();
   const currentYear = now.getUTCFullYear();
   const currentMonth = now.getUTCMonth();
+  const nextMonth = (currentMonth + 1) % 12;
+  const nextMonthYear = nextMonth === 0 ? currentYear + 1 : currentYear;
 
   for (let i = 0; i < 30; i++) {
-    const startDay = (i * 3) % 45; // Days 0-24, deterministic
-    const duration = (i % 5) + 4;  // 1-5 days, deterministic
+    const startDay = (i * 3) % 45; // Days 0-44, deterministic
+    const duration = (i % 5) + 4;  // 4-8 days, deterministic
+    // Spread tasks across two months for multi-month demo
+    const isCurrentMonth = i % 2 === 0;
+    const month = isCurrentMonth ? currentMonth : nextMonth;
+    const year = isCurrentMonth ? currentYear : nextMonthYear;
 
     tasks.push({
       id: `task-${i}`,
       name: `Task ${i + 1}`,
-      startDate: new Date(Date.UTC(currentYear, currentMonth, startDay + 1)).toISOString(),
-      endDate: new Date(Date.UTC(currentYear, currentMonth, startDay + duration)).toISOString(),
+      startDate: new Date(Date.UTC(year, month, startDay + 1)).toISOString(),
+      endDate: new Date(Date.UTC(year, month, startDay + duration)).toISOString(),
       color: i % 3 === 0 ? '#3b82f6' : i % 3 === 1 ? '#10b981' : undefined,
     });
   }
@@ -42,13 +56,17 @@ const generate100Tasks = (): Task[] => {
 };
 
 /**
- * Original 7 sample tasks for clear demo
+ * Original 7 sample tasks for clear demo - spans multiple months
  */
 const generateSampleTasks = (): Task[] => {
   const now = new Date();
   const currentYear = now.getUTCFullYear();
   const currentMonth = now.getUTCMonth();
   const currentDay = now.getUTCDate();
+  const nextMonth = (currentMonth + 1) % 12;
+  const nextMonthYear = nextMonth === 0 ? currentYear + 1 : currentYear;
+  const afterNextMonth = (nextMonth + 1) % 12;
+  const afterNextMonthYear = afterNextMonth === 0 ? nextMonthYear + 1 : nextMonthYear;
 
   const today = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
   const yesterday = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay - 1).padStart(2, '0')}`;
@@ -57,6 +75,10 @@ const generateSampleTasks = (): Task[] => {
   const weekEnd = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-07`;
   const midMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15`;
   const monthEnd = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-28`;
+  const nextMonthStart = `${nextMonthYear}-${String(nextMonth + 1).padStart(2, '0')}-01`;
+  const nextMonthMid = `${nextMonthYear}-${String(nextMonth + 1).padStart(2, '0')}-15`;
+  const nextMonthEnd = `${nextMonthYear}-${String(nextMonth + 1).padStart(2, '0')}-28`;
+  const afterNextMonthStart = `${afterNextMonthYear}-${String(afterNextMonth + 1).padStart(2, '0')}-05`;
 
   return [
     {
@@ -95,16 +117,16 @@ const generateSampleTasks = (): Task[] => {
     },
     {
       id: '6',
-      name: 'Monthly Release',
-      startDate: '2026-02-01',
-      endDate: monthEnd,
+      name: 'Multi-Month Release',
+      startDate: monthEnd,
+      endDate: nextMonthMid,
       color: '#ec4899',
     },
     {
       id: '7',
       name: 'Documentation',
-      startDate: midMonth,
-      endDate: monthEnd,
+      startDate: nextMonthStart,
+      endDate: afterNextMonthStart,
     },
   ] as Task[];
 };
@@ -113,6 +135,8 @@ const generateSampleTasks = (): Task[] => {
  * Demo page showcasing the Gantt Chart component
  *
  * This page demonstrates:
+ * - Multi-month calendar grid
+ * - Two-row header (month names + day numbers)
  * - Single-day tasks
  * - Multi-day tasks
  * - Tasks with custom colors
@@ -120,6 +144,8 @@ const generateSampleTasks = (): Task[] => {
  * - Tasks spanning across month boundaries
  * - Drag-and-drop task editing
  * - Performance with 100 tasks
+ * - Weekend highlighting
+ * - Synchronized header scrolling
  */
 export default function Home() {
   // Use 100 tasks for performance testing (requirement INT-03: 60fps with ~100 tasks)
@@ -156,7 +182,6 @@ export default function Home() {
         <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem', backgroundColor: '#f9fafb' }}>
           <GanttChart
             tasks={tasks}
-            month={new Date()}
             dayWidth={40}
             rowHeight={40}
             onChange={handleTasksChange}
