@@ -23,7 +23,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: #1f2937;
-  border-right: var(--gantt-day-line-width, 1px) solid var(--gantt-day-line-color, #f3f4f6);
+  border-right: var(--gantt-month-separator-width, 1px) solid var(--gantt-month-separator-color, #a1a1a1);
   text-align: left;
 }
 
