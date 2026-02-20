@@ -96,7 +96,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       }
       // Darker semi-transparent shade using color-mix() or fallback
       return task.color
-        ? `color-mix(in srgb, ${task.color} 60%, black)`
+        ? `color-mix(in srgb, ${task.color} 40%, black)`
         : 'var(--gantt-progress-color, rgba(0, 0, 0, 0.2))';
     }, [progressWidth, task.accepted, task.color]);
 
