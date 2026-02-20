@@ -24,6 +24,20 @@ export interface Task {
   endDate: string | Date;
   /** Optional color for task bar visualization */
   color?: string;
+  /**
+   * Optional progress value from 0-100
+   * - Decimal values are allowed and rounded to nearest integer for display
+   * - Values are clamped to 0-100 range
+   * - Undefined or 0 means no progress is displayed
+   * - Progress is visual-only, no user interaction
+   */
+  progress?: number;
+  /**
+   * Optional flag indicating if task is accepted
+   * - Only meaningful when progress is 100%
+   * - Affects the color of the progress bar (green for accepted, yellow for completed)
+   */
+  accepted?: boolean;
 }
 
 export interface GanttChartProps {
