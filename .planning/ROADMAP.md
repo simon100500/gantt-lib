@@ -77,3 +77,12 @@ Plans:
 - [x] 04-03-PLAN.md — Website creation (Next.js 15 demo app, Modal moved to website-only)
 - [x] 04-04-PLAN.md — Source migration (git mv, CSS modules → plain CSS, library index.ts)
 - [x] 04-05-PLAN.md — Install, build, and verify (npm install, turbo build, dist artifact checks, human verify)
+
+### Phase 5: progress-bars
+
+**Goal:** [To be planned]
+**Depends on:** Phase 4
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 5 to break down)

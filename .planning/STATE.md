@@ -58,6 +58,7 @@ Progress: [██████████] 100%
 
 - Phase 3 added: Calendar grid improvements (full grid during drag, uniform column widths, three-level header, vertical grid lines, month/week separators, weekend highlighting)
 - Phase 4 added: npm-packaging
+- Phase 5 added: progress-bars
 
 ### Decisions
 
