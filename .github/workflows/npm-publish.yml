@@ -22,25 +22,19 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
 
       - name: Build gantt-lib
-        run: cd packages/gantt-lib && pnpm run build
+        run: cd packages/gantt-lib && npm run build
 
       - name: Update version (if manual)
         if: github.event_name == 'workflow_dispatch'
         run: |
           cd packages/gantt-lib
-          pnpm version ${{ github.event.inputs.version }} --no-git-tag-version
-          pnpm install
+          npm version ${{ github.event.inputs.version }} --no-git-tag-version
 
       - name: Publish to npm
-        run: cd packages/gantt-lib && pnpm publish --no-git-checks --access public
+        run: cd packages/gantt-lib && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
