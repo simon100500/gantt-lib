@@ -1,5 +1,9 @@
 # gantt-lib
 
+[![Demo](https://img.shields.io/badge/demo-online-brightgreen)](https://gantt-lib-demo.vercel.app/)
+
+![Screenshot](https://github.com/simon100500/gantt-lib/raw/main/docs/images/screen.png)
+
 Lightweight React Gantt chart component library with drag-and-drop task management.
 
 ## Features

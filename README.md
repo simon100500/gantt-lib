@@ -1,5 +1,7 @@
 # gantt-lib
 
+[![Demo](https://img.shields.io/badge/demo-online-brightgreen)](https://gantt-lib-demo.vercel.app/)
+
 ![Скриншот](docs/images/screen.png)
 
 Лёгкий React/Next.js компонент диаграммы Ганта с drag-and-drop. Перемещайте и изменяйте размер задач прямо на сетке.
