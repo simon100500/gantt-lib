@@ -2,7 +2,7 @@
 
 [![Demo](https://img.shields.io/badge/demo-online-brightgreen)](https://gantt-lib-demo.vercel.app/)
 
-![Screenshot](https://github.com/simon100500/gantt-lib/raw/main/docs/images/screen.png)
+![Screenshot](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/screen.png)
 
 Lightweight React Gantt chart component library with drag-and-drop task management.
 
@@ -26,22 +26,22 @@ npm install gantt-lib
 ## Quick Start
 
 ```tsx
-import { GanttChart, type Task } from 'gantt-lib';
-import 'gantt-lib/styles.css';
+import { GanttChart, type Task } from "gantt-lib";
+import "gantt-lib/styles.css";
 
 const tasks: Task[] = [
   {
-    id: '1',
-    name: 'Project Kickoff',
-    startDate: '2026-02-01',
-    endDate: '2026-02-05',
-    color: '#10b981'
+    id: "1",
+    name: "Project Kickoff",
+    startDate: "2026-02-01",
+    endDate: "2026-02-05",
+    color: "#10b981",
   },
   {
-    id: '2',
-    name: 'Development',
-    startDate: '2026-02-06',
-    endDate: '2026-02-20'
+    id: "2",
+    name: "Development",
+    startDate: "2026-02-06",
+    endDate: "2026-02-20",
   },
 ];
 
@@ -68,12 +68,12 @@ export default function App() {
 
 Main component that renders the interactive Gantt chart.
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `tasks` | `Task[]` | *required* | Array of tasks to display |
-| `dayWidth` | `number` | `30` | Width of each day column in pixels |
-| `rowHeight` | `number` | `36` | Height of each task row in pixels |
-| `onChange` | `(tasks: Task[] \| Task[] => Task[]) => void` | *required* | Callback when tasks are modified |
+| Prop        | Type                                          | Default    | Description                        |
+| ----------- | --------------------------------------------- | ---------- | ---------------------------------- |
+| `tasks`     | `Task[]`                                      | _required_ | Array of tasks to display          |
+| `dayWidth`  | `number`                                      | `30`       | Width of each day column in pixels |
+| `rowHeight` | `number`                                      | `36`       | Height of each task row in pixels  |
+| `onChange`  | `(tasks: Task[] \| Task[] => Task[]) => void` | _required_ | Callback when tasks are modified   |
 
 ### Task
 
@@ -81,9 +81,9 @@ Main component that renders the interactive Gantt chart.
 interface Task {
   id: string;
   name: string;
-  startDate: string;  // ISO date format: YYYY-MM-DD
-  endDate: string;    // ISO date format: YYYY-MM-DD
-  color?: string;     // Optional bar color (CSS color value)
+  startDate: string; // ISO date format: YYYY-MM-DD
+  endDate: string; // ISO date format: YYYY-MM-DD
+  color?: string; // Optional bar color (CSS color value)
 }
 ```
 
