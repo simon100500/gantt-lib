@@ -80,9 +80,9 @@ Plans:
 
 ### Phase 5: progress-bars
 
-**Goal:** [To be planned]
+**Goal:** Visual progress indicators on task bars showing completion status (0-100%) as horizontal fill overlays with color coding (darker shade for partial, yellow for 100% completed, green for 100% accepted)
 **Depends on:** Phase 4
-**Plans:** 0 plans
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 5 to break down)
+- [ ] 05-01-PLAN.md — Progress bar type extensions, rendering logic, and CSS styles
