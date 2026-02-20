@@ -31,11 +31,24 @@ jobs:
       - name: Build gantt-lib
         run: cd packages/gantt-lib && npm run build
 
-      - name: Update version (if manual)
+      # Для релиза: версия берётся из тега (v0.0.4 → 0.0.4)
+      - name: Get version from release tag
+        if: github.event_name == 'release'
+        id: release-version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      # Для workflow_dispatch: версия из input
+      - name: Get version from input
         if: github.event_name == 'workflow_dispatch'
+        id: input-version
+        run: echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+
+      # Обновить версию в package.json
+      - name: Update version in package.json
         run: |
           cd packages/gantt-lib
-          npm version ${{ github.event.inputs.version }} --no-git-tag-version
+          VERSION="${{ steps.release-version.outputs.version || steps.input-version.outputs.version }}"
+          npm version $VERSION --no-git-tag-version --allow-same-version
 
       - name: Publish to npm
         run: cd packages/gantt-lib && npm publish --access public
