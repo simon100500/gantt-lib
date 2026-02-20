@@ -107,6 +107,9 @@
   cursor: ew-resize;
   pointer-events: auto;
   z-index: 10;
+  /* z-index requires a positioning context; position: absolute is set here.
+     Do NOT add position: relative via a shared selector - that would override
+     this rule and break the absolute positioning at bar edges. */
 }
 
 .gantt-tr-resizeHandleLeft {
@@ -170,10 +173,13 @@
   transition: width 0.3s ease;
 }
 
-/* Ensure text stays above progress bar */
+/* Ensure text stays above progress bar.
+   NOTE: .gantt-tr-resizeHandle is intentionally excluded here because it already
+   uses position: absolute with z-index: 10, which places it above the progress bar.
+   Adding position: relative here would override position: absolute and break the
+   absolute positioning that anchors handles to the bar edges. */
 .gantt-tr-taskName,
-.gantt-tr-taskDuration,
-.gantt-tr-resizeHandle {
+.gantt-tr-taskDuration {
   position: relative;
   z-index: 2;
 }
