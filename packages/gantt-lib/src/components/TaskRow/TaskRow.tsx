@@ -51,6 +51,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.startDate === nextProps.task.startDate &&
     prevProps.task.endDate === nextProps.task.endDate &&
     prevProps.task.color === nextProps.task.color &&
+    prevProps.task.progress === nextProps.task.progress &&
+    prevProps.task.accepted === nextProps.task.accepted &&
     prevProps.monthStart.getTime() === nextProps.monthStart.getTime() &&
     prevProps.dayWidth === nextProps.dayWidth &&
     prevProps.rowHeight === nextProps.rowHeight
@@ -78,6 +80,25 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
     // Determine task bar color
     const barColor = task.color || 'var(--gantt-task-bar-default-color)';
+
+    // Calculate clamped and rounded progress width
+    const progressWidth = useMemo(() => {
+      if (task.progress === undefined || task.progress <= 0) return 0;
+      return Math.min(100, Math.max(0, Math.round(task.progress)));
+    }, [task.progress]);
+
+    // Determine progress color based on completion status
+    const progressColor = useMemo(() => {
+      if (progressWidth === 100) {
+        return task.accepted
+          ? 'var(--gantt-progress-accepted, #22c55e)'    // Green for accepted
+          : 'var(--gantt-progress-completed, #fbbf24)';   // Yellow for completed
+      }
+      // Darker semi-transparent shade using color-mix() or fallback
+      return task.color
+        ? `color-mix(in srgb, ${task.color} 40%, black)`
+        : 'var(--gantt-progress-color, rgba(0, 0, 0, 0.2))';
+    }, [progressWidth, task.accepted, task.color]);
 
     // Handle drag end - call onChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date }) => {
@@ -161,6 +182,15 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
             onMouseDown={dragHandleProps.onMouseDown}
           >
+            {progressWidth > 0 && (
+              <div
+                className="gantt-tr-progressBar"
+                style={{
+                  width: `${progressWidth}%`,
+                  backgroundColor: progressColor,
+                }}
+              />
+            )}
             <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
             <span className="gantt-tr-taskDuration">
               {durationDays} д

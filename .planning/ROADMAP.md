@@ -77,3 +77,12 @@ Plans:
 - [x] 04-03-PLAN.md — Website creation (Next.js 15 demo app, Modal moved to website-only)
 - [x] 04-04-PLAN.md — Source migration (git mv, CSS modules → plain CSS, library index.ts)
 - [x] 04-05-PLAN.md — Install, build, and verify (npm install, turbo build, dist artifact checks, human verify)
+
+### Phase 5: progress-bars
+
+**Goal:** Visual progress indicators on task bars showing completion status (0-100%) as horizontal fill overlays with color coding (darker shade for partial, yellow for 100% completed, green for 100% accepted)
+**Depends on:** Phase 4
+**Plans:** 1 plan
+
+Plans:
+- [ ] 05-01-PLAN.md — Progress bar type extensions, rendering logic, and CSS styles

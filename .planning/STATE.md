@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 4 - npm-packaging
+**Current focus:** Phase 5 - progress-bars
 
 ## Current Position
 
-Phase: 4 of 4 (npm-packaging)
-Plan: 5 of 5 in current phase (5 completed)
-Status: COMPLETE - npm package build and verification complete
-Last activity: 2026-02-20 — Completed 04-05: Build and verify library
+Phase: 5 of 5 (progress-bars)
+Plan: 1 of 1 in current phase (1 completed - AWAITING VERIFICATION)
+Status: CHECKPOINT - Progress bar implementation complete, awaiting human verification
+Last activity: 2026-02-20 — Completed 05-01: Progress bars on task bars
 
-Progress: [██████████] 100%
+Progress: [████████░░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: 9 min
-- Total execution time: 2.4 hours
+- Total execution time: 2.5 hours
 
 **By Phase:**
 
@@ -31,6 +31,7 @@ Progress: [██████████] 100%
 | 02-drag-and-drop-interactions | 3 | 3 | 20 min |
 | 03-calendar | 4 | 4 | 3 min |
 | 04-npm-packaging | 5 | 5 | 2.4 min |
+| 05-progress-bars | 1 | 1 | 6 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -51,6 +52,7 @@ Progress: [██████████] 100%
 | Phase 04-npm-packaging P02 | 65s | 2 tasks | 4 files |
 | Phase 04-npm-packaging P04 | 3min | 2 tasks | 26 moved + 15 modified |
 | Phase 04-npm-packaging P05 | 10min | 2 tasks + 1 fix | 6 files |
+| Phase 05 P01 | 6 | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -58,6 +60,7 @@ Progress: [██████████] 100%
 
 - Phase 3 added: Calendar grid improvements (full grid during drag, uniform column widths, three-level header, vertical grid lines, month/week separators, weekend highlighting)
 - Phase 4 added: npm-packaging
+- Phase 5 added: progress-bars
 
 ### Decisions
 
@@ -115,6 +118,7 @@ Recent decisions affecting current work:
 - [Phase 04-npm-packaging]: Use named import for esbuild-plugin-preserve-directives (not default)
 - [Phase 04-npm-packaging]: CSS inlining for bundler emission (no @import statements)
 - [Phase 04-npm-packaging]: CSS variables for theming customization
+- [Phase 05]: Used color-mix() CSS function for darker progress shades from task color
 
 ### Pending Todos
 
@@ -157,3 +161,8 @@ Stopped at: Completed 04-05 - Build and verify library (Phase 4 COMPLETE)
 - 04-05: COMPLETE - Build and verify library (10 min)
 
 **Phase 4 Total:** 5 plans, 2.4 min average, complete npm package with CJS + ESM bundles
+
+**Phase 5 Status:** CHECKPOINT - AWAITING VERIFICATION
+- 05-01: CHECKPOINT - Progress bars on task bars (6 min + 1 fix)
+
+**Phase 5 Total:** 1 plan, 6 min, progress visualization with completion status colors

@@ -23,6 +23,8 @@ const createSampleTasks = (): Task[] => {
       startDate: baseDate,
       endDate: addDays(baseDate, 3),
       color: "#3b82f6",
+      progress: 100,
+      accepted: true,
     },
     {
       id: "2",
@@ -30,6 +32,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 1),
       endDate: addDays(baseDate, 6),
       color: "#6366f1",
+      progress: 100,
     },
     {
       id: "3",
@@ -37,6 +40,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 3),
       endDate: addDays(baseDate, 11),
       color: "#6366f1",
+      progress: 75,
     },
     {
       id: "4",
@@ -44,6 +48,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 4),
       endDate: addDays(baseDate, 8),
       color: "#8b5cf6",
+      progress: 45.7,
     },
     {
       id: "5",
@@ -51,6 +56,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 6),
       endDate: addDays(baseDate, 14),
       color: "#8b5cf6",
+      progress: 20,
     },
     {
       id: "6",
@@ -58,6 +64,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 8),
       endDate: addDays(baseDate, 13),
       color: "#a855f7",
+      progress: 0,
     },
     {
       id: "7",
@@ -74,6 +81,8 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 11),
       endDate: addDays(baseDate, 18),
       color: "#ec4899",
+      progress: 100,
+      accepted: true,
     },
     {
       id: "9",
@@ -81,6 +90,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 14),
       endDate: addDays(baseDate, 21),
       color: "#ec4899",
+      progress: 100,
     },
     {
       id: "10",
@@ -88,6 +98,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 19),
       endDate: addDays(baseDate, 26),
       color: "#f43f5e",
+      progress: 85,
     },
     {
       id: "11",
@@ -95,6 +106,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 21),
       endDate: addDays(baseDate, 34),
       color: "#f43f5e",
+      progress: 60,
     },
     {
       id: "12",
@@ -102,6 +114,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 33),
       endDate: addDays(baseDate, 38),
       color: "#f97316",
+      progress: 30,
     },
     {
       id: "13",
@@ -109,6 +122,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 36),
       endDate: addDays(baseDate, 43),
       color: "#f97316",
+      progress: 150,
     },
     {
       id: "14",
@@ -116,6 +130,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 41),
       endDate: addDays(baseDate, 48),
       color: "#fb923c",
+      progress: -10,
     },
 
     // === ФУНДАМЕНТ ===

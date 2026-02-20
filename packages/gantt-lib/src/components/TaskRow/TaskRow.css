@@ -23,7 +23,7 @@
   padding: 0 0.5rem;
   box-sizing: border-box;
   white-space: nowrap;
-  overflow: visible;
+  overflow: hidden;
   /* transition: box-shadow 0.15s ease; */
   cursor: grab;
 }
@@ -105,6 +105,11 @@
   height: 100%;
   background-color: rgba(0, 0, 0, 0.1);
   cursor: ew-resize;
+  pointer-events: auto;
+  z-index: 10;
+  /* z-index requires a positioning context; position: absolute is set here.
+     Do NOT add position: relative via a shared selector - that would override
+     this rule and break the absolute positioning at bar edges. */
 }
 
 .gantt-tr-resizeHandleLeft {
@@ -154,4 +159,32 @@
   margin-right: 6px;
   top: 50%;
   transform: translateY(-50%);
+}
+
+/* Progress bar overlay */
+.gantt-tr-progressBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: var(--gantt-task-bar-border-radius) 0 0 var(--gantt-task-bar-border-radius);
+  transition: width 0.3s ease;
+}
+
+/* Ensure text stays above progress bar.
+   NOTE: .gantt-tr-resizeHandle is intentionally excluded here because it already
+   uses position: absolute with z-index: 10, which places it above the progress bar.
+   Adding position: relative here would override position: absolute and break the
+   absolute positioning that anchors handles to the bar edges. */
+.gantt-tr-taskName,
+.gantt-tr-taskDuration {
+  position: relative;
+  z-index: 2;
+}
+
+/* Disable transition during drag */
+.gantt-tr-taskBar.gantt-tr-dragging .gantt-tr-progressBar {
+  transition: none !important;
 }
