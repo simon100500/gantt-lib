@@ -86,3 +86,12 @@ Plans:
 
 Plans:
 - [ ] 05-01-PLAN.md — Progress bar type extensions, rendering logic, and CSS styles
+
+### Phase 6: dependencies
+
+**Goal:** [To be planned]
+**Depends on:** Phase 5
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 6 to break down)
