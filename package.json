@@ -1,9 +1,10 @@
 {
   "name": "gantt-lib-monorepo",
-  "version": "0.0.1",
   "private": true,
   "packageManager": "npm@11.6.2",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",

@@ -31,6 +31,7 @@ npm run dev
 - Полосы задач, позиционируемые по датам начала/окончания, с настраиваемыми цветами
 - Перетаскивание для перемещения и изменения размера задач (левый/правый край)
 - Индикатор сегодняшнего дня (вертикальная красная линия)
+- Прогресс-бары с состояниями «в процессе», «завершено», «принято»
 - 60fps при 100+ задачах
 - CSS-переменные для кастомизации
 - TypeScript-first
@@ -92,6 +93,8 @@ interface Task {
   startDate: string | Date; // ISO-строка или Date (UTC)
   endDate: string | Date;   // ISO-строка или Date (UTC)
   color?: string;           // Необязательный цвет, например '#3b82f6'
+  progress?: number;        // Прогресс 0–100. Отображает полосу прогресса внутри задачи.
+  accepted?: boolean;       // Только при progress === 100. true = зелёная полоса, false/undefined = жёлтая.
 }
 ```
 
@@ -128,6 +131,11 @@ interface Task {
   --gantt-task-bar-text-color: #ffffff;
   --gantt-task-bar-border-radius: 4px;
   --gantt-task-bar-height: 28px;
+
+  /* Прогресс-бар */
+  --gantt-progress-color: rgba(0, 0, 0, 0.2); /* В процессе */
+  --gantt-progress-completed: #fbbf24;         /* 100%, не принято */
+  --gantt-progress-accepted: #22c55e;          /* 100%, принято */
 
   /* Индикатор сегодня */
   --gantt-today-indicator-color: #ef4444;

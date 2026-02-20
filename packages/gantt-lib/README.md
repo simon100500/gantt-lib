@@ -13,6 +13,7 @@ Lightweight React Gantt chart component library with drag-and-drop task manageme
 - 📅 **Multi-month calendar grid** with two-row header (month + day)
 - 🌈 **Weekend highlighting** with customizable colors
 - 📍 **Today indicator** vertical line
+- 📈 **Progress bars** with accepted/completed states
 - ⚡ **Performance optimized** for ~100 tasks at 60fps
 - 📦 **Tree-shakeable** ESM + CJS builds
 - ✅ **TypeScript** types included
@@ -84,6 +85,8 @@ interface Task {
   startDate: string; // ISO date format: YYYY-MM-DD
   endDate: string; // ISO date format: YYYY-MM-DD
   color?: string; // Optional bar color (CSS color value)
+  progress?: number; // Optional progress 0–100. Renders a progress bar overlay inside the task bar.
+  accepted?: boolean; // Optional. Only meaningful when progress is 100. true = green bar, false/undefined = yellow bar.
 }
 ```
 
@@ -110,6 +113,11 @@ Override these CSS variables to customize the appearance:
   --gantt-task-bar-text-color: #ffffff;
   --gantt-task-bar-border-radius: 4px;
   --gantt-task-bar-height: 24px;
+
+  /* Progress Bar */
+  --gantt-progress-color: rgba(0, 0, 0, 0.2); /* In-progress overlay */
+  --gantt-progress-completed: #fbbf24; /* 100% but not accepted */
+  --gantt-progress-accepted: #22c55e; /* 100% and accepted */
 
   /* Today Indicator */
   --gantt-today-indicator-color: rgba(255, 0, 0, 0.2);
