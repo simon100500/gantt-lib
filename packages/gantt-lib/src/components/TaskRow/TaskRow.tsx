@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { parseUTCDate, formatDateLabel } from '../../utils/dateUtils';
 import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
@@ -176,21 +176,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       (currentEndDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24)
     ) + 1;
 
-    // Detect if task name overflows the bar
-    const [isNameOverflow, setIsNameOverflow] = useState(false);
-    const taskNameRef = useRef<HTMLSpanElement>(null);
-
-    useEffect(() => {
-      const nameEl = taskNameRef.current;
-      if (nameEl) {
-        // Check if task name is wider than available space
-        // Reserved space for dates, duration, separator, and handles
-        const reservedWidth = 120;
-        const availableWidth = displayWidth - reservedWidth;
-        setIsNameOverflow(nameEl.scrollWidth > availableWidth);
-      }
-    }, [displayWidth, task.name]);
-
     return (
       <div
         className="gantt-tr-row"
@@ -223,12 +208,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             <span className="gantt-tr-taskDuration">
               {durationDays} д
             </span>
-            <span
-              ref={taskNameRef}
-              className={`gantt-tr-taskName ${isNameOverflow ? 'gantt-tr-taskNameHidden' : ''}`}
-            >
-              — {task.name}
-            </span>
             <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />
           </div>
           <div
@@ -247,11 +226,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               left: `${displayLeft + displayWidth}px`,
             }}
           >
-            {isNameOverflow && (
-              <span className="gantt-tr-externalTaskName">
-                {task.name}
-              </span>
-            )}
+            <span className="gantt-tr-externalTaskName">
+              {task.name}
+            </span>
           </div>
         </div>
       </div>
