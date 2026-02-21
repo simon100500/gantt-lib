@@ -186,3 +186,34 @@ export const calculateWeekendBlocks = (
 
   return blocks;
 };
+
+/**
+ * Calculate SVG cubic Bezier curve path for dependency lines
+ * @param from - Start point {x, y} (right edge of predecessor)
+ * @param to - End point {x, y} (left edge of successor)
+ * @returns SVG path string for cubic Bezier curve
+ */
+export const calculateBezierPath = (
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+): string => {
+  // Control points create smooth vertical curve
+  // Offset is proportional to vertical distance for natural-looking curves
+  const verticalDistance = Math.abs(to.y - from.y);
+  const cpOffset = Math.max(verticalDistance * 0.5, 20); // Minimum 20px for same-row connections
+
+  // For same-row connections, use arc above the task bars
+  if (from.y === to.y) {
+    const arcHeight = 20;
+    const midX = (from.x + to.x) / 2;
+    return `M ${from.x} ${from.y} Q ${midX} ${from.y - arcHeight} ${to.x} ${to.y}`;
+  }
+
+  // Standard cubic Bezier for multi-row connections
+  const cp1x = from.x;
+  const cp1y = from.y + (to.y > from.y ? cpOffset : -cpOffset);
+  const cp2x = to.x;
+  const cp2y = to.y - (to.y > from.y ? cpOffset : -cpOffset);
+
+  return `M ${Math.round(from.x)} ${Math.round(from.y)} C ${Math.round(cp1x)} ${Math.round(cp1y)}, ${Math.round(cp2x)} ${Math.round(cp2y)}, ${Math.round(to.x)} ${Math.round(to.y)}`;
+};
