@@ -98,3 +98,13 @@ Plans:
 - [ ] 06-02-PLAN.md — SVG-based DependencyLines component with Bezier curves
 - [ ] 06-03-PLAN.md — GanttChart integration with drag validation and auto-schedule prop
 - [ ] 06-04-PLAN.md — Demo page with dependency examples and unit tests
+
+### Phase 7: dependencies constraits
+
+**Goal:** FS dependency constraint enforcement with two modes: hard mode (cascade chain moves as monolith) and soft mode (free movement with lag recalculation). Includes real-time cascade preview during drag and onCascade callback.
+**Depends on:** Phase 6
+**Plans:** 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Cascade engine: getSuccessorChain utility and useTaskDrag cascade delta emission + soft-mode lag recalculation
+- [ ] 07-02-PLAN.md — Cascade wiring: GanttChart cascadeOverrides state, TaskRow overridePosition prop, onCascade API, demo page
