@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 6 - dependencies
+**Current focus:** Phase 7 - dependencies constraints cascade engine
 
 ## Current Position
 
-Phase: 6 of 6 (dependencies)
-Plan: 3 of 4 in current phase (3 completed)
-Status: IN_PROGRESS - Dependency constraint validation integrated
-Last activity: 2026-02-21 — Completed 06-03: Integration with drag constraint validation
+Phase: 7 of 7 (dependencies-constraits)
+Plan: 1 of 3 in current phase (1 completed)
+Status: IN_PROGRESS - Cascade chain engine core implemented
+Last activity: 2026-02-22 — Completed 07-01: Cascade chain engine (getSuccessorChain + useTaskDrag cascade)
 
-Progress: [████████░░] 96%
+Progress: [████████░░] 97%
 
 ## Performance Metrics
 
@@ -124,6 +124,11 @@ Recent decisions affecting current work:
 - [Phase 04-npm-packaging]: CSS inlining for bundler emission (no @import statements)
 - [Phase 04-npm-packaging]: CSS variables for theming customization
 - [Phase 05]: Used color-mix() CSS function for darker progress shades from task color
+- [Phase 07-01]: getSuccessorChain excludes dragged task (seeded in visited set) — prevents cascade override conflict with TaskRow's own drag state
+- [Phase 07-01]: Hard-mode left boundary uses predecessor.startDate not endDate — allows negative lag (child can start before predecessor ends)
+- [Phase 07-01]: Soft-mode lag delivered via updatedDependencies in onDragEnd result — reuses existing callback without new API surface
+- [Phase 07-01]: onCascade and onDragEnd are mutually exclusive on drag complete — cascade takes precedence when chain.length > 0 in hard mode
+- [Phase 07-01]: completeDrag() emits onCascadeProgress(new Map()) before completing — clears stale preview positions before onChange/onCascade fires
 
 ### Pending Todos
 
@@ -149,8 +154,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-21
-Stopped at: Completed quick-12 - Fix FS negative-lag drag constraint snap-back and add disableConstraints prop with demo toggle
+Last session: 2026-02-22
+Stopped at: Completed 07-01 - Cascade chain engine: getSuccessorChain BFS traversal + useTaskDrag cascade delta emission and soft-mode lag recalculation
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -180,3 +185,8 @@ Stopped at: Completed quick-12 - Fix FS negative-lag drag constraint snap-back a
 - 06-03: COMPLETE - Integration with drag constraint validation (4 min)
 
 **Phase 6 Total:** 3 of 4 plans, 5 min avg, dependency types with DFS-based cycle detection and SVG-based Bezier curve visualization
+
+**Phase 7 Status:** IN_PROGRESS
+- 07-01: COMPLETE - Cascade chain engine: getSuccessorChain BFS traversal + cascade delta emission + soft-mode lag recalculation (4 min)
+
+**Phase 7 Total:** 1 of 3 plans, 4 min so far, algorithmic core of FS cascade constraint system
