@@ -511,20 +511,20 @@ const createDependencyTasks = (): Task[] => {
       color: '#3b82f6',
     },
     {
-      id: 'task-2',
-      name: 'Task 2',
-      startDate: '2026-02-04',
-      endDate: '2026-02-06',
-      color: '#10b981',
-      dependencies: [{ taskId: 'task-1', type: 'FS' as const }],
-    },
-    {
       id: 'task-3',
       name: 'Task 3',
       startDate: '2026-02-07',
       endDate: '2026-02-09',
       color: '#f59e0b',
       dependencies: [{ taskId: 'task-2', type: 'FS' as const }],
+    },
+    {
+      id: 'task-2',
+      name: 'Task 2',
+      startDate: '2026-02-04',
+      endDate: '2026-02-06',
+      color: '#10b981',
+      dependencies: [{ taskId: 'task-1', type: 'FS' as const }],
     },
     {
       id: 'task-4',
