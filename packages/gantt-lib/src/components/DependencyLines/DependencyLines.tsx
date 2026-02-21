@@ -84,7 +84,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       const from = { x: predecessor.right, y: predecessor.centerY };
       const to = { x: successor.left, y: successor.centerY };
 
-      const path = calculateOrthogonalPath(from, to, 12, 20);
+      const path = calculateOrthogonalPath(from, to, 6, 14);
 
       // Check if this edge is part of a cycle
       const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
@@ -110,27 +110,33 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         {/* Arrow marker for dependency lines */}
         <marker
           id="arrowhead"
-          className="gantt-dependency-arrow"
-          markerWidth="10"
-          markerHeight="7"
-          refX="9"
-          refY="3.5"
+          markerWidth="8"
+          markerHeight="6"
+          markerUnits="userSpaceOnUse"
+          refX="7"
+          refY="3"
           orient="auto"
         >
-          <polygon points="0 0, 10 3.5, 0 7" />
+          <polygon
+            points="0 0, 8 3, 0 6"
+            fill="var(--gantt-dependency-line-color, #666666)"
+          />
         </marker>
 
         {/* Red arrow marker for circular dependencies */}
         <marker
           id="arrowhead-cycle"
-          className="gantt-dependency-arrow gantt-dependency-arrow-cycle"
-          markerWidth="10"
-          markerHeight="7"
-          refX="9"
-          refY="3.5"
+          markerWidth="8"
+          markerHeight="6"
+          markerUnits="userSpaceOnUse"
+          refX="7"
+          refY="3"
           orient="auto"
         >
-          <polygon points="0 0, 10 3.5, 0 7" />
+          <polygon
+            points="0 0, 8 3, 0 6"
+            fill="var(--gantt-dependency-cycle-color, #ef4444)"
+          />
         </marker>
       </defs>
 
