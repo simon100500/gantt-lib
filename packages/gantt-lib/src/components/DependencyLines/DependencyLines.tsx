@@ -38,18 +38,19 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 }) => {
   // Create a lookup map for task positions
   const taskPositions = useMemo(() => {
-    const positions = new Map<string, { left: number; right: number; centerY: number; index: number }>();
+    const positions = new Map<string, { left: number; right: number; exitY: number; entryY: number }>();
 
     tasks.forEach((task, index) => {
       const startDate = new Date(task.startDate);
       const endDate = new Date(task.endDate);
       const { left, width } = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
+      const rowTop = index * rowHeight;
 
       positions.set(task.id, {
         left,
         right: left + width,
-        centerY: index * rowHeight + rowHeight / 2,
-        index,
+        exitY: rowTop + rowHeight - 8,  // 8px from bottom of bar
+        entryY: rowTop,                  // top of bar
       });
     });
 
@@ -80,9 +81,9 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         continue; // Skip if task not found (shouldn't happen with validation)
       }
 
-      // Line starts from right edge of predecessor, ends at left edge of successor
-      const from = { x: predecessor.right, y: predecessor.centerY };
-      const to = { x: successor.left, y: successor.centerY };
+      // Line exits from bottom area of predecessor, arrives at top of successor
+      const from = { x: predecessor.right, y: predecessor.exitY };
+      const to = { x: successor.left, y: successor.entryY };
 
       const path = calculateOrthogonalPath(from, to);
 
