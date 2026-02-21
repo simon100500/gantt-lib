@@ -47,10 +47,10 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       const rowTop = index * rowHeight;
 
       positions.set(task.id, {
-        left,
+        left: left + 10,
         right: left + width,
-        exitY: rowTop + rowHeight - 8,  // 8px from bottom of bar
-        entryY: rowTop,                  // top of bar
+        exitY: rowTop + rowHeight - 10,  // 8px from bottom of bar
+        entryY: rowTop + 4,                  // top of bar
       });
     });
 
