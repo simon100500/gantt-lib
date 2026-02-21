@@ -73,7 +73,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule }) => {
     // Parse dates as UTC
     const taskStartDate = useMemo(() => parseUTCDate(task.startDate), [task.startDate]);
     const taskEndDate = useMemo(() => parseUTCDate(task.endDate), [task.endDate]);
@@ -132,6 +132,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       onDragEnd: handleDragEnd,
       onDragStateChange,
       edgeZoneWidth: 20,
+      allTasks,
+      rowIndex,
+      enableAutoSchedule,
     });
 
     // Use dynamic position during drag
