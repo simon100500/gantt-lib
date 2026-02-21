@@ -560,23 +560,7 @@ const createDependencyTasks = (): Task[] => {
       dependencies: [{ taskId: 'task-fs-parent', type: 'FS' as const, lag: -3 }],
     },
 
-    // Circular dependency (for demonstration - highlighted in red)
-    {
-      id: 'cycle-a',
-      name: 'Cycle A',
-      startDate: '2026-02-08',
-      endDate: '2026-02-10',
-      color: '#f97316',
-      dependencies: [{ taskId: 'cycle-b', type: 'FS' as const }],
-    },
-    {
-      id: 'cycle-b',
-      name: 'Cycle B',
-      startDate: '2026-02-08',
-      endDate: '2026-02-10',
-      color: '#a855f7',
-      dependencies: [{ taskId: 'cycle-a', type: 'FS' as const }],
-    },
+
   ];
 };
 

@@ -92,12 +92,12 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
       if (reverseOrder) {
         // Arrow goes UP: exit from top of parent bar, enter at bottom of child bar
-        fromY = predecessor.rowTop + 8;               // 8px from top of parent bar
-        toY = successor.rowTop + rowHeight - 8;        // 8px from bottom of child bar
+        fromY = predecessor.rowTop + 10;               // 8px from top of parent bar
+        toY = successor.rowTop + rowHeight - 6;        // 8px from bottom of child bar
       } else {
         // Arrow goes DOWN: exit from bottom of parent bar, enter at top of child bar
-        fromY = predecessor.rowTop + rowHeight - 8;   // 8px from bottom of parent bar
-        toY = successor.rowTop + 8;                    // 8px from top of child bar
+        fromY = predecessor.rowTop + rowHeight - 10;   // 8px from bottom of parent bar
+        toY = successor.rowTop + 6;                    // 8px from top of child bar
       }
 
       const from = { x: predecessor.right, y: fromY };
