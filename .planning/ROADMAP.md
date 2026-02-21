@@ -89,9 +89,12 @@ Plans:
 
 ### Phase 6: dependencies
 
-**Goal:** [To be planned]
+**Goal:** Task dependencies with predecessor/successor relationships, four link types (FS, SS, FF, SF), lag support, cycle detection, and SVG-based Bezier curve visualization with arrows
 **Depends on:** Phase 5
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 6 to break down)
+- [ ] 06-01-PLAN.md — Dependency type definitions and utilities (cycle detection, link type calculations, validation)
+- [ ] 06-02-PLAN.md — SVG-based DependencyLines component with Bezier curves
+- [ ] 06-03-PLAN.md — GanttChart integration with drag validation and auto-schedule prop
+- [ ] 06-04-PLAN.md — Demo page with dependency examples and unit tests
