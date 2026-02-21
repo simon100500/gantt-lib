@@ -33,7 +33,7 @@ const createSampleTasks = (): Task[] => {
       endDate: addDays(baseDate, 6),
       color: "#6366f1",
       progress: 100,
-      dependencies: [{ taskId: '1', type: 'FS' as const }],
+      dependencies: [{ taskId: '1', type: 'SS' as const }],
     },
     {
       id: "3",
@@ -41,8 +41,8 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 3),
       endDate: addDays(baseDate, 11),
       color: "#6366f1",
-      progress: 75,
-      dependencies: [{ taskId: '2', type: 'FS' as const }],
+      progress: 5,
+      dependencies: [{ taskId: '2', type: 'SF' as const }],
     },
     {
       id: "4",
@@ -50,7 +50,8 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 4),
       endDate: addDays(baseDate, 8),
       color: "#8b5cf6",
-      progress: 45.7,
+      progress: 5,
+      dependencies: [{ taskId: '3', type: 'FS' as const }],
     },
     {
       id: "5",
@@ -59,6 +60,7 @@ const createSampleTasks = (): Task[] => {
       endDate: addDays(baseDate, 14),
       color: "#8b5cf6",
       progress: 20,
+      dependencies: [{ taskId: '4', type: 'FF' as const }],
     },
     {
       id: "6",
