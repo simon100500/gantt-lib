@@ -157,11 +157,12 @@ None yet.
 | 12 | Fix FS negative-lag drag snap-back + disableConstraints toggle | 2026-02-21 | 62e2cb2 | [12-fs](./quick/12-fs/) |
 | 14 | Сделай корректное отображение связей (bidirectional dependency line rendering) | 2026-02-21 | 58f3564 | [14-worktree-workterr](./quick/14-worktree-workterr/) |
 | 15 | Redraw dependency lines in real-time during drag | 2026-02-22 | f530164 | [015-redraw-dep-lines-on-drag](./quick/015-redraw-dep-lines-on-drag/) |
+| 16 | Add 7 FS dependency links to Construction Project demo | 2026-02-22 | 58041eb | [16-6-7](./quick/16-6-7/) |
 
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed quick-015 - Redraw dependency lines in real-time during drag (dragOverrides prop + merged override Map)
+Stopped at: Completed quick-016 - Add 7 FS dependency links to Construction Project demo (preparatory chain 1->2->3 + earthwork chain 7->8->9->10->11->12)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
