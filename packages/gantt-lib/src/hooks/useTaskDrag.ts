@@ -502,7 +502,14 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
           const draggedTaskData = allTasks.find(t => t.id === taskId);
           const cascadedTasks: Task[] = [
-            { ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }), startDate: newStartDate.toISOString(), endDate: newEndDate.toISOString() },
+            {
+              ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }),
+              startDate: newStartDate.toISOString(),
+              endDate: newEndDate.toISOString(),
+              ...(draggedTaskData?.dependencies && {
+                dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, allTasks),
+              }),
+            },
             ...chain.map(chainTask => {
               const origStart = new Date(chainTask.startDate as string);
               const origEnd = new Date(chainTask.endDate as string);
