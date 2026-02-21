@@ -2,8 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Task } from '../../types';
-import { calculateTaskBar } from '../../utils/geometry';
-import { calculateOrthogonalPath } from '../../utils/geometry';
+import { calculateTaskBar, calculateDependencyPath } from '../../utils/geometry';
 import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils';
 import './DependencyLines.css';
 
@@ -108,16 +107,31 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         toY = successor.rowTop + 6;                    // 8px from top of child bar
       }
 
-      const from = { x: predecessor.right, y: fromY };
-      const to = { x: successor.left, y: toY };
+      // Determine connection points based on link type:
+      // FS: right → left
+      // SS: left  → left
+      // FF: right → right
+      // SF: left  → right
+      const fromX = (edge.type === 'SS' || edge.type === 'SF')
+        ? predecessor.left
+        : predecessor.right;
 
-      const path = calculateOrthogonalPath(from, to);
+      const toX = (edge.type === 'FF' || edge.type === 'SF')
+        ? successor.right
+        : successor.left;
+
+      const arrivesFromRight = edge.type === 'FF' || edge.type === 'SF';
+
+      const from = { x: fromX, y: fromY };
+      const to = { x: toX, y: toY };
+
+      const path = calculateDependencyPath(from, to, arrivesFromRight);
 
       // Check if this edge is part of a cycle
       const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
 
       lines.push({
-        id: `${edge.predecessorId}-${edge.successorId}`,
+        id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
         path,
         hasCycle,
       });
