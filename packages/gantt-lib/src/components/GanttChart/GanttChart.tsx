@@ -3,11 +3,14 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
+import { validateDependencies } from '../../utils/dependencyUtils';
+import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
 import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
+import { DependencyLines } from '../DependencyLines';
 import './GanttChart.css';
 
 /**
@@ -38,6 +41,25 @@ export interface Task {
    * - Affects the color of the progress bar (green for accepted, yellow for completed)
    */
   accepted?: boolean;
+  /**
+   * Optional array of task dependencies
+   * - Each dependency references a predecessor task by ID
+   * - Supports 4 link types: FS (finish-to-start), SS (start-to-start), FF (finish-to-finish), SF (start-to-finish)
+   * - Lag is optional and defaults to 0 (positive = delay, negative = overlap)
+   */
+  dependencies?: TaskDependency[];
+}
+
+/**
+ * Task dependency definition
+ */
+export interface TaskDependency {
+  /** ID of the predecessor task */
+  taskId: string;
+  /** Link type: FS, SS, FF, or SF */
+  type: 'FS' | 'SS' | 'FF' | 'SF';
+  /** Optional lag in days (default: 0) */
+  lag?: number;
 }
 
 export interface GanttChartProps {
@@ -53,6 +75,10 @@ export interface GanttChartProps {
   containerHeight?: number;
   /** Callback when tasks are modified via drag/resize. Can receive either the new tasks array or a functional updater. */
   onChange?: (tasks: Task[] | ((currentTasks: Task[]) => Task[])) => void;
+  /** Optional callback for dependency validation results */
+  onValidateDependencies?: (result: ValidationResult) => void;
+  /** Enable automatic shifting of dependent tasks when predecessor moves (default: false) */
+  enableAutoSchedule?: boolean;
 }
 
 /**
@@ -78,11 +104,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   headerHeight = 40,
   containerHeight = 600,
   onChange,
+  onValidateDependencies,
+  enableAutoSchedule,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Calculate multi-month date range from tasks
   const dateRange = useMemo(() => getMultiMonthDays(tasks), [tasks]);
+
+  // Track dependency validation results
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
 
   // Calculate grid width
@@ -120,6 +151,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     left: number;
     width: number;
   } | null>(null);
+
+  // Validate dependencies when tasks change
+  useEffect(() => {
+    const result = validateDependencies(tasks);
+    setValidationResult(result);
+    onValidateDependencies?.(result);
+  }, [tasks, onValidateDependencies]);
 
   /**
    * Stable callback for task updates
@@ -243,6 +281,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
           {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
 
+          {/* Dependency lines SVG overlay */}
+          <DependencyLines
+            tasks={tasks}
+            monthStart={monthStart}
+            dayWidth={dayWidth}
+            rowHeight={rowHeight}
+            gridWidth={gridWidth}
+          />
+
           {dragGuideLines && (
             <DragGuideLines
               isDragging={dragGuideLines.isDragging}
@@ -253,7 +300,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             />
           )}
 
-          {tasks.map((task) => (
+          {tasks.map((task, index) => (
             <TaskRow
               key={task.id}
               task={task}
@@ -262,6 +309,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               rowHeight={rowHeight}
               onChange={handleTaskChange}
               onDragStateChange={handleDragStateChange}
+              rowIndex={index}
+              allTasks={tasks}
+              enableAutoSchedule={enableAutoSchedule ?? false}
             />
           ))}
         </div>
