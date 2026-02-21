@@ -587,7 +587,7 @@ const createCascadeTasks = (): Task[] => {
       startDate: '2026-02-06',
       endDate: '2026-02-10',
       color: '#10b981',
-      dependencies: [{ taskId: 'cascade-a', type: 'FS' as const, lag: 0 }],
+      dependencies: [{ taskId: 'cascade-a', type: 'SF' as const, lag: 0 }],
     },
     {
       id: 'cascade-c',
