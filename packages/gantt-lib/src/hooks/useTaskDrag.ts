@@ -34,6 +34,7 @@ interface ActiveDragState {
   onComplete: (finalLeft: number, finalWidth: number) => void;
   onCancel: () => void;
   allTasks: Task[];
+  disableConstraints?: boolean;
 }
 
 let globalActiveDrag: ActiveDragState | null = null;
@@ -165,12 +166,9 @@ function handleGlobalMouseMove(e: MouseEvent) {
     }
 
     // For move operations, check dependency constraints
-    if (mode === 'move' && allTasks.length > 0) {
+    if (mode === 'move' && allTasks.length > 0 && !globalActiveDrag.disableConstraints) {
       const currentTask = allTasks.find(t => t.id === globalActiveDrag?.taskId);
       if (currentTask) {
-        const originalStart = new Date(currentTask.startDate);
-        const originalEnd = new Date(currentTask.endDate);
-
         // Calculate new dates
         const dayOffset = Math.round(newLeft / globalActiveDrag.dayWidth);
         const durationDays = Math.round(newWidth / globalActiveDrag.dayWidth) - 1;
@@ -191,9 +189,40 @@ function handleGlobalMouseMove(e: MouseEvent) {
         // Check constraints
         const validation = canMoveTask(currentTask, newStartDate, newEndDate, allTasks);
         if (!validation.allowed) {
-          // Revert to initial position - block the move
-          newLeft = globalActiveDrag.initialLeft;
-          newWidth = globalActiveDrag.initialWidth;
+          // Clamp to the constraint boundary instead of reverting to initialLeft
+          let minAllowedLeft = 0;
+          for (const dep of currentTask.dependencies ?? []) {
+            const predecessor = globalActiveDrag.allTasks.find(t => t.id === dep.taskId);
+            if (!predecessor) continue;
+            const predecessorStart = new Date(predecessor.startDate);
+            const predecessorEnd = new Date(predecessor.endDate);
+            const expectedDate = calculateSuccessorDate(
+              predecessorStart,
+              predecessorEnd,
+              dep.type,
+              dep.lag ?? 0
+            );
+            const targetIsStart = dep.type.endsWith('S');
+            // Convert expectedDate to pixel offset from monthStart
+            const expectedOffset = Math.round(
+              (expectedDate.getTime() -
+                Date.UTC(
+                  globalActiveDrag.monthStart.getUTCFullYear(),
+                  globalActiveDrag.monthStart.getUTCMonth(),
+                  globalActiveDrag.monthStart.getUTCDate()
+                )) /
+                (24 * 60 * 60 * 1000)
+            );
+            const expectedLeft = expectedOffset * globalActiveDrag.dayWidth;
+            if (targetIsStart) {
+              minAllowedLeft = Math.max(minAllowedLeft, expectedLeft);
+            } else {
+              // FF/SF: the end must be at expectedLeft, so left = expectedLeft - width
+              minAllowedLeft = Math.max(minAllowedLeft, expectedLeft - newWidth);
+            }
+          }
+          // Clamp: don't let bar go left of the constraint boundary
+          newLeft = Math.max(minAllowedLeft, newLeft);
         }
       }
     }
@@ -272,6 +301,8 @@ export interface UseTaskDragOptions {
   rowIndex?: number;
   /** Enable automatic scheduling of dependent tasks */
   enableAutoSchedule?: boolean;
+  /** When true, dependency constraint checking is skipped during drag (default: false) */
+  disableConstraints?: boolean;
 }
 
 /**
@@ -313,6 +344,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     allTasks = [],
     rowIndex,
     enableAutoSchedule = false,
+    disableConstraints = false,
   } = options;
 
   // Track if this hook instance owns the current global drag
@@ -519,8 +551,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       onComplete: handleComplete,
       onCancel: handleCancel,
       allTasks,
+      disableConstraints,
     };
-  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks]);
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints]);
 
   /**
    * Get cursor style based on current position
