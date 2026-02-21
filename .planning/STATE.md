@@ -144,11 +144,12 @@ None yet.
 | 9 | Vertical scrolling with sticky header | 2026-02-19 | 632eaae | [9-sticky](./quick/9-sticky/) |
 | 10 | Update README for monorepo and npm package | 2026-02-19 | c90c399 | [10-readme](./quick/10-readme/) |
 | 11 | Fix DependencyLines huge arrowhead and wrong path start position | 2026-02-21 | dd1b160 | [11-fix-dependencylines-component-huge-arrow](./quick/11-fix-dependencylines-component-huge-arrow/) |
+| 12 | Fix FS negative-lag drag snap-back + disableConstraints toggle | 2026-02-21 | 62e2cb2 | [12-fs](./quick/12-fs/) |
 
 ## Session Continuity
 
 Last session: 2026-02-21
-Stopped at: Completed quick-11 - Fix DependencyLines huge arrowhead and wrong path geometry (awaiting visual verification)
+Stopped at: Completed quick-12 - Fix FS negative-lag drag constraint snap-back and add disableConstraints prop with demo toggle
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
