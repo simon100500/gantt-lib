@@ -502,79 +502,45 @@ const createSampleTasks = (): Task[] => {
 // Sample tasks with dependencies demonstrating all link types
 const createDependencyTasks = (): Task[] => {
   return [
-    // Foundation tasks (no dependencies)
+    // Simple chain: 5 tasks with FS dependencies one after another
     {
-      id: 'foundation-1',
-      name: 'Foundation A',
+      id: 'task-1',
+      name: 'Task 1',
       startDate: '2026-02-01',
       endDate: '2026-02-03',
       color: '#3b82f6',
     },
     {
-      id: 'foundation-2',
-      name: 'Foundation B',
-      startDate: '2026-02-02',
-      endDate: '2026-02-04',
-      color: '#8b5cf6',
-    },
-
-    // FS (Finish-to-Start) dependency
-    {
-      id: 'fs-task',
-      name: 'FS: Starts after A',
+      id: 'task-2',
+      name: 'Task 2',
       startDate: '2026-02-04',
       endDate: '2026-02-06',
       color: '#10b981',
-      dependencies: [{ taskId: 'foundation-1', type: 'FS' as const }],
+      dependencies: [{ taskId: 'task-1', type: 'FS' as const }],
     },
-
-    // SS (Start-to-Start) dependency
     {
-      id: 'ss-task',
-      name: 'SS: Starts with B',
-      startDate: '2026-02-02',
-      endDate: '2026-02-05',
+      id: 'task-3',
+      name: 'Task 3',
+      startDate: '2026-02-07',
+      endDate: '2026-02-09',
       color: '#f59e0b',
-      dependencies: [{ taskId: 'foundation-2', type: 'SS' as const }],
+      dependencies: [{ taskId: 'task-2', type: 'FS' as const }],
     },
-
-    // FF (Finish-to-Finish) dependency
     {
-      id: 'ff-task',
-      name: 'FF: Finishes with A',
-      startDate: '2026-02-02',
-      endDate: '2026-02-03',
+      id: 'task-4',
+      name: 'Task 4',
+      startDate: '2026-02-10',
+      endDate: '2026-02-12',
       color: '#ef4444',
-      dependencies: [{ taskId: 'foundation-1', type: 'FF' as const }],
+      dependencies: [{ taskId: 'task-3', type: 'FS' as const }],
     },
-
-    // SF (Start-to-Finish) dependency (rare but supported)
     {
-      id: 'sf-task',
-      name: 'SF: Finishes when B starts',
-      startDate: '2026-02-01',
-      endDate: '2026-02-02',
-      color: '#ec4899',
-      dependencies: [{ taskId: 'foundation-2', type: 'SF' as const }],
-    },
-
-    // Lag examples
-    {
-      id: 'lag-positive',
-      name: 'Lag +2 days',
-      startDate: '2026-02-06',
-      endDate: '2026-02-08',
-      color: '#06b6d4',
-      dependencies: [{ taskId: 'foundation-1', type: 'FS' as const, lag: 2 }],
-    },
-
-    {
-      id: 'lag-negative',
-      name: 'Lag -1 day',
-      startDate: '2026-02-02',
-      endDate: '2026-02-04',
-      color: '#84cc16',
-      dependencies: [{ taskId: 'foundation-2', type: 'SS' as const, lag: -1 }],
+      id: 'task-5',
+      name: 'Task 5',
+      startDate: '2026-02-13',
+      endDate: '2026-02-15',
+      color: '#8b5cf6',
+      dependencies: [{ taskId: 'task-4', type: 'FS' as const }],
     },
 
     // Circular dependency (for demonstration - highlighted in red)
