@@ -4,7 +4,7 @@
 import './styles.css';
 
 // Components
-export { GanttChart, type Task, type GanttChartProps } from './components/GanttChart';
+export { GanttChart, type Task, type TaskDependency, type GanttChartProps } from './components/GanttChart';
 export { default as TaskRow } from './components/TaskRow';
 export { default as TimeScaleHeader } from './components/TimeScaleHeader';
 export { default as GridBackground } from './components/GridBackground';

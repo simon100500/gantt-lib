@@ -499,12 +499,117 @@ const createSampleTasks = (): Task[] => {
   ];
 };
 
+// Sample tasks with dependencies demonstrating all link types
+const createDependencyTasks = (): Task[] => {
+  return [
+    // Foundation tasks (no dependencies)
+    {
+      id: 'foundation-1',
+      name: 'Foundation A',
+      startDate: '2026-02-01',
+      endDate: '2026-02-03',
+      color: '#3b82f6',
+    },
+    {
+      id: 'foundation-2',
+      name: 'Foundation B',
+      startDate: '2026-02-02',
+      endDate: '2026-02-04',
+      color: '#8b5cf6',
+    },
+
+    // FS (Finish-to-Start) dependency
+    {
+      id: 'fs-task',
+      name: 'FS: Starts after A',
+      startDate: '2026-02-04',
+      endDate: '2026-02-06',
+      color: '#10b981',
+      dependencies: [{ taskId: 'foundation-1', type: 'FS' as const }],
+    },
+
+    // SS (Start-to-Start) dependency
+    {
+      id: 'ss-task',
+      name: 'SS: Starts with B',
+      startDate: '2026-02-02',
+      endDate: '2026-02-05',
+      color: '#f59e0b',
+      dependencies: [{ taskId: 'foundation-2', type: 'SS' as const }],
+    },
+
+    // FF (Finish-to-Finish) dependency
+    {
+      id: 'ff-task',
+      name: 'FF: Finishes with A',
+      startDate: '2026-02-02',
+      endDate: '2026-02-03',
+      color: '#ef4444',
+      dependencies: [{ taskId: 'foundation-1', type: 'FF' as const }],
+    },
+
+    // SF (Start-to-Finish) dependency (rare but supported)
+    {
+      id: 'sf-task',
+      name: 'SF: Finishes when B starts',
+      startDate: '2026-02-01',
+      endDate: '2026-02-02',
+      color: '#ec4899',
+      dependencies: [{ taskId: 'foundation-2', type: 'SF' as const }],
+    },
+
+    // Lag examples
+    {
+      id: 'lag-positive',
+      name: 'Lag +2 days',
+      startDate: '2026-02-06',
+      endDate: '2026-02-08',
+      color: '#06b6d4',
+      dependencies: [{ taskId: 'foundation-1', type: 'FS' as const, lag: 2 }],
+    },
+
+    {
+      id: 'lag-negative',
+      name: 'Lag -1 day',
+      startDate: '2026-02-02',
+      endDate: '2026-02-04',
+      color: '#84cc16',
+      dependencies: [{ taskId: 'foundation-2', type: 'SS' as const, lag: -1 }],
+    },
+
+    // Circular dependency (for demonstration - highlighted in red)
+    {
+      id: 'cycle-a',
+      name: 'Cycle A',
+      startDate: '2026-02-08',
+      endDate: '2026-02-10',
+      color: '#f97316',
+      dependencies: [{ taskId: 'cycle-b', type: 'FS' as const }],
+    },
+    {
+      id: 'cycle-b',
+      name: 'Cycle B',
+      startDate: '2026-02-08',
+      endDate: '2026-02-10',
+      color: '#a855f7',
+      dependencies: [{ taskId: 'cycle-a', type: 'FS' as const }],
+    },
+  ];
+};
+
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
+  const [dependencyTasks, setDependencyTasks] = useState<Task[]>(createDependencyTasks);
 
   const handleChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
       setTasks(typeof updated === "function" ? updated : () => updated),
+    [],
+  );
+
+  const handleDependencyChange = useCallback(
+    (updated: Task[] | ((t: Task[]) => Task[])) =>
+      setDependencyTasks(typeof updated === "function" ? updated : () => updated),
     [],
   );
 
@@ -515,19 +620,56 @@ export default function Home() {
         Drag task bars to move or resize. Install:{" "}
         <code>npm install gantt-lib</code>
       </p>
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          padding: "1rem",
-        }}
-      >
-        <GanttChart
-          tasks={tasks}
-          dayWidth={24}
-          rowHeight={36}
-          onChange={handleChange}
-        />
+
+      {/* Main Demo */}
+      <div style={{ marginBottom: "3rem" }}>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+          Construction Project
+        </h2>
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "1rem",
+          }}
+        >
+          <GanttChart
+            tasks={tasks}
+            dayWidth={24}
+            rowHeight={36}
+            onChange={handleChange}
+          />
+        </div>
+      </div>
+
+      {/* Dependencies Demo */}
+      <div>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+          Task Dependencies
+        </h2>
+        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
+          Tasks can have dependencies with 4 link types (FS, SS, FF, SF) and optional lag.
+          Circular dependencies are highlighted in red.
+        </p>
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "1rem",
+          }}
+        >
+          <GanttChart
+            tasks={dependencyTasks}
+            onChange={handleDependencyChange}
+            dayWidth={50}
+            rowHeight={50}
+            onValidateDependencies={(result) => {
+              if (!result.isValid) {
+                console.log('Dependency validation:', result.errors);
+              }
+            }}
+          />
+        </div>
       </div>
     </main>
   );

@@ -25,6 +25,12 @@ export interface TaskRowProps {
     left: number;
     width: number;
   }) => void;
+  /** Index of the task row (used for dependency rendering) */
+  rowIndex?: number;
+  /** All tasks in the chart (used for dependency validation) */
+  allTasks?: Task[];
+  /** Whether auto-scheduling is enabled */
+  enableAutoSchedule?: boolean;
 }
 
 /**
