@@ -74,7 +74,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.dayWidth === nextProps.dayWidth &&
     prevProps.rowHeight === nextProps.rowHeight &&
     prevProps.overridePosition?.left === nextProps.overridePosition?.left &&
-    prevProps.overridePosition?.width === nextProps.overridePosition?.width
+    prevProps.overridePosition?.width === nextProps.overridePosition?.width &&
+    prevProps.allTasks === nextProps.allTasks
     // onChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
