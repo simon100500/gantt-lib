@@ -240,7 +240,7 @@ export const calculateOrthogonalPath = (
     return `M ${fx} ${fy} H ${tx}`;
   }
 
-  const C = 4; // chamfer size
+  const C = 2; // chamfer size
   const goingDown = ty > fy;
   const goingRight = tx >= fx;
   const dirY = goingDown ? 1 : -1;
