@@ -627,8 +627,8 @@ export default function Home() {
           <GanttChart
             tasks={dependencyTasks}
             onChange={handleDependencyChange}
-            dayWidth={50}
-            rowHeight={50}
+            dayWidth={24}
+            rowHeight={36}
             onValidateDependencies={(result) => {
               if (!result.isValid) {
                 console.log('Dependency validation:', result.errors);

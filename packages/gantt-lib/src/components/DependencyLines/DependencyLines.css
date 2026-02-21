@@ -4,7 +4,8 @@
   top: 0;
   left: 0;
   z-index: 5;
-  pointer-events: none; /* Allow clicks to pass through to task bars */
+  pointer-events: none;
+  /* Allow clicks to pass through to task bars */
   overflow: visible;
 }
 
@@ -12,7 +13,7 @@
 .gantt-dependency-path {
   fill: none;
   stroke: var(--gantt-dependency-line-color, #666666);
-  stroke-width: 2;
+  stroke-width: 1;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
