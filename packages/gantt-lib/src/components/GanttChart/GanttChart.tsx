@@ -81,6 +81,8 @@ export interface GanttChartProps {
   enableAutoSchedule?: boolean;
   /** Disable dependency constraint checking during drag (default: false) */
   disableConstraints?: boolean;
+  /** Called when a cascade drag completes; receives all shifted tasks (including dragged task) in hard mode */
+  onCascade?: (tasks: Task[]) => void;
 }
 
 /**
@@ -109,6 +111,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   onValidateDependencies,
   enableAutoSchedule,
   disableConstraints,
+  onCascade,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -118,6 +121,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   // Track dependency validation results
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
+  // Cascade override positions for non-dragged chain members
+  const [cascadeOverrides, setCascadeOverrides] = useState<Map<string, { left: number; width: number }>>(new Map());
 
   // Calculate grid width
   const gridWidth = useMemo(
@@ -201,6 +206,29 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       setDragGuideLines(null);
     }
   }, []);
+
+  /**
+   * Handle real-time cascade progress — updates cascadeOverrides state each RAF
+   * so non-dragged chain members re-render with their preview positions.
+   * new Map() forces React to detect the state change.
+   */
+  const handleCascadeProgress = useCallback((overrides: Map<string, { left: number; width: number }>) => {
+    setCascadeOverrides(new Map(overrides));
+  }, []);
+
+  /**
+   * Handle cascade completion — updates all shifted tasks via onChange (functional updater)
+   * and notifies the external onCascade consumer.
+   */
+  const handleCascade = useCallback((cascadedTasks: Task[]) => {
+    // Update state by merging cascaded tasks into current tasks
+    onChange?.((currentTasks) => {
+      const cascadeMap = new Map(cascadedTasks.map(t => [t.id, t]));
+      return currentTasks.map(t => cascadeMap.get(t.id) ?? t);
+    });
+    // Notify external consumer
+    onCascade?.(cascadedTasks);
+  }, [onChange, onCascade]);
 
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
@@ -316,6 +344,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               allTasks={tasks}
               enableAutoSchedule={enableAutoSchedule ?? false}
               disableConstraints={disableConstraints ?? false}
+              overridePosition={cascadeOverrides.get(task.id)}
+              onCascadeProgress={handleCascadeProgress}
+              onCascade={handleCascade}
             />
           ))}
         </div>

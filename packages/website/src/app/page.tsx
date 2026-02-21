@@ -580,9 +580,46 @@ const createDependencyTasks = (): Task[] => {
   ];
 };
 
+// Cascade demo: A->B->C chain for Phase 7 cascade demonstration
+const createCascadeTasks = (): Task[] => {
+  return [
+    {
+      id: 'cascade-a',
+      name: 'Задача A (перетащи меня)',
+      startDate: '2026-02-01',
+      endDate: '2026-02-05',
+      color: '#3b82f6',
+    },
+    {
+      id: 'cascade-b',
+      name: 'Задача B (FS+0)',
+      startDate: '2026-02-06',
+      endDate: '2026-02-10',
+      color: '#10b981',
+      dependencies: [{ taskId: 'cascade-a', type: 'FS' as const, lag: 0 }],
+    },
+    {
+      id: 'cascade-c',
+      name: 'Задача C (FS+0)',
+      startDate: '2026-02-11',
+      endDate: '2026-02-15',
+      color: '#f59e0b',
+      dependencies: [{ taskId: 'cascade-b', type: 'FS' as const, lag: 0 }],
+    },
+    {
+      id: 'cascade-d',
+      name: 'Задача D (независимая)',
+      startDate: '2026-02-08',
+      endDate: '2026-02-12',
+      color: '#8b5cf6',
+    },
+  ];
+};
+
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
   const [dependencyTasks, setDependencyTasks] = useState<Task[]>(createDependencyTasks);
+  const [cascadeTasks, setCascadeTasks] = useState<Task[]>(createCascadeTasks);
   const [blockConstraints, setBlockConstraints] = useState(true);
 
   const handleChange = useCallback(
@@ -594,6 +631,12 @@ export default function Home() {
   const handleDependencyChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
       setDependencyTasks(typeof updated === "function" ? updated : () => updated),
+    [],
+  );
+
+  const handleCascadeChange = useCallback(
+    (updated: Task[] | ((t: Task[]) => Task[])) =>
+      setCascadeTasks(typeof updated === "function" ? updated : () => updated),
     [],
   );
 
@@ -627,7 +670,7 @@ export default function Home() {
       </div>
 
       {/* Dependencies Demo */}
-      <div>
+      <div style={{ marginBottom: "3rem" }}>
         <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
           Task Dependencies
         </h2>
@@ -667,6 +710,33 @@ export default function Home() {
                 console.log('Dependency validation:', result.errors);
               }
             }}
+          />
+        </div>
+      </div>
+
+      {/* Cascade Demo (Phase 7) */}
+      <div>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+          Каскадное смещение (Phase 7)
+        </h2>
+        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
+          Жесткий режим: перетащи «Задача A» — B и C двигаются вместе в реальном времени.
+          D — независимая, не смещается. После отпускания проверь консоль.
+        </p>
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "1rem",
+          }}
+        >
+          <GanttChart
+            tasks={cascadeTasks}
+            onChange={handleCascadeChange}
+            onCascade={(shifted) => console.log('Cascade:', shifted.map(t => `${t.name}: ${t.startDate}`))}
+            dayWidth={40}
+            rowHeight={40}
+            containerHeight={250}
           />
         </div>
       </div>
