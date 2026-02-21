@@ -18,6 +18,8 @@ export interface DependencyLinesProps {
   rowHeight: number;
   /** Total width of the grid in pixels */
   gridWidth: number;
+  /** Real-time pixel overrides for task positions during drag (taskId -> {left, width}) */
+  dragOverrides?: Map<string, { left: number; width: number }>;
 }
 
 /**
@@ -35,6 +37,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   dayWidth,
   rowHeight,
   gridWidth,
+  dragOverrides,
 }) => {
   // Create a lookup map for task positions and their indices
   const { taskPositions, taskIndices } = useMemo(() => {
@@ -44,18 +47,23 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     tasks.forEach((task, index) => {
       const startDate = new Date(task.startDate);
       const endDate = new Date(task.endDate);
-      const { left, width } = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
+      const computed = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
+
+      // Use real-time pixel override if available (during drag)
+      const override = dragOverrides?.get(task.id);
+      const resolvedLeft = override?.left ?? computed.left;
+      const resolvedWidth = override?.width ?? computed.width;
 
       indices.set(task.id, index);
       positions.set(task.id, {
-        left: left + 10,
-        right: left + width,
+        left: resolvedLeft + 10,
+        right: resolvedLeft + resolvedWidth,
         rowTop: index * rowHeight,
       });
     });
 
     return { taskPositions: positions, taskIndices: indices };
-  }, [tasks, monthStart, dayWidth, rowHeight]);
+  }, [tasks, monthStart, dayWidth, rowHeight, dragOverrides]);
 
   // Detect cycles for highlighting
   const cycleInfo = useMemo(() => {

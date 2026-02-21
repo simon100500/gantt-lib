@@ -160,6 +160,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     width: number;
   } | null>(null);
 
+  // Track currently-dragged task's pixel position for real-time dependency line updates
+  const [draggedTaskOverride, setDraggedTaskOverride] = useState<{ taskId: string; left: number; width: number } | null>(null);
+
   // Validate dependencies when tasks change
   useEffect(() => {
     const result = validateDependencies(tasks);
@@ -194,18 +197,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     );
   }, [onChange]);
 
-  const handleDragStateChange = useCallback((state: {
-    isDragging: boolean;
-    dragMode: 'move' | 'resize-left' | 'resize-right' | null;
-    left: number;
-    width: number;
-  }) => {
-    if (state.isDragging) {
-      setDragGuideLines(state);
-    } else {
-      setDragGuideLines(null);
+  // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
+  const dependencyOverrides = useMemo(() => {
+    const map = new Map(cascadeOverrides);
+    if (draggedTaskOverride) {
+      map.set(draggedTaskOverride.taskId, {
+        left: draggedTaskOverride.left,
+        width: draggedTaskOverride.width,
+      });
     }
-  }, []);
+    return map;
+  }, [cascadeOverrides, draggedTaskOverride]);
 
   /**
    * Handle real-time cascade progress — updates cascadeOverrides state each RAF
@@ -319,6 +321,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             dayWidth={dayWidth}
             rowHeight={rowHeight}
             gridWidth={gridWidth}
+            dragOverrides={dependencyOverrides}
           />
 
           {dragGuideLines && (
@@ -339,7 +342,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               dayWidth={dayWidth}
               rowHeight={rowHeight}
               onChange={handleTaskChange}
-              onDragStateChange={handleDragStateChange}
+              onDragStateChange={(state) => {
+                if (state.isDragging) {
+                  setDragGuideLines(state);
+                  setDraggedTaskOverride({ taskId: task.id, left: state.left, width: state.width });
+                } else {
+                  setDragGuideLines(null);
+                  setDraggedTaskOverride(null);
+                }
+              }}
               rowIndex={index}
               allTasks={tasks}
               enableAutoSchedule={enableAutoSchedule ?? false}
