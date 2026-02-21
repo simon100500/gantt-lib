@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
+import type { Task, TaskDependency } from '../types';
+import { calculateSuccessorDate } from '../utils/dependencyUtils';
 
 /**
  * Global drag manager that persists across HMR
@@ -31,6 +33,7 @@ interface ActiveDragState {
   onProgress: (left: number, width: number) => void;
   onComplete: (finalLeft: number, finalWidth: number) => void;
   onCancel: () => void;
+  allTasks: Task[];
 }
 
 let globalActiveDrag: ActiveDragState | null = null;
@@ -77,6 +80,55 @@ function snapToGrid(pixels: number, dayWidth: number): number {
 }
 
 /**
+ * Check if a task move would violate dependency constraints
+ * Only blocks move operations, not resize (per requirements)
+ */
+function canMoveTask(
+  task: Task,
+  newStartDate: Date,
+  newEndDate: Date,
+  allTasks: Task[]
+): { allowed: boolean; reason?: string } {
+  if (!task.dependencies || task.dependencies.length === 0) {
+    return { allowed: true };
+  }
+
+  // For each predecessor, check if the new position respects the constraint
+  for (const dep of task.dependencies) {
+    const predecessor = allTasks.find(t => t.id === dep.taskId);
+    if (!predecessor) continue;
+
+    const predecessorStart = new Date(predecessor.startDate);
+    const predecessorEnd = new Date(predecessor.endDate);
+
+    // Calculate expected date based on link type
+    const expectedDate = calculateSuccessorDate(
+      predecessorStart,
+      predecessorEnd,
+      dep.type,
+      dep.lag ?? 0
+    );
+
+    // Check constraint based on link type
+    const targetIsStart = dep.type.endsWith('S');
+    const targetDate = targetIsStart ? newStartDate : newEndDate;
+
+    // Allow move if target date is on or after expected date
+    // (give 1-day tolerance for rounding)
+    const dayDiff = (targetDate.getTime() - expectedDate.getTime()) / (24 * 60 * 60 * 1000);
+
+    if (dayDiff < -1) {
+      return {
+        allowed: false,
+        reason: `Would violate ${dep.type} dependency from "${predecessor.name}"`
+      };
+    }
+  }
+
+  return { allowed: true };
+}
+
+/**
  * Global mouse move handler - attached once and persists across HMR
  */
 function handleGlobalMouseMove(e: MouseEvent) {
@@ -90,7 +142,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
       return;
     }
 
-    const { startX, initialLeft, initialWidth, mode, dayWidth, onProgress } = globalActiveDrag;
+    const { startX, initialLeft, initialWidth, mode, dayWidth, onProgress, allTasks } = globalActiveDrag;
     const deltaX = e.clientX - startX;
 
     let newLeft = initialLeft;
@@ -110,6 +162,40 @@ function handleGlobalMouseMove(e: MouseEvent) {
         const snappedWidth = snapToGrid(initialWidth + deltaX, dayWidth);
         newWidth = Math.max(dayWidth, snappedWidth);
         break;
+    }
+
+    // For move operations, check dependency constraints
+    if (mode === 'move' && allTasks.length > 0) {
+      const currentTask = allTasks.find(t => t.id === globalActiveDrag?.taskId);
+      if (currentTask) {
+        const originalStart = new Date(currentTask.startDate);
+        const originalEnd = new Date(currentTask.endDate);
+
+        // Calculate new dates
+        const dayOffset = Math.round(newLeft / globalActiveDrag.dayWidth);
+        const durationDays = Math.round(newWidth / globalActiveDrag.dayWidth) - 1;
+        const monthStart = globalActiveDrag.monthStart;
+
+        const newStartDate = new Date(Date.UTC(
+          monthStart.getUTCFullYear(),
+          monthStart.getUTCMonth(),
+          monthStart.getUTCDate() + dayOffset
+        ));
+
+        const newEndDate = new Date(Date.UTC(
+          monthStart.getUTCFullYear(),
+          monthStart.getUTCMonth(),
+          monthStart.getUTCDate() + dayOffset + durationDays
+        ));
+
+        // Check constraints
+        const validation = canMoveTask(currentTask, newStartDate, newEndDate, allTasks);
+        if (!validation.allowed) {
+          // Revert to initial position - block the move
+          newLeft = globalActiveDrag.initialLeft;
+          newWidth = globalActiveDrag.initialWidth;
+        }
+      }
     }
 
     // Update current values in global state for completion
@@ -180,6 +266,12 @@ export interface UseTaskDragOptions {
   }) => void;
   /** Width of edge zones for resize detection (default: 12px) */
   edgeZoneWidth?: number;
+  /** Array of all tasks for dependency validation */
+  allTasks?: Task[];
+  /** Row index of this task (for task lookup) */
+  rowIndex?: number;
+  /** Enable automatic scheduling of dependent tasks */
+  enableAutoSchedule?: boolean;
 }
 
 /**
@@ -218,6 +310,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     onDragEnd,
     onDragStateChange,
     edgeZoneWidth = 12,
+    allTasks = [],
+    rowIndex,
+    enableAutoSchedule = false,
   } = options;
 
   // Track if this hook instance owns the current global drag
@@ -423,8 +518,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       onProgress: handleProgress,
       onComplete: handleComplete,
       onCancel: handleCancel,
+      allTasks,
     };
-  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel]);
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks]);
 
   /**
    * Get cursor style based on current position
