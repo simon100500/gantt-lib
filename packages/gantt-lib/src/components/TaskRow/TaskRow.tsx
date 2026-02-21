@@ -33,6 +33,12 @@ export interface TaskRowProps {
   enableAutoSchedule?: boolean;
   /** Whether to disable constraint checking during drag */
   disableConstraints?: boolean;
+  /** Position override for cascade preview — when set, overrides both static and drag position */
+  overridePosition?: { left: number; width: number };
+  /** Called each RAF during cascade drag with override positions for non-dragged chain tasks */
+  onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
+  /** Called when cascade drag completes; receives all shifted tasks including dragged task */
+  onCascade?: (tasks: Task[]) => void;
 }
 
 /**
@@ -50,6 +56,9 @@ export interface TaskRowProps {
  * When the grid expands (e.g., dragging a task left beyond the boundary), monthStart changes
  * and all tasks need to re-render to update their positions.
  *
+ * NOTE: onCascadeProgress and onCascade are excluded from comparison (same pattern as onChange —
+ * callbacks excluded from comparison because GanttChart wraps them in useCallback).
+ *
  * Excluding onChange prevents re-render storms when dragging tasks with ~100 tasks.
  */
 const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
@@ -63,8 +72,10 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.accepted === nextProps.task.accepted &&
     prevProps.monthStart.getTime() === nextProps.monthStart.getTime() &&
     prevProps.dayWidth === nextProps.dayWidth &&
-    prevProps.rowHeight === nextProps.rowHeight
-    // onChange excluded - see note above
+    prevProps.rowHeight === nextProps.rowHeight &&
+    prevProps.overridePosition?.left === nextProps.overridePosition?.left &&
+    prevProps.overridePosition?.width === nextProps.overridePosition?.width
+    // onChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
 
@@ -75,7 +86,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade }) => {
     // Parse dates as UTC
     const taskStartDate = useMemo(() => parseUTCDate(task.startDate), [task.startDate]);
     const taskEndDate = useMemo(() => parseUTCDate(task.endDate), [task.endDate]);
@@ -109,11 +120,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     }, [progressWidth, task.accepted, task.color]);
 
     // Handle drag end - call onChange with updated task
-    const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date }) => {
+    const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
       const updatedTask: Task = {
         ...task,
         startDate: result.startDate.toISOString(),
         endDate: result.endDate.toISOString(),
+        ...(result.updatedDependencies !== undefined && { dependencies: result.updatedDependencies }),
       };
       onChange?.(updatedTask);
     };
@@ -138,11 +150,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       rowIndex,
       enableAutoSchedule,
       disableConstraints,
+      onCascadeProgress,
+      onCascade,
     });
 
-    // Use dynamic position during drag
-    const displayLeft = isDragging ? currentLeft : left;
-    const displayWidth = isDragging ? currentWidth : width;
+    // Use override position (for cascade preview) with fallback to drag or static position
+    const displayLeft = overridePosition?.left ?? (isDragging ? currentLeft : left);
+    const displayWidth = overridePosition?.width ?? (isDragging ? currentWidth : width);
 
     // Format date labels for display - update in real-time during drag
     const currentStartDate = isDragging
