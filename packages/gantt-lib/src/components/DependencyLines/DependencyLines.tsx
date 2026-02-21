@@ -55,7 +55,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
       indices.set(task.id, index);
       positions.set(task.id, {
-        left: resolvedLeft + 10,
+        left: resolvedLeft,
         right: resolvedLeft + resolvedWidth,
         rowTop: index * rowHeight,
       });
