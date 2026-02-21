@@ -95,15 +95,15 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       if (reverseOrder) {
         // Parent task appears after child task: arrow points UP
         // Exit from TOP edge of predecessor (going UP)
-        // Enter at TOP edge of successor (arriving from DOWN)
+        // Enter at BOTTOM edge of successor (arriving from below)
         fromY = predecessor.entryY; // Top edge (rowTop + 4)
-        toY = successor.entryY;     // Top edge (rowTop + 4)
+        toY = successor.exitY;      // Bottom edge (rowTop + rowHeight - 10)
       } else {
         // Normal ordering: parent before child, arrow points DOWN
         // Exit from BOTTOM edge of predecessor (going DOWN)
-        // Enter at BOTTOM edge of successor (arriving from UP)
+        // Enter at TOP edge of successor (arriving from above)
         fromY = predecessor.exitY;  // Bottom edge (rowTop + rowHeight - 10)
-        toY = successor.exitY;      // Bottom edge (rowTop + rowHeight - 10)
+        toY = successor.entryY;     // Top edge (rowTop + 4)
       }
 
       const from = { x: predecessor.right, y: fromY };
