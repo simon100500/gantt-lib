@@ -219,82 +219,45 @@ export const calculateBezierPath = (
 };
 
 /**
- * Calculate SVG orthogonal path with rounded corners for dependency lines
- * Lines start at the right edge of the predecessor bar and end at the left edge of the successor bar.
+ * Calculate SVG Г-shaped (L-shaped) path for FS dependency lines.
+ * Goes vertically from the right edge of the predecessor bar, then horizontally
+ * to the left edge of the successor bar. Supports negative lag (overlap).
  * @param from - Start point {x, y} (right edge of predecessor, vertical center)
  * @param to - End point {x, y} (left edge of successor, vertical center)
- * @param curve - Radius of rounded corners (default: 6px)
- * @param padding - Minimum horizontal extension before turning (default: 14px)
- * @returns SVG path string with orthogonal lines and rounded corners
+ * @returns SVG path string
  */
 export const calculateOrthogonalPath = (
   from: { x: number; y: number },
-  to: { x: number; y: number },
-  curve: number = 6,
-  padding: number = 14
+  to: { x: number; y: number }
 ): string => {
   const fx = Math.round(from.x);
   const fy = Math.round(from.y);
   const tx = Math.round(to.x);
   const ty = Math.round(to.y);
 
-  const goingDown = ty >= fy;
-  const dirY = goingDown ? 1 : -1;    // +1 down, -1 up
-
-  // Case A: successor is far enough to the right for a simple S-curve
-  if (tx >= fx + padding * 2) {
-    const midX = Math.round(fx + (tx - fx) / 2);
-
-    if (fy === ty) {
-      // Same row: straight horizontal line
-      return `M ${fx} ${fy} H ${tx}`;
-    }
-
-    // S-curve: right → vertical → right
-    return [
-      `M ${fx} ${fy}`,
-      `H ${midX - curve}`,
-      `a ${curve} ${curve} 0 0 ${goingDown ? 1 : 0} ${curve} ${dirY * curve}`,
-      `V ${ty - dirY * curve}`,
-      `a ${curve} ${curve} 0 0 ${goingDown ? 0 : 1} ${curve} ${dirY * curve}`,
-      `H ${tx}`,
-    ].join(' ');
-  }
-
-  // Case B: successor is to the left or overlapping — detour right then wrap
-  const detourX = fx + padding;
-  const detourLeft = tx - padding;
-
+  // Same row: straight horizontal line
   if (fy === ty) {
-    // Same row, going backward: loop above both tasks
-    const loopY = fy - 20;
+    return `M ${fx} ${fy} H ${tx}`;
+  }
+
+  const R = 4;
+  const goingDown = ty > fy;
+  const goingRight = tx >= fx;
+  const dirY = goingDown ? 1 : -1;
+  const dirX = goingRight ? 1 : -1;
+
+  // Add a rounded corner if there's enough room in both axes
+  if (Math.abs(ty - fy) >= R && Math.abs(tx - fx) >= R) {
+    // CW sweep when directions match (↓→ or ↑←), CCW otherwise (↓← or ↑→)
+    const sweep = goingDown === goingRight ? 1 : 0;
     return [
       `M ${fx} ${fy}`,
-      `H ${detourX - curve}`,
-      `a ${curve} ${curve} 0 0 0 ${curve} ${-curve}`,
-      `V ${loopY + curve}`,
-      `a ${curve} ${curve} 0 0 0 ${-curve} ${-curve}`,
-      `H ${detourLeft + curve}`,
-      `a ${curve} ${curve} 0 0 0 ${-curve} ${curve}`,
-      `V ${ty - curve}`,
-      `a ${curve} ${curve} 0 0 0 ${curve} ${curve}`,
+      `V ${ty - dirY * R}`,
+      `a ${R} ${R} 0 0 ${sweep} ${dirX * R} ${dirY * R}`,
       `H ${tx}`,
     ].join(' ');
   }
 
-  // Different rows, going backward or overlapping
-  const midY = Math.round(fy + (ty - fy) / 2);
-
-  return [
-    `M ${fx} ${fy}`,
-    `H ${detourX - curve}`,
-    `a ${curve} ${curve} 0 0 ${goingDown ? 1 : 0} ${curve} ${dirY * curve}`,
-    `V ${midY - dirY * curve}`,
-    `a ${curve} ${curve} 0 0 ${goingDown ? 0 : 1} ${-curve} ${dirY * curve}`,
-    `H ${detourLeft + curve}`,
-    `a ${curve} ${curve} 0 0 ${goingDown ? 1 : 0} ${-curve} ${dirY * curve}`,
-    `V ${ty - dirY * curve}`,
-    `a ${curve} ${curve} 0 0 ${goingDown ? 0 : 1} ${curve} ${dirY * curve}`,
-    `H ${tx}`,
-  ].join(' ');
+  // Sharp corner fallback (very short segments)
+  return `M ${fx} ${fy} V ${ty} H ${tx}`;
 };

@@ -84,7 +84,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       const from = { x: predecessor.right, y: predecessor.centerY };
       const to = { x: successor.left, y: successor.centerY };
 
-      const path = calculateOrthogonalPath(from, to, 6, 14);
+      const path = calculateOrthogonalPath(from, to);
 
       // Check if this edge is part of a cycle
       const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
