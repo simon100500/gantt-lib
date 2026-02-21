@@ -103,7 +103,7 @@ Plans:
 
 **Goal:** FS dependency constraint enforcement with two modes: hard mode (cascade chain moves as monolith) and soft mode (free movement with lag recalculation). Includes real-time cascade preview during drag and onCascade callback.
 **Depends on:** Phase 6
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 07-01-PLAN.md — Cascade engine: getSuccessorChain utility and useTaskDrag cascade delta emission + soft-mode lag recalculation

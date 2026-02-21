@@ -57,6 +57,7 @@ Progress: [████████░░] 97%
 | Phase 06-dependencies P01 | 188 | 3 tasks | 4 files |
 | Phase 06-dependencies P02 | 7 minutes | 2 tasks | 5 files |
 | Phase 06-dependencies P03 | 4 minutes | 3 tasks | 3 files |
+| Phase 07 P02 | 4 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,9 @@ Recent decisions affecting current work:
 - [Phase 07-01]: Soft-mode lag delivered via updatedDependencies in onDragEnd result — reuses existing callback without new API surface
 - [Phase 07-01]: onCascade and onDragEnd are mutually exclusive on drag complete — cascade takes precedence when chain.length > 0 in hard mode
 - [Phase 07-01]: completeDrag() emits onCascadeProgress(new Map()) before completing — clears stale preview positions before onChange/onCascade fires
+- [Phase 07-02]: overridePosition uses nullish coalescing: overridePosition?.left ?? (isDragging ? currentLeft : left) — cascade override beats drag and static position
+- [Phase 07-02]: arePropsEqual compares overridePosition.left and .width separately — critical for React.memo re-render of chain tasks during cascade drag
+- [Phase 07-02]: handleCascade in GanttChart uses functional onChange updater to merge cascaded tasks without stale closure
 
 ### Pending Todos
 
