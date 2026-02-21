@@ -79,6 +79,8 @@ export interface GanttChartProps {
   onValidateDependencies?: (result: ValidationResult) => void;
   /** Enable automatic shifting of dependent tasks when predecessor moves (default: false) */
   enableAutoSchedule?: boolean;
+  /** Disable dependency constraint checking during drag (default: false) */
+  disableConstraints?: boolean;
 }
 
 /**
@@ -106,6 +108,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   onChange,
   onValidateDependencies,
   enableAutoSchedule,
+  disableConstraints,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -312,6 +315,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               rowIndex={index}
               allTasks={tasks}
               enableAutoSchedule={enableAutoSchedule ?? false}
+              disableConstraints={disableConstraints ?? false}
             />
           ))}
         </div>

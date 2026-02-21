@@ -543,6 +543,23 @@ const createDependencyTasks = (): Task[] => {
       dependencies: [{ taskId: 'task-4', type: 'FS' as const }],
     },
 
+    // FS with negative lag test case
+    {
+      id: 'task-fs-parent',
+      name: 'FS Parent',
+      startDate: '2026-02-17',
+      endDate: '2026-02-20',
+      color: '#0ea5e9',
+    },
+    {
+      id: 'task-fs-child',
+      name: 'FS Child (lag=-3)',
+      startDate: '2026-02-18',
+      endDate: '2026-02-21',
+      color: '#06b6d4',
+      dependencies: [{ taskId: 'task-fs-parent', type: 'FS' as const, lag: -3 }],
+    },
+
     // Circular dependency (for demonstration - highlighted in red)
     {
       id: 'cycle-a',
@@ -566,6 +583,7 @@ const createDependencyTasks = (): Task[] => {
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
   const [dependencyTasks, setDependencyTasks] = useState<Task[]>(createDependencyTasks);
+  const [blockConstraints, setBlockConstraints] = useState(true);
 
   const handleChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
@@ -617,6 +635,20 @@ export default function Home() {
           Tasks can have dependencies with 4 link types (FS, SS, FF, SF) and optional lag.
           Circular dependencies are highlighted in red.
         </p>
+        <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <label style={{ fontSize: '0.875rem', color: '#374151', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={blockConstraints}
+              onChange={(e) => setBlockConstraints(e.target.checked)}
+              style={{ marginRight: '0.375rem' }}
+            />
+            Block constraints during drag
+          </label>
+          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+            (uncheck to drag freely past dependency boundaries)
+          </span>
+        </div>
         <div
           style={{
             border: "1px solid #e5e7eb",
@@ -629,6 +661,7 @@ export default function Home() {
             onChange={handleDependencyChange}
             dayWidth={24}
             rowHeight={36}
+            disableConstraints={!blockConstraints}
             onValidateDependencies={(result) => {
               if (!result.isValid) {
                 console.log('Dependency validation:', result.errors);

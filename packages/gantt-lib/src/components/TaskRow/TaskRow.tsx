@@ -31,6 +31,8 @@ export interface TaskRowProps {
   allTasks?: Task[];
   /** Whether auto-scheduling is enabled */
   enableAutoSchedule?: boolean;
+  /** Whether to disable constraint checking during drag */
+  disableConstraints?: boolean;
 }
 
 /**
@@ -73,7 +75,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints }) => {
     // Parse dates as UTC
     const taskStartDate = useMemo(() => parseUTCDate(task.startDate), [task.startDate]);
     const taskEndDate = useMemo(() => parseUTCDate(task.endDate), [task.endDate]);
@@ -135,6 +137,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       allTasks,
       rowIndex,
       enableAutoSchedule,
+      disableConstraints,
     });
 
     // Use dynamic position during drag
