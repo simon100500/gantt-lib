@@ -217,3 +217,80 @@ export const calculateBezierPath = (
 
   return `M ${Math.round(from.x)} ${Math.round(from.y)} C ${Math.round(cp1x)} ${Math.round(cp1y)}, ${Math.round(cp2x)} ${Math.round(cp2y)}, ${Math.round(to.x)} ${Math.round(to.y)}`;
 };
+
+/**
+ * Calculate SVG orthogonal path with rounded corners for dependency lines
+ * Based on Frappe Gantt's approach - uses horizontal/vertical lines with arc rounded corners
+ * @param from - Start point {x, y} (right edge of predecessor)
+ * @param to - End point {x, y} (left edge of successor)
+ * @param curve - Radius of rounded corners (default: 12px)
+ * @param padding - Minimum padding between tasks (default: 20px)
+ * @returns SVG path string with orthogonal lines and rounded corners
+ */
+export const calculateOrthogonalPath = (
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  curve: number = 12,
+  padding: number = 20
+): string => {
+  const fromX = Math.round(from.x);
+  const fromY = Math.round(from.y);
+  const toX = Math.round(to.x);
+  const toY = Math.round(to.y);
+
+  const fromIsBelowTo = fromY > toY;
+  const clockwise = fromIsBelowTo ? 1 : 0;
+  const curveY = fromIsBelowTo ? -curve : curve;
+
+  // Adjust start point to be at center-right edge of predecessor
+  let startX = fromX;
+  // Move start point left if too close to successor (avoid overlap)
+  while (toX < startX + padding && startX > fromX - 50) {
+    startX -= 10;
+  }
+  startX -= 10;
+
+  // Case 1: Successor is to the LEFT of predecessor
+  // Path: right edge → vertical down → arc → horizontal left → arc → vertical down → successor
+  if (toX <= fromX + padding) {
+    // First vertical segment (from predecessor down)
+    let down1 = padding / 2 - curve;
+    if (down1 < 0) {
+      down1 = 0;
+      curve = padding / 2;
+    }
+
+    // Horizontal segment (leftward)
+    const left = toX - padding;
+
+    // Second vertical segment (down to successor Y)
+    const down2 = toY - curveY;
+
+    return `
+      M ${startX} ${fromY}
+      v ${down1}
+      a ${curve} ${curve} 0 0 1 ${-curve} ${curve}
+      H ${left}
+      a ${curve} ${curve} 0 0 ${clockwise} ${-curve} ${curveY}
+      V ${down2}
+      a ${curve} ${curve} 0 0 ${clockwise} ${curve} ${curveY}
+      L ${toX} ${toY}
+    `.trim().replace(/\s+/g, ' ');
+  }
+
+  // Case 2: Successor is to the RIGHT of predecessor
+  // Path: right edge → vertical → arc → diagonal to successor
+  let adjustedCurve = curve;
+  if (toX < startX + curve) {
+    adjustedCurve = Math.max(toX - startX, 0); // Don't exceed available space
+  }
+
+  const offset = fromIsBelowTo ? toY + adjustedCurve : toY - adjustedCurve;
+
+  return `
+    M ${startX} ${fromY}
+    V ${offset}
+    a ${adjustedCurve} ${adjustedCurve} 0 0 ${clockwise} ${adjustedCurve} ${curveY}
+    L ${toX} ${toY}
+  `.trim().replace(/\s+/g, ' ');
+};

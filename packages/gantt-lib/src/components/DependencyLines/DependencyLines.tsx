@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { Task } from '../../types';
 import { calculateTaskBar } from '../../utils/geometry';
-import { calculateBezierPath } from '../../utils/geometry';
+import { calculateOrthogonalPath } from '../../utils/geometry';
 import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils';
 import './DependencyLines.css';
 
@@ -21,10 +21,11 @@ export interface DependencyLinesProps {
 }
 
 /**
- * SVG overlay component rendering dependency lines as Bezier curves
+ * SVG overlay component rendering dependency lines as orthogonal paths with rounded corners
  *
  * Lines connect from the right edge of predecessor tasks to the left edge
- * of successor tasks. Circular dependencies are highlighted in red.
+ * of successor tasks using horizontal/vertical lines with arc rounded corners.
+ * Circular dependencies are highlighted in red.
  *
  * Performance: Uses React.memo to prevent re-renders when dependencies haven't changed.
  */
@@ -83,7 +84,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       const from = { x: predecessor.right, y: predecessor.centerY };
       const to = { x: successor.left, y: successor.centerY };
 
-      const path = calculateBezierPath(from, to);
+      const path = calculateOrthogonalPath(from, to, 12, 20);
 
       // Check if this edge is part of a cycle
       const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
