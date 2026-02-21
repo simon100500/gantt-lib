@@ -36,9 +36,10 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   rowHeight,
   gridWidth,
 }) => {
-  // Create a lookup map for task positions
-  const taskPositions = useMemo(() => {
+  // Create a lookup map for task positions and their indices
+  const { taskPositions, taskIndices } = useMemo(() => {
     const positions = new Map<string, { left: number; right: number; exitY: number; entryY: number }>();
+    const indices = new Map<string, number>();
 
     tasks.forEach((task, index) => {
       const startDate = new Date(task.startDate);
@@ -46,15 +47,16 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       const { left, width } = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
       const rowTop = index * rowHeight;
 
+      indices.set(task.id, index);
       positions.set(task.id, {
         left: left + 10,
         right: left + width,
-        exitY: rowTop + rowHeight - 10,  // 8px from bottom of bar
-        entryY: rowTop + 4,                  // top of bar
+        exitY: rowTop + rowHeight - 10,  // Default: 8px from bottom of bar (down direction)
+        entryY: rowTop + 4,                  // Default: top of bar (arriving from up)
       });
     });
 
-    return positions;
+    return { taskPositions: positions, taskIndices: indices };
   }, [tasks, monthStart, dayWidth, rowHeight]);
 
   // Detect cycles for highlighting
@@ -76,14 +78,36 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     for (const edge of edges) {
       const predecessor = taskPositions.get(edge.predecessorId);
       const successor = taskPositions.get(edge.successorId);
+      const predecessorIndex = taskIndices.get(edge.predecessorId);
+      const successorIndex = taskIndices.get(edge.successorId);
 
-      if (!predecessor || !successor) {
+      if (!predecessor || !successor || predecessorIndex === undefined || successorIndex === undefined) {
         continue; // Skip if task not found (shouldn't happen with validation)
       }
 
-      // Line exits from bottom area of predecessor, arrives at top of successor
-      const from = { x: predecessor.right, y: predecessor.exitY };
-      const to = { x: successor.left, y: successor.entryY };
+      // Determine if tasks are in reverse order (parent/child appears after)
+      const reverseOrder = predecessorIndex > successorIndex;
+
+      // Calculate bidirectional edge points based on task ordering
+      let fromY: number;
+      let toY: number;
+
+      if (reverseOrder) {
+        // Parent task appears after child task: arrow points UP
+        // Exit from TOP edge of predecessor (going UP)
+        // Enter at TOP edge of successor (arriving from DOWN)
+        fromY = predecessor.entryY; // Top edge (rowTop + 4)
+        toY = successor.entryY;     // Top edge (rowTop + 4)
+      } else {
+        // Normal ordering: parent before child, arrow points DOWN
+        // Exit from BOTTOM edge of predecessor (going DOWN)
+        // Enter at BOTTOM edge of successor (arriving from UP)
+        fromY = predecessor.exitY;  // Bottom edge (rowTop + rowHeight - 10)
+        toY = successor.exitY;      // Bottom edge (rowTop + rowHeight - 10)
+      }
+
+      const from = { x: predecessor.right, y: fromY };
+      const to = { x: successor.left, y: toY };
 
       const path = calculateOrthogonalPath(from, to);
 
@@ -98,7 +122,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     }
 
     return lines;
-  }, [tasks, taskPositions, cycleInfo]);
+  }, [tasks, taskPositions, taskIndices, cycleInfo]);
 
   return (
     <svg
