@@ -38,21 +38,19 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 }) => {
   // Create a lookup map for task positions and their indices
   const { taskPositions, taskIndices } = useMemo(() => {
-    const positions = new Map<string, { left: number; right: number; exitY: number; entryY: number }>();
+    const positions = new Map<string, { left: number; right: number; rowTop: number }>();
     const indices = new Map<string, number>();
 
     tasks.forEach((task, index) => {
       const startDate = new Date(task.startDate);
       const endDate = new Date(task.endDate);
       const { left, width } = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
-      const rowTop = index * rowHeight;
 
       indices.set(task.id, index);
       positions.set(task.id, {
         left: left + 10,
         right: left + width,
-        exitY: rowTop + rowHeight - 10,  // Default: 8px from bottom of bar (down direction)
-        entryY: rowTop + 4,                  // Default: top of bar (arriving from up)
+        rowTop: index * rowHeight,
       });
     });
 
@@ -85,25 +83,21 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         continue; // Skip if task not found (shouldn't happen with validation)
       }
 
-      // Determine if tasks are in reverse order (parent/child appears after)
+      // Determine if tasks are in reverse order (predecessor appears below successor)
       const reverseOrder = predecessorIndex > successorIndex;
 
-      // Calculate bidirectional edge points based on task ordering
+      // Calculate direction-specific Y coordinates
       let fromY: number;
       let toY: number;
 
       if (reverseOrder) {
-        // Parent task appears after child task: arrow points UP
-        // Exit from TOP edge of predecessor (going UP)
-        // Enter at BOTTOM edge of successor (arriving from below)
-        fromY = predecessor.entryY; // Top edge (rowTop + 4)
-        toY = successor.exitY;      // Bottom edge (rowTop + rowHeight - 10)
+        // Arrow goes UP: exit from top of parent bar, enter at bottom of child bar
+        fromY = predecessor.rowTop + 8;               // 8px from top of parent bar
+        toY = successor.rowTop + rowHeight - 8;        // 8px from bottom of child bar
       } else {
-        // Normal ordering: parent before child, arrow points DOWN
-        // Exit from BOTTOM edge of predecessor (going DOWN)
-        // Enter at TOP edge of successor (arriving from above)
-        fromY = predecessor.exitY;  // Bottom edge (rowTop + rowHeight - 10)
-        toY = successor.entryY;     // Top edge (rowTop + 4)
+        // Arrow goes DOWN: exit from bottom of parent bar, enter at top of child bar
+        fromY = predecessor.rowTop + rowHeight - 8;   // 8px from bottom of parent bar
+        toY = successor.rowTop + 8;                    // 8px from top of child bar
       }
 
       const from = { x: predecessor.right, y: fromY };
