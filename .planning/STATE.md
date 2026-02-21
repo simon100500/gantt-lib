@@ -156,11 +156,12 @@ None yet.
 | 11 | Fix DependencyLines huge arrowhead and wrong path start position | 2026-02-21 | dd1b160 | [11-fix-dependencylines-component-huge-arrow](./quick/11-fix-dependencylines-component-huge-arrow/) |
 | 12 | Fix FS negative-lag drag snap-back + disableConstraints toggle | 2026-02-21 | 62e2cb2 | [12-fs](./quick/12-fs/) |
 | 14 | Сделай корректное отображение связей (bidirectional dependency line rendering) | 2026-02-21 | 58f3564 | [14-worktree-workterr](./quick/14-worktree-workterr/) |
+| 15 | Redraw dependency lines in real-time during drag | 2026-02-22 | f530164 | [015-redraw-dep-lines-on-drag](./quick/015-redraw-dep-lines-on-drag/) |
 
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 07-01 - Cascade chain engine: getSuccessorChain BFS traversal + useTaskDrag cascade delta emission and soft-mode lag recalculation
+Stopped at: Completed quick-015 - Redraw dependency lines in real-time during drag (dragOverrides prop + merged override Map)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
