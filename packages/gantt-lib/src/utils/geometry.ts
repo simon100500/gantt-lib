@@ -246,16 +246,16 @@ export const calculateOrthogonalPath = (
   const dirY = goingDown ? 1 : -1;
   const dirX = goingRight ? 1 : -1;
 
-  // Chamfered corner: diagonal cut instead of arc
+  // Shape: horizontal exit → chamfer → vertical arrival (arrow points down/up)
   if (Math.abs(ty - fy) >= C && Math.abs(tx - fx) >= C) {
     return [
       `M ${fx} ${fy}`,
-      `V ${ty - dirY * C}`,
-      `L ${fx + dirX * C} ${ty}`,
-      `H ${tx}`,
+      `H ${tx - dirX * C}`,
+      `L ${tx} ${fy + dirY * C}`,
+      `V ${ty}`,
     ].join(' ');
   }
 
   // Sharp corner fallback (very short segments)
-  return `M ${fx} ${fy} V ${ty} H ${tx}`;
+  return `M ${fx} ${fy} H ${tx} V ${ty}`;
 };
