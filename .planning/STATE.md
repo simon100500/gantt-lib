@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 5 - progress-bars
+**Current focus:** Phase 6 - dependencies
 
 ## Current Position
 
-Phase: 5 of 5 (progress-bars)
-Plan: 1 of 1 in current phase (1 completed - AWAITING VERIFICATION)
-Status: CHECKPOINT - Progress bar implementation complete, awaiting human verification
-Last activity: 2026-02-20 — Completed 05-01: Progress bars on task bars
+Phase: 6 of 6 (dependencies)
+Plan: 1 of 4 in current phase (1 completed)
+Status: IN_PROGRESS - Dependency type definitions and core utilities complete
+Last activity: 2026-02-21 — Completed 06-01: Dependency type definitions and core utilities
 
-Progress: [████████░░] 90%
+Progress: [████████░░] 92%
 
 ## Performance Metrics
 
@@ -32,6 +32,7 @@ Progress: [████████░░] 90%
 | 03-calendar | 4 | 4 | 3 min |
 | 04-npm-packaging | 5 | 5 | 2.4 min |
 | 05-progress-bars | 1 | 1 | 6 min |
+| 06-dependencies | 1 | 4 | 3 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -53,6 +54,7 @@ Progress: [████████░░] 90%
 | Phase 04-npm-packaging P04 | 3min | 2 tasks | 26 moved + 15 modified |
 | Phase 04-npm-packaging P05 | 10min | 2 tasks + 1 fix | 6 files |
 | Phase 05 P01 | 6 | 3 tasks | 5 files |
+| Phase 06-dependencies P01 | 188 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -142,8 +144,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-20
-Stopped at: Completed 04-05 - Build and verify library (Phase 4 COMPLETE)
+Last session: 2026-02-21
+Stopped at: Completed 06-01 - Dependency type definitions and core utilities (Phase 6 IN_PROGRESS)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -166,3 +168,8 @@ Stopped at: Completed 04-05 - Build and verify library (Phase 4 COMPLETE)
 - 05-01: CHECKPOINT - Progress bars on task bars (6 min + 1 fix)
 
 **Phase 5 Total:** 1 plan, 6 min, progress visualization with completion status colors
+
+**Phase 6 Status:** IN_PROGRESS
+- 06-01: COMPLETE - Dependency type definitions and core utilities (3 min)
+
+**Phase 6 Total:** 1 of 4 plans, 3 min, dependency types with DFS-based cycle detection and Bezier curve calculation
