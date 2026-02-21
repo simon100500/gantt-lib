@@ -252,19 +252,16 @@ export const calculateDependencyPath = (
 
   if (arrivesFromRight) {
     // Arrow arrives at the RIGHT edge of successor (FF, SF).
-    // Mirror of FS: exit horizontally from from.x, chamfer, arrive vertically at to.x
-    // but now the horizontal move goes toward to.x from the same direction
-    // Path: M fx fy → H (tx + C * dirX) → chamfer → V ty
-    // Since arrow must POINT LEFT into the right edge we travel from fx toward tx.
-    // If fx < tx (going right): overshoot past tx then come back is ugly.
-    // Instead: the path is symmetric — exit H, bend, arrive V from above/below.
+    // Same chamfer formula as the FS/SS branch: stop C short of tx in the direction of travel,
+    // then diagonal to tx, then vertical. The endpoints differ (right edge vs left edge),
+    // but the path shape — natural inside-corner chamfer — is identical.
     const goingRight = tx >= fx;
     const dirX = goingRight ? 1 : -1;
 
     if (Math.abs(ty - fy) >= C && Math.abs(tx - fx) >= C) {
       return [
         `M ${fx} ${fy}`,
-        `H ${tx + dirX * C}`,
+        `H ${tx - dirX * C}`,
         `L ${tx} ${fy + dirY * C}`,
         `V ${ty}`,
       ].join(' ');
