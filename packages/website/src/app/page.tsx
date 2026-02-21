@@ -33,6 +33,7 @@ const createSampleTasks = (): Task[] => {
       endDate: addDays(baseDate, 6),
       color: "#6366f1",
       progress: 100,
+      dependencies: [{ taskId: '1', type: 'FS' as const }],
     },
     {
       id: "3",
@@ -41,6 +42,7 @@ const createSampleTasks = (): Task[] => {
       endDate: addDays(baseDate, 11),
       color: "#6366f1",
       progress: 75,
+      dependencies: [{ taskId: '2', type: 'FS' as const }],
     },
     {
       id: "4",
@@ -83,6 +85,7 @@ const createSampleTasks = (): Task[] => {
       color: "#ec4899",
       progress: 100,
       accepted: true,
+      dependencies: [{ taskId: '7', type: 'FS' as const }],
     },
     {
       id: "9",
@@ -91,6 +94,7 @@ const createSampleTasks = (): Task[] => {
       endDate: addDays(baseDate, 21),
       color: "#ec4899",
       progress: 100,
+      dependencies: [{ taskId: '8', type: 'FS' as const }],
     },
     {
       id: "10",
@@ -99,6 +103,7 @@ const createSampleTasks = (): Task[] => {
       endDate: addDays(baseDate, 26),
       color: "#f43f5e",
       progress: 85,
+      dependencies: [{ taskId: '9', type: 'FS' as const }],
     },
     {
       id: "11",
@@ -107,6 +112,7 @@ const createSampleTasks = (): Task[] => {
       endDate: addDays(baseDate, 34),
       color: "#f43f5e",
       progress: 60,
+      dependencies: [{ taskId: '10', type: 'FS' as const }],
     },
     {
       id: "12",
@@ -115,6 +121,7 @@ const createSampleTasks = (): Task[] => {
       endDate: addDays(baseDate, 38),
       color: "#f97316",
       progress: 30,
+      dependencies: [{ taskId: '11', type: 'FS' as const }],
     },
     {
       id: "13",
@@ -499,12 +506,128 @@ const createSampleTasks = (): Task[] => {
   ];
 };
 
+// Sample tasks with dependencies demonstrating all link types
+const createDependencyTasks = (): Task[] => {
+  return [
+    // Simple chain: 5 tasks with FS dependencies one after another
+    {
+      id: 'task-1',
+      name: 'Task 1',
+      startDate: '2026-02-01',
+      endDate: '2026-02-03',
+      color: '#3b82f6',
+    },
+    {
+      id: 'task-3',
+      name: 'Task 3',
+      startDate: '2026-02-07',
+      endDate: '2026-02-09',
+      color: '#f59e0b',
+      dependencies: [{ taskId: 'task-2', type: 'FS' as const }],
+    },
+    {
+      id: 'task-2',
+      name: 'Task 2',
+      startDate: '2026-02-04',
+      endDate: '2026-02-06',
+      color: '#10b981',
+      dependencies: [{ taskId: 'task-1', type: 'FS' as const }],
+    },
+    {
+      id: 'task-4',
+      name: 'Task 4',
+      startDate: '2026-02-10',
+      endDate: '2026-02-12',
+      color: '#ef4444',
+      dependencies: [{ taskId: 'task-3', type: 'FS' as const }],
+    },
+    {
+      id: 'task-5',
+      name: 'Task 5',
+      startDate: '2026-02-13',
+      endDate: '2026-02-15',
+      color: '#8b5cf6',
+      dependencies: [{ taskId: 'task-4', type: 'FS' as const }],
+    },
+
+    // FS with negative lag test case
+    {
+      id: 'task-fs-parent',
+      name: 'FS Parent',
+      startDate: '2026-02-17',
+      endDate: '2026-02-20',
+      color: '#0ea5e9',
+    },
+    {
+      id: 'task-fs-child',
+      name: 'FS Child (lag=-3)',
+      startDate: '2026-02-18',
+      endDate: '2026-02-21',
+      color: '#06b6d4',
+      dependencies: [{ taskId: 'task-fs-parent', type: 'FS' as const, lag: -3 }],
+    },
+
+
+  ];
+};
+
+// Cascade demo: A->B->C chain for Phase 7 cascade demonstration
+const createCascadeTasks = (): Task[] => {
+  return [
+    {
+      id: 'cascade-a',
+      name: 'Задача A (перетащи меня)',
+      startDate: '2026-02-01',
+      endDate: '2026-02-05',
+      color: '#3b82f6',
+    },
+    {
+      id: 'cascade-b',
+      name: 'Задача B (FS+0)',
+      startDate: '2026-02-06',
+      endDate: '2026-02-10',
+      color: '#10b981',
+      dependencies: [{ taskId: 'cascade-a', type: 'FS' as const, lag: 0 }],
+    },
+    {
+      id: 'cascade-c',
+      name: 'Задача C (FS+0)',
+      startDate: '2026-02-11',
+      endDate: '2026-02-15',
+      color: '#f59e0b',
+      dependencies: [{ taskId: 'cascade-b', type: 'FS' as const, lag: 0 }],
+    },
+    {
+      id: 'cascade-d',
+      name: 'Задача D (независимая)',
+      startDate: '2026-02-08',
+      endDate: '2026-02-12',
+      color: '#8b5cf6',
+    },
+  ];
+};
+
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
+  const [dependencyTasks, setDependencyTasks] = useState<Task[]>(createDependencyTasks);
+  const [cascadeTasks, setCascadeTasks] = useState<Task[]>(createCascadeTasks);
+  const [blockConstraints, setBlockConstraints] = useState(true);
 
   const handleChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
       setTasks(typeof updated === "function" ? updated : () => updated),
+    [],
+  );
+
+  const handleDependencyChange = useCallback(
+    (updated: Task[] | ((t: Task[]) => Task[])) =>
+      setDependencyTasks(typeof updated === "function" ? updated : () => updated),
+    [],
+  );
+
+  const handleCascadeChange = useCallback(
+    (updated: Task[] | ((t: Task[]) => Task[])) =>
+      setCascadeTasks(typeof updated === "function" ? updated : () => updated),
     [],
   );
 
@@ -515,19 +638,98 @@ export default function Home() {
         Drag task bars to move or resize. Install:{" "}
         <code>npm install gantt-lib</code>
       </p>
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          padding: "1rem",
-        }}
-      >
-        <GanttChart
-          tasks={tasks}
-          dayWidth={24}
-          rowHeight={36}
-          onChange={handleChange}
-        />
+
+      {/* Main Demo */}
+      <div style={{ marginBottom: "3rem" }}>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+          Construction Project
+        </h2>
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "1rem",
+          }}
+        >
+          <GanttChart
+            tasks={tasks}
+            dayWidth={24}
+            rowHeight={36}
+            onChange={handleChange}
+          />
+        </div>
+      </div>
+
+      {/* Dependencies Demo */}
+      <div style={{ marginBottom: "3rem" }}>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+          Task Dependencies
+        </h2>
+        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
+          Tasks can have dependencies with 4 link types (FS, SS, FF, SF) and optional lag.
+          Circular dependencies are highlighted in red.
+        </p>
+        <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <label style={{ fontSize: '0.875rem', color: '#374151', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={blockConstraints}
+              onChange={(e) => setBlockConstraints(e.target.checked)}
+              style={{ marginRight: '0.375rem' }}
+            />
+            Block constraints during drag
+          </label>
+          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+            (uncheck to drag freely past dependency boundaries)
+          </span>
+        </div>
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "1rem",
+          }}
+        >
+          <GanttChart
+            tasks={dependencyTasks}
+            onChange={handleDependencyChange}
+            dayWidth={24}
+            rowHeight={36}
+            disableConstraints={!blockConstraints}
+            onValidateDependencies={(result) => {
+              if (!result.isValid) {
+                console.log('Dependency validation:', result.errors);
+              }
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Cascade Demo (Phase 7) */}
+      <div>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+          Каскадное смещение (Phase 7)
+        </h2>
+        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
+          Жесткий режим: перетащи «Задача A» — B и C двигаются вместе в реальном времени.
+          D — независимая, не смещается. После отпускания проверь консоль.
+        </p>
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "1rem",
+          }}
+        >
+          <GanttChart
+            tasks={cascadeTasks}
+            onChange={handleCascadeChange}
+            onCascade={(shifted) => console.log('Cascade:', shifted.map(t => `${t.name}: ${t.startDate}`))}
+            dayWidth={40}
+            rowHeight={40}
+            containerHeight={250}
+          />
+        </div>
       </div>
     </main>
   );

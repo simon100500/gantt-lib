@@ -646,4 +646,167 @@ describe('useTaskDrag', () => {
       expect(result.current.currentLeft).toBe(1600); // 40 days * 40
     });
   });
+
+  describe('Resize-right cascade (Phase 07-01 extension)', () => {
+    // Tasks:
+    //   predecessor: Feb 10 – Feb 15 (task-1)
+    //   successor:   Feb 16 – Feb 20 (task-2, FS dependency on task-1)
+    //
+    // monthStart = Feb 1, dayWidth = 40
+    //   predecessor left = 9*40=360, width = 6*40=240
+    //   successor   left = 15*40=600, width = 5*40=200
+
+    const allTasks = [
+      {
+        id: 'task-1',
+        name: 'Predecessor',
+        startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+        endDate:   new Date(Date.UTC(2026, 1, 15)).toISOString(),
+      },
+      {
+        id: 'task-2',
+        name: 'Successor',
+        startDate: new Date(Date.UTC(2026, 1, 16)).toISOString(),
+        endDate:   new Date(Date.UTC(2026, 1, 20)).toISOString(),
+        dependencies: [{ taskId: 'task-1', type: 'FS' as const, lag: 0 }],
+      },
+    ];
+
+    it('should build cascadeChain for resize-right (not empty like move)', () => {
+      // This is an indirect test: if cascadeChain is built correctly,
+      // onCascadeProgress will be called during resize-right with non-empty overrides.
+      const onCascadeProgress = vi.fn();
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          allTasks,
+          disableConstraints: false,
+          onCascadeProgress,
+        })
+      );
+
+      // Start resize-right (right edge of predecessor bar)
+      // predecessor bar: left=360, width=240, so right edge is at 360+240=600
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 240 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 360 + 240 - 5, // right edge zone
+        } as unknown as React.MouseEvent);
+      });
+
+      expect(result.current.dragMode).toBe('resize-right');
+
+      // Extend end date by 1 day (drag right 40px)
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 360 + 240 - 5 + 40 }));
+      });
+
+      // Release
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      waitFor(() => {
+        // onCascadeProgress must have been called at least once with non-empty overrides
+        const calls = onCascadeProgress.mock.calls;
+        const nonEmptyCalls = calls.filter(([m]: [Map<string, unknown>]) => m.size > 0);
+        expect(nonEmptyCalls.length).toBeGreaterThan(0);
+        // The override should be for task-2
+        const [overrideMap] = nonEmptyCalls[0];
+        expect(overrideMap.has('task-2')).toBe(true);
+      });
+    });
+
+    it('should call onCascade with correct shifted successor dates on resize-right completion', () => {
+      const onCascade = vi.fn();
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          allTasks,
+          disableConstraints: false,
+          onCascade,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 240 }),
+      } as unknown as HTMLElement;
+
+      // Start resize-right
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 360 + 240 - 5,
+        } as unknown as React.MouseEvent);
+      });
+
+      // Extend end date by 2 days (80px right)
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 360 + 240 - 5 + 80 }));
+      });
+
+      // Complete
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      waitFor(() => {
+        expect(onCascade).toHaveBeenCalledTimes(1);
+        const [cascadedTasks] = onCascade.mock.calls[0];
+
+        // Dragged task: start stays Feb 10, end becomes Feb 17 (+2 days)
+        const dragged = cascadedTasks.find((t: { id: string }) => t.id === 'task-1');
+        expect(new Date(dragged.startDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 10)).toISOString());
+        expect(new Date(dragged.endDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 17)).toISOString());
+
+        // Successor: should shift by +2 days (Feb 18 – Feb 22)
+        const successor = cascadedTasks.find((t: { id: string }) => t.id === 'task-2');
+        expect(new Date(successor.startDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 18)).toISOString());
+        expect(new Date(successor.endDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 22)).toISOString());
+      });
+    });
+
+    it('should NOT cascade on resize-right in soft mode (disableConstraints=true)', () => {
+      const onCascade = vi.fn();
+      const onDragEnd = vi.fn();
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          allTasks,
+          disableConstraints: true,
+          onCascade,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 240 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 360 + 240 - 5,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 360 + 240 - 5 + 40 }));
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      waitFor(() => {
+        // Soft mode: onCascade must NOT be called; onDragEnd must be called
+        expect(onCascade).not.toHaveBeenCalled();
+        expect(onDragEnd).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
 });

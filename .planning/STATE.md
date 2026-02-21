@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 5 - progress-bars
+**Current focus:** Phase 7 - dependencies constraints cascade engine
 
 ## Current Position
 
-Phase: 5 of 5 (progress-bars)
-Plan: 1 of 1 in current phase (1 completed - AWAITING VERIFICATION)
-Status: CHECKPOINT - Progress bar implementation complete, awaiting human verification
-Last activity: 2026-02-20 — Completed 05-01: Progress bars on task bars
+Phase: 7 of 7 (dependencies-constraits)
+Plan: 1 of 3 in current phase (1 completed)
+Status: IN_PROGRESS - Cascade chain engine core implemented
+Last activity: 2026-02-22 - Completed quick task 16: для демо - сделай несколько (6-7) связей на первом основном поле графика (где много работ строительных)
 
-Progress: [████████░░] 90%
+Progress: [████████░░] 97%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
+- Total plans completed: 18
 - Average duration: 9 min
-- Total execution time: 2.5 hours
+- Total execution time: 2.6 hours
 
 **By Phase:**
 
@@ -32,6 +32,7 @@ Progress: [████████░░] 90%
 | 03-calendar | 4 | 4 | 3 min |
 | 04-npm-packaging | 5 | 5 | 2.4 min |
 | 05-progress-bars | 1 | 1 | 6 min |
+| 06-dependencies | 2 | 4 | 5 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -53,6 +54,10 @@ Progress: [████████░░] 90%
 | Phase 04-npm-packaging P04 | 3min | 2 tasks | 26 moved + 15 modified |
 | Phase 04-npm-packaging P05 | 10min | 2 tasks + 1 fix | 6 files |
 | Phase 05 P01 | 6 | 3 tasks | 5 files |
+| Phase 06-dependencies P01 | 188 | 3 tasks | 4 files |
+| Phase 06-dependencies P02 | 7 minutes | 2 tasks | 5 files |
+| Phase 06-dependencies P03 | 4 minutes | 3 tasks | 3 files |
+| Phase 07 P02 | 4 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -61,6 +66,7 @@ Progress: [████████░░] 90%
 - Phase 3 added: Calendar grid improvements (full grid during drag, uniform column widths, three-level header, vertical grid lines, month/week separators, weekend highlighting)
 - Phase 4 added: npm-packaging
 - Phase 5 added: progress-bars
+- Phase 7 added: dependencies constraits
 
 ### Decisions
 
@@ -119,6 +125,14 @@ Recent decisions affecting current work:
 - [Phase 04-npm-packaging]: CSS inlining for bundler emission (no @import statements)
 - [Phase 04-npm-packaging]: CSS variables for theming customization
 - [Phase 05]: Used color-mix() CSS function for darker progress shades from task color
+- [Phase 07-01]: getSuccessorChain excludes dragged task (seeded in visited set) — prevents cascade override conflict with TaskRow's own drag state
+- [Phase 07-01]: Hard-mode left boundary uses predecessor.startDate not endDate — allows negative lag (child can start before predecessor ends)
+- [Phase 07-01]: Soft-mode lag delivered via updatedDependencies in onDragEnd result — reuses existing callback without new API surface
+- [Phase 07-01]: onCascade and onDragEnd are mutually exclusive on drag complete — cascade takes precedence when chain.length > 0 in hard mode
+- [Phase 07-01]: completeDrag() emits onCascadeProgress(new Map()) before completing — clears stale preview positions before onChange/onCascade fires
+- [Phase 07-02]: overridePosition uses nullish coalescing: overridePosition?.left ?? (isDragging ? currentLeft : left) — cascade override beats drag and static position
+- [Phase 07-02]: arePropsEqual compares overridePosition.left and .width separately — critical for React.memo re-render of chain tasks during cascade drag
+- [Phase 07-02]: handleCascade in GanttChart uses functional onChange updater to merge cascaded tasks without stale closure
 
 ### Pending Todos
 
@@ -139,11 +153,16 @@ None yet.
 | 7 | Fix month names to nominative case | 2026-02-19 | 16bf834 | [7-fix-month-names](./quick/7-fix-month-names/) |
 | 9 | Vertical scrolling with sticky header | 2026-02-19 | 632eaae | [9-sticky](./quick/9-sticky/) |
 | 10 | Update README for monorepo and npm package | 2026-02-19 | c90c399 | [10-readme](./quick/10-readme/) |
+| 11 | Fix DependencyLines huge arrowhead and wrong path start position | 2026-02-21 | dd1b160 | [11-fix-dependencylines-component-huge-arrow](./quick/11-fix-dependencylines-component-huge-arrow/) |
+| 12 | Fix FS negative-lag drag snap-back + disableConstraints toggle | 2026-02-21 | 62e2cb2 | [12-fs](./quick/12-fs/) |
+| 14 | Сделай корректное отображение связей (bidirectional dependency line rendering) | 2026-02-21 | 58f3564 | [14-worktree-workterr](./quick/14-worktree-workterr/) |
+| 15 | Redraw dependency lines in real-time during drag | 2026-02-22 | f530164 | [015-redraw-dep-lines-on-drag](./quick/015-redraw-dep-lines-on-drag/) |
+| 16 | Add 7 FS dependency links to Construction Project demo | 2026-02-22 | 58041eb | [16-6-7](./quick/16-6-7/) |
 
 ## Session Continuity
 
-Last session: 2026-02-20
-Stopped at: Completed 04-05 - Build and verify library (Phase 4 COMPLETE)
+Last session: 2026-02-22
+Stopped at: Completed quick-016 - Add 7 FS dependency links to Construction Project demo (preparatory chain 1->2->3 + earthwork chain 7->8->9->10->11->12)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -166,3 +185,15 @@ Stopped at: Completed 04-05 - Build and verify library (Phase 4 COMPLETE)
 - 05-01: CHECKPOINT - Progress bars on task bars (6 min + 1 fix)
 
 **Phase 5 Total:** 1 plan, 6 min, progress visualization with completion status colors
+
+**Phase 6 Status:** IN_PROGRESS
+- 06-01: COMPLETE - Dependency type definitions and core utilities (3 min)
+- 06-02: COMPLETE - Dependency Lines Visualization Component (7 min)
+- 06-03: COMPLETE - Integration with drag constraint validation (4 min)
+
+**Phase 6 Total:** 3 of 4 plans, 5 min avg, dependency types with DFS-based cycle detection and SVG-based Bezier curve visualization
+
+**Phase 7 Status:** IN_PROGRESS
+- 07-01: COMPLETE - Cascade chain engine: getSuccessorChain BFS traversal + cascade delta emission + soft-mode lag recalculation (4 min)
+
+**Phase 7 Total:** 1 of 3 plans, 4 min so far, algorithmic core of FS cascade constraint system

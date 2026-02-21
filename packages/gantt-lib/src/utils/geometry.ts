@@ -186,3 +186,76 @@ export const calculateWeekendBlocks = (
 
   return blocks;
 };
+
+/**
+ * Calculate SVG cubic Bezier curve path for dependency lines
+ * @param from - Start point {x, y} (right edge of predecessor)
+ * @param to - End point {x, y} (left edge of successor)
+ * @returns SVG path string for cubic Bezier curve
+ */
+export const calculateBezierPath = (
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+): string => {
+  // Control points create smooth vertical curve
+  // Offset is proportional to vertical distance for natural-looking curves
+  const verticalDistance = Math.abs(to.y - from.y);
+  const cpOffset = Math.max(verticalDistance * 0.5, 20); // Minimum 20px for same-row connections
+
+  // For same-row connections, use arc above the task bars
+  if (from.y === to.y) {
+    const arcHeight = 20;
+    const midX = (from.x + to.x) / 2;
+    return `M ${from.x} ${from.y} Q ${midX} ${from.y - arcHeight} ${to.x} ${to.y}`;
+  }
+
+  // Standard cubic Bezier for multi-row connections
+  const cp1x = from.x;
+  const cp1y = from.y + (to.y > from.y ? cpOffset : -cpOffset);
+  const cp2x = to.x;
+  const cp2y = to.y - (to.y > from.y ? cpOffset : -cpOffset);
+
+  return `M ${Math.round(from.x)} ${Math.round(from.y)} C ${Math.round(cp1x)} ${Math.round(cp1y)}, ${Math.round(cp2x)} ${Math.round(cp2y)}, ${Math.round(to.x)} ${Math.round(to.y)}`;
+};
+
+/**
+ * Calculate SVG Г-shaped (L-shaped) path for FS dependency lines.
+ * Goes vertically from the right edge of the predecessor bar, then horizontally
+ * to the left edge of the successor bar. Supports negative lag (overlap).
+ * @param from - Start point {x, y} (right edge of predecessor, vertical center)
+ * @param to - End point {x, y} (left edge of successor, vertical center)
+ * @returns SVG path string
+ */
+export const calculateOrthogonalPath = (
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+): string => {
+  const fx = Math.round(from.x);
+  const fy = Math.round(from.y);
+  const tx = Math.round(to.x);
+  const ty = Math.round(to.y);
+
+  // Same row: straight horizontal line
+  if (fy === ty) {
+    return `M ${fx} ${fy} H ${tx}`;
+  }
+
+  const C = 2; // chamfer size
+  const goingDown = ty > fy;
+  const goingRight = tx >= fx;
+  const dirY = goingDown ? 1 : -1;
+  const dirX = goingRight ? 1 : -1;
+
+  // Shape: horizontal exit → chamfer → vertical arrival (arrow points down/up)
+  if (Math.abs(ty - fy) >= C && Math.abs(tx - fx) >= C) {
+    return [
+      `M ${fx} ${fy}`,
+      `H ${tx - dirX * C}`,
+      `L ${tx} ${fy + dirY * C}`,
+      `V ${ty}`,
+    ].join(' ');
+  }
+
+  // Sharp corner fallback (very short segments)
+  return `M ${fx} ${fy} H ${tx} V ${ty}`;
+};

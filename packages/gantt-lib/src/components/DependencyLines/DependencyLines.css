@@ -1,0 +1,33 @@
+/* SVG overlay for dependency lines */
+.gantt-dependencies-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  pointer-events: none;
+  /* Allow clicks to pass through to task bars */
+  overflow: visible;
+}
+
+/* Dependency line path */
+.gantt-dependency-path {
+  fill: none;
+  stroke: var(--gantt-dependency-line-color, #666666);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Circular dependency highlighting */
+.gantt-dependency-cycle {
+  stroke: var(--gantt-dependency-cycle-color, #ef4444);
+}
+
+/* Arrow markers */
+.gantt-dependency-arrow polygon {
+  fill: var(--gantt-dependency-line-color, #666666);
+}
+
+.gantt-dependency-arrow-cycle polygon {
+  fill: var(--gantt-dependency-cycle-color, #ef4444);
+}

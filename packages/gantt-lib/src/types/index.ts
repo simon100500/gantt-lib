@@ -1,4 +1,49 @@
 /**
+ * Dependency link types following PM standard
+ * - FS (Finish-to-Start): Predecessor must finish before successor starts
+ * - SS (Start-to-Start): Predecessor must start before successor starts
+ * - FF (Finish-to-Finish): Predecessor must finish before successor finishes
+ * - SF (Start-to-Finish): Predecessor must start before successor finishes
+ */
+export type LinkType = 'FS' | 'SS' | 'FF' | 'SF';
+
+/**
+ * Single dependency relationship (predecessor link)
+ */
+export interface TaskDependency {
+  /** ID of the predecessor task */
+  taskId: string;
+  /** Type of link: FS (finish-to-start), SS, FF, SF */
+  type: LinkType;
+  /** Lag in days (positive or negative integer, default: 0) */
+  lag?: number;
+}
+
+/**
+ * Error or warning from dependency validation
+ */
+export interface DependencyError {
+  /** Type of error */
+  type: 'cycle' | 'constraint' | 'missing-task';
+  /** ID of the task with the error */
+  taskId: string;
+  /** Human-readable error message */
+  message: string;
+  /** Related task IDs (e.g., cycle path, referenced tasks) */
+  relatedTaskIds?: string[];
+}
+
+/**
+ * Result of dependency validation
+ */
+export interface ValidationResult {
+  /** True if no errors found */
+  isValid: boolean;
+  /** Array of errors/warnings (empty if valid) */
+  errors: DependencyError[];
+}
+
+/**
  * Task data structure for Gantt chart
  */
 export interface Task {
@@ -26,6 +71,11 @@ export interface Task {
    * - Affects the color of the progress bar (green for accepted, yellow for completed)
    */
   accepted?: boolean;
+  /**
+   * Optional array of predecessor dependencies
+   * Each dependency specifies a predecessor task, link type, and optional lag
+   */
+  dependencies?: TaskDependency[];
 }
 
 /**

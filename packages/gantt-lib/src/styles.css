@@ -36,6 +36,10 @@
   --gantt-progress-color: rgba(0, 0, 0, 0.2);
   --gantt-progress-completed: #fbbf24;
   --gantt-progress-accepted: #22c55e;
+
+  /* Dependency line colors */
+  --gantt-dependency-line-color: rgba(0, 0, 55, 0.8);
+  --gantt-dependency-cycle-color: #ef4444;
 }
 
 /* GanttChart Component Styles */

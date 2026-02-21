@@ -52,26 +52,12 @@
   transition: none !important;
 }
 
-.gantt-tr-taskName {
-  color: var(--gantt-task-bar-text-color);
-  font-size: 0.875rem;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
 .gantt-tr-taskDuration {
   color: var(--gantt-task-bar-text-color);
   font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
   margin-right: 4px;
-}
-
-.gantt-tr-taskNameHidden {
-  visibility: hidden;
 }
 
 .gantt-tr-rightLabels {
@@ -178,7 +164,6 @@
    uses position: absolute with z-index: 10, which places it above the progress bar.
    Adding position: relative here would override position: absolute and break the
    absolute positioning that anchors handles to the bar edges. */
-.gantt-tr-taskName,
 .gantt-tr-taskDuration {
   position: relative;
   z-index: 2;

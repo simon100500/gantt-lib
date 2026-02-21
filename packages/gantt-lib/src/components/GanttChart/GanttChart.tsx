@@ -3,11 +3,14 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
+import { validateDependencies } from '../../utils/dependencyUtils';
+import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
 import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
+import { DependencyLines } from '../DependencyLines';
 import './GanttChart.css';
 
 /**
@@ -38,6 +41,25 @@ export interface Task {
    * - Affects the color of the progress bar (green for accepted, yellow for completed)
    */
   accepted?: boolean;
+  /**
+   * Optional array of task dependencies
+   * - Each dependency references a predecessor task by ID
+   * - Supports 4 link types: FS (finish-to-start), SS (start-to-start), FF (finish-to-finish), SF (start-to-finish)
+   * - Lag is optional and defaults to 0 (positive = delay, negative = overlap)
+   */
+  dependencies?: TaskDependency[];
+}
+
+/**
+ * Task dependency definition
+ */
+export interface TaskDependency {
+  /** ID of the predecessor task */
+  taskId: string;
+  /** Link type: FS, SS, FF, or SF */
+  type: 'FS' | 'SS' | 'FF' | 'SF';
+  /** Optional lag in days (default: 0) */
+  lag?: number;
 }
 
 export interface GanttChartProps {
@@ -53,6 +75,14 @@ export interface GanttChartProps {
   containerHeight?: number;
   /** Callback when tasks are modified via drag/resize. Can receive either the new tasks array or a functional updater. */
   onChange?: (tasks: Task[] | ((currentTasks: Task[]) => Task[])) => void;
+  /** Optional callback for dependency validation results */
+  onValidateDependencies?: (result: ValidationResult) => void;
+  /** Enable automatic shifting of dependent tasks when predecessor moves (default: false) */
+  enableAutoSchedule?: boolean;
+  /** Disable dependency constraint checking during drag (default: false) */
+  disableConstraints?: boolean;
+  /** Called when a cascade drag completes; receives all shifted tasks (including dragged task) in hard mode */
+  onCascade?: (tasks: Task[]) => void;
 }
 
 /**
@@ -78,12 +108,21 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   headerHeight = 40,
   containerHeight = 600,
   onChange,
+  onValidateDependencies,
+  enableAutoSchedule,
+  disableConstraints,
+  onCascade,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Calculate multi-month date range from tasks
   const dateRange = useMemo(() => getMultiMonthDays(tasks), [tasks]);
 
+  // Track dependency validation results
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+
+  // Cascade override positions for non-dragged chain members
+  const [cascadeOverrides, setCascadeOverrides] = useState<Map<string, { left: number; width: number }>>(new Map());
 
   // Calculate grid width
   const gridWidth = useMemo(
@@ -121,6 +160,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     width: number;
   } | null>(null);
 
+  // Track currently-dragged task's pixel position for real-time dependency line updates
+  const [draggedTaskOverride, setDraggedTaskOverride] = useState<{ taskId: string; left: number; width: number } | null>(null);
+
+  // Validate dependencies when tasks change
+  useEffect(() => {
+    const result = validateDependencies(tasks);
+    setValidationResult(result);
+    onValidateDependencies?.(result);
+  }, [tasks, onValidateDependencies]);
+
   /**
    * Stable callback for task updates
    *
@@ -148,18 +197,40 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     );
   }, [onChange]);
 
-  const handleDragStateChange = useCallback((state: {
-    isDragging: boolean;
-    dragMode: 'move' | 'resize-left' | 'resize-right' | null;
-    left: number;
-    width: number;
-  }) => {
-    if (state.isDragging) {
-      setDragGuideLines(state);
-    } else {
-      setDragGuideLines(null);
+  // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
+  const dependencyOverrides = useMemo(() => {
+    const map = new Map(cascadeOverrides);
+    if (draggedTaskOverride) {
+      map.set(draggedTaskOverride.taskId, {
+        left: draggedTaskOverride.left,
+        width: draggedTaskOverride.width,
+      });
     }
+    return map;
+  }, [cascadeOverrides, draggedTaskOverride]);
+
+  /**
+   * Handle real-time cascade progress — updates cascadeOverrides state each RAF
+   * so non-dragged chain members re-render with their preview positions.
+   * new Map() forces React to detect the state change.
+   */
+  const handleCascadeProgress = useCallback((overrides: Map<string, { left: number; width: number }>) => {
+    setCascadeOverrides(new Map(overrides));
   }, []);
+
+  /**
+   * Handle cascade completion — updates all shifted tasks via onChange (functional updater)
+   * and notifies the external onCascade consumer.
+   */
+  const handleCascade = useCallback((cascadedTasks: Task[]) => {
+    // Update state by merging cascaded tasks into current tasks
+    onChange?.((currentTasks) => {
+      const cascadeMap = new Map(cascadedTasks.map(t => [t.id, t]));
+      return currentTasks.map(t => cascadeMap.get(t.id) ?? t);
+    });
+    // Notify external consumer
+    onCascade?.(cascadedTasks);
+  }, [onChange, onCascade]);
 
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
@@ -243,6 +314,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
           {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
 
+          {/* Dependency lines SVG overlay */}
+          <DependencyLines
+            tasks={tasks}
+            monthStart={monthStart}
+            dayWidth={dayWidth}
+            rowHeight={rowHeight}
+            gridWidth={gridWidth}
+            dragOverrides={dependencyOverrides}
+          />
+
           {dragGuideLines && (
             <DragGuideLines
               isDragging={dragGuideLines.isDragging}
@@ -253,7 +334,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             />
           )}
 
-          {tasks.map((task) => (
+          {tasks.map((task, index) => (
             <TaskRow
               key={task.id}
               task={task}
@@ -261,7 +342,22 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               dayWidth={dayWidth}
               rowHeight={rowHeight}
               onChange={handleTaskChange}
-              onDragStateChange={handleDragStateChange}
+              onDragStateChange={(state) => {
+                if (state.isDragging) {
+                  setDragGuideLines(state);
+                  setDraggedTaskOverride({ taskId: task.id, left: state.left, width: state.width });
+                } else {
+                  setDragGuideLines(null);
+                  setDraggedTaskOverride(null);
+                }
+              }}
+              rowIndex={index}
+              allTasks={tasks}
+              enableAutoSchedule={enableAutoSchedule ?? false}
+              disableConstraints={disableConstraints ?? false}
+              overridePosition={cascadeOverrides.get(task.id)}
+              onCascadeProgress={handleCascadeProgress}
+              onCascade={handleCascade}
             />
           ))}
         </div>

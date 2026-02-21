@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
+import type { Task, TaskDependency } from '../types';
+import { calculateSuccessorDate, getSuccessorChain } from '../utils/dependencyUtils';
 
 /**
  * Global drag manager that persists across HMR
@@ -31,6 +33,10 @@ interface ActiveDragState {
   onProgress: (left: number, width: number) => void;
   onComplete: (finalLeft: number, finalWidth: number) => void;
   onCancel: () => void;
+  allTasks: Task[];
+  disableConstraints?: boolean;
+  cascadeChain: Task[];        // FS successors of dragged task (Phase 7)
+  onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
 }
 
 let globalActiveDrag: ActiveDragState | null = null;
@@ -46,8 +52,9 @@ function completeDrag() {
   }
 
   if (globalActiveDrag) {
+    // Clear cascade overrides before completing (avoids stale preview positions)
+    globalActiveDrag.onCascadeProgress?.(new Map());
     const { onComplete, currentLeft, currentWidth } = globalActiveDrag;
-    const drag = globalActiveDrag;
     globalActiveDrag = null;
     onComplete(currentLeft, currentWidth);
   }
@@ -77,6 +84,87 @@ function snapToGrid(pixels: number, dayWidth: number): number {
 }
 
 /**
+ * Check if a task move would violate dependency constraints
+ * Only blocks move operations, not resize (per requirements)
+ */
+function canMoveTask(
+  task: Task,
+  newStartDate: Date,
+  newEndDate: Date,
+  allTasks: Task[]
+): { allowed: boolean; reason?: string } {
+  if (!task.dependencies || task.dependencies.length === 0) {
+    return { allowed: true };
+  }
+
+  // For each predecessor, check if the new position respects the constraint
+  for (const dep of task.dependencies) {
+    const predecessor = allTasks.find(t => t.id === dep.taskId);
+    if (!predecessor) continue;
+
+    const predecessorStart = new Date(predecessor.startDate);
+    const predecessorEnd = new Date(predecessor.endDate);
+
+    // Calculate expected date based on link type
+    const expectedDate = calculateSuccessorDate(
+      predecessorStart,
+      predecessorEnd,
+      dep.type,
+      dep.lag ?? 0
+    );
+
+    // Check constraint based on link type
+    const targetIsStart = dep.type.endsWith('S');
+    const targetDate = targetIsStart ? newStartDate : newEndDate;
+
+    // Allow move if target date is on or after expected date
+    // (give 1-day tolerance for rounding)
+    const dayDiff = (targetDate.getTime() - expectedDate.getTime()) / (24 * 60 * 60 * 1000);
+
+    if (dayDiff < -1) {
+      return {
+        allowed: false,
+        reason: `Would violate ${dep.type} dependency from "${predecessor.name}"`
+      };
+    }
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Recalculate lag for all FS dependencies linking predecessor(s) to this task.
+ * Used in soft mode (disableConstraints=true) to update lag on drag complete.
+ * Returns updated TaskDependency array with new lag values.
+ */
+function recalculateIncomingLags(
+  task: Task,
+  newStartDate: Date,
+  allTasks: Task[]
+): NonNullable<Task['dependencies']> {
+  if (!task.dependencies) return [];
+  const taskById = new Map(allTasks.map(t => [t.id, t]));
+
+  return task.dependencies.map(dep => {
+    if (dep.type !== 'FS') return dep;
+    const predecessor = taskById.get(dep.taskId);
+    if (!predecessor) return dep;
+    const predEnd = new Date(predecessor.endDate as string);
+    const lagMs = Date.UTC(
+      newStartDate.getUTCFullYear(),
+      newStartDate.getUTCMonth(),
+      newStartDate.getUTCDate()
+    ) - Date.UTC(
+      predEnd.getUTCFullYear(),
+      predEnd.getUTCMonth(),
+      predEnd.getUTCDate()
+    );
+    const lagDays = Math.round(lagMs / (24 * 60 * 60 * 1000));
+    return { ...dep, lag: lagDays };
+  });
+}
+
+/**
  * Global mouse move handler - attached once and persists across HMR
  */
 function handleGlobalMouseMove(e: MouseEvent) {
@@ -90,7 +178,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
       return;
     }
 
-    const { startX, initialLeft, initialWidth, mode, dayWidth, onProgress } = globalActiveDrag;
+    const { startX, initialLeft, initialWidth, mode, dayWidth, onProgress, allTasks } = globalActiveDrag;
     const deltaX = e.clientX - startX;
 
     let newLeft = initialLeft;
@@ -110,6 +198,66 @@ function handleGlobalMouseMove(e: MouseEvent) {
         const snappedWidth = snapToGrid(initialWidth + deltaX, dayWidth);
         newWidth = Math.max(dayWidth, snappedWidth);
         break;
+    }
+
+    // Hard mode: check left-move boundary against predecessor.startDate (Phase 7)
+    // Child can move left until its startDate would go before predecessor.startDate
+    if (mode === 'move' && allTasks.length > 0 && !globalActiveDrag.disableConstraints) {
+      const currentTask = allTasks.find(t => t.id === globalActiveDrag?.taskId);
+      if (currentTask && currentTask.dependencies && currentTask.dependencies.length > 0) {
+        let minAllowedLeft = 0; // in pixels from monthStart
+        for (const dep of currentTask.dependencies) {
+          if (dep.type !== 'FS') continue; // Phase 7: FS only
+          const predecessor = globalActiveDrag.allTasks.find(t => t.id === dep.taskId);
+          if (!predecessor) continue;
+          // Boundary: child.startDate >= predecessor.startDate (allows negative lag)
+          const predStart = new Date(predecessor.startDate as string);
+          const predStartOffset = Math.round(
+            (Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate()) -
+              Date.UTC(
+                globalActiveDrag.monthStart.getUTCFullYear(),
+                globalActiveDrag.monthStart.getUTCMonth(),
+                globalActiveDrag.monthStart.getUTCDate()
+              )) / (24 * 60 * 60 * 1000)
+          );
+          const predStartLeft = Math.round(predStartOffset * globalActiveDrag.dayWidth);
+          minAllowedLeft = Math.max(minAllowedLeft, predStartLeft);
+        }
+        // Clamp: don't let task go left of boundary
+        newLeft = Math.max(minAllowedLeft, newLeft);
+      }
+    }
+
+    // Hard mode cascade: emit position overrides for all FS successor chain members
+    if ((mode === 'move' || mode === 'resize-right') && !globalActiveDrag.disableConstraints &&
+        globalActiveDrag.cascadeChain.length > 0 && globalActiveDrag.onCascadeProgress) {
+      // For move: delta is based on how far the start (left) has shifted.
+      // For resize-right: start is fixed; delta is based on how much the width (end date) changed.
+      const deltaDays = mode === 'resize-right'
+        ? Math.round((newWidth - globalActiveDrag.initialWidth) / globalActiveDrag.dayWidth)
+        : Math.round((newLeft - globalActiveDrag.initialLeft) / globalActiveDrag.dayWidth);
+      const overrides = new Map<string, { left: number; width: number }>();
+      for (const chainTask of globalActiveDrag.cascadeChain) {
+        const chainStart = new Date(chainTask.startDate as string);
+        const chainEnd = new Date(chainTask.endDate as string);
+        const chainStartOffset = Math.round(
+          (Date.UTC(chainStart.getUTCFullYear(), chainStart.getUTCMonth(), chainStart.getUTCDate()) -
+            Date.UTC(
+              globalActiveDrag.monthStart.getUTCFullYear(),
+              globalActiveDrag.monthStart.getUTCMonth(),
+              globalActiveDrag.monthStart.getUTCDate()
+            )) / (24 * 60 * 60 * 1000)
+        );
+        const chainDuration = Math.round(
+          (Date.UTC(chainEnd.getUTCFullYear(), chainEnd.getUTCMonth(), chainEnd.getUTCDate()) -
+            Date.UTC(chainStart.getUTCFullYear(), chainStart.getUTCMonth(), chainStart.getUTCDate())
+          ) / (24 * 60 * 60 * 1000)
+        );
+        const chainLeft = Math.round((chainStartOffset + deltaDays) * globalActiveDrag.dayWidth);
+        const chainWidth = Math.round((chainDuration + 1) * globalActiveDrag.dayWidth); // +1 inclusive
+        overrides.set(chainTask.id, { left: chainLeft, width: chainWidth });
+      }
+      globalActiveDrag.onCascadeProgress(overrides);
     }
 
     // Update current values in global state for completion
@@ -170,7 +318,7 @@ export interface UseTaskDragOptions {
   /** Width of each day in pixels */
   dayWidth: number;
   /** Callback when drag operation completes */
-  onDragEnd?: (result: { id: string; startDate: Date; endDate: Date }) => void;
+  onDragEnd?: (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => void;
   /** Callback for drag state changes (for parent components to render guide lines) */
   onDragStateChange?: (state: {
     isDragging: boolean;
@@ -180,6 +328,18 @@ export interface UseTaskDragOptions {
   }) => void;
   /** Width of edge zones for resize detection (default: 12px) */
   edgeZoneWidth?: number;
+  /** Array of all tasks for dependency validation */
+  allTasks?: Task[];
+  /** Row index of this task (for task lookup) */
+  rowIndex?: number;
+  /** Enable automatic scheduling of dependent tasks */
+  enableAutoSchedule?: boolean;
+  /** When true, dependency constraint checking is skipped during drag (default: false) */
+  disableConstraints?: boolean;
+  /** Callback for real-time cascade preview — called each RAF with non-dragged chain member positions */
+  onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
+  /** Callback when cascade completes — receives all shifted tasks including dragged task */
+  onCascade?: (tasks: Task[]) => void;
 }
 
 /**
@@ -218,6 +378,12 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     onDragEnd,
     onDragStateChange,
     edgeZoneWidth = 12,
+    allTasks = [],
+    rowIndex,
+    enableAutoSchedule = false,
+    disableConstraints = false,
+    onCascadeProgress,
+    onCascade,
   } = options;
 
   // Track if this hook instance owns the current global drag
@@ -320,15 +486,66 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       });
     }
 
-    // Notify parent of drag completion (only if we were the owner)
-    if (onDragEnd && wasOwner) {
-      onDragEnd({
-        id: taskId,
-        startDate: newStartDate,
-        endDate: newEndDate,
-      });
+    if (wasOwner) {
+      if (!disableConstraints && onCascade && allTasks.length > 0) {
+        // Hard mode with onCascade: compute cascade and call onCascade
+        const chain = getSuccessorChain(taskId, allTasks);
+        if (chain.length > 0) {
+          // Compute delta from end-date change — correct for both move (where
+          // end shifts by the same amount as start) and resize-right (where only
+          // end changes while start stays fixed).
+          const origEndMs = Date.UTC(
+            initialEndDate.getUTCFullYear(),
+            initialEndDate.getUTCMonth(),
+            initialEndDate.getUTCDate()
+          );
+          const newEndMs = Date.UTC(
+            newEndDate.getUTCFullYear(),
+            newEndDate.getUTCMonth(),
+            newEndDate.getUTCDate()
+          );
+          const deltaDays = Math.round((newEndMs - origEndMs) / (24 * 60 * 60 * 1000));
+
+          const draggedTaskData = allTasks.find(t => t.id === taskId);
+          const cascadedTasks: Task[] = [
+            {
+              ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }),
+              startDate: newStartDate.toISOString(),
+              endDate: newEndDate.toISOString(),
+              ...(draggedTaskData?.dependencies && {
+                dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, allTasks),
+              }),
+            },
+            ...chain.map(chainTask => {
+              const origStart = new Date(chainTask.startDate as string);
+              const origEnd = new Date(chainTask.endDate as string);
+              const newStart = new Date(Date.UTC(
+                origStart.getUTCFullYear(), origStart.getUTCMonth(), origStart.getUTCDate() + deltaDays
+              ));
+              const newEnd = new Date(Date.UTC(
+                origEnd.getUTCFullYear(), origEnd.getUTCMonth(), origEnd.getUTCDate() + deltaDays
+              ));
+              return { ...chainTask, startDate: newStart.toISOString(), endDate: newEnd.toISOString() };
+            }),
+          ];
+          onCascade(cascadedTasks);
+          return; // Don't call onDragEnd — cascade covers the dragged task too
+        }
+      }
+
+      // Soft mode OR hard mode with no FS successors: call onDragEnd
+      // Always recalculate lag so hard-mode drags (chain.length===0) also persist the new lag
+      if (allTasks.length > 0 && onDragEnd) {
+        const currentTaskData = allTasks.find(t => t.id === taskId);
+        const updatedDependencies = currentTaskData?.dependencies
+          ? recalculateIncomingLags(currentTaskData, newStartDate, allTasks)
+          : undefined;
+        onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate, updatedDependencies });
+      } else if (onDragEnd) {
+        onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate });
+      }
     }
-  }, [dayWidth, monthStart, onDragEnd, onDragStateChange, taskId]);
+  }, [dayWidth, monthStart, onDragEnd, onDragStateChange, taskId, disableConstraints, onCascade, allTasks, initialStartDate, initialEndDate]);
 
   /**
    * Handle drag cancellation (e.g., if HMR orphaned the drag)
@@ -423,8 +640,14 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       onProgress: handleProgress,
       onComplete: handleComplete,
       onCancel: handleCancel,
+      allTasks,
+      disableConstraints,
+      cascadeChain: (mode === 'move' || mode === 'resize-right') && !disableConstraints
+        ? getSuccessorChain(taskId, allTasks)
+        : [],
+      onCascadeProgress,
     };
-  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel]);
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade]);
 
   /**
    * Get cursor style based on current position
