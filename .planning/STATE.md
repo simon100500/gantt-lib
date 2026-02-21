@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 7 of 7 (dependencies-constraits)
 Plan: 1 of 3 in current phase (1 completed)
 Status: IN_PROGRESS - Cascade chain engine core implemented
-Last activity: 2026-02-22 — Completed 07-01: Cascade chain engine (getSuccessorChain + useTaskDrag cascade)
+Last activity: 2026-02-21 - Completed quick task 14: сделай корректное отображение связей
 
 Progress: [████████░░] 97%
 
@@ -151,6 +151,7 @@ None yet.
 | 10 | Update README for monorepo and npm package | 2026-02-19 | c90c399 | [10-readme](./quick/10-readme/) |
 | 11 | Fix DependencyLines huge arrowhead and wrong path start position | 2026-02-21 | dd1b160 | [11-fix-dependencylines-component-huge-arrow](./quick/11-fix-dependencylines-component-huge-arrow/) |
 | 12 | Fix FS negative-lag drag snap-back + disableConstraints toggle | 2026-02-21 | 62e2cb2 | [12-fs](./quick/12-fs/) |
+| 14 | Сделай корректное отображение связей (bidirectional dependency line rendering) | 2026-02-21 | 58f3564 | [14-worktree-workterr](./quick/14-worktree-workterr/) |
 
 ## Session Continuity
 
