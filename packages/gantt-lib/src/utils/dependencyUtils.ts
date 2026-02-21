@@ -137,6 +137,59 @@ export function validateDependencies(tasks: Task[]): ValidationResult {
 }
 
 /**
+ * Get all FS successor tasks of a dragged task using BFS (FS edges only, Phase 7).
+ *
+ * Returns tasks in breadth-first order (direct successors first, then their successors).
+ * The dragged task itself is NOT included in the returned array.
+ *
+ * The visited set prevents infinite loops in case of cycles (cycle detection already
+ * prevents cycles in valid data, but the guard adds safety during cascade computation).
+ */
+export function getSuccessorChain(
+  draggedTaskId: string,
+  allTasks: Task[]
+): Task[] {
+  // Build FS-only successor map: predecessor -> [successors]
+  const successorMap = new Map<string, string[]>();
+  for (const task of allTasks) {
+    successorMap.set(task.id, []);
+  }
+  for (const task of allTasks) {
+    if (!task.dependencies) continue;
+    for (const dep of task.dependencies) {
+      if (dep.type === 'FS') {
+        const list = successorMap.get(dep.taskId) ?? [];
+        list.push(task.id);
+        successorMap.set(dep.taskId, list);
+      }
+    }
+  }
+
+  const taskById = new Map(allTasks.map(t => [t.id, t]));
+  const visited = new Set<string>();
+  const queue: string[] = [draggedTaskId];
+  const chain: Task[] = [];
+  visited.add(draggedTaskId); // seed — not added to chain
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const successors = successorMap.get(current) ?? [];
+    for (const sid of successors) {
+      if (!visited.has(sid)) {
+        visited.add(sid);
+        const t = taskById.get(sid);
+        if (t) {
+          chain.push(t);
+          queue.push(sid);
+        }
+      }
+    }
+  }
+
+  return chain; // excludes dragged task
+}
+
+/**
  * Get all dependency edges for rendering
  * Returns array of { predecessorId, successorId, type, lag }
  */
