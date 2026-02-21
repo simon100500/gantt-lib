@@ -229,10 +229,13 @@ function handleGlobalMouseMove(e: MouseEvent) {
     }
 
     // Hard mode cascade: emit position overrides for all FS successor chain members
-    if (mode === 'move' && !globalActiveDrag.disableConstraints &&
+    if ((mode === 'move' || mode === 'resize-right') && !globalActiveDrag.disableConstraints &&
         globalActiveDrag.cascadeChain.length > 0 && globalActiveDrag.onCascadeProgress) {
-      const draggedInitialLeft = globalActiveDrag.initialLeft;
-      const deltaDays = Math.round((newLeft - draggedInitialLeft) / globalActiveDrag.dayWidth);
+      // For move: delta is based on how far the start (left) has shifted.
+      // For resize-right: start is fixed; delta is based on how much the width (end date) changed.
+      const deltaDays = mode === 'resize-right'
+        ? Math.round((newWidth - globalActiveDrag.initialWidth) / globalActiveDrag.dayWidth)
+        : Math.round((newLeft - globalActiveDrag.initialLeft) / globalActiveDrag.dayWidth);
       const overrides = new Map<string, { left: number; width: number }>();
       for (const chainTask of globalActiveDrag.cascadeChain) {
         const chainStart = new Date(chainTask.startDate as string);
@@ -488,17 +491,20 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         // Hard mode with onCascade: compute cascade and call onCascade
         const chain = getSuccessorChain(taskId, allTasks);
         if (chain.length > 0) {
-          const origStartMs = Date.UTC(
-            initialStartDate.getUTCFullYear(),
-            initialStartDate.getUTCMonth(),
-            initialStartDate.getUTCDate()
+          // Compute delta from end-date change — correct for both move (where
+          // end shifts by the same amount as start) and resize-right (where only
+          // end changes while start stays fixed).
+          const origEndMs = Date.UTC(
+            initialEndDate.getUTCFullYear(),
+            initialEndDate.getUTCMonth(),
+            initialEndDate.getUTCDate()
           );
-          const newStartMs = Date.UTC(
-            newStartDate.getUTCFullYear(),
-            newStartDate.getUTCMonth(),
-            newStartDate.getUTCDate()
+          const newEndMs = Date.UTC(
+            newEndDate.getUTCFullYear(),
+            newEndDate.getUTCMonth(),
+            newEndDate.getUTCDate()
           );
-          const deltaDays = Math.round((newStartMs - origStartMs) / (24 * 60 * 60 * 1000));
+          const deltaDays = Math.round((newEndMs - origEndMs) / (24 * 60 * 60 * 1000));
 
           const draggedTaskData = allTasks.find(t => t.id === taskId);
           const cascadedTasks: Task[] = [
@@ -539,7 +545,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate });
       }
     }
-  }, [dayWidth, monthStart, onDragEnd, onDragStateChange, taskId, disableConstraints, onCascade, allTasks, initialStartDate]);
+  }, [dayWidth, monthStart, onDragEnd, onDragStateChange, taskId, disableConstraints, onCascade, allTasks, initialStartDate, initialEndDate]);
 
   /**
    * Handle drag cancellation (e.g., if HMR orphaned the drag)
@@ -636,7 +642,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       onCancel: handleCancel,
       allTasks,
       disableConstraints,
-      cascadeChain: mode === 'move' && !disableConstraints
+      cascadeChain: (mode === 'move' || mode === 'resize-right') && !disableConstraints
         ? getSuccessorChain(taskId, allTasks)
         : [],
       onCascadeProgress,
