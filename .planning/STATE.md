@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 7 of 7 (dependencies-constraits)
 Plan: 1 of 3 in current phase (1 completed)
 Status: IN_PROGRESS - Cascade chain engine core implemented
-Last activity: 2026-02-21 - Completed quick task 14: сделай корректное отображение связей
+Last activity: 2026-02-22 - Completed quick task 16: для демо - сделай несколько (6-7) связей на первом основном поле графика (где много работ строительных)
 
 Progress: [████████░░] 97%
 
