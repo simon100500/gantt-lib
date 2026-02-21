@@ -528,10 +528,10 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       }
 
       // Soft mode OR hard mode with no FS successors: call onDragEnd
-      if (disableConstraints && allTasks.length > 0 && onDragEnd) {
-        // Soft mode: recalculate lag for FS dependencies
+      // Always recalculate lag so hard-mode drags (chain.length===0) also persist the new lag
+      if (allTasks.length > 0 && onDragEnd) {
         const currentTaskData = allTasks.find(t => t.id === taskId);
-        const updatedDependencies = currentTaskData
+        const updatedDependencies = currentTaskData?.dependencies
           ? recalculateIncomingLags(currentTaskData, newStartDate, allTasks)
           : undefined;
         onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate, updatedDependencies });
