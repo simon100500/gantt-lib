@@ -240,20 +240,18 @@ export const calculateOrthogonalPath = (
     return `M ${fx} ${fy} H ${tx}`;
   }
 
-  const R = 4;
+  const C = 4; // chamfer size
   const goingDown = ty > fy;
   const goingRight = tx >= fx;
   const dirY = goingDown ? 1 : -1;
   const dirX = goingRight ? 1 : -1;
 
-  // Add a rounded corner if there's enough room in both axes
-  if (Math.abs(ty - fy) >= R && Math.abs(tx - fx) >= R) {
-    // CW sweep when directions match (↓→ or ↑←), CCW otherwise (↓← or ↑→)
-    const sweep = goingDown === goingRight ? 1 : 0;
+  // Chamfered corner: diagonal cut instead of arc
+  if (Math.abs(ty - fy) >= C && Math.abs(tx - fx) >= C) {
     return [
       `M ${fx} ${fy}`,
-      `V ${ty - dirY * R}`,
-      `a ${R} ${R} 0 0 ${sweep} ${dirX * R} ${dirY * R}`,
+      `V ${ty - dirY * C}`,
+      `L ${fx + dirX * C} ${ty}`,
       `H ${tx}`,
     ].join(' ');
   }
