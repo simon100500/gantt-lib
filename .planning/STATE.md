@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 9 of 9 (09-ff-dependency)
-Plan: 1 of 3 in current phase (1 completed)
-Status: IN_PROGRESS - FF dependency lag recalculation implemented
-Last activity: 2026-02-22 - Completed 09-01: Extended recalculateIncomingLags with newEndDate parameter and FF case
+Plan: 2 of 3 in current phase (2 completed)
+Status: IN_PROGRESS - FF constraint enforcement implemented
+Last activity: 2026-02-22 - Completed 09-02: FF constraint enforcement in useTaskDrag (cascadeChainEnd, FF cascade emission)
 
-Progress: [███░░░░░░] 33% (Phase 9: 1/3 plans complete)
+Progress: [█████░░░░] 67% (Phase 9: 2/3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 19
 - Average duration: 9 min
-- Total execution time: 2.6 hours
+- Total execution time: 2.7 hours
 
 **By Phase:**
 
@@ -33,6 +33,9 @@ Progress: [███░░░░░░] 33% (Phase 9: 1/3 plans complete)
 | 04-npm-packaging | 5 | 5 | 2.4 min |
 | 05-progress-bars | 1 | 1 | 6 min |
 | 06-dependencies | 2 | 4 | 5 min |
+| 07-dependencies | 2 | 2 | 4 min |
+| 08-ss-dependency | 3 | 3 | 4 min |
+| 09-ff-dependency | 2 | 3 | 1 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -61,6 +64,7 @@ Progress: [███░░░░░░] 33% (Phase 9: 1/3 plans complete)
 | Phase 08-ss-dependency P01 | 4 | 2 tasks | 3 files |
 | Phase 08-ss-dependency P02 | 2min | 2 tasks | 1 files |
 | Phase 08-ss-dependency P03 | 5min | 2 tasks | 1 files |
+| Phase 09-ff-dependency P02 | 76 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -145,6 +149,10 @@ Recent decisions affecting current work:
 - [Phase 08-02]: SS lag floor (Math.max) applied only in move and resize-left modes — resize-right never changes startA
 - [Phase 08-02]: Dual-delta approach: detect resize-right by checking deltaFromStart === 0 (startDate unchanged)
 - [Phase 08-02]: chainForCompletion uses ['FS','SS'] when startDate moved, ['FS'] when only endDate moved
+- [Phase 09-02]: cascadeChainEnd (FS+FF) for resize-right cascade — endA changes, SS unaffected
+- [Phase 09-02]: cascadeChain includes FF (FS+SS+FF) for move mode — all link types follow startA shift
+- [Phase 09-02]: SS lag floor remains applied to all activeChain tasks — FF negative lag preview acceptable, real lag recalculated on completion
+- [Phase 09-02]: chainForCompletion includes FF for resize-right and move modes, excludes FF for resize-left
 
 ### Pending Todos
 
@@ -176,7 +184,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 08-03-PLAN.md (final plan — project complete)
+Stopped at: Completed 09-02-PLAN.md (FF constraint enforcement in useTaskDrag)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -221,3 +229,4 @@ Stopped at: Completed 08-03-PLAN.md (final plan — project complete)
 
 **Phase 9 Status:** IN_PROGRESS
 - 09-01: COMPLETE - Extend recalculateIncomingLags with newEndDate parameter and FF case (2 min)
+- 09-02: COMPLETE - FF constraint enforcement in useTaskDrag: cascadeChainEnd, FF cascade emission, FF-aware completion (1 min)
