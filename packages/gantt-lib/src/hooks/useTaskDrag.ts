@@ -577,11 +577,18 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         const deltaDays = deltaFromStart === 0 ? deltaFromEnd : deltaFromStart;
 
         // CHANGE D: Phase 8: get correct chain for completion based on what changed
-        // If startDate changed: SS successors follow (resize-left or move)
-        // If only endDate changed: FS successors follow (resize-right)
-        const chainForCompletion = deltaFromStart !== 0
-          ? getSuccessorChain(taskId, allTasks, ['FS', 'SS'])  // move or resize-left: all types
-          : getSuccessorChain(taskId, allTasks, ['FS']);         // resize-right: FS only
+        // - resize-right (deltaFromStart === 0): only endDate changed → FS successors follow end
+        // - resize-left  (deltaFromStart !== 0, deltaFromEnd === 0): only startDate changed →
+        //     SS successors follow start; FS successors are anchored to predecessor's END which
+        //     is unchanged, so FS successors must NOT cascade on resize-left
+        // - move (deltaFromStart !== 0, deltaFromEnd !== 0): both dates shift equally →
+        //     both FS and SS successors follow
+        const isResizeLeft = deltaFromStart !== 0 && deltaFromEnd === 0;
+        const chainForCompletion = deltaFromStart === 0
+          ? getSuccessorChain(taskId, allTasks, ['FS'])          // resize-right: FS only
+          : isResizeLeft
+            ? getSuccessorChain(taskId, allTasks, ['SS'])         // resize-left: SS only
+            : getSuccessorChain(taskId, allTasks, ['FS', 'SS']); // move: all types
 
         if (chainForCompletion.length > 0) {
           const draggedTaskData = allTasks.find(t => t.id === taskId);
