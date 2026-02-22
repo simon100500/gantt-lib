@@ -237,7 +237,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
       if (currentTask && currentTask.dependencies && currentTask.dependencies.length > 0) {
         let minAllowedLeft = 0; // in pixels from monthStart
         for (const dep of currentTask.dependencies) {
-          if (dep.type !== 'FS') continue; // Phase 7: FS only
+          if (dep.type !== 'FS' && dep.type !== 'SS') continue; // Phase 8: FS and SS
           const predecessor = globalActiveDrag.allTasks.find(t => t.id === dep.taskId);
           if (!predecessor) continue;
           // Boundary: child.startDate >= predecessor.startDate (allows negative lag)
@@ -263,16 +263,28 @@ function handleGlobalMouseMove(e: MouseEvent) {
       }
     }
 
-    // Hard mode cascade: emit position overrides for all FS successor chain members
-    if ((mode === 'move' || mode === 'resize-right') && !globalActiveDrag.disableConstraints &&
-        globalActiveDrag.cascadeChain.length > 0 && globalActiveDrag.onCascadeProgress) {
-      // For move: delta is based on how far the start (left) has shifted.
-      // For resize-right: start is fixed; delta is based on how much the width (end date) changed.
+    // Phase 8: select chain based on drag mode
+    // move: all FS+SS successors follow
+    // resize-right: only FS successors (endA changes, startA unchanged → SS unaffected)
+    // resize-left: only SS successors (startA changes, endA unchanged → FS unaffected)
+    const activeChain =
+      mode === 'resize-right' ? globalActiveDrag.cascadeChainFS :
+      mode === 'resize-left'  ? globalActiveDrag.cascadeChainSS :
+      /* move */                globalActiveDrag.cascadeChain;
+
+    // Hard mode cascade: emit position overrides for successor chain members
+    if ((mode === 'move' || mode === 'resize-right' ||
+         (mode === 'resize-left' && globalActiveDrag.cascadeChainSS.length > 0)) &&
+        !globalActiveDrag.disableConstraints &&
+        activeChain.length > 0 &&
+        globalActiveDrag.onCascadeProgress) {
+      // For move/resize-left: delta from left (startA shift)
+      // For resize-right: delta from width (endA shift, startA fixed)
       const deltaDays = mode === 'resize-right'
         ? Math.round((newWidth - globalActiveDrag.initialWidth) / globalActiveDrag.dayWidth)
         : Math.round((newLeft - globalActiveDrag.initialLeft) / globalActiveDrag.dayWidth);
       const overrides = new Map<string, { left: number; width: number }>();
-      for (const chainTask of globalActiveDrag.cascadeChain) {
+      for (const chainTask of activeChain) {
         const chainStart = new Date(chainTask.startDate as string);
         const chainEnd = new Date(chainTask.endDate as string);
         const chainStartOffset = Math.round(
@@ -288,8 +300,15 @@ function handleGlobalMouseMove(e: MouseEvent) {
             Date.UTC(chainStart.getUTCFullYear(), chainStart.getUTCMonth(), chainStart.getUTCDate())
           ) / (24 * 60 * 60 * 1000)
         );
-        const chainLeft = Math.round((chainStartOffset + deltaDays) * globalActiveDrag.dayWidth);
+        let chainLeft = Math.round((chainStartOffset + deltaDays) * globalActiveDrag.dayWidth);
         const chainWidth = Math.round((chainDuration + 1) * globalActiveDrag.dayWidth); // +1 inclusive
+
+        // SS lag floor: when A moves left, B follows but chainLeft cannot go below A's new position
+        // This keeps lag >= 0 (startB >= startA) during live drag preview
+        if (mode === 'move' || mode === 'resize-left') {
+          chainLeft = Math.max(chainLeft, newLeft);
+        }
+
         overrides.set(chainTask.id, { left: chainLeft, width: chainWidth });
       }
       globalActiveDrag.onCascadeProgress(overrides);
@@ -524,23 +543,47 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     if (wasOwner) {
       if (!disableConstraints && onCascade && allTasks.length > 0) {
         // Hard mode with onCascade: compute cascade and call onCascade
-        const chain = getSuccessorChain(taskId, allTasks);
-        if (chain.length > 0) {
-          // Compute delta from end-date change — correct for both move (where
-          // end shifts by the same amount as start) and resize-right (where only
-          // end changes while start stays fixed).
-          const origEndMs = Date.UTC(
-            initialEndDate.getUTCFullYear(),
-            initialEndDate.getUTCMonth(),
-            initialEndDate.getUTCDate()
-          );
-          const newEndMs = Date.UTC(
-            newEndDate.getUTCFullYear(),
-            newEndDate.getUTCMonth(),
-            newEndDate.getUTCDate()
-          );
-          const deltaDays = Math.round((newEndMs - origEndMs) / (24 * 60 * 60 * 1000));
 
+        // CHANGE C: Dual-delta logic — compute from both start and end date changes
+        // Compute delta from startDate change (correct for move and resize-left)
+        const origStartMs = Date.UTC(
+          initialStartDate.getUTCFullYear(),
+          initialStartDate.getUTCMonth(),
+          initialStartDate.getUTCDate()
+        );
+        const newStartMs = Date.UTC(
+          newStartDate.getUTCFullYear(),
+          newStartDate.getUTCMonth(),
+          newStartDate.getUTCDate()
+        );
+        const deltaFromStart = Math.round((newStartMs - origStartMs) / (24 * 60 * 60 * 1000));
+
+        // Compute delta from endDate change (correct for resize-right)
+        const origEndMs = Date.UTC(
+          initialEndDate.getUTCFullYear(),
+          initialEndDate.getUTCMonth(),
+          initialEndDate.getUTCDate()
+        );
+        const newEndMs = Date.UTC(
+          newEndDate.getUTCFullYear(),
+          newEndDate.getUTCMonth(),
+          newEndDate.getUTCDate()
+        );
+        const deltaFromEnd = Math.round((newEndMs - origEndMs) / (24 * 60 * 60 * 1000));
+
+        // For resize-right: startDate unchanged, use endDate delta (FS successors follow end)
+        // For move and resize-left: use startDate delta (SS and FS-move successors follow start)
+        // Detect resize-right: startDate didn't change
+        const deltaDays = deltaFromStart === 0 ? deltaFromEnd : deltaFromStart;
+
+        // CHANGE D: Phase 8: get correct chain for completion based on what changed
+        // If startDate changed: SS successors follow (resize-left or move)
+        // If only endDate changed: FS successors follow (resize-right)
+        const chainForCompletion = deltaFromStart !== 0
+          ? getSuccessorChain(taskId, allTasks, ['FS', 'SS'])  // move or resize-left: all types
+          : getSuccessorChain(taskId, allTasks, ['FS']);         // resize-right: FS only
+
+        if (chainForCompletion.length > 0) {
           const draggedTaskData = allTasks.find(t => t.id === taskId);
           const cascadedTasks: Task[] = [
             {
@@ -551,7 +594,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
                 dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, allTasks),
               }),
             },
-            ...chain.map(chainTask => {
+            ...chainForCompletion.map(chainTask => {
               const origStart = new Date(chainTask.startDate as string);
               const origEnd = new Date(chainTask.endDate as string);
               const newStart = new Date(Date.UTC(
