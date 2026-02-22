@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 7 of 7 (dependencies-constraits)
 Plan: 1 of 3 in current phase (1 completed)
 Status: IN_PROGRESS - Cascade chain engine core implemented
-Last activity: 2026-02-21 - Completed quick task 17: добавь отображение связей остальных (FS уже есть) SS SF FF речь именно о линиях в нужных краях
+Last activity: 2026-02-22 - Completed quick task 19: Apply FS left-edge constraint to resize-left mode
 
 Progress: [████████░░] 97%
 
