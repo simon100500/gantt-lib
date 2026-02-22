@@ -194,3 +194,20 @@
   margin-right: 4px;
   margin-left: 4px;
 }
+
+/* Lock icon inside task bar */
+.gantt-tr-lockIcon {
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  flex-shrink: 0;
+  opacity: 0.85;
+  position: relative;
+  z-index: 2; /* same stacking level as gantt-tr-taskDuration, above progress bar */
+  color: var(--gantt-task-bar-text-color);
+}
+
+/* Locked task bar state — consumer CSS override point */
+.gantt-tr-taskBar.gantt-tr-locked {
+  cursor: not-allowed;
+}

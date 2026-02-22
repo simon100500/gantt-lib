@@ -76,7 +76,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.overridePosition?.left === nextProps.overridePosition?.left &&
     prevProps.overridePosition?.width === nextProps.overridePosition?.width &&
     prevProps.allTasks === nextProps.allTasks &&
-    prevProps.disableConstraints === nextProps.disableConstraints
+    prevProps.disableConstraints === nextProps.disableConstraints &&
+    prevProps.task.locked === nextProps.task.locked
     // onChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
@@ -152,6 +153,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       rowIndex,
       enableAutoSchedule,
       disableConstraints,
+      locked: task.locked,
       onCascadeProgress,
       onCascade,
     });
@@ -189,7 +191,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         <div className="gantt-tr-taskContainer">
           <div
             data-taskbar
-            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''}`}
+            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''}`}
             style={{
               left: `${displayLeft}px`,
               width: `${displayWidth}px`,
@@ -200,6 +202,17 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
             onMouseDown={dragHandleProps.onMouseDown}
           >
+            {task.locked && (
+              <svg
+                className="gantt-tr-lockIcon"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-label="Locked"
+                aria-hidden="false"
+              >
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+              </svg>
+            )}
             {progressWidth > 0 && (
               <div
                 className="gantt-tr-progressBar"
