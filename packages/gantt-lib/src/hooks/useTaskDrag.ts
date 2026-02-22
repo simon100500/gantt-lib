@@ -242,13 +242,13 @@ function recalculateIncomingLags(
       return { ...dep, lag: lagDays };
     }
     if (dep.type === 'SF') {
-      // SF: lag = endB - startA (ceiling at 0)
-      // endDate is exclusive, so add 1 day to get visual end date
+      // SF: lag = visual_endB - startA (ceiling at 0)
+      // endDate is exclusive (day after visual end), so subtract 1 day
       const predecessor = taskById.get(dep.taskId);
       if (!predecessor) return dep;
       const predStart = new Date(predecessor.startDate as string);
       const endBVisual = new Date(newEndDate);
-      endBVisual.setUTCDate(endBVisual.getUTCDate() + 1); // Convert exclusive to visual
+      endBVisual.setUTCDate(endBVisual.getUTCDate() - 1); // Convert exclusive to visual
       const lagMs = Date.UTC(endBVisual.getUTCFullYear(), endBVisual.getUTCMonth(), endBVisual.getUTCDate())
                   - Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate());
       const lagDays = Math.min(0, Math.round(lagMs / (24 * 60 * 60 * 1000))); // SF: ceiling at 0
