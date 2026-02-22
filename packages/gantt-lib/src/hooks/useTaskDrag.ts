@@ -202,7 +202,8 @@ function handleGlobalMouseMove(e: MouseEvent) {
 
     // Hard mode: check left-move boundary against predecessor.startDate (Phase 7)
     // Child can move left until its startDate would go before predecessor.startDate
-    if (mode === 'move' && allTasks.length > 0 && !globalActiveDrag.disableConstraints) {
+    // Also applies to resize-left: the left edge cannot cross the predecessor's start date
+    if ((mode === 'move' || mode === 'resize-left') && allTasks.length > 0 && !globalActiveDrag.disableConstraints) {
       const currentTask = allTasks.find(t => t.id === globalActiveDrag?.taskId);
       if (currentTask && currentTask.dependencies && currentTask.dependencies.length > 0) {
         let minAllowedLeft = 0; // in pixels from monthStart
@@ -225,6 +226,11 @@ function handleGlobalMouseMove(e: MouseEvent) {
         }
         // Clamp: don't let task go left of boundary
         newLeft = Math.max(minAllowedLeft, newLeft);
+      }
+      // For resize-left, after clamping newLeft the right edge is fixed so newWidth must be recomputed
+      if (mode === 'resize-left') {
+        const rightEdge = globalActiveDrag.initialLeft + globalActiveDrag.initialWidth;
+        newWidth = Math.max(globalActiveDrag.dayWidth, rightEdge - newLeft);
       }
     }
 
