@@ -2,9 +2,89 @@
 
 import React, { useMemo } from 'react';
 import { Task } from '../../types';
-import { calculateTaskBar, calculateDependencyPath } from '../../utils/geometry';
+import { calculateTaskBar, calculateDependencyPath, pixelsToDate } from '../../utils/geometry';
 import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils';
 import './DependencyLines.css';
+
+/**
+ * Calculate real-time lag based on current pixel positions
+ * Returns lag in days, or null if stored lag should be used
+ */
+function calculateRealtimeLag(
+  edge: { predecessorId: string; successorId: string; type: string; lag: number },
+  predPosition: { left: number; right: number },
+  succPosition: { left: number; right: number },
+  monthStart: Date,
+  dayWidth: number,
+  hasDragOverride: boolean
+): number {
+  if (!hasDragOverride) {
+    return edge.lag ?? 0;
+  }
+
+  // Convert pixel positions to dates for real-time calculation
+  const predStartDate = pixelsToDate(predPosition.left, monthStart, dayWidth);
+  const predEndDate = pixelsToDate(predPosition.right - dayWidth, monthStart, dayWidth); // right is exclusive, subtract 1 day
+  const succStartDate = pixelsToDate(succPosition.left, monthStart, dayWidth);
+  const succEndDate = pixelsToDate(succPosition.right - dayWidth, monthStart, dayWidth);
+
+  // Calculate lag based on link type
+  let lagMs = 0;
+  switch (edge.type) {
+    case 'FS':
+      // FS: lag = successor.start - predecessor.end - 1 (inclusive dates)
+      lagMs = Date.UTC(
+        succStartDate.getUTCFullYear(),
+        succStartDate.getUTCMonth(),
+        succStartDate.getUTCDate()
+      ) - Date.UTC(
+        predEndDate.getUTCFullYear(),
+        predEndDate.getUTCMonth(),
+        predEndDate.getUTCDate()
+      ) - (24 * 60 * 60 * 1000);
+      break;
+    case 'SS':
+      // SS: lag = successor.start - predecessor.start
+      lagMs = Date.UTC(
+        succStartDate.getUTCFullYear(),
+        succStartDate.getUTCMonth(),
+        succStartDate.getUTCDate()
+      ) - Date.UTC(
+        predStartDate.getUTCFullYear(),
+        predStartDate.getUTCMonth(),
+        predStartDate.getUTCDate()
+      );
+      break;
+    case 'FF':
+      // FF: lag = successor.end - predecessor.end
+      lagMs = Date.UTC(
+        succEndDate.getUTCFullYear(),
+        succEndDate.getUTCMonth(),
+        succEndDate.getUTCDate()
+      ) - Date.UTC(
+        predEndDate.getUTCFullYear(),
+        predEndDate.getUTCMonth(),
+        predEndDate.getUTCDate()
+      );
+      break;
+    case 'SF':
+      // SF: lag = successor.end - predecessor.start
+      lagMs = Date.UTC(
+        succEndDate.getUTCFullYear(),
+        succEndDate.getUTCMonth(),
+        succEndDate.getUTCDate()
+      ) - Date.UTC(
+        predStartDate.getUTCFullYear(),
+        predStartDate.getUTCMonth(),
+        predStartDate.getUTCDate()
+      );
+      break;
+    default:
+      return edge.lag ?? 0;
+  }
+
+  return Math.round(lagMs / (24 * 60 * 60 * 1000));
+}
 
 export interface DependencyLinesProps {
   /** All tasks in the chart */
@@ -134,11 +214,15 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       // Check if this edge is part of a cycle
       const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
 
+      // Calculate real-time lag if either task is being dragged
+      const hasDragOverride = dragOverrides?.has(edge.predecessorId) || dragOverrides?.has(edge.successorId);
+      const lag = calculateRealtimeLag(edge, predecessor, successor, monthStart, dayWidth, !!hasDragOverride);
+
       lines.push({
         id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
         path,
         hasCycle,
-        lag: edge.lag ?? 0,
+        lag,
         fromX,
         toX,
         fromY,
@@ -146,7 +230,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     }
 
     return lines;
-  }, [tasks, taskPositions, taskIndices, cycleInfo]);
+  }, [tasks, taskPositions, taskIndices, cycleInfo, monthStart, dayWidth, dragOverrides]);
 
   return (
     <svg
