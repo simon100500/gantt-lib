@@ -2,8 +2,65 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
-import type { Task, TaskDependency } from '../types';
+import type { Task, TaskDependency, LinkType } from '../types';
 import { calculateSuccessorDate, getSuccessorChain } from '../utils/dependencyUtils';
+
+/**
+ * Get transitive closure of successors for cascading.
+ *
+ * For proper cascading in mixed link type chains (e.g., A--FS-->B--SS-->C),
+ * we need to include cascaded tasks' successors regardless of link type.
+ *
+ * The chain is:
+ * 1. Direct successors of the dragged task, filtered by firstLevelLinkTypes
+ * 2. ALL successors (any type) of those tasks, recursively
+ *
+ * @param draggedTaskId - ID of the task being dragged
+ * @param allTasks - All tasks in the chart
+ * @param firstLevelLinkTypes - Link types to use for direct successors
+ * @returns Array of tasks in the cascade chain (transitive closure)
+ */
+function getTransitiveCascadeChain(
+  draggedTaskId: string,
+  allTasks: Task[],
+  firstLevelLinkTypes: LinkType[]
+): Task[] {
+  // Build complete successor map (all link types: FS, SS, FF, SF)
+  const allTypesSuccessorMap = new Map<string, Task[]>();
+  for (const task of allTasks) {
+    allTypesSuccessorMap.set(task.id, []);
+  }
+  for (const task of allTasks) {
+    if (!task.dependencies) continue;
+    for (const dep of task.dependencies) {
+      const list = allTypesSuccessorMap.get(dep.taskId) ?? [];
+      list.push(task);
+      allTypesSuccessorMap.set(dep.taskId, list);
+    }
+  }
+
+  // Get direct successors based on first level link types
+  const directSuccessors = getSuccessorChain(draggedTaskId, allTasks, firstLevelLinkTypes);
+
+  // Build transitive closure using BFS
+  const chain = [...directSuccessors];
+  const visited = new Set<string>([draggedTaskId, ...directSuccessors.map(t => t.id)]);
+  const queue = [...directSuccessors];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const successors = allTypesSuccessorMap.get(current.id) ?? [];
+    for (const successor of successors) {
+      if (!visited.has(successor.id)) {
+        visited.add(successor.id);
+        chain.push(successor);
+        queue.push(successor);
+      }
+    }
+  }
+
+  return chain;
+}
 
 /**
  * Global drag manager that persists across HMR
@@ -583,12 +640,15 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         //     is unchanged, so FS successors must NOT cascade on resize-left
         // - move (deltaFromStart !== 0, deltaFromEnd !== 0): both dates shift equally →
         //     both FS and SS successors follow
+        //
+        // FIX: For proper transitive closure in mixed link type chains (e.g., A--FS-->B--SS-->C),
+        // we use getTransitiveCascadeChain which includes cascaded tasks' successors regardless of link type.
         const isResizeLeft = deltaFromStart !== 0 && deltaFromEnd === 0;
         const chainForCompletion = deltaFromStart === 0
-          ? getSuccessorChain(taskId, allTasks, ['FS'])          // resize-right: FS only
+          ? getTransitiveCascadeChain(taskId, allTasks, ['FS'])          // resize-right: FS + transitive
           : isResizeLeft
-            ? getSuccessorChain(taskId, allTasks, ['SS'])         // resize-left: SS only
-            : getSuccessorChain(taskId, allTasks, ['FS', 'SS']); // move: all types
+            ? getTransitiveCascadeChain(taskId, allTasks, ['SS'])         // resize-left: SS + transitive
+            : getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS']); // move: all types + transitive
 
         if (chainForCompletion.length > 0) {
           const draggedTaskData = allTasks.find(t => t.id === taskId);
@@ -728,13 +788,13 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       allTasks,
       disableConstraints,
       cascadeChain: !disableConstraints
-        ? getSuccessorChain(taskId, allTasks, ['FS', 'SS'])   // all successors, used for move
+        ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS'])   // all successors, used for move
         : [],
       cascadeChainFS: !disableConstraints
-        ? getSuccessorChain(taskId, allTasks, ['FS'])          // FS-only, used for resize-right
+        ? getTransitiveCascadeChain(taskId, allTasks, ['FS'])          // FS + transitive, used for resize-right
         : [],
       cascadeChainSS: !disableConstraints
-        ? getSuccessorChain(taskId, allTasks, ['SS'])          // SS-only, used for resize-left
+        ? getTransitiveCascadeChain(taskId, allTasks, ['SS'])          // SS + transitive, used for resize-left
         : [],
       onCascadeProgress,
     };

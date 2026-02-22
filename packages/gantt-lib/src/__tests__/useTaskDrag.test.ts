@@ -943,4 +943,138 @@ describe('useTaskDrag', () => {
       });
     });
   });
+
+  describe('Mixed link type cascade (bug: ss-dependency-propagation)', () => {
+    // Tasks:
+    //   A: Feb 10 – Feb 15 (task-1)
+    //   B: Feb 16 – Feb 20 (task-2, FS dependency on task-1)
+    //   C: Feb 16 – Feb 20 (task-3, SS dependency on task-2)
+    //
+    // Bug: When A is resized right, B should cascade (FS on A), and C should also cascade
+    // (SS on B). The original code only cascaded direct FS successors of A, missing C.
+    //
+    // monthStart = Feb 1, dayWidth = 40
+    //   task-1 bar: left=9*40=360, width=6*40=240
+    //   task-2 bar: left=15*40=600, width=5*40=200
+    //   task-3 bar: left=15*40=600, width=5*40=200
+
+    const allTasksMixed = [
+      {
+        id: 'task-1',
+        name: 'Task A',
+        startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+        endDate:   new Date(Date.UTC(2026, 1, 15)).toISOString(),
+      },
+      {
+        id: 'task-2',
+        name: 'Task B',
+        startDate: new Date(Date.UTC(2026, 1, 16)).toISOString(),
+        endDate:   new Date(Date.UTC(2026, 1, 20)).toISOString(),
+        dependencies: [{ taskId: 'task-1', type: 'FS' as const, lag: 0 }],
+      },
+      {
+        id: 'task-3',
+        name: 'Task C',
+        startDate: new Date(Date.UTC(2026, 1, 16)).toISOString(),
+        endDate:   new Date(Date.UTC(2026, 1, 20)).toISOString(),
+        dependencies: [{ taskId: 'task-2', type: 'SS' as const, lag: 0 }],
+      },
+    ];
+
+    it('should cascade to transitive successors in mixed FS->SS chain on resize-right', () => {
+      const onCascade = vi.fn();
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          allTasks: allTasksMixed,
+          disableConstraints: false,
+          onCascade,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 240 }),
+      } as unknown as HTMLElement;
+
+      // Start resize-right on task-1
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 360 + 240 - 5, // right edge zone
+        } as unknown as React.MouseEvent);
+      });
+
+      // Extend end date by 2 days (80px right)
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 360 + 240 - 5 + 80 }));
+      });
+
+      // Complete
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      waitFor(() => {
+        expect(onCascade).toHaveBeenCalledTimes(1);
+        const [cascadedTasks] = onCascade.mock.calls[0];
+
+        // task-1 (dragged): start stays Feb 10, end becomes Feb 17 (+2 days)
+        const taskA = cascadedTasks.find((t: { id: string }) => t.id === 'task-1');
+        expect(new Date(taskA.startDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 10)).toISOString());
+        expect(new Date(taskA.endDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 17)).toISOString());
+
+        // task-2 (FS on A): should shift by +2 days (Feb 18 – Feb 22)
+        const taskB = cascadedTasks.find((t: { id: string }) => t.id === 'task-2');
+        expect(new Date(taskB.startDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 18)).toISOString());
+        expect(new Date(taskB.endDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 22)).toISOString());
+
+        // task-3 (SS on B): should ALSO shift by +2 days (Feb 18 – Feb 22)
+        // This is the key test - task-3 was NOT cascading before the fix
+        const taskC = cascadedTasks.find((t: { id: string }) => t.id === 'task-3');
+        expect(new Date(taskC.startDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 18)).toISOString());
+        expect(new Date(taskC.endDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 22)).toISOString());
+      });
+    });
+
+    it('should show preview for transitive successors during resize-right drag', () => {
+      const onCascadeProgress = vi.fn();
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          allTasks: allTasksMixed,
+          disableConstraints: false,
+          onCascadeProgress,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 240 }),
+      } as unknown as HTMLElement;
+
+      // Start resize-right on task-1
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 360 + 240 - 5,
+        } as unknown as React.MouseEvent);
+      });
+
+      // Extend end date by 1 day (40px right)
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 360 + 240 - 5 + 40 }));
+      });
+
+      waitFor(() => {
+        // onCascadeProgress should be called with overrides for both task-2 and task-3
+        const calls = onCascadeProgress.mock.calls;
+        const nonEmptyCalls = calls.filter(([m]: [Map<string, unknown>]) => m.size > 0);
+        expect(nonEmptyCalls.length).toBeGreaterThan(0);
+
+        const [overrideMap] = nonEmptyCalls[0];
+        // Both task-2 (FS on A) and task-3 (SS on B) should have overrides
+        expect(overrideMap.has('task-2')).toBe(true);
+        expect(overrideMap.has('task-3')).toBe(true);
+      });
+    });
+  });
 });
