@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 9 - FF dependency support (COMPLETE)
+**Current focus:** Phase 10 - SF dependency (context gathered)
 
 ## Current Position
 
-Phase: 9 of 9 (09-ff-dependency)
-Plan: 3 of 3 in current phase (3 completed)
-Status: COMPLETE - FF dependency demo and verification complete
-Last activity: 2026-02-22 - Completed quick-021-01: Lag number display on dependency connection lines
+Phase: 10 of 10 (10-sf-dependency)
+Plan: 0 of 0 in current phase (pending)
+Status: CONTEXT GATHERED - SF dependency decisions captured
+Last activity: 2026-02-22 - Context gathered for Phase 10
 
-Progress: [█████████] 100% (Phase 9: 3/3 plans complete)
+Progress: [░░░░░░░░░] 0% (Phase 10: ready to plan)
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Progress: [█████████] 100% (Phase 9: 3/3 plans complete)
 - Phase 7 added: dependencies constraits
 - Phase 8 added: SS dependency
 - Phase 9 added: FF-dependency
+- Phase 10 added: SF dependency
 
 ### Decisions
 
