@@ -132,3 +132,12 @@ Plans:
 - [x] 09-01-PLAN.md — Extend recalculateIncomingLags with newEndDate parameter and FF case (TDD)
 - [x] 09-02-PLAN.md — FF constraint wiring: cascadeChainEnd, FF cascade emission, FF-aware completion
 - [x] 09-03-PLAN.md — FF demo tasks in Construction Project + human verification
+
+### Phase 10: SF dependency
+
+**Goal:** SF (Start-to-Finish) dependency constraint enforcement — successor B's finish date is constrained relative to predecessor A's start date (endB = startA + lag, lag <= 0). This completes the four link type coverage (FS/SS/FF/SF) for supply chain and preparation task scenarios.
+**Depends on:** Phase 9
+**Plans:** 1 plan
+
+Plans:
+- [ ] 10-01-PLAN.md — SF constraint enforcement: cascade chains (SS+SF), constraint clamp (endB <= startA), lag recalculation (ceiling at 0), and demo tasks
