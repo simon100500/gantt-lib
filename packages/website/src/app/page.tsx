@@ -39,7 +39,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 7),
       endDate: addDays(baseDate, 14),
       progress: 90,
-      dependencies: [{ taskId: '2', type: 'FS', lag: 0 }],
+      dependencies: [{ taskId: '2', type: 'SF', lag: 0 }],
     },
 
     // === НУЛЕВОЙ ЦИКЛ ===
@@ -206,6 +206,27 @@ const createSampleTasks = (): Task[] => {
       progress: 0,
       dependencies: [{ taskId: '19', type: 'FS', lag: 0 }],
     },
+
+    // === SF ДЕМО: ЛИФТОВАЯ ОБОРУДОВАНИЕ ===
+    {
+      id: "sf-1",
+      name: "Установка лифта (SF predecessor)",
+      startDate: addDays(baseDate, 150),
+      endDate: addDays(baseDate, 165),
+      color: "#3b82f6",
+      progress: 0,
+    },
+    {
+      id: "sf-2",
+      name: "Поставка лифтового оборудования (SF successor)",
+      startDate: addDays(baseDate, 105),
+      endDate: addDays(baseDate, 150), // 45 дней на логистику
+      color: "#10b981",
+      progress: 0,
+      dependencies: [
+        { taskId: 'sf-1', type: 'SF', lag: 0 }
+      ],
+    },
   ];
 };
 
@@ -310,10 +331,56 @@ const createCascadeTasks = (): Task[] => {
   ];
 };
 
+// Генератор 100 задач с FS-зависимостями и лагом +2 дня
+const createChain100Tasks = (): Task[] => {
+  const baseDate = new Date('2026-02-01');
+  const addDays = (date: Date, days: number): Date => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  };
+  const formatDate = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const tasks: Task[] = [];
+  const taskDuration = 3; // длительность каждой задачи в днях
+  const lag = 2; // лаг между задачами
+
+  // Генерируем цепочку из 100 задач
+  let currentDate = baseDate;
+  for (let i = 1; i <= 100; i++) {
+    const startDate = formatDate(currentDate);
+    const endDate = formatDate(addDays(currentDate, taskDuration - 1));
+
+    const task: Task = {
+      id: `chain-${i}`,
+      name: `Задача ${i}`,
+      startDate,
+      endDate,
+      color: `hsl(${(i * 3.6) % 360}, 70%, 55%)`, // градиент цветов
+    };
+
+    // Добавляем зависимость от предыдущей задачи (кроме первой)
+    if (i > 1) {
+      task.dependencies = [{ taskId: `chain-${i - 1}`, type: 'FS' as const, lag }];
+    }
+
+    tasks.push(task);
+
+    // Вычисляем дату начала следующей задачи
+    // Следующая задача начинается после: end текущей + лаг
+    currentDate = addDays(addDays(currentDate, taskDuration - 1), lag + 1);
+  }
+
+  return tasks;
+};
+
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
   const [dependencyTasks, setDependencyTasks] = useState<Task[]>(createDependencyTasks);
   const [cascadeTasks, setCascadeTasks] = useState<Task[]>(createCascadeTasks);
+  const [chain100Tasks, setChain100Tasks] = useState<Task[]>(createChain100Tasks);
   const [blockConstraints, setBlockConstraints] = useState(true);
 
   const handleChange = useCallback(
@@ -331,6 +398,12 @@ export default function Home() {
   const handleCascadeChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
       setCascadeTasks(typeof updated === "function" ? updated : () => updated),
+    [],
+  );
+
+  const handleChain100Change = useCallback(
+    (updated: Task[] | ((t: Task[]) => Task[])) =>
+      setChain100Tasks(typeof updated === "function" ? updated : () => updated),
     [],
   );
 
@@ -431,6 +504,33 @@ export default function Home() {
             dayWidth={40}
             rowHeight={40}
             containerHeight={250}
+          />
+        </div>
+      </div>
+
+      {/* Chain 100 Demo - 100 задач с FS+2 */}
+      <div style={{ marginBottom: "3rem" }}>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+          Цепочка из 100 задач (FS +2 дня)
+        </h2>
+        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
+          Генератор для тестирования: 100 задач, каждая связана с предыдущей зависимостью FS с лагом +2 дня.
+          Перетащи первую задачу — cascade сдвинет всю цепочку.
+        </p>
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "1rem",
+          }}
+        >
+          <GanttChart
+            tasks={chain100Tasks}
+            onChange={handleChain100Change}
+            onCascade={(shifted) => console.log(`Cascade: ${shifted.length} tasks shifted`)}
+            dayWidth={24}
+            rowHeight={36}
+            containerHeight={600}
           />
         </div>
       </div>
