@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 8 - SS dependency support (COMPLETE)
+**Current focus:** Phase 9 - FF dependency support (COMPLETE)
 
 ## Current Position
 
 Phase: 9 of 9 (09-ff-dependency)
-Plan: 2 of 3 in current phase (2 completed)
-Status: IN_PROGRESS - FF constraint enforcement implemented
-Last activity: 2026-02-22 - Completed 09-02: FF constraint enforcement in useTaskDrag (cascadeChainEnd, FF cascade emission)
+Plan: 3 of 3 in current phase (3 completed)
+Status: COMPLETE - FF dependency demo and verification complete
+Last activity: 2026-02-22 - Completed 09-03: FF dependency demo and verification (fixed negative lag preview bug)
 
-Progress: [█████░░░░] 67% (Phase 9: 2/3 plans complete)
+Progress: [█████████] 100% (Phase 9: 3/3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
+- Total plans completed: 22
 - Average duration: 9 min
-- Total execution time: 2.7 hours
+- Total execution time: 3.3 hours
 
 **By Phase:**
 
@@ -35,7 +35,7 @@ Progress: [█████░░░░] 67% (Phase 9: 2/3 plans complete)
 | 06-dependencies | 2 | 4 | 5 min |
 | 07-dependencies | 2 | 2 | 4 min |
 | 08-ss-dependency | 3 | 3 | 4 min |
-| 09-ff-dependency | 2 | 3 | 1 min |
+| 09-ff-dependency | 3 | 3 | 2 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -64,8 +64,10 @@ Progress: [█████░░░░] 67% (Phase 9: 2/3 plans complete)
 | Phase 08-ss-dependency P01 | 4 | 2 tasks | 3 files |
 | Phase 08-ss-dependency P02 | 2min | 2 tasks | 1 files |
 | Phase 08-ss-dependency P03 | 5min | 2 tasks | 1 files |
-| Phase 09-ff-dependency P02 | 76 | 2 tasks | 1 files |
+| Phase 09-ff-dependency P02 | 1min | 2 tasks | 1 files |
+| Phase 09-ff-dependency P03 | 2min | 2 tasks | 6 files |
 | Quick 020 P01 | 2min | 2 tasks | 2 files |
+| Phase 09-ff-dependency P09-03 | 2min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -154,6 +156,10 @@ Recent decisions affecting current work:
 - [Phase 09-02]: cascadeChain includes FF (FS+SS+FF) for move mode — all link types follow startA shift
 - [Phase 09-02]: SS lag floor remains applied to all activeChain tasks — FF negative lag preview acceptable, real lag recalculated on completion
 - [Phase 09-02]: chainForCompletion includes FF for resize-right and move modes, excludes FF for resize-left
+- [Phase 09-03]: FF cascade preview positioned from chainEndOffset (not chainStartOffset) — fixes visual jump with negative lag
+- [Phase 09-03]: SS lag floor (Math.max) applied only to SS tasks, not FF tasks — allows FF negative lag in mixed chains
+- [Phase 09-ff-dependency]: FF cascade preview positioned from chainEndOffset (not chainStartOffset) to fix visual jump with negative lag
+- [Phase 09-ff-dependency]: SS lag floor applied only to SS tasks, not FF tasks, allowing FF negative lag in mixed chains
 
 ### Pending Todos
 
@@ -186,7 +192,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed quick-020-PLAN.md (progress percentage display)
+Stopped at: Completed 09-03-PLAN.md (FF dependency demo and verification)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -229,6 +235,9 @@ Stopped at: Completed quick-020-PLAN.md (progress percentage display)
 
 **Phase 8 Total:** 3 of 3 plans, ~4 min avg, full SS dependency support — utility foundations, constraint enforcement, and end-to-end verification
 
-**Phase 9 Status:** IN_PROGRESS
+**Phase 9 Status:** COMPLETE
 - 09-01: COMPLETE - Extend recalculateIncomingLags with newEndDate parameter and FF case (2 min)
 - 09-02: COMPLETE - FF constraint enforcement in useTaskDrag: cascadeChainEnd, FF cascade emission, FF-aware completion (1 min)
+- 09-03: COMPLETE - FF dependency demo tasks in Construction Project + human verification (2 min + bug fix)
+
+**Phase 9 Total:** 3 of 3 plans, ~2 min avg, full FF dependency support — lag recalculation, constraint enforcement, demo tasks, and end-to-end verification with negative lag support
