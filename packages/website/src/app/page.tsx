@@ -22,7 +22,6 @@ const createSampleTasks = (): Task[] => {
       name: "Геодезическая разбивка площадки",
       startDate: baseDate,
       endDate: addDays(baseDate, 3),
-      color: "#3b82f6",
       progress: 100,
       accepted: true,
     },
@@ -31,237 +30,181 @@ const createSampleTasks = (): Task[] => {
       name: "Ограждение и временные дороги",
       startDate: addDays(baseDate, 1),
       endDate: addDays(baseDate, 7),
-      // color: "#6366f1",
       progress: 100,
-      dependencies: [{ taskId: '1', type: 'FS', lag: 0 }], // SS лаг = 0
+      dependencies: [{ taskId: '1', type: 'SS', lag: 0 }],
     },
     {
       id: "3",
       name: "Подключение временных коммуникаций",
-      startDate: addDays(baseDate, 5),
-      endDate: addDays(baseDate, 12),
-      // color: "#8b5cf6",
-      progress: 80,
-      dependencies: [{ taskId: '2', type: 'FS', lag: 20 }], // FS лаг = 0
+      startDate: addDays(baseDate, 7),
+      endDate: addDays(baseDate, 14),
+      progress: 90,
+      dependencies: [{ taskId: '2', type: 'FS', lag: 0 }],
     },
 
     // === НУЛЕВОЙ ЦИКЛ ===
     {
       id: "4",
       name: "Разработка котлована",
-      startDate: addDays(baseDate, 10),
-      endDate: addDays(baseDate, 22),
-      dependencies: [{ taskId: '3', type: 'FS', lag: 3 }], // FS +3 дня (технологический перерыв)
+      startDate: addDays(baseDate, 17), // +3 дня лаг после предшественника
+      endDate: addDays(baseDate, 30),
+      progress: 100,
+      dependencies: [{ taskId: '3', type: 'FS', lag: 3 }], // Пример FS +3
     },
     {
       id: "5",
-      name: "Устройство песчаной подушки и бетонная подготовка",
-      startDate: addDays(baseDate, 23),
-      endDate: addDays(baseDate, 30),
-      progress: 90,
+      name: "Песчаная подушка",
+      startDate: addDays(baseDate, 30),
+      endDate: addDays(baseDate, 37),
+      progress: 95,
       dependencies: [{ taskId: '4', type: 'FS', lag: 0 }],
+    },
+    {
+      id: "6",
+      name: "Бетонная подготовка",
+      startDate: addDays(baseDate, 37),
+      endDate: addDays(baseDate, 42),
+      color: "#fb923c",
+      progress: 90,
+      dependencies: [{ taskId: '5', type: 'FS', lag: 0 }],
     },
 
     // === ФУНДАМЕНТ ===
     {
-      id: "6",
-      name: "Армирование и бетонирование фундамента",
-      startDate: addDays(baseDate, 28),
-      endDate: addDays(baseDate, 40),
+      id: "7",
+      name: "Армирование фундамента",
+      startDate: addDays(baseDate, 42),
+      endDate: addDays(baseDate, 50),
       color: "#eab308",
-      progress: 75,
-      dependencies: [
-        // { taskId: '5', type: 'SS', lag: 0 }, // SS лаг = 0 (параллельно)
-        { taskId: '5', type: 'FF', lag: 0 }  // FF лаг = 0 (финиш синхронизирован)
-      ],
+      progress: 80,
+      dependencies: [{ taskId: '6', type: 'FS', lag: 0 }],
     },
     {
-      id: "7",
-      name: "Гидроизоляция и обратная засыпка",
-      startDate: addDays(baseDate, 41),
-      endDate: addDays(baseDate, 52),
+      id: "8",
+      name: "Бетонирование фундамента",
+      startDate: addDays(baseDate, 45),
+      endDate: addDays(baseDate, 50),
+      color: "#ca8a04",
+      progress: 75,
+      dependencies: [{ taskId: '7', type: 'FF', lag: 0 }], // FF: финиш синхронизирован
+    },
+    {
+      id: "9",
+      name: "Уход за бетоном (7 дней)",
+      startDate: addDays(baseDate, 50),
+      endDate: addDays(baseDate, 57),
+      color: "#a16207",
+      progress: 70,
+      dependencies: [{ taskId: '8', type: 'FS', lag: 0 }],
+    },
+    {
+      id: "10",
+      name: "Гидроизоляция фундамента",
+      startDate: addDays(baseDate, 57),
+      endDate: addDays(baseDate, 65),
       color: "#22c55e",
-      progress: 60,
-      dependencies: [{ taskId: '6', type: 'FS', lag: -3 }], // FS -3 дня (перекрытие работ)
+      progress: 65,
+      dependencies: [{ taskId: '9', type: 'FS', lag: 0 }],
     },
 
     // === КОРОБКА ЗДАНИЯ ===
     {
-      id: "8",
+      id: "11",
       name: "Возведение стен 1-2 этажа",
-      startDate: addDays(baseDate, 45),
-      endDate: addDays(baseDate, 75),
+      startDate: addDays(baseDate, 65),
+      endDate: addDays(baseDate, 95),
       color: "#14b8a6",
       progress: 50,
-      dependencies: [{ taskId: '7', type: 'FS', lag: 0 }],
+      dependencies: [{ taskId: '10', type: 'FS', lag: 0 }],
     },
     {
-      id: "9",
+      id: "12",
       name: "Монтаж плит перекрытия",
       startDate: addDays(baseDate, 65),
-      endDate: addDays(baseDate, 78),
-      color: "#0891b2",
-      progress: 40,
-      dependencies: [{ taskId: '8', type: 'SS', lag: 0 }], // SS лаг = 0
+      endDate: addDays(baseDate, 80),
+      color: "#0d9488",
+      progress: 45,
+      dependencies: [{ taskId: '11', type: 'SS', lag: 0 }], // SS: старт параллельно
     },
     {
-      id: "10",
+      id: "13",
       name: "Устройство стропильной системы",
-      startDate: addDays(baseDate, 76),
-      endDate: addDays(baseDate, 92),
-      color: "#0c4a6e",
-      progress: 30,
-      dependencies: [{ taskId: '9', type: 'FS', lag: 0 }],
+      startDate: addDays(baseDate, 80),
+      endDate: addDays(baseDate, 95),
+      color: "#0891b2",
+      progress: 40,
+      dependencies: [{ taskId: '12', type: 'FS', lag: 0 }],
     },
 
     // === КРОВЛЯ ===
     {
-      id: "11",
-      name: "Монтаж кровельного покрытия",
-      startDate: addDays(baseDate, 90),
-      endDate: addDays(baseDate, 110),
-      color: "#dc2626",
-      progress: 20,
-      dependencies: [
-        { taskId: '10', type: 'FS', lag: -3 }, // FS -3 дня (начало до финиша предшественника)
-        { taskId: '10', type: 'FF', lag: 0 }   // FF лаг = 0
-      ],
-    },
-
-    // === ОКНА И ФАСАД ===
-    {
-      id: "12",
-      name: "Монтаж оконных блоков",
-      startDate: addDays(baseDate, 95),
-      endDate: addDays(baseDate, 112),
-      color: "#7c3aed",
-      progress: 15,
-      dependencies: [{ taskId: '11', type: 'FS', lag: 3 }], // FS +3 дня (после кровли)
-    },
-    {
-      id: "13",
-      name: "Устройство фасада",
-      startDate: addDays(baseDate, 105),
-      endDate: addDays(baseDate, 135),
-      color: "#475569",
-      progress: 10,
-      dependencies: [{ taskId: '12', type: 'SS', lag: 0 }], // SS лаг = 0
-    },
-
-    // === ИНЖЕНЕРНЫЕ СИСТЕМЫ ===
-    {
       id: "14",
-      name: "Разводка инженерных сетей (электрика, вода, отопление)",
-      startDate: addDays(baseDate, 100),
-      endDate: addDays(baseDate, 140),
-      color: "#db2777",
+      name: "Монтаж кровельного покрытия",
+      startDate: addDays(baseDate, 95),
+      endDate: addDays(baseDate, 115),
+      color: "#dc2626",
+      progress: 30,
+      dependencies: [{ taskId: '13', type: 'FS', lag: 0 }],
+    },
+    {
+      id: "15",
+      name: "Монтаж оконных блоков",
+      startDate: addDays(baseDate, 118), // +3 дня лаг после кровли
+      endDate: addDays(baseDate, 135),
+      color: "#7c3aed",
       progress: 25,
-      dependencies: [{ taskId: '8', type: 'FS', lag: 0 }], // после возведения стен
+      dependencies: [{ taskId: '14', type: 'FS', lag: 3 }], // Пример FS +3
+    },
+
+    // === ФАСАД И ИНЖЕНЕРИЯ ===
+    {
+      id: "16",
+      name: "Устройство фасада",
+      startDate: addDays(baseDate, 118),
+      endDate: addDays(baseDate, 150),
+      color: "#475569",
+      progress: 20,
+      dependencies: [{ taskId: '15', type: 'SS', lag: 0 }],
+    },
+    {
+      id: "17",
+      name: "Разводка инженерных сетей",
+      startDate: addDays(baseDate, 95),
+      endDate: addDays(baseDate, 125),
+      color: "#db2777",
+      progress: 35,
+      dependencies: [{ taskId: '11', type: 'FS', lag: 0 }],
     },
 
     // === ВНУТРЕННЯЯ ОТДЕЛКА ===
     {
-      id: "15",
-      name: "Штукатурка и стяжка",
-      startDate: addDays(baseDate, 130),
-      endDate: addDays(baseDate, 160),
-      color: "#ea580c",
-      progress: 5,
-      dependencies: [
-        { taskId: '14', type: 'FS', lag: 0 },
-        { taskId: '13', type: 'FS', lag: -3 } // можно начать до финиша фасада
-      ],
-    },
-    {
-      id: "16",
-      name: "Чистовая отделка (обои, покраска, полы)",
-      startDate: addDays(baseDate, 158),
-      endDate: addDays(baseDate, 190),
-      color: "#9a3412",
-      progress: 0,
-      dependencies: [{ taskId: '15', type: 'FS', lag: 0 }],
-    },
-    {
-      id: "17",
-      name: "Установка сантехники и электрики (финиш)",
-      startDate: addDays(baseDate, 180),
-      endDate: addDays(baseDate, 200),
-      color: "#701a75",
-      progress: 0,
-      dependencies: [{ taskId: '16', type: 'SS', lag: 0 }], // SS лаг = 0
-    },
-
-    // === ФИНАЛЬНЫЙ ЭТАП ===
-    {
       id: "18",
-      name: "Благоустройство территории",
-      startDate: addDays(baseDate, 185),
-      endDate: addDays(baseDate, 210),
-      color: "#334155",
-      progress: 0,
-      dependencies: [{ taskId: '13', type: 'FS', lag: 0 }],
+      name: "Штукатурка и стяжка",
+      startDate: addDays(baseDate, 125),
+      endDate: addDays(baseDate, 155),
+      color: "#ea580c",
+      progress: 15,
+      dependencies: [{ taskId: '17', type: 'FS', lag: 0 }],
     },
     {
       id: "19",
-      name: "Пусконаладочные работы",
-      startDate: addDays(baseDate, 195),
-      endDate: addDays(baseDate, 205),
-      color: "#1e293b",
-      progress: 0,
-      dependencies: [
-        { taskId: '17', type: 'FS', lag: 0 },
-        { taskId: '16', type: 'FF', lag: 0 } // FF лаг = 0
-      ],
+      name: "Чистовая отделка",
+      startDate: addDays(baseDate, 152), // -3 дня: начало до финиша предшественника
+      endDate: addDays(baseDate, 180),
+      color: "#9a3412",
+      progress: 5,
+      dependencies: [{ taskId: '18', type: 'FS', lag: -3 }], // Пример FS -3 (перекрытие)
     },
+
+    // === ФИНАЛ ===
     {
       id: "20",
       name: "Сдача объекта",
-      startDate: addDays(baseDate, 210),
-      endDate: addDays(baseDate, 215),
+      startDate: addDays(baseDate, 180),
+      endDate: addDays(baseDate, 185),
       color: "#0f172a",
       progress: 0,
-      dependencies: [
-        { taskId: '18', type: 'FS', lag: 0 },
-        { taskId: '19', type: 'FS', lag: 0 }
-      ],
-    },
-
-    // === SS DEMO: Site Preparation → Foundation Work (lag=2) ===
-    {
-      id: "ss-site-prep",
-      name: "Site Preparation",
-      startDate: addDays(baseDate, 220),
-      endDate: addDays(baseDate, 226),
-      color: '#8b5cf6',
-      progress: 0,
-    },
-    {
-      id: "ss-foundation",
-      name: "Foundation Work",
-      startDate: addDays(baseDate, 222),
-      endDate: addDays(baseDate, 234),
-      color: '#6d28d9',
-      progress: 0,
-      dependencies: [{ taskId: 'ss-site-prep', type: 'SS', lag: 2 }],
-    },
-
-    // === FF DEMO: Framing & Structure → Interior Finishing (lag=3) ===
-    {
-      id: "ff-framing-structure",
-      name: "Framing & Structure",
-      startDate: addDays(baseDate, 235),
-      endDate: addDays(baseDate, 251),
-      color: '#f59e0b',
-      progress: 0,
-    },
-    {
-      id: "ff-interior-finishing",
-      name: "Interior Finishing",
-      startDate: addDays(baseDate, 240),
-      endDate: addDays(baseDate, 254),
-      color: '#d97706',
-      progress: 0,
-      dependencies: [{ taskId: 'ff-framing-structure', type: 'FF', lag: 3 }],
+      dependencies: [{ taskId: '19', type: 'FS', lag: 0 }],
     },
   ];
 };
