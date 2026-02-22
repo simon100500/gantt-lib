@@ -283,7 +283,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
           {lag !== 0 && (
             <text
               className="gantt-dependency-lag-label"
-              x={(toX - 14)}
+              x={lag < 0 ? toX + 14 : toX - 14}
               y={fromY + 14}
               textAnchor="middle"
               fontSize="10"
