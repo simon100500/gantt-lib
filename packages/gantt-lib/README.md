@@ -69,12 +69,18 @@ export default function App() {
 
 Main component that renders the interactive Gantt chart.
 
-| Prop        | Type                                          | Default    | Description                        |
-| ----------- | --------------------------------------------- | ---------- | ---------------------------------- |
-| `tasks`     | `Task[]`                                      | _required_ | Array of tasks to display          |
-| `dayWidth`  | `number`                                      | `30`       | Width of each day column in pixels |
-| `rowHeight` | `number`                                      | `36`       | Height of each task row in pixels  |
-| `onChange`  | `(tasks: Task[] \| Task[] => Task[]) => void` | _required_ | Callback when tasks are modified   |
+| Prop                    | Type                                          | Default    | Description                                             |
+| ----------------------- | --------------------------------------------- | ---------- | ------------------------------------------------------- |
+| `tasks`                 | `Task[]`                                      | _required_ | Array of tasks to display                                |
+| `dayWidth`              | `number`                                      | `40`       | Width of each day column in pixels                      |
+| `rowHeight`             | `number`                                      | `40`       | Height of each task row in pixels                       |
+| `headerHeight`          | `number`                                      | `40`       | Height of the header row in pixels                      |
+| `containerHeight`       | `number`                                      | `600`      | Container height for vertical scrolling                 |
+| `onChange`              | `(tasks: Task[] \| Task[] => Task[]) => void` | _required_ | Callback when tasks are modified                        |
+| `enableAutoSchedule`    | `boolean`                                     | `false`    | Enable automatic shifting of dependent tasks when predecessor moves (cascade) |
+| `onCascade`             | `(tasks: Task[]) => void`                     | _undefined_ | Callback when cascade drag completes; receives all shifted tasks including the dragged task |
+| `disableConstraints`    | `boolean`                                     | `false`    | Disable dependency constraint checking during drag (allows violations during editing) |
+| `onValidateDependencies`| `(result: ValidationResult) => void`          | _undefined_ | Callback for dependency validation results (cycles, missing tasks, constraint violations) |
 
 ### Task
 
@@ -135,6 +141,28 @@ const tasks: Task[] = [
     ],
   },
 ];
+```
+
+### Cascade Scheduling
+
+Cascade scheduling automatically shifts dependent tasks when a predecessor task is moved or resized. This ensures dependency relationships remain valid during editing.
+
+- **enableAutoSchedule**: Enable cascade scheduling by setting this prop to `true`
+- **onCascade**: Callback that receives all shifted tasks (including the dragged task) when cascade completes
+- **Hard mode**: Dependency constraints are enforced during drag (default). Tasks cannot violate dependencies.
+- **Soft mode**: Set `disableConstraints` to `true` to allow violations during editing; lag values are recalculated on completion
+
+Example with cascade scheduling enabled:
+
+```tsx
+<GanttChart
+  tasks={tasks}
+  enableAutoSchedule={true}
+  onCascade={(shiftedTasks) => {
+    console.log(`${shiftedTasks.length} tasks were shifted`);
+  }}
+  onChange={handleChange}
+/>
 ```
 
 ## Customization
