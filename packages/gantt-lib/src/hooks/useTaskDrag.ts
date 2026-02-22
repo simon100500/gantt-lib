@@ -35,7 +35,9 @@ interface ActiveDragState {
   onCancel: () => void;
   allTasks: Task[];
   disableConstraints?: boolean;
-  cascadeChain: Task[];        // FS successors of dragged task (Phase 7)
+  cascadeChain: Task[];        // FS+SS successors of dragged task (Phase 8)
+  cascadeChainFS: Task[];      // FS-only successors (resize-right cascade)
+  cascadeChainSS: Task[];      // SS-only successors (resize-left cascade)
   onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
 }
 
@@ -675,8 +677,14 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       onCancel: handleCancel,
       allTasks,
       disableConstraints,
-      cascadeChain: (mode === 'move' || mode === 'resize-right') && !disableConstraints
-        ? getSuccessorChain(taskId, allTasks)
+      cascadeChain: !disableConstraints
+        ? getSuccessorChain(taskId, allTasks, ['FS', 'SS'])   // all successors, used for move
+        : [],
+      cascadeChainFS: !disableConstraints
+        ? getSuccessorChain(taskId, allTasks, ['FS'])          // FS-only, used for resize-right
+        : [],
+      cascadeChainSS: !disableConstraints
+        ? getSuccessorChain(taskId, allTasks, ['SS'])          // SS-only, used for resize-left
         : [],
       onCascadeProgress,
     };
