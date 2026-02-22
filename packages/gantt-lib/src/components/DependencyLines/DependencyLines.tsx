@@ -157,6 +157,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       fromX: number;
       toX: number;
       fromY: number;
+      reverseOrder: boolean;
     }> = [];
 
     for (const edge of edges) {
@@ -220,6 +221,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         fromX,
         toX,
         fromY,
+        reverseOrder,
       });
     }
 
@@ -267,7 +269,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         </marker>
       </defs>
 
-      {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY }) => (
+      {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY, reverseOrder }) => (
         <React.Fragment key={id}>
           <path
             d={path}
@@ -278,7 +280,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
             <text
               className="gantt-dependency-lag-label"
               x={lag < 0 ? toX + 14 : toX - 14}
-              y={fromY + 12}
+              y={reverseOrder ? fromY - 4 : fromY + 12}
               textAnchor="middle"
               fontSize="10"
               fill={hasCycle ? 'var(--gantt-dependency-cycle-color, #ef4444)' : 'var(--gantt-dependency-line-color, #666666)'}
