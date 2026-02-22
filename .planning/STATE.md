@@ -73,6 +73,7 @@ Progress: [██████████] 100% (Phase 10: complete)
 | Phase quick-022 P01 | 163 | 1 tasks | 1 files |
 | Phase 10-sf-dependency P01 | 4min | 3 tasks | 2 files |
 | Phase quick-023 P23 | 65 | 3 tasks | 1 files |
+| Phase quick-024 P24 | 41s | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -201,11 +202,12 @@ None yet.
 | 21 | Add lag number display to dependency connection lines | 2026-02-22 | 66f488d | [21-add-small-lag-number-in-days-to-connecti](./quick/21-add-small-lag-number-in-days-to-connecti/) |
 | 22 | Lag label direction-aware vertical positioning | 2026-02-22 | 2ff0591 | [022-lag-label-above-line](./quick/022-lag-label-above-line/) |
 | 23 | README dependency documentation | 2026-02-22 | 828b404 | [23-readme-s](./quick/23-readme-s/) |
+| 24 | JSON export button (id, name, startDate, endDate, progress, accepted, dependencies) | 2026-02-22 | 1a9b1c3 | [24-json-id-name-startdate-enddate-progress-](./quick/24-json-id-name-startdate-enddate-progress-/) |
 
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed quick-023-23 (README dependency documentation)
+Stopped at: Completed quick-024-24 (JSON export button for Construction Project)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
