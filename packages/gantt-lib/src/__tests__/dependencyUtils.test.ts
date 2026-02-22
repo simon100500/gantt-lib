@@ -5,6 +5,7 @@ import {
   calculateSuccessorDate,
   validateDependencies,
   getAllDependencyEdges,
+  getSuccessorChain,
 } from '../utils/dependencyUtils';
 import { Task } from '../types';
 
@@ -236,6 +237,59 @@ describe('dependencyUtils', () => {
       ];
       const result = getAllDependencyEdges(tasks);
       expect(result[0].lag).toBe(0);
+    });
+  });
+
+  describe('getSuccessorChain', () => {
+    // Helper tasks: A -> (FS) -> B, A -> (SS) -> C
+    const taskA = createTask('A', '2026-01-01', '2026-01-05');
+    const taskB = createTask('B', '2026-01-06', '2026-01-10', [{ taskId: 'A', type: 'FS', lag: 0 }]);
+    const taskC = createTask('C', '2026-01-01', '2026-01-05', [{ taskId: 'A', type: 'SS', lag: 0 }]);
+    const mixedTasks = [taskA, taskB, taskC];
+
+    it('returns FS successors with default linkTypes (no third argument)', () => {
+      const result = getSuccessorChain('A', mixedTasks);
+      expect(result.map(t => t.id)).toEqual(['B']);
+    });
+
+    it('returns only FS successors when linkTypes is explicitly ["FS"]', () => {
+      const result = getSuccessorChain('A', mixedTasks, ['FS']);
+      expect(result.map(t => t.id)).toEqual(['B']);
+    });
+
+    it('returns only SS successors when linkTypes is ["SS"]', () => {
+      const result = getSuccessorChain('A', mixedTasks, ['SS']);
+      expect(result.map(t => t.id)).toEqual(['C']);
+    });
+
+    it('returns both FS and SS successors when linkTypes is ["FS","SS"]', () => {
+      const result = getSuccessorChain('A', mixedTasks, ['FS', 'SS']);
+      expect(result.length).toBe(2);
+      expect(result.map(t => t.id)).toContain('B');
+      expect(result.map(t => t.id)).toContain('C');
+    });
+
+    it('traverses deep SS chain: A->(SS)->B->(SS)->C', () => {
+      const a = createTask('A', '2026-01-01', '2026-01-05');
+      const b = createTask('B', '2026-01-01', '2026-01-05', [{ taskId: 'A', type: 'SS', lag: 0 }]);
+      const c = createTask('C', '2026-01-01', '2026-01-05', [{ taskId: 'B', type: 'SS', lag: 0 }]);
+      const result = getSuccessorChain('A', [a, b, c], ['SS']);
+      expect(result.map(t => t.id)).toEqual(['B', 'C']);
+    });
+
+    it('excludes the dragged task from result even with self-link cycle data', () => {
+      const a = createTask('A', '2026-01-01', '2026-01-05', [{ taskId: 'A', type: 'SS', lag: 0 }]);
+      const result = getSuccessorChain('A', [a], ['SS']);
+      expect(result.map(t => t.id)).not.toContain('A');
+    });
+
+    it('returns empty array when no successors of given type exist', () => {
+      const result = getSuccessorChain('A', mixedTasks, ['SS']);
+      // taskB is FS-only, taskC is SS — asking for SS should return C not B
+      // but 'A' has FS->B and SS->C, asking ['SS'] gives [C]. Let's test the FS-only scenario:
+      const fsOnlyTasks = [taskA, taskB];
+      const result2 = getSuccessorChain('A', fsOnlyTasks, ['SS']);
+      expect(result2).toEqual([]);
     });
   });
 });
