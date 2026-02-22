@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 8 of 8 (08-ss-dependency)
-Plan: 2 of 3 in current phase (1 completed)
-Status: IN_PROGRESS - SS dependency utility foundations complete
-Last activity: 2026-02-22 - Completed 08-01: getSuccessorChain linkTypes + recalculateIncomingLags SS
+Plan: 3 of 3 in current phase (2 completed)
+Status: IN_PROGRESS - SS constraint enforcement wired into useTaskDrag
+Last activity: 2026-02-22 - Completed 08-02: split cascade chains, mode-aware cascade, SS lag floor, dual-delta handleComplete
 
-Progress: [████████░░] 97%
+Progress: [█████████░] 98%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [████████░░] 97%
 | Phase 06-dependencies P03 | 4 minutes | 3 tasks | 3 files |
 | Phase 07 P02 | 4 | 2 tasks | 3 files |
 | Phase 08-ss-dependency P01 | 4 | 2 tasks | 3 files |
+| Phase 08-ss-dependency P02 | 2min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -138,6 +139,10 @@ Recent decisions affecting current work:
 - [Phase 08-01]: getSuccessorChain default linkTypes=['FS'] preserves all Phase 7 callers without change
 - [Phase 08-01]: SS lag clamped at 0 via Math.max — predecessor can never finish after successor in SS semantics
 - [Phase 08-01]: recalculateIncomingLags SS is private; tested indirectly via handleComplete soft-mode path
+- [Phase 08-02]: Mode filtering at cascade emission time (not drag start) to avoid storing mode state at assignment
+- [Phase 08-02]: SS lag floor (Math.max) applied only in move and resize-left modes — resize-right never changes startA
+- [Phase 08-02]: Dual-delta approach: detect resize-right by checking deltaFromStart === 0 (startDate unchanged)
+- [Phase 08-02]: chainForCompletion uses ['FS','SS'] when startDate moved, ['FS'] when only endDate moved
 
 ### Pending Todos
 
@@ -169,7 +174,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 08-01-PLAN.md
+Stopped at: Completed 08-02-PLAN.md
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -207,5 +212,6 @@ Stopped at: Completed 08-01-PLAN.md
 
 **Phase 8 Status:** IN_PROGRESS
 - 08-01: COMPLETE - SS dependency utility foundations: getSuccessorChain linkTypes + recalculateIncomingLags SS formula (4 min)
+- 08-02: COMPLETE - SS constraint enforcement in useTaskDrag: split chains, mode-aware cascade, SS lag floor, dual-delta handleComplete (2 min)
 
-**Phase 8 Total:** 1 of 3 plans, 4 min so far, foundational utilities for SS dependency cascade support
+**Phase 8 Total:** 2 of 3 plans, 3 min avg so far, full SS constraint enforcement in drag hook
