@@ -114,7 +114,7 @@ Plans:
 **Goal:** SS (Start-to-Start) dependency constraint enforcement for all drag and resize interactions — successor B's start date is constrained relative to predecessor A's start date (startB = startA + lag, lag >= 0). Hard mode cascades B with A; soft mode recalculates lag on completion.
 **Depends on:** Phase 7
 **Requirements:** (none — internal feature extension)
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 08-01-PLAN.md — Extend getSuccessorChain with linkTypes parameter + recalculateIncomingLags SS case (TDD)

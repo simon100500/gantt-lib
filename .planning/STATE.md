@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 8 - SS dependency support
+**Current focus:** Phase 8 - SS dependency support (COMPLETE)
 
 ## Current Position
 
 Phase: 8 of 8 (08-ss-dependency)
-Plan: 3 of 3 in current phase (2 completed)
-Status: IN_PROGRESS - SS constraint enforcement wired into useTaskDrag
-Last activity: 2026-02-22 - Completed 08-02: split cascade chains, mode-aware cascade, SS lag floor, dual-delta handleComplete
+Plan: 3 of 3 in current phase (3 completed)
+Status: COMPLETE - All phases done, SS dependency fully implemented and verified
+Last activity: 2026-02-22 - Completed 08-03: SS demo tasks added, all 8 SS interaction scenarios verified by human tester
 
-Progress: [█████████░] 98%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [█████████░] 98%
 | Phase 07 P02 | 4 | 2 tasks | 3 files |
 | Phase 08-ss-dependency P01 | 4 | 2 tasks | 3 files |
 | Phase 08-ss-dependency P02 | 2min | 2 tasks | 1 files |
+| Phase 08-ss-dependency P03 | 5min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -174,7 +175,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 08-02-PLAN.md
+Stopped at: Completed 08-03-PLAN.md (final plan — project complete)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -210,8 +211,9 @@ Stopped at: Completed 08-02-PLAN.md
 
 **Phase 7 Total:** 1 of 3 plans, 4 min so far, algorithmic core of FS cascade constraint system
 
-**Phase 8 Status:** IN_PROGRESS
+**Phase 8 Status:** COMPLETE
 - 08-01: COMPLETE - SS dependency utility foundations: getSuccessorChain linkTypes + recalculateIncomingLags SS formula (4 min)
 - 08-02: COMPLETE - SS constraint enforcement in useTaskDrag: split chains, mode-aware cascade, SS lag floor, dual-delta handleComplete (2 min)
+- 08-03: COMPLETE - SS demo tasks added to Construction Project, all 8 SS interaction scenarios human-verified (5 min)
 
-**Phase 8 Total:** 2 of 3 plans, 3 min avg so far, full SS constraint enforcement in drag hook
+**Phase 8 Total:** 3 of 3 plans, ~4 min avg, full SS dependency support — utility foundations, constraint enforcement, and end-to-end verification
