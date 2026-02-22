@@ -65,6 +65,7 @@ Progress: [█████░░░░] 67% (Phase 9: 2/3 plans complete)
 | Phase 08-ss-dependency P02 | 2min | 2 tasks | 1 files |
 | Phase 08-ss-dependency P03 | 5min | 2 tasks | 1 files |
 | Phase 09-ff-dependency P02 | 76 | 2 tasks | 1 files |
+| Quick 020 P01 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -180,11 +181,12 @@ None yet.
 | 16 | Add 7 FS dependency links to Construction Project demo | 2026-02-22 | 58041eb | [16-6-7](./quick/16-6-7/) |
 | 17 | SS/FF/SF dependency line rendering (type-aware connection points) | 2026-02-22 | 133d8cc | [17-fs-ss-sf-ff](./quick/17-fs-ss-sf-ff/) |
 | 19 | Apply FS left-edge constraint to resize-left mode | 2026-02-22 | af6261e | [19-fs](./quick/19-fs/) |
+| 20 | Progress percentage display with intelligent positioning | 2026-02-22 | 5296367 | [020-progress-percent](./quick/020-progress-percent/) |
 
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 09-02-PLAN.md (FF constraint enforcement in useTaskDrag)
+Stopped at: Completed quick-020-PLAN.md (progress percentage display)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
