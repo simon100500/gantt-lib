@@ -76,6 +76,12 @@ export interface Task {
    * Each dependency specifies a predecessor task, link type, and optional lag
    */
   dependencies?: TaskDependency[];
+  /**
+   * Optional flag to prevent drag and resize interactions.
+   * When true, the task bar cannot be moved or resized.
+   * Independent of accepted/progress — consumer controls both separately.
+   */
+  locked?: boolean;
 }
 
 /**

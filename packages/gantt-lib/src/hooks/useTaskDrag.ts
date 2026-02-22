@@ -390,6 +390,9 @@ function handleGlobalMouseMove(e: MouseEvent) {
       const monthStart = globalActiveDrag.monthStart;
 
       for (const chainTask of activeChain) {
+        // Phase 11: locked tasks cannot be moved by cascade
+        if (chainTask.locked) continue;
+
         const chainStart = new Date(chainTask.startDate as string);
         const chainEnd = new Date(chainTask.endDate as string);
         const chainStartOffset = Math.round(
@@ -534,6 +537,8 @@ export interface UseTaskDragOptions {
   onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
   /** Callback when cascade completes — receives all shifted tasks including dragged task */
   onCascade?: (tasks: Task[]) => void;
+  /** When true, all drag and resize interactions are disabled for this task */
+  locked?: boolean;
 }
 
 /**
@@ -582,6 +587,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
   // Track if this hook instance owns the current global drag
   const isOwnerRef = useRef<boolean>(false);
+  const locked = options.locked ?? false;
 
   // Display state (triggers re-renders only when needed)
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -745,7 +751,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
                 dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks),
               }),
             },
-            ...chainForCompletion.map(chainTask => {
+            ...chainForCompletion
+              .filter(chainTask => !chainTask.locked) // Phase 11: skip locked tasks in cascade
+              .map(chainTask => {
               const origStart = new Date(chainTask.startDate as string);
               const origEnd = new Date(chainTask.endDate as string);
               const newStart = new Date(Date.UTC(
@@ -810,6 +818,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
    * Handle mouse down on drag handle
    */
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Phase 11: locked tasks cannot be dragged or resized
+    if (locked) return;
+
     const target = e.currentTarget as HTMLElement;
     const edgeZone = detectEdgeZone(e.clientX, target, edgeZoneWidth);
 
@@ -885,17 +896,18 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         : [],
       onCascadeProgress,
     };
-  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade]);
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, locked]);
 
   /**
    * Get cursor style based on current position
    */
   const getCursorStyle = useCallback((): string => {
+    if (locked) return 'not-allowed';
     if (isDragging) {
       return 'grabbing';
     }
     return 'grab';
-  }, [isDragging]);
+  }, [locked, isDragging]);
 
   return {
     isDragging,

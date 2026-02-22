@@ -48,6 +48,12 @@ export interface Task {
    * - Lag is optional and defaults to 0 (positive = delay, negative = overlap)
    */
   dependencies?: TaskDependency[];
+  /**
+   * Optional flag to prevent drag and resize interactions.
+   * When true, the task bar cannot be moved or resized.
+   * Independent of accepted/progress — consumer controls both separately.
+   */
+  locked?: boolean;
 }
 
 /**
