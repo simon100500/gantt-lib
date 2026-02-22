@@ -389,6 +389,36 @@ export default function Home() {
     [],
   );
 
+  const exportTasksAsJson = useCallback((taskList: Task[]) => {
+    const result = taskList.map((task) => ({
+      id: task.id,
+      name: task.name,
+      startDate: task.startDate,
+      endDate: task.endDate,
+      progress: task.progress ?? 0,
+      accepted: task.accepted ?? false,
+      dependencies: (task.dependencies ?? []).map((dep) => ({
+        taskId: dep.taskId,
+        type: dep.type,
+        lag: dep.lag ?? 0,
+      })),
+    }));
+    const json = JSON.stringify(result, null, 2);
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(json).then(() => {
+        alert("JSON copied to clipboard!");
+      });
+    } else {
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tasks.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }, []);
+
   const handleDependencyChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
       setDependencyTasks(typeof updated === "function" ? updated : () => updated),
@@ -433,6 +463,21 @@ export default function Home() {
             rowHeight={36}
             onChange={handleChange}
           />
+        </div>
+        <div style={{ marginTop: "0.75rem" }}>
+          <button
+            onClick={() => exportTasksAsJson(tasks)}
+            style={{
+              padding: "0.375rem 0.75rem",
+              fontSize: "0.875rem",
+              backgroundColor: "#f3f4f6",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+          >
+            Export JSON
+          </button>
         </div>
       </div>
 
