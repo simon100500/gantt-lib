@@ -137,19 +137,24 @@ export function validateDependencies(tasks: Task[]): ValidationResult {
 }
 
 /**
- * Get all FS successor tasks of a dragged task using BFS (FS edges only, Phase 7).
+ * Get successor tasks of a dragged task using BFS, filtered by link type(s).
  *
  * Returns tasks in breadth-first order (direct successors first, then their successors).
  * The dragged task itself is NOT included in the returned array.
  *
  * The visited set prevents infinite loops in case of cycles (cycle detection already
  * prevents cycles in valid data, but the guard adds safety during cascade computation).
+ *
+ * @param draggedTaskId - ID of the task being dragged
+ * @param allTasks - All tasks in the chart
+ * @param linkTypes - Dependency types to follow (default: ['FS'] preserves Phase 7 behavior)
  */
 export function getSuccessorChain(
   draggedTaskId: string,
-  allTasks: Task[]
+  allTasks: Task[],
+  linkTypes: LinkType[] = ['FS']
 ): Task[] {
-  // Build FS-only successor map: predecessor -> [successors]
+  // Build successor map filtered by requested link types: predecessor -> [successors]
   const successorMap = new Map<string, string[]>();
   for (const task of allTasks) {
     successorMap.set(task.id, []);
@@ -157,7 +162,7 @@ export function getSuccessorChain(
   for (const task of allTasks) {
     if (!task.dependencies) continue;
     for (const dep of task.dependencies) {
-      if (dep.type === 'FS') {
+      if (linkTypes.includes(dep.type)) {
         const list = successorMap.get(dep.taskId) ?? [];
         list.push(task.id);
         successorMap.set(dep.taskId, list);
