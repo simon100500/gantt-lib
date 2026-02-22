@@ -165,6 +165,120 @@ Example with cascade scheduling enabled:
 />
 ```
 
+### Dependency Examples
+
+#### Simple FS Dependency
+
+The most common dependency type - successor starts after predecessor finishes:
+
+```tsx
+{
+  id: "framing",
+  name: "Framing",
+  startDate: "2026-02-01",
+  endDate: "2026-02-10",
+},
+{
+  id: "roofing",
+  name: "Roofing",
+  startDate: "2026-02-11",
+  endDate: "2026-02-20",
+  dependencies: [
+    { taskId: "framing", type: "FS" }  // Starts after framing ends
+  ],
+}
+```
+
+#### SS with Negative Lag (Overlap)
+
+Start-to-Start dependency allows tasks to overlap. Negative lag pulls the successor start earlier:
+
+```tsx
+{
+  id: "plumbing",
+  name: "Plumbing",
+  startDate: "2026-02-10",
+  endDate: "2026-02-20",
+  dependencies: [
+    { taskId: "framing", type: "SS", lag: -3 }  // Start 3 days before framing ends
+  ],
+}
+```
+
+#### Multiple Dependencies
+
+A task can wait for multiple predecessors to complete:
+
+```tsx
+{
+  id: "inspection",
+  name: "Final Inspection",
+  startDate: "2026-02-25",
+  endDate: "2026-02-26",
+  dependencies: [
+    { taskId: "plumbing", type: "FS" },
+    { taskId: "electrical", type: "FS" },
+    { taskId: "roofing", type: "FF", lag: 2 },  // Finish 2 days after roofing
+  ],
+}
+```
+
+#### Mixed Link Types
+
+Different relationship types for complex scheduling:
+
+```tsx
+{
+  id: "painting",
+  name: "Painting",
+  startDate: "2026-02-15",
+  endDate: "2026-02-25",
+  dependencies: [
+    { taskId: "drywall", type: "SS", lag: 2 },      // Start 2 days after drywall starts
+    { taskId: "priming", type: "FS" },              // Start after priming finishes
+  ],
+}
+```
+
+### Dependency Validation
+
+The library automatically validates dependencies and detects issues:
+
+- **Cycles**: Circular dependencies (A -> B -> A) are detected and highlighted in red
+- **Missing tasks**: References to non-existent task IDs are reported
+- **Constraint violations**: When tasks violate their dependencies during drag
+
+Use the `onValidateDependencies` callback to handle validation results:
+
+```tsx
+<GanttChart
+  tasks={tasks}
+  onValidateDependencies={(result) => {
+    if (!result.isValid) {
+      result.errors.forEach(error => {
+        console.error(`Task ${error.taskId}: ${error.message}`);
+      });
+    }
+  }}
+/>
+```
+
+#### ValidationResult Interface
+
+```typescript
+interface ValidationResult {
+  isValid: boolean;
+  errors: DependencyError[];
+}
+
+interface DependencyError {
+  type: 'cycle' | 'constraint' | 'missing-task';
+  taskId: string;
+  message: string;
+  relatedTaskIds?: string[];
+}
+```
+
 ## Customization
 
 ### CSS Variables
