@@ -1,6 +1,6 @@
 {
   "name": "gantt-lib",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Lightweight React Gantt chart component library",
   "license": "MIT",
   "repository": {
