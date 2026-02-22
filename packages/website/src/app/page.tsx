@@ -16,218 +16,325 @@ const createSampleTasks = (): Task[] => {
   const baseDate = `${y}-${pad(m)}-01`;
 
   return [
-    // === ПОДГОТОВИТЕЛЬНЫЙ ЭТАП ===
     {
-      id: "1",
-      name: "Геодезическая разбивка площадки",
-      startDate: baseDate,
-      endDate: addDays(baseDate, 3),
-      progress: 100,
-      accepted: true,
+      "id": "1",
+      "name": "Геодезическая разбивка площадки",
+      "startDate": "2026-02-12T00:00:00.000Z",
+      "endDate": "2026-02-20T00:00:00.000Z",
+      "progress": 100,
+      "accepted": true,
+      "dependencies": []
     },
     {
-      id: "2",
-      name: "Ограждение и временные дороги",
-      startDate: addDays(baseDate, 11),
-      endDate: addDays(baseDate, 14),
-      progress: 100,
-      dependencies: [{ taskId: '1', type: 'SS' }],
+      "id": "2",
+      "name": "Ограждение и временные дороги",
+      "startDate": "2026-02-14T00:00:00.000Z",
+      "endDate": "2026-02-21T00:00:00.000Z",
+      "progress": 100,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "1",
+          "type": "SS",
+          "lag": 2
+        }
+      ]
     },
     {
-      id: "3",
-      name: "Подключение временных коммуникаций",
-      startDate: addDays(baseDate, 7),
-      endDate: addDays(baseDate, 10),
-      progress: 90,
-      dependencies: [{ taskId: '2', type: 'SF' }],
-    },
-
-    // === НУЛЕВОЙ ЦИКЛ ===
-    {
-      id: "4",
-      name: "Разработка котлована",
-      startDate: addDays(baseDate, 17), // +3 дня лаг после предшественника
-      endDate: addDays(baseDate, 30),
-      progress: 100,
-      dependencies: [{ taskId: '2', type: 'FS', lag: 3 }], // Пример FS +3
+      "id": "3",
+      "name": "Подключение временных коммуникаций",
+      "startDate": "2026-02-04T00:00:00.000Z",
+      "endDate": "2026-02-13T00:00:00.000Z",
+      "progress": 90,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "2",
+          "type": "SF",
+          "lag": 0
+        }
+      ]
     },
     {
-      id: "5",
-      name: "Песчаная подушка",
-      startDate: addDays(baseDate, 30),
-      endDate: addDays(baseDate, 37),
-      progress: 95,
-      dependencies: [{ taskId: '4', type: 'FS', lag: 0 }],
+      "id": "4",
+      "name": "Разработка котлована",
+      "startDate": "2026-02-19T00:00:00.000Z",
+      "endDate": "2026-02-24T00:00:00.000Z",
+      "progress": 100,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "2",
+          "type": "FS",
+          "lag": -2
+        }
+      ]
     },
     {
-      id: "6",
-      name: "Бетонная подготовка",
-      startDate: addDays(baseDate, 37),
-      endDate: addDays(baseDate, 42),
-      color: "#fb923c",
-      progress: 90,
-      dependencies: [{ taskId: '5', type: 'FS', lag: 0 }],
-    },
-
-    // === ФУНДАМЕНТ ===
-    {
-      id: "7",
-      name: "Армирование фундамента",
-      startDate: addDays(baseDate, 42),
-      endDate: addDays(baseDate, 50),
-      color: "#eab308",
-      progress: 80,
-      dependencies: [{ taskId: '6', type: 'FS', lag: 0 }],
+      "id": "5",
+      "name": "Песчаная подушка",
+      "startDate": "2026-02-23T00:00:00.000Z",
+      "endDate": "2026-03-02T00:00:00.000Z",
+      "progress": 95,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "4",
+          "type": "FS",
+          "lag": -1
+        }
+      ]
     },
     {
-      id: "8",
-      name: "Бетонирование фундамента",
-      startDate: addDays(baseDate, 45),
-      endDate: addDays(baseDate, 50),
-      color: "#ca8a04",
-      progress: 75,
-      dependencies: [{ taskId: '7', type: 'FF', lag: 0 }], // FF: финиш синхронизирован
+      "id": "6",
+      "name": "Бетонная подготовка",
+      "startDate": "2026-02-28T00:00:00.000Z",
+      "endDate": "2026-03-07T00:00:00.000Z",
+      "progress": 90,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "5",
+          "type": "FS",
+          "lag": -2
+        }
+      ]
     },
     {
-      id: "9",
-      name: "Уход за бетоном (7 дней)",
-      startDate: addDays(baseDate, 50),
-      endDate: addDays(baseDate, 57),
-      color: "#a16207",
-      progress: 70,
-      dependencies: [{ taskId: '8', type: 'FS', lag: 0 }],
+      "id": "7",
+      "name": "Армирование фундамента",
+      "startDate": "2026-03-05T00:00:00.000Z",
+      "endDate": "2026-03-13T00:00:00.000Z",
+      "progress": 80,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "6",
+          "type": "FS",
+          "lag": -2
+        }
+      ]
     },
     {
-      id: "10",
-      name: "Гидроизоляция фундамента",
-      startDate: addDays(baseDate, 57),
-      endDate: addDays(baseDate, 65),
-      color: "#22c55e",
-      progress: 65,
-      dependencies: [{ taskId: '9', type: 'FS', lag: 0 }],
-    },
-
-    // === КОРОБКА ЗДАНИЯ ===
-    {
-      id: "11",
-      name: "Возведение стен 1-2 этажа",
-      startDate: addDays(baseDate, 65),
-      endDate: addDays(baseDate, 95),
-      color: "#14b8a6",
-      progress: 50,
-      dependencies: [{ taskId: '10', type: 'FS', lag: 0 }],
+      "id": "8",
+      "name": "Бетонирование фундамента",
+      "startDate": "2026-03-10T00:00:00.000Z",
+      "endDate": "2026-03-15T00:00:00.000Z",
+      "progress": 75,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "7",
+          "type": "FF",
+          "lag": 2
+        }
+      ]
     },
     {
-      id: "12",
-      name: "Монтаж плит перекрытия",
-      startDate: addDays(baseDate, 65),
-      endDate: addDays(baseDate, 80),
-      color: "#0d9488",
-      progress: 45,
-      dependencies: [{ taskId: '11', type: 'SS', lag: 0 }], // SS: старт параллельно
+      "id": "9",
+      "name": "Уход за бетоном (7 дней)",
+      "startDate": "2026-03-14T00:00:00.000Z",
+      "endDate": "2026-03-21T00:00:00.000Z",
+      "progress": 70,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "8",
+          "type": "FS",
+          "lag": -1
+        }
+      ]
     },
     {
-      id: "13",
-      name: "Устройство стропильной системы",
-      startDate: addDays(baseDate, 80),
-      endDate: addDays(baseDate, 95),
-      color: "#0891b2",
-      progress: 40,
-      dependencies: [{ taskId: '12', type: 'FS', lag: 0 }],
-    },
-
-    // === КРОВЛЯ ===
-    {
-      id: "14",
-      name: "Монтаж кровельного покрытия",
-      startDate: addDays(baseDate, 95),
-      endDate: addDays(baseDate, 115),
-      color: "#dc2626",
-      progress: 30,
-      dependencies: [{ taskId: '13', type: 'FS', lag: 0 }],
+      "id": "10",
+      "name": "Гидроизоляция фундамента",
+      "startDate": "2026-03-22T00:00:00.000Z",
+      "endDate": "2026-03-30T00:00:00.000Z",
+      "progress": 65,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "9",
+          "type": "FS",
+          "lag": 1
+        }
+      ]
     },
     {
-      id: "15",
-      name: "Монтаж оконных блоков",
-      startDate: addDays(baseDate, 118), // +3 дня лаг после кровли
-      endDate: addDays(baseDate, 135),
-      color: "#7c3aed",
-      progress: 25,
-      dependencies: [{ taskId: '14', type: 'FS', lag: 3 }], // Пример FS +3
-    },
-
-    // === ФАСАД И ИНЖЕНЕРИЯ ===
-    {
-      id: "16",
-      name: "Устройство фасада",
-      startDate: addDays(baseDate, 118),
-      endDate: addDays(baseDate, 150),
-      color: "#475569",
-      progress: 20,
-      dependencies: [{ taskId: '15', type: 'SS', lag: 0 }],
+      "id": "11",
+      "name": "Возведение стен 1-2 этажа",
+      "startDate": "2026-03-30T00:00:00.000Z",
+      "endDate": "2026-04-29T00:00:00.000Z",
+      "progress": 50,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "10",
+          "type": "FS",
+          "lag": 0
+        }
+      ]
     },
     {
-      id: "17",
-      name: "Разводка инженерных сетей",
-      startDate: addDays(baseDate, 95),
-      endDate: addDays(baseDate, 125),
-      color: "#db2777",
-      progress: 35,
-      dependencies: [{ taskId: '11', type: 'FS', lag: 0 }],
-    },
-
-    // === ВНУТРЕННЯЯ ОТДЕЛКА ===
-    {
-      id: "18",
-      name: "Штукатурка и стяжка",
-      startDate: addDays(baseDate, 125),
-      endDate: addDays(baseDate, 155),
-      color: "#ea580c",
-      progress: 15,
-      dependencies: [{ taskId: '17', type: 'FS', lag: 0 }],
+      "id": "12",
+      "name": "Монтаж плит перекрытия",
+      "startDate": "2026-03-30T00:00:00.000Z",
+      "endDate": "2026-04-14T00:00:00.000Z",
+      "progress": 45,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "11",
+          "type": "SS",
+          "lag": 0
+        }
+      ]
     },
     {
-      id: "19",
-      name: "Чистовая отделка",
-      startDate: addDays(baseDate, 152), // -3 дня: начало до финиша предшественника
-      endDate: addDays(baseDate, 180),
-      color: "#9a3412",
-      progress: 5,
-      dependencies: [{ taskId: '18', type: 'FS', lag: -3 }], // Пример FS -3 (перекрытие)
-    },
-
-    // === ФИНАЛ ===
-    {
-      id: "20",
-      name: "Сдача объекта",
-      startDate: addDays(baseDate, 180),
-      endDate: addDays(baseDate, 185),
-      color: "#0f172a",
-      progress: 0,
-      dependencies: [{ taskId: '19', type: 'FS', lag: 0 }],
-    },
-
-    // === SF ДЕМО: ЛИФТОВАЯ ОБОРУДОВАНИЕ ===
-    {
-      id: "sf-1",
-      name: "Установка лифта (SF predecessor)",
-      startDate: addDays(baseDate, 150),
-      endDate: addDays(baseDate, 165),
-      color: "#3b82f6",
-      progress: 0,
+      "id": "13",
+      "name": "Устройство стропильной системы",
+      "startDate": "2026-04-14T00:00:00.000Z",
+      "endDate": "2026-04-29T00:00:00.000Z",
+      "progress": 40,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "12",
+          "type": "FS",
+          "lag": 0
+        }
+      ]
     },
     {
-      id: "sf-2",
-      name: "Поставка лифтового оборудования (SF successor)",
-      startDate: addDays(baseDate, 105),
-      endDate: addDays(baseDate, 150), // 45 дней на логистику
-      color: "#10b981",
-      progress: 0,
-      dependencies: [
-        { taskId: 'sf-1', type: 'SF', lag: 0 }
-      ],
+      "id": "14",
+      "name": "Монтаж кровельного покрытия",
+      "startDate": "2026-04-29T00:00:00.000Z",
+      "endDate": "2026-05-19T00:00:00.000Z",
+      "progress": 30,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "13",
+          "type": "FS",
+          "lag": 0
+        }
+      ]
     },
-  ];
+    {
+      "id": "15",
+      "name": "Монтаж оконных блоков",
+      "startDate": "2026-05-22T00:00:00.000Z",
+      "endDate": "2026-06-08T00:00:00.000Z",
+      "progress": 25,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "14",
+          "type": "FS",
+          "lag": 3
+        }
+      ]
+    },
+    {
+      "id": "16",
+      "name": "Устройство фасада",
+      "startDate": "2026-05-22T00:00:00.000Z",
+      "endDate": "2026-06-23T00:00:00.000Z",
+      "progress": 20,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "15",
+          "type": "SS",
+          "lag": 0
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "name": "Разводка инженерных сетей",
+      "startDate": "2026-04-29T00:00:00.000Z",
+      "endDate": "2026-05-29T00:00:00.000Z",
+      "progress": 35,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "11",
+          "type": "FS",
+          "lag": 0
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "name": "Штукатурка и стяжка",
+      "startDate": "2026-05-29T00:00:00.000Z",
+      "endDate": "2026-06-28T00:00:00.000Z",
+      "progress": 15,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "17",
+          "type": "FS",
+          "lag": 0
+        }
+      ]
+    },
+    {
+      "id": "19",
+      "name": "Чистовая отделка",
+      "startDate": "2026-06-25T00:00:00.000Z",
+      "endDate": "2026-07-23T00:00:00.000Z",
+      "progress": 5,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "18",
+          "type": "FS",
+          "lag": -3
+        }
+      ]
+    },
+    {
+      "id": "20",
+      "name": "Сдача объекта",
+      "startDate": "2026-07-23T00:00:00.000Z",
+      "endDate": "2026-07-28T00:00:00.000Z",
+      "progress": 0,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "19",
+          "type": "FS",
+          "lag": 0
+        }
+      ]
+    },
+    {
+      "id": "sf-1",
+      "name": "Установка лифта (SF predecessor)",
+      "startDate": "2026-07-01",
+      "endDate": "2026-07-16",
+      "progress": 0,
+      "accepted": false,
+      "dependencies": []
+    },
+    {
+      "id": "sf-2",
+      "name": "Поставка лифтового оборудования (SF successor)",
+      "startDate": "2026-05-17",
+      "endDate": "2026-07-01",
+      "progress": 0,
+      "accepted": false,
+      "dependencies": [
+        {
+          "taskId": "sf-1",
+          "type": "SF",
+          "lag": 0
+        }
+      ]
+    }
+  ]
 };
 
 // Sample tasks with dependencies demonstrating all link types
@@ -463,21 +570,6 @@ export default function Home() {
             rowHeight={36}
             onChange={handleChange}
           />
-        </div>
-        <div style={{ marginTop: "0.75rem" }}>
-          <button
-            onClick={() => exportTasksAsJson(tasks)}
-            style={{
-              padding: "0.375rem 0.75rem",
-              fontSize: "0.875rem",
-              backgroundColor: "#f3f4f6",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            Export JSON
-          </button>
         </div>
       </div>
 
