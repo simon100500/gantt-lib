@@ -340,14 +340,14 @@ function handleGlobalMouseMove(e: MouseEvent) {
       }
     }
 
-    // Phase 8: select chain based on drag mode
-    // move: all FS+SS successors follow
-    // resize-right: only FS successors (endA changes, startA unchanged → SS unaffected)
-    // resize-left: only SS successors (startA changes, endA unchanged → FS unaffected)
+    // Phase 9: select chain based on drag mode
+    // move: all FS+SS+FF successors follow
+    // resize-right: FS+FF successors (endA changes, SS unaffected)
+    // resize-left: SS successors only (startA changes, FS/FF unaffected)
     const activeChain =
-      mode === 'resize-right' ? globalActiveDrag.cascadeChainFS :
-      mode === 'resize-left'  ? globalActiveDrag.cascadeChainSS :
-      /* move */                globalActiveDrag.cascadeChain;
+      mode === 'resize-right' ? globalActiveDrag.cascadeChainEnd :   // FS + FF
+      mode === 'resize-left'  ? globalActiveDrag.cascadeChainSS :    // SS only
+      /* move */                globalActiveDrag.cascadeChain;         // FS + SS + FF
 
     // Hard mode cascade: emit position overrides for successor chain members
     if ((mode === 'move' || mode === 'resize-right' ||
@@ -663,12 +663,13 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         //
         // FIX: For proper transitive closure in mixed link type chains (e.g., A--FS-->B--SS-->C),
         // we use getTransitiveCascadeChain which includes cascaded tasks' successors regardless of link type.
+        // Phase 9: FF included in resize-right and move chains
         const isResizeLeft = deltaFromStart !== 0 && deltaFromEnd === 0;
         const chainForCompletion = deltaFromStart === 0
-          ? getTransitiveCascadeChain(taskId, allTasks, ['FS'])          // resize-right: FS + transitive
+          ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])          // resize-right: FS + FF
           : isResizeLeft
-            ? getTransitiveCascadeChain(taskId, allTasks, ['SS'])         // resize-left: SS + transitive
-            : getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS']); // move: all types + transitive
+            ? getTransitiveCascadeChain(taskId, allTasks, ['SS'])               // resize-left: SS only
+            : getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS', 'FF']); // move: all types
 
         if (chainForCompletion.length > 0) {
           const draggedTaskData = allTasks.find(t => t.id === taskId);
