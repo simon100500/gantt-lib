@@ -137,7 +137,7 @@ Plans:
 
 **Goal:** SF (Start-to-Finish) dependency constraint enforcement — successor B's finish date is constrained relative to predecessor A's start date (endB = startA + lag, lag <= 0). This completes the four link type coverage (FS/SS/FF/SF) for supply chain and preparation task scenarios.
 **Depends on:** Phase 9
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 10-01-PLAN.md — SF constraint enforcement: cascade chains (SS+SF), constraint clamp (endB <= startA), lag recalculation (ceiling at 0), and demo tasks

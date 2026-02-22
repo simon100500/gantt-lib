@@ -19,9 +19,9 @@ Progress: [██████████] 100% (Phase 10: complete)
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23
+- Total plans completed: 24
 - Average duration: 9 min
-- Total execution time: 3.4 hours
+- Total execution time: 3.5 hours
 
 **By Phase:**
 
@@ -36,6 +36,7 @@ Progress: [██████████] 100% (Phase 10: complete)
 | 07-dependencies | 2 | 2 | 4 min |
 | 08-ss-dependency | 3 | 3 | 4 min |
 | 09-ff-dependency | 3 | 3 | 2 min |
+| 10-sf-dependency | 1 | 1 | 4 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -165,6 +166,10 @@ Recent decisions affecting current work:
 - [Phase 09-03]: SS lag floor (Math.max) applied only to SS tasks, not FF tasks — allows FF negative lag in mixed chains
 - [Phase 09-ff-dependency]: FF cascade preview positioned from chainEndOffset (not chainStartOffset) to fix visual jump with negative lag
 - [Phase 09-ff-dependency]: SS lag floor applied only to SS tasks, not FF tasks, allowing FF negative lag in mixed chains
+- [Phase 10-01]: SF cascade preview uses end-based positioning (like FF) because SF constrains endB to startA
+- [Phase 10-01]: SF constraint clamp affects width (not left) because it constrains endB, not startB
+- [Phase 10-01]: SF lag uses Math.min(0, ...) for ceiling (opposite of SS's Math.max(0, ...) floor)
+- [Phase 10-01]: Renamed cascadeChainSS to cascadeChainStart for clarity (SS+SF share start-based cascade behavior)
 
 ### Pending Todos
 
