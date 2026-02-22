@@ -67,6 +67,7 @@ Progress: [████████░░] 97%
 - Phase 4 added: npm-packaging
 - Phase 5 added: progress-bars
 - Phase 7 added: dependencies constraits
+- Phase 8 added: SS dependency
 
 ### Decisions
 
@@ -164,7 +165,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed quick-019 - FS left-edge resize constraint in useTaskDrag.ts
+Stopped at: Phase 8 context gathered
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
