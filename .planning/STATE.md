@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 7 - dependencies constraints cascade engine
+**Current focus:** Phase 8 - SS dependency support
 
 ## Current Position
 
-Phase: 7 of 7 (dependencies-constraits)
-Plan: 1 of 3 in current phase (1 completed)
-Status: IN_PROGRESS - Cascade chain engine core implemented
-Last activity: 2026-02-22 - Completed quick task 19: Apply FS left-edge constraint to resize-left mode
+Phase: 8 of 8 (08-ss-dependency)
+Plan: 2 of 3 in current phase (1 completed)
+Status: IN_PROGRESS - SS dependency utility foundations complete
+Last activity: 2026-02-22 - Completed 08-01: getSuccessorChain linkTypes + recalculateIncomingLags SS
 
 Progress: [████████░░] 97%
 
@@ -58,6 +58,7 @@ Progress: [████████░░] 97%
 | Phase 06-dependencies P02 | 7 minutes | 2 tasks | 5 files |
 | Phase 06-dependencies P03 | 4 minutes | 3 tasks | 3 files |
 | Phase 07 P02 | 4 | 2 tasks | 3 files |
+| Phase 08-ss-dependency P01 | 4 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -134,6 +135,9 @@ Recent decisions affecting current work:
 - [Phase 07-02]: overridePosition uses nullish coalescing: overridePosition?.left ?? (isDragging ? currentLeft : left) — cascade override beats drag and static position
 - [Phase 07-02]: arePropsEqual compares overridePosition.left and .width separately — critical for React.memo re-render of chain tasks during cascade drag
 - [Phase 07-02]: handleCascade in GanttChart uses functional onChange updater to merge cascaded tasks without stale closure
+- [Phase 08-01]: getSuccessorChain default linkTypes=['FS'] preserves all Phase 7 callers without change
+- [Phase 08-01]: SS lag clamped at 0 via Math.max — predecessor can never finish after successor in SS semantics
+- [Phase 08-01]: recalculateIncomingLags SS is private; tested indirectly via handleComplete soft-mode path
 
 ### Pending Todos
 
@@ -165,7 +169,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Phase 8 context gathered
+Stopped at: Completed 08-01-PLAN.md
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -200,3 +204,8 @@ Stopped at: Phase 8 context gathered
 - 07-01: COMPLETE - Cascade chain engine: getSuccessorChain BFS traversal + cascade delta emission + soft-mode lag recalculation (4 min)
 
 **Phase 7 Total:** 1 of 3 plans, 4 min so far, algorithmic core of FS cascade constraint system
+
+**Phase 8 Status:** IN_PROGRESS
+- 08-01: COMPLETE - SS dependency utility foundations: getSuccessorChain linkTypes + recalculateIncomingLags SS formula (4 min)
+
+**Phase 8 Total:** 1 of 3 plans, 4 min so far, foundational utilities for SS dependency cascade support
