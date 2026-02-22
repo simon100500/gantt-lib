@@ -120,3 +120,15 @@ Plans:
 - [x] 08-01-PLAN.md — Extend getSuccessorChain with linkTypes parameter + recalculateIncomingLags SS case (TDD)
 - [x] 08-02-PLAN.md — SS constraint wiring in useTaskDrag: split chains, mode-aware cascade, SS clamp, resize-left cascade
 - [x] 08-03-PLAN.md — SS demo tasks in Construction Project + human verification
+
+### Phase 9: FF-dependency
+
+**Goal:** FF (Finish-to-Finish) dependency constraint enforcement for all drag and resize interactions — successor B's finish date is constrained relative to predecessor A's finish date (endB = endA + lag, lag can be negative, zero, or positive)
+**Depends on:** Phase 8
+**Requirements:** (none — internal feature extension)
+**Plans:** 3/3 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Extend recalculateIncomingLags with newEndDate parameter and FF case (TDD)
+- [ ] 09-02-PLAN.md — FF constraint wiring: cascadeChainEnd, FF cascade emission, FF-aware completion
+- [ ] 09-03-PLAN.md — FF demo tasks in Construction Project + human verification
