@@ -361,15 +361,27 @@ function handleGlobalMouseMove(e: MouseEvent) {
         ? Math.round((newWidth - globalActiveDrag.initialWidth) / globalActiveDrag.dayWidth)
         : Math.round((newLeft - globalActiveDrag.initialLeft) / globalActiveDrag.dayWidth);
       const overrides = new Map<string, { left: number; width: number }>();
+      const draggedTaskId = globalActiveDrag.taskId;
+      const dayWidth = globalActiveDrag.dayWidth;
+      const monthStart = globalActiveDrag.monthStart;
+
       for (const chainTask of activeChain) {
         const chainStart = new Date(chainTask.startDate as string);
         const chainEnd = new Date(chainTask.endDate as string);
         const chainStartOffset = Math.round(
           (Date.UTC(chainStart.getUTCFullYear(), chainStart.getUTCMonth(), chainStart.getUTCDate()) -
             Date.UTC(
-              globalActiveDrag.monthStart.getUTCFullYear(),
-              globalActiveDrag.monthStart.getUTCMonth(),
-              globalActiveDrag.monthStart.getUTCDate()
+              monthStart.getUTCFullYear(),
+              monthStart.getUTCMonth(),
+              monthStart.getUTCDate()
+            )) / (24 * 60 * 60 * 1000)
+        );
+        const chainEndOffset = Math.round(
+          (Date.UTC(chainEnd.getUTCFullYear(), chainEnd.getUTCMonth(), chainEnd.getUTCDate()) -
+            Date.UTC(
+              monthStart.getUTCFullYear(),
+              monthStart.getUTCMonth(),
+              monthStart.getUTCDate()
             )) / (24 * 60 * 60 * 1000)
         );
         const chainDuration = Math.round(
@@ -377,12 +389,33 @@ function handleGlobalMouseMove(e: MouseEvent) {
             Date.UTC(chainStart.getUTCFullYear(), chainStart.getUTCMonth(), chainStart.getUTCDate())
           ) / (24 * 60 * 60 * 1000)
         );
-        let chainLeft = Math.round((chainStartOffset + deltaDays) * globalActiveDrag.dayWidth);
-        const chainWidth = Math.round((chainDuration + 1) * globalActiveDrag.dayWidth); // +1 inclusive
+
+        // Phase 9: Check if this chainTask has FF dependency on dragged task
+        // For FF tasks, calculate position from end offset (not start offset)
+        // This fixes negative lag preview where child starts before parent
+        const hasFFDepOnDragged = chainTask.dependencies?.some(
+          dep => dep.taskId === draggedTaskId && dep.type === 'FF'
+        );
+
+        let chainLeft;
+        if (hasFFDepOnDragged) {
+          // FF: position based on end date shift, then back up by duration
+          // This works correctly even when child starts before parent (negative lag)
+          chainLeft = Math.round((chainEndOffset + deltaDays - chainDuration) * dayWidth);
+        } else {
+          // FS/SS: position based on start date shift
+          chainLeft = Math.round((chainStartOffset + deltaDays) * dayWidth);
+        }
+
+        const chainWidth = Math.round((chainDuration + 1) * dayWidth); // +1 inclusive
 
         // SS lag floor: when A moves left, B follows but chainLeft cannot go below A's new position
         // This keeps lag >= 0 (startB >= startA) during live drag preview
-        if (mode === 'move' || mode === 'resize-left') {
+        // Phase 9: Only apply floor to SS tasks, not FF (FF allows negative lag)
+        const hasSSDepOnDragged = chainTask.dependencies?.some(
+          dep => dep.taskId === draggedTaskId && dep.type === 'SS'
+        );
+        if (hasSSDepOnDragged && (mode === 'move' || mode === 'resize-left')) {
           chainLeft = Math.max(chainLeft, newLeft);
         }
 
