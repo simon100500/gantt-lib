@@ -192,20 +192,22 @@ function canMoveTask(
 }
 
 /**
- * Recalculate lag for FS and SS dependencies linking predecessor(s) to this task.
+ * Recalculate lag for FS, SS, and FF dependencies linking predecessor(s) to this task.
  * Used in soft mode (disableConstraints=true) to update lag on drag complete.
  * Returns updated TaskDependency array with new lag values.
  *
  * Formula by type:
  *   FS: lag = newSuccessorStart - predecessorEnd (can be negative, no floor)
  *   SS: lag = newSuccessorStart - predecessorStart (always >= 0, floor at 0)
- *   FF, SF: pass through unchanged
+ *   FF: lag = newSuccessorEnd - predecessorEnd (can be negative, no floor)
+ *   SF: pass through unchanged
  *
- * Note: SS behavior tested indirectly via handleComplete soft-mode path in integration tests.
+ * Note: SS/FF behavior tested indirectly via handleComplete soft-mode path in integration tests.
  */
 function recalculateIncomingLags(
   task: Task,
   newStartDate: Date,
+  newEndDate: Date,
   allTasks: Task[]
 ): NonNullable<Task['dependencies']> {
   if (!task.dependencies) return [];
@@ -246,7 +248,24 @@ function recalculateIncomingLags(
       const lagDays = Math.max(0, Math.round(lagMs / (24 * 60 * 60 * 1000))); // SS lag >= 0
       return { ...dep, lag: lagDays };
     }
-    return dep; // FF, SF: unchanged
+    if (dep.type === 'FF') {
+      // FF: lag = newSuccessorEnd - predecessorEnd (can be negative, no floor)
+      const predecessor = taskById.get(dep.taskId);
+      if (!predecessor) return dep;
+      const predEnd = new Date(predecessor.endDate as string);
+      const lagMs = Date.UTC(
+        newEndDate.getUTCFullYear(),
+        newEndDate.getUTCMonth(),
+        newEndDate.getUTCDate()
+      ) - Date.UTC(
+        predEnd.getUTCFullYear(),
+        predEnd.getUTCMonth(),
+        predEnd.getUTCDate()
+      );
+      const lagDays = Math.round(lagMs / (24 * 60 * 60 * 1000)); // FF: no floor
+      return { ...dep, lag: lagDays };
+    }
+    return dep; // SF: unchanged
   });
 }
 
@@ -658,7 +677,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
               startDate: newStartDate.toISOString(),
               endDate: newEndDate.toISOString(),
               ...(draggedTaskData?.dependencies && {
-                dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, allTasks),
+                dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks),
               }),
             },
             ...chainForCompletion.map(chainTask => {
@@ -683,7 +702,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       if (allTasks.length > 0 && onDragEnd) {
         const currentTaskData = allTasks.find(t => t.id === taskId);
         const updatedDependencies = currentTaskData?.dependencies
-          ? recalculateIncomingLags(currentTaskData, newStartDate, allTasks)
+          ? recalculateIncomingLags(currentTaskData, newStartDate, newEndDate, allTasks)
           : undefined;
         onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate, updatedDependencies });
       } else if (onDragEnd) {
