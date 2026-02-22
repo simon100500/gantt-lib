@@ -243,10 +243,13 @@ function recalculateIncomingLags(
     }
     if (dep.type === 'SF') {
       // SF: lag = endB - startA (ceiling at 0)
+      // endDate is exclusive, so add 1 day to get visual end date
       const predecessor = taskById.get(dep.taskId);
       if (!predecessor) return dep;
       const predStart = new Date(predecessor.startDate as string);
-      const lagMs = Date.UTC(newEndDate.getUTCFullYear(), newEndDate.getUTCMonth(), newEndDate.getUTCDate())
+      const endBVisual = new Date(newEndDate);
+      endBVisual.setUTCDate(endBVisual.getUTCDate() + 1); // Convert exclusive to visual
+      const lagMs = Date.UTC(endBVisual.getUTCFullYear(), endBVisual.getUTCMonth(), endBVisual.getUTCDate())
                   - Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate());
       const lagDays = Math.min(0, Math.round(lagMs / (24 * 60 * 60 * 1000))); // SF: ceiling at 0
       return { ...dep, lag: lagDays };
@@ -341,11 +344,19 @@ function handleGlobalMouseMove(e: MouseEvent) {
             / (24 * 60 * 60 * 1000)
           );
           const predStartLeft = Math.round(predStartOffset * globalActiveDrag.dayWidth);
-          const currentEndRight = newLeft + newWidth;
-          const maxAllowedEndRight = predStartLeft;  // endB cannot exceed startA
-          if (currentEndRight > maxAllowedEndRight) {
-            // Clamp width so endB = startA
-            newWidth = Math.max(globalActiveDrag.dayWidth, maxAllowedEndRight - newLeft);
+
+          if (mode === 'move') {
+            // Move mode: when B would hit startA constraint, stop movement entirely
+            const proposedEndRight = newLeft + globalActiveDrag.initialWidth;
+            if (proposedEndRight > predStartLeft) {
+              newLeft = Math.max(globalActiveDrag.initialLeft, predStartLeft - globalActiveDrag.initialWidth);
+            }
+          } else {
+            // Resize-right mode: clamp width so endB = startA
+            const currentEndRight = newLeft + newWidth;
+            if (currentEndRight > predStartLeft) {
+              newWidth = Math.max(globalActiveDrag.dayWidth, predStartLeft - newLeft);
+            }
           }
         }
       }
