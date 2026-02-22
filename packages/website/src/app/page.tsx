@@ -109,6 +109,7 @@ const createSampleTasks = (): Task[] => {
       "endDate": "2026-03-13T00:00:00.000Z",
       "progress": 80,
       "accepted": false,
+      "locked": true,
       "dependencies": [
         {
           "taskId": "6",
