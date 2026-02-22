@@ -87,7 +87,54 @@ interface Task {
   color?: string; // Optional bar color (CSS color value)
   progress?: number; // Optional progress 0–100. Renders a progress bar overlay inside the task bar.
   accepted?: boolean; // Optional. Only meaningful when progress is 100. true = green bar, false/undefined = yellow bar.
+  dependencies?: TaskDependency[]; // Optional array of predecessor dependencies
 }
+```
+
+### Dependencies
+
+Tasks can have dependencies on predecessor tasks using 4 link types following PM standards:
+
+- **FS (Finish-to-Start)**: Predecessor must finish before successor starts. This is the most common dependency type.
+- **SS (Start-to-Start)**: Predecessor and successor start simultaneously.
+- **FF (Finish-to-Finish)**: Predecessor and successor finish simultaneously.
+- **SF (Start-to-Finish)**: Predecessor must start before successor can finish.
+
+#### TaskDependency Interface
+
+```typescript
+interface TaskDependency {
+  taskId: string;      // ID of predecessor task
+  type: 'FS' | 'SS' | 'FF' | 'SF';
+  lag?: number;        // Days delay (positive or negative, default: 0)
+}
+```
+
+#### Lag
+
+- **Positive lag**: Delays the successor (e.g., lag: 2 means successor starts 2 days after constraint is satisfied)
+- **Negative lag**: Allows overlap (e.g., lag: -3 means successor starts 3 days before predecessor finishes)
+
+#### Example
+
+```tsx
+const tasks: Task[] = [
+  {
+    id: "1",
+    name: "Foundation",
+    startDate: "2026-02-01",
+    endDate: "2026-02-10",
+  },
+  {
+    id: "2",
+    name: "Construction",
+    startDate: "2026-02-11",
+    endDate: "2026-02-25",
+    dependencies: [
+      { taskId: "1", type: "FS" }  // Starts after Foundation finishes
+    ],
+  },
+];
 ```
 
 ## Customization
