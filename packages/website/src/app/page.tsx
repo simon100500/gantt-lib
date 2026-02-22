@@ -28,18 +28,18 @@ const createSampleTasks = (): Task[] => {
     {
       id: "2",
       name: "Ограждение и временные дороги",
-      startDate: addDays(baseDate, 1),
-      endDate: addDays(baseDate, 7),
+      startDate: addDays(baseDate, 11),
+      endDate: addDays(baseDate, 14),
       progress: 100,
-      dependencies: [{ taskId: '1', type: 'SS', lag: 0 }],
+      dependencies: [{ taskId: '1', type: 'SS' }],
     },
     {
       id: "3",
       name: "Подключение временных коммуникаций",
       startDate: addDays(baseDate, 7),
-      endDate: addDays(baseDate, 14),
+      endDate: addDays(baseDate, 10),
       progress: 90,
-      dependencies: [{ taskId: '2', type: 'SF', lag: 0 }],
+      dependencies: [{ taskId: '2', type: 'SF' }],
     },
 
     // === НУЛЕВОЙ ЦИКЛ ===
@@ -49,7 +49,7 @@ const createSampleTasks = (): Task[] => {
       startDate: addDays(baseDate, 17), // +3 дня лаг после предшественника
       endDate: addDays(baseDate, 30),
       progress: 100,
-      dependencies: [{ taskId: '3', type: 'FS', lag: 3 }], // Пример FS +3
+      dependencies: [{ taskId: '2', type: 'FS', lag: 3 }], // Пример FS +3
     },
     {
       id: "5",

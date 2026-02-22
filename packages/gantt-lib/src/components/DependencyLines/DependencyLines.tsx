@@ -63,7 +63,7 @@ function calculateEffectiveLag(
       );
       break;
     case 'SF':
-      // SF: lag = successor.end - predecessor.start
+      // SF: lag = successor.end - predecessor.start + 1 day (adjacent days = lag 0, symmetric to FS which uses -1)
       lagMs = Date.UTC(
         succEndDate.getUTCFullYear(),
         succEndDate.getUTCMonth(),
@@ -72,7 +72,7 @@ function calculateEffectiveLag(
         predStartDate.getUTCFullYear(),
         predStartDate.getUTCMonth(),
         predStartDate.getUTCDate()
-      );
+      ) + (24 * 60 * 60 * 1000);
       break;
     default:
       return 0;
