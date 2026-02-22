@@ -92,9 +92,9 @@ interface ActiveDragState {
   onCancel: () => void;
   allTasks: Task[];
   disableConstraints?: boolean;
-  cascadeChain: Task[];        // FS+SS+FF successors of dragged task (Phase 9)
+  cascadeChain: Task[];        // FS+SS+FF+SF successors of dragged task (Phase 10: added SF)
   cascadeChainFS: Task[];      // FS-only successors (part of resize-right cascade with FF)
-  cascadeChainSS: Task[];      // SS-only successors (resize-left cascade)
+  cascadeChainStart: Task[];   // SS+SF successors (resize-left cascade) - Phase 10: renamed from cascadeChainSS
   cascadeChainEnd: Task[];     // FS+FF successors (resize-right cascade) - Phase 9
   onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
 }
@@ -193,8 +193,13 @@ function canMoveTask(
 }
 
 /**
- * Simplified lag recalculation - always returns lag=0
- * Lag is not used in constraint calculations, so we just clear it.
+ * Recalculate lag values for incoming dependencies after drag completion.
+ *
+ * Lag formulas:
+ * - FS: lag = startB - endA (can be negative)
+ * - SS: lag = startB - startA (floor at 0)
+ * - FF: lag = endB - endA (can be negative)
+ * - SF: lag = endB - startA (ceiling at 0)
  */
 function recalculateIncomingLags(
   task: Task,
@@ -203,8 +208,51 @@ function recalculateIncomingLags(
   allTasks: Task[]
 ): NonNullable<Task['dependencies']> {
   if (!task.dependencies) return [];
-  // Return dependencies with lag=0 (lag not used in calculations)
-  return task.dependencies.map(dep => ({ ...dep, lag: 0 }));
+  const taskById = new Map(allTasks.map(t => [t.id, t]));
+
+  return task.dependencies.map(dep => {
+    if (dep.type === 'FS') {
+      // FS: lag = startB - endA (can be negative)
+      const predecessor = taskById.get(dep.taskId);
+      if (!predecessor) return dep;
+      const predEnd = new Date(predecessor.endDate as string);
+      const lagMs = Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), newStartDate.getUTCDate())
+                  - Date.UTC(predEnd.getUTCFullYear(), predEnd.getUTCMonth(), predEnd.getUTCDate());
+      const lagDays = Math.round(lagMs / (24 * 60 * 60 * 1000));
+      return { ...dep, lag: lagDays };
+    }
+    if (dep.type === 'SS') {
+      // SS: lag = startB - startA (floor at 0)
+      const predecessor = taskById.get(dep.taskId);
+      if (!predecessor) return dep;
+      const predStart = new Date(predecessor.startDate as string);
+      const lagMs = Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), newStartDate.getUTCDate())
+                  - Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate());
+      const lagDays = Math.max(0, Math.round(lagMs / (24 * 60 * 60 * 1000))); // SS: floor at 0
+      return { ...dep, lag: lagDays };
+    }
+    if (dep.type === 'FF') {
+      // FF: lag = endB - endA (can be negative)
+      const predecessor = taskById.get(dep.taskId);
+      if (!predecessor) return dep;
+      const predEnd = new Date(predecessor.endDate as string);
+      const lagMs = Date.UTC(newEndDate.getUTCFullYear(), newEndDate.getUTCMonth(), newEndDate.getUTCDate())
+                  - Date.UTC(predEnd.getUTCFullYear(), predEnd.getUTCMonth(), predEnd.getUTCDate());
+      const lagDays = Math.round(lagMs / (24 * 60 * 60 * 1000));
+      return { ...dep, lag: lagDays };
+    }
+    if (dep.type === 'SF') {
+      // SF: lag = endB - startA (ceiling at 0)
+      const predecessor = taskById.get(dep.taskId);
+      if (!predecessor) return dep;
+      const predStart = new Date(predecessor.startDate as string);
+      const lagMs = Date.UTC(newEndDate.getUTCFullYear(), newEndDate.getUTCMonth(), newEndDate.getUTCDate())
+                  - Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate());
+      const lagDays = Math.min(0, Math.round(lagMs / (24 * 60 * 60 * 1000))); // SF: ceiling at 0
+      return { ...dep, lag: lagDays };
+    }
+    return dep;
+  });
 }
 
 /**
@@ -277,18 +325,45 @@ function handleGlobalMouseMove(e: MouseEvent) {
       }
     }
 
+    // Phase 10: SF constraint: endB <= startA (lag ceiling at 0)
+    // Applies when B is moved right or resized-right
+    if ((mode === 'move' || mode === 'resize-right') && allTasks.length > 0 && !globalActiveDrag.disableConstraints) {
+      const currentTask = allTasks.find(t => t.id === globalActiveDrag?.taskId);
+      if (currentTask && currentTask.dependencies && currentTask.dependencies.length > 0) {
+        for (const dep of currentTask.dependencies) {
+          if (dep.type !== 'SF') continue;
+          const predecessor = globalActiveDrag.allTasks.find(t => t.id === dep.taskId);
+          if (!predecessor) continue;
+          const predStart = new Date(predecessor.startDate as string);
+          const predStartOffset = Math.round(
+            (Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate()) -
+              Date.UTC(globalActiveDrag.monthStart.getUTCFullYear(), globalActiveDrag.monthStart.getUTCDate(), globalActiveDrag.monthStart.getUTCDate()))
+            / (24 * 60 * 60 * 1000)
+          );
+          const predStartLeft = Math.round(predStartOffset * globalActiveDrag.dayWidth);
+          const currentEndRight = newLeft + newWidth;
+          const maxAllowedEndRight = predStartLeft;  // endB cannot exceed startA
+          if (currentEndRight > maxAllowedEndRight) {
+            // Clamp width so endB = startA
+            newWidth = Math.max(globalActiveDrag.dayWidth, maxAllowedEndRight - newLeft);
+          }
+        }
+      }
+    }
+
     // Phase 9: select chain based on drag mode
-    // move: all FS+SS+FF successors follow
-    // resize-right: FS+FF successors (endA changes, SS unaffected)
-    // resize-left: SS successors only (startA changes, FS/FF unaffected)
+    // move: all FS+SS+FF+SF successors follow
+    // resize-right: FS+FF successors (endA changes, SS/SF unaffected)
+    // resize-left: SS+SF successors only (startA changes, FS/FF unaffected)
+    // Phase 10: added SF
     const activeChain =
-      mode === 'resize-right' ? globalActiveDrag.cascadeChainEnd :   // FS + FF
-      mode === 'resize-left'  ? globalActiveDrag.cascadeChainSS :    // SS only
-      /* move */                globalActiveDrag.cascadeChain;         // FS + SS + FF
+      mode === 'resize-right' ? globalActiveDrag.cascadeChainEnd :    // FS + FF
+      mode === 'resize-left'  ? globalActiveDrag.cascadeChainStart :  // SS + SF
+      /* move */                globalActiveDrag.cascadeChain;         // FS + SS + FF + SF
 
     // Hard mode cascade: emit position overrides for successor chain members
     if ((mode === 'move' || mode === 'resize-right' ||
-         (mode === 'resize-left' && globalActiveDrag.cascadeChainSS.length > 0)) &&
+         (mode === 'resize-left' && globalActiveDrag.cascadeChainStart.length > 0)) &&
         !globalActiveDrag.disableConstraints &&
         activeChain.length > 0 &&
         globalActiveDrag.onCascadeProgress) {
@@ -636,10 +711,10 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         // Phase 9: FF included in resize-right and move chains
         const isResizeLeft = deltaFromStart !== 0 && deltaFromEnd === 0;
         const chainForCompletion = deltaFromStart === 0
-          ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])          // resize-right: FS + FF
+          ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])               // resize-right: FS + FF
           : isResizeLeft
-            ? getTransitiveCascadeChain(taskId, allTasks, ['SS'])               // resize-left: SS only
-            : getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS', 'FF']); // move: all types
+            ? getTransitiveCascadeChain(taskId, allTasks, ['SS', 'SF'])             // resize-left: SS + SF
+            : getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS', 'FF', 'SF']); // move: all types
 
         if (chainForCompletion.length > 0) {
           const draggedTaskData = allTasks.find(t => t.id === taskId);
@@ -779,13 +854,13 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       allTasks,
       disableConstraints,
       cascadeChain: !disableConstraints
-        ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS', 'FF'])   // all successors, used for move (Phase 9: added FF)
+        ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS', 'FF', 'SF'])   // all successors, used for move (Phase 10: added SF)
         : [],
       cascadeChainFS: !disableConstraints
         ? getTransitiveCascadeChain(taskId, allTasks, ['FS'])          // FS + transitive, used for resize-right
         : [],
-      cascadeChainSS: !disableConstraints
-        ? getTransitiveCascadeChain(taskId, allTasks, ['SS'])          // SS + transitive, used for resize-left
+      cascadeChainStart: !disableConstraints
+        ? getTransitiveCascadeChain(taskId, allTasks, ['SS', 'SF'])    // SS + SF for resize-left cascade (Phase 10: renamed from cascadeChainSS)
         : [],
       cascadeChainEnd: !disableConstraints
         ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])    // FS + FF for resize-right cascade (Phase 9)
