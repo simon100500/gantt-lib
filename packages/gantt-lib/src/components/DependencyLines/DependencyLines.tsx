@@ -284,7 +284,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
             <text
               className="gantt-dependency-lag-label"
               x={lag < 0 ? toX + 14 : toX - 14}
-              y={fromY + 14}
+              y={fromY + 12}
               textAnchor="middle"
               fontSize="10"
               fill={hasCycle ? 'var(--gantt-dependency-cycle-color, #ef4444)' : 'var(--gantt-dependency-line-color, #666666)'}
