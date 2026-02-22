@@ -146,7 +146,7 @@ Plans:
 
 **Goal:** Per-task `locked?: boolean` prop that completely blocks drag and resize interactions, with a visual padlock icon on the task bar and cascade-safe filtering so locked tasks never move during predecessor drag.
 **Depends on:** Phase 10
-**Plans:** 2/2 plans executed (COMPLETE)
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 11-01-PLAN.md — Type extension, hook guard, lock icon rendering, cascade filtering
