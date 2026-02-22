@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 
 ## Current Position
 
-Phase: 8 of 8 (08-ss-dependency)
-Plan: 3 of 3 in current phase (3 completed)
-Status: COMPLETE - All phases done, SS dependency fully implemented and verified
-Last activity: 2026-02-22 - Completed 08-03: SS demo tasks added, all 8 SS interaction scenarios verified by human tester
+Phase: 9 of 9 (09-ff-dependency)
+Plan: 1 of 3 in current phase (1 completed)
+Status: IN_PROGRESS - FF dependency lag recalculation implemented
+Last activity: 2026-02-22 - Completed 09-01: Extended recalculateIncomingLags with newEndDate parameter and FF case
 
-Progress: [██████████] 100%
+Progress: [███░░░░░░] 33% (Phase 9: 1/3 plans complete)
 
 ## Performance Metrics
 
@@ -218,3 +218,6 @@ Stopped at: Completed 08-03-PLAN.md (final plan — project complete)
 - 08-03: COMPLETE - SS demo tasks added to Construction Project, all 8 SS interaction scenarios human-verified (5 min)
 
 **Phase 8 Total:** 3 of 3 plans, ~4 min avg, full SS dependency support — utility foundations, constraint enforcement, and end-to-end verification
+
+**Phase 9 Status:** IN_PROGRESS
+- 09-01: COMPLETE - Extend recalculateIncomingLags with newEndDate parameter and FF case (2 min)
