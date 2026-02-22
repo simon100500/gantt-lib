@@ -78,6 +78,10 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       id: string;
       path: string;
       hasCycle: boolean;
+      lag: number;
+      fromX: number;
+      toX: number;
+      fromY: number;
     }> = [];
 
     for (const edge of edges) {
@@ -134,6 +138,10 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
         path,
         hasCycle,
+        lag: edge.lag ?? 0,
+        fromX,
+        toX,
+        fromY,
       });
     }
 
@@ -181,13 +189,26 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         </marker>
       </defs>
 
-      {lines.map(({ id, path, hasCycle }) => (
-        <path
-          key={id}
-          d={path}
-          className={hasCycle ? 'gantt-dependency-path gantt-dependency-cycle' : 'gantt-dependency-path'}
-          markerEnd={hasCycle ? 'url(#arrowhead-cycle)' : 'url(#arrowhead)'}
-        />
+      {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY }) => (
+        <React.Fragment key={id}>
+          <path
+            d={path}
+            className={hasCycle ? 'gantt-dependency-path gantt-dependency-cycle' : 'gantt-dependency-path'}
+            markerEnd={hasCycle ? 'url(#arrowhead-cycle)' : 'url(#arrowhead)'}
+          />
+          {lag !== 0 && (
+            <text
+              className="gantt-dependency-lag-label"
+              x={(fromX + toX) / 2}
+              y={fromY + 4}
+              textAnchor="middle"
+              fontSize="10"
+              fill={hasCycle ? 'var(--gantt-dependency-cycle-color, #ef4444)' : 'var(--gantt-dependency-line-color, #666666)'}
+            >
+              {lag > 0 ? `+${lag}` : `${lag}`}
+            </text>
+          )}
+        </React.Fragment>
       ))}
     </svg>
   );
