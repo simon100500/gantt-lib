@@ -92,9 +92,10 @@ interface ActiveDragState {
   onCancel: () => void;
   allTasks: Task[];
   disableConstraints?: boolean;
-  cascadeChain: Task[];        // FS+SS successors of dragged task (Phase 8)
-  cascadeChainFS: Task[];      // FS-only successors (resize-right cascade)
+  cascadeChain: Task[];        // FS+SS+FF successors of dragged task (Phase 9)
+  cascadeChainFS: Task[];      // FS-only successors (part of resize-right cascade with FF)
   cascadeChainSS: Task[];      // SS-only successors (resize-left cascade)
+  cascadeChainEnd: Task[];     // FS+FF successors (resize-right cascade) - Phase 9
   onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
 }
 
@@ -807,13 +808,16 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       allTasks,
       disableConstraints,
       cascadeChain: !disableConstraints
-        ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS'])   // all successors, used for move
+        ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS', 'FF'])   // all successors, used for move (Phase 9: added FF)
         : [],
       cascadeChainFS: !disableConstraints
         ? getTransitiveCascadeChain(taskId, allTasks, ['FS'])          // FS + transitive, used for resize-right
         : [],
       cascadeChainSS: !disableConstraints
         ? getTransitiveCascadeChain(taskId, allTasks, ['SS'])          // SS + transitive, used for resize-left
+        : [],
+      cascadeChainEnd: !disableConstraints
+        ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])    // FS + FF for resize-right cascade (Phase 9)
         : [],
       onCascadeProgress,
     };
