@@ -2,10 +2,84 @@
 
 import React, { useMemo } from 'react';
 import { Task } from '../../types';
-import { calculateTaskBar } from '../../utils/geometry';
-import { calculateOrthogonalPath } from '../../utils/geometry';
+import { calculateTaskBar, calculateDependencyPath, pixelsToDate } from '../../utils/geometry';
 import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils';
 import './DependencyLines.css';
+
+/**
+ * Calculate effective lag based on current task positions
+ * Always calculates from actual positions, not stored lag values
+ */
+function calculateEffectiveLag(
+  edge: { type: string },
+  predPosition: { left: number; right: number },
+  succPosition: { left: number; right: number },
+  monthStart: Date,
+  dayWidth: number
+): number {
+  // Convert pixel positions to dates
+  const predStartDate = pixelsToDate(predPosition.left, monthStart, dayWidth);
+  const predEndDate = pixelsToDate(predPosition.right - dayWidth, monthStart, dayWidth); // right is exclusive, subtract 1 day
+  const succStartDate = pixelsToDate(succPosition.left, monthStart, dayWidth);
+  const succEndDate = pixelsToDate(succPosition.right - dayWidth, monthStart, dayWidth);
+
+  // Calculate lag based on link type
+  let lagMs = 0;
+  switch (edge.type) {
+    case 'FS':
+      // FS: lag = successor.start - predecessor.end - 1 (inclusive dates)
+      lagMs = Date.UTC(
+        succStartDate.getUTCFullYear(),
+        succStartDate.getUTCMonth(),
+        succStartDate.getUTCDate()
+      ) - Date.UTC(
+        predEndDate.getUTCFullYear(),
+        predEndDate.getUTCMonth(),
+        predEndDate.getUTCDate()
+      ) - (24 * 60 * 60 * 1000);
+      break;
+    case 'SS':
+      // SS: lag = successor.start - predecessor.start
+      lagMs = Date.UTC(
+        succStartDate.getUTCFullYear(),
+        succStartDate.getUTCMonth(),
+        succStartDate.getUTCDate()
+      ) - Date.UTC(
+        predStartDate.getUTCFullYear(),
+        predStartDate.getUTCMonth(),
+        predStartDate.getUTCDate()
+      );
+      break;
+    case 'FF':
+      // FF: lag = successor.end - predecessor.end
+      lagMs = Date.UTC(
+        succEndDate.getUTCFullYear(),
+        succEndDate.getUTCMonth(),
+        succEndDate.getUTCDate()
+      ) - Date.UTC(
+        predEndDate.getUTCFullYear(),
+        predEndDate.getUTCMonth(),
+        predEndDate.getUTCDate()
+      );
+      break;
+    case 'SF':
+      // SF: lag = successor.end - predecessor.start + 1 day (adjacent days = lag 0, symmetric to FS which uses -1)
+      lagMs = Date.UTC(
+        succEndDate.getUTCFullYear(),
+        succEndDate.getUTCMonth(),
+        succEndDate.getUTCDate()
+      ) - Date.UTC(
+        predStartDate.getUTCFullYear(),
+        predStartDate.getUTCMonth(),
+        predStartDate.getUTCDate()
+      ) + (24 * 60 * 60 * 1000);
+      break;
+    default:
+      return 0;
+  }
+
+  return Math.round(lagMs / (24 * 60 * 60 * 1000));
+}
 
 export interface DependencyLinesProps {
   /** All tasks in the chart */
@@ -56,7 +130,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
       indices.set(task.id, index);
       positions.set(task.id, {
-        left: resolvedLeft + 10,
+        left: resolvedLeft,
         right: resolvedLeft + resolvedWidth,
         rowTop: index * rowHeight,
       });
@@ -79,6 +153,11 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       id: string;
       path: string;
       hasCycle: boolean;
+      lag: number;
+      fromX: number;
+      toX: number;
+      fromY: number;
+      reverseOrder: boolean;
     }> = [];
 
     for (const edge of edges) {
@@ -108,23 +187,46 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         toY = successor.rowTop + 6;                    // 8px from top of child bar
       }
 
-      const from = { x: predecessor.right, y: fromY };
-      const to = { x: successor.left, y: toY };
+      // Determine connection points based on link type:
+      // FS: right → left
+      // SS: left  → left
+      // FF: right → right
+      // SF: left  → right
+      const fromX = (edge.type === 'SS' || edge.type === 'SF')
+        ? predecessor.left
+        : predecessor.right;
 
-      const path = calculateOrthogonalPath(from, to);
+      const toX = (edge.type === 'FF' || edge.type === 'SF')
+        ? successor.right
+        : successor.left;
+
+      const arrivesFromRight = edge.type === 'FF' || edge.type === 'SF';
+
+      const from = { x: fromX, y: fromY };
+      const to = { x: toX, y: toY };
+
+      const path = calculateDependencyPath(from, to, arrivesFromRight);
 
       // Check if this edge is part of a cycle
       const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
 
+      // Calculate effective lag from actual positions (always, not just during drag)
+      const lag = calculateEffectiveLag(edge, predecessor, successor, monthStart, dayWidth);
+
       lines.push({
-        id: `${edge.predecessorId}-${edge.successorId}`,
+        id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
         path,
         hasCycle,
+        lag,
+        fromX,
+        toX,
+        fromY,
+        reverseOrder,
       });
     }
 
     return lines;
-  }, [tasks, taskPositions, taskIndices, cycleInfo]);
+  }, [tasks, taskPositions, taskIndices, cycleInfo, monthStart, dayWidth, dragOverrides]);
 
   return (
     <svg
@@ -167,13 +269,26 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         </marker>
       </defs>
 
-      {lines.map(({ id, path, hasCycle }) => (
-        <path
-          key={id}
-          d={path}
-          className={hasCycle ? 'gantt-dependency-path gantt-dependency-cycle' : 'gantt-dependency-path'}
-          markerEnd={hasCycle ? 'url(#arrowhead-cycle)' : 'url(#arrowhead)'}
-        />
+      {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY, reverseOrder }) => (
+        <React.Fragment key={id}>
+          <path
+            d={path}
+            className={hasCycle ? 'gantt-dependency-path gantt-dependency-cycle' : 'gantt-dependency-path'}
+            markerEnd={hasCycle ? 'url(#arrowhead-cycle)' : 'url(#arrowhead)'}
+          />
+          {lag !== 0 && (
+            <text
+              className="gantt-dependency-lag-label"
+              x={lag < 0 ? toX + 14 : toX - 14}
+              y={reverseOrder ? fromY - 4 : fromY + 12}
+              textAnchor="middle"
+              fontSize="10"
+              fill={hasCycle ? 'var(--gantt-dependency-cycle-color, #ef4444)' : 'var(--gantt-dependency-line-color, #666666)'}
+            >
+              {lag > 0 ? `+${lag}` : `${lag}`}
+            </text>
+          )}
+        </React.Fragment>
       ))}
     </svg>
   );

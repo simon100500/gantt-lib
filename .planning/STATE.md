@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 7 - dependencies constraints cascade engine
+**Current focus:** Phase 10 - SF dependency (context gathered)
 
 ## Current Position
 
-Phase: 7 of 7 (dependencies-constraits)
-Plan: 1 of 3 in current phase (1 completed)
-Status: IN_PROGRESS - Cascade chain engine core implemented
-Last activity: 2026-02-22 - Completed quick task 16: для демо - сделай несколько (6-7) связей на первом основном поле графика (где много работ строительных)
+Phase: 10 of 10 (10-sf-dependency)
+Plan: 1 of 1 in current phase (complete)
+Status: COMPLETE - All four link types (FS/SS/FF/SF) implemented
+Last activity: 2026-02-22 - SF dependency constraint enforcement complete
 
-Progress: [████████░░] 97%
+Progress: [██████████] 100% (Phase 10: complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 24
 - Average duration: 9 min
-- Total execution time: 2.6 hours
+- Total execution time: 3.5 hours
 
 **By Phase:**
 
@@ -33,6 +33,10 @@ Progress: [████████░░] 97%
 | 04-npm-packaging | 5 | 5 | 2.4 min |
 | 05-progress-bars | 1 | 1 | 6 min |
 | 06-dependencies | 2 | 4 | 5 min |
+| 07-dependencies | 2 | 2 | 4 min |
+| 08-ss-dependency | 3 | 3 | 4 min |
+| 09-ff-dependency | 3 | 3 | 2 min |
+| 10-sf-dependency | 1 | 1 | 4 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -58,6 +62,17 @@ Progress: [████████░░] 97%
 | Phase 06-dependencies P02 | 7 minutes | 2 tasks | 5 files |
 | Phase 06-dependencies P03 | 4 minutes | 3 tasks | 3 files |
 | Phase 07 P02 | 4 | 2 tasks | 3 files |
+| Phase 08-ss-dependency P01 | 4 | 2 tasks | 3 files |
+| Phase 08-ss-dependency P02 | 2min | 2 tasks | 1 files |
+| Phase 08-ss-dependency P03 | 5min | 2 tasks | 1 files |
+| Phase 09-ff-dependency P02 | 1min | 2 tasks | 1 files |
+| Phase 09-ff-dependency P03 | 2min | 2 tasks | 6 files |
+| Quick 020 P01 | 2min | 2 tasks | 2 files |
+| Phase 09-ff-dependency P09-03 | 2min | 2 tasks | 6 files |
+| Quick 021 P01 | 3min | 2 tasks | 2 files |
+| Phase quick-022 P01 | 163 | 1 tasks | 1 files |
+| Phase 10-sf-dependency P01 | 4min | 3 tasks | 2 files |
+| Phase quick-023 P23 | 65 | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -67,6 +82,9 @@ Progress: [████████░░] 97%
 - Phase 4 added: npm-packaging
 - Phase 5 added: progress-bars
 - Phase 7 added: dependencies constraits
+- Phase 8 added: SS dependency
+- Phase 9 added: FF-dependency
+- Phase 10 added: SF dependency
 
 ### Decisions
 
@@ -133,6 +151,25 @@ Recent decisions affecting current work:
 - [Phase 07-02]: overridePosition uses nullish coalescing: overridePosition?.left ?? (isDragging ? currentLeft : left) — cascade override beats drag and static position
 - [Phase 07-02]: arePropsEqual compares overridePosition.left and .width separately — critical for React.memo re-render of chain tasks during cascade drag
 - [Phase 07-02]: handleCascade in GanttChart uses functional onChange updater to merge cascaded tasks without stale closure
+- [Phase 08-01]: getSuccessorChain default linkTypes=['FS'] preserves all Phase 7 callers without change
+- [Phase 08-01]: SS lag clamped at 0 via Math.max — predecessor can never finish after successor in SS semantics
+- [Phase 08-01]: recalculateIncomingLags SS is private; tested indirectly via handleComplete soft-mode path
+- [Phase 08-02]: Mode filtering at cascade emission time (not drag start) to avoid storing mode state at assignment
+- [Phase 08-02]: SS lag floor (Math.max) applied only in move and resize-left modes — resize-right never changes startA
+- [Phase 08-02]: Dual-delta approach: detect resize-right by checking deltaFromStart === 0 (startDate unchanged)
+- [Phase 08-02]: chainForCompletion uses ['FS','SS'] when startDate moved, ['FS'] when only endDate moved
+- [Phase 09-02]: cascadeChainEnd (FS+FF) for resize-right cascade — endA changes, SS unaffected
+- [Phase 09-02]: cascadeChain includes FF (FS+SS+FF) for move mode — all link types follow startA shift
+- [Phase 09-02]: SS lag floor remains applied to all activeChain tasks — FF negative lag preview acceptable, real lag recalculated on completion
+- [Phase 09-02]: chainForCompletion includes FF for resize-right and move modes, excludes FF for resize-left
+- [Phase 09-03]: FF cascade preview positioned from chainEndOffset (not chainStartOffset) — fixes visual jump with negative lag
+- [Phase 09-03]: SS lag floor (Math.max) applied only to SS tasks, not FF tasks — allows FF negative lag in mixed chains
+- [Phase 09-ff-dependency]: FF cascade preview positioned from chainEndOffset (not chainStartOffset) to fix visual jump with negative lag
+- [Phase 09-ff-dependency]: SS lag floor applied only to SS tasks, not FF tasks, allowing FF negative lag in mixed chains
+- [Phase 10-01]: SF cascade preview uses end-based positioning (like FF) because SF constrains endB to startA
+- [Phase 10-01]: SF constraint clamp affects width (not left) because it constrains endB, not startB
+- [Phase 10-01]: SF lag uses Math.min(0, ...) for ceiling (opposite of SS's Math.max(0, ...) floor)
+- [Phase 10-01]: Renamed cascadeChainSS to cascadeChainStart for clarity (SS+SF share start-based cascade behavior)
 
 ### Pending Todos
 
@@ -158,11 +195,17 @@ None yet.
 | 14 | Сделай корректное отображение связей (bidirectional dependency line rendering) | 2026-02-21 | 58f3564 | [14-worktree-workterr](./quick/14-worktree-workterr/) |
 | 15 | Redraw dependency lines in real-time during drag | 2026-02-22 | f530164 | [015-redraw-dep-lines-on-drag](./quick/015-redraw-dep-lines-on-drag/) |
 | 16 | Add 7 FS dependency links to Construction Project demo | 2026-02-22 | 58041eb | [16-6-7](./quick/16-6-7/) |
+| 17 | SS/FF/SF dependency line rendering (type-aware connection points) | 2026-02-22 | 133d8cc | [17-fs-ss-sf-ff](./quick/17-fs-ss-sf-ff/) |
+| 19 | Apply FS left-edge constraint to resize-left mode | 2026-02-22 | af6261e | [19-fs](./quick/19-fs/) |
+| 20 | Progress percentage display with intelligent positioning | 2026-02-22 | 5296367 | [020-progress-percent](./quick/020-progress-percent/) |
+| 21 | Add lag number display to dependency connection lines | 2026-02-22 | 66f488d | [21-add-small-lag-number-in-days-to-connecti](./quick/21-add-small-lag-number-in-days-to-connecti/) |
+| 22 | Lag label direction-aware vertical positioning | 2026-02-22 | 2ff0591 | [022-lag-label-above-line](./quick/022-lag-label-above-line/) |
+| 23 | README dependency documentation | 2026-02-22 | 828b404 | [23-readme-s](./quick/23-readme-s/) |
 
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed quick-016 - Add 7 FS dependency links to Construction Project demo (preparatory chain 1->2->3 + earthwork chain 7->8->9->10->11->12)
+Stopped at: Completed quick-023-23 (README dependency documentation)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -197,3 +240,17 @@ Stopped at: Completed quick-016 - Add 7 FS dependency links to Construction Proj
 - 07-01: COMPLETE - Cascade chain engine: getSuccessorChain BFS traversal + cascade delta emission + soft-mode lag recalculation (4 min)
 
 **Phase 7 Total:** 1 of 3 plans, 4 min so far, algorithmic core of FS cascade constraint system
+
+**Phase 8 Status:** COMPLETE
+- 08-01: COMPLETE - SS dependency utility foundations: getSuccessorChain linkTypes + recalculateIncomingLags SS formula (4 min)
+- 08-02: COMPLETE - SS constraint enforcement in useTaskDrag: split chains, mode-aware cascade, SS lag floor, dual-delta handleComplete (2 min)
+- 08-03: COMPLETE - SS demo tasks added to Construction Project, all 8 SS interaction scenarios human-verified (5 min)
+
+**Phase 8 Total:** 3 of 3 plans, ~4 min avg, full SS dependency support — utility foundations, constraint enforcement, and end-to-end verification
+
+**Phase 9 Status:** COMPLETE
+- 09-01: COMPLETE - Extend recalculateIncomingLags with newEndDate parameter and FF case (2 min)
+- 09-02: COMPLETE - FF constraint enforcement in useTaskDrag: cascadeChainEnd, FF cascade emission, FF-aware completion (1 min)
+- 09-03: COMPLETE - FF dependency demo tasks in Construction Project + human verification (2 min + bug fix)
+
+**Phase 9 Total:** 3 of 3 plans, ~2 min avg, full FF dependency support — lag recalculation, constraint enforcement, demo tasks, and end-to-end verification with negative lag support

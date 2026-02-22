@@ -82,29 +82,62 @@ Plans:
 
 **Goal:** Visual progress indicators on task bars showing completion status (0-100%) as horizontal fill overlays with color coding (darker shade for partial, yellow for 100% completed, green for 100% accepted)
 **Depends on:** Phase 4
-**Plans:** 1 plan
+**Plans:** 1/1 plans executed (COMPLETE)
 
 Plans:
-- [ ] 05-01-PLAN.md — Progress bar type extensions, rendering logic, and CSS styles
+- [x] 05-01-PLAN.md — Progress bar type extensions, rendering logic, and CSS styles
 
 ### Phase 6: dependencies
 
 **Goal:** Task dependencies with predecessor/successor relationships, four link types (FS, SS, FF, SF), lag support, cycle detection, and SVG-based Bezier curve visualization with arrows
 **Depends on:** Phase 5
-**Plans:** 1/4 plans executed
+**Plans:** 4/4 plans executed (COMPLETE)
 
 Plans:
-- [ ] 06-01-PLAN.md — Dependency type definitions and utilities (cycle detection, link type calculations, validation)
-- [ ] 06-02-PLAN.md — SVG-based DependencyLines component with Bezier curves
-- [ ] 06-03-PLAN.md — GanttChart integration with drag validation and auto-schedule prop
-- [ ] 06-04-PLAN.md — Demo page with dependency examples and unit tests
+- [x] 06-01-PLAN.md — Dependency type definitions and utilities (cycle detection, link type calculations, validation)
+- [x] 06-02-PLAN.md — SVG-based DependencyLines component with Bezier curves
+- [x] 06-03-PLAN.md — GanttChart integration with drag validation and auto-schedule prop
+- [x] 06-04-PLAN.md — Demo page with dependency examples and unit tests
 
 ### Phase 7: dependencies constraits
 
 **Goal:** FS dependency constraint enforcement with two modes: hard mode (cascade chain moves as monolith) and soft mode (free movement with lag recalculation). Includes real-time cascade preview during drag and onCascade callback.
 **Depends on:** Phase 6
-**Plans:** 2/2 plans complete
+**Plans:** 2/2 plans executed (COMPLETE)
 
 Plans:
-- [ ] 07-01-PLAN.md — Cascade engine: getSuccessorChain utility and useTaskDrag cascade delta emission + soft-mode lag recalculation
-- [ ] 07-02-PLAN.md — Cascade wiring: GanttChart cascadeOverrides state, TaskRow overridePosition prop, onCascade API, demo page
+- [x] 07-01-PLAN.md — Cascade engine: getSuccessorChain utility and useTaskDrag cascade delta emission + soft-mode lag recalculation
+- [x] 07-02-PLAN.md — Cascade wiring: GanttChart cascadeOverrides state, TaskRow overridePosition prop, onCascade API, demo page
+
+### Phase 8: SS dependency
+
+**Goal:** SS (Start-to-Start) dependency constraint enforcement for all drag and resize interactions — successor B's start date is constrained relative to predecessor A's start date (startB = startA + lag, lag >= 0). Hard mode cascades B with A; soft mode recalculates lag on completion.
+**Depends on:** Phase 7
+**Requirements:** (none — internal feature extension)
+**Plans:** 3/3 plans executed (COMPLETE)
+
+Plans:
+- [x] 08-01-PLAN.md — Extend getSuccessorChain with linkTypes parameter + recalculateIncomingLags SS case (TDD)
+- [x] 08-02-PLAN.md — SS constraint wiring in useTaskDrag: split chains, mode-aware cascade, SS clamp, resize-left cascade
+- [x] 08-03-PLAN.md — SS demo tasks in Construction Project + human verification
+
+### Phase 9: FF-dependency
+
+**Goal:** FF (Finish-to-Finish) dependency constraint enforcement for all drag and resize interactions — successor B's finish date is constrained relative to predecessor A's finish date (endB = endA + lag, lag can be negative, zero, or positive)
+**Depends on:** Phase 8
+**Requirements:** (none — internal feature extension)
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 09-01-PLAN.md — Extend recalculateIncomingLags with newEndDate parameter and FF case (TDD)
+- [x] 09-02-PLAN.md — FF constraint wiring: cascadeChainEnd, FF cascade emission, FF-aware completion
+- [x] 09-03-PLAN.md — FF demo tasks in Construction Project + human verification
+
+### Phase 10: SF dependency
+
+**Goal:** SF (Start-to-Finish) dependency constraint enforcement — successor B's finish date is constrained relative to predecessor A's start date (endB = startA + lag, lag <= 0). This completes the four link type coverage (FS/SS/FF/SF) for supply chain and preparation task scenarios.
+**Depends on:** Phase 9
+**Plans:** 1/1 plans complete
+
+Plans:
+- [ ] 10-01-PLAN.md — SF constraint enforcement: cascade chains (SS+SF), constraint clamp (endB <= startA), lag recalculation (ceiling at 0), and demo tasks

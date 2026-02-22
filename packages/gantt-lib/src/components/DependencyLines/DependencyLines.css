@@ -31,3 +31,12 @@
 .gantt-dependency-arrow-cycle polygon {
   fill: var(--gantt-dependency-cycle-color, #ef4444);
 }
+
+/* Lag label styling */
+.gantt-dependency-lag-label {
+  font-size: 10px;
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.85;
+}

@@ -173,3 +173,24 @@
 .gantt-tr-taskBar.gantt-tr-dragging .gantt-tr-progressBar {
   transition: none !important;
 }
+
+/* Progress text inside task bar */
+.gantt-tr-progressText {
+  color: var(--gantt-task-bar-text-color);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-left: 4px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Progress text outside task bar (before task name) */
+.gantt-tr-externalProgress {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666666;
+  white-space: nowrap;
+  margin-right: 4px;
+  margin-left: 4px;
+}

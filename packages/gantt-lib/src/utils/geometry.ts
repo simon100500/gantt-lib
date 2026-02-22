@@ -219,6 +219,72 @@ export const calculateBezierPath = (
 };
 
 /**
+ * Calculate SVG path for dependency lines based on link type connection semantics.
+ *
+ * Connection points per link type:
+ * - FS: predecessor RIGHT → successor LEFT  (arrow points right, enters left edge)
+ * - SS: predecessor LEFT  → successor LEFT  (arrow points right, enters left edge)
+ * - FF: predecessor RIGHT → successor RIGHT (arrow points left,  enters right edge)
+ * - SF: predecessor LEFT  → successor RIGHT (arrow points left,  enters right edge)
+ *
+ * @param from - Start point {x, y}
+ * @param to   - End point {x, y}
+ * @param arrivesFromRight - true for FF and SF (arrow enters right edge of successor)
+ */
+export const calculateDependencyPath = (
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  arrivesFromRight: boolean
+): string => {
+  const fx = Math.round(from.x);
+  const fy = Math.round(from.y);
+  const tx = Math.round(to.x);
+  const ty = Math.round(to.y);
+
+  // Same row: straight horizontal line
+  if (fy === ty) {
+    return `M ${fx} ${fy} H ${tx}`;
+  }
+
+  const C = 2; // chamfer size
+  const goingDown = ty > fy;
+  const dirY = goingDown ? 1 : -1;
+
+  if (arrivesFromRight) {
+    // Arrow arrives at the RIGHT edge of successor (FF, SF).
+    // Same chamfer formula as the FS/SS branch: stop C short of tx in the direction of travel,
+    // then diagonal to tx, then vertical. The endpoints differ (right edge vs left edge),
+    // but the path shape — natural inside-corner chamfer — is identical.
+    const goingRight = tx >= fx;
+    const dirX = goingRight ? 1 : -1;
+
+    if (Math.abs(ty - fy) >= C && Math.abs(tx - fx) >= C) {
+      return [
+        `M ${fx} ${fy}`,
+        `H ${tx - dirX * C}`,
+        `L ${tx} ${fy + dirY * C}`,
+        `V ${ty}`,
+      ].join(' ');
+    }
+    return `M ${fx} ${fy} H ${tx} V ${ty}`;
+  } else {
+    // Arrow arrives at the LEFT edge of successor (FS, SS) — same as existing calculateOrthogonalPath
+    const goingRight = tx >= fx;
+    const dirX = goingRight ? 1 : -1;
+
+    if (Math.abs(ty - fy) >= C && Math.abs(tx - fx) >= C) {
+      return [
+        `M ${fx} ${fy}`,
+        `H ${tx - dirX * C}`,
+        `L ${tx} ${fy + dirY * C}`,
+        `V ${ty}`,
+      ].join(' ');
+    }
+    return `M ${fx} ${fy} H ${tx} V ${ty}`;
+  }
+};
+
+/**
  * Calculate SVG Г-shaped (L-shaped) path for FS dependency lines.
  * Goes vertically from the right edge of the predecessor bar, then horizontally
  * to the left edge of the successor bar. Supports negative lag (overlap).
