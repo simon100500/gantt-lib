@@ -203,11 +203,12 @@ None yet.
 | 22 | Lag label direction-aware vertical positioning | 2026-02-22 | 2ff0591 | [022-lag-label-above-line](./quick/022-lag-label-above-line/) |
 | 23 | README dependency documentation | 2026-02-22 | 828b404 | [23-readme-s](./quick/23-readme-s/) |
 | 24 | JSON export button (id, name, startDate, endDate, progress, accepted, dependencies) | 2026-02-22 | 1a9b1c3 | [24-json-id-name-startdate-enddate-progress-](./quick/24-json-id-name-startdate-enddate-progress-/) |
+| 25 | Complete API reference documentation for gantt-lib v0.0.8 | 2026-02-22 | 5083cdb | [25-docs](./quick/25-docs/) |
 
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed quick-024-24 (JSON export button for Construction Project)
+Stopped at: Completed quick-025-25 (API reference documentation docs/REFERENCE.md)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
