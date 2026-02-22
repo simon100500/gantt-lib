@@ -7,22 +7,17 @@ import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils
 import './DependencyLines.css';
 
 /**
- * Calculate real-time lag based on current pixel positions
- * Returns lag in days, or null if stored lag should be used
+ * Calculate effective lag based on current task positions
+ * Always calculates from actual positions, not stored lag values
  */
-function calculateRealtimeLag(
-  edge: { predecessorId: string; successorId: string; type: string; lag: number },
+function calculateEffectiveLag(
+  edge: { type: string },
   predPosition: { left: number; right: number },
   succPosition: { left: number; right: number },
   monthStart: Date,
-  dayWidth: number,
-  hasDragOverride: boolean
+  dayWidth: number
 ): number {
-  if (!hasDragOverride) {
-    return edge.lag ?? 0;
-  }
-
-  // Convert pixel positions to dates for real-time calculation
+  // Convert pixel positions to dates
   const predStartDate = pixelsToDate(predPosition.left, monthStart, dayWidth);
   const predEndDate = pixelsToDate(predPosition.right - dayWidth, monthStart, dayWidth); // right is exclusive, subtract 1 day
   const succStartDate = pixelsToDate(succPosition.left, monthStart, dayWidth);
@@ -80,7 +75,7 @@ function calculateRealtimeLag(
       );
       break;
     default:
-      return edge.lag ?? 0;
+      return 0;
   }
 
   return Math.round(lagMs / (24 * 60 * 60 * 1000));
@@ -214,9 +209,8 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       // Check if this edge is part of a cycle
       const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
 
-      // Calculate real-time lag if either task is being dragged
-      const hasDragOverride = dragOverrides?.has(edge.predecessorId) || dragOverrides?.has(edge.successorId);
-      const lag = calculateRealtimeLag(edge, predecessor, successor, monthStart, dayWidth, !!hasDragOverride);
+      // Calculate effective lag from actual positions (always, not just during drag)
+      const lag = calculateEffectiveLag(edge, predecessor, successor, monthStart, dayWidth);
 
       lines.push({
         id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
