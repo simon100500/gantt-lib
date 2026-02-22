@@ -108,3 +108,15 @@ Plans:
 Plans:
 - [x] 07-01-PLAN.md — Cascade engine: getSuccessorChain utility and useTaskDrag cascade delta emission + soft-mode lag recalculation
 - [x] 07-02-PLAN.md — Cascade wiring: GanttChart cascadeOverrides state, TaskRow overridePosition prop, onCascade API, demo page
+
+### Phase 8: SS dependency
+
+**Goal:** SS (Start-to-Start) dependency constraint enforcement for all drag and resize interactions — successor B's start date is constrained relative to predecessor A's start date (startB = startA + lag, lag >= 0). Hard mode cascades B with A; soft mode recalculates lag on completion.
+**Depends on:** Phase 7
+**Requirements:** (none — internal feature extension)
+**Plans:** 3 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Extend getSuccessorChain with linkTypes parameter + recalculateIncomingLags SS case (TDD)
+- [ ] 08-02-PLAN.md — SS constraint wiring in useTaskDrag: split chains, mode-aware cascade, SS clamp, resize-left cascade
+- [ ] 08-03-PLAN.md — SS demo tasks in Construction Project + human verification
