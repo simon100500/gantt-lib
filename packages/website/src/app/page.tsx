@@ -71,7 +71,7 @@ const createSampleTasks = (): Task[] => {
       color: "#eab308",
       progress: 75,
       dependencies: [
-        { taskId: '5', type: 'SS', lag: 0 }, // SS лаг = 0 (параллельно)
+        // { taskId: '5', type: 'SS', lag: 0 }, // SS лаг = 0 (параллельно)
         { taskId: '5', type: 'FF', lag: 0 }  // FF лаг = 0 (финиш синхронизирован)
       ],
     },
@@ -243,6 +243,25 @@ const createSampleTasks = (): Task[] => {
       color: '#6d28d9',
       progress: 0,
       dependencies: [{ taskId: 'ss-site-prep', type: 'SS', lag: 2 }],
+    },
+
+    // === FF DEMO: Framing & Structure → Interior Finishing (lag=3) ===
+    {
+      id: "ff-framing-structure",
+      name: "Framing & Structure",
+      startDate: addDays(baseDate, 235),
+      endDate: addDays(baseDate, 251),
+      color: '#f59e0b',
+      progress: 0,
+    },
+    {
+      id: "ff-interior-finishing",
+      name: "Interior Finishing",
+      startDate: addDays(baseDate, 240),
+      endDate: addDays(baseDate, 254),
+      color: '#d97706',
+      progress: 0,
+      dependencies: [{ taskId: 'ff-framing-structure', type: 'FF', lag: 3 }],
     },
   ];
 };
