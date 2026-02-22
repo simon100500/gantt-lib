@@ -405,14 +405,19 @@ function handleGlobalMouseMove(e: MouseEvent) {
         // Phase 9: Check if this chainTask has FF dependency on dragged task
         // For FF tasks, calculate position from end offset (not start offset)
         // This fixes negative lag preview where child starts before parent
+        // Phase 10: SF tasks also position from end offset (endB constrained to startA)
         const hasFFDepOnDragged = chainTask.dependencies?.some(
           dep => dep.taskId === draggedTaskId && dep.type === 'FF'
         );
+        const hasSFDepOnDragged = chainTask.dependencies?.some(
+          dep => dep.taskId === draggedTaskId && dep.type === 'SF'
+        );
 
         let chainLeft;
-        if (hasFFDepOnDragged) {
-          // FF: position based on end date shift, then back up by duration
+        if (hasFFDepOnDragged || hasSFDepOnDragged) {
+          // FF/SF: position based on end date shift, then back up by duration
           // This works correctly even when child starts before parent (negative lag)
+          // For SF: endB shifts with startA, then back up by duration
           chainLeft = Math.round((chainEndOffset + deltaDays - chainDuration) * dayWidth);
         } else {
           // FS/SS: position based on start date shift
@@ -424,6 +429,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
         // SS lag floor: when A moves left, B follows but chainLeft cannot go below A's new position
         // This keeps lag >= 0 (startB >= startA) during live drag preview
         // Phase 9: Only apply floor to SS tasks, not FF (FF allows negative lag)
+        // Phase 10: SF uses end-based positioning, no floor needed
         const hasSSDepOnDragged = chainTask.dependencies?.some(
           dep => dep.taskId === draggedTaskId && dep.type === 'SS'
         );
