@@ -202,17 +202,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
             onMouseDown={dragHandleProps.onMouseDown}
           >
-            {task.locked && (
-              <svg
-                className="gantt-tr-lockIcon"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-label="Locked"
-                aria-hidden="false"
-              >
-                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-              </svg>
-            )}
             {progressWidth > 0 && (
               <div
                 className="gantt-tr-progressBar"
@@ -234,7 +223,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />
           </div>
           <div
-            className="gantt-tr-leftLabels"
+            className={`gantt-tr-leftLabels ${task.locked ? 'gantt-tr-leftLabels-locked' : ''}`}
             style={{
               left: `${displayLeft}px`
             }}
@@ -243,6 +232,27 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               {startDateLabel}–{endDateLabel}
             </span>
           </div>
+          {task.locked && (
+            <svg
+              className="gantt-tr-lockIcon"
+              style={{
+                position: 'absolute',
+                left: `${displayLeft - 16}px`,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '12px',
+                height: '12px',
+                color: '#444',
+                pointerEvents: 'none',
+              }}
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-label="Locked"
+              aria-hidden="false"
+            >
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+            </svg>
+          )}
           <div
             className="gantt-tr-rightLabels"
             style={{
