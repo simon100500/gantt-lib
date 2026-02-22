@@ -176,6 +176,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       (currentEndDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24)
     ) + 1;
 
+    // Determine if progress text fits inside the bar
+    // Estimate: duration text (~"15 д" = ~30px) + progress text (~"100%" = ~30px) + padding (~16px)
+    const estimatedTextWidth = durationDays >= 10 ? 76 : 62; // "15 д 100%" = ~76px, "1 д 100%" = ~62px
+    const showProgressInside = progressWidth > 0 && displayWidth > estimatedTextWidth;
+
     return (
       <div
         className="gantt-tr-row"
@@ -208,6 +213,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             <span className="gantt-tr-taskDuration">
               {durationDays} д
             </span>
+            {progressWidth > 0 && showProgressInside && (
+              <span className="gantt-tr-progressText">
+                {progressWidth}%
+              </span>
+            )}
             <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />
           </div>
           <div
@@ -226,6 +236,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               left: `${displayLeft + displayWidth}px`,
             }}
           >
+            {progressWidth > 0 && !showProgressInside && (
+              <span className="gantt-tr-externalProgress">
+                {progressWidth}%
+              </span>
+            )}
             <span className="gantt-tr-externalTaskName">
               {task.name}
             </span>
