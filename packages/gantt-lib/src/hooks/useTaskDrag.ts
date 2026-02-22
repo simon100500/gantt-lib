@@ -217,6 +217,7 @@ function recalculateIncomingLags(
   return task.dependencies.map(dep => {
     if (dep.type === 'FS') {
       // FS: lag = newSuccessorStart - predecessorEnd (can be negative)
+      // Note: predecessor.endDate is inclusive, so subtract 1 day for correct lag calculation
       const predecessor = taskById.get(dep.taskId);
       if (!predecessor) return dep;
       const predEnd = new Date(predecessor.endDate as string);
@@ -228,7 +229,7 @@ function recalculateIncomingLags(
         predEnd.getUTCFullYear(),
         predEnd.getUTCMonth(),
         predEnd.getUTCDate()
-      );
+      ) - (24 * 60 * 60 * 1000); // -1 day because endDate is inclusive
       const lagDays = Math.round(lagMs / (24 * 60 * 60 * 1000));
       return { ...dep, lag: lagDays };
     }

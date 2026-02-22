@@ -33,7 +33,7 @@ const createSampleTasks = (): Task[] => {
       endDate: addDays(baseDate, 7),
       // color: "#6366f1",
       progress: 100,
-      dependencies: [{ taskId: '1', type: 'SS', lag: 0 }], // SS лаг = 0
+      dependencies: [{ taskId: '1', type: 'FS', lag: 0 }], // SS лаг = 0
     },
     {
       id: "3",
