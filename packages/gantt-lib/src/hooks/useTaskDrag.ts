@@ -165,12 +165,12 @@ function canMoveTask(
     const predecessorStart = new Date(predecessor.startDate);
     const predecessorEnd = new Date(predecessor.endDate);
 
-    // Calculate expected date based on link type
+    // Calculate expected date based on link type (lag ignored, always 0)
     const expectedDate = calculateSuccessorDate(
       predecessorStart,
       predecessorEnd,
       dep.type,
-      dep.lag ?? 0
+      0  // lag not used in calculations
     );
 
     // Check constraint based on link type
@@ -193,17 +193,8 @@ function canMoveTask(
 }
 
 /**
- * Recalculate lag for FS, SS, and FF dependencies linking predecessor(s) to this task.
- * Used in soft mode (disableConstraints=true) to update lag on drag complete.
- * Returns updated TaskDependency array with new lag values.
- *
- * Formula by type:
- *   FS: lag = newSuccessorStart - predecessorEnd (can be negative, no floor)
- *   SS: lag = newSuccessorStart - predecessorStart (always >= 0, floor at 0)
- *   FF: lag = newSuccessorEnd - predecessorEnd (can be negative, no floor)
- *   SF: pass through unchanged
- *
- * Note: SS/FF behavior tested indirectly via handleComplete soft-mode path in integration tests.
+ * Simplified lag recalculation - always returns lag=0
+ * Lag is not used in constraint calculations, so we just clear it.
  */
 function recalculateIncomingLags(
   task: Task,
@@ -212,63 +203,8 @@ function recalculateIncomingLags(
   allTasks: Task[]
 ): NonNullable<Task['dependencies']> {
   if (!task.dependencies) return [];
-  const taskById = new Map(allTasks.map(t => [t.id, t]));
-
-  return task.dependencies.map(dep => {
-    if (dep.type === 'FS') {
-      // FS: lag = newSuccessorStart - predecessorEnd (can be negative)
-      // Note: predecessor.endDate is inclusive, so subtract 1 day for correct lag calculation
-      const predecessor = taskById.get(dep.taskId);
-      if (!predecessor) return dep;
-      const predEnd = new Date(predecessor.endDate as string);
-      const lagMs = Date.UTC(
-        newStartDate.getUTCFullYear(),
-        newStartDate.getUTCMonth(),
-        newStartDate.getUTCDate()
-      ) - Date.UTC(
-        predEnd.getUTCFullYear(),
-        predEnd.getUTCMonth(),
-        predEnd.getUTCDate()
-      ) - (24 * 60 * 60 * 1000); // -1 day because endDate is inclusive
-      const lagDays = Math.round(lagMs / (24 * 60 * 60 * 1000));
-      return { ...dep, lag: lagDays };
-    }
-    if (dep.type === 'SS') {
-      // SS: lag = newSuccessorStart - predecessorStart (always >= 0 per SS semantics)
-      const predecessor = taskById.get(dep.taskId);
-      if (!predecessor) return dep;
-      const predStart = new Date(predecessor.startDate as string);
-      const lagMs = Date.UTC(
-        newStartDate.getUTCFullYear(),
-        newStartDate.getUTCMonth(),
-        newStartDate.getUTCDate()
-      ) - Date.UTC(
-        predStart.getUTCFullYear(),
-        predStart.getUTCMonth(),
-        predStart.getUTCDate()
-      );
-      const lagDays = Math.max(0, Math.round(lagMs / (24 * 60 * 60 * 1000))); // SS lag >= 0
-      return { ...dep, lag: lagDays };
-    }
-    if (dep.type === 'FF') {
-      // FF: lag = newSuccessorEnd - predecessorEnd (can be negative, no floor)
-      const predecessor = taskById.get(dep.taskId);
-      if (!predecessor) return dep;
-      const predEnd = new Date(predecessor.endDate as string);
-      const lagMs = Date.UTC(
-        newEndDate.getUTCFullYear(),
-        newEndDate.getUTCMonth(),
-        newEndDate.getUTCDate()
-      ) - Date.UTC(
-        predEnd.getUTCFullYear(),
-        predEnd.getUTCMonth(),
-        predEnd.getUTCDate()
-      );
-      const lagDays = Math.round(lagMs / (24 * 60 * 60 * 1000)); // FF: no floor
-      return { ...dep, lag: lagDays };
-    }
-    return dep; // SF: unchanged
-  });
+  // Return dependencies with lag=0 (lag not used in calculations)
+  return task.dependencies.map(dep => ({ ...dep, lag: 0 }));
 }
 
 /**
