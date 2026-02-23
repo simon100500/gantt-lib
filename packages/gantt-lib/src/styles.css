@@ -33,7 +33,7 @@
   --gantt-day-line-color: #f3f4f6;
 
   /* Progress Bar Colors */
-  --gantt-progress-color: rgba(0, 0, 0, 0.2);
+  --gantt-progress-color: rgba(0, 0, 0, 0.4);
   --gantt-progress-completed: #ffb800;
   --gantt-progress-accepted: #17c964;
 

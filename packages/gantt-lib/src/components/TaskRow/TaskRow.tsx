@@ -125,7 +125,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       // Darker semi-transparent shade using color-mix() or fallback
       return task.color
         ? `color-mix(in srgb, ${task.color} 40%, black)`
-        : 'var(--gantt-progress-color, rgba(0, 0, 0, 0.2))';
+        : 'var(--gantt-progress-color, rgba(0, 0, 0, 0.4))';
     }, [progressWidth, task.accepted, task.color]);
 
     // Handle drag end - call onChange with updated task
@@ -257,7 +257,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               aria-label="Locked"
               aria-hidden="false"
             >
-              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
             </svg>
           )}
           <div
