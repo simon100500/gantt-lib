@@ -77,6 +77,7 @@ Progress: [██████████] 100% (Phase 11: complete)
 | Phase quick-024 P24 | 41s | 1 tasks | 1 files |
 | Phase 11 P01 | 81 | 2 tasks | 5 files |
 | Phase 11 P02 | 4min | 2 tasks | 1 files |
+| Phase 26-props P26 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -208,6 +209,7 @@ None yet.
 | 23 | README dependency documentation | 2026-02-22 | 828b404 | [23-readme-s](./quick/23-readme-s/) |
 | 24 | JSON export button (id, name, startDate, endDate, progress, accepted, dependencies) | 2026-02-22 | 1a9b1c3 | [24-json-id-name-startdate-enddate-progress-](./quick/24-json-id-name-startdate-enddate-progress-/) |
 | 25 | Complete API reference documentation for gantt-lib v0.0.8 | 2026-02-22 | 5083cdb | [25-docs](./quick/25-docs/) |
+| 26 | Optional horizontal divider line for visual task grouping | 2026-02-23 | 8284712 | [26-props](./quick/26-props/) |
 
 ## Session Continuity
 
