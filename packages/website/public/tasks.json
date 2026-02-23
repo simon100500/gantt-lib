@@ -1,0 +1,41 @@
+[
+  {
+    "id": "mcp-1",
+    "name": "Подготовка участка",
+    "startDate": "2026-02-01T00:00:00.000Z",
+    "endDate": "2026-02-05T00:00:00.000Z",
+    "progress": 100,
+    "color": "#3b82f6",
+    "dependencies": []
+  },
+  {
+    "id": "mcp-2",
+    "name": "Заливка фундамента",
+    "startDate": "2026-02-06T00:00:00.000Z",
+    "endDate": "2026-02-12T00:00:00.000Z",
+    "progress": 60,
+    "color": "#10b981",
+    "dependencies": [
+      {
+        "taskId": "mcp-1",
+        "type": "FS",
+        "lag": 0
+      }
+    ]
+  },
+  {
+    "id": "mcp-3",
+    "name": "Возведение стен",
+    "startDate": "2026-02-13T00:00:00.000Z",
+    "endDate": "2026-02-20T00:00:00.000Z",
+    "progress": 30,
+    "color": "#f59e0b",
+    "dependencies": [
+      {
+        "taskId": "mcp-2",
+        "type": "FS",
+        "lag": 0
+      }
+    ]
+  }
+]
