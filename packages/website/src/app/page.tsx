@@ -48,6 +48,7 @@ const createSampleTasks = (): Task[] => {
       "endDate": "2026-02-13T00:00:00.000Z",
       "progress": 90,
       "accepted": false,
+      "color": "#f43",
       "dependencies": [
         {
           "taskId": "2",
@@ -78,6 +79,7 @@ const createSampleTasks = (): Task[] => {
       "endDate": "2026-03-02T00:00:00.000Z",
       "progress": 95,
       "accepted": false,
+      "color": "#4f3",
       "dependencies": [
         {
           "taskId": "4",

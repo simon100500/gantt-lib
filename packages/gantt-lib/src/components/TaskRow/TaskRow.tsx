@@ -122,10 +122,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           ? 'var(--gantt-progress-accepted, #22c55e)'    // Green for accepted
           : 'var(--gantt-progress-completed, #fbbf24)';   // Yellow for completed
       }
-      // Darker semi-transparent shade using color-mix() or fallback
-      return task.color
-        ? `color-mix(in srgb, ${task.color} 40%, black)`
-        : 'var(--gantt-progress-color, rgba(0, 0, 0, 0.4))';
+      // Darker shade using color-mix() with task color or default
+      const baseColor = task.color || 'var(--gantt-task-bar-default-color)';
+      return `color-mix(in srgb, ${baseColor} 40%, black)`;
     }, [progressWidth, task.accepted, task.color]);
 
     // Handle drag end - call onChange with updated task
