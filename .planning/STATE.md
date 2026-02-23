@@ -91,6 +91,7 @@ Progress: [██████████] 100% (Phase 11: complete)
 - Phase 9 added: FF-dependency
 - Phase 10 added: SF dependency
 - Phase 11 added: lock-task
+- Phase 12 added: task-list
 
 ### Decisions
 
