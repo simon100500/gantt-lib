@@ -1,40 +1,128 @@
 [
   {
-    "id": "mcp-1",
-    "name": "Подготовка участка",
-    "startDate": "2026-02-01T00:00:00.000Z",
-    "endDate": "2026-02-05T00:00:00.000Z",
-    "progress": 100,
-    "color": "#3b82f6",
+    "id": "9214f0fe-6f07-496b-b65e-d8625f5ecf6f",
+    "name": "Подготовка участка (расчистка, разметка)",
+    "startDate": "2026-03-01",
+    "endDate": "2026-03-07",
+    "color": "#8B4513",
+    "progress": 0,
     "dependencies": []
   },
   {
-    "id": "mcp-2",
-    "name": "Заливка фундамента",
-    "startDate": "2026-02-06T00:00:00.000Z",
-    "endDate": "2026-02-12T00:00:00.000Z",
-    "progress": 60,
-    "color": "#10b981",
+    "id": "4ea19411-db40-40c8-9b00-5b44784e4800",
+    "name": "Земляные работы (котлован под фундамент)",
+    "startDate": "2026-03-08",
+    "endDate": "2026-03-15",
+    "color": "#654321",
+    "progress": 0,
     "dependencies": [
       {
-        "taskId": "mcp-1",
-        "type": "FS",
-        "lag": 0
+        "taskId": "9214f0fe-6f07-496b-b65e-d8625f5ecf6f",
+        "type": "FS"
       }
     ]
   },
   {
-    "id": "mcp-3",
-    "name": "Возведение стен",
-    "startDate": "2026-02-13T00:00:00.000Z",
-    "endDate": "2026-02-20T00:00:00.000Z",
-    "progress": 30,
-    "color": "#f59e0b",
+    "id": "44ba5138-1871-493d-8eb3-b921cc465534",
+    "name": "Устройство фундамента (бетонирование)",
+    "startDate": "2026-03-16",
+    "endDate": "2026-03-31",
+    "color": "#696969",
+    "progress": 0,
     "dependencies": [
       {
-        "taskId": "mcp-2",
+        "taskId": "4ea19411-db40-40c8-9b00-5b44784e4800",
+        "type": "FS"
+      }
+    ]
+  },
+  {
+    "id": "a8fa80c7-0465-464f-afe9-7e5492ec349a",
+    "name": "Возведение стен (каркас/кирпич)",
+    "startDate": "2026-04-01",
+    "endDate": "2026-04-20",
+    "color": "#D2691E",
+    "progress": 0,
+    "dependencies": [
+      {
+        "taskId": "44ba5138-1871-493d-8eb3-b921cc465534",
+        "type": "FS"
+      }
+    ]
+  },
+  {
+    "id": "193aa46c-c330-4b80-b238-f5f8fc5cf578",
+    "name": "Устройство кровли",
+    "startDate": "2026-04-21",
+    "endDate": "2026-05-05",
+    "color": "#B22222",
+    "progress": 0,
+    "dependencies": [
+      {
+        "taskId": "a8fa80c7-0465-464f-afe9-7e5492ec349a",
+        "type": "FS"
+      }
+    ]
+  },
+  {
+    "id": "20a0b0c2-112c-4cc2-8dc1-1de043066ba1",
+    "name": "Установка окон и дверей",
+    "startDate": "2026-05-06",
+    "endDate": "2026-05-15",
+    "color": "#4169E1",
+    "progress": 0,
+    "dependencies": [
+      {
+        "taskId": "193aa46c-c330-4b80-b238-f5f8fc5cf578",
+        "type": "FS"
+      }
+    ]
+  },
+  {
+    "id": "003b77ce-0f1f-4e88-ae82-a9baffc7430d",
+    "name": "Инженерные системы (электрика, сантехника)",
+    "startDate": "2026-05-06",
+    "endDate": "2026-05-20",
+    "color": "#2E8B57",
+    "progress": 0,
+    "dependencies": [
+      {
+        "taskId": "193aa46c-c330-4b80-b238-f5f8fc5cf578",
+        "type": "FS"
+      }
+    ]
+  },
+  {
+    "id": "8f1317b2-5eb1-41e3-80fb-29feb96a01fa",
+    "name": "Внутренняя отделка (черновая)",
+    "startDate": "2026-05-21",
+    "endDate": "2026-06-09",
+    "color": "#DAA520",
+    "progress": 0,
+    "dependencies": [
+      {
+        "taskId": "20a0b0c2-112c-4cc2-8dc1-1de043066ba1",
         "type": "FS",
-        "lag": 0
+        "lag": 6
+      },
+      {
+        "taskId": "003b77ce-0f1f-4e88-ae82-a9baffc7430d",
+        "type": "FS",
+        "lag": 1
+      }
+    ]
+  },
+  {
+    "id": "d0fb5984-d4b4-4352-bced-e349ef6a0365",
+    "name": "Сдача работ заказчику",
+    "startDate": "2026-06-10",
+    "endDate": "2026-06-10",
+    "color": "#FFD700",
+    "progress": 0,
+    "dependencies": [
+      {
+        "taskId": "8f1317b2-5eb1-41e3-80fb-29feb96a01fa",
+        "type": "FS"
       }
     ]
   }

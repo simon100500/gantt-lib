@@ -34,8 +34,8 @@ export default function MCPPage() {
 
   if (loading) {
     return (
-      <main style={{ padding: "2rem" }}>
-        <h1>MCP Test Page</h1>
+      <main style={{ padding: "0rem" }}>
+        <h1>ИИ строит график</h1>
         <p style={{ color: "#6b7280" }}>Loading tasks from tasks.json...</p>
       </main>
     );
@@ -43,18 +43,18 @@ export default function MCPPage() {
 
   if (error) {
     return (
-      <main style={{ padding: "2rem" }}>
-        <h1>MCP Test Page</h1>
+      <main style={{ padding: "0rem" }}>
+        <h1>ИИ строит график</h1>
         <p style={{ color: "#ef4444" }}>Error: {error}</p>
       </main>
     );
   }
 
   return (
-    <main style={{ padding: "2rem" }}>
-      <h1 style={{ marginBottom: "0.5rem" }}>MCP Test Page</h1>
+    <main style={{ padding: "0rem" }}>
+      <h1 style={{ marginBottom: "0.5rem" }}>ИИ строит график</h1>
       <p style={{ marginBottom: "2rem", color: "#6b7280" }}>
-        Gantt chart with tasks loaded from tasks.json
+        График загружается из tasks.json
       </p>
 
       <div
