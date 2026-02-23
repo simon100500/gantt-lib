@@ -54,6 +54,13 @@ export interface Task {
    * Independent of accepted/progress — consumer controls both separately.
    */
   locked?: boolean;
+  /**
+   * Optional horizontal divider line for visual grouping.
+   * - 'top' renders a bold line above the task row
+   * - 'bottom' renders a bold line below the task row
+   * The line spans the full grid width.
+   */
+  divider?: 'top' | 'bottom';
 }
 
 /**

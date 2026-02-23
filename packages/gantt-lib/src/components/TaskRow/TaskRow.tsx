@@ -39,6 +39,8 @@ export interface TaskRowProps {
   onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
   /** Called when cascade drag completes; receives all shifted tasks including dragged task */
   onCascade?: (tasks: Task[]) => void;
+  /** Optional horizontal divider line - renders above or below the task row */
+  divider?: 'top' | 'bottom';
 }
 
 /**
@@ -77,7 +79,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.overridePosition?.width === nextProps.overridePosition?.width &&
     prevProps.allTasks === nextProps.allTasks &&
     prevProps.disableConstraints === nextProps.disableConstraints &&
-    prevProps.task.locked === nextProps.task.locked
+    prevProps.task.locked === nextProps.task.locked &&
+    prevProps.task.divider === nextProps.task.divider
     // onChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
@@ -89,7 +92,10 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider }) => {
+    // Extract divider from task prop
+    const { divider: taskDivider } = task;
+
     // Parse dates as UTC
     const taskStartDate = useMemo(() => parseUTCDate(task.startDate), [task.startDate]);
     const taskEndDate = useMemo(() => parseUTCDate(task.endDate), [task.endDate]);
@@ -188,6 +194,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         className="gantt-tr-row"
         style={{ height: `${rowHeight}px` }}
       >
+        {taskDivider === 'top' && <div className="gantt-tr-divider gantt-tr-divider-top" />}
         <div className="gantt-tr-taskContainer">
           <div
             data-taskbar
@@ -269,6 +276,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             </span>
           </div>
         </div>
+        {taskDivider === 'bottom' && <div className="gantt-tr-divider gantt-tr-divider-bottom" />}
       </div>
     );
   },
