@@ -204,3 +204,22 @@
 .gantt-tr-taskBar.gantt-tr-locked {
   cursor: not-allowed;
 }
+
+/* Divider line for visual grouping of task sets */
+.gantt-tr-divider {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 0;
+  border-top: 2px solid #888;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.gantt-tr-divider-top {
+  top: 0;
+}
+
+.gantt-tr-divider-bottom {
+  bottom: 0;
+}
