@@ -151,3 +151,12 @@ Plans:
 Plans:
 - [x] 11-01-PLAN.md — Type extension, hook guard, lock icon rendering, cascade filtering
 - [x] 11-02-PLAN.md — Demo tasks with locked: true and human verification
+
+### Phase 12: task-list
+
+**Goal:** [To be planned]
+**Depends on:** Phase 11
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 12 to break down)
