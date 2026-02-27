@@ -124,9 +124,10 @@ export const getMultiMonthDays = (tasks: Array<{ startDate: string | Date; endDa
   }
 
   // Extend to full months: 1st of first month to last day of last month
+  // Add one month padding before the first month
   const startOfMonth = new Date(Date.UTC(
     minDate.getUTCFullYear(),
-    minDate.getUTCMonth(),
+    minDate.getUTCMonth() - 1, // Add one month padding
     1
   ));
 

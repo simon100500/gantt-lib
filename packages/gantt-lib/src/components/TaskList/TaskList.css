@@ -7,7 +7,7 @@
 .gantt-tl-overlay {
   position: sticky;
   left: 0;
-  top: 0;
+  top: 1px;
   z-index: 15;
   background-color: var(--gantt-cell-background, #ffffff);
   border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
@@ -17,10 +17,13 @@
   pointer-events: auto;
 }
 
-/* Hidden state - element stays in layout but invisible */
+/* Hidden state - element takes no space when hidden */
 .gantt-tl-overlay.gantt-tl-hidden {
   visibility: hidden;
   pointer-events: none;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .gantt-tl-table {
