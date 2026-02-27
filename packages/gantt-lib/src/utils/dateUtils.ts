@@ -125,10 +125,10 @@ export const getMultiMonthDays = (tasks: Array<{ startDate: string | Date; endDa
   }
 
   // Extend to full months: 1st of first month to last day of last month
-  // Add padding: 1 month before, 2 months after for drag flexibility
+  // Add padding: 2 months after for drag flexibility
   const startOfMonth = new Date(Date.UTC(
     minDate.getUTCFullYear(),
-    minDate.getUTCMonth() - 1, // 1 month padding before
+    minDate.getUTCMonth(),
     1
   ));
 
