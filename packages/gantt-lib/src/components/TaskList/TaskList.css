@@ -1,18 +1,24 @@
 /**
  * TaskList Component Styles
- * Overlay table with synchronized scrolling using position: sticky
+ * Absolute positioned overlay - always rendered, visibility controlled via prop
  */
 
 .gantt-tl-overlay {
-  position: sticky;
+  position: absolute;
   left: 0;
   top: 0;
-  z-index: 5;
+  z-index: 15;
   background-color: var(--gantt-cell-background, #ffffff);
   border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
-  height: 100%;
   display: flex;
   flex-direction: column;
+  pointer-events: auto;
+}
+
+/* Hidden state - element stays in layout but invisible */
+.gantt-tl-overlay.gantt-tl-hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .gantt-tl-table {

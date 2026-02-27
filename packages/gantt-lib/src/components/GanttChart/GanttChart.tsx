@@ -329,6 +329,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({
           />
         </div>
 
+        {/* TaskList overlay - positioned absolutely, always rendered for stable layout */}
+        <TaskList
+          tasks={tasks}
+          rowHeight={rowHeight}
+          headerHeight={headerHeight}
+          taskListWidth={taskListWidth}
+          onTaskChange={handleTaskChange}
+          selectedTaskId={selectedTaskId ?? undefined}
+          onTaskSelect={handleTaskSelect}
+          show={showTaskList}
+        />
+
         {/* Task area */}
         <div
           className="gantt-taskArea"
@@ -337,17 +349,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             width: `${gridWidth}px`,
           }}
         >
-          {showTaskList && (
-            <TaskList
-              tasks={tasks}
-              rowHeight={rowHeight}
-              taskListWidth={taskListWidth}
-              onTaskChange={handleTaskChange}
-              selectedTaskId={selectedTaskId ?? undefined}
-              onTaskSelect={handleTaskSelect}
-            />
-          )}
-
           <GridBackground
             dateRange={dateRange}
             dayWidth={dayWidth}

@@ -10,6 +10,8 @@ export interface TaskListProps {
   tasks: Task[];
   /** Height of each row in pixels (must match Gantt chart's rowHeight) */
   rowHeight: number;
+  /** Height of the header row in pixels (must match Gantt chart's headerHeight) */
+  headerHeight: number;
   /** Width of the task list overlay in pixels (default: 300) */
   taskListWidth?: number;
   /** Callback when task is modified via inline edit */
@@ -18,6 +20,8 @@ export interface TaskListProps {
   selectedTaskId?: string;
   /** Callback when task row is clicked */
   onTaskSelect?: (taskId: string | null) => void;
+  /** Show or hide the task list (default: true) */
+  show?: boolean;
 }
 
 /**
@@ -29,10 +33,12 @@ export interface TaskListProps {
 export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   rowHeight,
+  headerHeight,
   taskListWidth = 300,
   onTaskChange,
   selectedTaskId,
   onTaskSelect,
+  show = true,
 }) => {
   const totalHeight = useMemo(
     () => tasks.length * rowHeight,
@@ -45,12 +51,12 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   return (
     <div
-      className="gantt-tl-overlay"
+      className={`gantt-tl-overlay${show ? '' : ' gantt-tl-hidden'}`}
       style={{ width: `${taskListWidth}px` }}
     >
       <div className="gantt-tl-table">
-        {/* Header row */}
-        <div className="gantt-tl-header" style={{ height: `${rowHeight}px` }}>
+        {/* Header row - aligns with TimeScaleHeader */}
+        <div className="gantt-tl-header" style={{ height: `${headerHeight}px` }}>
           <div className="gantt-tl-headerCell gantt-tl-cell-number">№</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-name">Имя</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Начало</div>
