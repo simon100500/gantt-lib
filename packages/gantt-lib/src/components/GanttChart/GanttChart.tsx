@@ -226,8 +226,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     const newEnd = new Date(updatedTask.endDate as string);
     const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
 
-    // No date change (name edit) or constraints off: simple update
-    if (!datesChanged || disableConstraints || !onCascade) {
+    // No date change (name edit) or constraints disabled: simple update
+    if (!datesChanged || disableConstraints) {
       onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
       return;
     }
