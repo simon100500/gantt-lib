@@ -56,7 +56,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     >
       <div className="gantt-tl-table">
         {/* Header row - aligns with TimeScaleHeader, 1px taller for row alignment */}
-        <div className="gantt-tl-header" style={{ height: `${headerHeight + 1}px` }}>
+        <div className="gantt-tl-header" style={{ height: `${headerHeight + 0.5}px` }}>
           <div className="gantt-tl-headerCell gantt-tl-cell-number">№</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-name">Имя</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Начало</div>
