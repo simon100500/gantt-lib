@@ -7,7 +7,7 @@
 .gantt-tl-overlay {
   position: sticky;
   left: 0;
-  top: 1px;
+  top: 0;
   z-index: 15;
   background-color: var(--gantt-cell-background, #ffffff);
   border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
@@ -28,12 +28,15 @@
   height: 100%;
 }
 
-/* Header row */
+/* Header row - sticky during vertical scroll */
 .gantt-tl-header {
+  position: sticky;
+  top: 0;
   display: flex;
   background-color: var(--gantt-cell-background, #ffffff);
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   box-sizing: border-box;
+  z-index: 5;
 }
 
 .gantt-tl-headerCell {
