@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateTaskBar, calculateGridWidth, calculateGridLines, calculateWeekendBlocks } from '../utils/geometry';
+import { calculateTaskBar, calculateGridWidth, calculateGridLines, calculateWeekendBlocks, detectEdgeZone } from '../utils/geometry';
 
 describe('calculateTaskBar', () => {
   const monthStart = new Date('2024-03-01T00:00:00Z');
@@ -299,6 +299,97 @@ describe('calculateWeekendBlocks', () => {
     result.forEach(block => {
       expect(Number.isInteger(block.left)).toBe(true);
       expect(Number.isInteger(block.width)).toBe(true);
+    });
+  });
+});
+
+describe('detectEdgeZone', () => {
+  // Helper to create a mock DOM element with getBoundingClientRect
+  const createMockElement = (width: number, left: number = 0): HTMLElement => {
+    const element = document.createElement('div');
+    Object.defineProperty(element, 'getBoundingClientRect', {
+      value: () => ({ left, width, top: 0, height: 40, right: left + width, bottom: 40 }),
+      writable: false,
+    });
+    return element;
+  };
+
+  describe('with normal width tasks (width > 2 * edgeZoneWidth)', () => {
+    const edgeZoneWidth = 20;
+    const normalWidth = 100; // 100 > 40, so zones don't overlap
+
+    it('should return left when clicking in left edge zone', () => {
+      const element = createMockElement(normalWidth);
+      const clientX = 10; // Within [0, 20]
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('left');
+    });
+
+    it('should return right when clicking in right edge zone', () => {
+      const element = createMockElement(normalWidth);
+      const clientX = 90; // Within [80, 100]
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('right');
+    });
+
+    it('should return move when clicking in middle area', () => {
+      const element = createMockElement(normalWidth);
+      const clientX = 50; // Between edge zones
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('move');
+    });
+  });
+
+  describe('with 1-day tasks (width <= 2 * edgeZoneWidth)', () => {
+    const edgeZoneWidth = 20;
+    const oneDayWidth = 40; // 40 = 2 * 20, zones overlap
+
+    it('should return left when clicking closer to left edge', () => {
+      const element = createMockElement(oneDayWidth);
+      const clientX = 10; // distanceToLeft = 10, distanceToRight = 30
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('left');
+    });
+
+    it('should return right when clicking closer to right edge', () => {
+      const element = createMockElement(oneDayWidth);
+      const clientX = 30; // distanceToLeft = 30, distanceToRight = 10
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('right');
+    });
+
+    it('should return left when clicking exactly in center (tiebreaker)', () => {
+      const element = createMockElement(oneDayWidth);
+      const clientX = 20; // Exactly center, distanceToLeft = 20, distanceToRight = 20
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('left'); // Left wins on tie
+    });
+
+    it('should handle clicking on far right edge of 1-day task', () => {
+      const element = createMockElement(oneDayWidth);
+      const clientX = 38; // distanceToLeft = 38, distanceToRight = 2
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('right');
+    });
+
+    it('should handle clicking on far left edge of 1-day task', () => {
+      const element = createMockElement(oneDayWidth);
+      const clientX = 2; // distanceToLeft = 2, distanceToRight = 38
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('left');
+    });
+  });
+
+  describe('with task bar offset (left != 0)', () => {
+    const edgeZoneWidth = 20;
+    const oneDayWidth = 40;
+    const offsetLeft = 100;
+
+    it('should correctly calculate relative position with offset', () => {
+      const element = createMockElement(oneDayWidth, offsetLeft);
+      const clientX = 125; // relativeX = 25 (closer to right edge at 40)
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('right');
     });
   });
 });

@@ -79,6 +79,15 @@ export const detectEdgeZone = (
 ): 'left' | 'right' | 'move' => {
   const rect = taskBarElement.getBoundingClientRect();
   const relativeX = Math.round(clientX - rect.left);
+  const width = Math.round(rect.width);
+
+  // When zones overlap (width <= 2 * edgeZoneWidth), prefer the closer edge
+  if (width <= 2 * edgeZoneWidth) {
+    // Cursor is in overlapping edge zone, return closer edge
+    const distanceToLeft = relativeX;
+    const distanceToRight = width - relativeX;
+    return distanceToLeft <= distanceToRight ? 'left' : 'right';
+  }
 
   // Check left edge zone
   if (relativeX >= 0 && relativeX <= edgeZoneWidth) {
@@ -86,7 +95,6 @@ export const detectEdgeZone = (
   }
 
   // Check right edge zone
-  const width = Math.round(rect.width);
   if (relativeX >= width - edgeZoneWidth && relativeX <= width) {
     return 'right';
   }
