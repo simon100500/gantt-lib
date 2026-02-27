@@ -562,9 +562,6 @@ export default function Home() {
         <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
           Construction Project
         </h2>
-        <p style={{ marginBottom: "0.75rem", color: "#6b7280" }}>
-          Toggle the task list to see tasks in a table format. Click on task names or dates to edit them inline.
-        </p>
         <button
           onClick={() => setShowTaskList(!showTaskList)}
           style={{
@@ -584,17 +581,6 @@ export default function Home() {
         >
           {showTaskList ? "Hide Task List" : "Show Task List"}
         </button>
-        {showTaskList && (
-          <div style={{ marginBottom: "1rem", padding: "0.75rem", backgroundColor: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "6px", fontSize: "0.875rem", color: "#0c4a6e" }}>
-            <strong>Task List Features:</strong>
-            <ul style={{ margin: "0.5rem 0 0 1.25rem", padding: 0 }}>
-              <li>Click on task names or dates to edit them inline</li>
-              <li>Press Enter to save, Escape to cancel</li>
-              <li>Click a row to select it and highlight the corresponding task</li>
-              <li>Scrolling is synchronized between the list and chart</li>
-            </ul>
-          </div>
-        )}
         <div
           style={{
             border: "1px solid #e5e7eb",
