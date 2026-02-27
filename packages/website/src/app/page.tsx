@@ -594,7 +594,7 @@ export default function Home() {
             rowHeight={36}
             onChange={handleChange}
             showTaskList={showTaskList}
-            taskListWidth={300}
+            taskListWidth={400}
           />
         </div>
       </div>

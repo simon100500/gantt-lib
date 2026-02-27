@@ -110,7 +110,7 @@
 
 /* Date cell — relative for transparent picker overlay */
 .gantt-tl-cell-date {
-  width: 90px;
+  width: 68px;
   justify-content: center;
   flex-shrink: 0;
   position: relative;

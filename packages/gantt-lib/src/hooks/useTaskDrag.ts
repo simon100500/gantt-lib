@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { calculateSuccessorDate, getSuccessorChain } from '../utils/dependencyUtils';
+import { calculateSuccessorDate, getSuccessorChain, getTransitiveCascadeChain, recalculateIncomingLags } from '../utils/dependencyUtils';
 
 /**
  * Get transitive closure of successors for cascading.
@@ -20,48 +20,6 @@ import { calculateSuccessorDate, getSuccessorChain } from '../utils/dependencyUt
  * @param firstLevelLinkTypes - Link types to use for direct successors
  * @returns Array of tasks in the cascade chain (transitive closure)
  */
-function getTransitiveCascadeChain(
-  draggedTaskId: string,
-  allTasks: Task[],
-  firstLevelLinkTypes: LinkType[]
-): Task[] {
-  // Build complete successor map (all link types: FS, SS, FF, SF)
-  const allTypesSuccessorMap = new Map<string, Task[]>();
-  for (const task of allTasks) {
-    allTypesSuccessorMap.set(task.id, []);
-  }
-  for (const task of allTasks) {
-    if (!task.dependencies) continue;
-    for (const dep of task.dependencies) {
-      const list = allTypesSuccessorMap.get(dep.taskId) ?? [];
-      list.push(task);
-      allTypesSuccessorMap.set(dep.taskId, list);
-    }
-  }
-
-  // Get direct successors based on first level link types
-  const directSuccessors = getSuccessorChain(draggedTaskId, allTasks, firstLevelLinkTypes);
-
-  // Build transitive closure using BFS
-  const chain = [...directSuccessors];
-  const visited = new Set<string>([draggedTaskId, ...directSuccessors.map(t => t.id)]);
-  const queue = [...directSuccessors];
-
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    const successors = allTypesSuccessorMap.get(current.id) ?? [];
-    for (const successor of successors) {
-      if (!visited.has(successor.id)) {
-        visited.add(successor.id);
-        chain.push(successor);
-        queue.push(successor);
-      }
-    }
-  }
-
-  return chain;
-}
-
 /**
  * Global drag manager that persists across HMR
  *
@@ -201,61 +159,6 @@ function canMoveTask(
  * - FF: lag = endB - endA (can be negative)
  * - SF: lag = endB - startA (ceiling at 0)
  */
-function recalculateIncomingLags(
-  task: Task,
-  newStartDate: Date,
-  newEndDate: Date,
-  allTasks: Task[]
-): NonNullable<Task['dependencies']> {
-  if (!task.dependencies) return [];
-  const taskById = new Map(allTasks.map(t => [t.id, t]));
-
-  return task.dependencies.map(dep => {
-    if (dep.type === 'FS') {
-      // FS: lag = startB - endA (can be negative)
-      const predecessor = taskById.get(dep.taskId);
-      if (!predecessor) return dep;
-      const predEnd = new Date(predecessor.endDate as string);
-      const lagMs = Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), newStartDate.getUTCDate())
-                  - Date.UTC(predEnd.getUTCFullYear(), predEnd.getUTCMonth(), predEnd.getUTCDate());
-      const lagDays = Math.round(lagMs / (24 * 60 * 60 * 1000));
-      return { ...dep, lag: lagDays };
-    }
-    if (dep.type === 'SS') {
-      // SS: lag = startB - startA (floor at 0)
-      const predecessor = taskById.get(dep.taskId);
-      if (!predecessor) return dep;
-      const predStart = new Date(predecessor.startDate as string);
-      const lagMs = Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), newStartDate.getUTCDate())
-                  - Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate());
-      const lagDays = Math.max(0, Math.round(lagMs / (24 * 60 * 60 * 1000))); // SS: floor at 0
-      return { ...dep, lag: lagDays };
-    }
-    if (dep.type === 'FF') {
-      // FF: lag = endB - endA (can be negative)
-      const predecessor = taskById.get(dep.taskId);
-      if (!predecessor) return dep;
-      const predEnd = new Date(predecessor.endDate as string);
-      const lagMs = Date.UTC(newEndDate.getUTCFullYear(), newEndDate.getUTCMonth(), newEndDate.getUTCDate())
-                  - Date.UTC(predEnd.getUTCFullYear(), predEnd.getUTCMonth(), predEnd.getUTCDate());
-      const lagDays = Math.round(lagMs / (24 * 60 * 60 * 1000));
-      return { ...dep, lag: lagDays };
-    }
-    if (dep.type === 'SF') {
-      // SF: lag = endB - startA + 1 day (adjacent days = lag 0, symmetric to FS which uses -1)
-      const predecessor = taskById.get(dep.taskId);
-      if (!predecessor) return dep;
-      const predStart = new Date(predecessor.startDate as string);
-      const lagMs = Date.UTC(newEndDate.getUTCFullYear(), newEndDate.getUTCMonth(), newEndDate.getUTCDate())
-                  - Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate())
-                  + (24 * 60 * 60 * 1000);
-      const lagDays = Math.min(0, Math.round(lagMs / (24 * 60 * 60 * 1000))); // SF: ceiling at 0
-      return { ...dep, lag: lagDays };
-    }
-    return dep;
-  });
-}
-
 /**
  * Global mouse move handler - attached once and persists across HMR
  */

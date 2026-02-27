@@ -3,8 +3,8 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies } from '../../utils/dependencyUtils';
-import type { ValidationResult } from '../../types';
+import { validateDependencies, getTransitiveCascadeChain, recalculateIncomingLags } from '../../utils/dependencyUtils';
+import type { ValidationResult, LinkType } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
@@ -213,13 +213,73 @@ export const GanttChart: React.FC<GanttChartProps> = ({
    * relying on the fact that onChange fires only after drag completes.
    */
   const handleTaskChange = useCallback((updatedTask: Task) => {
-    // Call onChange with a functional updater that receives the current tasks
-    onChange?.((currentTasks) =>
-      currentTasks.map((t) =>
-        t.id === updatedTask.id ? updatedTask : t
-      )
-    );
-  }, [onChange]);
+    // Find original task to detect date changes
+    const originalTask = tasks.find(t => t.id === updatedTask.id);
+    if (!originalTask) {
+      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      return;
+    }
+
+    const origStart = new Date(originalTask.startDate as string);
+    const origEnd = new Date(originalTask.endDate as string);
+    const newStart = new Date(updatedTask.startDate as string);
+    const newEnd = new Date(updatedTask.endDate as string);
+    const startChanged = origStart.getTime() !== newStart.getTime();
+    const endChanged = origEnd.getTime() !== newEnd.getTime();
+
+    // No date change (name edit) or constraints off: simple update
+    if ((!startChanged && !endChanged) || disableConstraints || !onCascade) {
+      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      return;
+    }
+
+    // Same delta logic as drag completion
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const toUTC = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    const deltaFromStart = Math.round((toUTC(newStart) - toUTC(origStart)) / DAY_MS);
+    const deltaFromEnd = Math.round((toUTC(newEnd) - toUTC(origEnd)) / DAY_MS);
+    const deltaDays = deltaFromStart === 0 ? deltaFromEnd : deltaFromStart;
+
+    const isResizeLeft = startChanged && !endChanged;
+    const firstLevelTypes: LinkType[] = deltaFromStart === 0
+      ? ['FS', 'FF']
+      : isResizeLeft
+        ? ['SS', 'SF']
+        : ['FS', 'SS', 'FF', 'SF'];
+
+    const chain = getTransitiveCascadeChain(updatedTask.id, tasks, firstLevelTypes);
+
+    const cascadedTask: Task = {
+      ...updatedTask,
+      ...(updatedTask.dependencies && {
+        dependencies: recalculateIncomingLags(updatedTask, newStart, newEnd, tasks),
+      }),
+    };
+
+    if (chain.length === 0) {
+      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? cascadedTask : t));
+      return;
+    }
+
+    const cascadedChain = chain
+      .filter(t => !t.locked)
+      .map(t => {
+        const s = new Date(t.startDate as string);
+        const e = new Date(t.endDate as string);
+        return {
+          ...t,
+          startDate: new Date(Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate() + deltaDays)).toISOString(),
+          endDate: new Date(Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), e.getUTCDate() + deltaDays)).toISOString(),
+        };
+      });
+
+    const allCascaded = [cascadedTask, ...cascadedChain];
+    onChange?.((currentTasks) => {
+      const m = new Map(allCascaded.map(t => [t.id, t]));
+      return currentTasks.map(t => m.get(t.id) ?? t);
+    });
+    onCascade?.(allCascaded);
+  }, [tasks, onChange, disableConstraints, onCascade]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
   const dependencyOverrides = useMemo(() => {
