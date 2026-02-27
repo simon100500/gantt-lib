@@ -1,0 +1,130 @@
+/**
+ * TaskList Component Styles
+ * Overlay table with synchronized scrolling using position: sticky
+ */
+
+.gantt-tl-overlay {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  background-color: var(--gantt-cell-background, #ffffff);
+  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.gantt-tl-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Header row */
+.gantt-tl-header {
+  display: flex;
+  background-color: var(--gantt-cell-background, #ffffff);
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  box-sizing: border-box;
+}
+
+.gantt-tl-headerCell {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1f2937;
+  box-sizing: border-box;
+  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+}
+
+.gantt-tl-headerCell:last-child {
+  border-right: none;
+}
+
+/* Body container */
+.gantt-tl-body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Data rows */
+.gantt-tl-row {
+  display: flex;
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.gantt-tl-row:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.gantt-tl-row-selected {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+/* Cells */
+.gantt-tl-cell {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  box-sizing: border-box;
+  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  font-size: 0.85rem;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt-tl-cell:last-child {
+  border-right: none;
+}
+
+.gantt-tl-cell-number {
+  width: 40px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gantt-tl-cell-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.gantt-tl-cell-date {
+  width: 70px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Editable cell content */
+.gantt-tl-cellContent {
+  width: 100%;
+  cursor: text;
+  user-select: none;
+}
+
+.gantt-tl-cellContent:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 2px;
+}
+
+/* Inline edit input */
+.gantt-tl-input {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #3b82f6;
+  border-radius: 2px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.gantt-tl-input:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}

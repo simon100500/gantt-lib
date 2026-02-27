@@ -11,7 +11,9 @@ import TodayIndicator from '../TodayIndicator';
 import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
+import { TaskList } from '../TaskList';
 import './GanttChart.css';
+import '../TaskList/TaskList.css';
 
 /**
  * Task data structure for Gantt chart
@@ -96,6 +98,10 @@ export interface GanttChartProps {
   disableConstraints?: boolean;
   /** Called when a cascade drag completes; receives all shifted tasks (including dragged task) in hard mode */
   onCascade?: (tasks: Task[]) => void;
+  /** Show task list overlay on the left side of the chart (default: false) */
+  showTaskList?: boolean;
+  /** Width of the task list overlay in pixels (default: 300) */
+  taskListWidth?: number;
 }
 
 /**
@@ -125,8 +131,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   enableAutoSchedule,
   disableConstraints,
   onCascade,
+  showTaskList = false,
+  taskListWidth = 300,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Track selected task ID for highlighting in both TaskList and TaskRow
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Calculate multi-month date range from tasks
   const dateRange = useMemo(() => getMultiMonthDays(tasks), [tasks]);
@@ -245,6 +256,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     onCascade?.(cascadedTasks);
   }, [onChange, onCascade]);
 
+  /**
+   * Handle task selection from TaskList or TaskRow
+   */
+  const handleTaskSelect = useCallback((taskId: string | null) => {
+    setSelectedTaskId(taskId);
+  }, []);
+
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
 
@@ -319,6 +337,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             width: `${gridWidth}px`,
           }}
         >
+          {showTaskList && (
+            <TaskList
+              tasks={tasks}
+              rowHeight={rowHeight}
+              taskListWidth={taskListWidth}
+              onTaskChange={handleTaskChange}
+              selectedTaskId={selectedTaskId ?? undefined}
+              onTaskSelect={handleTaskSelect}
+            />
+          )}
+
           <GridBackground
             dateRange={dateRange}
             dayWidth={dayWidth}

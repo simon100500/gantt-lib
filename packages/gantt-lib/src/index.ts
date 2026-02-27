@@ -10,6 +10,7 @@ export { default as TimeScaleHeader } from './components/TimeScaleHeader';
 export { default as GridBackground } from './components/GridBackground';
 export { default as TodayIndicator } from './components/TodayIndicator';
 export { default as DragGuideLines } from './components/DragGuideLines/DragGuideLines';
+export { TaskList, type TaskListProps } from './components/TaskList';
 
 // Hooks
 export { useTaskDrag } from './hooks';
