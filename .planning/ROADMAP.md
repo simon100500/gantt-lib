@@ -140,7 +140,7 @@ Plans:
 **Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 10-01-PLAN.md — SF constraint enforcement: cascade chains (SS+SF), constraint clamp (endB <= startA), lag recalculation (ceiling at 0), and demo tasks
+- [x] 10-01-PLAN.md — SF constraint enforcement: cascade chains (SS+SF), constraint clamp (endB <= startA), lag recalculation (ceiling at 0), and demo tasks
 
 ### Phase 11: lock-task
 
@@ -154,9 +154,10 @@ Plans:
 
 ### Phase 12: task-list
 
-**Goal:** [To be planned]
+**Goal:** Task list overlay panel displaying tasks in a table format (№, Name, Start Date, End Date) positioned to the left of the Gantt chart timeline with synchronized vertical scrolling and inline editing
 **Depends on:** Phase 11
-**Plans:** 0 plans
+**Plans:** 1/2 plans executed (IN_PROGRESS)
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 12 to break down)
+- [x] 12-01-PLAN.md — TaskList component: core structure, inline editing, CSS styles, GanttChart integration
+- [ ] 12-02-PLAN.md — CSS aggregation, library exports, demo page with toggle button

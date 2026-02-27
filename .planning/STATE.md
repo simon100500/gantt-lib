@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 11 - lock-task (complete)
+**Current focus:** Phase 12 - task-list (planning complete)
 
 ## Current Position
 
-Phase: 11 of 11 (11-lock-task)
-Plan: 2 of 2 in current phase (complete)
-Status: COMPLETE - Task lock feature with human verification approved
-Last activity: 2026-02-23 - Completed quick task 27: создай ещё одну тестовую страницу с графиком по роуту /mcp и чтобы задачи брались из json файла рядом в этой папке (или любой допустимой в проекте), создай пример json на 3 работы
+Phase: 12 of 12 (12-task-list)
+Plan: 1 of 2 in current phase (1 complete, 1 pending)
+Status: IN_PROGRESS - Task List overlay component with inline editing
+Last activity: 2026-02-27 - Completed 12-01 (TaskList core structure, inline editing, CSS)
 
-Progress: [██████████] 100% (Phase 11: complete)
+Progress: [████████░░] 50% (Phase 12: 1 of 2 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 26
+- Total plans completed: 27
 - Average duration: 9 min
-- Total execution time: 3.9 hours
+- Total execution time: 4.0 hours
 
 **By Phase:**
 
@@ -38,6 +38,7 @@ Progress: [██████████] 100% (Phase 11: complete)
 | 09-ff-dependency | 3 | 3 | 2 min |
 | 10-sf-dependency | 1 | 1 | 4 min |
 | 11-lock-task | 2 | 2 | 3 min |
+| 12-task-list | 1 | 2 | 5 min so far |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -91,7 +92,7 @@ Progress: [██████████] 100% (Phase 11: complete)
 - Phase 9 added: FF-dependency
 - Phase 10 added: SF dependency
 - Phase 11 added: lock-task
-- Phase 12 added: task-list
+- Phase 12 added: task-list (overlay approach with inline editing)
 
 ### Decisions
 
@@ -177,6 +178,13 @@ Recent decisions affecting current work:
 - [Phase 10-01]: SF constraint clamp affects width (not left) because it constrains endB, not startB
 - [Phase 10-01]: SF lag uses Math.min(0, ...) for ceiling (opposite of SS's Math.max(0, ...) floor)
 - [Phase 10-01]: Renamed cascadeChainSS to cascadeChainStart for clarity (SS+SF share start-based cascade behavior)
+- [Phase 12-01]: TaskList overlay uses position: sticky within existing scroll container — avoids complex cross-container scroll synchronization
+- [Phase 12-01]: Inline editing pattern uses useState + useEffect for auto-focus, standard Enter/blur save, Escape cancel behavior
+- [Phase 12-01]: Date format conversion — display as DD.MM.YY, edit as DD.MM.YY, store as YYYY-MM-DD (ISO)
+- [Phase 12-01]: TaskList CSS uses gantt-tl- prefix following project convention
+- [Phase 12-01]: Overlay z-index: 5 (above grid: 0, below guide lines: 20)
+- [Phase 12-01]: Task list toggle controlled externally via showTaskList prop (not internal to GanttChart component)
+- [Phase 12-01]: Row selection state tracked in GanttChart (selectedTaskId), shared with TaskList and TaskRow
 
 ### Pending Todos
 
@@ -276,4 +284,10 @@ Stopped at: Completed 11-02 (Locked tasks demo with human verification approved)
 - 11-02: COMPLETE - Locked tasks demo with human verification (4 min, 1 file)
 
 **Phase 11 Total:** 2 of 2 plans, ~3 min avg, complete lock-task feature — locked prop, hook guard, lock icon, cascade filtering, and human verification
+
+**Phase 12 Status:** IN_PROGRESS
+- 12-01: COMPLETE - TaskList component: core structure, inline editing, CSS styles, GanttChart integration (5 min)
+- 12-02: PENDING - CSS aggregation, library exports, demo page with toggle button
+
+**Phase 12 Total:** 1 of 2 plans complete, Task List overlay component with inline editing and synchronized scrolling
 
