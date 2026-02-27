@@ -73,16 +73,25 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
     }, []);
 
+    // Both date pickers shift the whole task (preserving duration), same as drag-move
     const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.value) {
-        onTaskChange?.({ ...task, startDate: e.target.value });
-      }
+      if (!e.target.value) return;
+      const origStart = parseUTCDate(task.startDate);
+      const origEnd = parseUTCDate(task.endDate);
+      const durationMs = origEnd.getTime() - origStart.getTime();
+      const newStart = new Date(e.target.value + 'T00:00:00Z');
+      const newEnd = new Date(newStart.getTime() + durationMs);
+      onTaskChange?.({ ...task, startDate: e.target.value, endDate: newEnd.toISOString().split('T')[0] });
     }, [task, onTaskChange]);
 
     const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.value) {
-        onTaskChange?.({ ...task, endDate: e.target.value });
-      }
+      if (!e.target.value) return;
+      const origStart = parseUTCDate(task.startDate);
+      const origEnd = parseUTCDate(task.endDate);
+      const durationMs = origEnd.getTime() - origStart.getTime();
+      const newEnd = new Date(e.target.value + 'T00:00:00Z');
+      const newStart = new Date(newEnd.getTime() - durationMs);
+      onTaskChange?.({ ...task, startDate: newStart.toISOString().split('T')[0], endDate: e.target.value });
     }, [task, onTaskChange]);
 
     const handleRowClickInternal = useCallback(() => {

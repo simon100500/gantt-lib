@@ -224,28 +224,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     const origEnd = new Date(originalTask.endDate as string);
     const newStart = new Date(updatedTask.startDate as string);
     const newEnd = new Date(updatedTask.endDate as string);
-    const startChanged = origStart.getTime() !== newStart.getTime();
-    const endChanged = origEnd.getTime() !== newEnd.getTime();
+    const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
 
     // No date change (name edit) or constraints off: simple update
-    if ((!startChanged && !endChanged) || disableConstraints || !onCascade) {
+    if (!datesChanged || disableConstraints || !onCascade) {
       onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
       return;
     }
 
-    // Same delta logic as drag completion
+    // Datepicker always shifts the whole task (move semantics) — use start delta, all link types
     const DAY_MS = 24 * 60 * 60 * 1000;
     const toUTC = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-    const deltaFromStart = Math.round((toUTC(newStart) - toUTC(origStart)) / DAY_MS);
-    const deltaFromEnd = Math.round((toUTC(newEnd) - toUTC(origEnd)) / DAY_MS);
-    const deltaDays = deltaFromStart === 0 ? deltaFromEnd : deltaFromStart;
-
-    const isResizeLeft = startChanged && !endChanged;
-    const firstLevelTypes: LinkType[] = deltaFromStart === 0
-      ? ['FS', 'FF']
-      : isResizeLeft
-        ? ['SS', 'SF']
-        : ['FS', 'SS', 'FF', 'SF'];
+    const deltaDays = Math.round((toUTC(newStart) - toUTC(origStart)) / DAY_MS);
+    const firstLevelTypes: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
 
     const chain = getTransitiveCascadeChain(updatedTask.id, tasks, firstLevelTypes);
 
