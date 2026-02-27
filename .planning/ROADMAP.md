@@ -156,7 +156,7 @@ Plans:
 
 **Goal:** Task list overlay panel displaying tasks in a table format (№, Name, Start Date, End Date) positioned to the left of the Gantt chart timeline with synchronized vertical scrolling and inline editing
 **Depends on:** Phase 11
-**Plans:** 2/2 plans executed (COMPLETE)
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 12-01-PLAN.md — TaskList component: core structure, inline editing, CSS styles, GanttChart integration
