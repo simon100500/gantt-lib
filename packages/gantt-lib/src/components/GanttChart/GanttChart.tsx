@@ -3,8 +3,8 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, getTransitiveCascadeChain, recalculateIncomingLags } from '../../utils/dependencyUtils';
-import type { ValidationResult, LinkType } from '../../types';
+import { validateDependencies, cascadeByLinks, recalculateIncomingLags } from '../../utils/dependencyUtils';
+import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
@@ -232,14 +232,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       return;
     }
 
-    // Datepicker always shifts the whole task (move semantics) — use start delta, all link types
-    const DAY_MS = 24 * 60 * 60 * 1000;
-    const toUTC = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-    const deltaDays = Math.round((toUTC(newStart) - toUTC(origStart)) / DAY_MS);
-    const firstLevelTypes: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
-
-    const chain = getTransitiveCascadeChain(updatedTask.id, tasks, firstLevelTypes);
-
+    // Cascade successors by link constraints (each positioned from predecessor's new dates)
     const cascadedTask: Task = {
       ...updatedTask,
       ...(updatedTask.dependencies && {
@@ -247,22 +240,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       }),
     };
 
-    if (chain.length === 0) {
-      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? cascadedTask : t));
-      return;
-    }
-
-    const cascadedChain = chain
-      .filter(t => !t.locked)
-      .map(t => {
-        const s = new Date(t.startDate as string);
-        const e = new Date(t.endDate as string);
-        return {
-          ...t,
-          startDate: new Date(Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate() + deltaDays)).toISOString(),
-          endDate: new Date(Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), e.getUTCDate() + deltaDays)).toISOString(),
-        };
-      });
+    const cascadedChain = cascadeByLinks(updatedTask.id, newStart, newEnd, tasks);
 
     const allCascaded = [cascadedTask, ...cascadedChain];
     onChange?.((currentTasks) => {
