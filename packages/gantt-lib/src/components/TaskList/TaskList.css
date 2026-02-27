@@ -1,6 +1,6 @@
 /**
  * TaskList Component Styles
- * Sticky positioned - stays at left edge during horizontal scroll
+ * Sticky positioned in flex container - stays at left edge during horizontal scroll
  * Always rendered in DOM for stable positioning, visibility controlled via prop
  */
 
@@ -13,7 +13,7 @@
   border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   display: flex;
   flex-direction: column;
-  float: left;
+  flex-shrink: 0;
   pointer-events: auto;
 }
 

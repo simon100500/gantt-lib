@@ -320,35 +320,39 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         style={{ height: `${containerHeight}px`, cursor: 'grab' }}
         onMouseDown={handlePanStart}
       >
-        {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
-        <div className="gantt-stickyHeader" style={{ width: `${gridWidth}px` }}>
-          <TimeScaleHeader
-            days={dateRange}
-            dayWidth={dayWidth}
+        {/* Content wrapper - enables TaskList to scroll with chart horizontally */}
+        <div className="gantt-scrollContent">
+          {/* TaskList - sticky left, scrolls with content horizontally */}
+          <TaskList
+            tasks={tasks}
+            rowHeight={rowHeight}
             headerHeight={headerHeight}
+            taskListWidth={taskListWidth}
+            onTaskChange={handleTaskChange}
+            selectedTaskId={selectedTaskId ?? undefined}
+            onTaskSelect={handleTaskSelect}
+            show={showTaskList}
           />
-        </div>
 
-        {/* TaskList overlay - positioned absolutely, always rendered for stable layout */}
-        <TaskList
-          tasks={tasks}
-          rowHeight={rowHeight}
-          headerHeight={headerHeight}
-          taskListWidth={taskListWidth}
-          onTaskChange={handleTaskChange}
-          selectedTaskId={selectedTaskId ?? undefined}
-          onTaskSelect={handleTaskSelect}
-          show={showTaskList}
-        />
+          {/* Chart area */}
+          <div style={{ minWidth: `${gridWidth}px`, flex: 1 }}>
+            {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
+            <div className="gantt-stickyHeader" style={{ width: `${gridWidth}px` }}>
+              <TimeScaleHeader
+                days={dateRange}
+                dayWidth={dayWidth}
+                headerHeight={headerHeight}
+              />
+            </div>
 
-        {/* Task area */}
-        <div
-          className="gantt-taskArea"
-          style={{
-            position: 'relative',
-            width: `${gridWidth}px`,
-          }}
-        >
+            {/* Task area */}
+            <div
+              className="gantt-taskArea"
+              style={{
+                position: 'relative',
+                width: `${gridWidth}px`,
+              }}
+            >
           <GridBackground
             dateRange={dateRange}
             dayWidth={dayWidth}
@@ -403,6 +407,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               onCascade={handleCascade}
             />
           ))}
+          </div>
+          </div>
         </div>
       </div>
     </div>

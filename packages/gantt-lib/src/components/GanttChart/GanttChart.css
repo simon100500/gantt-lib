@@ -10,6 +10,12 @@
   position: relative;
 }
 
+/* Wrapper for horizontal scroll content - keeps TaskList and chart together */
+.gantt-scrollContent {
+  display: flex;
+  min-width: min-content;
+}
+
 .gantt-stickyHeader {
   position: sticky;
   top: 0;
