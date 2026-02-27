@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 12 of 12 (12-task-list)
 Plan: 2 of 2 in current phase (2 complete, 0 pending)
 Status: COMPLETE - Task List overlay component with demo page
-Last activity: 2026-02-27 - Completed 12-02 (TaskList demo page with toggle button)
+Last activity: 2026-02-27 - Completed quick task 028: расширить task list до 400px, перенос текста в названии, datepicker для дат
 
 Progress: [██████████] 100% (Phase 12: 2 of 2 plans complete)
 
