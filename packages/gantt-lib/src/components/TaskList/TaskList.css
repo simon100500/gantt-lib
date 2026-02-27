@@ -17,13 +17,9 @@
   pointer-events: auto;
 }
 
-/* Hidden state - element takes no space when hidden */
+/* Hidden state - element completely removed from layout */
 .gantt-tl-overlay.gantt-tl-hidden {
-  visibility: hidden;
-  pointer-events: none;
-  width: 0;
-  min-width: 0;
-  overflow: hidden;
+  display: none;
 }
 
 .gantt-tl-table {
