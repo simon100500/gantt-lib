@@ -298,7 +298,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
     if ((mode === 'move' || mode === 'resize-left') && allTasks.length > 0 && !globalActiveDrag.disableConstraints) {
       const currentTask = allTasks.find(t => t.id === globalActiveDrag?.taskId);
       if (currentTask && currentTask.dependencies && currentTask.dependencies.length > 0) {
-        let minAllowedLeft = 0; // in pixels from monthStart
+        let minAllowedLeft = -Infinity; // in pixels from monthStart; -Infinity means no floor unless a real FS/SS predecessor sets one
         for (const dep of currentTask.dependencies) {
           if (dep.type !== 'FS' && dep.type !== 'SS') continue; // Phase 8: FS and SS
           const predecessor = globalActiveDrag.allTasks.find(t => t.id === dep.taskId);
@@ -338,7 +338,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
           const predStart = new Date(predecessor.startDate as string);
           const predStartOffset = Math.round(
             (Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate()) -
-              Date.UTC(globalActiveDrag.monthStart.getUTCFullYear(), globalActiveDrag.monthStart.getUTCDate(), globalActiveDrag.monthStart.getUTCDate()))
+              Date.UTC(globalActiveDrag.monthStart.getUTCFullYear(), globalActiveDrag.monthStart.getUTCMonth(), globalActiveDrag.monthStart.getUTCDate()))
             / (24 * 60 * 60 * 1000)
           );
           const predStartLeft = Math.round(predStartOffset * globalActiveDrag.dayWidth);
@@ -623,13 +623,35 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   }, [initialStartDate, initialEndDate, monthStart, dayWidth]);
 
   /**
-   * Initialize position when dates or dayWidth changes
+   * Initialize position when dates or dayWidth changes.
+   * Skipped when this instance owns an active drag to avoid overriding drag state.
    */
   useEffect(() => {
+    if (isOwnerRef.current && globalActiveDrag) return;
     const { left, width } = getInitialPosition();
     setCurrentLeft(left);
     setCurrentWidth(width);
   }, [getInitialPosition]);
+
+  /**
+   * When monthStart changes during an active drag (e.g. a month is prepended),
+   * the pixel coordinate origin shifts. Adjust globalActiveDrag so that
+   * subsequent move calculations stay in the new coordinate space.
+   */
+  useEffect(() => {
+    if (!isOwnerRef.current || !globalActiveDrag) return;
+    const oldMonthStart = globalActiveDrag.monthStart;
+    if (oldMonthStart === monthStart) return;
+    const daysShift = Math.round(
+      (Date.UTC(oldMonthStart.getUTCFullYear(), oldMonthStart.getUTCMonth(), oldMonthStart.getUTCDate()) -
+        Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate())) /
+        (1000 * 60 * 60 * 24)
+    );
+    const pixelShift = daysShift * dayWidth;
+    globalActiveDrag.initialLeft += pixelShift;
+    globalActiveDrag.currentLeft += pixelShift;
+    globalActiveDrag.monthStart = monthStart;
+  }, [monthStart, dayWidth]);
 
   /**
    * Handle drag progress callback from global manager
