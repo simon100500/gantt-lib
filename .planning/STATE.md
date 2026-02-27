@@ -233,11 +233,12 @@ None yet.
 | 25 | Complete API reference documentation for gantt-lib v0.0.8 | 2026-02-22 | 5083cdb | [25-docs](./quick/25-docs/) |
 | 26 | Optional horizontal divider line for visual task grouping | 2026-02-23 | e5eb192 | [26-props](./quick/26-props/) |
 | 27 | создай ещё одну тестовую страницу с графиком по роуту /mcp и чтобы задачи брались из json файла рядом в этой папке (или любой допустимой в проекте), создай пример json на 3 работы | 2026-02-23 | 6f82c8e | [27-mcp-json-json-3](./quick/27-mcp-json-json-3/) |
+| 28 | TaskList 400px default, name text wrap, native date picker for date cells | 2026-02-27 | 9c4ff04 | [28-task-list-400px-datepicker](./quick/28-task-list-400px-datepicker/) |
 
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 12-02 (TaskList demo page with toggle button and features)
+Stopped at: Completed quick-028 (TaskList 400px default, name wrap, native date picker)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
