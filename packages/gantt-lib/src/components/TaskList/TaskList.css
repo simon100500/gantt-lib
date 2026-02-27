@@ -79,14 +79,12 @@
 /* Cells */
 .gantt-tl-cell {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   padding: 0 0.5rem;
-  padding-top: 6px;
   box-sizing: border-box;
   border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   font-size: 0.85rem;
   color: #374151;
-  overflow: hidden;
 }
 
 .gantt-tl-cell:last-child {
@@ -99,19 +97,23 @@
   flex-shrink: 0;
 }
 
+/* Name cell — overflow visible so overlay input can extend past boundaries */
 .gantt-tl-cell-name {
   flex: 1;
   min-width: 0;
-  white-space: normal;
-  word-break: break-word;
+  position: relative;
+  overflow: visible;
   align-items: flex-start;
-  padding-top: 4px;
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 
+/* Date cell — relative for transparent picker overlay */
 .gantt-tl-cell-date {
   width: 90px;
   justify-content: center;
   flex-shrink: 0;
+  position: relative;
 }
 
 /* Editable cell content */
@@ -119,6 +121,8 @@
   width: 100%;
   cursor: text;
   user-select: none;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .gantt-tl-cellContent:hover {
@@ -126,35 +130,38 @@
   border-radius: 2px;
 }
 
-/* Inline edit input */
-.gantt-tl-input {
+/* Name edit — single-line floating overlay above table */
+.gantt-tl-input-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  height: 100%;
+  min-width: 200px;
   width: 100%;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid #3b82f6;
-  border-radius: 2px;
+  padding: 0 8px;
+  border: 2px solid #3b82f6;
+  border-radius: 3px;
   font-size: 0.85rem;
   font-family: inherit;
+  background: #fff;
   outline: none;
   box-sizing: border-box;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
 }
 
-.gantt-tl-input:focus {
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+.gantt-tl-input-overlay:focus {
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
 }
 
-/* Native date picker input */
-.gantt-tl-input-date {
-  width: 100%;
-  padding: 0.15rem 0.25rem;
-  border: 1px solid #3b82f6;
-  border-radius: 2px;
-  font-size: 0.78rem;
-  font-family: inherit;
-  outline: none;
-  box-sizing: border-box;
+/* Transparent datepicker overlay — sits on top of display text, opens native picker on click */
+.gantt-tl-date-picker {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
   cursor: pointer;
-}
-
-.gantt-tl-input-date:focus {
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  z-index: 5;
+  width: 100%;
+  height: 100%;
 }
