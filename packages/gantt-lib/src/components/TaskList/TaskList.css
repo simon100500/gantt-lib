@@ -1,10 +1,11 @@
 /**
  * TaskList Component Styles
- * Absolute positioned overlay - always rendered, visibility controlled via prop
+ * Sticky positioned - stays at left edge during horizontal scroll
+ * Always rendered in DOM for stable positioning, visibility controlled via prop
  */
 
 .gantt-tl-overlay {
-  position: absolute;
+  position: sticky;
   left: 0;
   top: 0;
   z-index: 15;
@@ -12,6 +13,7 @@
   border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   display: flex;
   flex-direction: column;
+  float: left;
   pointer-events: auto;
 }
 
