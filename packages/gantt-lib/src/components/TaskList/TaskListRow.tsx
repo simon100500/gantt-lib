@@ -80,11 +80,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         if (field === 'name') {
           setEditValue(task.name);
         } else if (field === 'startDate') {
-          const startDate = parseUTCDate(task.startDate);
-          setEditValue(formatShortDate(startDate));
+          const sd = task.startDate instanceof Date
+            ? task.startDate.toISOString().split('T')[0]
+            : task.startDate;
+          setEditValue(sd);
         } else if (field === 'endDate') {
-          const endDate = parseUTCDate(task.endDate);
-          setEditValue(formatShortDate(endDate));
+          const ed = task.endDate instanceof Date
+            ? task.endDate.toISOString().split('T')[0]
+            : task.endDate;
+          setEditValue(ed);
         }
       }
     }, [editField, task]);
@@ -100,18 +104,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           updatedTask = { ...task, name: editValue.trim() };
         }
       } else if (editField === 'startDate' || editField === 'endDate') {
-        const parsedDate = parseShortDate(editValue);
-        if (parsedDate) {
-          // Convert to ISO format (YYYY-MM-DD)
-          const isoDate = parsedDate.toISOString().split('T')[0];
+        // editValue is already ISO YYYY-MM-DD from input[type=date]
+        if (editValue.trim()) {
           updatedTask = { ...task };
           if (editField === 'startDate') {
-            updatedTask.startDate = isoDate;
+            updatedTask.startDate = editValue;
           } else {
-            updatedTask.endDate = isoDate;
+            updatedTask.endDate = editValue;
           }
         } else {
-          // Invalid date format - keep edit mode active
+          // Empty value - keep edit mode active
           return;
         }
       }
@@ -150,7 +152,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     return (
       <div
         className={`gantt-tl-row ${isSelected ? 'gantt-tl-row-selected' : ''}`}
-        style={{ height: `${rowHeight}px` }}
+        style={{ minHeight: `${rowHeight}px` }}
         onClick={handleRowClickInternal}
       >
         {/* Number column (read-only) */}
@@ -189,13 +191,14 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           {editField === 'startDate' ? (
             <input
               ref={inputRef}
-              type="text"
+              type="date"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={handleSave}
               onKeyDown={handleKeyDown}
-              className="gantt-tl-input"
+              className="gantt-tl-input-date"
               onClick={(e) => e.stopPropagation()}
+              autoFocus
             />
           ) : (
             <span
@@ -215,13 +218,14 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           {editField === 'endDate' ? (
             <input
               ref={inputRef}
-              type="text"
+              type="date"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={handleSave}
               onKeyDown={handleKeyDown}
-              className="gantt-tl-input"
+              className="gantt-tl-input-date"
               onClick={(e) => e.stopPropagation()}
+              autoFocus
             />
           ) : (
             <span

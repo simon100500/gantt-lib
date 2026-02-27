@@ -79,15 +79,14 @@
 /* Cells */
 .gantt-tl-cell {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   padding: 0 0.5rem;
+  padding-top: 6px;
   box-sizing: border-box;
   border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   font-size: 0.85rem;
   color: #374151;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .gantt-tl-cell:last-child {
@@ -103,10 +102,14 @@
 .gantt-tl-cell-name {
   flex: 1;
   min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+  align-items: flex-start;
+  padding-top: 4px;
 }
 
 .gantt-tl-cell-date {
-  width: 70px;
+  width: 90px;
   justify-content: center;
   flex-shrink: 0;
 }
@@ -136,5 +139,22 @@
 }
 
 .gantt-tl-input:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Native date picker input */
+.gantt-tl-input-date {
+  width: 100%;
+  padding: 0.15rem 0.25rem;
+  border: 1px solid #3b82f6;
+  border-radius: 2px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.gantt-tl-input-date:focus {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }

@@ -12,7 +12,7 @@ export interface TaskListProps {
   rowHeight: number;
   /** Height of the header row in pixels (must match Gantt chart's headerHeight) */
   headerHeight: number;
-  /** Width of the task list overlay in pixels (default: 300) */
+  /** Width of the task list overlay in pixels (default: 400) */
   taskListWidth?: number;
   /** Callback when task is modified via inline edit */
   onTaskChange?: (task: Task) => void;
@@ -34,7 +34,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   rowHeight,
   headerHeight,
-  taskListWidth = 300,
+  taskListWidth = 400,
   onTaskChange,
   selectedTaskId,
   onTaskSelect,
