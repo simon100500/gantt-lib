@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, cascadeByLinks, recalculateIncomingLags } from '../../utils/dependencyUtils';
+import { validateDependencies, recalculateIncomingLags } from '../../utils/dependencyUtils';
 import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
@@ -213,42 +213,44 @@ export const GanttChart: React.FC<GanttChartProps> = ({
    * relying on the fact that onChange fires only after drag completes.
    */
   const handleTaskChange = useCallback((updatedTask: Task) => {
-    // Find original task to detect date changes
     const originalTask = tasks.find(t => t.id === updatedTask.id);
-    if (!originalTask) {
-      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
-      return;
-    }
-
-    const origStart = new Date(originalTask.startDate as string);
-    const origEnd = new Date(originalTask.endDate as string);
     const newStart = new Date(updatedTask.startDate as string);
     const newEnd = new Date(updatedTask.endDate as string);
-    const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
+    const datesChanged = originalTask
+      ? new Date(originalTask.startDate as string).getTime() !== newStart.getTime()
+      : false;
 
-    // No date change (name edit) or constraints off: simple update
-    if (!datesChanged || disableConstraints || !onCascade) {
+    if (!datesChanged) {
+      // Name edit or no original found: simple replace
       onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
       return;
     }
 
-    // Cascade successors by link constraints (each positioned from predecessor's new dates)
-    const cascadedTask: Task = {
-      ...updatedTask,
-      ...(updatedTask.dependencies && {
-        dependencies: recalculateIncomingLags(updatedTask, newStart, newEnd, tasks),
-      }),
-    };
-
-    const cascadedChain = cascadeByLinks(updatedTask.id, newStart, newEnd, tasks);
-
-    const allCascaded = [cascadedTask, ...cascadedChain];
+    // Date changed: update the moved task's incoming lags, then recalculate lags
+    // of every task that has a dependency ON the moved task. No tasks move.
     onChange?.((currentTasks) => {
-      const m = new Map(allCascaded.map(t => [t.id, t]));
-      return currentTasks.map(t => m.get(t.id) ?? t);
+      // 1. Moved task with its own recalculated incoming lags
+      const movedUpdated: Task = {
+        ...updatedTask,
+        ...(updatedTask.dependencies && {
+          dependencies: recalculateIncomingLags(updatedTask, newStart, newEnd, currentTasks),
+        }),
+      };
+
+      // 2. Snapshot with the moved task's new dates for successor lag calculation
+      const tasksWithMoved = currentTasks.map(t => t.id === updatedTask.id ? movedUpdated : t);
+
+      return tasksWithMoved.map(t => {
+        if (t.id === updatedTask.id) return t;
+        if (!t.dependencies?.some(d => d.taskId === updatedTask.id)) return t;
+
+        // This task depends on the moved task — recalculate its lags (position unchanged)
+        const tStart = new Date(t.startDate as string);
+        const tEnd = new Date(t.endDate as string);
+        return { ...t, dependencies: recalculateIncomingLags(t, tStart, tEnd, tasksWithMoved) };
+      });
     });
-    onCascade?.(allCascaded);
-  }, [tasks, onChange, disableConstraints, onCascade]);
+  }, [tasks, onChange]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
   const dependencyOverrides = useMemo(() => {
