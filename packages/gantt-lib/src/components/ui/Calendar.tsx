@@ -17,6 +17,8 @@ import {
   getDay,
   isToday,
   isWeekend,
+  isBefore,
+  startOfDay,
 } from 'date-fns';
 
 export interface CalendarProps {
@@ -33,6 +35,7 @@ function getDayClassName(day: Date, selected: Date | undefined): string {
   if (selected && isSameDay(day, selected)) classes.push('selected');
   if (isToday(day)) classes.push('today');
   if (isWeekend(day)) classes.push('weekend');
+  if (isBefore(day, startOfDay(new Date())) && !isToday(day)) classes.push('past');
 
   return classes.join(' ');
 }
