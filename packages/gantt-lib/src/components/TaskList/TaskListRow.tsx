@@ -117,13 +117,14 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onClick={(e) => e.stopPropagation()}
             />
           )}
-          <span
-            className="gantt-tl-cellContent"
+          <button
+            type="button"
+            className="gantt-tl-name-trigger"
             onClick={handleNameClick}
             style={editingName ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}
           >
             {task.name}
-          </span>
+          </button>
         </div>
 
         {/* Start Date — DatePicker component */}
