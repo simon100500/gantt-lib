@@ -102,6 +102,8 @@ export interface GanttChartProps {
   showTaskList?: boolean;
   /** Width of the task list overlay in pixels (default: 300) */
   taskListWidth?: number;
+  /** Disable task name editing in the task list (default: false) */
+  disableTaskNameEditing?: boolean;
 }
 
 /**
