@@ -64,7 +64,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 13 of 13 (13-ui-components)
 Plan: 1 of 1 in current phase (1 complete, 0 pending)
 Status: COMPLETE - shadcn/ui components (Input, Button, Popover, Calendar, DatePicker) integrated into TaskListRow
-Last activity: 2026-02-28 - Completed quick task 35: добавь экшон для графика глобально чтобы он открывался на текущем дне посередине экрана
+Last activity: 2026-02-28 - Completed quick task 37: Add a "Today" button to the Gantt chart for quick navigation
 
 Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete)
 
@@ -134,6 +134,7 @@ Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete
 | Phase 13-ui-components P01 | 4min | 5 tasks | 12 files |
 | Phase quick-31 P31 | 48 | 2 tasks | 2 files |
 | Phase quick-34 P34 | 73s | 5 tasks | 4 files |
+| Quick 37 P01 | 60s | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -287,11 +288,12 @@ None yet.
 | 32 | Name cell full-cell click target like date cell | 2026-02-28 | 20b13b9 | [32-name-cell-full-cell-click-target-like-da](./quick/32-name-cell-full-cell-click-target-like-da/) |
 | 34 | ДОБАВЬ свойство отключить редактирование название работ (системный пропс общий на график). плюс заблокируй редактирование дат через таск лист если работа заблокирована | 2026-02-28 | 4b88ea9 | [34-](./quick/34-/) |
 | 35 | добавь экшон для графика глобально чтобы он открывался на текущем дне посередине экрана | 2026-02-28 | e7d050c | [35-open-chart-centered-on-current-day](./quick/35-open-chart-centered-on-current-day/) |
+| 37 | Add a "Today" button to the Gantt chart that allows users to quickly return to today's date | 2026-02-28 | 2e3bf64 | [37-creating-quick-task-36-today](./quick/37-creating-quick-task-36-today/) |
 
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 13-01-PLAN.md (shadcn/ui DatePicker and Input)
+Stopped at: Completed quick-37-01-PLAN.md (Today button for quick navigation)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
