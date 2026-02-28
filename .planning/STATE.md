@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-02-27T19:49:48.052Z"
+status: in_progress
+last_updated: "2026-02-28T00:00:00.000Z"
 progress:
-  total_phases: 12
+  total_phases: 13
   completed_phases: 12
-  total_plans: 33
-  completed_plans: 33
+  total_plans: 34
+  completed_plans: 34
 ---
 
 # Project State
@@ -22,12 +22,12 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 
 ## Current Position
 
-Phase: 12 of 12 (12-task-list)
-Plan: 2 of 2 in current phase (2 complete, 0 pending)
-Status: COMPLETE - Task List overlay component with demo page
-Last activity: 2026-02-27 - Completed quick task 028: расширить task list до 400px, перенос текста в названии, datepicker для дат
+Phase: 13 of 13 (13-ui-components)
+Plan: 1 of 1 in current phase (1 complete, 0 pending)
+Status: COMPLETE - shadcn/ui components (Input, Button, Popover, Calendar, DatePicker) integrated into TaskListRow
+Last activity: 2026-02-28 - Completed plan 13-01: shadcn/ui DatePicker and Input components
 
-Progress: [██████████] 100% (Phase 12: 2 of 2 plans complete)
+Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete)
 
 ## Performance Metrics
 
@@ -92,6 +92,7 @@ Progress: [██████████] 100% (Phase 12: 2 of 2 plans complete
 | Phase 11 P01 | 81 | 2 tasks | 5 files |
 | Phase 11 P02 | 4min | 2 tasks | 1 files |
 | Phase 26-props P26 | 3 | 2 tasks | 3 files |
+| Phase 13-ui-components P01 | 4min | 5 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -198,6 +199,10 @@ Recent decisions affecting current work:
 - [Phase 12-01]: Overlay z-index: 5 (above grid: 0, below guide lines: 20)
 - [Phase 12-01]: Task list toggle controlled externally via showTaskList prop (not internal to GanttChart component)
 - [Phase 12-01]: Row selection state tracked in GanttChart (selectedTaskId), shared with TaskList and TaskRow
+- [Phase 13-01]: react-day-picker v9 installed (not v8) — Calendar wrapper uses classNames prop with rdp-* keys from getDefaultClassNames()
+- [Phase 13-01]: DatePicker onChange returns ISO string directly (not ChangeEvent) — cleaner API, TaskListRow handlers updated
+- [Phase 13-01]: DatePicker trigger uses button element (not input) — popover opens on click, avoids native picker
+- [Phase 13-01]: portal=true for DatePicker in TaskListRow — calendar floats above gantt z-index stack
 
 ### Pending Todos
 
@@ -237,8 +242,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-27
-Stopped at: Completed quick-028 (TaskList 400px default, name wrap, native date picker)
+Last session: 2026-02-28
+Stopped at: Completed 13-01-PLAN.md (shadcn/ui DatePicker and Input)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -304,4 +309,9 @@ Stopped at: Completed quick-028 (TaskList 400px default, name wrap, native date 
 - 12-02: COMPLETE - CSS aggregation, library exports, demo page with toggle button (1 min)
 
 **Phase 12 Total:** 2 of 2 plans complete, Task List overlay component with inline editing, synchronized scrolling, and demo page
+
+**Phase 13 Status:** COMPLETE
+- 13-01: COMPLETE - shadcn/ui components: Input, Button, Popover, Calendar, DatePicker integrated into TaskListRow (4 min)
+
+**Phase 13 Total:** 1 of 1 plans complete, styled UI components with react-day-picker v9 and Radix UI Popover, gantt- CSS variables
 

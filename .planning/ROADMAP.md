@@ -166,7 +166,7 @@ Plans:
 
 **Goal:** Replace native HTML inputs with shadcn/ui-based components (DatePicker, Input) for consistent, polished UI across browsers with minimal bundle impact
 **Depends on:** Phase 12
-**Plans:** 1/1 plans pending
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 13-01-PLAN.md — shadcn/ui components: DatePicker, Input, Calendar, Popover, theming, TaskListRow integration
