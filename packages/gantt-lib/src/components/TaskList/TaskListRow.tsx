@@ -23,6 +23,8 @@ export interface TaskListRowProps {
 
 const toISODate = (value: string | Date): string => {
   if (value instanceof Date) return value.toISOString().split('T')[0];
+  // Handle full ISO strings like "2026-02-12T00:00:00.000Z"
+  if (typeof value === 'string' && value.includes('T')) return value.split('T')[0];
   return value as string;
 };
 
