@@ -275,7 +275,7 @@
   color: var(--gantt-calendar-text-weekend);
 }
 
-.gantt-day-btn.past:not(.selected):not(.weekend) {
+.gantt-day-btn.past:not(.selected) {
   color: var(--gantt-calendar-text-muted);
 }
 
