@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.0.8
+**Version:** 0.1.1
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
@@ -10,7 +10,7 @@
 | Property | Value |
 |---|---|
 | Package name | `gantt-lib` |
-| Version | `0.0.8` |
+| Version | `0.1.1` |
 | NPM install | `npm install gantt-lib` |
 | Peer dependencies | `react >= 18`, `react-dom >= 18` |
 | CSS import (REQUIRED) | `import 'gantt-lib/styles.css'` |
@@ -23,7 +23,7 @@ The CSS import MUST appear as a separate import line. Without it, task bars, gri
 ## 2. Minimal Working Example
 
 ```tsx
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { GanttChart, type Task } from 'gantt-lib';
 import 'gantt-lib/styles.css';
 
@@ -46,14 +46,21 @@ const initialTasks: Task[] = [
 
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const ganttRef = useRef<{ scrollToToday: () => void }>(null);
 
   return (
-    <GanttChart
-      tasks={tasks}
-      dayWidth={40}
-      rowHeight={40}
-      onChange={setTasks}
-    />
+    <div>
+      <button onClick={() => ganttRef.current?.scrollToToday()}>
+        Сегодня
+      </button>
+      <GanttChart
+        ref={ganttRef}
+        tasks={tasks}
+        dayWidth={40}
+        rowHeight={40}
+        onChange={setTasks}
+      />
+    </div>
   );
 }
 ```
@@ -63,6 +70,7 @@ Key points:
 - Use ISO strings (`'YYYY-MM-DD'`) for dates — avoids timezone issues
 - Pass the `useState` setter directly to `onChange` — the library emits functional updaters
 - No `month` prop needed — the calendar range is derived automatically from task dates
+- Use `ref` to access the `scrollToToday()` method for programmatic scroll to current date
 
 ---
 
@@ -78,6 +86,8 @@ interface Task {
   progress?: number;
   accepted?: boolean;
   dependencies?: TaskDependency[];
+  locked?: boolean;
+  divider?: 'top' | 'bottom';
 }
 ```
 
@@ -91,6 +101,8 @@ interface Task {
 | `progress` | `number` | no | `undefined` | Range: 0–100. Decimal values are rounded for display. `0` or `undefined` means no progress bar is rendered. Progress is purely visual — it does not restrict drag behavior. |
 | `accepted` | `boolean` | no | `undefined` | Only meaningful when `progress === 100`. `true` renders a green progress bar. `false` or `undefined` at 100% renders a yellow bar. Has no effect when progress is not 100. |
 | `dependencies` | `TaskDependency[]` | no | `undefined` | Array of predecessor links. Dependencies are defined on the **successor** task, pointing to the predecessor via `taskId`. See Section 4 and Section 5. |
+| `locked` | `boolean` | no | `undefined` | When `true`, the task cannot be dragged or resized. Task name and dates cannot be edited in the task list. Independent of `progress` and `accepted` — consumer controls locking separately. |
+| `divider` | `'top' \| 'bottom'` | no | `undefined` | Optional horizontal divider line for visual grouping. `'top'` renders a bold line above the task row. `'bottom'` renders a bold line below the task row. Spans the full grid width. |
 
 ---
 
@@ -195,6 +207,9 @@ interface GanttChartProps {
   enableAutoSchedule?: boolean;
   disableConstraints?: boolean;
   onCascade?: (tasks: Task[]) => void;
+  showTaskList?: boolean;
+  taskListWidth?: number;
+  disableTaskNameEditing?: boolean;
 }
 ```
 
@@ -210,12 +225,53 @@ interface GanttChartProps {
 | `enableAutoSchedule` | `boolean` | `false` | When `true` (hard mode): dragging a predecessor cascades all successor tasks to maintain their constraints. Dependency lines redraw in real-time during drag. |
 | `disableConstraints` | `boolean` | `false` | When `true`: all drag constraint checks are skipped. Tasks can be placed freely, ignoring all dependency rules. Useful for debugging layouts or building unconstrained editors. |
 | `onCascade` | `(tasks: Task[]) => void` | `undefined` | Called when a cascade drag completes in hard mode (`enableAutoSchedule={true}`). Receives all affected tasks including the dragged task. **When `onCascade` fires, `onChange` does NOT fire for that drag.** Use `onCascade` to update state in hard mode. |
+| `showTaskList` | `boolean` | `false` | When `true`, displays a task list table on the left side of the chart with columns for №, Name, Start Date, End Date. The task list supports inline editing and synchronized scrolling. |
+| `taskListWidth` | `number` | `520` | Width of the task list panel in pixels. Only effective when `showTaskList={true}`. |
+| `disableTaskNameEditing` | `boolean` | `false` | When `true`, task names cannot be edited in the task list. Date editing is also disabled for locked tasks (see `task.locked` property). |
 
 **Important — calendar range:** The visible date range is calculated automatically from the earliest `startDate` to the latest `endDate` across all tasks. The chart always shows complete calendar months. For example, if tasks span March 25 to May 5, the chart renders March 1 through May 31. There is no `month` prop.
 
 ---
 
-## 7. CSS Variables
+## 7. Ref API
+
+The `GanttChart` component supports an imperative handle via `ref` for programmatic control.
+
+```typescript
+interface GanttChartRef {
+  scrollToToday: () => void;
+}
+```
+
+Usage example:
+
+```tsx
+import { useRef } from 'react';
+import { GanttChart } from 'gantt-lib';
+
+function App() {
+  const ganttRef = useRef<{ scrollToToday: () => void }>(null);
+
+  const handleTodayClick = () => {
+    ganttRef.current?.scrollToToday();
+  };
+
+  return (
+    <>
+      <button onClick={handleTodayClick}>Today</button>
+      <GanttChart ref={ganttRef} tasks={tasks} />
+    </>
+  );
+}
+```
+
+| Method | Return Type | Description |
+|---|---|---|
+| `scrollToToday()` | `void` | Scrolls the chart horizontally so that today's date is centered in the viewport. If today is not within the visible date range, no action is taken. |
+
+---
+
+## 8. CSS Variables
 
 Override these in any global CSS file to customize the chart appearance. All overrides must target `:root` or a specific selector enclosing the chart.
 
@@ -247,7 +303,7 @@ Override these in any global CSS file to customize the chart appearance. All ove
 
 ---
 
-## 8. Drag Interactions
+## 9. Drag Interactions
 
 | User Action | Result |
 |---|---|
@@ -266,7 +322,7 @@ Override these in any global CSS file to customize the chart appearance. All ove
 
 ---
 
-## 9. ValidationResult Type
+## 10. ValidationResult Type
 
 Used as the argument type for the `onValidateDependencies` callback.
 
@@ -297,7 +353,7 @@ Validation runs automatically on every tasks array change. You do not call it ma
 
 ---
 
-## 10. Date Handling Rules
+## 11. Date Handling Rules
 
 - **Use ISO strings.** Always pass dates as `'YYYY-MM-DD'` strings. `Date` objects from local environments can cause off-by-one errors due to timezone offsets.
 - **All internal calculations are UTC.** The library uses `Date.UTC()` internally. A date string `'2026-02-01'` is treated as `2026-02-01T00:00:00Z`.
@@ -307,7 +363,7 @@ Validation runs automatically on every tasks array change. You do not call it ma
 
 ---
 
-## 11. onChange Pattern — Correct Usage
+## 12. onChange Pattern — Correct Usage
 
 The `onChange` prop accepts both a new tasks array and a functional updater. The library internally emits functional updaters to avoid stale closure bugs with fast consecutive drags.
 
@@ -332,7 +388,7 @@ onChange={(newTasks) => setTasks(newTasks)}
 
 ---
 
-## 12. enableAutoSchedule vs onCascade
+## 13. enableAutoSchedule vs onCascade
 
 Three distinct operating modes depending on prop combinations:
 
@@ -360,7 +416,7 @@ Three distinct operating modes depending on prop combinations:
 
 ---
 
-## 13. AI Agent Usage Notes
+## 14. AI Agent Usage Notes
 
 When generating `Task` arrays for this library, follow these rules to avoid common errors:
 
@@ -396,6 +452,22 @@ const tasks: Task[] = [
 **onChange vs onCascade**
 - When `enableAutoSchedule={true}` and `onCascade` is provided, update your state from `onCascade`, not from `onChange`. They are mutually exclusive per drag event.
 
+**Locked tasks**
+- Use `locked: true` to prevent drag, resize, and editing of a task. This is independent from progress and accepted properties.
+- When a task is locked, both the task bar and task list cells become non-interactive.
+
+**Task List**
+- Enable with `showTaskList={true}` prop. Shows a table on the left with №, Name, Start Date, End Date columns.
+- Task list scrolls horizontally in sync with the chart. Row selection highlights both the list row and the task bar.
+- Inline editing: click to edit, Enter to save, Esc to cancel.
+- Use `taskListWidth` to control the panel width (default: 520px).
+- Use `disableTaskNameEditing={true}` to globally disable name editing. Date editing is automatically disabled for locked tasks.
+
+**Scroll to Today**
+- Use `ref` to access the `scrollToToday()` method for programmatic scroll to the current date.
+- The chart centers today's date in the viewport when `scrollToToday()` is called.
+- Example: `ganttRef.current?.scrollToToday()`
+
 **Progress bar states summary**
 
 | `progress` | `accepted` | Visual Result |
@@ -407,7 +479,7 @@ const tasks: Task[] = [
 
 ---
 
-## 14. Public Exports
+## 15. Public Exports
 
 ```typescript
 // Named exports from 'gantt-lib'
@@ -426,7 +498,7 @@ import 'gantt-lib/styles.css';
 
 ---
 
-## 15. Performance Notes
+## 16. Performance Notes
 
 - `onChange` fires once on mouseup — not on every drag frame. Safe with 100+ tasks.
 - `TaskRow` uses `React.memo` with a custom comparator. Only the dragged row re-renders during drag.
@@ -435,7 +507,7 @@ import 'gantt-lib/styles.css';
 
 ---
 
-## 16. Known Constraints and Edge Cases
+## 17. Known Constraints and Edge Cases
 
 | Scenario | Behavior |
 |---|---|
