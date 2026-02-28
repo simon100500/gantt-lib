@@ -114,6 +114,7 @@
   justify-content: center;
   flex-shrink: 0;
   position: relative;
+  padding: 0;
 }
 
 /* Editable cell content */
