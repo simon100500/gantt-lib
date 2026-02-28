@@ -1,6 +1,10 @@
 # gantt-lib
 
 [![Demo](https://img.shields.io/badge/demo-online-brightgreen)](https://gantt-lib-demo.vercel.app/)
+[![NPM Version](https://img.shields.io/npm/v/gantt-lib)](https://www.npmjs.com/package/gantt-lib)
+[![NPM Downloads](https://img.shields.io/npm/dm/gantt-lib)](https://www.npmjs.com/package/gantt-lib)
+[![License](https://img.shields.io/npm/l/gantt-lib)](https://www.npmjs.com/package/gantt-lib)
+
 
 ![Скриншот](docs/images/screen.png)
 
