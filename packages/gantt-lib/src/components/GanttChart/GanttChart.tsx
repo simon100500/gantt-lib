@@ -86,8 +86,8 @@ export interface GanttChartProps {
   rowHeight?: number;
   /** Height of the header row in pixels (default: 40) */
   headerHeight?: number;
-  /** Container height in pixels (default: 600) - adds vertical scrolling when tasks exceed this height */
-  containerHeight?: number;
+  /** Container height. Can be pixels (600), string ("90vh", "100%", "500px"), or undefined for auto height */
+  containerHeight?: number | string;
   /** Callback when tasks are modified via drag/resize. Can receive either the new tasks array or a functional updater. */
   onChange?: (tasks: Task[] | ((currentTasks: Task[]) => Task[])) => void;
   /** Optional callback for dependency validation results */
@@ -127,7 +127,7 @@ export const GanttChart = forwardRef<{ scrollToToday: () => void }, GanttChartPr
   dayWidth = 40,
   rowHeight = 40,
   headerHeight = 40,
-  containerHeight = 600,
+  containerHeight,
   onChange,
   onValidateDependencies,
   enableAutoSchedule,
@@ -400,7 +400,7 @@ export const GanttChart = forwardRef<{ scrollToToday: () => void }, GanttChartPr
       <div
         ref={scrollContainerRef}
         className="gantt-scrollContainer"
-        style={{ height: `${containerHeight}px`, cursor: 'grab' }}
+        style={{ height: containerHeight ?? 'auto', cursor: 'grab' }}
         onMouseDown={handlePanStart}
       >
         {/* Content wrapper - enables TaskList to scroll with chart horizontally */}

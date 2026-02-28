@@ -201,7 +201,7 @@ interface GanttChartProps {
   dayWidth?: number;
   rowHeight?: number;
   headerHeight?: number;
-  containerHeight?: number;
+  containerHeight?: number | string;
   onChange?: (tasks: Task[] | ((currentTasks: Task[]) => Task[])) => void;
   onValidateDependencies?: (result: ValidationResult) => void;
   enableAutoSchedule?: boolean;
@@ -219,7 +219,7 @@ interface GanttChartProps {
 | `dayWidth` | `number` | `40` | Width of each day column in pixels. Minimum effective value is approximately 20px — below that, day labels become illegible. |
 | `rowHeight` | `number` | `40` | Height of each task row in pixels. Also controls the task bar vertical position within the row. |
 | `headerHeight` | `number` | `40` | Height of the time-scale header (month + day rows) in pixels. |
-| `containerHeight` | `number` | `600` | Total component height in pixels. Enables vertical scrolling when tasks exceed this height. The header is sticky during vertical scroll. |
+| `containerHeight` | `number \| string` | `undefined` | Container height. Can be pixels (`600`), string (`"90vh"`, `"100%"`, `"500px"`), or `undefined` for auto height (adapts to content). |
 | `onChange` | `(tasks: Task[] \| ((currentTasks: Task[]) => Task[])) => void` | `undefined` | Called once on mouseup after any drag or resize. Receives either a new tasks array or a functional updater `(prev) => next`. **Best usage:** pass the `useState` setter directly — `onChange={setTasks}`. This works because the library already wraps updates in functional updaters. |
 | `onValidateDependencies` | `(result: ValidationResult) => void` | `undefined` | Called every time the tasks array changes. Receives a `ValidationResult` with all dependency errors (cycles, constraint violations, missing task references). |
 | `enableAutoSchedule` | `boolean` | `false` | When `true` (hard mode): dragging a predecessor cascades all successor tasks to maintain their constraints. Dependency lines redraw in real-time during drag. |

@@ -638,8 +638,9 @@ export default function Home() {
             dayWidth={24}
             rowHeight={36}
             onChange={handleChange}
+            containerHeight={"60dvh"}
             showTaskList={showTaskList}
-            taskListWidth={400}
+            taskListWidth={500}
             disableTaskNameEditing={disableTaskNameEditing}
           />
         </div>
