@@ -26,7 +26,7 @@
 
   --gantt-calendar-bg: #ffffff;
   --gantt-calendar-text: #1f2937;
-  --gantt-calendar-text-weekend: #6b7280;
+  --gantt-calendar-text-weekend: #ef4444;
   --gantt-calendar-text-muted: #9ca3af;
   --gantt-calendar-day-today-border: #3b82f6;
   --gantt-calendar-day-range: #dbeafe;
@@ -271,7 +271,7 @@
   opacity: 0.9;
 }
 
-.gantt-day-btn.weekend {
+.gantt-day-btn.weekend:not(.selected) {
   color: var(--gantt-calendar-text-weekend);
 }
 
