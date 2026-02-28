@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { getDayOffset, isToday } from '../../utils/dateUtils';
+import { getDayOffset } from '../../utils/dateUtils';
 import './TodayIndicator.css';
 
 export interface TodayIndicatorProps {
@@ -26,23 +26,15 @@ const TodayIndicator: React.FC<TodayIndicatorProps> = ({ monthStart, dayWidth })
     today.getDate()
   ));
 
-  // Check if today is within the current month (UTC comparison with local today)
-  const isInMonth = useMemo(() => {
-    return (
-      todayLocal.getUTCFullYear() === monthStart.getUTCFullYear() &&
-      todayLocal.getUTCMonth() === monthStart.getUTCMonth()
-    );
-  }, [monthStart, todayLocal]);
-
-  // Calculate position if today is in the month
+  // Calculate position based on offset from monthStart
+  // The parent GanttChart component handles the date range check via todayInRange
   const position = useMemo(() => {
-    if (!isInMonth) return null;
-
     const offset = getDayOffset(todayLocal, monthStart);
     return Math.round(offset * dayWidth);
-  }, [isInMonth, monthStart, dayWidth, todayLocal]);
+  }, [monthStart, dayWidth, todayLocal]);
 
-  if (!isInMonth || position === null) {
+  // Allow negative positions (today before monthStart) - parent handles visibility
+  if (isNaN(position)) {
     return null;
   }
 
