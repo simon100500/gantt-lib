@@ -3,6 +3,19 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
+last_updated: "2026-02-28T08:40:46.822Z"
+progress:
+  total_phases: 13
+  completed_phases: 13
+  total_plans: 34
+  completed_plans: 34
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
 last_updated: "2026-02-28T07:57:56.220Z"
 progress:
   total_phases: 13
@@ -106,6 +119,7 @@ Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete
 | Phase 11 P02 | 4min | 2 tasks | 1 files |
 | Phase 26-props P26 | 3 | 2 tasks | 3 files |
 | Phase 13-ui-components P01 | 4min | 5 tasks | 12 files |
+| Phase quick-31 P31 | 48 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -216,6 +230,7 @@ Recent decisions affecting current work:
 - [Phase 13-01]: DatePicker onChange returns ISO string directly (not ChangeEvent) — cleaner API, TaskListRow handlers updated
 - [Phase 13-01]: DatePicker trigger uses button element (not input) — popover opens on click, avoids native picker
 - [Phase 13-01]: portal=true for DatePicker in TaskListRow — calendar floats above gantt z-index stack
+- [Phase quick-31]: Hide span with visibility:hidden+pointerEvents:none when editing — lets clicks reach absolute-positioned input for correct cursor placement
 
 ### Pending Todos
 
@@ -254,6 +269,7 @@ None yet.
 | 28 | TaskList 400px default, name text wrap, native date picker for date cells | 2026-02-27 | 9c4ff04 | [28-task-list-400px-datepicker](./quick/28-task-list-400px-datepicker/) |
 | 29 | Replace react-day-picker Calendar with custom scrollable CalendarClient from example-cal | 2026-02-28 | 801f6f8 | [29-replace-react-day-picker-calendar-with-c](./quick/29-replace-react-day-picker-calendar-with-c/) |
 | 30 | Center date text in task list date cells, full-cell click target for date picker | 2026-02-28 | e6856fb | [30-task-list](./quick/30-task-list/) |
+| 31 | Task name input: compact rows (2px padding), wider input (320px), correct cursor positioning | 2026-02-28 | bd3ed56 | [31-task-name-input](./quick/31-task-name-input/) |
 
 ## Session Continuity
 
