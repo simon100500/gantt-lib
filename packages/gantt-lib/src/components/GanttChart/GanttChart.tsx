@@ -179,6 +179,25 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     return dateRange.some(day => day.getTime() === today.getTime());
   }, [dateRange]);
 
+  // Center chart on today's date on initial mount
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || dateRange.length === 0) return;
+
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const todayIndex = dateRange.findIndex(day => day.getTime() === today.getTime());
+
+    if (todayIndex === -1) return;
+
+    // Calculate scroll position to center today
+    const todayOffset = todayIndex * dayWidth;
+    const containerWidth = container.clientWidth;
+    const scrollLeft = Math.round(todayOffset - (containerWidth / 2) + (dayWidth / 2));
+
+    container.scrollLeft = Math.max(0, scrollLeft);
+  }, []); // Empty deps array - run only on mount
+
   // Track drag state for guide lines
   const [dragGuideLines, setDragGuideLines] = useState<{
     isDragging: boolean;
