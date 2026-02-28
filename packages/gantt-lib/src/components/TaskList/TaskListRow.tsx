@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { Task } from '../GanttChart';
 import { parseUTCDate } from '../../utils/dateUtils';
+import { Input } from '../ui/Input';
+import { DatePicker } from '../ui/DatePicker';
 
 export interface TaskListRowProps {
   /** Task data to render */
@@ -18,13 +20,6 @@ export interface TaskListRowProps {
   /** Callback when task row is clicked */
   onRowClick?: (taskId: string) => void;
 }
-
-const formatShortDate = (date: Date): string => {
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const year = String(date.getUTCFullYear()).slice(-2);
-  return `${day}.${month}.${year}`;
-};
 
 const toISODate = (value: string | Date): string => {
   if (value instanceof Date) return value.toISOString().split('T')[0];
@@ -68,38 +63,31 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       else if (e.key === 'Escape') handleNameCancel();
     }, [handleNameSave, handleNameCancel]);
 
-    const handleDateClick = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
-      e.stopPropagation();
-      (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
-    }, []);
-
     // Both date pickers shift the whole task (preserving duration), same as drag-move
-    const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-      if (!e.target.value) return;
+    const handleStartDateChange = useCallback((newDateISO: string) => {
+      if (!newDateISO) return;
       const origStart = parseUTCDate(task.startDate);
       const origEnd = parseUTCDate(task.endDate);
       const durationMs = origEnd.getTime() - origStart.getTime();
-      const newStart = new Date(e.target.value + 'T00:00:00Z');
+      const newStart = new Date(newDateISO + 'T00:00:00Z');
       const newEnd = new Date(newStart.getTime() + durationMs);
-      onTaskChange?.({ ...task, startDate: e.target.value, endDate: newEnd.toISOString().split('T')[0] });
+      onTaskChange?.({ ...task, startDate: newDateISO, endDate: newEnd.toISOString().split('T')[0] });
     }, [task, onTaskChange]);
 
-    const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-      if (!e.target.value) return;
+    const handleEndDateChange = useCallback((newDateISO: string) => {
+      if (!newDateISO) return;
       const origStart = parseUTCDate(task.startDate);
       const origEnd = parseUTCDate(task.endDate);
       const durationMs = origEnd.getTime() - origStart.getTime();
-      const newEnd = new Date(e.target.value + 'T00:00:00Z');
+      const newEnd = new Date(newDateISO + 'T00:00:00Z');
       const newStart = new Date(newEnd.getTime() - durationMs);
-      onTaskChange?.({ ...task, startDate: newStart.toISOString().split('T')[0], endDate: e.target.value });
+      onTaskChange?.({ ...task, startDate: newStart.toISOString().split('T')[0], endDate: newDateISO });
     }, [task, onTaskChange]);
 
     const handleRowClickInternal = useCallback(() => {
       onRowClick?.(task.id);
     }, [task.id, onRowClick]);
 
-    const startDate = parseUTCDate(task.startDate);
-    const endDate = parseUTCDate(task.endDate);
     const startDateISO = toISODate(task.startDate);
     const endDateISO = toISODate(task.endDate);
 
@@ -114,17 +102,17 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           {rowIndex + 1}
         </div>
 
-        {/* Name column — overlay input on edit */}
+        {/* Name column — styled Input overlay on edit */}
         <div className="gantt-tl-cell gantt-tl-cell-name">
           {editingName && (
-            <input
+            <Input
               ref={nameInputRef}
               type="text"
               value={nameValue}
               onChange={(e) => setNameValue(e.target.value)}
               onBlur={handleNameSave}
               onKeyDown={handleNameKeyDown}
-              className="gantt-tl-input-overlay"
+              className="gantt-tl-name-input"
               onClick={(e) => e.stopPropagation()}
             />
           )}
@@ -136,27 +124,23 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           </span>
         </div>
 
-        {/* Start Date — transparent datepicker overlay over display text */}
+        {/* Start Date — DatePicker component */}
         <div className="gantt-tl-cell gantt-tl-cell-date" onClick={(e) => e.stopPropagation()}>
-          <span className="gantt-tl-cellContent">{formatShortDate(startDate)}</span>
-          <input
-            type="date"
+          <DatePicker
             value={startDateISO}
             onChange={handleStartDateChange}
-            onClick={handleDateClick}
-            className="gantt-tl-date-picker"
+            format="dd.MM.yy"
+            portal={true}
           />
         </div>
 
-        {/* End Date — transparent datepicker overlay over display text */}
+        {/* End Date — DatePicker component */}
         <div className="gantt-tl-cell gantt-tl-cell-date" onClick={(e) => e.stopPropagation()}>
-          <span className="gantt-tl-cellContent">{formatShortDate(endDate)}</span>
-          <input
-            type="date"
+          <DatePicker
             value={endDateISO}
             onChange={handleEndDateChange}
-            onClick={handleDateClick}
-            className="gantt-tl-date-picker"
+            format="dd.MM.yy"
+            portal={true}
           />
         </div>
       </div>
