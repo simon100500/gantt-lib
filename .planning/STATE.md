@@ -253,6 +253,7 @@ None yet.
 | 27 | создай ещё одну тестовую страницу с графиком по роуту /mcp и чтобы задачи брались из json файла рядом в этой папке (или любой допустимой в проекте), создай пример json на 3 работы | 2026-02-23 | 6f82c8e | [27-mcp-json-json-3](./quick/27-mcp-json-json-3/) |
 | 28 | TaskList 400px default, name text wrap, native date picker for date cells | 2026-02-27 | 9c4ff04 | [28-task-list-400px-datepicker](./quick/28-task-list-400px-datepicker/) |
 | 29 | Replace react-day-picker Calendar with custom scrollable CalendarClient from example-cal | 2026-02-28 | 801f6f8 | [29-replace-react-day-picker-calendar-with-c](./quick/29-replace-react-day-picker-calendar-with-c/) |
+| 30 | Center date text in task list date cells, full-cell click target for date picker | 2026-02-28 | e6856fb | [30-task-list](./quick/30-task-list/) |
 
 ## Session Continuity
 
