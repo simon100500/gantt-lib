@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { format, parse, isValid } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { Calendar } from './Calendar';
 import { Popover, PopoverTrigger, PopoverContent } from './Popover';
 
@@ -37,7 +37,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
 
-  // Parse ISO string to Date for react-day-picker
+  // Parse ISO string to Date for calendar
   const selectedDate: Date | undefined = (() => {
     if (!value) return undefined;
     const d = new Date(value + 'T00:00:00Z');
@@ -50,17 +50,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     : placeholder;
 
   const handleSelect = useCallback(
-    (day: Date | undefined) => {
-      if (day) {
-        // Convert to ISO string using UTC to avoid timezone shift
-        const iso = [
-          day.getFullYear(),
-          String(day.getMonth() + 1).padStart(2, '0'),
-          String(day.getDate()).padStart(2, '0'),
-        ].join('-');
-        onChange?.(iso);
-        setOpen(false);
-      }
+    (day: Date) => {
+      // Convert to ISO string using local date parts to avoid timezone shift
+      const iso = [
+        day.getFullYear(),
+        String(day.getMonth() + 1).padStart(2, '0'),
+        String(day.getDate()).padStart(2, '0'),
+      ].join('-');
+      onChange?.(iso);
+      setOpen(false);
     },
     [onChange]
   );
@@ -88,7 +86,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           mode="single"
           selected={selectedDate}
           onSelect={handleSelect}
-          defaultMonth={selectedDate}
+          initialDate={selectedDate}
         />
       </PopoverContent>
     </Popover>
