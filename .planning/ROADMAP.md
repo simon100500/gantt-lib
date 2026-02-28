@@ -161,3 +161,12 @@ Plans:
 Plans:
 - [x] 12-01-PLAN.md — TaskList component: core structure, inline editing, CSS styles, GanttChart integration
 - [x] 12-02-PLAN.md — CSS aggregation, library exports, demo page with toggle button
+
+### Phase 13: ui-components
+
+**Goal:** Replace native HTML inputs with shadcn/ui-based components (DatePicker, Input) for consistent, polished UI across browsers with minimal bundle impact
+**Depends on:** Phase 12
+**Plans:** 1/1 plans pending
+
+Plans:
+- [ ] 13-01-PLAN.md — shadcn/ui components: DatePicker, Input, Calendar, Popover, theming, TaskListRow integration
