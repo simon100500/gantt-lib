@@ -307,6 +307,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       scrollX: container.scrollLeft,
       scrollY: container.scrollTop,
     };
+    // Blur any focused input so onBlur save handlers fire before pan starts
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     container.style.cursor = 'grabbing';
     e.preventDefault();
   }, []);
