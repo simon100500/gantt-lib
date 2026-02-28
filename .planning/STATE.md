@@ -1,3 +1,55 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-02-28T10:28:13.189Z"
+progress:
+  total_phases: 13
+  completed_phases: 13
+  total_plans: 34
+  completed_plans: 34
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-02-28T08:40:46.822Z"
+progress:
+  total_phases: 13
+  completed_phases: 13
+  total_plans: 34
+  completed_plans: 34
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-02-28T07:57:56.220Z"
+progress:
+  total_phases: 13
+  completed_phases: 13
+  total_plans: 34
+  completed_plans: 34
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
+last_updated: "2026-02-28T00:00:00.000Z"
+progress:
+  total_phases: 13
+  completed_phases: 12
+  total_plans: 34
+  completed_plans: 34
+---
+
 # Project State
 
 ## Project Reference
@@ -5,23 +57,23 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Phase 11 - lock-task (complete)
+**Current focus:** Phase 12 - task-list (planning complete)
 
 ## Current Position
 
-Phase: 11 of 11 (11-lock-task)
-Plan: 2 of 2 in current phase (complete)
-Status: COMPLETE - Task lock feature with human verification approved
-Last activity: 2026-02-23 - Completed quick task 27: создай ещё одну тестовую страницу с графиком по роуту /mcp и чтобы задачи брались из json файла рядом в этой папке (или любой допустимой в проекте), создай пример json на 3 работы
+Phase: 13 of 13 (13-ui-components)
+Plan: 1 of 1 in current phase (1 complete, 0 pending)
+Status: COMPLETE - shadcn/ui components (Input, Button, Popover, Calendar, DatePicker) integrated into TaskListRow
+Last activity: 2026-02-28 - Completed quick task 34: ДОБАВЬ свойство отключить редактирование название работ (системный пропс общий на график). плюс заблокируй редактирование дат через таск лист если работа заблокирована
 
-Progress: [██████████] 100% (Phase 11: complete)
+Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 26
+- Total plans completed: 29
 - Average duration: 9 min
-- Total execution time: 3.9 hours
+- Total execution time: 4.3 hours
 
 **By Phase:**
 
@@ -38,6 +90,7 @@ Progress: [██████████] 100% (Phase 11: complete)
 | 09-ff-dependency | 3 | 3 | 2 min |
 | 10-sf-dependency | 1 | 1 | 4 min |
 | 11-lock-task | 2 | 2 | 3 min |
+| 12-task-list | 2 | 2 | 3 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (4 min), 01-02 (4 min), 01-03 (8 min), 02-01 (16 min), 02-02 (45 min), 02-03 (5 min), 03-01 (4 min)
@@ -78,6 +131,9 @@ Progress: [██████████] 100% (Phase 11: complete)
 | Phase 11 P01 | 81 | 2 tasks | 5 files |
 | Phase 11 P02 | 4min | 2 tasks | 1 files |
 | Phase 26-props P26 | 3 | 2 tasks | 3 files |
+| Phase 13-ui-components P01 | 4min | 5 tasks | 12 files |
+| Phase quick-31 P31 | 48 | 2 tasks | 2 files |
+| Phase quick-34 P34 | 73s | 5 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -91,7 +147,7 @@ Progress: [██████████] 100% (Phase 11: complete)
 - Phase 9 added: FF-dependency
 - Phase 10 added: SF dependency
 - Phase 11 added: lock-task
-- Phase 12 added: task-list
+- Phase 12 added: task-list (overlay approach with inline editing)
 
 ### Decisions
 
@@ -177,6 +233,18 @@ Recent decisions affecting current work:
 - [Phase 10-01]: SF constraint clamp affects width (not left) because it constrains endB, not startB
 - [Phase 10-01]: SF lag uses Math.min(0, ...) for ceiling (opposite of SS's Math.max(0, ...) floor)
 - [Phase 10-01]: Renamed cascadeChainSS to cascadeChainStart for clarity (SS+SF share start-based cascade behavior)
+- [Phase 12-01]: TaskList overlay uses position: sticky within existing scroll container — avoids complex cross-container scroll synchronization
+- [Phase 12-01]: Inline editing pattern uses useState + useEffect for auto-focus, standard Enter/blur save, Escape cancel behavior
+- [Phase 12-01]: Date format conversion — display as DD.MM.YY, edit as DD.MM.YY, store as YYYY-MM-DD (ISO)
+- [Phase 12-01]: TaskList CSS uses gantt-tl- prefix following project convention
+- [Phase 12-01]: Overlay z-index: 5 (above grid: 0, below guide lines: 20)
+- [Phase 12-01]: Task list toggle controlled externally via showTaskList prop (not internal to GanttChart component)
+- [Phase 12-01]: Row selection state tracked in GanttChart (selectedTaskId), shared with TaskList and TaskRow
+- [Phase 13-01]: react-day-picker v9 installed (not v8) — Calendar wrapper uses classNames prop with rdp-* keys from getDefaultClassNames()
+- [Phase 13-01]: DatePicker onChange returns ISO string directly (not ChangeEvent) — cleaner API, TaskListRow handlers updated
+- [Phase 13-01]: DatePicker trigger uses button element (not input) — popover opens on click, avoids native picker
+- [Phase 13-01]: portal=true for DatePicker in TaskListRow — calendar floats above gantt z-index stack
+- [Phase quick-31]: Hide span with visibility:hidden+pointerEvents:none when editing — lets clicks reach absolute-positioned input for correct cursor placement
 
 ### Pending Todos
 
@@ -212,11 +280,17 @@ None yet.
 | 25 | Complete API reference documentation for gantt-lib v0.0.8 | 2026-02-22 | 5083cdb | [25-docs](./quick/25-docs/) |
 | 26 | Optional horizontal divider line for visual task grouping | 2026-02-23 | e5eb192 | [26-props](./quick/26-props/) |
 | 27 | создай ещё одну тестовую страницу с графиком по роуту /mcp и чтобы задачи брались из json файла рядом в этой папке (или любой допустимой в проекте), создай пример json на 3 работы | 2026-02-23 | 6f82c8e | [27-mcp-json-json-3](./quick/27-mcp-json-json-3/) |
+| 28 | TaskList 400px default, name text wrap, native date picker for date cells | 2026-02-27 | 9c4ff04 | [28-task-list-400px-datepicker](./quick/28-task-list-400px-datepicker/) |
+| 29 | Replace react-day-picker Calendar with custom scrollable CalendarClient from example-cal | 2026-02-28 | 801f6f8 | [29-replace-react-day-picker-calendar-with-c](./quick/29-replace-react-day-picker-calendar-with-c/) |
+| 30 | Center date text in task list date cells, full-cell click target for date picker | 2026-02-28 | e6856fb | [30-task-list](./quick/30-task-list/) |
+| 31 | Task name input: compact rows (2px padding), wider input (320px), correct cursor positioning | 2026-02-28 | bd3ed56 | [31-task-name-input](./quick/31-task-name-input/) |
+| 32 | Name cell full-cell click target like date cell | 2026-02-28 | 20b13b9 | [32-name-cell-full-cell-click-target-like-da](./quick/32-name-cell-full-cell-click-target-like-da/) |
+| 34 | ДОБАВЬ свойство отключить редактирование название работ (системный пропс общий на график). плюс заблокируй редактирование дат через таск лист если работа заблокирована | 2026-02-28 | 4b88ea9 | [34-](./quick/34-/) |
 
 ## Session Continuity
 
-Last session: 2026-02-22
-Stopped at: Completed 11-02 (Locked tasks demo with human verification approved)
+Last session: 2026-02-28
+Stopped at: Completed 13-01-PLAN.md (shadcn/ui DatePicker and Input)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -276,4 +350,15 @@ Stopped at: Completed 11-02 (Locked tasks demo with human verification approved)
 - 11-02: COMPLETE - Locked tasks demo with human verification (4 min, 1 file)
 
 **Phase 11 Total:** 2 of 2 plans, ~3 min avg, complete lock-task feature — locked prop, hook guard, lock icon, cascade filtering, and human verification
+
+**Phase 12 Status:** COMPLETE
+- 12-01: COMPLETE - TaskList component: core structure, inline editing, CSS styles, GanttChart integration (5 min)
+- 12-02: COMPLETE - CSS aggregation, library exports, demo page with toggle button (1 min)
+
+**Phase 12 Total:** 2 of 2 plans complete, Task List overlay component with inline editing, synchronized scrolling, and demo page
+
+**Phase 13 Status:** COMPLETE
+- 13-01: COMPLETE - shadcn/ui components: Input, Button, Popover, Calendar, DatePicker integrated into TaskListRow (4 min)
+
+**Phase 13 Total:** 1 of 1 plans complete, styled UI components with react-day-picker v9 and Radix UI Popover, gantt- CSS variables
 

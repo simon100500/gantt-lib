@@ -93,7 +93,8 @@ export const isWeekend = (date: Date): boolean => {
 
 /**
  * Calculate multi-month date range from task dates
- * Expands range to include full months (1st of first month to last day of last month)
+ * Expands range to include full months with padding on both ends for drag flexibility
+ * Adds 1 month before and 2 months after the task range
  * @param tasks - Array of tasks with startDate and endDate
  * @returns Array of Date objects for all days in the expanded range
  */
@@ -124,6 +125,7 @@ export const getMultiMonthDays = (tasks: Array<{ startDate: string | Date; endDa
   }
 
   // Extend to full months: 1st of first month to last day of last month
+  // Add padding: 2 months after for drag flexibility
   const startOfMonth = new Date(Date.UTC(
     minDate.getUTCFullYear(),
     minDate.getUTCMonth(),
@@ -132,7 +134,7 @@ export const getMultiMonthDays = (tasks: Array<{ startDate: string | Date; endDa
 
   const endOfMonth = new Date(Date.UTC(
     maxDate.getUTCFullYear(),
-    maxDate.getUTCMonth() + 1,
+    maxDate.getUTCMonth() + 1 + 2, // Original + 2 months padding after
     0
   ));
 

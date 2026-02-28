@@ -1,0 +1,295 @@
+/* =========================================================
+ * UI Components CSS — gantt-lib theming
+ * All classes use gantt- prefix to avoid collisions
+ * ========================================================= */
+
+/* CSS Variables for UI components */
+:root {
+  --gantt-input-bg: #ffffff;
+  --gantt-input-border: #d1d5db;
+  --gantt-input-focus-ring: rgba(59, 130, 246, 0.5);
+  --gantt-input-text: #1f2937;
+  --gantt-input-placeholder: #9ca3af;
+  --gantt-input-radius: 6px;
+
+  --gantt-popover-bg: #ffffff;
+  --gantt-popover-border: #e5e7eb;
+  --gantt-popover-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  --gantt-calendar-day-hover: #f3f4f6;
+  --gantt-calendar-day-selected: #3b82f6;
+  --gantt-calendar-day-selected-text: #ffffff;
+  --gantt-calendar-day-today-bg: #eff6ff;
+  --gantt-calendar-day-today-color: #1d4ed8;
+  --gantt-calendar-day-outside-color: #d1d5db;
+  --gantt-calendar-day-disabled-color: #d1d5db;
+
+  --gantt-calendar-bg: #ffffff;
+  --gantt-calendar-text: #1f2937;
+  --gantt-calendar-text-weekend: #ef4444;
+  --gantt-calendar-text-muted: #9ca3af;
+  --gantt-calendar-day-today-border: #3b82f6;
+  --gantt-calendar-day-range: #dbeafe;
+  --gantt-calendar-day-disabled-text: #d1d5db;
+}
+
+/* =========================================================
+ * Input
+ * ========================================================= */
+
+.gantt-input {
+  display: flex;
+  height: 32px;
+  width: 100%;
+  border-radius: var(--gantt-input-radius);
+  border: 1px solid var(--gantt-input-border);
+  background-color: var(--gantt-input-bg);
+  padding: 0 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--gantt-input-text);
+  transition: border-color 150ms, box-shadow 150ms;
+  box-sizing: border-box;
+}
+
+.gantt-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+}
+
+.gantt-input::placeholder {
+  color: var(--gantt-input-placeholder);
+}
+
+.gantt-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+ * Button
+ * ========================================================= */
+
+.gantt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  font-weight: 500;
+  padding: 0 12px;
+  height: 32px;
+  cursor: pointer;
+  border: 1px solid var(--gantt-input-border);
+  background-color: var(--gantt-input-bg);
+  color: var(--gantt-input-text);
+  transition: background-color 100ms, box-shadow 100ms;
+  user-select: none;
+}
+
+.gantt-btn:hover {
+  background-color: var(--gantt-calendar-day-hover);
+}
+
+.gantt-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+}
+
+.gantt-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Ghost variant */
+.gantt-btn-ghost {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.gantt-btn-ghost:hover {
+  background-color: var(--gantt-calendar-day-hover);
+}
+
+/* Outline variant */
+.gantt-btn-outline {
+  background-color: transparent;
+}
+
+/* Icon size */
+.gantt-btn-icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+/* Small size */
+.gantt-btn-sm {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 0.8rem;
+}
+
+/* =========================================================
+ * Popover
+ * ========================================================= */
+
+.gantt-popover {
+  background: var(--gantt-popover-bg);
+  border: 1px solid var(--gantt-popover-border);
+  border-radius: 8px;
+  box-shadow: var(--gantt-popover-shadow);
+  padding: 4px;
+  z-index: 1000;
+  animation: gantt-popover-in 120ms ease-out;
+}
+
+@keyframes gantt-popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* =========================================================
+ * DatePicker trigger button
+ * ========================================================= */
+
+.gantt-datepicker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--gantt-input-text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+}
+
+.gantt-datepicker-trigger:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 2px;
+}
+
+.gantt-datepicker-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+  border-radius: 2px;
+}
+
+.gantt-datepicker-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+ * Calendar — custom scrollable (gantt-cal-* / gantt-day-btn)
+ * ========================================================= */
+
+.gantt-cal-container {
+  max-height: 400px;
+  overflow-y: auto;
+  user-select: none;
+  padding: 8px;
+  font-family: inherit;
+  background: var(--gantt-calendar-bg);
+  color: var(--gantt-calendar-text);
+}
+
+.gantt-cal-month {
+  margin-bottom: 16px;
+}
+
+.gantt-cal-month-header {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 4px 0 8px;
+  color: var(--gantt-calendar-text);
+}
+
+.gantt-cal-month-days {
+  display: grid;
+  grid-template-columns: repeat(7, 32px);
+  gap: 2px;
+}
+
+.gantt-cal-empty-day {
+  width: 32px;
+  height: 32px;
+}
+
+.gantt-day-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--gantt-calendar-text);
+  transition: background-color 100ms;
+}
+
+.gantt-day-btn:hover {
+  background-color: var(--gantt-calendar-day-hover);
+}
+
+.gantt-day-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+}
+
+.gantt-day-btn.today {
+  border-color: var(--gantt-calendar-day-today-border);
+  font-weight: 600;
+}
+
+.gantt-day-btn.selected {
+  background-color: var(--gantt-calendar-day-selected);
+  color: var(--gantt-calendar-day-selected-text);
+  font-weight: 600;
+}
+
+.gantt-day-btn.selected:hover {
+  background-color: var(--gantt-calendar-day-selected);
+  opacity: 0.9;
+}
+
+.gantt-day-btn.weekend:not(.selected) {
+  color: var(--gantt-calendar-text-weekend);
+}
+
+.gantt-day-btn.past:not(.selected) {
+  color: var(--gantt-calendar-text-muted);
+}
+
+.gantt-day-btn.past.weekend:not(.selected) {
+  color: #fca5a5;
+}
+
+.gantt-day-btn.disabled {
+  color: var(--gantt-calendar-day-disabled-text);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.gantt-day-btn.disabled:hover {
+  background: transparent;
+}

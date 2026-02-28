@@ -10,6 +10,14 @@ export { default as TimeScaleHeader } from './components/TimeScaleHeader';
 export { default as GridBackground } from './components/GridBackground';
 export { default as TodayIndicator } from './components/TodayIndicator';
 export { default as DragGuideLines } from './components/DragGuideLines/DragGuideLines';
+export { TaskList, type TaskListProps } from './components/TaskList';
+
+// UI Components
+export { Input, type InputProps } from './components/ui/Input';
+export { Button, type ButtonProps } from './components/ui/Button';
+export { Popover, PopoverTrigger, PopoverContent, type PopoverProps, type PopoverContentProps } from './components/ui/Popover';
+export { Calendar, type CalendarProps } from './components/ui/Calendar';
+export { DatePicker, type DatePickerProps } from './components/ui/DatePicker';
 
 // Hooks
 export { useTaskDrag } from './hooks';

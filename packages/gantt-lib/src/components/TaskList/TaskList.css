@@ -1,0 +1,171 @@
+/**
+ * TaskList Component Styles
+ * Sticky positioned in flex container - stays at left edge during horizontal scroll
+ * Always rendered in DOM for stable positioning, visibility controlled via prop
+ */
+
+.gantt-tl-overlay {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 15;
+  background-color: var(--gantt-cell-background, #ffffff);
+  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  pointer-events: auto;
+}
+
+/* Hidden state - element completely removed from layout */
+.gantt-tl-overlay.gantt-tl-hidden {
+  display: none;
+}
+
+.gantt-tl-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Header row - sticky during vertical scroll */
+.gantt-tl-header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  background-color: var(--gantt-cell-background, #ffffff);
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  box-sizing: border-box;
+  z-index: 5;
+}
+
+.gantt-tl-headerCell {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1f2937;
+  box-sizing: border-box;
+  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+}
+
+.gantt-tl-headerCell:last-child {
+  border-right: none;
+}
+
+/* Body container */
+.gantt-tl-body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Data rows */
+.gantt-tl-row {
+  display: flex;
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.gantt-tl-row:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.gantt-tl-row-selected {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+/* Cells */
+.gantt-tl-cell {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  box-sizing: border-box;
+  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.gantt-tl-cell:last-child {
+  border-right: none;
+}
+
+.gantt-tl-cell-number {
+  width: 40px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Name cell — overflow visible so overlay input can extend past boundaries */
+.gantt-tl-cell-name {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: visible;
+  align-items: center;
+  padding: 0;
+  /* remove all padding so button fills full cell */
+}
+
+/* Date cell — relative for transparent picker overlay */
+.gantt-tl-cell-date {
+  width: 68px;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  padding: 0;
+}
+
+/* Full-cell button trigger for name edit */
+.gantt-tl-name-trigger {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  padding: 0 0.2rem;
+  /* restore visual padding inside the button */
+  font-size: 0.8rem;
+  line-height: 1.2;
+  font-family: inherit;
+  color: #374151;
+  background: transparent;
+  border: none;
+  cursor: text;
+  text-align: left;
+  user-select: none;
+  white-space: normal;
+  word-break: break-word;
+  box-sizing: border-box;
+  min-height: 100%;
+}
+
+.gantt-tl-name-trigger:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Name edit — Input component used as floating overlay */
+.gantt-tl-name-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  height: 100%;
+  min-width: 450px;
+  width: 100%;
+  border-width: 2px;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.gantt-tl-name-input:focus {
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+}
+
+/* Locked task name — cursor indicates no editing */
+.gantt-tl-name-locked {
+  cursor: default !important;
+}

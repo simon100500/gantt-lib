@@ -195,6 +195,181 @@ export function getSuccessorChain(
 }
 
 /**
+ * Cascade successors by actual link constraints (BFS, constraint-based).
+ *
+ * Each successor in the chain is positioned using calculateSuccessorDate
+ * with the predecessor's NEW dates and the actual lag — not a flat delta.
+ *
+ * - FS/SS: constraintDate = new start of successor (duration preserved)
+ * - FF/SF: constraintDate = new end of successor (duration preserved)
+ *
+ * Locked tasks break the chain.
+ * Returns only the cascaded successors (not the moved task itself).
+ */
+export function cascadeByLinks(
+  movedTaskId: string,
+  newStart: Date,
+  newEnd: Date,
+  allTasks: Task[]
+): Task[] {
+  const taskById = new Map(allTasks.map(t => [t.id, t]));
+
+  // Track each task's updated dates
+  const updatedDates = new Map<string, { start: Date; end: Date }>();
+  updatedDates.set(movedTaskId, { start: newStart, end: newEnd });
+
+  const result: Task[] = [];
+  const queue: string[] = [movedTaskId];
+  const visited = new Set<string>([movedTaskId]);
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    const { start: predStart, end: predEnd } = updatedDates.get(currentId)!;
+
+    for (const task of allTasks) {
+      if (visited.has(task.id) || !task.dependencies || task.locked) continue;
+
+      for (const dep of task.dependencies) {
+        if (dep.taskId !== currentId) continue;
+
+        const orig = taskById.get(task.id)!;
+        const origStart = new Date(orig.startDate as string);
+        const origEnd = new Date(orig.endDate as string);
+        const durationMs = origEnd.getTime() - origStart.getTime();
+
+        const constraintDate = calculateSuccessorDate(predStart, predEnd, dep.type, dep.lag ?? 0);
+
+        let newSuccStart: Date;
+        let newSuccEnd: Date;
+
+        if (dep.type === 'FS' || dep.type === 'SS') {
+          newSuccStart = constraintDate;
+          newSuccEnd = new Date(constraintDate.getTime() + durationMs);
+        } else {
+          // FF or SF: constraintDate is the end date
+          newSuccEnd = constraintDate;
+          newSuccStart = new Date(constraintDate.getTime() - durationMs);
+        }
+
+        visited.add(task.id);
+        updatedDates.set(task.id, { start: newSuccStart, end: newSuccEnd });
+        result.push({
+          ...task,
+          startDate: newSuccStart.toISOString().split('T')[0],
+          endDate: newSuccEnd.toISOString().split('T')[0],
+        });
+        queue.push(task.id);
+        break; // one predecessor per cascade step
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Get transitive closure of successors for cascading.
+ *
+ * Direct successors of the changed task are filtered by firstLevelLinkTypes.
+ * Their successors (and so on) are included regardless of link type.
+ */
+export function getTransitiveCascadeChain(
+  changedTaskId: string,
+  allTasks: Task[],
+  firstLevelLinkTypes: LinkType[]
+): Task[] {
+  const allTypesSuccessorMap = new Map<string, Task[]>();
+  for (const task of allTasks) {
+    allTypesSuccessorMap.set(task.id, []);
+  }
+  for (const task of allTasks) {
+    if (!task.dependencies) continue;
+    for (const dep of task.dependencies) {
+      const list = allTypesSuccessorMap.get(dep.taskId) ?? [];
+      list.push(task);
+      allTypesSuccessorMap.set(dep.taskId, list);
+    }
+  }
+
+  const directSuccessors = getSuccessorChain(changedTaskId, allTasks, firstLevelLinkTypes);
+  const chain = [...directSuccessors];
+  const visited = new Set<string>([changedTaskId, ...directSuccessors.map(t => t.id)]);
+  const queue = [...directSuccessors];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const successors = allTypesSuccessorMap.get(current.id) ?? [];
+    for (const successor of successors) {
+      if (!visited.has(successor.id)) {
+        visited.add(successor.id);
+        chain.push(successor);
+        queue.push(successor);
+      }
+    }
+  }
+
+  return chain;
+}
+
+/**
+ * Recalculate incoming dependency lags after a task's dates change.
+ * Used when completing a drag or applying a manual date change.
+ */
+export function recalculateIncomingLags(
+  task: Task,
+  newStartDate: Date,
+  newEndDate: Date,
+  allTasks: Task[]
+): NonNullable<Task['dependencies']> {
+  if (!task.dependencies) return [];
+  const taskById = new Map(allTasks.map(t => [t.id, t]));
+
+  return task.dependencies.map(dep => {
+    const predecessor = taskById.get(dep.taskId);
+    if (!predecessor) return dep;
+
+    if (dep.type === 'FS') {
+      const predEnd = new Date(predecessor.endDate as string);
+      const lagDays = Math.round(
+        (Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), newStartDate.getUTCDate())
+        - Date.UTC(predEnd.getUTCFullYear(), predEnd.getUTCMonth(), predEnd.getUTCDate()))
+        / (24 * 60 * 60 * 1000)
+      );
+      return { ...dep, lag: lagDays };
+    }
+    if (dep.type === 'SS') {
+      const predStart = new Date(predecessor.startDate as string);
+      const lagDays = Math.max(0, Math.round(
+        (Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), newStartDate.getUTCDate())
+        - Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate()))
+        / (24 * 60 * 60 * 1000)
+      ));
+      return { ...dep, lag: lagDays };
+    }
+    if (dep.type === 'FF') {
+      const predEnd = new Date(predecessor.endDate as string);
+      const lagDays = Math.round(
+        (Date.UTC(newEndDate.getUTCFullYear(), newEndDate.getUTCMonth(), newEndDate.getUTCDate())
+        - Date.UTC(predEnd.getUTCFullYear(), predEnd.getUTCMonth(), predEnd.getUTCDate()))
+        / (24 * 60 * 60 * 1000)
+      );
+      return { ...dep, lag: lagDays };
+    }
+    if (dep.type === 'SF') {
+      const predStart = new Date(predecessor.startDate as string);
+      const lagDays = Math.min(0, Math.round(
+        (Date.UTC(newEndDate.getUTCFullYear(), newEndDate.getUTCMonth(), newEndDate.getUTCDate())
+        - Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate())
+        + (24 * 60 * 60 * 1000))
+        / (24 * 60 * 60 * 1000)
+      ));
+      return { ...dep, lag: lagDays };
+    }
+    return dep;
+  });
+}
+
+/**
  * Get all dependency edges for rendering
  * Returns array of { predecessorId, successorId, type, lag }
  */

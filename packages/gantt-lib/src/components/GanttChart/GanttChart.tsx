@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies } from '../../utils/dependencyUtils';
+import { validateDependencies, cascadeByLinks } from '../../utils/dependencyUtils';
 import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
@@ -11,7 +11,9 @@ import TodayIndicator from '../TodayIndicator';
 import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
+import { TaskList } from '../TaskList';
 import './GanttChart.css';
+import '../TaskList/TaskList.css';
 
 /**
  * Task data structure for Gantt chart
@@ -96,6 +98,12 @@ export interface GanttChartProps {
   disableConstraints?: boolean;
   /** Called when a cascade drag completes; receives all shifted tasks (including dragged task) in hard mode */
   onCascade?: (tasks: Task[]) => void;
+  /** Show task list overlay on the left side of the chart (default: false) */
+  showTaskList?: boolean;
+  /** Width of the task list overlay in pixels (default: 300) */
+  taskListWidth?: number;
+  /** Disable task name editing in the task list (default: false) */
+  disableTaskNameEditing?: boolean;
 }
 
 /**
@@ -125,8 +133,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   enableAutoSchedule,
   disableConstraints,
   onCascade,
+  showTaskList = false,
+  taskListWidth = 520,
+  disableTaskNameEditing = false,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Track selected task ID for highlighting in both TaskList and TaskRow
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Calculate multi-month date range from tasks
   const dateRange = useMemo(() => getMultiMonthDays(tasks), [tasks]);
@@ -202,13 +216,36 @@ export const GanttChart: React.FC<GanttChartProps> = ({
    * relying on the fact that onChange fires only after drag completes.
    */
   const handleTaskChange = useCallback((updatedTask: Task) => {
-    // Call onChange with a functional updater that receives the current tasks
-    onChange?.((currentTasks) =>
-      currentTasks.map((t) =>
-        t.id === updatedTask.id ? updatedTask : t
-      )
-    );
-  }, [onChange]);
+    // Find original task to detect date changes
+    const originalTask = tasks.find(t => t.id === updatedTask.id);
+    if (!originalTask) {
+      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      return;
+    }
+
+    const origStart = new Date(originalTask.startDate as string);
+    const origEnd = new Date(originalTask.endDate as string);
+    const newStart = new Date(updatedTask.startDate as string);
+    const newEnd = new Date(updatedTask.endDate as string);
+    const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
+
+    // No date change (name edit) or constraints disabled: simple update
+    if (!datesChanged || disableConstraints) {
+      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      return;
+    }
+
+    // Lags are fixed constraints — preserve as-is, only reposition dates
+    const cascadedTask: Task = updatedTask;
+    const cascadedChain = cascadeByLinks(updatedTask.id, newStart, newEnd, tasks);
+
+    const allCascaded = [cascadedTask, ...cascadedChain];
+    onChange?.((currentTasks) => {
+      const m = new Map(allCascaded.map(t => [t.id, t]));
+      return currentTasks.map(t => m.get(t.id) ?? t);
+    });
+    onCascade?.(allCascaded);
+  }, [tasks, onChange, disableConstraints, onCascade]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
   const dependencyOverrides = useMemo(() => {
@@ -245,14 +282,23 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     onCascade?.(cascadedTasks);
   }, [onChange, onCascade]);
 
+  /**
+   * Handle task selection from TaskList or TaskRow
+   */
+  const handleTaskSelect = useCallback((taskId: string | null) => {
+    setSelectedTaskId(taskId);
+  }, []);
+
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
 
   const handlePanStart = useCallback((e: React.MouseEvent) => {
-    // Only pan on left click, skip if clicking on a task bar
+    // Only pan on left click, skip if clicking on a task bar, input, or task list
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-taskbar]')) return;
+    if (target.closest('input, button, textarea, [contenteditable]')) return;
+    if (target.closest('.gantt-tl-overlay')) return;
 
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -264,6 +310,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       scrollX: container.scrollLeft,
       scrollY: container.scrollTop,
     };
+    // Blur any focused input so onBlur save handlers fire before pan starts
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     container.style.cursor = 'grabbing';
     e.preventDefault();
   }, []);
@@ -302,23 +352,40 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         style={{ height: `${containerHeight}px`, cursor: 'grab' }}
         onMouseDown={handlePanStart}
       >
-        {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
-        <div className="gantt-stickyHeader" style={{ width: `${gridWidth}px` }}>
-          <TimeScaleHeader
-            days={dateRange}
-            dayWidth={dayWidth}
+        {/* Content wrapper - enables TaskList to scroll with chart horizontally */}
+        <div className="gantt-scrollContent">
+          {/* TaskList - sticky left, scrolls with content horizontally */}
+          <TaskList
+            tasks={tasks}
+            rowHeight={rowHeight}
             headerHeight={headerHeight}
+            taskListWidth={taskListWidth}
+            onTaskChange={handleTaskChange}
+            selectedTaskId={selectedTaskId ?? undefined}
+            onTaskSelect={handleTaskSelect}
+            show={showTaskList}
+            disableTaskNameEditing={disableTaskNameEditing}
           />
-        </div>
 
-        {/* Task area */}
-        <div
-          className="gantt-taskArea"
-          style={{
-            position: 'relative',
-            width: `${gridWidth}px`,
-          }}
-        >
+          {/* Chart area */}
+          <div style={{ minWidth: `${gridWidth}px`, flex: 1 }}>
+            {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
+            <div className="gantt-stickyHeader" style={{ width: `${gridWidth}px` }}>
+              <TimeScaleHeader
+                days={dateRange}
+                dayWidth={dayWidth}
+                headerHeight={headerHeight}
+              />
+            </div>
+
+            {/* Task area */}
+            <div
+              className="gantt-taskArea"
+              style={{
+                position: 'relative',
+                width: `${gridWidth}px`,
+              }}
+            >
           <GridBackground
             dateRange={dateRange}
             dayWidth={dayWidth}
@@ -373,6 +440,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               onCascade={handleCascade}
             />
           ))}
+          </div>
+          </div>
         </div>
       </div>
     </div>

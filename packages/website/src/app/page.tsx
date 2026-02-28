@@ -493,6 +493,8 @@ export default function Home() {
   const [cascadeTasks, setCascadeTasks] = useState<Task[]>(createCascadeTasks);
   const [chain100Tasks, setChain100Tasks] = useState<Task[]>(createChain100Tasks);
   const [blockConstraints, setBlockConstraints] = useState(true);
+  const [showTaskList, setShowTaskList] = useState(false);
+  const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
 
   const handleChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
@@ -561,6 +563,45 @@ export default function Home() {
         <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
           Construction Project
         </h2>
+        <button
+          onClick={() => setShowTaskList(!showTaskList)}
+          style={{
+            padding: "0.5rem 1rem",
+            marginBottom: "1rem",
+            marginRight: "0.5rem",
+            backgroundColor: showTaskList ? "#ef4444" : "#3b82f6",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "0.875rem",
+            fontWeight: "500",
+            transition: "background-color 0.2s",
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = showTaskList ? "#dc2626" : "#2563eb"}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = showTaskList ? "#ef4444" : "#3b82f6"}
+        >
+          {showTaskList ? "Hide Task List" : "Show Task List"}
+        </button>
+        <button
+          onClick={() => setDisableTaskNameEditing(!disableTaskNameEditing)}
+          style={{
+            padding: "0.5rem 1rem",
+            marginBottom: "1rem",
+            backgroundColor: disableTaskNameEditing ? "#6b7280" : "#10b981",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "0.875rem",
+            fontWeight: "500",
+            transition: "background-color 0.2s",
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = disableTaskNameEditing ? "#4b5563" : "#059669"}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = disableTaskNameEditing ? "#6b7280" : "#10b981"}
+        >
+          {disableTaskNameEditing ? "Enable Name Editing" : "Disable Name Editing"}
+        </button>
         <div
           style={{
             border: "1px solid #e5e7eb",
@@ -573,6 +614,9 @@ export default function Home() {
             dayWidth={24}
             rowHeight={36}
             onChange={handleChange}
+            showTaskList={showTaskList}
+            taskListWidth={400}
+            disableTaskNameEditing={disableTaskNameEditing}
           />
         </div>
       </div>
