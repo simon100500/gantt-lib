@@ -279,6 +279,10 @@
   color: var(--gantt-calendar-text-muted);
 }
 
+.gantt-day-btn.past.weekend:not(.selected) {
+  color: #fca5a5;
+}
+
 .gantt-day-btn.disabled {
   color: var(--gantt-calendar-day-disabled-text);
   cursor: not-allowed;
