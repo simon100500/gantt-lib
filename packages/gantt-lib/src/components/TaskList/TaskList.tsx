@@ -22,6 +22,8 @@ export interface TaskListProps {
   onTaskSelect?: (taskId: string | null) => void;
   /** Show or hide the task list (default: true) */
   show?: boolean;
+  /** Disable task name editing in the task list (default: false) */
+  disableTaskNameEditing?: boolean;
 }
 
 /**
@@ -39,6 +41,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   selectedTaskId,
   onTaskSelect,
   show = true,
+  disableTaskNameEditing = false,
 }) => {
   const totalHeight = useMemo(
     () => tasks.length * rowHeight,
@@ -74,6 +77,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onTaskChange={onTaskChange}
               selectedTaskId={selectedTaskId}
               onRowClick={handleRowClick}
+              disableTaskNameEditing={disableTaskNameEditing}
             />
           ))}
         </div>
