@@ -20,6 +20,7 @@ import {
   isBefore,
   startOfDay,
 } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 export interface CalendarProps {
   selected?: Date;
@@ -116,7 +117,7 @@ export const Calendar: React.FC<CalendarProps> = ({
       // Monday-first: Sunday (0) -> 6, Monday (1) -> 0, ...
       const emptyDays = (getDay(firstDay) + 6) % 7;
       const monthKey = format(month, 'yyyy-MM');
-      const monthLabel = format(month, 'LLLL yyyy');
+      const monthLabel = format(month, 'LLLL yyyy', { locale: ru });
 
       const emptyCells = Array.from({ length: emptyDays }, (_, i) => (
         <div key={`e-${i}`} className="gantt-cal-empty-day" />
