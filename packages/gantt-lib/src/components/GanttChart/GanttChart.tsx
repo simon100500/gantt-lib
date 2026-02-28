@@ -135,6 +135,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   onCascade,
   showTaskList = false,
   taskListWidth = 520,
+  disableTaskNameEditing = false,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -363,6 +364,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             selectedTaskId={selectedTaskId ?? undefined}
             onTaskSelect={handleTaskSelect}
             show={showTaskList}
+            disableTaskNameEditing={disableTaskNameEditing}
           />
 
           {/* Chart area */}
