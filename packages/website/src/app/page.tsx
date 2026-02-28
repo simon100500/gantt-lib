@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { GanttChart, type Task } from "gantt-lib";
 
 const createSampleTasks = (): Task[] => {
@@ -496,6 +496,9 @@ export default function Home() {
   const [showTaskList, setShowTaskList] = useState(false);
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
 
+  // Ref for the main GanttChart to access scrollToToday method
+  const ganttChartRef = useRef<{ scrollToToday: () => void }>(null);
+
   const handleChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
       setTasks(typeof updated === "function" ? updated : () => updated),
@@ -584,6 +587,26 @@ export default function Home() {
           {showTaskList ? "Hide Task List" : "Show Task List"}
         </button>
         <button
+          onClick={() => ganttChartRef.current?.scrollToToday()}
+          style={{
+            padding: "0.5rem 1rem",
+            marginBottom: "1rem",
+            marginRight: "0.5rem",
+            backgroundColor: "#8b5cf6",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "0.875rem",
+            fontWeight: "500",
+            transition: "background-color 0.2s",
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#7c3aed"}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#8b5cf6"}
+        >
+          Today
+        </button>
+        <button
           onClick={() => setDisableTaskNameEditing(!disableTaskNameEditing)}
           style={{
             padding: "0.5rem 1rem",
@@ -610,6 +633,7 @@ export default function Home() {
           }}
         >
           <GanttChart
+            ref={ganttChartRef}
             tasks={tasks}
             dayWidth={24}
             rowHeight={36}

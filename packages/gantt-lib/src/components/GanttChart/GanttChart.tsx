@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks } from '../../utils/dependencyUtils';
@@ -12,7 +12,6 @@ import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
 import { TaskList } from '../TaskList';
-import { Button } from '../ui/Button';
 import './GanttChart.css';
 import '../TaskList/TaskList.css';
 
@@ -123,7 +122,7 @@ export interface GanttChartProps {
  * />
  * ```
  */
-export const GanttChart: React.FC<GanttChartProps> = ({
+export const GanttChart = forwardRef<{ scrollToToday: () => void }, GanttChartProps>(({
   tasks,
   dayWidth = 40,
   rowHeight = 40,
@@ -137,7 +136,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   showTaskList = false,
   taskListWidth = 520,
   disableTaskNameEditing = false,
-}) => {
+}, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
@@ -202,7 +201,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   /**
    * Scroll to today's date when the "Today" button is clicked
    */
-  const handleScrollToToday = useCallback(() => {
+  const scrollToToday = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container || dateRange.length === 0) return;
 
@@ -219,6 +218,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
     container.scrollLeft = Math.max(0, scrollLeft);
   }, [dateRange, dayWidth]);
+
+  /**
+   * Expose scrollToToday method to parent component via ref
+   */
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToToday,
+    }),
+    [scrollToToday]
+  );
 
   // Track drag state for guide lines
   const [dragGuideLines, setDragGuideLines] = useState<{
@@ -485,18 +495,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Today button - fixed position overlay */}
-      <Button
-        variant="default"
-        size="sm"
-        onClick={handleScrollToToday}
-        className="gantt-today-button"
-      >
-        Сегодня
-      </Button>
     </div>
   );
-};
+});
+
+GanttChart.displayName = 'GanttChart';
 
 export default GanttChart;
