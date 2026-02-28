@@ -19,6 +19,8 @@ export interface TaskListRowProps {
   selectedTaskId?: string;
   /** Callback when task row is clicked */
   onRowClick?: (taskId: string) => void;
+  /** Disable task name editing (default: false) */
+  disableTaskNameEditing?: boolean;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -29,7 +31,7 @@ const toISODate = (value: string | Date): string => {
 };
 
 export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
-  ({ task, rowIndex, rowHeight, onTaskChange, selectedTaskId, onRowClick }) => {
+  ({ task, rowIndex, rowHeight, onTaskChange, selectedTaskId, onRowClick, disableTaskNameEditing = false }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
     const nameInputRef = useRef<HTMLInputElement>(null);
@@ -43,10 +45,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [editingName]);
 
     const handleNameClick = useCallback((e: React.MouseEvent) => {
+      if (disableTaskNameEditing) return;
       e.stopPropagation();
       setNameValue(task.name);
       setEditingName(true);
-    }, [task.name]);
+    }, [task.name, disableTaskNameEditing]);
 
     const handleNameSave = useCallback(() => {
       if (nameValue.trim()) {
@@ -119,7 +122,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           )}
           <button
             type="button"
-            className="gantt-tl-name-trigger"
+            className={`gantt-tl-name-trigger ${disableTaskNameEditing ? 'gantt-tl-name-locked' : ''}`}
             onClick={handleNameClick}
             style={editingName ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}
           >
@@ -134,6 +137,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             onChange={handleStartDateChange}
             format="dd.MM.yy"
             portal={true}
+            disabled={task.locked}
           />
         </div>
 
@@ -144,6 +148,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             onChange={handleEndDateChange}
             format="dd.MM.yy"
             portal={true}
+            disabled={task.locked}
           />
         </div>
       </div>
