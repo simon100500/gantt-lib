@@ -38,7 +38,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 13 of 13 (13-ui-components)
 Plan: 1 of 1 in current phase (1 complete, 0 pending)
 Status: COMPLETE - shadcn/ui components (Input, Button, Popover, Calendar, DatePicker) integrated into TaskListRow
-Last activity: 2026-02-28 - Completed plan 13-01: shadcn/ui DatePicker and Input components
+Last activity: 2026-02-28 - Completed quick task 29: Replace react-day-picker Calendar with custom scrollable CalendarClient
 
 Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete)
 
@@ -252,6 +252,7 @@ None yet.
 | 26 | Optional horizontal divider line for visual task grouping | 2026-02-23 | e5eb192 | [26-props](./quick/26-props/) |
 | 27 | создай ещё одну тестовую страницу с графиком по роуту /mcp и чтобы задачи брались из json файла рядом в этой папке (или любой допустимой в проекте), создай пример json на 3 работы | 2026-02-23 | 6f82c8e | [27-mcp-json-json-3](./quick/27-mcp-json-json-3/) |
 | 28 | TaskList 400px default, name text wrap, native date picker for date cells | 2026-02-27 | 9c4ff04 | [28-task-list-400px-datepicker](./quick/28-task-list-400px-datepicker/) |
+| 29 | Replace react-day-picker Calendar with custom scrollable CalendarClient from example-cal | 2026-02-28 | 801f6f8 | [29-replace-react-day-picker-calendar-with-c](./quick/29-replace-react-day-picker-calendar-with-c/) |
 
 ## Session Continuity
 
