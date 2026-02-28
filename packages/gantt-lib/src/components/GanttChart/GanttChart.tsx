@@ -132,7 +132,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   disableConstraints,
   onCascade,
   showTaskList = false,
-  taskListWidth = 400,
+  taskListWidth = 520,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
