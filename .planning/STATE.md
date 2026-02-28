@@ -64,7 +64,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 13 of 13 (13-ui-components)
 Plan: 1 of 1 in current phase (1 complete, 0 pending)
 Status: COMPLETE - shadcn/ui components (Input, Button, Popover, Calendar, DatePicker) integrated into TaskListRow
-Last activity: 2026-02-28 - Completed quick task 34: ДОБАВЬ свойство отключить редактирование название работ (системный пропс общий на график). плюс заблокируй редактирование дат через таск лист если работа заблокирована
+Last activity: 2026-02-28 - Completed quick task 35: добавь экшон для графика глобально чтобы он открывался на текущем дне посередине экрана
 
 Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete)
 
@@ -286,6 +286,7 @@ None yet.
 | 31 | Task name input: compact rows (2px padding), wider input (320px), correct cursor positioning | 2026-02-28 | bd3ed56 | [31-task-name-input](./quick/31-task-name-input/) |
 | 32 | Name cell full-cell click target like date cell | 2026-02-28 | 20b13b9 | [32-name-cell-full-cell-click-target-like-da](./quick/32-name-cell-full-cell-click-target-like-da/) |
 | 34 | ДОБАВЬ свойство отключить редактирование название работ (системный пропс общий на график). плюс заблокируй редактирование дат через таск лист если работа заблокирована | 2026-02-28 | 4b88ea9 | [34-](./quick/34-/) |
+| 35 | добавь экшон для графика глобально чтобы он открывался на текущем дне посередине экрана | 2026-02-28 | e7d050c | [35-open-chart-centered-on-current-day](./quick/35-open-chart-centered-on-current-day/) |
 
 ## Session Continuity
 
