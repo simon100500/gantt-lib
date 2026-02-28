@@ -1,5 +1,6 @@
 /* Gantt Chart CSS Variables - User customizable theming */
 @import './components/TaskList/TaskList.css';
+@import './components/ui/ui.css';
 
 :root {
   /* Grid Colors */
