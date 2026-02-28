@@ -38,7 +38,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 13 of 13 (13-ui-components)
 Plan: 1 of 1 in current phase (1 complete, 0 pending)
 Status: COMPLETE - shadcn/ui components (Input, Button, Popover, Calendar, DatePicker) integrated into TaskListRow
-Last activity: 2026-02-28 - Completed quick task 29: Replace react-day-picker Calendar with custom scrollable CalendarClient
+Last activity: 2026-02-28 - Completed quick task 30: сделай даты в task list по центру, поле активное для клика - на всю ячейку
 
 Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete)
 
