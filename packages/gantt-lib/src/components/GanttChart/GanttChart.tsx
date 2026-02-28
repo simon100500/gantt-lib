@@ -290,10 +290,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
 
   const handlePanStart = useCallback((e: React.MouseEvent) => {
-    // Only pan on left click, skip if clicking on a task bar
+    // Only pan on left click, skip if clicking on a task bar, input, or task list
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-taskbar]')) return;
+    if (target.closest('input, button, textarea, [contenteditable]')) return;
+    if (target.closest('.gantt-tl-overlay')) return;
 
     const container = scrollContainerRef.current;
     if (!container) return;
