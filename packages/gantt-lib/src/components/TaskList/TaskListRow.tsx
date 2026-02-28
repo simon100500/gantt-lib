@@ -39,7 +39,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     useEffect(() => {
       if (editingName && nameInputRef.current) {
         nameInputRef.current.focus();
-        nameInputRef.current.select();
       }
     }, [editingName]);
 
@@ -121,6 +120,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           <span
             className="gantt-tl-cellContent"
             onClick={handleNameClick}
+            style={editingName ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}
           >
             {task.name}
           </span>
