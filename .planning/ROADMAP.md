@@ -174,10 +174,10 @@ Plans:
 
 ### Phase 14: dependencies-edit надо сделать механизм создания связей между задачами. я пока планирую сделать это через task list - добавить новый столбец связи. и там будет тип связи. и кнопка + то есть добавить. добавляемый тип связи устанавливается глобально. нажимаешь на плюсик и выбираешь ребёнка для связывания. связь добавляется и её тип указывается в столбце связи (ОН НН ОО НО)
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Add «Связи» (Dependencies) column to TaskList with chip display (type + predecessor row number), global link type switcher in header, two-click predecessor picker flow, cycle detection, dependency deletion via chip ×, and disableDependencyEditing prop
 **Depends on:** Phase 13
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 14 to break down)
+- [ ] 14-01-PLAN.md — CSS classes, GanttChart prop, TaskList state/callbacks/header with type switcher Popover
+- [ ] 14-02-PLAN.md — TaskListRow «Связи» cell: chips, overflow Popover, add button, picker mode interaction
