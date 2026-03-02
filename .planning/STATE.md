@@ -149,6 +149,7 @@ Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete
 - Phase 10 added: SF dependency
 - Phase 11 added: lock-task
 - Phase 12 added: task-list (overlay approach with inline editing)
+- Phase 14 added: dependencies-edit — механизм создания связей между задачами через столбец в task list (тип связи + кнопка "+", выбор дочерней задачи, отображение типов ОН/НН/ОО/НО)
 
 ### Decisions
 

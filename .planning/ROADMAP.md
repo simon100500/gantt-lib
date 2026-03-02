@@ -171,3 +171,13 @@ Plans:
 
 Plans:
 - [x] 13-01-PLAN.md — shadcn/ui components: DatePicker, Input, Calendar, Popover, theming, TaskListRow integration
+
+### Phase 14: dependencies-edit надо сделать механизм создания связей между задачами. я пока планирую сделать это через task list - добавить новый столбец связи. и там будет тип связи. и кнопка + то есть добавить. добавляемый тип связи устанавливается глобально. нажимаешь на плюсик и выбираешь ребёнка для связывания. связь добавляется и её тип указывается в столбце связи (ОН НН ОО НО)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 13
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 14 to break down)
