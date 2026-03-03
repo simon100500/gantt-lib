@@ -17,6 +17,7 @@ interface DepChipProps {
   lag?: number;
   dep: { taskId: string; type: LinkType };
   taskId: string;
+  predecessorName?: string;
   selectedChip: TaskListRowProps['selectedChip'];
   disableDependencyEditing: boolean;
   onChipSelect: TaskListRowProps['onChipSelect'];
@@ -38,6 +39,7 @@ const DepChip: React.FC<DepChipProps> = ({
   lag,
   dep,
   taskId,
+  predecessorName,
   selectedChip,
   disableDependencyEditing,
   onChipSelect,
@@ -73,6 +75,7 @@ const DepChip: React.FC<DepChipProps> = ({
     <span className="gantt-tl-dep-chip-wrapper">
       <span
         className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+        title={predecessorName}
         onClick={handleClick}
       >
         <><Icon />{lag != null && lag !== 0 ? (lag > 0 ? `+${lag}` : `${lag}`) : ''}</>
@@ -182,7 +185,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               succEnd
             )
           : (dep.lag ?? 0);
-        return { dep, lag };
+        return { dep, lag, predecessorName: pred?.name ?? dep.taskId };
       });
     }, [task.dependencies, task.startDate, task.endDate, allTasks]);
 
@@ -380,12 +383,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   </PopoverTrigger>
                   <PopoverContent portal={true} align="start">
                     <div className="gantt-tl-dep-overflow-list" onClick={(e) => e.stopPropagation()}>
-                      {chips.map(({ dep, lag }) => (
+                      {chips.map(({ dep, lag, predecessorName }) => (
                         <DepChip
                           key={`${dep.taskId}-${dep.type}`}
                           lag={lag}
                           dep={dep}
                           taskId={task.id}
+                          predecessorName={predecessorName}
                           selectedChip={selectedChip}
                           disableDependencyEditing={disableDependencyEditing}
                           onChipSelect={onChipSelect}
@@ -404,6 +408,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   lag={chips[0].lag}
                   dep={chips[0].dep}
                   taskId={task.id}
+                  predecessorName={chips[0].predecessorName}
                   selectedChip={selectedChip}
                   disableDependencyEditing={disableDependencyEditing}
                   onChipSelect={onChipSelect}
