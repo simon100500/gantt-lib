@@ -186,7 +186,7 @@ Plans:
 
 **Goal:** Add visual highlighting for expired/overdue tasks with red background color, controlled by global toggle switch
 **Depends on:** Phase 14
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 15-01-PLAN.md — CSS variable, GanttChart highlightExpiredTasks prop, TaskRow expiration logic with conditional red background, demo page with expired task examples

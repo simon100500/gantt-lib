@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 15 context gathered
-last_updated: "2026-03-03T21:01:08.346Z"
+stopped_at: "Completed 15-01: Time-based expired task coloring with red progress bar"
+last_updated: "2026-03-03T23:05:03.939Z"
 last_activity: "2026-03-03 - Completed quick task 055: показывать поповер при клике на чип зависимости с человекочитаемым описанием типа связи"
 progress:
   total_phases: 15
-  completed_phases: 14
-  total_plans: 36
-  completed_plans: 36
+  completed_phases: 15
+  total_plans: 37
+  completed_plans: 37
 ---
 
 ---
@@ -177,6 +177,7 @@ Progress: [████████████] Phase 14: 2 of 2 plans complete
 | Phase quick-34 P34 | 73s | 5 tasks | 4 files |
 | Quick 37 P01 | 60s | 2 tasks | 2 files |
 | Quick 38 P01 | 39s | 1 task | 1 file |
+| Phase 15-expired-coloring P01 | 15 | 5 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -292,6 +293,8 @@ Recent decisions affecting current work:
 - [Phase quick-31]: Hide span with visibility:hidden+pointerEvents:none when editing — lets clicks reach absolute-positioned input for correct cursor placement
 - [Phase 14-dependencies-edit-task-list]: Import TaskDependency from GanttChart (same as Task import) and LinkType from types/index.ts to avoid cross-module type duplication
 - [Phase 14-dependencies-edit-task-list]: Extend TaskListRow props interface in Plan 01 to accept all dependency props; actual cell rendering deferred to Plan 02
+- [Phase 15]: Time-based expiration calculation using expectedProgress formula instead of simple end date comparison
+- [Phase 15]: Red color for both task background AND progress bar when expired (user-requested visual change)
 
 ### Pending Todos
 
@@ -356,8 +359,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-03T21:01:08.343Z
-Stopped at: Phase 15 context gathered
+Last session: 2026-03-03T23:05:03.937Z
+Stopped at: Completed 15-01: Time-based expired task coloring with red progress bar
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
