@@ -250,8 +250,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     if (taskIndex === -1) return;
 
     const taskOffset = taskIndex * dayWidth;
-    const containerWidth = container.clientWidth;
-    const scrollLeft = Math.round(taskOffset - (containerWidth / 2) + (dayWidth / 2));
+    const scrollLeft = Math.round(taskOffset - dayWidth * 2);
     container.scrollLeft = Math.max(0, scrollLeft);
   }, [tasks, dateRange, dayWidth]);
 
