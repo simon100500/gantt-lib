@@ -41,6 +41,8 @@ export interface TaskRowProps {
   onCascade?: (tasks: Task[]) => void;
   /** Optional horizontal divider line - renders above or below the task row */
   divider?: 'top' | 'bottom';
+  /** Highlight expired/overdue tasks with red background */
+  highlightExpiredTasks?: boolean;
 }
 
 /**
@@ -80,7 +82,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.allTasks === nextProps.allTasks &&
     prevProps.disableConstraints === nextProps.disableConstraints &&
     prevProps.task.locked === nextProps.task.locked &&
-    prevProps.task.divider === nextProps.task.divider
+    prevProps.task.divider === nextProps.task.divider &&
+    prevProps.highlightExpiredTasks === nextProps.highlightExpiredTasks
     // onChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
@@ -92,13 +95,34 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks }) => {
     // Extract divider from task prop
     const { divider: taskDivider } = task;
 
     // Parse dates as UTC
     const taskStartDate = useMemo(() => parseUTCDate(task.startDate), [task.startDate]);
     const taskEndDate = useMemo(() => parseUTCDate(task.endDate), [task.endDate]);
+
+    // Calculate expiration status for overdue tasks
+    const isExpired = useMemo(() => {
+      if (!highlightExpiredTasks) return false;
+
+      // Create UTC today for comparison
+      const now = new Date();
+      const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+      // Parse task end date as UTC
+      const taskEnd = parseUTCDate(task.endDate);
+
+      // Check if end date has passed
+      const endDatePassed = taskEnd.getTime() < today.getTime();
+
+      // Check if task is incomplete or not accepted
+      const notComplete = (task.progress ?? 0) < 100;
+      const notAccepted = task.accepted !== true;
+
+      return endDatePassed && (notComplete || notAccepted);
+    }, [task.endDate, task.progress, task.accepted, highlightExpiredTasks]);
 
     // Calculate task bar position and dimensions
     const { left, width } = useMemo(
@@ -107,7 +131,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     );
 
     // Determine task bar color
-    const barColor = task.color || 'var(--gantt-task-bar-default-color)';
+    const barColor = isExpired
+      ? 'var(--gantt-expired-color)'
+      : (task.color || 'var(--gantt-task-bar-default-color)');
 
     // Calculate clamped and rounded progress width
     const progressWidth = useMemo(() => {
