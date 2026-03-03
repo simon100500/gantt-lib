@@ -221,11 +221,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         >
           <span className="gantt-tl-num-label">{rowIndex + 1}</span>
           <svg className="gantt-tl-num-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-            <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-            <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+            <path d="M17 12H3"/>
+            <path d="m11 18 6-6-6-6"/>
+            <path d="M21 5v14"/>
           </svg>
         </div>
 
