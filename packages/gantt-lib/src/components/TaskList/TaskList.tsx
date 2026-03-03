@@ -74,15 +74,35 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [cycleError, setCycleError] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Escape / outside-click cancel for picker mode
+  // Selected chip state: clicking a chip on a successor row selects it,
+  // causing the predecessor row to show a "Удалить" button
+  const [selectedChip, setSelectedChip] = useState<{
+    successorId: string;
+    predecessorId: string;
+    linkType: LinkType;
+  } | null>(null);
+
+  const handleChipSelect = useCallback((chip: {
+    successorId: string;
+    predecessorId: string;
+    linkType: LinkType;
+  } | null) => {
+    setSelectedChip(chip);
+  }, []);
+
+  // Escape / outside-click cancel for picker mode and chip selection
   useEffect(() => {
-    if (!selectingPredecessorFor) return;
+    if (!selectingPredecessorFor && !selectedChip) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectingPredecessorFor(null);
+      if (e.key === 'Escape') {
+        setSelectingPredecessorFor(null);
+        setSelectedChip(null);
+      }
     };
     const handleMouseDown = (e: MouseEvent) => {
       if (!overlayRef.current?.contains(e.target as Node)) {
         setSelectingPredecessorFor(null);
+        setSelectedChip(null);
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -91,7 +111,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handleMouseDown, true);
     };
-  }, [selectingPredecessorFor]);
+  }, [selectingPredecessorFor, selectedChip]);
 
   const handleAddDependency = useCallback((
     successorTaskId: string,
@@ -248,6 +268,8 @@ export const TaskList: React.FC<TaskListProps> = ({
               onAddDependency={handleAddDependency}
               onRemoveDependency={handleRemoveDependency}
               linkTypeLabels={LINK_TYPE_LABELS}
+              selectedChip={selectedChip}
+              onChipSelect={handleChipSelect}
             />
           ))}
         </div>

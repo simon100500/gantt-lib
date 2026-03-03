@@ -39,6 +39,10 @@ export interface TaskListRowProps {
   onRemoveDependency?: (taskId: string, predecessorTaskId: string, linkType: LinkType) => void;
   /** Map of link type codes to display labels */
   linkTypeLabels?: Record<LinkType, string>;
+  /** Currently selected chip (for predecessor-side delete) */
+  selectedChip?: { successorId: string; predecessorId: string; linkType: string } | null;
+  /** Callback when a chip is clicked (selects it) */
+  onChipSelect?: (chip: { successorId: string; predecessorId: string; linkType: LinkType } | null) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -67,6 +71,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onAddDependency,
     onRemoveDependency,
     linkTypeLabels,
+    selectedChip,
+    onChipSelect,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -162,10 +168,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
     }, [isPicking, isSourceRow, selectingPredecessorFor, task.id, activeLinkType, onAddDependency]);
 
-    const handleRemoveChip = useCallback((dep: { taskId: string; type: LinkType }, e: React.MouseEvent) => {
+    // Handle chip click — selects/deselects the chip (toggle)
+    const handleChipClick = useCallback((dep: { taskId: string; type: LinkType }, e: React.MouseEvent) => {
       e.stopPropagation();
-      onRemoveDependency?.(task.id, dep.taskId, dep.type);
-    }, [task.id, onRemoveDependency]);
+      if (disableDependencyEditing) return;
+      const isSame =
+        selectedChip?.successorId === task.id &&
+        selectedChip?.predecessorId === dep.taskId &&
+        selectedChip?.linkType === dep.type;
+      onChipSelect?.(isSame ? null : { successorId: task.id, predecessorId: dep.taskId, linkType: dep.type });
+    }, [selectedChip, task.id, disableDependencyEditing, onChipSelect]);
+
+    // True when this row is the predecessor for the currently selected chip
+    const isSelectedPredecessor = selectedChip != null && selectedChip.predecessorId === task.id;
+
+    // Delete the selected dependency from the predecessor row's "Удалить" button
+    const handleDeleteSelected = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!selectedChip) return;
+      onRemoveDependency?.(selectedChip.successorId, selectedChip.predecessorId, selectedChip.linkType as LinkType);
+      onChipSelect?.(null);
+    }, [selectedChip, onRemoveDependency, onChipSelect]);
 
     const startDateISO = toISODate(task.startDate);
     const endDateISO = toISODate(task.endDate);
@@ -237,22 +260,22 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-deps"
           onClick={isPicking && !isSourceRow ? handlePredecessorPick : undefined}
         >
-          {/* Visible chips (max 2) */}
-          {visibleChips.map(({ dep, label }) => (
-            <span key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-chip">
-              {label}
-              {!disableDependencyEditing && (
-                <button
-                  type="button"
-                  className="gantt-tl-dep-chip-remove"
-                  onClick={(e) => handleRemoveChip(dep, e)}
-                  aria-label="Удалить связь"
-                >
-                  ×
-                </button>
-              )}
-            </span>
-          ))}
+          {/* Visible chips (max 2) — clicking a chip selects it */}
+          {visibleChips.map(({ dep, label }) => {
+            const isChipSelected =
+              selectedChip?.successorId === task.id &&
+              selectedChip?.predecessorId === dep.taskId &&
+              selectedChip?.linkType === dep.type;
+            return (
+              <span
+                key={`${dep.taskId}-${dep.type}`}
+                className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+                onClick={(e) => handleChipClick(dep, e)}
+              >
+                {label}
+              </span>
+            );
+          })}
 
           {/* Overflow Popover: "+N ещё" */}
           {hiddenChips.length > 0 && (
@@ -268,24 +291,37 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               </PopoverTrigger>
               <PopoverContent portal={true} align="start">
                 <div className="gantt-tl-dep-overflow-list">
-                  {chips.map(({ dep, label }) => (
-                    <div key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-overflow-item">
-                      <span>{label}</span>
-                      {!disableDependencyEditing && (
-                        <button
-                          type="button"
-                          className="gantt-tl-dep-overflow-remove"
-                          onClick={(e) => handleRemoveChip(dep, e)}
-                          aria-label="Удалить связь"
+                  {chips.map(({ dep, label }) => {
+                    const isChipSelected =
+                      selectedChip?.successorId === task.id &&
+                      selectedChip?.predecessorId === dep.taskId &&
+                      selectedChip?.linkType === dep.type;
+                    return (
+                      <div key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-overflow-item">
+                        <span
+                          className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+                          onClick={(e) => handleChipClick(dep, e)}
                         >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                          {label}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </PopoverContent>
             </Popover>
+          )}
+
+          {/* Predecessor delete button — appears on this row when it is the selected chip's predecessor */}
+          {isSelectedPredecessor && !disableDependencyEditing && (
+            <button
+              type="button"
+              className="gantt-tl-dep-delete-selected"
+              onClick={handleDeleteSelected}
+              aria-label="Удалить связь"
+            >
+              Удалить
+            </button>
           )}
 
           {/* "+" add dependency button — hidden in picker mode and when editing disabled */}
