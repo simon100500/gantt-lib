@@ -46,7 +46,7 @@ const LINK_TYPE_ICONS: Record<LinkType, React.FC> = {
 // DepChip — local unified component used in both single-chip cell and popover
 // ---------------------------------------------------------------------------
 interface DepChipProps {
-  taskNumber: number;
+  lag?: number;
   dep: { taskId: string; type: LinkType };
   taskId: string;
   selectedChip: TaskListRowProps['selectedChip'];
@@ -67,7 +67,7 @@ const TrashIcon = () => (
 );
 
 const DepChip: React.FC<DepChipProps> = ({
-  taskNumber,
+  lag,
   dep,
   taskId,
   selectedChip,
@@ -107,7 +107,7 @@ const DepChip: React.FC<DepChipProps> = ({
         className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
         onClick={handleClick}
       >
-        <><Icon />{taskNumber}</>
+        <><Icon />{lag != null && lag !== 0 ? (lag > 0 ? `+${lag}` : `${lag}`) : ''}</>
       </span>
       {!disableDependencyEditing && (
         <button
@@ -198,16 +198,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const isPicking = selectingPredecessorFor != null;
     const isSourceRow = isPicking && selectingPredecessorFor === task.id;
 
-    // Chip data: map each dependency to { dep, taskNumber }
+    // Chip data: map each dependency to { dep }
     const chips = useMemo(() => {
-      return (task.dependencies ?? []).map(dep => {
-        const predecessorIndex = (allTasks as Task[]).findIndex(t => t.id === dep.taskId);
-        return {
-          dep,
-          taskNumber: predecessorIndex + 1,
-        };
-      });
-    }, [task.dependencies, allTasks]);
+      return (task.dependencies ?? []).map(dep => ({ dep }));
+    }, [task.dependencies]);
 
     const linkWord = chips.length <= 4 ? 'связи' : 'связей';
 
@@ -403,10 +397,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   </PopoverTrigger>
                   <PopoverContent portal={true} align="start">
                     <div className="gantt-tl-dep-overflow-list" onClick={(e) => e.stopPropagation()}>
-                      {chips.map(({ dep, taskNumber }) => (
+                      {chips.map(({ dep }) => (
                         <DepChip
                           key={`${dep.taskId}-${dep.type}`}
-                          taskNumber={taskNumber}
+                          lag={dep.lag}
                           dep={dep}
                           taskId={task.id}
                           selectedChip={selectedChip}
@@ -424,7 +418,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               ) : chips.length === 1 ? (
                 /* Single chip — unified DepChip */
                 <DepChip
-                  taskNumber={chips[0].taskNumber}
+                  lag={chips[0].dep.lag}
                   dep={chips[0].dep}
                   taskId={task.id}
                   selectedChip={selectedChip}
