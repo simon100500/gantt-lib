@@ -329,11 +329,12 @@ None yet.
 | 45 | Show Выберите задачу placeholder in source row deps cell during link creation | 2026-03-03 | cf5225e | [45-show-in-parent-cell-during-link-creation](./quick/45-show-in-parent-cell-during-link-creation/) |
 | 46 | Change deps cell overflow threshold: 3+ deps shows 1 chip inline + "+N ещё" overflow | 2026-03-03 | 1cb7500 | [46-3-1](./quick/46-3-1/) |
 | 47 | Simplify deps chips: 1 dep inline, 2+ deps show "N связей" summary chip with popover and direct-delete trash buttons | 2026-03-03 | 24541e7 | [47-1-2-2](./quick/47-1-2-2/) |
+| 48 | Unified DepChip component: same click-to-select + hover-to-show-trash behavior in cell and popover | 2026-03-03 | acb0533 | [48-unified-dep-chip](./quick/48-unified-dep-chip/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-047 (simplify deps chips — 1 chip inline, 2+ show N-связей summary chip with direct-delete popover)
+Stopped at: Completed quick-048 (unified DepChip component — identical hover-trash and click-select behavior in cell and popover)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
