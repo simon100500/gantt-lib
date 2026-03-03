@@ -51,7 +51,7 @@ function formatDepDescription(type: LinkType, lag: number | undefined): string {
   if (type === 'SS') {
     if (effectiveLag > 0) return `Начать через ${effectiveLag} дн. после начала`;
     if (effectiveLag < 0) return `Начать за ${Math.abs(effectiveLag)} дн. до начала`;
-    return `Начать одновременно с`;
+    return `Начать вместе с началом`;
   }
   if (type === 'SF') {
     if (effectiveLag > 0) return `Завершить через ${effectiveLag} дн. после начала`;
@@ -105,7 +105,7 @@ const DepChip: React.FC<DepChipProps> = ({
         <PopoverTrigger asChild>
           <span
             className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-            title={predecessorName}
+
             onClick={handleClick}
           >
             <><Icon />{lag != null && lag !== 0 ? (lag > 0 ? `+${lag}` : `${lag}`) : ''}</>
@@ -208,18 +208,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     // Chip data: compute effective lag from actual dates (always correct, even on initial load)
     const chips = useMemo(() => {
       const succStart = new Date(task.startDate as string);
-      const succEnd   = new Date(task.endDate   as string);
-      const taskById  = new Map((allTasks ?? []).map(t => [t.id, t]));
+      const succEnd = new Date(task.endDate as string);
+      const taskById = new Map((allTasks ?? []).map(t => [t.id, t]));
       return (task.dependencies ?? []).map(dep => {
         const pred = taskById.get(dep.taskId);
         const lag = pred
           ? computeLagFromDates(
-              dep.type,
-              new Date(pred.startDate as string),
-              new Date(pred.endDate   as string),
-              succStart,
-              succEnd
-            )
+            dep.type,
+            new Date(pred.startDate as string),
+            new Date(pred.endDate as string),
+            succStart,
+            succEnd
+          )
           : (dep.lag ?? 0);
         return { dep, lag, predecessorName: pred?.name ?? dep.taskId };
       });
