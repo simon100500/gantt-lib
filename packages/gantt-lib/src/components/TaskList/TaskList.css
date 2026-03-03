@@ -309,6 +309,27 @@
   background-color: #dc2626;
 }
 
+/* Summary chip: "N связей" — shown when 2+ deps */
+.gantt-tl-dep-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(107, 114, 128, 0.12);
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.7rem;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.gantt-tl-dep-summary-chip:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
 /* "+N ещё" overflow button */
 .gantt-tl-dep-overflow-trigger {
   display: inline-flex;

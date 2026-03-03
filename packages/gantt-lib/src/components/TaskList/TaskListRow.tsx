@@ -80,6 +80,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
     const nameInputRef = useRef<HTMLInputElement>(null);
+    const [overflowOpen, setOverflowOpen] = useState(false);
 
     const isSelected = selectedTaskId === task.id;
 
@@ -101,8 +102,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       });
     }, [task.dependencies, allTasks, labels]);
 
-    const visibleChips = chips.length >= 3 ? chips.slice(0, 1) : chips.slice(0, 2);
-    const hiddenChips  = chips.length >= 3 ? chips.slice(1)    : chips.slice(2);
+    const linkWord = chips.length <= 4 ? 'связи' : 'связей';
 
     useEffect(() => {
       if (editingName && nameInputRef.current) {
@@ -297,88 +297,80 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             </button>
           ) : (
             <>
-              {/* Visible chips (max 2) — clicking a chip selects it */}
-              {visibleChips.map(({ dep, label }) => {
-                const isChipSelected =
-                  selectedChip?.successorId === task.id &&
-                  selectedChip?.predecessorId === dep.taskId &&
-                  selectedChip?.linkType === dep.type;
-                return (
-                  <span key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-chip-wrapper">
-                    <span
-                      className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-                      onClick={(e) => handleChipClick(dep, e)}
-                    >
-                      {label}
-                    </span>
-                    {isChipSelected && !disableDependencyEditing && (
-                      <button
-                        type="button"
-                        className="gantt-tl-dep-chip-trash"
-                        onClick={handleDeleteSelected}
-                        aria-label="Удалить связь"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                          <path d="M3 6h18" />
-                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </button>
-                    )}
-                  </span>
-                );
-              })}
-
-              {/* Overflow Popover: "+N ещё" */}
-              {hiddenChips.length > 0 && (
-                <Popover>
+              {chips.length >= 2 ? (
+                /* 2+ deps — show only "N связей" summary chip that opens a popover */
+                <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="gantt-tl-dep-overflow-trigger"
-                      onClick={(e) => e.stopPropagation()}
+                      className="gantt-tl-dep-summary-chip"
+                      onClick={(e) => { e.stopPropagation(); setOverflowOpen(v => !v); }}
                     >
-                      +{hiddenChips.length} ещё
+                      {chips.length} {linkWord}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent portal={true} align="start">
-                    <div className="gantt-tl-dep-overflow-list">
-                      {chips.map(({ dep, label }) => {
-                        const isChipSelected =
-                          selectedChip?.successorId === task.id &&
-                          selectedChip?.predecessorId === dep.taskId &&
-                          selectedChip?.linkType === dep.type;
-                        return (
-                          <div key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-overflow-item">
-                            <span className="gantt-tl-dep-chip-wrapper">
-                              <span
-                                className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-                                onClick={(e) => handleChipClick(dep, e)}
-                              >
-                                {label}
-                              </span>
-                              {isChipSelected && !disableDependencyEditing && (
-                                <button
-                                  type="button"
-                                  className="gantt-tl-dep-chip-trash"
-                                  onClick={handleDeleteSelected}
-                                  aria-label="Удалить связь"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                                    <path d="M3 6h18" />
-                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                  </svg>
-                                </button>
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })}
+                    <div className="gantt-tl-dep-overflow-list" onClick={(e) => e.stopPropagation()}>
+                      {chips.map(({ dep, label }) => (
+                        <div key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-overflow-item">
+                          <span className="gantt-tl-dep-chip">{label}</span>
+                          {!disableDependencyEditing && (
+                            <button
+                              type="button"
+                              className="gantt-tl-dep-chip-trash"
+                              aria-label="Удалить связь"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRemoveDependency?.(task.id, dep.taskId, dep.type);
+                                onChipSelect?.(null);
+                              }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                <path d="M3 6h18" />
+                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </PopoverContent>
                 </Popover>
-              )}
+              ) : chips.length === 1 ? (
+                /* Single chip — select + trash pattern */
+                <span className="gantt-tl-dep-chip-wrapper">
+                  <span
+                    className={`gantt-tl-dep-chip${
+                      selectedChip?.successorId === task.id &&
+                      selectedChip?.predecessorId === chips[0].dep.taskId &&
+                      selectedChip?.linkType === chips[0].dep.type
+                        ? ' gantt-tl-dep-chip-selected'
+                        : ''
+                    }`}
+                    onClick={(e) => handleChipClick(chips[0].dep, e)}
+                  >
+                    {chips[0].label}
+                  </span>
+                  {selectedChip?.successorId === task.id &&
+                    selectedChip?.predecessorId === chips[0].dep.taskId &&
+                    selectedChip?.linkType === chips[0].dep.type &&
+                    !disableDependencyEditing && (
+                    <button
+                      type="button"
+                      className="gantt-tl-dep-chip-trash"
+                      onClick={handleDeleteSelected}
+                      aria-label="Удалить связь"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                        <path d="M3 6h18" />
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  )}
+                </span>
+              ) : null}
 
               {/* "+" add dependency button — hidden in picker mode and when editing disabled */}
               {!disableDependencyEditing && !isPicking && (
