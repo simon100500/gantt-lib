@@ -323,11 +323,12 @@ None yet.
 | 39 | Dep delete via predecessor chip: remove × button, chip click selects, predecessor row shows Удалить button | 2026-03-03 | 526f29b | [039-dep-delete-parent-chip](./quick/039-dep-delete-parent-chip/) |
 | 40 | Predecessor deps cell full-replacement with hover text swap: "Зависит от [name]" → hover → "Удалить" | 2026-03-03 | 93e8377 | [040-dep-delete-zuvisit-ot-hover](./quick/040-dep-delete-zuvisit-ot-hover/) |
 | 41 | scrollToTask(taskId) on GanttChart ref + № cell click scrolls grid to center task bar | 2026-03-03 | c34f303 | [041-scroll-grid-to-task](./quick/041-scroll-grid-to-task/) |
+| 42 | Inline trash button on selected dep chip — contextual delete without switching rows | 2026-03-03 | 88ef616 | [042-dep-chip-trash-button](./quick/042-dep-chip-trash-button/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-041 (scrollToTask on GanttChart ref + № cell click in TaskList)
+Stopped at: Completed quick-042 (inline trash button on selected dependency chip in TaskListRow)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
