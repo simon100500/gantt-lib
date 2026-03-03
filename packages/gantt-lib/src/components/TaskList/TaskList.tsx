@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
-import { validateDependencies } from '../../utils/dependencyUtils';
+import { validateDependencies, calculateSuccessorDate } from '../../utils/dependencyUtils';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import './TaskList.css';
@@ -127,7 +127,43 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     const updatedTask = hypothetical.find(t => t.id === successorTaskId)!;
-    onTaskChange?.(updatedTask);
+
+    // Snap successor dates to the predecessor position (lag=0)
+    const predecessor = tasks.find(t => t.id === predecessorTaskId);
+    if (predecessor) {
+      const predStart = new Date(predecessor.startDate as string);
+      const predEnd = new Date(predecessor.endDate as string);
+      const constraintDate = calculateSuccessorDate(predStart, predEnd, linkType, 0);
+
+      const origSuccessor = tasks.find(t => t.id === successorTaskId)!;
+      const durationMs =
+        new Date(origSuccessor.endDate as string).getTime() -
+        new Date(origSuccessor.startDate as string).getTime();
+
+      let newStart: Date;
+      let newEnd: Date;
+
+      if (linkType === 'FS' || linkType === 'SS') {
+        // constraintDate is the new startDate
+        newStart = constraintDate;
+        newEnd = new Date(constraintDate.getTime() + durationMs);
+      } else {
+        // FF or SF: constraintDate is the new endDate
+        newEnd = constraintDate;
+        newStart = new Date(constraintDate.getTime() - durationMs);
+      }
+
+      const snappedTask: Task = {
+        ...updatedTask,
+        startDate: newStart.toISOString().split('T')[0],
+        endDate: newEnd.toISOString().split('T')[0],
+      };
+      onTaskChange?.(snappedTask);
+    } else {
+      // Predecessor not found — emit without snap (graceful fallback)
+      onTaskChange?.(updatedTask);
+    }
+
     setSelectingPredecessorFor(null);
   }, [tasks, onTaskChange]);
 
