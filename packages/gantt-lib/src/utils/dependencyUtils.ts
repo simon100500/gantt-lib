@@ -86,14 +86,20 @@ export function calculateSuccessorDate(
   linkType: LinkType,
   lag: number = 0
 ): Date {
-  // Base date: predecessor end for F* types, predecessor start for S* types
-  const baseDate = linkType.startsWith('F') ? predecessorEnd : predecessorStart;
+  const DAY_MS = 24 * 60 * 60 * 1000;
 
-  // Apply lag (in days, converted to milliseconds)
-  const lagMs = lag * 24 * 60 * 60 * 1000;
-  const resultDate = new Date(baseDate.getTime() + lagMs);
-
-  return resultDate;
+  switch (linkType) {
+    case 'FS':
+      // lag=0 → successor starts the day after predecessor ends (inclusive dates)
+      return new Date(predecessorEnd.getTime() + (lag + 1) * DAY_MS);
+    case 'SS':
+      return new Date(predecessorStart.getTime() + lag * DAY_MS);
+    case 'FF':
+      return new Date(predecessorEnd.getTime() + lag * DAY_MS);
+    case 'SF':
+      // lag=0 → successor ends the day before predecessor starts (inclusive dates)
+      return new Date(predecessorStart.getTime() + (lag - 1) * DAY_MS);
+  }
 }
 
 /**
@@ -330,11 +336,12 @@ export function recalculateIncomingLags(
 
     if (dep.type === 'FS') {
       const predEnd = new Date(predecessor.endDate as string);
+      // lag=0 means successor starts the day after predecessor ends (inclusive dates)
       const lagDays = Math.round(
         (Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), newStartDate.getUTCDate())
         - Date.UTC(predEnd.getUTCFullYear(), predEnd.getUTCMonth(), predEnd.getUTCDate()))
         / (24 * 60 * 60 * 1000)
-      );
+      ) - 1;
       return { ...dep, lag: lagDays };
     }
     if (dep.type === 'SS') {

@@ -95,17 +95,17 @@ describe('dependencyUtils', () => {
       const result = calculateSuccessorDate(jan1, jan5, 'FS', 0);
       expect(result.getUTCFullYear()).toBe(2026);
       expect(result.getUTCMonth()).toBe(0);
-      expect(result.getUTCDate()).toBe(5); // Starts when predecessor finishes
+      expect(result.getUTCDate()).toBe(6); // Starts the day after predecessor finishes
     });
 
     it('should calculate FS with positive lag', () => {
       const result = calculateSuccessorDate(jan1, jan5, 'FS', 2);
-      expect(result.getUTCDate()).toBe(7); // 2 days after predecessor finishes
+      expect(result.getUTCDate()).toBe(8); // lag=2 means 2 extra days after natural FS gap
     });
 
     it('should calculate FS with negative lag', () => {
       const result = calculateSuccessorDate(jan1, jan5, 'FS', -2);
-      expect(result.getUTCDate()).toBe(3); // 2 days before predecessor finishes
+      expect(result.getUTCDate()).toBe(4); // lag=-2 means 2-day overlap
     });
 
     it('should calculate SS (start-to-start) with no lag', () => {
@@ -130,12 +130,14 @@ describe('dependencyUtils', () => {
 
     it('should calculate SF (start-to-finish) with no lag', () => {
       const result = calculateSuccessorDate(jan1, jan5, 'SF', 0);
-      expect(result.getUTCDate()).toBe(1); // Finishes when predecessor starts
+      expect(result.getUTCFullYear()).toBe(2025);
+      expect(result.getUTCMonth()).toBe(11);
+      expect(result.getUTCDate()).toBe(31); // Ends the day before predecessor starts
     });
 
     it('should calculate SF with positive lag', () => {
       const result = calculateSuccessorDate(jan1, jan5, 'SF', 4);
-      expect(result.getUTCDate()).toBe(5); // 4 days after predecessor starts
+      expect(result.getUTCDate()).toBe(4); // lag=4 means 4 days after (pred.start - 1)
     });
   });
 
