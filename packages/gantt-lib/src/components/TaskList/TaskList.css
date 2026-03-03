@@ -169,3 +169,218 @@
 .gantt-tl-name-locked {
   cursor: default !important;
 }
+
+/* Dependencies column — header and data cells */
+.gantt-tl-cell-deps {
+  width: 120px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px 4px;
+  align-items: center;
+  overflow: visible;
+  position: relative;
+}
+
+/* Type switcher button in header */
+.gantt-tl-dep-type-trigger {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1f2937;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.gantt-tl-dep-type-trigger:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.gantt-tl-dep-type-trigger:not(:disabled):hover {
+  color: #3b82f6;
+}
+
+/* Dropdown option buttons inside Popover */
+.gantt-tl-dep-type-menu {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  min-width: 60px;
+}
+
+.gantt-tl-dep-type-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #374151;
+}
+
+.gantt-tl-dep-type-option:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.gantt-tl-dep-type-option.active {
+  background-color: rgba(59, 130, 246, 0.2);
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+/* Dependency chip */
+.gantt-tl-dep-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  background-color: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 0.7rem;
+  color: #1d4ed8;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* Remove × button inside chip */
+.gantt-tl-dep-chip-remove {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.7rem;
+  color: #6b7280;
+  padding: 0 1px;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.gantt-tl-dep-chip:hover .gantt-tl-dep-chip-remove {
+  display: inline-flex;
+}
+
+.gantt-tl-dep-chip-remove:hover {
+  color: #ef4444;
+}
+
+/* "+N ещё" overflow button */
+.gantt-tl-dep-overflow-trigger {
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(107, 114, 128, 0.1);
+  border: 1px solid rgba(107, 114, 128, 0.25);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 0.7rem;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.gantt-tl-dep-overflow-trigger:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+}
+
+/* Overflow popover content — list of all deps */
+.gantt-tl-dep-overflow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  min-width: 140px;
+}
+
+.gantt-tl-dep-overflow-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.gantt-tl-dep-overflow-remove {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  padding: 0 2px;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.gantt-tl-dep-overflow-remove:hover {
+  color: #ef4444;
+}
+
+/* "+" add dependency button */
+.gantt-tl-dep-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px dashed rgba(59, 130, 246, 0.4);
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  font-size: 0.8rem;
+  color: #3b82f6;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.gantt-tl-dep-add:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+/* Picker mode: «Связи» cell on all rows becomes a selection target */
+.gantt-tl-row-picking .gantt-tl-cell-deps {
+  cursor: crosshair;
+  background-color: rgba(59, 130, 246, 0.04);
+}
+
+.gantt-tl-row-picking .gantt-tl-cell-deps:hover {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+/* Picker mode: current task's own row — disabled */
+.gantt-tl-row-picking-self .gantt-tl-cell-deps {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Cycle error banner below header */
+.gantt-tl-dep-error {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-top: none;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  color: #dc2626;
+  z-index: 10;
+  white-space: nowrap;
+}
