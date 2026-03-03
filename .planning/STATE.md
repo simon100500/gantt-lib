@@ -330,11 +330,12 @@ None yet.
 | 46 | Change deps cell overflow threshold: 3+ deps shows 1 chip inline + "+N ещё" overflow | 2026-03-03 | 1cb7500 | [46-3-1](./quick/46-3-1/) |
 | 47 | Simplify deps chips: 1 dep inline, 2+ deps show "N связей" summary chip with popover and direct-delete trash buttons | 2026-03-03 | 24541e7 | [47-1-2-2](./quick/47-1-2-2/) |
 | 48 | Unified DepChip component: same click-to-select + hover-to-show-trash behavior in cell and popover | 2026-03-03 | acb0533 | [48-unified-dep-chip](./quick/48-unified-dep-chip/) |
+| 49 | Replace dep type labels with SVG icons in chips and header type-switcher | 2026-03-03 | d4dd82e | [49-replace-dep-type-labels-with-svg-icons](./quick/49-replace-dep-type-labels-with-svg-icons/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-048 (unified DepChip component — identical hover-trash and click-select behavior in cell and popover)
+Stopped at: Completed quick-049 (replace dep type labels ОН/НН/ОО/НО with SVG icons in DepChip and header type-switcher)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
