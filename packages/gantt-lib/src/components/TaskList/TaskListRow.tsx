@@ -35,31 +35,30 @@ const TrashIcon = () => (
   </svg>
 );
 
-function formatDepDescription(type: LinkType, lag: number | undefined, predecessorName: string): string {
+function formatDepDescription(type: LinkType, lag: number | undefined): string {
   const effectiveLag = lag ?? 0;
-  const name = predecessorName;
 
   if (type === 'FS') {
-    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после окончания ${name}`;
-    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до окончания ${name}`;
-    return `После окончания ${name}`;
+    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после окончания`;
+    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до окончания`;
+    return `После окончания`;
   }
   if (type === 'FF') {
-    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после окончания ${name}`;
-    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до окончания ${name}`;
-    return `После окончания ${name}`;
+    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после окончания`;
+    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до окончания`;
+    return `После окончания`;
   }
   if (type === 'SS') {
-    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после начала ${name}`;
-    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до начала ${name}`;
-    return `Одновременно с началом ${name}`;
+    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после начала`;
+    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до начала`;
+    return `Одновременно с началом`;
   }
   if (type === 'SF') {
-    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после начала ${name}`;
-    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до начала ${name}`;
-    return `До начала ${name}`;
+    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после начала`;
+    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до начала`;
+    return `До начала`;
   }
-  return name;
+  return '';
 }
 
 const DepChip: React.FC<DepChipProps> = ({
@@ -97,7 +96,8 @@ const DepChip: React.FC<DepChipProps> = ({
   };
 
   const Icon = LINK_TYPE_ICONS[dep.type];
-  const description = formatDepDescription(dep.type, lag, predecessorName ?? dep.taskId);
+  const depPrefix = formatDepDescription(dep.type, lag);
+  const depName = predecessorName ?? dep.taskId;
 
   return (
     <Popover open={isSelected} onOpenChange={(open) => { if (!open) onChipSelectClear(); }}>
@@ -122,8 +122,9 @@ const DepChip: React.FC<DepChipProps> = ({
           </button>
         )}
       </span>
-      <PopoverContent portal={true} side="top" align="start" className="gantt-tl-dep-info-popover">
-        {description}
+      <PopoverContent portal={true} side="bottom" align="start" className="gantt-tl-dep-info-popover">
+        <span className="gantt-tl-dep-info-prefix">{depPrefix}</span>
+        <span className="gantt-tl-dep-info-name">{depName}</span>
       </PopoverContent>
     </Popover>
   );
