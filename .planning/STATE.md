@@ -3,9 +3,24 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
+stopped_at: Phase 15 context gathered
+last_updated: "2026-03-03T21:01:08.346Z"
+last_activity: "2026-03-03 - Completed quick task 055: показывать поповер при клике на чип зависимости с человекочитаемым описанием типа связи"
+progress:
+  total_phases: 15
+  completed_phases: 14
+  total_plans: 36
+  completed_plans: 36
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
 last_updated: "2026-03-03T09:46:15.069Z"
 progress:
-  total_phases: 14
+  total_phases: 15
   completed_phases: 14
   total_plans: 36
   completed_plans: 36
@@ -177,6 +192,7 @@ Progress: [████████████] Phase 14: 2 of 2 plans complete
 - Phase 11 added: lock-task
 - Phase 12 added: task-list (overlay approach with inline editing)
 - Phase 14 added: dependencies-edit — механизм создания связей между задачами через столбец в task list (тип связи + кнопка "+", выбор дочерней задачи, отображение типов ОН/НН/ОО/НО)
+- Phase 15 added: expired-coloring — Закраска красным цветом если просрочена (общий пропс вкл / выкл). И будем красить задачи если они просрочены с учётом текущего процента выполнения
 
 ### Decisions
 
@@ -340,8 +356,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-03
-Stopped at: Completed quick-055 (Radix Popover on dep chip click showing Russian dependency description)
+Last session: 2026-03-03T21:01:08.343Z
+Stopped at: Phase 15 context gathered
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
