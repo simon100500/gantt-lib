@@ -487,14 +487,72 @@ const createChain100Tasks = (): Task[] => {
   return tasks;
 };
 
+// Demo tasks for expired task coloring (Phase 15)
+const createExpiredTasks = (): Task[] => {
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const formatDate = (date: Date): string => date.toISOString().split('T')[0];
+
+  // Calculate dates relative to today
+  const threeDaysAgo = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 3));
+  const oneDayAgo = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 1));
+  const tomorrow = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
+  const nextWeek = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 7));
+
+  return [
+    {
+      id: 'expired-1',
+      name: 'Просроченная задача (прогресс < 100)',
+      startDate: formatDate(threeDaysAgo),
+      endDate: formatDate(oneDayAgo),
+      progress: 50,
+      accepted: false,
+    },
+    {
+      id: 'expired-2',
+      name: 'Просроченная задача (не принята)',
+      startDate: formatDate(threeDaysAgo),
+      endDate: formatDate(oneDayAgo),
+      progress: 100,
+      accepted: false,
+    },
+    {
+      id: 'not-expired-1',
+      name: 'Не просрочена (дата в будущем)',
+      startDate: formatDate(tomorrow),
+      endDate: formatDate(nextWeek),
+      progress: 30,
+      accepted: false,
+    },
+    {
+      id: 'not-expired-2',
+      name: 'Выполнена и принята (не красная)',
+      startDate: formatDate(threeDaysAgo),
+      endDate: formatDate(oneDayAgo),
+      progress: 100,
+      accepted: true,
+    },
+    {
+      id: 'not-expired-3',
+      name: 'Завершенная задача в будущем',
+      startDate: formatDate(tomorrow),
+      endDate: formatDate(nextWeek),
+      progress: 100,
+      accepted: true,
+    },
+  ];
+};
+
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
   const [dependencyTasks, setDependencyTasks] = useState<Task[]>(createDependencyTasks);
   const [cascadeTasks, setCascadeTasks] = useState<Task[]>(createCascadeTasks);
   const [chain100Tasks, setChain100Tasks] = useState<Task[]>(createChain100Tasks);
+  const [expiredTasks, setExpiredTasks] = useState<Task[]>(createExpiredTasks);
   const [blockConstraints, setBlockConstraints] = useState(true);
   const [showTaskList, setShowTaskList] = useState(true);
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
+  const [highlightExpired, setHighlightExpired] = useState(true);
 
   // Ref for the main GanttChart to access scrollToToday method
   const ganttChartRef = useRef<GanttChartHandle>(null);
@@ -550,6 +608,12 @@ export default function Home() {
   const handleChain100Change = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
       setChain100Tasks(typeof updated === "function" ? updated : () => updated),
+    [],
+  );
+
+  const handleExpiredTasksChange = useCallback(
+    (updated: Task[] | ((t: Task[]) => Task[])) =>
+      setExpiredTasks(typeof updated === "function" ? updated : () => updated),
     [],
   );
 
@@ -625,6 +689,25 @@ export default function Home() {
         >
           {disableTaskNameEditing ? "Enable Name Editing" : "Disable Name Editing"}
         </button>
+        <button
+          onClick={() => setHighlightExpired(!highlightExpired)}
+          style={{
+            padding: "0.5rem 1rem",
+            marginBottom: "1rem",
+            backgroundColor: highlightExpired ? "#ef4444" : "#6b7280",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "0.875rem",
+            fontWeight: "500",
+            transition: "background-color 0.2s",
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = highlightExpired ? "#dc2626" : "#4b5563"}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = highlightExpired ? "#ef4444" : "#6b7280"}
+        >
+          {highlightExpired ? "Disable Expired Highlight" : "Enable Expired Highlight"}
+        </button>
         <div
           style={{
             border: "1px solid #e5e7eb",
@@ -638,10 +721,11 @@ export default function Home() {
             dayWidth={24}
             rowHeight={36}
             onChange={handleChange}
-            containerHeight={"60dvh"}
+            containerHeight={"80dvh"}
             showTaskList={showTaskList}
             taskListWidth={500}
             disableTaskNameEditing={disableTaskNameEditing}
+            highlightExpiredTasks={highlightExpired}
           />
         </div>
       </div>
@@ -741,6 +825,33 @@ export default function Home() {
             dayWidth={24}
             rowHeight={36}
             containerHeight={600}
+          />
+        </div>
+      </div>
+
+      {/* Expired Tasks Demo (Phase 15) */}
+      <div style={{ marginBottom: "3rem" }}>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+          Подсветка просроченных задач (Phase 15)
+        </h2>
+        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
+          Задачи с endDate < today AND (progress < 100% OR not accepted) подсвечиваются красным.
+          Выполненные и принятые задачи (progress = 100 AND accepted = true) не красные, даже если просрочены.
+        </p>
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "1rem",
+          }}
+        >
+          <GanttChart
+            tasks={expiredTasks}
+            onChange={handleExpiredTasksChange}
+            dayWidth={40}
+            rowHeight={40}
+            containerHeight={250}
+            highlightExpiredTasks={highlightExpired}
           />
         </div>
       </div>
