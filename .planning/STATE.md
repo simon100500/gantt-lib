@@ -332,11 +332,12 @@ None yet.
 | 48 | Unified DepChip component: same click-to-select + hover-to-show-trash behavior in cell and popover | 2026-03-03 | acb0533 | [48-unified-dep-chip](./quick/48-unified-dep-chip/) |
 | 49 | Replace dep type labels with SVG icons in chips and header type-switcher | 2026-03-03 | d4dd82e | [49-replace-dep-type-labels-with-svg-icons](./quick/49-replace-dep-type-labels-with-svg-icons/) |
 | 50 | Dep chips show lag (+N/-N) instead of task index; icon-only when lag=0 | 2026-03-03 | 32a817e | [50-dep-chips-show-lag-instead-of-task-id-hi](./quick/50-dep-chips-show-lag-instead-of-task-id-hi/) |
+| 51 | Fix FS lag off-by-one: ends today + starts tomorrow = lag 0 (was +1) | 2026-03-03 | 6aaf1ba | [51-fix-fs-lag-off-by-one-stored-lag-and-cal](./quick/51-fix-fs-lag-off-by-one-stored-lag-and-cal/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-050 (dep chips show lag +N/-N instead of task index; icon-only when lag=0)
+Stopped at: Completed quick-051 (fix FS lag off-by-one — natural adjacent-day gap = lag 0)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
