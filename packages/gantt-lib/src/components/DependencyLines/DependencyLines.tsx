@@ -3,12 +3,13 @@
 import React, { useMemo } from 'react';
 import { Task } from '../../types';
 import { calculateTaskBar, calculateDependencyPath, pixelsToDate } from '../../utils/geometry';
-import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils';
+import { getAllDependencyEdges, detectCycles, computeLagFromDates } from '../../utils/dependencyUtils';
+import type { LinkType } from '../../types';
 import './DependencyLines.css';
 
 /**
- * Calculate effective lag based on current task positions
- * Always calculates from actual positions, not stored lag values
+ * Calculate effective lag based on current task pixel positions.
+ * Delegates to computeLagFromDates for consistent semantics.
  */
 function calculateEffectiveLag(
   edge: { type: string },
@@ -17,68 +18,11 @@ function calculateEffectiveLag(
   monthStart: Date,
   dayWidth: number
 ): number {
-  // Convert pixel positions to dates
-  const predStartDate = pixelsToDate(predPosition.left, monthStart, dayWidth);
-  const predEndDate = pixelsToDate(predPosition.right - dayWidth, monthStart, dayWidth); // right is exclusive, subtract 1 day
-  const succStartDate = pixelsToDate(succPosition.left, monthStart, dayWidth);
-  const succEndDate = pixelsToDate(succPosition.right - dayWidth, monthStart, dayWidth);
-
-  // Calculate lag based on link type
-  let lagMs = 0;
-  switch (edge.type) {
-    case 'FS':
-      // FS: lag = successor.start - predecessor.end - 1 (inclusive dates)
-      lagMs = Date.UTC(
-        succStartDate.getUTCFullYear(),
-        succStartDate.getUTCMonth(),
-        succStartDate.getUTCDate()
-      ) - Date.UTC(
-        predEndDate.getUTCFullYear(),
-        predEndDate.getUTCMonth(),
-        predEndDate.getUTCDate()
-      ) - (24 * 60 * 60 * 1000);
-      break;
-    case 'SS':
-      // SS: lag = successor.start - predecessor.start
-      lagMs = Date.UTC(
-        succStartDate.getUTCFullYear(),
-        succStartDate.getUTCMonth(),
-        succStartDate.getUTCDate()
-      ) - Date.UTC(
-        predStartDate.getUTCFullYear(),
-        predStartDate.getUTCMonth(),
-        predStartDate.getUTCDate()
-      );
-      break;
-    case 'FF':
-      // FF: lag = successor.end - predecessor.end
-      lagMs = Date.UTC(
-        succEndDate.getUTCFullYear(),
-        succEndDate.getUTCMonth(),
-        succEndDate.getUTCDate()
-      ) - Date.UTC(
-        predEndDate.getUTCFullYear(),
-        predEndDate.getUTCMonth(),
-        predEndDate.getUTCDate()
-      );
-      break;
-    case 'SF':
-      // SF: lag = successor.end - predecessor.start + 1 day (adjacent days = lag 0, symmetric to FS which uses -1)
-      lagMs = Date.UTC(
-        succEndDate.getUTCFullYear(),
-        succEndDate.getUTCMonth(),
-        succEndDate.getUTCDate()
-      ) - Date.UTC(
-        predStartDate.getUTCFullYear(),
-        predStartDate.getUTCMonth(),
-        predStartDate.getUTCDate()
-      ) + (24 * 60 * 60 * 1000);
-      break;
-    default:
-      return 0;
-  }
-
-  return Math.round(lagMs / (24 * 60 * 60 * 1000));
+  const predStart = pixelsToDate(predPosition.left, monthStart, dayWidth);
+  const predEnd   = pixelsToDate(predPosition.right - dayWidth, monthStart, dayWidth);
+  const succStart = pixelsToDate(succPosition.left, monthStart, dayWidth);
+  const succEnd   = pixelsToDate(succPosition.right - dayWidth, monthStart, dayWidth);
+  return computeLagFromDates(edge.type as LinkType, predStart, predEnd, succStart, succEnd);
 }
 
 export interface DependencyLinesProps {

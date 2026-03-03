@@ -72,13 +72,43 @@ export function detectCycles(tasks: Task[]): { hasCycle: boolean; cyclePath?: st
 }
 
 /**
+ * Compute lag (in days) from actual predecessor/successor dates.
+ * This is the single source of truth for lag semantics across chips, arrows, and drag.
+ *
+ * Semantics (lag=0 = natural, gap-free connection):
+ * - FS: lag = succStart - predEnd - 1  (adjacent days = 0)
+ * - SS: lag = succStart - predStart
+ * - FF: lag = succEnd   - predEnd
+ * - SF: lag = succEnd   - predStart + 1  (symmetric to FS)
+ */
+export function computeLagFromDates(
+  linkType: LinkType,
+  predStart: Date,
+  predEnd: Date,
+  succStart: Date,
+  succEnd: Date
+): number {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const pS = Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate());
+  const pE = Date.UTC(predEnd.getUTCFullYear(),   predEnd.getUTCMonth(),   predEnd.getUTCDate());
+  const sS = Date.UTC(succStart.getUTCFullYear(), succStart.getUTCMonth(), succStart.getUTCDate());
+  const sE = Date.UTC(succEnd.getUTCFullYear(),   succEnd.getUTCMonth(),   succEnd.getUTCDate());
+  switch (linkType) {
+    case 'FS': return Math.round((sS - pE) / DAY_MS) - 1;
+    case 'SS': return Math.round((sS - pS) / DAY_MS);
+    case 'FF': return Math.round((sE - pE) / DAY_MS);
+    case 'SF': return Math.round((sE - pS) / DAY_MS) + 1;
+  }
+}
+
+/**
  * Calculate successor date based on predecessor dates, link type, and lag
  *
  * Link type semantics:
- * - FS: Successor start = Predecessor end + lag
+ * - FS: Successor start = Predecessor end + lag + 1 day  (lag=0 → next day)
  * - SS: Successor start = Predecessor start + lag
- * - FF: Successor end = Predecessor end + lag
- * - SF: Successor end = Predecessor start + lag
+ * - FF: Successor end   = Predecessor end + lag
+ * - SF: Successor end   = Predecessor start + lag - 1 day  (lag=0 → day before)
  */
 export function calculateSuccessorDate(
   predecessorStart: Date,
@@ -334,45 +364,10 @@ export function recalculateIncomingLags(
     const predecessor = taskById.get(dep.taskId);
     if (!predecessor) return dep;
 
-    if (dep.type === 'FS') {
-      const predEnd = new Date(predecessor.endDate as string);
-      // lag=0 means successor starts the day after predecessor ends (inclusive dates)
-      const lagDays = Math.round(
-        (Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), newStartDate.getUTCDate())
-        - Date.UTC(predEnd.getUTCFullYear(), predEnd.getUTCMonth(), predEnd.getUTCDate()))
-        / (24 * 60 * 60 * 1000)
-      ) - 1;
-      return { ...dep, lag: lagDays };
-    }
-    if (dep.type === 'SS') {
-      const predStart = new Date(predecessor.startDate as string);
-      const lagDays = Math.max(0, Math.round(
-        (Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), newStartDate.getUTCDate())
-        - Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate()))
-        / (24 * 60 * 60 * 1000)
-      ));
-      return { ...dep, lag: lagDays };
-    }
-    if (dep.type === 'FF') {
-      const predEnd = new Date(predecessor.endDate as string);
-      const lagDays = Math.round(
-        (Date.UTC(newEndDate.getUTCFullYear(), newEndDate.getUTCMonth(), newEndDate.getUTCDate())
-        - Date.UTC(predEnd.getUTCFullYear(), predEnd.getUTCMonth(), predEnd.getUTCDate()))
-        / (24 * 60 * 60 * 1000)
-      );
-      return { ...dep, lag: lagDays };
-    }
-    if (dep.type === 'SF') {
-      const predStart = new Date(predecessor.startDate as string);
-      const lagDays = Math.min(0, Math.round(
-        (Date.UTC(newEndDate.getUTCFullYear(), newEndDate.getUTCMonth(), newEndDate.getUTCDate())
-        - Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate())
-        + (24 * 60 * 60 * 1000))
-        / (24 * 60 * 60 * 1000)
-      ));
-      return { ...dep, lag: lagDays };
-    }
-    return dep;
+    const predStart = new Date(predecessor.startDate as string);
+    const predEnd   = new Date(predecessor.endDate   as string);
+    const lagDays   = computeLagFromDates(dep.type, predStart, predEnd, newStartDate, newEndDate);
+    return { ...dep, lag: lagDays };
   });
 }
 

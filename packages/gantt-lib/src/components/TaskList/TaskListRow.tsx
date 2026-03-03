@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { Task } from '../GanttChart';
 import type { LinkType } from '../../types';
 import { parseUTCDate } from '../../utils/dateUtils';
+import { computeLagFromDates } from '../../utils/dependencyUtils';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
@@ -198,10 +199,25 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const isPicking = selectingPredecessorFor != null;
     const isSourceRow = isPicking && selectingPredecessorFor === task.id;
 
-    // Chip data: map each dependency to { dep }
+    // Chip data: compute effective lag from actual dates (always correct, even on initial load)
     const chips = useMemo(() => {
-      return (task.dependencies ?? []).map(dep => ({ dep }));
-    }, [task.dependencies]);
+      const succStart = new Date(task.startDate as string);
+      const succEnd   = new Date(task.endDate   as string);
+      const taskById  = new Map((allTasks ?? []).map(t => [t.id, t]));
+      return (task.dependencies ?? []).map(dep => {
+        const pred = taskById.get(dep.taskId);
+        const lag = pred
+          ? computeLagFromDates(
+              dep.type,
+              new Date(pred.startDate as string),
+              new Date(pred.endDate   as string),
+              succStart,
+              succEnd
+            )
+          : (dep.lag ?? 0);
+        return { dep, lag };
+      });
+    }, [task.dependencies, task.startDate, task.endDate, allTasks]);
 
     const linkWord = chips.length <= 4 ? 'связи' : 'связей';
 
@@ -397,10 +413,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   </PopoverTrigger>
                   <PopoverContent portal={true} align="start">
                     <div className="gantt-tl-dep-overflow-list" onClick={(e) => e.stopPropagation()}>
-                      {chips.map(({ dep }) => (
+                      {chips.map(({ dep, lag }) => (
                         <DepChip
                           key={`${dep.taskId}-${dep.type}`}
-                          lag={dep.lag}
+                          lag={lag}
                           dep={dep}
                           taskId={task.id}
                           selectedChip={selectedChip}
@@ -418,7 +434,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               ) : chips.length === 1 ? (
                 /* Single chip — unified DepChip */
                 <DepChip
-                  lag={chips[0].dep.lag}
+                  lag={chips[0].lag}
                   dep={chips[0].dep}
                   taskId={task.id}
                   selectedChip={selectedChip}
