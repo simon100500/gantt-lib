@@ -179,5 +179,14 @@ Plans:
 **Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 14-01-PLAN.md — CSS classes, GanttChart prop, TaskList state/callbacks/header with type switcher Popover
-- [ ] 14-02-PLAN.md — TaskListRow «Связи» cell: chips, overflow Popover, add button, picker mode interaction
+- [x] 14-01-PLAN.md — CSS classes, GanttChart prop, TaskList state/callbacks/header with type switcher Popover
+- [x] 14-02-PLAN.md — TaskListRow «Связи» cell: chips, overflow Popover, add button, picker mode interaction
+
+### Phase 15: expired-coloring Закраска красным цветом если просрочена (общий пропс вкл / выкл). И будем красить задачи если они просрочены с учётом текущего процента выполнения
+
+**Goal:** Add visual highlighting for expired/overdue tasks with red background color, controlled by global toggle switch
+**Depends on:** Phase 14
+**Plans:** 1 plan
+
+Plans:
+- [ ] 15-01-PLAN.md — CSS variable, GanttChart highlightExpiredTasks prop, TaskRow expiration logic with conditional red background, demo page with expired task examples
