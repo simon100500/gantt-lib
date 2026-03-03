@@ -156,6 +156,10 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
     // Determine progress color based on completion status
     const progressColor = useMemo(() => {
+      if (isExpired) {
+        // Dark red for expired tasks
+        return 'color-mix(in srgb, var(--gantt-expired-color) 40%, black)';
+      }
       if (progressWidth === 100) {
         return task.accepted
           ? 'var(--gantt-progress-accepted, #22c55e)'    // Green for accepted
@@ -164,7 +168,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       // Darker shade using color-mix() with task color or default
       const baseColor = task.color || 'var(--gantt-task-bar-default-color)';
       return `color-mix(in srgb, ${baseColor} 40%, black)`;
-    }, [progressWidth, task.accepted, task.color]);
+    }, [isExpired, progressWidth, task.accepted, task.color]);
 
     // Handle drag end - call onChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
