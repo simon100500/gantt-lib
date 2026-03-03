@@ -11,6 +11,43 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { LINK_TYPE_ICONS } from './DepIcons';
 
 // ---------------------------------------------------------------------------
+// Dependency description helpers (mirrored from DependencyLines.tsx)
+// ---------------------------------------------------------------------------
+function pluralDays(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return 'дней';
+  if (mod10 === 1) return 'день';
+  if (mod10 >= 2 && mod10 <= 4) return 'дня';
+  return 'дней';
+}
+
+function formatDepDescription(type: string, lag: number, predecessorName: string): string {
+  const abslag = Math.abs(lag);
+  if (type === 'FS') {
+    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после окончания «${predecessorName}»`;
+    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до окончания «${predecessorName}»`;
+    return `Сразу после окончания «${predecessorName}»`;
+  }
+  if (type === 'SS') {
+    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после начала «${predecessorName}»`;
+    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до начала «${predecessorName}»`;
+    return `Одновременно с началом «${predecessorName}»`;
+  }
+  if (type === 'FF') {
+    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после окончания «${predecessorName}»`;
+    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до окончания «${predecessorName}»`;
+    return `Одновременно с окончанием «${predecessorName}»`;
+  }
+  if (type === 'SF') {
+    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после начала «${predecessorName}»`;
+    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до начала «${predecessorName}»`;
+    return `Одновременно с началом «${predecessorName}»`;
+  }
+  return '';
+}
+
+// ---------------------------------------------------------------------------
 // DepChip — local unified component used in both single-chip cell and popover
 // ---------------------------------------------------------------------------
 interface DepChipProps {
@@ -48,6 +85,8 @@ const DepChip: React.FC<DepChipProps> = ({
   onRemoveDependency,
   onChipSelectClear,
 }) => {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
   const isSelected =
     selectedChip?.successorId === taskId &&
     selectedChip?.predecessorId === dep.taskId &&
@@ -55,11 +94,19 @@ const DepChip: React.FC<DepChipProps> = ({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (disableDependencyEditing) return;
+    if (disableDependencyEditing) {
+      // Even in read-only mode, show description popover
+      setPopoverOpen(v => !v);
+      return;
+    }
+    // Select the chip (for red arrow highlight)
     onChipSelect?.(isSelected ? null : { successorId: taskId, predecessorId: dep.taskId, linkType: dep.type });
     if (!isSelected) {
       onRowClick?.(taskId);
       onScrollToTask?.(taskId);
+      setPopoverOpen(true);
+    } else {
+      setPopoverOpen(false);
     }
   };
 
@@ -70,27 +117,35 @@ const DepChip: React.FC<DepChipProps> = ({
   };
 
   const Icon = LINK_TYPE_ICONS[dep.type];
+  const description = formatDepDescription(dep.type, lag ?? 0, predecessorName ?? dep.taskId);
 
   return (
-    <span className="gantt-tl-dep-chip-wrapper">
-      <span
-        className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-        title={predecessorName}
-        onClick={handleClick}
-      >
-        <><Icon />{lag != null && lag !== 0 ? (lag > 0 ? `+${lag}` : `${lag}`) : ''}</>
+    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+      <span className="gantt-tl-dep-chip-wrapper">
+        <PopoverTrigger asChild>
+          <span
+            className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+            title={predecessorName}
+            onClick={handleClick}
+          >
+            <><Icon />{lag != null && lag !== 0 ? (lag > 0 ? `+${lag}` : `${lag}`) : ''}</>
+          </span>
+        </PopoverTrigger>
+        {!disableDependencyEditing && (
+          <button
+            type="button"
+            className="gantt-tl-dep-chip-trash"
+            aria-label="Удалить связь"
+            onClick={handleTrashClick}
+          >
+            <TrashIcon />
+          </button>
+        )}
       </span>
-      {!disableDependencyEditing && (
-        <button
-          type="button"
-          className="gantt-tl-dep-chip-trash"
-          aria-label="Удалить связь"
-          onClick={handleTrashClick}
-        >
-          <TrashIcon />
-        </button>
-      )}
-    </span>
+      <PopoverContent portal={true} align="start" side="bottom" className="gantt-tl-dep-desc-popover">
+        <div className="gantt-dep-popover-desc">{description}</div>
+      </PopoverContent>
+    </Popover>
   );
 };
 

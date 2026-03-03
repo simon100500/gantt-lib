@@ -455,6 +455,16 @@
   display: inline;
 }
 
+/* Dependency chip description popover */
+.gantt-tl-dep-desc-popover {
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+  max-width: 280px;
+  min-width: 160px;
+}
+
 /* Cycle error banner below header */
 .gantt-tl-dep-error {
   position: absolute;
