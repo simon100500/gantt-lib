@@ -159,7 +159,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       e.stopPropagation();
       if (!isPicking || isSourceRow) return;
       if (!selectingPredecessorFor || !activeLinkType) return;
-      onAddDependency?.(selectingPredecessorFor, task.id, activeLinkType);
+      onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
     }, [isPicking, isSourceRow, selectingPredecessorFor, task.id, activeLinkType, onAddDependency]);
 
     const handleRemoveChip = useCallback((dep: { taskId: string; type: LinkType }, e: React.MouseEvent) => {
