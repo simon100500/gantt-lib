@@ -41,7 +41,7 @@ function formatDepDescription(type: LinkType, lag: number | undefined): string {
   if (type === 'FS') {
     if (effectiveLag > 0) return `Начать через ${effectiveLag} дн. после окончания`;
     if (effectiveLag < 0) return `Начать за ${Math.abs(effectiveLag)} дн. до окончания`;
-    return `Начать после окончания`;
+    return `Начать сразу после окончания`;
   }
   if (type === 'FF') {
     if (effectiveLag > 0) return `Завершить через ${effectiveLag} дн. после окончания`;
