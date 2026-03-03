@@ -328,11 +328,12 @@ None yet.
 | 44 | Selected dep chip highlights its SVG arrow red | 2026-03-03 | 5b42896 | [44-selected-dep-chip-highlights-its-arrow-r](./quick/44-selected-dep-chip-highlights-its-arrow-r/) |
 | 45 | Show Выберите задачу placeholder in source row deps cell during link creation | 2026-03-03 | cf5225e | [45-show-in-parent-cell-during-link-creation](./quick/45-show-in-parent-cell-during-link-creation/) |
 | 46 | Change deps cell overflow threshold: 3+ deps shows 1 chip inline + "+N ещё" overflow | 2026-03-03 | 1cb7500 | [46-3-1](./quick/46-3-1/) |
+| 47 | Simplify deps chips: 1 dep inline, 2+ deps show "N связей" summary chip with popover and direct-delete trash buttons | 2026-03-03 | 24541e7 | [47-1-2-2](./quick/47-1-2-2/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-046 (change deps cell overflow threshold to 1 visible chip when 3+ deps exist)
+Stopped at: Completed quick-047 (simplify deps chips — 1 chip inline, 2+ show N-связей summary chip with direct-delete popover)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
