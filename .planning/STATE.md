@@ -320,11 +320,12 @@ None yet.
 | 35 | добавь экшон для графика глобально чтобы он открывался на текущем дне посередине экрана | 2026-02-28 | e7d050c | [35-open-chart-centered-on-current-day](./quick/35-open-chart-centered-on-current-day/) |
 | 37 | Add a "Today" button to the Gantt chart that allows users to quickly return to today's date | 2026-02-28 | 2e3bf64 | [37-creating-quick-task-36-today](./quick/37-creating-quick-task-36-today/) |
 | 38 | Auto-snap successor dates on dependency add (lag=0 snap for all 4 link types via calculateSuccessorDate) | 2026-03-03 | 1a554a0 | [38-0](./quick/38-0/) |
+| 39 | Dep delete via predecessor chip: remove × button, chip click selects, predecessor row shows Удалить button | 2026-03-03 | 526f29b | [039-dep-delete-parent-chip](./quick/039-dep-delete-parent-chip/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-38 (auto-snap successor dates on dependency add)
+Stopped at: Completed quick-039 (dep delete parent chip — predecessor-side Удалить button)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
