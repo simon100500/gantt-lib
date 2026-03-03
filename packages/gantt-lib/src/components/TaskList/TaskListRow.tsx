@@ -100,29 +100,45 @@ const DepChip: React.FC<DepChipProps> = ({
   const depName = predecessorName ?? dep.taskId;
 
   return (
-    <Popover open={isSelected} onOpenChange={(open) => { if (!open) onChipSelectClear(); }}>
-      <span className="gantt-tl-dep-chip-wrapper">
-        <PopoverTrigger asChild>
+    <Popover open={isSelected} onOpenChange={(open) => {}}>
+      <PopoverTrigger asChild>
+        <span className="gantt-tl-dep-chip-wrapper">
           <span
             className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-
             onClick={handleClick}
           >
             <><Icon />{lag != null && lag !== 0 ? (lag > 0 ? `+${lag}` : `${lag}`) : ''}</>
           </span>
-        </PopoverTrigger>
-        {!disableDependencyEditing && (
-          <button
-            type="button"
-            className="gantt-tl-dep-chip-trash"
-            aria-label="Удалить связь"
-            onClick={handleTrashClick}
-          >
-            <TrashIcon />
-          </button>
-        )}
-      </span>
-      <PopoverContent portal={true} side="bottom" align="start" className="gantt-tl-dep-info-popover">
+          {!disableDependencyEditing && (
+            <button
+              type="button"
+              className="gantt-tl-dep-chip-trash"
+              aria-label="Удалить связь"
+              onClick={handleTrashClick}
+            >
+              <TrashIcon />
+            </button>
+          )}
+        </span>
+      </PopoverTrigger>
+      <PopoverContent
+        portal={true}
+        side="bottom"
+        align="start"
+        className="gantt-tl-dep-info-popover"
+        onInteractOutside={(event) => {
+          // Don't close the popover when clicking:
+          // - the chip itself (allows toggle off behavior)
+          // - the "Удалить связь" button on the predecessor row
+          // - the trash (X) button on the chip itself
+          const target = event.target as Element;
+          if (target?.closest?.('.gantt-tl-dep-chip') || target?.closest?.('.gantt-tl-dep-delete-label') || target?.closest?.('.gantt-tl-dep-chip-trash')) {
+            event.preventDefault();
+          } else {
+            onChipSelectClear();
+          }
+        }}
+      >
         <span className="gantt-tl-dep-info-prefix">{depPrefix}</span>
         <span className="gantt-tl-dep-info-name">{depName}</span>
       </PopoverContent>
