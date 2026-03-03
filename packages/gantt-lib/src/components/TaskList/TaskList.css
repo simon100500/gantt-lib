@@ -382,8 +382,16 @@
 
 /* Picker mode: current task's own row — disabled */
 .gantt-tl-row-picking-self .gantt-tl-cell-deps {
-  opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Placeholder text shown in source row's deps cell while picking a predecessor */
+.gantt-tl-dep-source-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 /* Predecessor cell full-replacement: "Зависит от [name]" → hover → "Удалить" */

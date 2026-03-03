@@ -225,9 +225,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         >
           <span className="gantt-tl-num-label">{rowIndex + 1}</span>
           <svg className="gantt-tl-num-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 12H3"/>
-            <path d="m11 18 6-6-6-6"/>
-            <path d="M21 5v14"/>
+            <path d="M17 12H3" />
+            <path d="m11 18 6-6-6-6" />
+            <path d="M21 5v14" />
           </svg>
         </div>
 
@@ -282,7 +282,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-deps"
           onClick={isPicking && !isSourceRow ? handlePredecessorPick : undefined}
         >
-          {isSelectedPredecessor && !disableDependencyEditing ? (
+          {isSourceRow ? (
+            <span className="gantt-tl-dep-source-hint">Выберите задачу</span>
+          ) : isSelectedPredecessor && !disableDependencyEditing ? (
             /* Full-replacement: "Зависит от [name]" → hover → "Удалить" */
             <button
               type="button"
@@ -290,7 +292,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onClick={handleDeleteSelected}
               aria-label="Удалить связь"
             >
-              <span className="gantt-tl-dep-delete-label-default">Зависит от</span>
+              <span className="gantt-tl-dep-delete-label-default">Связано с</span>
               <span className="gantt-tl-dep-delete-label-hover">Удалить связь</span>
             </button>
           ) : (
@@ -317,9 +319,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                         aria-label="Удалить связь"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-                          <path d="M3 6h18"/>
-                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                          <path d="M3 6h18" />
+                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                         </svg>
                       </button>
                     )}
@@ -363,9 +365,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                                   aria-label="Удалить связь"
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-                                    <path d="M3 6h18"/>
-                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                    <path d="M3 6h18" />
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                                   </svg>
                                 </button>
                               )}
