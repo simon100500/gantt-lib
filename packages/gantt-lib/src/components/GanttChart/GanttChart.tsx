@@ -106,6 +106,8 @@ export interface GanttChartProps {
   disableTaskNameEditing?: boolean;
   /** Disable dependency editing in the task list (default: false) */
   disableDependencyEditing?: boolean;
+  /** Highlight expired/overdue tasks with red background (default: false) */
+  highlightExpiredTasks?: boolean;
 }
 
 /**
@@ -147,6 +149,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   taskListWidth = 520,
   disableTaskNameEditing = false,
   disableDependencyEditing = false,
+  highlightExpiredTasks = false,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -532,6 +535,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
               overridePosition={cascadeOverrides.get(task.id)}
               onCascadeProgress={handleCascadeProgress}
               onCascade={handleCascade}
+              highlightExpiredTasks={highlightExpiredTasks}
             />
           ))}
           </div>
