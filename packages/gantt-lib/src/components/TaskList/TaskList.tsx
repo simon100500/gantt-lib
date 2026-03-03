@@ -108,11 +108,13 @@ export const TaskList: React.FC<TaskListProps> = ({
       }
     };
     const handleMouseDown = (e: MouseEvent) => {
-      if (!overlayRef.current?.contains(e.target as Node)) {
-        setSelectingPredecessorFor(null);
-        setSelectedChip(null);
-        onSelectedChipChange?.(null);
-      }
+      const target = e.target as Element;
+      if (overlayRef.current?.contains(target)) return;
+      // Don't clear when clicking inside a floating portal (popover, date picker, etc.)
+      if (target.closest?.('.gantt-popover')) return;
+      setSelectingPredecessorFor(null);
+      setSelectedChip(null);
+      onSelectedChipChange?.(null);
     };
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('mousedown', handleMouseDown, true);
