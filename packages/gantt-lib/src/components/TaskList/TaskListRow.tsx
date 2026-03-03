@@ -43,6 +43,8 @@ export interface TaskListRowProps {
   selectedChip?: { successorId: string; predecessorId: string; linkType: string } | null;
   /** Callback when a chip is clicked (selects it) */
   onChipSelect?: (chip: { successorId: string; predecessorId: string; linkType: LinkType } | null) => void;
+  /** Callback to scroll the chart grid to center this task (called when № cell is clicked) */
+  onScrollToTask?: (taskId: string) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -73,6 +75,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     linkTypeLabels,
     selectedChip,
     onChipSelect,
+    onScrollToTask,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -155,6 +158,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       onRowClick?.(task.id);
     }, [task.id, onRowClick]);
 
+    const handleNumberClick = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onScrollToTask?.(task.id);
+    }, [task.id, onScrollToTask]);
+
     // Dependency handlers
     const handleAddClick = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
@@ -204,8 +212,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         style={{ minHeight: `${rowHeight}px` }}
         onClick={handleRowClickInternal}
       >
-        {/* Number column (read-only) */}
-        <div className="gantt-tl-cell gantt-tl-cell-number">
+        {/* Number column — click scrolls the grid to this task */}
+        <div
+          className="gantt-tl-cell gantt-tl-cell-number"
+          onClick={handleNumberClick}
+          style={{ cursor: 'pointer' }}
+          title="Перейти к работе"
+        >
           {rowIndex + 1}
         </div>
 

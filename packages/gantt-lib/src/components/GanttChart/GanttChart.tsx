@@ -454,6 +454,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             show={showTaskList}
             disableTaskNameEditing={disableTaskNameEditing}
             disableDependencyEditing={disableDependencyEditing}
+            onScrollToTask={scrollToTask}
           />
 
           {/* Chart area */}

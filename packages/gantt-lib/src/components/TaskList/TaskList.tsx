@@ -38,6 +38,8 @@ export interface TaskListProps {
   disableTaskNameEditing?: boolean;
   /** Disable dependency editing (hides +, ×, and type menu; read-only column) (default: false) */
   disableDependencyEditing?: boolean;
+  /** Callback to scroll the chart grid to a task (wired to № cell click) */
+  onScrollToTask?: (taskId: string) => void;
 }
 
 /**
@@ -57,6 +59,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   show = true,
   disableTaskNameEditing = false,
   disableDependencyEditing = false,
+  onScrollToTask,
 }) => {
   const totalHeight = useMemo(
     () => tasks.length * rowHeight,
@@ -270,6 +273,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               linkTypeLabels={LINK_TYPE_LABELS}
               selectedChip={selectedChip}
               onChipSelect={handleChipSelect}
+              onScrollToTask={onScrollToTask}
             />
           ))}
         </div>
