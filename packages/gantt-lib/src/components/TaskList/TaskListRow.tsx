@@ -35,6 +35,33 @@ const TrashIcon = () => (
   </svg>
 );
 
+function formatDepDescription(type: LinkType, lag: number | undefined, predecessorName: string): string {
+  const effectiveLag = lag ?? 0;
+  const name = predecessorName;
+
+  if (type === 'FS') {
+    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после окончания ${name}`;
+    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до окончания ${name}`;
+    return `После окончания ${name}`;
+  }
+  if (type === 'FF') {
+    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после окончания ${name}`;
+    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до окончания ${name}`;
+    return `После окончания ${name}`;
+  }
+  if (type === 'SS') {
+    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после начала ${name}`;
+    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до начала ${name}`;
+    return `Одновременно с началом ${name}`;
+  }
+  if (type === 'SF') {
+    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после начала ${name}`;
+    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до начала ${name}`;
+    return `До начала ${name}`;
+  }
+  return name;
+}
+
 const DepChip: React.FC<DepChipProps> = ({
   lag,
   dep,
@@ -70,27 +97,35 @@ const DepChip: React.FC<DepChipProps> = ({
   };
 
   const Icon = LINK_TYPE_ICONS[dep.type];
+  const description = formatDepDescription(dep.type, lag, predecessorName ?? dep.taskId);
 
   return (
-    <span className="gantt-tl-dep-chip-wrapper">
-      <span
-        className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-        title={predecessorName}
-        onClick={handleClick}
-      >
-        <><Icon />{lag != null && lag !== 0 ? (lag > 0 ? `+${lag}` : `${lag}`) : ''}</>
+    <Popover open={isSelected} onOpenChange={(open) => { if (!open) onChipSelectClear(); }}>
+      <span className="gantt-tl-dep-chip-wrapper">
+        <PopoverTrigger asChild>
+          <span
+            className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+            title={predecessorName}
+            onClick={handleClick}
+          >
+            <><Icon />{lag != null && lag !== 0 ? (lag > 0 ? `+${lag}` : `${lag}`) : ''}</>
+          </span>
+        </PopoverTrigger>
+        {!disableDependencyEditing && (
+          <button
+            type="button"
+            className="gantt-tl-dep-chip-trash"
+            aria-label="Удалить связь"
+            onClick={handleTrashClick}
+          >
+            <TrashIcon />
+          </button>
+        )}
       </span>
-      {!disableDependencyEditing && (
-        <button
-          type="button"
-          className="gantt-tl-dep-chip-trash"
-          aria-label="Удалить связь"
-          onClick={handleTrashClick}
-        >
-          <TrashIcon />
-        </button>
-      )}
-    </span>
+      <PopoverContent portal={true} side="top" align="start" className="gantt-tl-dep-info-popover">
+        {description}
+      </PopoverContent>
+    </Popover>
   );
 };
 
