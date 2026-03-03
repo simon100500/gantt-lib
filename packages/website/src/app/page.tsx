@@ -835,7 +835,7 @@ export default function Home() {
           Подсветка просроченных задач (Phase 15)
         </h2>
         <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
-          Задачи с endDate < today AND (progress < 100% OR not accepted) подсвечиваются красным.
+          Задачи с endDate &lt; today AND (progress &lt; 100% OR not accepted) подсвечиваются красным.
           Выполненные и принятые задачи (progress = 100 AND accepted = true) не красные, даже если просрочены.
         </p>
         <div
