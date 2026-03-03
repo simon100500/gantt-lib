@@ -94,6 +94,8 @@ export interface DependencyLinesProps {
   gridWidth: number;
   /** Real-time pixel overrides for task positions during drag (taskId -> {left, width}) */
   dragOverrides?: Map<string, { left: number; width: number }>;
+  /** Currently selected dep chip — highlights the matching arrow in red */
+  selectedDep?: { predecessorId: string; successorId: string; linkType: string } | null;
 }
 
 /**
@@ -112,6 +114,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   rowHeight,
   gridWidth,
   dragOverrides,
+  selectedDep,
 }) => {
   // Create a lookup map for task positions and their indices
   const { taskPositions, taskIndices } = useMemo(() => {
@@ -267,29 +270,66 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
             fill="var(--gantt-dependency-cycle-color, #ef4444)"
           />
         </marker>
+
+        {/* Red arrow marker for selected dependency */}
+        <marker
+          id="arrowhead-selected"
+          markerWidth="8"
+          markerHeight="6"
+          markerUnits="userSpaceOnUse"
+          refX="7"
+          refY="3"
+          orient="auto"
+        >
+          <polygon
+            points="0 0, 8 3, 0 6"
+            fill="#ef4444"
+          />
+        </marker>
       </defs>
 
-      {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY, reverseOrder }) => (
-        <React.Fragment key={id}>
-          <path
-            d={path}
-            className={hasCycle ? 'gantt-dependency-path gantt-dependency-cycle' : 'gantt-dependency-path'}
-            markerEnd={hasCycle ? 'url(#arrowhead-cycle)' : 'url(#arrowhead)'}
-          />
-          {lag !== 0 && (
-            <text
-              className="gantt-dependency-lag-label"
-              x={lag < 0 ? toX + 14 : toX - 14}
-              y={reverseOrder ? fromY - 4 : fromY + 12}
-              textAnchor="middle"
-              fontSize="10"
-              fill={hasCycle ? 'var(--gantt-dependency-cycle-color, #ef4444)' : 'var(--gantt-dependency-line-color, #666666)'}
-            >
-              {lag > 0 ? `+${lag}` : `${lag}`}
-            </text>
-          )}
-        </React.Fragment>
-      ))}
+      {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY, reverseOrder }) => {
+        const isSelected =
+          selectedDep != null &&
+          id === `${selectedDep.predecessorId}-${selectedDep.successorId}-${selectedDep.linkType}`;
+
+        let pathClassName = 'gantt-dependency-path';
+        if (isSelected) pathClassName += ' gantt-dependency-selected';
+        else if (hasCycle) pathClassName += ' gantt-dependency-cycle';
+
+        let markerEnd: string;
+        if (isSelected) markerEnd = 'url(#arrowhead-selected)';
+        else if (hasCycle) markerEnd = 'url(#arrowhead-cycle)';
+        else markerEnd = 'url(#arrowhead)';
+
+        const lagColor = isSelected
+          ? '#ef4444'
+          : hasCycle
+            ? 'var(--gantt-dependency-cycle-color, #ef4444)'
+            : 'var(--gantt-dependency-line-color, #666666)';
+
+        return (
+          <React.Fragment key={id}>
+            <path
+              d={path}
+              className={pathClassName}
+              markerEnd={markerEnd}
+            />
+            {lag !== 0 && (
+              <text
+                className="gantt-dependency-lag-label"
+                x={lag < 0 ? toX + 14 : toX - 14}
+                y={reverseOrder ? fromY - 4 : fromY + 12}
+                textAnchor="middle"
+                fontSize="10"
+                fill={lagColor}
+              >
+                {lag > 0 ? `+${lag}` : `${lag}`}
+              </text>
+            )}
+          </React.Fragment>
+        );
+      })}
     </svg>
   );
 });

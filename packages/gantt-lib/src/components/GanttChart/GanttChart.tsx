@@ -153,6 +153,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
+  // Track selected dep chip for arrow highlighting in DependencyLines
+  const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
+
   // Calculate multi-month date range from tasks
   const dateRange = useMemo(() => getMultiMonthDays(tasks), [tasks]);
 
@@ -454,6 +457,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             disableTaskNameEditing={disableTaskNameEditing}
             disableDependencyEditing={disableDependencyEditing}
             onScrollToTask={scrollToTask}
+            onSelectedChipChange={setSelectedChip}
           />
 
           {/* Chart area */}
@@ -491,6 +495,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             rowHeight={rowHeight}
             gridWidth={gridWidth}
             dragOverrides={dependencyOverrides}
+            selectedDep={selectedChip}
           />
 
           {dragGuideLines && (

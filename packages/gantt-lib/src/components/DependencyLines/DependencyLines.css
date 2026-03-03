@@ -23,6 +23,12 @@
   stroke: var(--gantt-dependency-cycle-color, #ef4444);
 }
 
+/* Selected dependency highlighting */
+.gantt-dependency-selected {
+  stroke: #ef4444;
+  stroke-width: 2;
+}
+
 /* Arrow markers */
 .gantt-dependency-arrow polygon {
   fill: var(--gantt-dependency-line-color, #666666);

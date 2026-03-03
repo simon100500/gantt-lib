@@ -40,6 +40,8 @@ export interface TaskListProps {
   disableDependencyEditing?: boolean;
   /** Callback to scroll the chart grid to a task (wired to № cell click) */
   onScrollToTask?: (taskId: string) => void;
+  /** Callback when selected chip changes (used by GanttChart to highlight the corresponding arrow) */
+  onSelectedChipChange?: (chip: { successorId: string; predecessorId: string; linkType: string } | null) => void;
 }
 
 /**
@@ -60,6 +62,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   disableTaskNameEditing = false,
   disableDependencyEditing = false,
   onScrollToTask,
+  onSelectedChipChange,
 }) => {
   const totalHeight = useMemo(
     () => tasks.length * rowHeight,
@@ -91,7 +94,8 @@ export const TaskList: React.FC<TaskListProps> = ({
     linkType: LinkType;
   } | null) => {
     setSelectedChip(chip);
-  }, []);
+    onSelectedChipChange?.(chip);
+  }, [onSelectedChipChange]);
 
   // Escape / outside-click cancel for picker mode and chip selection
   useEffect(() => {
@@ -100,12 +104,14 @@ export const TaskList: React.FC<TaskListProps> = ({
       if (e.key === 'Escape') {
         setSelectingPredecessorFor(null);
         setSelectedChip(null);
+        onSelectedChipChange?.(null);
       }
     };
     const handleMouseDown = (e: MouseEvent) => {
       if (!overlayRef.current?.contains(e.target as Node)) {
         setSelectingPredecessorFor(null);
         setSelectedChip(null);
+        onSelectedChipChange?.(null);
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -114,7 +120,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handleMouseDown, true);
     };
-  }, [selectingPredecessorFor, selectedChip]);
+  }, [selectingPredecessorFor, selectedChip, onSelectedChipChange]);
 
   const handleAddDependency = useCallback((
     successorTaskId: string,
