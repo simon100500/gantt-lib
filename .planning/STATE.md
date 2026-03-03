@@ -90,7 +90,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 14 of 14 (14-dependencies-edit-task-list)
 Plan: 2 of 2 in current phase (2 complete, 0 pending)
 Status: COMPLETE - Plan 14-02 complete: TaskListRow Связи cell with chips, picker mode, overflow Popover
-Last activity: 2026-03-03 - Completed quick task 45: show Выберите задачу placeholder in source row deps cell during link creation
+Last activity: 2026-03-03 - Completed quick task 46: change deps cell overflow threshold to 1 visible chip when 3+ deps exist
 
 Progress: [████████████] Phase 14: 2 of 2 plans complete (PHASE COMPLETE)
 
@@ -327,11 +327,12 @@ None yet.
 | 43 | Trash button red fill + chip click scrolls and highlights row | 2026-03-03 | d5ce154 | [043-chip-trash-resize-scroll](./quick/043-chip-trash-resize-scroll/) |
 | 44 | Selected dep chip highlights its SVG arrow red | 2026-03-03 | 5b42896 | [44-selected-dep-chip-highlights-its-arrow-r](./quick/44-selected-dep-chip-highlights-its-arrow-r/) |
 | 45 | Show Выберите задачу placeholder in source row deps cell during link creation | 2026-03-03 | cf5225e | [45-show-in-parent-cell-during-link-creation](./quick/45-show-in-parent-cell-during-link-creation/) |
+| 46 | Change deps cell overflow threshold: 3+ deps shows 1 chip inline + "+N ещё" overflow | 2026-03-03 | 1cb7500 | [46-3-1](./quick/46-3-1/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-045 (show Выберите задачу placeholder in source row deps cell during link creation)
+Stopped at: Completed quick-046 (change deps cell overflow threshold to 1 visible chip when 3+ deps exist)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
