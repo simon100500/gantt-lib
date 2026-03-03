@@ -325,11 +325,12 @@ None yet.
 | 41 | scrollToTask(taskId) on GanttChart ref + № cell click scrolls grid to center task bar | 2026-03-03 | c34f303 | [041-scroll-grid-to-task](./quick/041-scroll-grid-to-task/) |
 | 42 | Inline trash button on selected dep chip — contextual delete without switching rows | 2026-03-03 | 88ef616 | [042-dep-chip-trash-button](./quick/042-dep-chip-trash-button/) |
 | 43 | Trash button red fill + chip click scrolls and highlights row | 2026-03-03 | d5ce154 | [043-chip-trash-resize-scroll](./quick/043-chip-trash-resize-scroll/) |
+| 44 | Selected dep chip highlights its SVG arrow red | 2026-03-03 | 5b42896 | [44-selected-dep-chip-highlights-its-arrow-r](./quick/44-selected-dep-chip-highlights-its-arrow-r/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-043 (red trash button, chip click scrolls grid + selects row)
+Stopped at: Completed quick-044 (selected dep chip highlights its SVG arrow red)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
