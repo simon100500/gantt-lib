@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Task } from '../../types';
 import { calculateTaskBar, calculateDependencyPath, pixelsToDate } from '../../utils/geometry';
 import { getAllDependencyEdges, detectCycles, computeLagFromDates } from '../../utils/dependencyUtils';
@@ -104,21 +104,6 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     type: string;
     lag: number;
   } | null>(null);
-  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null);
-
-  // Close popover on click outside
-  useEffect(() => {
-    if (!clickedEdge) return;
-    const handleMouseDown = (e: MouseEvent) => {
-      const target = e.target as Element;
-      if (!target.closest('.gantt-dep-popover')) {
-        setClickedEdge(null);
-        setPopoverPos(null);
-      }
-    };
-    document.addEventListener('mousedown', handleMouseDown);
-    return () => document.removeEventListener('mousedown', handleMouseDown);
-  }, [clickedEdge]);
 
   // Create a lookup map for task positions and their indices
   const { taskPositions, taskIndices } = useMemo(() => {
@@ -304,25 +289,28 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
             selectedDep != null &&
             id === `${selectedDep.predecessorId}-${selectedDep.successorId}-${selectedDep.linkType}`;
 
-          let pathClassName = 'gantt-dependency-path';
-          if (isSelected) pathClassName += ' gantt-dependency-selected';
-          else if (hasCycle) pathClassName += ' gantt-dependency-cycle';
-
-          let markerEnd: string;
-          if (isSelected) markerEnd = 'url(#arrowhead-selected)';
-          else if (hasCycle) markerEnd = 'url(#arrowhead-cycle)';
-          else markerEnd = 'url(#arrowhead)';
-
-          const lagColor = isSelected
-            ? '#ef4444'
-            : hasCycle
-              ? 'var(--gantt-dependency-cycle-color, #ef4444)'
-              : 'var(--gantt-dependency-line-color, #666666)';
-
           const edgeId = id;
           const isClickedEdge =
             clickedEdge !== null &&
             `${clickedEdge.predecessorId}-${clickedEdge.successorId}-${clickedEdge.type}` === edgeId;
+
+          // Highlighted = selected via chip OR clicked directly on the line
+          const isHighlighted = isSelected || isClickedEdge;
+
+          let pathClassName = 'gantt-dependency-path';
+          if (isHighlighted) pathClassName += ' gantt-dependency-selected';
+          else if (hasCycle) pathClassName += ' gantt-dependency-cycle';
+
+          let markerEnd: string;
+          if (isHighlighted) markerEnd = 'url(#arrowhead-selected)';
+          else if (hasCycle) markerEnd = 'url(#arrowhead-cycle)';
+          else markerEnd = 'url(#arrowhead)';
+
+          const lagColor = isHighlighted
+            ? '#ef4444'
+            : hasCycle
+              ? 'var(--gantt-dependency-cycle-color, #ef4444)'
+              : 'var(--gantt-dependency-line-color, #666666)';
 
           return (
             <React.Fragment key={id}>
@@ -345,7 +333,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
                   {lag > 0 ? `+${lag}` : `${lag}`}
                 </text>
               )}
-              {/* Invisible hit-area path for click detection */}
+              {/* Invisible hit-area path for click detection — toggles red highlight */}
               <path
                 d={path}
                 stroke="transparent"
@@ -356,10 +344,8 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
                   e.stopPropagation();
                   if (isClickedEdge) {
                     setClickedEdge(null);
-                    setPopoverPos(null);
                   } else {
                     setClickedEdge({ predecessorId, successorId, type, lag });
-                    setPopoverPos({ x: e.clientX, y: e.clientY });
                   }
                 }}
               />
@@ -367,23 +353,6 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
           );
         })}
       </svg>
-      {clickedEdge && popoverPos && (() => {
-        const pred = tasks.find(t => t.id === clickedEdge.predecessorId);
-        const succ = tasks.find(t => t.id === clickedEdge.successorId);
-        const predName = pred?.name ?? clickedEdge.predecessorId;
-        const succName = succ?.name ?? clickedEdge.successorId;
-        const description = formatDepDescription(clickedEdge.type, clickedEdge.lag, predName);
-        return (
-          <div
-            className="gantt-dep-popover"
-            style={{ left: popoverPos.x, top: popoverPos.y }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="gantt-dep-popover-title">{succName}</div>
-            <div className="gantt-dep-popover-desc">{description}</div>
-          </div>
-        );
-      })()}
     </>
   );
 });
