@@ -227,7 +227,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   disabled={disableDependencyEditing}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  Связи [{React.createElement(LINK_TYPE_ICONS[activeLinkType])} &#9662;]
+                  Связи {React.createElement(LINK_TYPE_ICONS[activeLinkType])} &#9662;
                 </button>
               </PopoverTrigger>
               <PopoverContent portal={true} align="start">
