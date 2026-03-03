@@ -269,7 +269,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               aria-label="Удалить связь"
             >
               <span className="gantt-tl-dep-delete-label-default">Зависит от</span>
-              <span className="gantt-tl-dep-delete-label-hover">Удалить <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 7h2a5 5 0 0 1 0 10h-2m-6 0H7A5 5 0 0 1 7 7h2"/></svg></span>
+              <span className="gantt-tl-dep-delete-label-hover">Удалить связь</span>
             </button>
           ) : (
             <>
