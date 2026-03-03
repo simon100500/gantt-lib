@@ -160,8 +160,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const handleNumberClick = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
+      onRowClick?.(task.id);
       onScrollToTask?.(task.id);
-    }, [task.id, onScrollToTask]);
+    }, [task.id, onRowClick, onScrollToTask]);
 
     // Dependency handlers
     const handleAddClick = useCallback((e: React.MouseEvent) => {
@@ -212,14 +213,20 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         style={{ minHeight: `${rowHeight}px` }}
         onClick={handleRowClickInternal}
       >
-        {/* Number column — click scrolls the grid to this task */}
+        {/* Number column — click selects the row and scrolls the grid to this task */}
         <div
           className="gantt-tl-cell gantt-tl-cell-number"
           onClick={handleNumberClick}
-          style={{ cursor: 'pointer' }}
           title="Перейти к работе"
         >
-          {rowIndex + 1}
+          <span className="gantt-tl-num-label">{rowIndex + 1}</span>
+          <svg className="gantt-tl-num-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+          </svg>
         </div>
 
         {/* Name column — styled Input overlay on edit */}

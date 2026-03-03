@@ -95,6 +95,20 @@
   width: 40px;
   justify-content: center;
   flex-shrink: 0;
+  cursor: pointer;
+}
+
+.gantt-tl-num-icon {
+  display: none;
+  color: #6b7280;
+}
+
+.gantt-tl-cell-number:hover .gantt-tl-num-label {
+  display: none;
+}
+
+.gantt-tl-cell-number:hover .gantt-tl-num-icon {
+  display: block;
 }
 
 /* Name cell — overflow visible so overlay input can extend past boundaries */
