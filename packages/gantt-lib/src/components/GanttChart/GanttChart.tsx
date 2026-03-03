@@ -104,6 +104,8 @@ export interface GanttChartProps {
   taskListWidth?: number;
   /** Disable task name editing in the task list (default: false) */
   disableTaskNameEditing?: boolean;
+  /** Disable dependency editing in the task list (default: false) */
+  disableDependencyEditing?: boolean;
 }
 
 /**
@@ -136,6 +138,7 @@ export const GanttChart = forwardRef<{ scrollToToday: () => void }, GanttChartPr
   showTaskList = false,
   taskListWidth = 520,
   disableTaskNameEditing = false,
+  disableDependencyEditing = false,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -416,6 +419,7 @@ export const GanttChart = forwardRef<{ scrollToToday: () => void }, GanttChartPr
             onTaskSelect={handleTaskSelect}
             show={showTaskList}
             disableTaskNameEditing={disableTaskNameEditing}
+            disableDependencyEditing={disableDependencyEditing}
           />
 
           {/* Chart area */}
