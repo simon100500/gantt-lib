@@ -331,11 +331,12 @@ None yet.
 | 47 | Simplify deps chips: 1 dep inline, 2+ deps show "N связей" summary chip with popover and direct-delete trash buttons | 2026-03-03 | 24541e7 | [47-1-2-2](./quick/47-1-2-2/) |
 | 48 | Unified DepChip component: same click-to-select + hover-to-show-trash behavior in cell and popover | 2026-03-03 | acb0533 | [48-unified-dep-chip](./quick/48-unified-dep-chip/) |
 | 49 | Replace dep type labels with SVG icons in chips and header type-switcher | 2026-03-03 | d4dd82e | [49-replace-dep-type-labels-with-svg-icons](./quick/49-replace-dep-type-labels-with-svg-icons/) |
+| 50 | Dep chips show lag (+N/-N) instead of task index; icon-only when lag=0 | 2026-03-03 | 32a817e | [50-dep-chips-show-lag-instead-of-task-id-hi](./quick/50-dep-chips-show-lag-instead-of-task-id-hi/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-049 (replace dep type labels ОН/НН/ОО/НО with SVG icons in DepChip and header type-switcher)
+Stopped at: Completed quick-050 (dep chips show lag +N/-N instead of task index; icon-only when lag=0)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
