@@ -143,8 +143,10 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       [taskStartDate, taskEndDate, monthStart, dayWidth]
     );
 
-    // Determine task bar color (no change for expired - overlay handles that)
-    const barColor = task.color || 'var(--gantt-task-bar-default-color)';
+    // Determine task bar color
+    const barColor = isExpired
+      ? 'var(--gantt-expired-color)'
+      : (task.color || 'var(--gantt-task-bar-default-color)');
 
     // Calculate clamped and rounded progress width
     const progressWidth = useMemo(() => {
@@ -251,22 +253,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 style={{
                   width: `${progressWidth}%`,
                   backgroundColor: progressColor,
-                }}
-              />
-            )}
-            {/* Red overlay for expired tasks */}
-            {isExpired && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: '#ef4444',
-                  opacity: 0.6,
-                  mixBlendMode: 'multiply',
-                  pointerEvents: 'none',
                 }}
               />
             )}
