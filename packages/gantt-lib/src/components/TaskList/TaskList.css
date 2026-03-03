@@ -111,6 +111,11 @@
   display: block;
 }
 
+/* Restore left padding for the name column header */
+.gantt-tl-headerCell.gantt-tl-cell-name {
+  padding-left: 4px;
+}
+
 /* Name cell — overflow visible so overlay input can extend past boundaries */
 .gantt-tl-cell-name {
   flex: 1;
