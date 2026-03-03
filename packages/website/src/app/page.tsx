@@ -493,7 +493,7 @@ export default function Home() {
   const [cascadeTasks, setCascadeTasks] = useState<Task[]>(createCascadeTasks);
   const [chain100Tasks, setChain100Tasks] = useState<Task[]>(createChain100Tasks);
   const [blockConstraints, setBlockConstraints] = useState(true);
-  const [showTaskList, setShowTaskList] = useState(false);
+  const [showTaskList, setShowTaskList] = useState(true);
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
 
   // Ref for the main GanttChart to access scrollToToday method
