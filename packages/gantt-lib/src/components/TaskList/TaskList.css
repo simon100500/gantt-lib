@@ -277,6 +277,33 @@
   font-weight: 600;
 }
 
+/* Chip + trash button wrapper — keeps chip and delete button visually inline */
+.gantt-tl-dep-chip-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Inline trash button — shown only when chip is selected */
+.gantt-tl-dep-chip-trash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  padding: 1px;
+  cursor: pointer;
+  color: #6b7280;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.gantt-tl-dep-chip-trash:hover {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
 /* "+N ещё" overflow button */
 .gantt-tl-dep-overflow-trigger {
   display: inline-flex;
