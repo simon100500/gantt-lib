@@ -345,14 +345,14 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  background: transparent;
+  background: #ef4444;
   border: none;
   border-radius: 4px;
   padding: 2px 4px;
   font-size: 0.75rem;
   font-family: inherit;
   cursor: pointer;
-  color: #374151;
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -361,7 +361,7 @@
 
 .gantt-tl-dep-delete-label-hover {
   display: none;
-  color: #ef4444;
+  color: #fff;
   font-weight: 600;
 }
 

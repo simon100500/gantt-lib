@@ -182,13 +182,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     // True when this row is the predecessor for the currently selected chip
     const isSelectedPredecessor = selectedChip != null && selectedChip.predecessorId === task.id;
 
-    // Successor task name — shown in predecessor cell full-replacement element
-    const successorTaskName = useMemo(() => {
-      if (!selectedChip) return '';
-      const t = (allTasks as Task[]).find(t => t.id === selectedChip.successorId);
-      return t?.name ?? '';
-    }, [selectedChip, allTasks]);
-
     // Delete the selected dependency from the predecessor row's "Удалить" button
     const handleDeleteSelected = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
@@ -275,7 +268,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onClick={handleDeleteSelected}
               aria-label="Удалить связь"
             >
-              <span className="gantt-tl-dep-delete-label-default">Зависит от {successorTaskName}</span>
+              <span className="gantt-tl-dep-delete-label-default">Зависит от</span>
               <span className="gantt-tl-dep-delete-label-hover">Удалить</span>
             </button>
           ) : (
