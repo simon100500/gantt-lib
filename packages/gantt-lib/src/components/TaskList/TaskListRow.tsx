@@ -101,8 +101,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       });
     }, [task.dependencies, allTasks, labels]);
 
-    const visibleChips = chips.slice(0, 2);
-    const hiddenChips = chips.slice(2);
+    const visibleChips = chips.length >= 3 ? chips.slice(0, 1) : chips.slice(0, 2);
+    const hiddenChips  = chips.length >= 3 ? chips.slice(1)    : chips.slice(2);
 
     useEffect(() => {
       if (editingName && nameInputRef.current) {
