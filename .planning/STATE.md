@@ -90,7 +90,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 14 of 14 (14-dependencies-edit-task-list)
 Plan: 2 of 2 in current phase (2 complete, 0 pending)
 Status: COMPLETE - Plan 14-02 complete: TaskListRow Связи cell with chips, picker mode, overflow Popover
-Last activity: 2026-03-03 - Completed quick task 52: consolidate dep icon definitions into single shared location
+Last activity: 2026-03-03 - Completed quick task 53: add link type labels to dep type menu in table header
 
 Progress: [████████████] Phase 14: 2 of 2 plans complete (PHASE COMPLETE)
 
@@ -334,6 +334,7 @@ None yet.
 | 50 | Dep chips show lag (+N/-N) instead of task index; icon-only when lag=0 | 2026-03-03 | 32a817e | [50-dep-chips-show-lag-instead-of-task-id-hi](./quick/50-dep-chips-show-lag-instead-of-task-id-hi/) |
 | 51 | Fix FS lag off-by-one: ends today + starts tomorrow = lag 0 (was +1) | 2026-03-03 | 6aaf1ba | [51-fix-fs-lag-off-by-one-stored-lag-and-cal](./quick/51-fix-fs-lag-off-by-one-stored-lag-and-cal/) |
 | 52 | consolidate dep icon definitions into single shared location | 2026-03-03 | 7ad62a3 | [52-consolidate-dep-icon-definitions-into-si](./quick/52-consolidate-dep-icon-definitions-into-si/) |
+| 53 | add link type labels to dep type menu in table header | 2026-03-03 | e2b3eda | [53-add-link-type-labels-to-dep-type-menu-in](./quick/53-add-link-type-labels-to-dep-type-menu-in/) |
 
 ## Session Continuity
 
