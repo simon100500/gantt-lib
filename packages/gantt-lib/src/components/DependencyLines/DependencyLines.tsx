@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Task } from '../../types';
 import { calculateTaskBar, calculateDependencyPath, pixelsToDate } from '../../utils/geometry';
 import { getAllDependencyEdges, detectCycles, computeLagFromDates } from '../../utils/dependencyUtils';
@@ -23,6 +23,44 @@ function calculateEffectiveLag(
   const succStart = pixelsToDate(succPosition.left, monthStart, dayWidth);
   const succEnd   = pixelsToDate(succPosition.right - dayWidth, monthStart, dayWidth);
   return computeLagFromDates(edge.type as LinkType, predStart, predEnd, succStart, succEnd);
+}
+
+function pluralDays(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return 'дней';
+  if (mod10 === 1) return 'день';
+  if (mod10 >= 2 && mod10 <= 4) return 'дня';
+  return 'дней';
+}
+
+function formatDepDescription(
+  type: string,
+  lag: number,
+  predecessorName: string
+): string {
+  const abslag = Math.abs(lag);
+  if (type === 'FS') {
+    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после окончания «${predecessorName}»`;
+    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до окончания «${predecessorName}»`;
+    return `Сразу после окончания «${predecessorName}»`;
+  }
+  if (type === 'SS') {
+    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после начала «${predecessorName}»`;
+    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до начала «${predecessorName}»`;
+    return `Одновременно с началом «${predecessorName}»`;
+  }
+  if (type === 'FF') {
+    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после окончания «${predecessorName}»`;
+    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до окончания «${predecessorName}»`;
+    return `Одновременно с окончанием «${predecessorName}»`;
+  }
+  if (type === 'SF') {
+    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после начала «${predecessorName}»`;
+    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до начала «${predecessorName}»`;
+    return `Одновременно с началом «${predecessorName}»`;
+  }
+  return '';
 }
 
 export interface DependencyLinesProps {
@@ -60,6 +98,28 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   dragOverrides,
   selectedDep,
 }) => {
+  const [clickedEdge, setClickedEdge] = useState<{
+    predecessorId: string;
+    successorId: string;
+    type: string;
+    lag: number;
+  } | null>(null);
+  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Close popover on click outside
+  useEffect(() => {
+    if (!clickedEdge) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (!target.closest('.gantt-dep-popover')) {
+        setClickedEdge(null);
+        setPopoverPos(null);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [clickedEdge]);
+
   // Create a lookup map for task positions and their indices
   const { taskPositions, taskIndices } = useMemo(() => {
     const positions = new Map<string, { left: number; right: number; rowTop: number }>();
@@ -96,8 +156,11 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   // Calculate all dependency line paths
   const lines = useMemo(() => {
     const edges = getAllDependencyEdges(tasks);
-    const lines: Array<{
+    const result: Array<{
       id: string;
+      predecessorId: string;
+      successorId: string;
+      type: string;
       path: string;
       hasCycle: boolean;
       lag: number;
@@ -160,8 +223,11 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       // Calculate effective lag from actual positions (always, not just during drag)
       const lag = calculateEffectiveLag(edge, predecessor, successor, monthStart, dayWidth);
 
-      lines.push({
+      result.push({
         id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
+        predecessorId: edge.predecessorId,
+        successorId: edge.successorId,
+        type: edge.type,
         path,
         hasCycle,
         lag,
@@ -172,109 +238,153 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       });
     }
 
-    return lines;
+    return result;
   }, [tasks, taskPositions, taskIndices, cycleInfo, monthStart, dayWidth, dragOverrides]);
 
   return (
-    <svg
-      className="gantt-dependencies-svg"
-      width={gridWidth}
-      height={tasks.length * rowHeight}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        {/* Arrow marker for dependency lines */}
-        <marker
-          id="arrowhead"
-          markerWidth="8"
-          markerHeight="6"
-          markerUnits="userSpaceOnUse"
-          refX="7"
-          refY="3"
-          orient="auto"
-        >
-          <polygon
-            points="0 0, 8 3, 0 6"
-            fill="var(--gantt-dependency-line-color, #666666)"
-          />
-        </marker>
-
-        {/* Red arrow marker for circular dependencies */}
-        <marker
-          id="arrowhead-cycle"
-          markerWidth="8"
-          markerHeight="6"
-          markerUnits="userSpaceOnUse"
-          refX="7"
-          refY="3"
-          orient="auto"
-        >
-          <polygon
-            points="0 0, 8 3, 0 6"
-            fill="var(--gantt-dependency-cycle-color, #ef4444)"
-          />
-        </marker>
-
-        {/* Red arrow marker for selected dependency */}
-        <marker
-          id="arrowhead-selected"
-          markerWidth="8"
-          markerHeight="6"
-          markerUnits="userSpaceOnUse"
-          refX="7"
-          refY="3"
-          orient="auto"
-        >
-          <polygon
-            points="0 0, 8 3, 0 6"
-            fill="#ef4444"
-          />
-        </marker>
-      </defs>
-
-      {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY, reverseOrder }) => {
-        const isSelected =
-          selectedDep != null &&
-          id === `${selectedDep.predecessorId}-${selectedDep.successorId}-${selectedDep.linkType}`;
-
-        let pathClassName = 'gantt-dependency-path';
-        if (isSelected) pathClassName += ' gantt-dependency-selected';
-        else if (hasCycle) pathClassName += ' gantt-dependency-cycle';
-
-        let markerEnd: string;
-        if (isSelected) markerEnd = 'url(#arrowhead-selected)';
-        else if (hasCycle) markerEnd = 'url(#arrowhead-cycle)';
-        else markerEnd = 'url(#arrowhead)';
-
-        const lagColor = isSelected
-          ? '#ef4444'
-          : hasCycle
-            ? 'var(--gantt-dependency-cycle-color, #ef4444)'
-            : 'var(--gantt-dependency-line-color, #666666)';
-
-        return (
-          <React.Fragment key={id}>
-            <path
-              d={path}
-              className={pathClassName}
-              markerEnd={markerEnd}
+    <>
+      <svg
+        className="gantt-dependencies-svg"
+        width={gridWidth}
+        height={tasks.length * rowHeight}
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          {/* Arrow marker for dependency lines */}
+          <marker
+            id="arrowhead"
+            markerWidth="8"
+            markerHeight="6"
+            markerUnits="userSpaceOnUse"
+            refX="7"
+            refY="3"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 8 3, 0 6"
+              fill="var(--gantt-dependency-line-color, #666666)"
             />
-            {lag !== 0 && (
-              <text
-                className="gantt-dependency-lag-label"
-                x={lag < 0 ? toX + 14 : toX - 14}
-                y={reverseOrder ? fromY - 4 : fromY + 12}
-                textAnchor="middle"
-                fontSize="10"
-                fill={lagColor}
-              >
-                {lag > 0 ? `+${lag}` : `${lag}`}
-              </text>
-            )}
-          </React.Fragment>
+          </marker>
+
+          {/* Red arrow marker for circular dependencies */}
+          <marker
+            id="arrowhead-cycle"
+            markerWidth="8"
+            markerHeight="6"
+            markerUnits="userSpaceOnUse"
+            refX="7"
+            refY="3"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 8 3, 0 6"
+              fill="var(--gantt-dependency-cycle-color, #ef4444)"
+            />
+          </marker>
+
+          {/* Red arrow marker for selected dependency */}
+          <marker
+            id="arrowhead-selected"
+            markerWidth="8"
+            markerHeight="6"
+            markerUnits="userSpaceOnUse"
+            refX="7"
+            refY="3"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 8 3, 0 6"
+              fill="#ef4444"
+            />
+          </marker>
+        </defs>
+
+        {lines.map(({ id, predecessorId, successorId, type, path, hasCycle, lag, fromX, toX, fromY, reverseOrder }) => {
+          const isSelected =
+            selectedDep != null &&
+            id === `${selectedDep.predecessorId}-${selectedDep.successorId}-${selectedDep.linkType}`;
+
+          let pathClassName = 'gantt-dependency-path';
+          if (isSelected) pathClassName += ' gantt-dependency-selected';
+          else if (hasCycle) pathClassName += ' gantt-dependency-cycle';
+
+          let markerEnd: string;
+          if (isSelected) markerEnd = 'url(#arrowhead-selected)';
+          else if (hasCycle) markerEnd = 'url(#arrowhead-cycle)';
+          else markerEnd = 'url(#arrowhead)';
+
+          const lagColor = isSelected
+            ? '#ef4444'
+            : hasCycle
+              ? 'var(--gantt-dependency-cycle-color, #ef4444)'
+              : 'var(--gantt-dependency-line-color, #666666)';
+
+          const edgeId = id;
+          const isClickedEdge =
+            clickedEdge !== null &&
+            `${clickedEdge.predecessorId}-${clickedEdge.successorId}-${clickedEdge.type}` === edgeId;
+
+          return (
+            <React.Fragment key={id}>
+              <path
+                d={path}
+                className={pathClassName}
+                markerEnd={markerEnd}
+                style={{ pointerEvents: 'none' }}
+              />
+              {lag !== 0 && (
+                <text
+                  className="gantt-dependency-lag-label"
+                  x={lag < 0 ? toX + 14 : toX - 14}
+                  y={reverseOrder ? fromY - 4 : fromY + 12}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fill={lagColor}
+                  style={{ pointerEvents: 'none' }}
+                >
+                  {lag > 0 ? `+${lag}` : `${lag}`}
+                </text>
+              )}
+              {/* Invisible hit-area path for click detection */}
+              <path
+                d={path}
+                stroke="transparent"
+                strokeWidth={12}
+                fill="none"
+                style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isClickedEdge) {
+                    setClickedEdge(null);
+                    setPopoverPos(null);
+                  } else {
+                    setClickedEdge({ predecessorId, successorId, type, lag });
+                    setPopoverPos({ x: e.clientX, y: e.clientY });
+                  }
+                }}
+              />
+            </React.Fragment>
+          );
+        })}
+      </svg>
+      {clickedEdge && popoverPos && (() => {
+        const pred = tasks.find(t => t.id === clickedEdge.predecessorId);
+        const succ = tasks.find(t => t.id === clickedEdge.successorId);
+        const predName = pred?.name ?? clickedEdge.predecessorId;
+        const succName = succ?.name ?? clickedEdge.successorId;
+        const description = formatDepDescription(clickedEdge.type, clickedEdge.lag, predName);
+        return (
+          <div
+            className="gantt-dep-popover"
+            style={{ left: popoverPos.x, top: popoverPos.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="gantt-dep-popover-title">{succName}</div>
+            <div className="gantt-dep-popover-desc">{description}</div>
+          </div>
         );
-      })}
-    </svg>
+      })()}
+    </>
   );
 });
 
