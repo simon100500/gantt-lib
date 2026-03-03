@@ -494,23 +494,50 @@ const createExpiredTasks = (): Task[] => {
   const formatDate = (date: Date): string => date.toISOString().split('T')[0];
 
   // Calculate dates relative to today
+  const tenDaysAgo = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 10));
+  const fiveDaysAgo = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 5));
   const threeDaysAgo = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 3));
   const oneDayAgo = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 1));
   const tomorrow = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
   const nextWeek = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 7));
 
   return [
+    // Time-based expiration examples
     {
       id: 'expired-1',
-      name: 'Просроченная задача (прогресс < 100)',
-      startDate: formatDate(threeDaysAgo),
+      name: '❌ 10-дневная задача: прошло 5 дней, прогресс 30% (ожидалось 50%)',
+      startDate: formatDate(tenDaysAgo),
       endDate: formatDate(oneDayAgo),
-      progress: 50,
+      progress: 30,
+      accepted: false,
+    },
+    {
+      id: 'not-expired-time-1',
+      name: '✓ 10-дневная задача: прошло 5 дней, прогресс 60% (опережает график)',
+      startDate: formatDate(tenDaysAgo),
+      endDate: formatDate(oneDayAgo),
+      progress: 60,
       accepted: false,
     },
     {
       id: 'expired-2',
-      name: 'Просроченная задача (не принята)',
+      name: '❌ 5-дневная задача: прошло 3 дня, прогресс 20% (ожидалось 60%)',
+      startDate: formatDate(fiveDaysAgo),
+      endDate: formatDate(tomorrow),
+      progress: 20,
+      accepted: false,
+    },
+    {
+      id: 'not-expired-time-2',
+      name: '✓ 5-дневная задача: прошло 3 дня, прогресс 70% (опережает график)',
+      startDate: formatDate(fiveDaysAgo),
+      endDate: formatDate(tomorrow),
+      progress: 70,
+      accepted: false,
+    },
+    {
+      id: 'expired-3',
+      name: '❌ Дата прошла, прогресс 100% но не принята',
       startDate: formatDate(threeDaysAgo),
       endDate: formatDate(oneDayAgo),
       progress: 100,
@@ -518,7 +545,7 @@ const createExpiredTasks = (): Task[] => {
     },
     {
       id: 'not-expired-1',
-      name: 'Не просрочена (дата в будущем)',
+      name: '✓ Не просрочена (дата в будущем)',
       startDate: formatDate(tomorrow),
       endDate: formatDate(nextWeek),
       progress: 30,
@@ -526,7 +553,7 @@ const createExpiredTasks = (): Task[] => {
     },
     {
       id: 'not-expired-2',
-      name: 'Выполнена и принята (не красная)',
+      name: '✓ Выполнена и принята (не красная)',
       startDate: formatDate(threeDaysAgo),
       endDate: formatDate(oneDayAgo),
       progress: 100,
@@ -534,7 +561,7 @@ const createExpiredTasks = (): Task[] => {
     },
     {
       id: 'not-expired-3',
-      name: 'Завершенная задача в будущем',
+      name: '✓ Завершенная задача в будущем',
       startDate: formatDate(tomorrow),
       endDate: formatDate(nextWeek),
       progress: 100,
@@ -835,8 +862,9 @@ export default function Home() {
           Подсветка просроченных задач (Phase 15)
         </h2>
         <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
-          Задачи с endDate &lt; today AND (progress &lt; 100% OR not accepted) подсвечиваются красным.
-          Выполненные и принятые задачи (progress = 100 AND accepted = true) не красные, даже если просрочены.
+          <strong>Логика просрочки по времени:</strong> ожидаемый прогресс = (прошедшие дни / длительность) × 100.<br/>
+          Задача красная, если: endDate &lt; today AND (progress &lt; expectedProgress OR not accepted).<br/>
+          Выполненные и принятые задачи (progress = 100 AND accepted = true) не красные.
         </p>
         <div
           style={{

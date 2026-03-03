@@ -111,7 +111,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       const now = new Date();
       const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-      // Parse task end date as UTC
+      // Parse task dates as UTC
+      const taskStart = parseUTCDate(task.startDate);
       const taskEnd = parseUTCDate(task.endDate);
 
       // Check if end date has passed
@@ -121,8 +122,27 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       const notComplete = (task.progress ?? 0) < 100;
       const notAccepted = task.accepted !== true;
 
+      // Time-based expiration: calculate expected progress based on elapsed time
+      // Expected progress = (daysElapsed / durationInDays) × 100
+      // Task is expired if actual progress < expected progress
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const durationInDays = (taskEnd.getTime() - taskStart.getTime()) / msPerDay + 1; // +1 to include both start and end day
+
+      if (durationInDays > 0) {
+        const daysElapsed = Math.max(0, (today.getTime() - taskStart.getTime()) / msPerDay);
+        const expectedProgress = Math.min(100, (daysElapsed / durationInDays) * 100);
+        const actualProgress = task.progress ?? 0;
+
+        // Task is expired if we're past the end date and progress is behind expected
+        // OR if end date passed but task not complete/accepted
+        if (endDatePassed && (actualProgress < expectedProgress || notComplete || notAccepted)) {
+          return true;
+        }
+      }
+
+      // Fallback: if end date passed and task is incomplete or not accepted
       return endDatePassed && (notComplete || notAccepted);
-    }, [task.endDate, task.progress, task.accepted, highlightExpiredTasks]);
+    }, [task.startDate, task.endDate, task.progress, task.accepted, highlightExpiredTasks]);
 
     // Calculate task bar position and dimensions
     const { left, width } = useMemo(
@@ -143,6 +163,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
     // Determine progress color based on completion status
     const progressColor = useMemo(() => {
+      // If expired, use the same red color for both background and progress
+      if (isExpired) {
+        return 'var(--gantt-expired-color)';
+      }
+
       if (progressWidth === 100) {
         return task.accepted
           ? 'var(--gantt-progress-accepted, #22c55e)'    // Green for accepted
@@ -151,7 +176,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       // Darker shade using color-mix() with task color or default
       const baseColor = task.color || 'var(--gantt-task-bar-default-color)';
       return `color-mix(in srgb, ${baseColor} 40%, black)`;
-    }, [progressWidth, task.accepted, task.color]);
+    }, [isExpired, progressWidth, task.accepted, task.color]);
 
     // Handle drag end - call onChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
