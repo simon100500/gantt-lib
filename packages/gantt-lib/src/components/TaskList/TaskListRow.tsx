@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { Task } from '../GanttChart';
+import type { LinkType } from '../../types';
 import { parseUTCDate } from '../../utils/dateUtils';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
@@ -21,6 +22,22 @@ export interface TaskListRowProps {
   onRowClick?: (taskId: string) => void;
   /** Disable task name editing (default: false) */
   disableTaskNameEditing?: boolean;
+  /** Disable dependency editing (default: false) */
+  disableDependencyEditing?: boolean;
+  /** All tasks (for dependency picker) */
+  allTasks?: Task[];
+  /** Currently active link type for new dependencies */
+  activeLinkType?: LinkType;
+  /** Task ID currently in predecessor-picking mode (null if not picking) */
+  selectingPredecessorFor?: string | null;
+  /** Callback to set the task currently in predecessor-picking mode */
+  onSetSelectingPredecessorFor?: (taskId: string | null) => void;
+  /** Callback to add a dependency link */
+  onAddDependency?: (successorTaskId: string, predecessorTaskId: string, linkType: LinkType) => void;
+  /** Callback to remove a dependency link */
+  onRemoveDependency?: (taskId: string, predecessorTaskId: string, linkType: LinkType) => void;
+  /** Map of link type codes to display labels */
+  linkTypeLabels?: Record<LinkType, string>;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -31,7 +48,23 @@ const toISODate = (value: string | Date): string => {
 };
 
 export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
-  ({ task, rowIndex, rowHeight, onTaskChange, selectedTaskId, onRowClick, disableTaskNameEditing = false }) => {
+  ({
+    task,
+    rowIndex,
+    rowHeight,
+    onTaskChange,
+    selectedTaskId,
+    onRowClick,
+    disableTaskNameEditing = false,
+    disableDependencyEditing = false,
+    allTasks,
+    activeLinkType,
+    selectingPredecessorFor,
+    onSetSelectingPredecessorFor,
+    onAddDependency,
+    onRemoveDependency,
+    linkTypeLabels,
+  }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
     const nameInputRef = useRef<HTMLInputElement>(null);
