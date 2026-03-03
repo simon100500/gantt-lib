@@ -9,10 +9,44 @@ import { DatePicker } from '../ui/DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 
 // ---------------------------------------------------------------------------
+// Dep type SVG icons — inline, no external import needed
+// ---------------------------------------------------------------------------
+const DepIconFS = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 12H3"/><path d="m11 18 6-6-6-6"/><path d="M21 5v14"/>
+  </svg>
+);
+
+const DepIconSS = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 5v14"/><path d="M21 12H7"/><path d="m15 18 6-6-6-6"/>
+  </svg>
+);
+
+const DepIconFF = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m10 15 5 5 5-5"/><path d="M4 4h7a4 4 0 0 1 4 4v12"/>
+  </svg>
+);
+
+const DepIconSF = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m14 15-5 5-5-5"/><path d="M20 4h-7a4 4 0 0 0-4 4v12"/>
+  </svg>
+);
+
+const LINK_TYPE_ICONS: Record<LinkType, React.FC> = {
+  FS: DepIconFS,
+  SS: DepIconSS,
+  FF: DepIconFF,
+  SF: DepIconSF,
+};
+
+// ---------------------------------------------------------------------------
 // DepChip — local unified component used in both single-chip cell and popover
 // ---------------------------------------------------------------------------
 interface DepChipProps {
-  label: string;
+  taskNumber: number;
   dep: { taskId: string; type: LinkType };
   taskId: string;
   selectedChip: TaskListRowProps['selectedChip'];
@@ -33,7 +67,7 @@ const TrashIcon = () => (
 );
 
 const DepChip: React.FC<DepChipProps> = ({
-  label,
+  taskNumber,
   dep,
   taskId,
   selectedChip,
@@ -65,13 +99,15 @@ const DepChip: React.FC<DepChipProps> = ({
     onChipSelectClear();
   };
 
+  const Icon = LINK_TYPE_ICONS[dep.type];
+
   return (
     <span className="gantt-tl-dep-chip-wrapper">
       <span
         className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
         onClick={handleClick}
       >
-        {label}
+        <><Icon />{taskNumber}</>
       </span>
       {!disableDependencyEditing && (
         <button
@@ -116,8 +152,6 @@ export interface TaskListRowProps {
   onAddDependency?: (successorTaskId: string, predecessorTaskId: string, linkType: LinkType) => void;
   /** Callback to remove a dependency link */
   onRemoveDependency?: (taskId: string, predecessorTaskId: string, linkType: LinkType) => void;
-  /** Map of link type codes to display labels */
-  linkTypeLabels?: Record<LinkType, string>;
   /** Currently selected chip (for predecessor-side delete) */
   selectedChip?: { successorId: string; predecessorId: string; linkType: string } | null;
   /** Callback when a chip is clicked (selects it) */
@@ -132,8 +166,6 @@ const toISODate = (value: string | Date): string => {
   if (typeof value === 'string' && value.includes('T')) return value.split('T')[0];
   return value as string;
 };
-
-const DEFAULT_LABELS: Record<LinkType, string> = { FS: 'ОН', SS: 'НН', FF: 'ОО', SF: 'НО' };
 
 export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
   ({
@@ -151,7 +183,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onSetSelectingPredecessorFor,
     onAddDependency,
     onRemoveDependency,
-    linkTypeLabels,
     selectedChip,
     onChipSelect,
     onScrollToTask,
@@ -167,19 +198,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const isPicking = selectingPredecessorFor != null;
     const isSourceRow = isPicking && selectingPredecessorFor === task.id;
 
-    // Chip labels configuration
-    const labels = linkTypeLabels ?? DEFAULT_LABELS;
-
-    // Chip data: map each dependency to { dep, label }
+    // Chip data: map each dependency to { dep, taskNumber }
     const chips = useMemo(() => {
       return (task.dependencies ?? []).map(dep => {
         const predecessorIndex = (allTasks as Task[]).findIndex(t => t.id === dep.taskId);
         return {
           dep,
-          label: `${labels[dep.type]}(${predecessorIndex + 1})`,
+          taskNumber: predecessorIndex + 1,
         };
       });
-    }, [task.dependencies, allTasks, labels]);
+    }, [task.dependencies, allTasks]);
 
     const linkWord = chips.length <= 4 ? 'связи' : 'связей';
 
@@ -375,10 +403,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   </PopoverTrigger>
                   <PopoverContent portal={true} align="start">
                     <div className="gantt-tl-dep-overflow-list" onClick={(e) => e.stopPropagation()}>
-                      {chips.map(({ dep, label }) => (
+                      {chips.map(({ dep, taskNumber }) => (
                         <DepChip
                           key={`${dep.taskId}-${dep.type}`}
-                          label={label}
+                          taskNumber={taskNumber}
                           dep={dep}
                           taskId={task.id}
                           selectedChip={selectedChip}
@@ -396,7 +424,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               ) : chips.length === 1 ? (
                 /* Single chip — unified DepChip */
                 <DepChip
-                  label={chips[0].label}
+                  taskNumber={chips[0].taskNumber}
                   dep={chips[0].dep}
                   taskId={task.id}
                   selectedChip={selectedChip}
