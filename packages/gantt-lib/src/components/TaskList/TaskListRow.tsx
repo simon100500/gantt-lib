@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { Task } from '../GanttChart';
 import type { LinkType } from '../../types';
 import { parseUTCDate } from '../../utils/dateUtils';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 
 export interface TaskListRowProps {
   /** Task data to render */
@@ -47,6 +48,8 @@ const toISODate = (value: string | Date): string => {
   return value as string;
 };
 
+const DEFAULT_LABELS: Record<LinkType, string> = { FS: 'ОН', SS: 'НН', FF: 'ОО', SF: 'НО' };
+
 export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
   ({
     task,
@@ -57,7 +60,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onRowClick,
     disableTaskNameEditing = false,
     disableDependencyEditing = false,
-    allTasks,
+    allTasks = [],
     activeLinkType,
     selectingPredecessorFor,
     onSetSelectingPredecessorFor,
@@ -70,6 +73,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const nameInputRef = useRef<HTMLInputElement>(null);
 
     const isSelected = selectedTaskId === task.id;
+
+    // Picker mode flags for this row
+    const isPicking = selectingPredecessorFor != null;
+    const isSourceRow = isPicking && selectingPredecessorFor === task.id;
+
+    // Chip labels configuration
+    const labels = linkTypeLabels ?? DEFAULT_LABELS;
+
+    // Chip data: map each dependency to { dep, label }
+    const chips = useMemo(() => {
+      return (task.dependencies ?? []).map(dep => {
+        const predecessorIndex = (allTasks as Task[]).findIndex(t => t.id === dep.taskId);
+        return {
+          dep,
+          label: `${labels[dep.type]}(${predecessorIndex + 1})`,
+        };
+      });
+    }, [task.dependencies, allTasks, labels]);
+
+    const visibleChips = chips.slice(0, 2);
+    const hiddenChips = chips.slice(2);
 
     useEffect(() => {
       if (editingName && nameInputRef.current) {
@@ -125,12 +149,35 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       onRowClick?.(task.id);
     }, [task.id, onRowClick]);
 
+    // Dependency handlers
+    const handleAddClick = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onSetSelectingPredecessorFor?.(task.id);
+    }, [task.id, onSetSelectingPredecessorFor]);
+
+    const handlePredecessorPick = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isPicking || isSourceRow) return;
+      if (!selectingPredecessorFor || !activeLinkType) return;
+      onAddDependency?.(selectingPredecessorFor, task.id, activeLinkType);
+    }, [isPicking, isSourceRow, selectingPredecessorFor, task.id, activeLinkType, onAddDependency]);
+
+    const handleRemoveChip = useCallback((dep: { taskId: string; type: LinkType }, e: React.MouseEvent) => {
+      e.stopPropagation();
+      onRemoveDependency?.(task.id, dep.taskId, dep.type);
+    }, [task.id, onRemoveDependency]);
+
     const startDateISO = toISODate(task.startDate);
     const endDateISO = toISODate(task.endDate);
 
     return (
       <div
-        className={`gantt-tl-row ${isSelected ? 'gantt-tl-row-selected' : ''}`}
+        className={[
+          'gantt-tl-row',
+          isSelected ? 'gantt-tl-row-selected' : '',
+          isPicking && !isSourceRow ? 'gantt-tl-row-picking' : '',
+          isSourceRow ? 'gantt-tl-row-picking-self' : '',
+        ].filter(Boolean).join(' ')}
         style={{ minHeight: `${rowHeight}px` }}
         onClick={handleRowClickInternal}
       >
@@ -183,6 +230,75 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             portal={true}
             disabled={task.locked}
           />
+        </div>
+
+        {/* Dependencies column */}
+        <div
+          className="gantt-tl-cell gantt-tl-cell-deps"
+          onClick={isPicking && !isSourceRow ? handlePredecessorPick : undefined}
+        >
+          {/* Visible chips (max 2) */}
+          {visibleChips.map(({ dep, label }) => (
+            <span key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-chip">
+              {label}
+              {!disableDependencyEditing && (
+                <button
+                  type="button"
+                  className="gantt-tl-dep-chip-remove"
+                  onClick={(e) => handleRemoveChip(dep, e)}
+                  aria-label="Удалить связь"
+                >
+                  ×
+                </button>
+              )}
+            </span>
+          ))}
+
+          {/* Overflow Popover: "+N ещё" */}
+          {hiddenChips.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="gantt-tl-dep-overflow-trigger"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  +{hiddenChips.length} ещё
+                </button>
+              </PopoverTrigger>
+              <PopoverContent portal={true} align="start">
+                <div className="gantt-tl-dep-overflow-list">
+                  {chips.map(({ dep, label }) => (
+                    <div key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-overflow-item">
+                      <span>{label}</span>
+                      {!disableDependencyEditing && (
+                        <button
+                          type="button"
+                          className="gantt-tl-dep-overflow-remove"
+                          onClick={(e) => handleRemoveChip(dep, e)}
+                          aria-label="Удалить связь"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {/* "+" add dependency button — hidden in picker mode and when editing disabled */}
+          {!disableDependencyEditing && !isPicking && (
+            <button
+              type="button"
+              className="gantt-tl-dep-add"
+              onClick={handleAddClick}
+              aria-label="Добавить связь"
+            >
+              +
+            </button>
+          )}
         </div>
       </div>
     );
