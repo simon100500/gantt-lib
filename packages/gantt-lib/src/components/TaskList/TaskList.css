@@ -289,9 +289,9 @@
   gap: 2px;
 }
 
-/* Inline trash button — shown only when chip is selected */
+/* Inline trash button — hidden by default, shown on wrapper hover or when chip is selected */
 .gantt-tl-dep-chip-trash {
-  display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
   align-self: stretch;
@@ -303,6 +303,16 @@
   color: #fff;
   flex-shrink: 0;
   line-height: 0;
+}
+
+/* Show trash on wrapper hover */
+.gantt-tl-dep-chip-wrapper:hover .gantt-tl-dep-chip-trash {
+  display: inline-flex;
+}
+
+/* Show trash when chip is selected (chip stays selected = trash stays visible) */
+.gantt-tl-dep-chip-wrapper:has(.gantt-tl-dep-chip-selected) .gantt-tl-dep-chip-trash {
+  display: inline-flex;
 }
 
 .gantt-tl-dep-chip-trash:hover {
