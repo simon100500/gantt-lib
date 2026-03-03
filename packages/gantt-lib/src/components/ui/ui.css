@@ -143,6 +143,7 @@
   box-shadow: var(--gantt-popover-shadow);
   padding: 4px;
   z-index: 1000;
+  outline: none;
   animation: gantt-popover-in 120ms ease-out;
 }
 

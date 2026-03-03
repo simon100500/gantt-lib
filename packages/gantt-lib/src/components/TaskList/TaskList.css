@@ -315,6 +315,29 @@
   background-color: #dc2626;
 }
 
+/* Dep chip info popover — human-readable dependency description on click */
+.gantt-tl-dep-info-popover {
+  font-size: 0.75rem;
+  color: #374151;
+  padding: 6px 10px !important;
+  max-width: 260px;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gantt-tl-dep-info-prefix {
+  color: #6b7280;
+}
+
+.gantt-tl-dep-info-name {
+  font-weight: 500;
+  color: #111827;
+  white-space: normal;
+  word-break: break-word;
+}
+
 /* Summary chip: "N связей" — shown when 2+ deps */
 .gantt-tl-dep-summary-chip {
   display: inline-flex;

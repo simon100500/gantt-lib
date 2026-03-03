@@ -90,7 +90,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 14 of 14 (14-dependencies-edit-task-list)
 Plan: 2 of 2 in current phase (2 complete, 0 pending)
 Status: COMPLETE - Plan 14-02 complete: TaskListRow Связи cell with chips, picker mode, overflow Popover
-Last activity: 2026-03-03 - Completed quick task 53: add link type labels to dep type menu in table header
+Last activity: 2026-03-03 - Completed quick task 055: показывать поповер при клике на чип зависимости с человекочитаемым описанием типа связи
 
 Progress: [████████████] Phase 14: 2 of 2 plans complete (PHASE COMPLETE)
 
@@ -336,11 +336,12 @@ None yet.
 | 52 | consolidate dep icon definitions into single shared location | 2026-03-03 | 7ad62a3 | [52-consolidate-dep-icon-definitions-into-si](./quick/52-consolidate-dep-icon-definitions-into-si/) |
 | 53 | add link type labels to dep type menu in table header | 2026-03-03 | e2b3eda | [53-add-link-type-labels-to-dep-type-menu-in](./quick/53-add-link-type-labels-to-dep-type-menu-in/) |
 | 54 | Native tooltip on dep chips showing predecessor task name on hover | 2026-03-03 | 2b74d38 | [054-tooltip-dep-chip](./quick/054-tooltip-dep-chip/) |
+| 55 | Radix Popover on dep chip click showing Russian human-readable dependency description | 2026-03-03 | 0a169d1 | [055-popover-dep-chip](./quick/055-popover-dep-chip/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-054 (native tooltip on dep chips showing predecessor task name)
+Stopped at: Completed quick-055 (Radix Popover on dep chip click showing Russian dependency description)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
