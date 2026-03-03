@@ -322,11 +322,12 @@ None yet.
 | 38 | Auto-snap successor dates on dependency add (lag=0 snap for all 4 link types via calculateSuccessorDate) | 2026-03-03 | 1a554a0 | [38-0](./quick/38-0/) |
 | 39 | Dep delete via predecessor chip: remove × button, chip click selects, predecessor row shows Удалить button | 2026-03-03 | 526f29b | [039-dep-delete-parent-chip](./quick/039-dep-delete-parent-chip/) |
 | 40 | Predecessor deps cell full-replacement with hover text swap: "Зависит от [name]" → hover → "Удалить" | 2026-03-03 | 93e8377 | [040-dep-delete-zuvisit-ot-hover](./quick/040-dep-delete-zuvisit-ot-hover/) |
+| 41 | scrollToTask(taskId) on GanttChart ref + № cell click scrolls grid to center task bar | 2026-03-03 | c34f303 | [041-scroll-grid-to-task](./quick/041-scroll-grid-to-task/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-040 (predecessor cell full-replacement — "Зависит от [name]" with CSS hover text swap to "Удалить")
+Stopped at: Completed quick-041 (scrollToTask on GanttChart ref + № cell click in TaskList)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
