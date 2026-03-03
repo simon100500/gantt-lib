@@ -289,19 +289,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  align-self: stretch;
+  background: #ef4444;
   border: none;
   border-radius: 3px;
-  padding: 1px;
+  padding: 0 4px;
   cursor: pointer;
-  color: #6b7280;
+  color: #fff;
   flex-shrink: 0;
   line-height: 0;
 }
 
 .gantt-tl-dep-chip-trash:hover {
-  background-color: rgba(239, 68, 68, 0.12);
-  color: #dc2626;
+  background-color: #dc2626;
 }
 
 /* "+N ещё" overflow button */

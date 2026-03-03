@@ -186,7 +186,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         selectedChip?.predecessorId === dep.taskId &&
         selectedChip?.linkType === dep.type;
       onChipSelect?.(isSame ? null : { successorId: task.id, predecessorId: dep.taskId, linkType: dep.type });
-    }, [selectedChip, task.id, disableDependencyEditing, onChipSelect]);
+      if (!isSame) {
+        onRowClick?.(task.id);
+        onScrollToTask?.(task.id);
+      }
+    }, [selectedChip, task.id, disableDependencyEditing, onChipSelect, onRowClick, onScrollToTask]);
 
     // True when this row is the predecessor for the currently selected chip
     const isSelectedPredecessor = selectedChip != null && selectedChip.predecessorId === task.id;
