@@ -115,33 +115,29 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       const taskStart = parseUTCDate(task.startDate);
       const taskEnd = parseUTCDate(task.endDate);
 
-      // Check if end date has passed
-      const endDatePassed = taskEnd.getTime() < today.getTime();
-
-      // Check if task is incomplete or not accepted
-      const notComplete = (task.progress ?? 0) < 100;
-      const notAccepted = task.accepted !== true;
-
-      // Time-based expiration: calculate expected progress based on elapsed time
-      // Expected progress = (daysElapsed / durationInDays) × 100
-      // Task is expired if actual progress < expected progress
-      const msPerDay = 1000 * 60 * 60 * 24;
-      const durationInDays = (taskEnd.getTime() - taskStart.getTime()) / msPerDay + 1; // +1 to include both start and end day
-
-      if (durationInDays > 0) {
-        const daysElapsed = Math.max(0, (today.getTime() - taskStart.getTime()) / msPerDay);
-        const expectedProgress = Math.min(100, (daysElapsed / durationInDays) * 100);
-        const actualProgress = task.progress ?? 0;
-
-        // Task is expired if we're past the end date and progress is behind expected
-        // OR if end date passed but task not complete/accepted
-        if (endDatePassed && (actualProgress < expectedProgress || notComplete || notAccepted)) {
-          return true;
-        }
+      // Task must be incomplete (progress < 100%) to be expired
+      const actualProgress = task.progress ?? 0;
+      if (actualProgress >= 100) {
+        return false; // Completed tasks are never expired (even if not accepted)
       }
 
-      // Fallback: if end date passed and task is incomplete or not accepted
-      return endDatePassed && (notComplete || notAccepted);
+      // Check if task has started
+      const taskStarted = today.getTime() >= taskStart.getTime();
+      if (!taskStarted) {
+        return false; // Future tasks cannot be expired
+      }
+
+      // Calculate: % per day = 100 / duration
+      // Expected % = daysElapsed × % per day
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const durationInDays = Math.max(1, (taskEnd.getTime() - taskStart.getTime()) / msPerDay + 1);
+      const percentPerDay = 100 / durationInDays;
+      const daysElapsed = (today.getTime() - taskStart.getTime()) / msPerDay;
+      const expectedProgress = Math.min(100, daysElapsed * percentPerDay);
+
+      // Task is expired if actual progress < expected progress
+      // (visually: progress bar doesn't reach the "today" vertical line)
+      return actualProgress < expectedProgress;
     }, [task.startDate, task.endDate, task.progress, task.accepted, highlightExpiredTasks]);
 
     // Calculate task bar position and dimensions
@@ -161,21 +157,38 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       return Math.min(100, Math.max(0, Math.round(task.progress)));
     }, [task.progress]);
 
-    // Determine progress color based on completion status
-    const progressColor = useMemo(() => {
-      // If expired, use the same red color for both background and progress
-      if (isExpired) {
-        return 'var(--gantt-expired-color)';
+    // Determine progress color and gradient for expired tasks
+    const progressStyle = useMemo(() => {
+      const baseStyle: React.CSSProperties = {
+        width: `${progressWidth}%`,
+      };
+
+      if (progressWidth === 0) {
+        return baseStyle;
       }
 
-      if (progressWidth === 100) {
-        return task.accepted
+      if (isExpired) {
+        // For expired tasks: semi-transparent red gradient overlay
+        // This lets the underlying red background show through while indicating progress
+        baseStyle.background = `
+          linear-gradient(
+            to right,
+            rgba(239, 68, 68, 0.9) 0%,
+            rgba(220, 38, 38, 0.7) ${progressWidth}%,
+            transparent ${progressWidth}%
+          )
+        `;
+      } else if (progressWidth === 100) {
+        baseStyle.backgroundColor = task.accepted
           ? 'var(--gantt-progress-accepted, #22c55e)'    // Green for accepted
-          : 'var(--gantt-progress-completed, #fbbf24)';   // Yellow for completed
+          : 'var(--gantt-progress-completed, #fbbf24)';   // Yellow for completed (not accepted)
+      } else {
+        // Darker shade using color-mix() with task color or default
+        const baseColor = task.color || 'var(--gantt-task-bar-default-color)';
+        baseStyle.backgroundColor = `color-mix(in srgb, ${baseColor} 40%, black)`;
       }
-      // Darker shade using color-mix() with task color or default
-      const baseColor = task.color || 'var(--gantt-task-bar-default-color)';
-      return `color-mix(in srgb, ${baseColor} 40%, black)`;
+
+      return baseStyle;
     }, [isExpired, progressWidth, task.accepted, task.color]);
 
     // Handle drag end - call onChange with updated task
@@ -262,10 +275,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             {progressWidth > 0 && (
               <div
                 className="gantt-tr-progressBar"
-                style={{
-                  width: `${progressWidth}%`,
-                  backgroundColor: progressColor,
-                }}
+                style={progressStyle}
               />
             )}
             <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
