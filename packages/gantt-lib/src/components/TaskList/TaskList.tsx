@@ -6,7 +6,7 @@ import type { LinkType } from '../../types';
 import { validateDependencies, calculateSuccessorDate } from '../../utils/dependencyUtils';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
-import { LINK_TYPE_ICONS } from './DepIcons';
+import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
 import './TaskList.css';
 
 export { LINK_TYPE_ICONS };
@@ -239,6 +239,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                       onClick={() => { setActiveLinkType(lt); setTypeMenuOpen(false); }}
                     >
                       {React.createElement(LINK_TYPE_ICONS[lt])}
+                      <span>{LINK_TYPE_LABELS[lt]}</span>
                     </button>
                   ))}
                 </div>
