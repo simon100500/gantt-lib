@@ -298,12 +298,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   selectedChip?.predecessorId === dep.taskId &&
                   selectedChip?.linkType === dep.type;
                 return (
-                  <span
-                    key={`${dep.taskId}-${dep.type}`}
-                    className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-                    onClick={(e) => handleChipClick(dep, e)}
-                  >
-                    {label}
+                  <span key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-chip-wrapper">
+                    <span
+                      className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+                      onClick={(e) => handleChipClick(dep, e)}
+                    >
+                      {label}
+                    </span>
+                    {isChipSelected && !disableDependencyEditing && (
+                      <button
+                        type="button"
+                        className="gantt-tl-dep-chip-trash"
+                        onClick={handleDeleteSelected}
+                        aria-label="Удалить связь"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                          <path d="M3 6h18"/>
+                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                      </button>
+                    )}
                   </span>
                 );
               })}
@@ -329,11 +344,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                           selectedChip?.linkType === dep.type;
                         return (
                           <div key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-overflow-item">
-                            <span
-                              className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-                              onClick={(e) => handleChipClick(dep, e)}
-                            >
-                              {label}
+                            <span className="gantt-tl-dep-chip-wrapper">
+                              <span
+                                className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+                                onClick={(e) => handleChipClick(dep, e)}
+                              >
+                                {label}
+                              </span>
+                              {isChipSelected && !disableDependencyEditing && (
+                                <button
+                                  type="button"
+                                  className="gantt-tl-dep-chip-trash"
+                                  onClick={handleDeleteSelected}
+                                  aria-label="Удалить связь"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                                    <path d="M3 6h18"/>
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                  </svg>
+                                </button>
+                              )}
                             </span>
                           </div>
                         );
