@@ -143,14 +143,17 @@ export const TaskList: React.FC<TaskListProps> = ({
       let newStart: Date;
       let newEnd: Date;
 
+      const DAY_MS = 24 * 60 * 60 * 1000;
       if (linkType === 'FS' || linkType === 'SS') {
-        // constraintDate is the new startDate
-        newStart = constraintDate;
-        newEnd = new Date(constraintDate.getTime() + durationMs);
+        // FS: successor starts the day AFTER predecessor ends (endDate is inclusive)
+        // SS: successor starts same day as predecessor starts
+        newStart = linkType === 'FS' ? new Date(constraintDate.getTime() + DAY_MS) : constraintDate;
+        newEnd = new Date(newStart.getTime() + durationMs);
       } else {
-        // FF or SF: constraintDate is the new endDate
-        newEnd = constraintDate;
-        newStart = new Date(constraintDate.getTime() - durationMs);
+        // FF: successor ends same day as predecessor ends
+        // SF: successor ends the day BEFORE predecessor starts (endDate is inclusive)
+        newEnd = linkType === 'SF' ? new Date(constraintDate.getTime() - DAY_MS) : constraintDate;
+        newStart = new Date(newEnd.getTime() - durationMs);
       }
 
       const snappedTask: Task = {
