@@ -335,11 +335,12 @@ None yet.
 | 51 | Fix FS lag off-by-one: ends today + starts tomorrow = lag 0 (was +1) | 2026-03-03 | 6aaf1ba | [51-fix-fs-lag-off-by-one-stored-lag-and-cal](./quick/51-fix-fs-lag-off-by-one-stored-lag-and-cal/) |
 | 52 | consolidate dep icon definitions into single shared location | 2026-03-03 | 7ad62a3 | [52-consolidate-dep-icon-definitions-into-si](./quick/52-consolidate-dep-icon-definitions-into-si/) |
 | 53 | add link type labels to dep type menu in table header | 2026-03-03 | e2b3eda | [53-add-link-type-labels-to-dep-type-menu-in](./quick/53-add-link-type-labels-to-dep-type-menu-in/) |
+| 54 | Native tooltip on dep chips showing predecessor task name on hover | 2026-03-03 | 2b74d38 | [054-tooltip-dep-chip](./quick/054-tooltip-dep-chip/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-051 (fix FS lag off-by-one — natural adjacent-day gap = lag 0)
+Stopped at: Completed quick-054 (native tooltip on dep chips showing predecessor task name)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
