@@ -104,6 +104,16 @@ export interface GanttChartProps {
   taskListWidth?: number;
   /** Disable task name editing in the task list (default: false) */
   disableTaskNameEditing?: boolean;
+  /** Disable dependency editing in the task list (default: false) */
+  disableDependencyEditing?: boolean;
+}
+
+/**
+ * Ref handle type for GanttChart — exposes imperative scroll methods.
+ */
+export interface GanttChartHandle {
+  scrollToToday: () => void;
+  scrollToTask: (taskId: string) => void;
 }
 
 /**
@@ -122,7 +132,7 @@ export interface GanttChartProps {
  * />
  * ```
  */
-export const GanttChart = forwardRef<{ scrollToToday: () => void }, GanttChartProps>(({
+export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   tasks,
   dayWidth = 40,
   rowHeight = 40,
@@ -136,6 +146,7 @@ export const GanttChart = forwardRef<{ scrollToToday: () => void }, GanttChartPr
   showTaskList = false,
   taskListWidth = 520,
   disableTaskNameEditing = false,
+  disableDependencyEditing = false,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -220,14 +231,39 @@ export const GanttChart = forwardRef<{ scrollToToday: () => void }, GanttChartPr
   }, [dateRange, dayWidth]);
 
   /**
-   * Expose scrollToToday method to parent component via ref
+   * Scroll to a specific task by ID, centering its start date horizontally in the grid.
+   */
+  const scrollToTask = useCallback((taskId: string) => {
+    const container = scrollContainerRef.current;
+    if (!container || dateRange.length === 0) return;
+
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const taskStart = new Date(task.startDate as string);
+    const taskStartUTC = new Date(Date.UTC(
+      taskStart.getUTCFullYear(),
+      taskStart.getUTCMonth(),
+      taskStart.getUTCDate()
+    ));
+    const taskIndex = dateRange.findIndex(day => day.getTime() === taskStartUTC.getTime());
+    if (taskIndex === -1) return;
+
+    const taskOffset = taskIndex * dayWidth;
+    const scrollLeft = Math.round(taskOffset - dayWidth * 2);
+    container.scrollLeft = Math.max(0, scrollLeft);
+  }, [tasks, dateRange, dayWidth]);
+
+  /**
+   * Expose scrollToToday and scrollToTask methods to parent component via ref
    */
   useImperativeHandle(
     ref,
     () => ({
       scrollToToday,
+      scrollToTask,
     }),
-    [scrollToToday]
+    [scrollToToday, scrollToTask]
   );
 
   // Track drag state for guide lines
@@ -416,6 +452,8 @@ export const GanttChart = forwardRef<{ scrollToToday: () => void }, GanttChartPr
             onTaskSelect={handleTaskSelect}
             show={showTaskList}
             disableTaskNameEditing={disableTaskNameEditing}
+            disableDependencyEditing={disableDependencyEditing}
+            onScrollToTask={scrollToTask}
           />
 
           {/* Chart area */}

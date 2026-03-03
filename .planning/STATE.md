@@ -3,6 +3,32 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
+last_updated: "2026-03-03T09:46:15.069Z"
+progress:
+  total_phases: 14
+  completed_phases: 14
+  total_plans: 36
+  completed_plans: 36
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-03-03T09:00:51.413Z"
+progress:
+  total_phases: 14
+  completed_phases: 13
+  total_plans: 36
+  completed_plans: 35
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
 last_updated: "2026-02-28T10:28:13.189Z"
 progress:
   total_phases: 13
@@ -61,12 +87,12 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 
 ## Current Position
 
-Phase: 13 of 13 (13-ui-components)
-Plan: 1 of 1 in current phase (1 complete, 0 pending)
-Status: COMPLETE - shadcn/ui components (Input, Button, Popover, Calendar, DatePicker) integrated into TaskListRow
-Last activity: 2026-02-28 - Completed quick task 37: Add a "Today" button to the Gantt chart for quick navigation
+Phase: 14 of 14 (14-dependencies-edit-task-list)
+Plan: 2 of 2 in current phase (2 complete, 0 pending)
+Status: COMPLETE - Plan 14-02 complete: TaskListRow Связи cell with chips, picker mode, overflow Popover
+Last activity: 2026-03-03 - Completed quick task 041: scrollToTask event — scroll calendar grid to selected task bar
 
-Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete)
+Progress: [████████████] Phase 14: 2 of 2 plans complete (PHASE COMPLETE)
 
 ## Performance Metrics
 
@@ -135,6 +161,7 @@ Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete
 | Phase quick-31 P31 | 48 | 2 tasks | 2 files |
 | Phase quick-34 P34 | 73s | 5 tasks | 4 files |
 | Quick 37 P01 | 60s | 2 tasks | 2 files |
+| Quick 38 P01 | 39s | 1 task | 1 file |
 
 ## Accumulated Context
 
@@ -247,6 +274,8 @@ Recent decisions affecting current work:
 - [Phase 13-01]: DatePicker trigger uses button element (not input) — popover opens on click, avoids native picker
 - [Phase 13-01]: portal=true for DatePicker in TaskListRow — calendar floats above gantt z-index stack
 - [Phase quick-31]: Hide span with visibility:hidden+pointerEvents:none when editing — lets clicks reach absolute-positioned input for correct cursor placement
+- [Phase 14-dependencies-edit-task-list]: Import TaskDependency from GanttChart (same as Task import) and LinkType from types/index.ts to avoid cross-module type duplication
+- [Phase 14-dependencies-edit-task-list]: Extend TaskListRow props interface in Plan 01 to accept all dependency props; actual cell rendering deferred to Plan 02
 
 ### Pending Todos
 
@@ -290,11 +319,17 @@ None yet.
 | 34 | ДОБАВЬ свойство отключить редактирование название работ (системный пропс общий на график). плюс заблокируй редактирование дат через таск лист если работа заблокирована | 2026-02-28 | 4b88ea9 | [34-](./quick/34-/) |
 | 35 | добавь экшон для графика глобально чтобы он открывался на текущем дне посередине экрана | 2026-02-28 | e7d050c | [35-open-chart-centered-on-current-day](./quick/35-open-chart-centered-on-current-day/) |
 | 37 | Add a "Today" button to the Gantt chart that allows users to quickly return to today's date | 2026-02-28 | 2e3bf64 | [37-creating-quick-task-36-today](./quick/37-creating-quick-task-36-today/) |
+| 38 | Auto-snap successor dates on dependency add (lag=0 snap for all 4 link types via calculateSuccessorDate) | 2026-03-03 | 1a554a0 | [38-0](./quick/38-0/) |
+| 39 | Dep delete via predecessor chip: remove × button, chip click selects, predecessor row shows Удалить button | 2026-03-03 | 526f29b | [039-dep-delete-parent-chip](./quick/039-dep-delete-parent-chip/) |
+| 40 | Predecessor deps cell full-replacement with hover text swap: "Зависит от [name]" → hover → "Удалить" | 2026-03-03 | 93e8377 | [040-dep-delete-zuvisit-ot-hover](./quick/040-dep-delete-zuvisit-ot-hover/) |
+| 41 | scrollToTask(taskId) on GanttChart ref + № cell click scrolls grid to center task bar | 2026-03-03 | c34f303 | [041-scroll-grid-to-task](./quick/041-scroll-grid-to-task/) |
+| 42 | Inline trash button on selected dep chip — contextual delete without switching rows | 2026-03-03 | 88ef616 | [042-dep-chip-trash-button](./quick/042-dep-chip-trash-button/) |
+| 43 | Trash button red fill + chip click scrolls and highlights row | 2026-03-03 | d5ce154 | [043-chip-trash-resize-scroll](./quick/043-chip-trash-resize-scroll/) |
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Stopped at: Completed quick-37-01-PLAN.md (Today button for quick navigation)
+Last session: 2026-03-03
+Stopped at: Completed quick-043 (red trash button, chip click scrolls grid + selects row)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -365,4 +400,10 @@ Stopped at: Completed quick-37-01-PLAN.md (Today button for quick navigation)
 - 13-01: COMPLETE - shadcn/ui components: Input, Button, Popover, Calendar, DatePicker integrated into TaskListRow (4 min)
 
 **Phase 13 Total:** 1 of 1 plans complete, styled UI components with react-day-picker v9 and Radix UI Popover, gantt- CSS variables
+
+**Phase 14 Status:** COMPLETE
+- 14-01: COMPLETE - Dependencies column CSS classes, GanttChart disableDependencyEditing prop, TaskList dependency state + Popover header (3 min)
+- 14-02: COMPLETE - TaskListRow «Связи» cell: chips, overflow Popover, picker mode, bug fix for outgoing link direction (~20 min)
+
+**Phase 14 Total:** 2 of 2 plans complete, full «Связи» dependency column — state management, CSS, type switcher header, and row-level chip rendering with picker flow
 
