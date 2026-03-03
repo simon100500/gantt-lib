@@ -90,7 +90,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 14 of 14 (14-dependencies-edit-task-list)
 Plan: 2 of 2 in current phase (2 complete, 0 pending)
 Status: COMPLETE - Plan 14-02 complete: TaskListRow Связи cell with chips, picker mode, overflow Popover
-Last activity: 2026-03-03 - Completed quick task 44: selected dep chip highlights its SVG arrow red
+Last activity: 2026-03-03 - Completed quick task 45: show Выберите задачу placeholder in source row deps cell during link creation
 
 Progress: [████████████] Phase 14: 2 of 2 plans complete (PHASE COMPLETE)
 
@@ -326,11 +326,12 @@ None yet.
 | 42 | Inline trash button on selected dep chip — contextual delete without switching rows | 2026-03-03 | 88ef616 | [042-dep-chip-trash-button](./quick/042-dep-chip-trash-button/) |
 | 43 | Trash button red fill + chip click scrolls and highlights row | 2026-03-03 | d5ce154 | [043-chip-trash-resize-scroll](./quick/043-chip-trash-resize-scroll/) |
 | 44 | Selected dep chip highlights its SVG arrow red | 2026-03-03 | 5b42896 | [44-selected-dep-chip-highlights-its-arrow-r](./quick/44-selected-dep-chip-highlights-its-arrow-r/) |
+| 45 | Show Выберите задачу placeholder in source row deps cell during link creation | 2026-03-03 | cf5225e | [45-show-in-parent-cell-during-link-creation](./quick/45-show-in-parent-cell-during-link-creation/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed quick-044 (selected dep chip highlights its SVG arrow red)
+Stopped at: Completed quick-045 (show Выберите задачу placeholder in source row deps cell during link creation)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
