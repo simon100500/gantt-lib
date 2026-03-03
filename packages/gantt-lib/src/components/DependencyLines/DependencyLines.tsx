@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Task } from '../../types';
 import { calculateTaskBar, calculateDependencyPath, pixelsToDate } from '../../utils/geometry';
 import { getAllDependencyEdges, detectCycles, computeLagFromDates } from '../../utils/dependencyUtils';
@@ -23,44 +23,6 @@ function calculateEffectiveLag(
   const succStart = pixelsToDate(succPosition.left, monthStart, dayWidth);
   const succEnd   = pixelsToDate(succPosition.right - dayWidth, monthStart, dayWidth);
   return computeLagFromDates(edge.type as LinkType, predStart, predEnd, succStart, succEnd);
-}
-
-function pluralDays(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return 'дней';
-  if (mod10 === 1) return 'день';
-  if (mod10 >= 2 && mod10 <= 4) return 'дня';
-  return 'дней';
-}
-
-function formatDepDescription(
-  type: string,
-  lag: number,
-  predecessorName: string
-): string {
-  const abslag = Math.abs(lag);
-  if (type === 'FS') {
-    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после окончания «${predecessorName}»`;
-    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до окончания «${predecessorName}»`;
-    return `Сразу после окончания «${predecessorName}»`;
-  }
-  if (type === 'SS') {
-    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после начала «${predecessorName}»`;
-    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до начала «${predecessorName}»`;
-    return `Одновременно с началом «${predecessorName}»`;
-  }
-  if (type === 'FF') {
-    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после окончания «${predecessorName}»`;
-    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до окончания «${predecessorName}»`;
-    return `Одновременно с окончанием «${predecessorName}»`;
-  }
-  if (type === 'SF') {
-    if (lag > 0)  return `Через ${abslag} ${pluralDays(abslag)} после начала «${predecessorName}»`;
-    if (lag < 0)  return `За ${abslag} ${pluralDays(abslag)} до начала «${predecessorName}»`;
-    return `Одновременно с началом «${predecessorName}»`;
-  }
-  return '';
 }
 
 export interface DependencyLinesProps {
@@ -98,13 +60,6 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   dragOverrides,
   selectedDep,
 }) => {
-  const [clickedEdge, setClickedEdge] = useState<{
-    predecessorId: string;
-    successorId: string;
-    type: string;
-    lag: number;
-  } | null>(null);
-
   // Create a lookup map for task positions and their indices
   const { taskPositions, taskIndices } = useMemo(() => {
     const positions = new Map<string, { left: number; right: number; rowTop: number }>();
@@ -284,29 +239,21 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
           </marker>
         </defs>
 
-        {lines.map(({ id, predecessorId, successorId, type, path, hasCycle, lag, fromX, toX, fromY, reverseOrder }) => {
+        {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY, reverseOrder }) => {
           const isSelected =
             selectedDep != null &&
             id === `${selectedDep.predecessorId}-${selectedDep.successorId}-${selectedDep.linkType}`;
 
-          const edgeId = id;
-          const isClickedEdge =
-            clickedEdge !== null &&
-            `${clickedEdge.predecessorId}-${clickedEdge.successorId}-${clickedEdge.type}` === edgeId;
-
-          // Highlighted = selected via chip OR clicked directly on the line
-          const isHighlighted = isSelected || isClickedEdge;
-
           let pathClassName = 'gantt-dependency-path';
-          if (isHighlighted) pathClassName += ' gantt-dependency-selected';
+          if (isSelected) pathClassName += ' gantt-dependency-selected';
           else if (hasCycle) pathClassName += ' gantt-dependency-cycle';
 
           let markerEnd: string;
-          if (isHighlighted) markerEnd = 'url(#arrowhead-selected)';
+          if (isSelected) markerEnd = 'url(#arrowhead-selected)';
           else if (hasCycle) markerEnd = 'url(#arrowhead-cycle)';
           else markerEnd = 'url(#arrowhead)';
 
-          const lagColor = isHighlighted
+          const lagColor = isSelected
             ? '#ef4444'
             : hasCycle
               ? 'var(--gantt-dependency-cycle-color, #ef4444)'
@@ -333,22 +280,6 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
                   {lag > 0 ? `+${lag}` : `${lag}`}
                 </text>
               )}
-              {/* Invisible hit-area path for click detection — toggles red highlight */}
-              <path
-                d={path}
-                stroke="transparent"
-                strokeWidth={12}
-                fill="none"
-                style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isClickedEdge) {
-                    setClickedEdge(null);
-                  } else {
-                    setClickedEdge({ predecessorId, successorId, type, lag });
-                  }
-                }}
-              />
             </React.Fragment>
           );
         })}
