@@ -75,11 +75,11 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 14 of 14 (14-dependencies-edit-task-list)
-Plan: 1 of 2 in current phase (1 complete, 1 pending)
-Status: IN_PROGRESS - Plan 14-01 complete: Dependencies column CSS, GanttChart prop, TaskList state and header
-Last activity: 2026-03-03 - Completed 14-01: Связи column infrastructure (CSS, state, Popover header, callbacks)
+Plan: 2 of 2 in current phase (2 complete, 0 pending)
+Status: COMPLETE - Plan 14-02 complete: TaskListRow Связи cell with chips, picker mode, overflow Popover
+Last activity: 2026-03-03 - Completed 14-02: Связи cell rendering (chips, picker mode, bug fix for outgoing link direction)
 
-Progress: [██████████] Phase 14: 1 of 2 plans complete
+Progress: [████████████] Phase 14: 2 of 2 plans complete (PHASE COMPLETE)
 
 ## Performance Metrics
 
@@ -381,9 +381,9 @@ Stopped at: Completed 14-01-PLAN.md (Связи column infrastructure — CSS, G
 
 **Phase 13 Total:** 1 of 1 plans complete, styled UI components with react-day-picker v9 and Radix UI Popover, gantt- CSS variables
 
-**Phase 14 Status:** IN_PROGRESS
+**Phase 14 Status:** COMPLETE
 - 14-01: COMPLETE - Dependencies column CSS classes, GanttChart disableDependencyEditing prop, TaskList dependency state + Popover header (3 min)
-- 14-02: PENDING - TaskListRow dependency cell rendering (chips, add button, picker mode)
+- 14-02: COMPLETE - TaskListRow «Связи» cell: chips, overflow Popover, picker mode, bug fix for outgoing link direction (~20 min)
 
-**Phase 14 Total so far:** 1 of 2 plans complete, foundation layer for Связи column with full dependency state management
+**Phase 14 Total:** 2 of 2 plans complete, full «Связи» dependency column — state management, CSS, type switcher header, and row-level chip rendering with picker flow
 

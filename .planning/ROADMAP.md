@@ -176,7 +176,7 @@ Plans:
 
 **Goal:** Add «Связи» (Dependencies) column to TaskList with chip display (type + predecessor row number), global link type switcher in header, two-click predecessor picker flow, cycle detection, dependency deletion via chip ×, and disableDependencyEditing prop
 **Depends on:** Phase 13
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 14-01-PLAN.md — CSS classes, GanttChart prop, TaskList state/callbacks/header with type switcher Popover
