@@ -39,24 +39,24 @@ function formatDepDescription(type: LinkType, lag: number | undefined): string {
   const effectiveLag = lag ?? 0;
 
   if (type === 'FS') {
-    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после окончания`;
-    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до окончания`;
-    return `После окончания`;
+    if (effectiveLag > 0) return `Начать через ${effectiveLag} дн. после окончания`;
+    if (effectiveLag < 0) return `Начать за ${Math.abs(effectiveLag)} дн. до окончания`;
+    return `Начать после окончания`;
   }
   if (type === 'FF') {
-    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после окончания`;
-    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до окончания`;
-    return `После окончания`;
+    if (effectiveLag > 0) return `Завершить через ${effectiveLag} дн. после окончания`;
+    if (effectiveLag < 0) return `Завершить за ${Math.abs(effectiveLag)} дн. до окончания`;
+    return `Завершить после окончания`;
   }
   if (type === 'SS') {
-    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после начала`;
-    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до начала`;
-    return `Одновременно с началом`;
+    if (effectiveLag > 0) return `Начать через ${effectiveLag} дн. после начала`;
+    if (effectiveLag < 0) return `Начать за ${Math.abs(effectiveLag)} дн. до начала`;
+    return `Начать одновременно с`;
   }
   if (type === 'SF') {
-    if (effectiveLag > 0) return `Через ${effectiveLag} дн. после начала`;
-    if (effectiveLag < 0) return `За ${Math.abs(effectiveLag)} дн. до начала`;
-    return `До начала`;
+    if (effectiveLag > 0) return `Завершить через ${effectiveLag} дн. после начала`;
+    if (effectiveLag < 0) return `Завершить за ${Math.abs(effectiveLag)} дн. до начала`;
+    return `Завершить до начала`;
   }
   return '';
 }
