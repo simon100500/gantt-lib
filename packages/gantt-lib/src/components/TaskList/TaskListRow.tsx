@@ -182,6 +182,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     // True when this row is the predecessor for the currently selected chip
     const isSelectedPredecessor = selectedChip != null && selectedChip.predecessorId === task.id;
 
+    // Successor task name — shown in predecessor cell full-replacement element
+    const successorTaskName = useMemo(() => {
+      if (!selectedChip) return '';
+      const t = (allTasks as Task[]).find(t => t.id === selectedChip.successorId);
+      return t?.name ?? '';
+    }, [selectedChip, allTasks]);
+
     // Delete the selected dependency from the predecessor row's "Удалить" button
     const handleDeleteSelected = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
@@ -260,80 +267,83 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-deps"
           onClick={isPicking && !isSourceRow ? handlePredecessorPick : undefined}
         >
-          {/* Visible chips (max 2) — clicking a chip selects it */}
-          {visibleChips.map(({ dep, label }) => {
-            const isChipSelected =
-              selectedChip?.successorId === task.id &&
-              selectedChip?.predecessorId === dep.taskId &&
-              selectedChip?.linkType === dep.type;
-            return (
-              <span
-                key={`${dep.taskId}-${dep.type}`}
-                className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-                onClick={(e) => handleChipClick(dep, e)}
-              >
-                {label}
-              </span>
-            );
-          })}
-
-          {/* Overflow Popover: "+N ещё" */}
-          {hiddenChips.length > 0 && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="gantt-tl-dep-overflow-trigger"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  +{hiddenChips.length} ещё
-                </button>
-              </PopoverTrigger>
-              <PopoverContent portal={true} align="start">
-                <div className="gantt-tl-dep-overflow-list">
-                  {chips.map(({ dep, label }) => {
-                    const isChipSelected =
-                      selectedChip?.successorId === task.id &&
-                      selectedChip?.predecessorId === dep.taskId &&
-                      selectedChip?.linkType === dep.type;
-                    return (
-                      <div key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-overflow-item">
-                        <span
-                          className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-                          onClick={(e) => handleChipClick(dep, e)}
-                        >
-                          {label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
-
-          {/* Predecessor delete button — appears on this row when it is the selected chip's predecessor */}
-          {isSelectedPredecessor && !disableDependencyEditing && (
+          {isSelectedPredecessor && !disableDependencyEditing ? (
+            /* Full-replacement: "Зависит от [name]" → hover → "Удалить" */
             <button
               type="button"
-              className="gantt-tl-dep-delete-selected"
+              className="gantt-tl-dep-delete-label"
               onClick={handleDeleteSelected}
               aria-label="Удалить связь"
             >
-              Удалить
+              <span className="gantt-tl-dep-delete-label-default">Зависит от {successorTaskName}</span>
+              <span className="gantt-tl-dep-delete-label-hover">Удалить</span>
             </button>
-          )}
+          ) : (
+            <>
+              {/* Visible chips (max 2) — clicking a chip selects it */}
+              {visibleChips.map(({ dep, label }) => {
+                const isChipSelected =
+                  selectedChip?.successorId === task.id &&
+                  selectedChip?.predecessorId === dep.taskId &&
+                  selectedChip?.linkType === dep.type;
+                return (
+                  <span
+                    key={`${dep.taskId}-${dep.type}`}
+                    className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+                    onClick={(e) => handleChipClick(dep, e)}
+                  >
+                    {label}
+                  </span>
+                );
+              })}
 
-          {/* "+" add dependency button — hidden in picker mode and when editing disabled */}
-          {!disableDependencyEditing && !isPicking && (
-            <button
-              type="button"
-              className="gantt-tl-dep-add"
-              onClick={handleAddClick}
-              aria-label="Добавить связь"
-            >
-              +
-            </button>
+              {/* Overflow Popover: "+N ещё" */}
+              {hiddenChips.length > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="gantt-tl-dep-overflow-trigger"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      +{hiddenChips.length} ещё
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent portal={true} align="start">
+                    <div className="gantt-tl-dep-overflow-list">
+                      {chips.map(({ dep, label }) => {
+                        const isChipSelected =
+                          selectedChip?.successorId === task.id &&
+                          selectedChip?.predecessorId === dep.taskId &&
+                          selectedChip?.linkType === dep.type;
+                        return (
+                          <div key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-overflow-item">
+                            <span
+                              className={`gantt-tl-dep-chip${isChipSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+                              onClick={(e) => handleChipClick(dep, e)}
+                            >
+                              {label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+
+              {/* "+" add dependency button — hidden in picker mode and when editing disabled */}
+              {!disableDependencyEditing && !isPicking && (
+                <button
+                  type="button"
+                  className="gantt-tl-dep-add"
+                  onClick={handleAddClick}
+                  aria-label="Добавить связь"
+                >
+                  +
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

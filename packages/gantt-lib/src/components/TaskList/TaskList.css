@@ -339,25 +339,38 @@
   cursor: not-allowed;
 }
 
-/* Predecessor delete button — shown on predecessor row when a chip is selected */
-.gantt-tl-dep-delete-selected {
+/* Predecessor cell full-replacement: "Зависит от [name]" → hover → "Удалить" */
+.gantt-tl-dep-delete-label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: #ef4444;
-  color: #ffffff;
+  width: 100%;
+  background: transparent;
   border: none;
   border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 0.7rem;
+  padding: 2px 4px;
+  font-size: 0.75rem;
   font-family: inherit;
   cursor: pointer;
+  color: #374151;
   white-space: nowrap;
-  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
 }
 
-.gantt-tl-dep-delete-selected:hover {
-  background-color: #dc2626;
+.gantt-tl-dep-delete-label-hover {
+  display: none;
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.gantt-tl-dep-delete-label:hover .gantt-tl-dep-delete-label-default {
+  display: none;
+}
+
+.gantt-tl-dep-delete-label:hover .gantt-tl-dep-delete-label-hover {
+  display: inline;
 }
 
 /* Cycle error banner below header */
