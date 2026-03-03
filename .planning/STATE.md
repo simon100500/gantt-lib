@@ -3,6 +3,19 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
+last_updated: "2026-03-03T09:00:51.413Z"
+progress:
+  total_phases: 14
+  completed_phases: 13
+  total_plans: 36
+  completed_plans: 35
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
 last_updated: "2026-02-28T10:28:13.189Z"
 progress:
   total_phases: 13
@@ -61,12 +74,12 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 
 ## Current Position
 
-Phase: 13 of 13 (13-ui-components)
-Plan: 1 of 1 in current phase (1 complete, 0 pending)
-Status: COMPLETE - shadcn/ui components (Input, Button, Popover, Calendar, DatePicker) integrated into TaskListRow
-Last activity: 2026-02-28 - Completed quick task 37: Add a "Today" button to the Gantt chart for quick navigation
+Phase: 14 of 14 (14-dependencies-edit-task-list)
+Plan: 1 of 2 in current phase (1 complete, 1 pending)
+Status: IN_PROGRESS - Plan 14-01 complete: Dependencies column CSS, GanttChart prop, TaskList state and header
+Last activity: 2026-03-03 - Completed 14-01: Связи column infrastructure (CSS, state, Popover header, callbacks)
 
-Progress: [██████████] 100% (Phase 13: 1 of 1 plans complete)
+Progress: [██████████] Phase 14: 1 of 2 plans complete
 
 ## Performance Metrics
 
@@ -247,6 +260,8 @@ Recent decisions affecting current work:
 - [Phase 13-01]: DatePicker trigger uses button element (not input) — popover opens on click, avoids native picker
 - [Phase 13-01]: portal=true for DatePicker in TaskListRow — calendar floats above gantt z-index stack
 - [Phase quick-31]: Hide span with visibility:hidden+pointerEvents:none when editing — lets clicks reach absolute-positioned input for correct cursor placement
+- [Phase 14-dependencies-edit-task-list]: Import TaskDependency from GanttChart (same as Task import) and LinkType from types/index.ts to avoid cross-module type duplication
+- [Phase 14-dependencies-edit-task-list]: Extend TaskListRow props interface in Plan 01 to accept all dependency props; actual cell rendering deferred to Plan 02
 
 ### Pending Todos
 
@@ -293,8 +308,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Stopped at: Completed quick-37-01-PLAN.md (Today button for quick navigation)
+Last session: 2026-03-03
+Stopped at: Completed 14-01-PLAN.md (Связи column infrastructure — CSS, GanttChart prop, TaskList state and header)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
@@ -365,4 +380,10 @@ Stopped at: Completed quick-37-01-PLAN.md (Today button for quick navigation)
 - 13-01: COMPLETE - shadcn/ui components: Input, Button, Popover, Calendar, DatePicker integrated into TaskListRow (4 min)
 
 **Phase 13 Total:** 1 of 1 plans complete, styled UI components with react-day-picker v9 and Radix UI Popover, gantt- CSS variables
+
+**Phase 14 Status:** IN_PROGRESS
+- 14-01: COMPLETE - Dependencies column CSS classes, GanttChart disableDependencyEditing prop, TaskList dependency state + Popover header (3 min)
+- 14-02: PENDING - TaskListRow dependency cell rendering (chips, add button, picker mode)
+
+**Phase 14 Total so far:** 1 of 2 plans complete, foundation layer for Связи column with full dependency state management
 
