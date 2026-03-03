@@ -1,8 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "SF child task cannot be dragged left past project start. Parent can push child past project start fine."
 created: 2026-02-27T00:00:00Z
 updated: 2026-02-27T00:01:00Z
+resolved: 2026-03-03
 ---
 
 ## Current Focus

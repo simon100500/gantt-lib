@@ -1,8 +1,9 @@
 ---
-status: fixing
+status: resolved
 trigger: "SF dependency lag shows -1 instead of 0 when successor's end (B_end) equals predecessor's start (A_start)"
 created: 2026-02-22T00:00:00Z
 updated: 2026-02-22T00:01:00Z
+resolved: 2026-03-03
 ---
 
 ## Current Focus
