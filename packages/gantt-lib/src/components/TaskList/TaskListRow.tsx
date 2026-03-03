@@ -8,6 +8,85 @@ import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 
+// ---------------------------------------------------------------------------
+// DepChip — local unified component used in both single-chip cell and popover
+// ---------------------------------------------------------------------------
+interface DepChipProps {
+  label: string;
+  dep: { taskId: string; type: LinkType };
+  taskId: string;
+  selectedChip: TaskListRowProps['selectedChip'];
+  disableDependencyEditing: boolean;
+  onChipSelect: TaskListRowProps['onChipSelect'];
+  onRowClick: TaskListRowProps['onRowClick'];
+  onScrollToTask: TaskListRowProps['onScrollToTask'];
+  onRemoveDependency: TaskListRowProps['onRemoveDependency'];
+  onChipSelectClear: () => void;
+}
+
+const TrashIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+    <path d="M3 6h18" />
+    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
+const DepChip: React.FC<DepChipProps> = ({
+  label,
+  dep,
+  taskId,
+  selectedChip,
+  disableDependencyEditing,
+  onChipSelect,
+  onRowClick,
+  onScrollToTask,
+  onRemoveDependency,
+  onChipSelectClear,
+}) => {
+  const isSelected =
+    selectedChip?.successorId === taskId &&
+    selectedChip?.predecessorId === dep.taskId &&
+    selectedChip?.linkType === dep.type;
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (disableDependencyEditing) return;
+    onChipSelect?.(isSelected ? null : { successorId: taskId, predecessorId: dep.taskId, linkType: dep.type });
+    if (!isSelected) {
+      onRowClick?.(taskId);
+      onScrollToTask?.(taskId);
+    }
+  };
+
+  const handleTrashClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRemoveDependency?.(taskId, dep.taskId, dep.type);
+    onChipSelectClear();
+  };
+
+  return (
+    <span className="gantt-tl-dep-chip-wrapper">
+      <span
+        className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+        onClick={handleClick}
+      >
+        {label}
+      </span>
+      {!disableDependencyEditing && (
+        <button
+          type="button"
+          className="gantt-tl-dep-chip-trash"
+          aria-label="Удалить связь"
+          onClick={handleTrashClick}
+        >
+          <TrashIcon />
+        </button>
+      )}
+    </span>
+  );
+};
+
 export interface TaskListRowProps {
   /** Task data to render */
   task: Task;
@@ -177,21 +256,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
     }, [isPicking, isSourceRow, selectingPredecessorFor, task.id, activeLinkType, onAddDependency]);
 
-    // Handle chip click — selects/deselects the chip (toggle)
-    const handleChipClick = useCallback((dep: { taskId: string; type: LinkType }, e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (disableDependencyEditing) return;
-      const isSame =
-        selectedChip?.successorId === task.id &&
-        selectedChip?.predecessorId === dep.taskId &&
-        selectedChip?.linkType === dep.type;
-      onChipSelect?.(isSame ? null : { successorId: task.id, predecessorId: dep.taskId, linkType: dep.type });
-      if (!isSame) {
-        onRowClick?.(task.id);
-        onScrollToTask?.(task.id);
-      }
-    }, [selectedChip, task.id, disableDependencyEditing, onChipSelect, onRowClick, onScrollToTask]);
-
     // True when this row is the predecessor for the currently selected chip
     const isSelectedPredecessor = selectedChip != null && selectedChip.predecessorId === task.id;
 
@@ -312,64 +376,37 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   <PopoverContent portal={true} align="start">
                     <div className="gantt-tl-dep-overflow-list" onClick={(e) => e.stopPropagation()}>
                       {chips.map(({ dep, label }) => (
-                        <div key={`${dep.taskId}-${dep.type}`} className="gantt-tl-dep-overflow-item">
-                          <span className="gantt-tl-dep-chip">{label}</span>
-                          {!disableDependencyEditing && (
-                            <button
-                              type="button"
-                              className="gantt-tl-dep-chip-trash"
-                              aria-label="Удалить связь"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onRemoveDependency?.(task.id, dep.taskId, dep.type);
-                                onChipSelect?.(null);
-                              }}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                                <path d="M3 6h18" />
-                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
+                        <DepChip
+                          key={`${dep.taskId}-${dep.type}`}
+                          label={label}
+                          dep={dep}
+                          taskId={task.id}
+                          selectedChip={selectedChip}
+                          disableDependencyEditing={disableDependencyEditing}
+                          onChipSelect={onChipSelect}
+                          onRowClick={onRowClick}
+                          onScrollToTask={onScrollToTask}
+                          onRemoveDependency={onRemoveDependency}
+                          onChipSelectClear={() => onChipSelect?.(null)}
+                        />
                       ))}
                     </div>
                   </PopoverContent>
                 </Popover>
               ) : chips.length === 1 ? (
-                /* Single chip — select + trash pattern */
-                <span className="gantt-tl-dep-chip-wrapper">
-                  <span
-                    className={`gantt-tl-dep-chip${
-                      selectedChip?.successorId === task.id &&
-                      selectedChip?.predecessorId === chips[0].dep.taskId &&
-                      selectedChip?.linkType === chips[0].dep.type
-                        ? ' gantt-tl-dep-chip-selected'
-                        : ''
-                    }`}
-                    onClick={(e) => handleChipClick(chips[0].dep, e)}
-                  >
-                    {chips[0].label}
-                  </span>
-                  {selectedChip?.successorId === task.id &&
-                    selectedChip?.predecessorId === chips[0].dep.taskId &&
-                    selectedChip?.linkType === chips[0].dep.type &&
-                    !disableDependencyEditing && (
-                    <button
-                      type="button"
-                      className="gantt-tl-dep-chip-trash"
-                      onClick={handleDeleteSelected}
-                      aria-label="Удалить связь"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                        <path d="M3 6h18" />
-                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
-                  )}
-                </span>
+                /* Single chip — unified DepChip */
+                <DepChip
+                  label={chips[0].label}
+                  dep={chips[0].dep}
+                  taskId={task.id}
+                  selectedChip={selectedChip}
+                  disableDependencyEditing={disableDependencyEditing}
+                  onChipSelect={onChipSelect}
+                  onRowClick={onRowClick}
+                  onScrollToTask={onScrollToTask}
+                  onRemoveDependency={onRemoveDependency}
+                  onChipSelectClear={() => onChipSelect?.(null)}
+                />
               ) : null}
 
               {/* "+" add dependency button — hidden in picker mode and when editing disabled */}
