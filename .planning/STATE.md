@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: unknown
 stopped_at: "Completed 15-01: Time-based expired task coloring with red progress bar"
-last_updated: "2026-03-03T23:05:03.939Z"
+last_updated: "2026-03-03T23:06:17.903Z"
 last_activity: "2026-03-03 - Completed quick task 055: показывать поповер при клике на чип зависимости с человекочитаемым описанием типа связи"
 progress:
   total_phases: 15
