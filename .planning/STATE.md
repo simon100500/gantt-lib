@@ -90,7 +90,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 14 of 14 (14-dependencies-edit-task-list)
 Plan: 2 of 2 in current phase (2 complete, 0 pending)
 Status: COMPLETE - Plan 14-02 complete: TaskListRow Связи cell with chips, picker mode, overflow Popover
-Last activity: 2026-03-03 - Completed quick task 46: change deps cell overflow threshold to 1 visible chip when 3+ deps exist
+Last activity: 2026-03-03 - Completed quick task 49: Replace dep type labels ОН НН ОО НО with SVG icons
 
 Progress: [████████████] Phase 14: 2 of 2 plans complete (PHASE COMPLETE)
 
