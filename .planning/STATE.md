@@ -148,6 +148,7 @@ Progress: [████████████] Phase 14: 2 of 2 plans complete
 | Phase quick-31 P31 | 48 | 2 tasks | 2 files |
 | Phase quick-34 P34 | 73s | 5 tasks | 4 files |
 | Quick 37 P01 | 60s | 2 tasks | 2 files |
+| Quick 38 P01 | 39s | 1 task | 1 file |
 
 ## Accumulated Context
 
@@ -305,11 +306,12 @@ None yet.
 | 34 | ДОБАВЬ свойство отключить редактирование название работ (системный пропс общий на график). плюс заблокируй редактирование дат через таск лист если работа заблокирована | 2026-02-28 | 4b88ea9 | [34-](./quick/34-/) |
 | 35 | добавь экшон для графика глобально чтобы он открывался на текущем дне посередине экрана | 2026-02-28 | e7d050c | [35-open-chart-centered-on-current-day](./quick/35-open-chart-centered-on-current-day/) |
 | 37 | Add a "Today" button to the Gantt chart that allows users to quickly return to today's date | 2026-02-28 | 2e3bf64 | [37-creating-quick-task-36-today](./quick/37-creating-quick-task-36-today/) |
+| 38 | Auto-snap successor dates on dependency add (lag=0 snap for all 4 link types via calculateSuccessorDate) | 2026-03-03 | 1a554a0 | [38-0](./quick/38-0/) |
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 14-01-PLAN.md (Связи column infrastructure — CSS, GanttChart prop, TaskList state and header)
+Stopped at: Completed quick-38 (auto-snap successor dates on dependency add)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
