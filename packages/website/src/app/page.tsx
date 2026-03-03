@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { GanttChart, type Task } from "gantt-lib";
+import { GanttChart, type Task, type GanttChartHandle } from "gantt-lib";
 
 const createSampleTasks = (): Task[] => {
   const now = new Date();
@@ -497,7 +497,7 @@ export default function Home() {
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
 
   // Ref for the main GanttChart to access scrollToToday method
-  const ganttChartRef = useRef<{ scrollToToday: () => void }>(null);
+  const ganttChartRef = useRef<GanttChartHandle>(null);
 
   const handleChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
