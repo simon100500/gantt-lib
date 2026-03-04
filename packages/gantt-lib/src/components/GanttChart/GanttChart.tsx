@@ -337,7 +337,6 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     // Log isExpired calculation for each cascaded task
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const tomorrow = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
     const msPerDay = 1000 * 60 * 60 * 24;
 
     console.log('[GanttChart handleTaskChange] IsExpired calculation:');
@@ -351,17 +350,15 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         continue;
       }
 
-      const taskDuration = taskEnd.getTime() - taskStart.getTime() + msPerDay;
-      const isTaskEndingTodayOrTomorrow =
-        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() === taskEnd.getUTCDate()) ||
-        (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() === taskEnd.getUTCDate());
-      const elapsedCutoff = isTaskEndingTodayOrTomorrow ? new Date(today.getTime() - msPerDay) : today;
-      const daysFromStart = elapsedCutoff.getTime() - taskStart.getTime();
-      const expectedProgress = Math.min(100, Math.max(0, (daysFromStart / taskDuration) * 100));
+      // Simple formula: duration = (end - start + 1), elapsed = (min(today, end) - start)
+      const duration = taskEnd.getTime() - taskStart.getTime() + msPerDay;
+      const elapsedCutoff = taskEnd.getTime() < today.getTime() ? taskEnd.getTime() : today.getTime();
+      const elapsed = elapsedCutoff - taskStart.getTime();
+      const expectedProgress = Math.min(100, Math.max(0, (elapsed / duration) * 100));
       const isExpired = actualProgress < expectedProgress;
 
-      const durationDays = Math.round(taskDuration / msPerDay);
-      const elapsedDays = Math.round(daysFromStart / msPerDay);
+      const durationDays = Math.round(duration / msPerDay);
+      const elapsedDays = Math.round(elapsed / msPerDay);
       console.log(`  [${t.id}] START=${t.startDate} END=${t.endDate} TODAY=${today.toISOString().split('T')[0]} PROGRESS=${actualProgress}% DURATION=${durationDays}d ELAPSED=${elapsedDays}d EXPECTED=${expectedProgress.toFixed(1)}% EXPIRED=${isExpired ? 'YES' : 'NO'}`);
     }
 

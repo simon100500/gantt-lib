@@ -45,8 +45,7 @@ describe('isExpired calculation - edge cases', () => {
 
   /**
    * Simulates the isExpired calculation from TaskRow.tsx
-   * This uses the FIXED implementation where current day doesn't count as elapsed time
-   * Duration = (end - start + 1), elapsed = (cutoff - start) in milliseconds
+   * Simple formula: duration = (end - start + 1), elapsed = (min(today, end) - start)
    */
   function calculateIsExpired(
     startDateStr: string,
@@ -58,7 +57,6 @@ describe('isExpired calculation - edge cases', () => {
 
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const tomorrow = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
 
     const taskStart = new Date(Date.UTC(
       parseInt(startDateStr.substring(0, 4)),
@@ -74,25 +72,17 @@ describe('isExpired calculation - edge cases', () => {
     const actualProgress = progress ?? 0;
     if (actualProgress >= 100) return false;
 
-    // Calculate "today" position as percentage within the task bar
-    // KEY FIX: Current day doesn't count as elapsed time
-    // For tasks ending today or tomorrow, use "yesterday" as elapsed cutoff
+    // Simple formula:
+    // duration = (end - start + 1) days
+    // elapsed = (min(today, end) - start) days
+    // expected = elapsed / duration * 100
     const msPerDay = 1000 * 60 * 60 * 24;
-    const taskDuration = taskEnd.getTime() - taskStart.getTime() + msPerDay;  // +1 day to include end date
+    const duration = taskEnd.getTime() - taskStart.getTime() + msPerDay;
+    const elapsedCutoff = taskEnd.getTime() < today.getTime() ? taskEnd.getTime() : today.getTime();
+    const elapsed = elapsedCutoff - taskStart.getTime();
+    const expected = (elapsed / duration) * 100;
 
-    // For tasks ending today or tomorrow, subtract 1 day from elapsed calculation
-    const isTaskEndingTodayOrTomorrow =
-      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() === taskEnd.getUTCDate()) ||
-      (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() === taskEnd.getUTCDate());
-
-    const elapsedCutoff = isTaskEndingTodayOrTomorrow
-      ? new Date(today.getTime() - msPerDay)
-      : today;
-
-    const daysFromStart = elapsedCutoff.getTime() - taskStart.getTime();
-    const todayPosition = Math.min(100, Math.max(0, (daysFromStart / taskDuration) * 100));
-
-    return actualProgress < todayPosition;
+    return actualProgress < expected;
   }
 
   describe('Test 1: Task ending TODAY with 0% progress', () => {
@@ -262,16 +252,16 @@ describe('isExpired calculation - edge cases', () => {
   });
 
   describe('Test 13: User visual bug case - 27.02-05.03 with 70%', () => {
-    it('should NOT be expired (70% >= 57.1% expected)', () => {
+    it('should BE expired (70% < 71.4% expected)', () => {
       // Mock today as 2026-03-04
       mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0)));
 
       // 7-day task (27.02-05.03) with 70% progress
-      // Duration = 7 days, elapsed = 4 days (27 Feb, 28 Feb, 01, 02 Mar), expected = 57.1%
+      // Duration = 7 days, elapsed = 5 days (27 Feb, 28 Feb, 01, 02, 03 Mar), expected = 71.4%
       const isExpired = calculateIsExpired('2026-02-27', '2026-03-05', 70);
 
-      // Expected: false (70% >= 57.1% expected - sufficient progress)
-      expect(isExpired).toBe(false);
+      // Expected: true (expired - 70% < 71.4% expected)
+      expect(isExpired).toBe(true);
     });
   });
 });
