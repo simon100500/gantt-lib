@@ -360,7 +360,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       const expectedProgress = Math.min(100, Math.max(0, (daysFromStart / taskDuration) * 100));
       const isExpired = actualProgress < expectedProgress;
 
-      console.log(`  [${t.id}] START=${t.startDate} END=${t.endDate} TODAY=${today.toISOString().split('T')[0]} PROGRESS=${actualProgress}% EXPECTED=${expectedProgress.toFixed(1)}% EXPIRED=${isExpired ? 'YES' : 'NO'}`);
+      // Debug logging
+      const durationDays = Math.round(taskDuration / msPerDay);
+      const elapsedDays = Math.round(daysFromStart / msPerDay);
+      console.log(`  [${t.id}] START=${t.startDate} END=${t.endDate} TODAY=${today.toISOString().split('T')[0]} PROGRESS=${actualProgress}% DURATION=${durationDays}d ELAPSED=${elapsedDays}d EXPECTED=${expectedProgress.toFixed(1)}% EXPIRED=${isExpired ? 'YES' : 'NO'}`);
     }
 
     onChange?.((currentTasks) => {
