@@ -356,7 +356,7 @@ None yet.
 | 53 | add link type labels to dep type menu in table header | 2026-03-03 | e2b3eda | [53-add-link-type-labels-to-dep-type-menu-in](./quick/53-add-link-type-labels-to-dep-type-menu-in/) |
 | 54 | Native tooltip on dep chips showing predecessor task name on hover | 2026-03-03 | 2b74d38 | [054-tooltip-dep-chip](./quick/054-tooltip-dep-chip/) |
 | 55 | Radix Popover on dep chip click showing Russian human-readable dependency description | 2026-03-03 | 0a169d1 | [055-popover-dep-chip](./quick/055-popover-dep-chip/) |
-| 56 | Fix overdue calculation edge cases - current day should not count as completed | 2026-03-04 | 50aefd1 | [56-fix-overdue-calculation-edge-cases-in-ga](./quick/56-fix-overdue-calculation-edge-cases-in-ga/) |
+| 56 | Fix overdue calculation edge cases - current day should not count as completed | 2026-03-04 | a6ba702 | [56-fix-overdue-calculation-edge-cases-in-ga](./quick/56-fix-overdue-calculation-edge-cases-in-ga/) |
 
 ## Session Continuity
 
