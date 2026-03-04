@@ -184,10 +184,53 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
     // Handle drag end - call onChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
+      // Calculate delta in days
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const startDeltaMs = result.startDate.getTime() - taskStartDate.getTime();
+      const endDeltaMs = result.endDate.getTime() - taskEndDate.getTime();
+      const startDeltaDays = Math.round(startDeltaMs / msPerDay);
+      const endDeltaDays = Math.round(endDeltaMs / msPerDay);
+
+      // Update segments if they exist
+      let updatedSegments = task.segments;
+      if (task.segments && task.segments.length > 0) {
+        // Determine drag mode from deltas
+        const isResizeLeft = startDeltaDays !== 0 && endDeltaDays === 0;
+        const isResizeRight = startDeltaDays === 0 && endDeltaDays !== 0;
+        const isMove = startDeltaDays !== 0 && endDeltaDays !== 0;
+
+        updatedSegments = task.segments.map((seg, idx) => {
+          const segStart = parseUTCDate(seg.startDate);
+          const segEnd = parseUTCDate(seg.endDate);
+
+          if (isMove) {
+            // Move: shift all segments by startDeltaDays
+            return {
+              startDate: new Date(segStart.getTime() + startDeltaMs).toISOString(),
+              endDate: new Date(segEnd.getTime() + startDeltaMs).toISOString(),
+            };
+          } else if (isResizeLeft && idx === 0) {
+            // Resize-left: only first segment
+            return {
+              startDate: new Date(segStart.getTime() + startDeltaMs).toISOString(),
+              endDate: new Date(segEnd.getTime() + startDeltaMs).toISOString(),
+            };
+          } else if (isResizeRight && idx === task.segments!.length - 1) {
+            // Resize-right: only last segment
+            return {
+              startDate: seg.startDate,
+              endDate: new Date(segEnd.getTime() + endDeltaMs).toISOString(),
+            };
+          }
+          return seg;
+        });
+      }
+
       const updatedTask: Task = {
         ...task,
         startDate: result.startDate.toISOString(),
         endDate: result.endDate.toISOString(),
+        ...(updatedSegments && { segments: updatedSegments }),
         ...(result.updatedDependencies !== undefined && { dependencies: result.updatedDependencies }),
       };
       onChange?.(updatedTask);
