@@ -131,7 +131,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       // For tasks ending today or tomorrow, subtract 1 day from elapsed calculation
       // because current day boundary is at the left (day just started, not finished)
       const isTaskEndingTodayOrTomorrow =
-        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() <= taskEnd.getUTCDate()) ||
+        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() === taskEnd.getUTCDate()) ||
         (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() === taskEnd.getUTCDate());
 
       const elapsedCutoff = isTaskEndingTodayOrTomorrow

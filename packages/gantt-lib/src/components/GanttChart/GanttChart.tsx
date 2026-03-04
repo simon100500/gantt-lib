@@ -353,7 +353,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
       const taskDuration = taskEnd.getTime() - taskStart.getTime();
       const isTaskEndingTodayOrTomorrow =
-        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() <= taskEnd.getUTCDate()) ||
+        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() === taskEnd.getUTCDate()) ||
         (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() === taskEnd.getUTCDate());
       const elapsedCutoff = isTaskEndingTodayOrTomorrow ? new Date(today.getTime() - msPerDay) : today;
       const daysFromStart = elapsedCutoff.getTime() - taskStart.getTime();

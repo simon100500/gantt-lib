@@ -81,7 +81,7 @@ describe('isExpired calculation - edge cases', () => {
 
     // For tasks ending today or tomorrow, subtract 1 day from elapsed calculation
     const isTaskEndingTodayOrTomorrow =
-      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() <= taskEnd.getUTCDate()) ||
+      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() === taskEnd.getUTCDate()) ||
       (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() === taskEnd.getUTCDate());
 
     const elapsedCutoff = isTaskEndingTodayOrTomorrow
@@ -236,7 +236,7 @@ describe('isExpired calculation - edge cases', () => {
       mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0)));
 
       // 5-day task (01-06.03) ending day after tomorrow with 0% progress
-      // With fixed logic: elapsed = 3 days (01,02,03), expected = 60%
+      // elapsed = 3 days (01,02,03), taskDuration = 5 days, expected = 60%
       const isExpired = calculateIsExpired('2026-03-01', '2026-03-06', 0);
 
       // Expected: true (expired - 0% < 60% expected)
@@ -245,15 +245,29 @@ describe('isExpired calculation - edge cases', () => {
   });
 
   describe('Test 12: expired-2 dragged case - 28.02-06.03 with 20%', () => {
-    it('should BE expired (20% < 57% expected)', () => {
+    it('should BE expired (20% < 57.1% expected)', () => {
       // Mock today as 2026-03-04
       mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0)));
 
       // 7-day task (28.02-06.03) with 20% progress
-      // elapsed = 4 days (28 Feb, 01 Mar, 02 Mar, 03 Mar), expected = 57.1%
+      // elapsed = 4 days (28 Feb, 01 Mar, 02 Mar, 03 Mar), taskDuration = 7 days, expected = 57.1%
       const isExpired = calculateIsExpired('2026-02-28', '2026-03-06', 20);
 
       // Expected: true (expired - 20% < 57.1% expected)
+      expect(isExpired).toBe(true);
+    });
+  });
+
+  describe('Test 13: Task ending 08.03 (4 days from today) with 20%', () => {
+    it('should BE expired (20% < 33.3% expected)', () => {
+      // Mock today as 2026-03-04
+      mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0)));
+
+      // 6-day task (02-08.03) with 20% progress
+      // elapsed = 2 days (02,03), taskDuration = 6 days, expected = 33.3%
+      const isExpired = calculateIsExpired('2026-03-02', '2026-03-08', 20);
+
+      // Expected: true (expired - 20% < 33.3% expected)
       expect(isExpired).toBe(true);
     });
   });
