@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Гантт — прототип</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  .app {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 20px;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+  }
+
+  .btn-group {
+    display: flex;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .btn-group button {
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #555;
+    transition: all 0.15s;
+    border-right: 1px solid #e0e0e0;
+  }
+
+  .btn-group button:last-child { border-right: none; }
+
+  .btn-group button.active {
+    background: #1a1a2e;
+    color: #fff;
+  }
+
+  .btn-group button:hover:not(.active) {
+    background: #f5f5f5;
+  }
+
+  .spacer { flex: 1; }
+
+  .zoom-label {
+    font-size: 12px;
+    color: #666;
+  }
+
+  /* Chart container */
+  .chart-wrap {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e8e8e8;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  /* Header with months */
+  .chart-header {
+    display: flex;
+    border-bottom: 1px solid #e8e8e8;
+    background: #fafafa;
+  }
+
+  .row-label-header {
+    width: 220px;
+    min-width: 220px;
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid #e8e8e8;
+  }
+
+  .months-header {
+    flex: 1;
+    display: flex;
+  }
+
+  .month-cell {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid #f0f0f0;
+  }
+
+  .month-cell:last-child { border-right: none; }
+
+  /* Rows */
+  .chart-body { }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    background: #f7f8fa;
+    border-bottom: 1px solid #e8e8e8;
+    padding: 6px 16px;
+    gap: 8px;
+  }
+
+  .divider-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: #e0e0e0;
+  }
+
+  .chart-row {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+    min-height: 44px;
+  }
+
+  .chart-row:hover { background: #fafeff; }
+
+  .chart-row:last-child { border-bottom: none; }
+
+  .row-label {
+    width: 220px;
+    min-width: 220px;
+    padding: 8px 16px;
+    border-right: 1px solid #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .row-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1a1a2e;
+  }
+
+  .row-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  .tag-sec-a { background: #e8f4fd; color: #1976d2; }
+  .tag-sec-b { background: #fce8fd; color: #9c27b0; }
+  .tag-floor { background: #f0f4e8; color: #558b2f; }
+  .tag-work  { background: #fff3e0; color: #e65100; }
+
+  /* Timeline area */
+  .row-timeline {
+    flex: 1;
+    position: relative;
+    height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Column separators */
+  .col-sep {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: #f0f0f0;
+  }
+
+  /* Bars */
+  .bar {
+    position: absolute;
+    height: 20px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.1s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+
+  .bar:hover {
+    filter: brightness(1.1);
+    transform: scaleY(1.05);
+    z-index: 10;
+  }
+
+  /* Progress overlay */
+  .bar-progress {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: rgba(0,0,0,0.15);
+    border-radius: 4px 0 0 4px;
+    pointer-events: none;
+  }
+
+  /* Status dot */
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 5px;
+    flex-shrink: 0;
+  }
+
+  /* Colors per work type */
+  .bar-kladka   { background: #2563eb; }
+  .bar-okna     { background: #7c3aed; }
+  .bar-shtuk    { background: #059669; }
+  .bar-styazhka { background: #d97706; }
+
+  /* Progress percent */
+  .row-progress {
+    width: 44px;
+    min-width: 44px;
+    text-align: right;
+    padding-right: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    padding: 12px 16px;
+    border-top: 1px solid #e8e8e8;
+    background: #fafafa;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #555;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+
+  /* Transition */
+  .chart-body { transition: opacity 0.2s; }
+  .chart-body.switching { opacity: 0; }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed;
+    background: #1a1a2e;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 100;
+    display: none;
+    line-height: 1.6;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>ЖК Парковый — Корпус 2</h1>
+  <p class="subtitle">График производства работ · 9 этажей · 2 секции</p>
+
+  <div class="toolbar">
+    <span class="toolbar-label">Группировать:</span>
+    <div class="btn-group" id="groupBtns">
+      <button class="active" onclick="setGroup('flat')">Плоско</button>
+      <button onclick="setGroup('section')">По секциям</button>
+      <button onclick="setGroup('floor')">По этажам</button>
+      <button onclick="setGroup('work')">По работам</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <span class="toolbar-label">Зум:</span>
+    <div class="btn-group" id="zoomBtns">
+      <button onclick="setZoom('quarter')">Квартал</button>
+      <button class="active" onclick="setZoom('month')">Месяц</button>
+      <button onclick="setZoom('week')">Неделя</button>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-header">
+      <div class="row-label-header">Работа / Локация</div>
+      <div class="months-header" id="monthsHeader"></div>
+      <div style="width:44px;min-width:44px;"></div>
+    </div>
+    <div class="chart-body" id="chartBody"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div>Кладка</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div>Окна</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#059669"></div>Штукатурка</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Стяжка</div>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+// Each item = one task on one floor, one section
+// start/end in days from project start (Feb 1)
+const WORKS = {
+  kladka:   { label: 'Кладка',       cls: 'bar-kladka',   color: '#2563eb' },
+  okna:     { label: 'Окна',         cls: 'bar-okna',      color: '#7c3aed' },
+  shtuk:    { label: 'Штукатурка',   cls: 'bar-shtuk',     color: '#059669' },
+  styazhka: { label: 'Стяжка',       cls: 'bar-styazhka',  color: '#d97706' },
+};
+
+// Generate tasks: 2 sections × 9 floors × 4 works
+// Kладка: 5 дней/этаж, поток снизу вверх
+// Окна: через 1 этаж после кладки, 3 дня
+// Штукатурка: через 2 этажа, 7 дней
+// Стяжка: через 1 этаж после штукатурки, 4 дня
+function generateTasks() {
+  const tasks = [];
+  const sections = ['А', 'Б'];
+  const floors = [1,2,3,4,5,6,7,8,9];
+
+  sections.forEach((sec, si) => {
+    floors.forEach((floor, fi) => {
+      const baseOffset = si * 5; // секция Б начинается позже
+      const kladStart = fi * 5 + baseOffset;
+      const kladEnd   = kladStart + 5;
+
+      const oknaStart = kladStart + 5; // через 1 этаж
+      const oknaEnd   = oknaStart + 3;
+
+      const shtukStart = kladStart + 10;
+      const shtukEnd   = shtukStart + 7;
+
+      const styStart = shtukStart + 7;
+      const styEnd   = styStart + 4;
+
+      // Прогресс: первые этажи уже выполнены
+      const progress = (sec === 'А')
+        ? Math.max(0, Math.min(100, (4 - fi) * 33))
+        : Math.max(0, Math.min(100, (2 - fi) * 50));
+
+      tasks.push({
+        id: `${sec}-${floor}-kladka`,
+        section: sec, floor, work: 'kladka',
+        start: kladStart, end: kladEnd,
+        progress: Math.max(0, Math.min(100, (5 - fi) * 25 + (sec==='А'?0:-20))),
+      });
+      tasks.push({
+        id: `${sec}-${floor}-okna`,
+        section: sec, floor, work: 'okna',
+        start: oknaStart, end: oknaEnd,
+        progress: Math.max(0, Math.min(100, (4 - fi) * 30 + (sec==='А'?0:-30))),
+      });
+      tasks.push({
+        id: `${sec}-${floor}-shtuk`,
+        section: sec, floor, work: 'shtuk',
+        start: shtukStart, end: shtukEnd,
+        progress: Math.max(0, Math.min(100, (3 - fi) * 35 + (sec==='А'?0:-40))),
+      });
+      tasks.push({
+        id: `${sec}-${floor}-styazhka`,
+        section: sec, floor, work: 'styazhka',
+        start: styStart, end: styEnd,
+        progress: Math.max(0, Math.min(100, (2 - fi) * 50 + (sec==='А'?0:-50))),
+      });
+    });
+  });
+
+  return tasks;
+}
+
+const allTasks = generateTasks();
+
+// ─── ZOOM CONFIG ────────────────────────────────────────────────────────────
+const ZOOMS = {
+  quarter: {
+    totalDays: 180,
+    months: ['Февраль','Март','Апрель','Май','Июнь','Июль'],
+    monthDays: [28,31,30,31,30,31],
+  },
+  month: {
+    totalDays: 90,
+    months: ['Февраль','Март','Апрель','Май'],
+    monthDays: [28,31,30,31],
+  },
+  week: {
+    totalDays: 42,
+    months: ['1–7 фев','8–14 фев','15–21 фев','22–28 фев','1–7 мар','6 нед'],
+    monthDays: [7,7,7,7,7,7],
+  },
+};
+
+let currentGroup = 'flat';
+let currentZoom = 'month';
+
+// ─── GROUPING LOGIC ─────────────────────────────────────────────────────────
+function getRows(groupBy) {
+  // Returns array of { type: 'divider'|'row', ... }
+  const result = [];
+
+  if (groupBy === 'flat') {
+    // All tasks sorted by start time
+    const sorted = [...allTasks].sort((a,b) => a.start - b.start);
+    sorted.forEach(t => result.push({ type: 'row', task: t }));
+
+  } else if (groupBy === 'section') {
+    ['А','Б'].forEach(sec => {
+      result.push({ type: 'divider', label: `Секция ${sec}` });
+      const tasks = allTasks
+        .filter(t => t.section === sec)
+        .sort((a,b) => a.floor - b.floor || a.start - b.start);
+      tasks.forEach(t => result.push({ type: 'row', task: t }));
+    });
+
+  } else if (groupBy === 'floor') {
+    [1,2,3,4,5,6,7,8,9].forEach(floor => {
+      result.push({ type: 'divider', label: `Этаж ${floor}` });
+      const tasks = allTasks
+        .filter(t => t.floor === floor)
+        .sort((a,b) => a.start - b.start);
+      tasks.forEach(t => result.push({ type: 'row', task: t }));
+    });
+
+  } else if (groupBy === 'work') {
+    Object.entries(WORKS).forEach(([key, w]) => {
+      result.push({ type: 'divider', label: w.label });
+      const tasks = allTasks
+        .filter(t => t.work === key)
+        .sort((a,b) => a.section.localeCompare(b.section) || a.floor - b.floor);
+      tasks.forEach(t => result.push({ type: 'row', task: t }));
+    });
+  }
+
+  return result;
+}
+
+// ─── RENDER ─────────────────────────────────────────────────────────────────
+function render() {
+  const zoom = ZOOMS[currentZoom];
+  const totalDays = zoom.totalDays;
+
+  // Header
+  const mh = document.getElementById('monthsHeader');
+  mh.innerHTML = zoom.months.map(m =>
+    `<div class="month-cell">${m}</div>`
+  ).join('');
+
+  // Column separators positions
+  const sepPositions = [];
+  let acc = 0;
+  zoom.monthDays.forEach((d, i) => {
+    acc += d;
+    if (i < zoom.monthDays.length - 1)
+      sepPositions.push((acc / totalDays) * 100);
+  });
+
+  // Rows
+  const rows = getRows(currentGroup);
+  const body = document.getElementById('chartBody');
+  body.innerHTML = '';
+
+  rows.forEach(item => {
+    if (item.type === 'divider') {
+      const d = document.createElement('div');
+      d.className = 'divider';
+      d.innerHTML = `<span class="divider-text">${item.label}</span><div class="divider-line"></div>`;
+      body.appendChild(d);
+      return;
+    }
+
+    const t = item.task;
+    const w = WORKS[t.work];
+
+    // Tags based on grouping - show context
+    let tags = [];
+    if (currentGroup !== 'section') tags.push(`<span class="tag tag-sec-${t.section === 'А' ? 'a' : 'b'}">Сек. ${t.section}</span>`);
+    if (currentGroup !== 'floor') tags.push(`<span class="tag tag-floor">Эт. ${t.floor}</span>`);
+    if (currentGroup !== 'work') tags.push(`<span class="tag tag-work">${w.label}</span>`);
+
+    // Bar position
+    const left = Math.max(0, (t.start / totalDays) * 100);
+    const width = Math.min(100 - left, ((t.end - t.start) / totalDays) * 100);
+
+    // Progress
+    const prog = Math.round(t.progress);
+
+    // Column seps HTML
+    const sepsHTML = sepPositions.map(p =>
+      `<div class="col-sep" style="left:${p}%"></div>`
+    ).join('');
+
+    const row = document.createElement('div');
+    row.className = 'chart-row';
+    row.innerHTML = `
+      <div class="row-label">
+        <span class="row-name">${currentGroup === 'work' ? `Сек. ${t.section}, Эт. ${t.floor}` : (currentGroup === 'flat' ? `${w.label} · Сек.${t.section} Эт.${t.floor}` : (currentGroup === 'section' ? `Эт. ${t.floor} · ${w.label}` : `Сек. ${t.section} · ${w.label}`))}</span>
+        <div class="row-tags">${tags.join('')}</div>
+      </div>
+      <div class="row-timeline" id="tl-${t.id}">
+        ${sepsHTML}
+        <div class="bar ${w.cls}"
+          style="left:${left}%;width:${Math.max(width,2)}%"
+          data-id="${t.id}"
+          data-prog="${prog}"
+          data-work="${w.label}"
+          data-sec="${t.section}"
+          data-floor="${t.floor}"
+        >
+          <div class="bar-progress" style="width:${prog}%"></div>
+          <span style="position:relative;z-index:1">${width > 6 ? w.label.slice(0,3) + '.' : ''}</span>
+        </div>
+      </div>
+      <div class="row-progress">${prog > 0 ? prog + '%' : '—'}</div>
+    `;
+    body.appendChild(row);
+  });
+
+  // Tooltip on bars
+  document.querySelectorAll('.bar').forEach(bar => {
+    bar.addEventListener('mouseenter', (e) => {
+      const tt = document.getElementById('tooltip');
+      tt.innerHTML = `
+        <strong>${bar.dataset.work}</strong><br>
+        Секция ${bar.dataset.sec}, Этаж ${bar.dataset.floor}<br>
+        Прогресс: ${bar.dataset.prog}%
+      `;
+      tt.style.display = 'block';
+    });
+    bar.addEventListener('mousemove', (e) => {
+      const tt = document.getElementById('tooltip');
+      tt.style.left = (e.clientX + 12) + 'px';
+      tt.style.top  = (e.clientY - 10) + 'px';
+    });
+    bar.addEventListener('mouseleave', () => {
+      document.getElementById('tooltip').style.display = 'none';
+    });
+  });
+}
+
+function setGroup(g) {
+  currentGroup = g;
+  document.querySelectorAll('#groupBtns button').forEach((b, i) => {
+    b.classList.toggle('active', ['flat','section','floor','work'][i] === g);
+  });
+  const body = document.getElementById('chartBody');
+  body.classList.add('switching');
+  setTimeout(() => {
+    render();
+    body.classList.remove('switching');
+  }, 150);
+}
+
+function setZoom(z) {
+  currentZoom = z;
+  document.querySelectorAll('#zoomBtns button').forEach((b, i) => {
+    b.classList.toggle('active', ['quarter','month','week'][i] === z);
+  });
+  render();
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>
