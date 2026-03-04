@@ -8,6 +8,17 @@
 export type LinkType = 'FS' | 'SS' | 'FF' | 'SF';
 
 /**
+ * Single work segment for tasks with intermittent execution
+ * Multiple segments can be defined in Task.segments array
+ */
+export interface TaskSegment {
+  /** Segment start date (ISO string or Date object) */
+  startDate: string | Date;
+  /** Segment end date (ISO string or Date object) */
+  endDate: string | Date;
+}
+
+/**
  * Single dependency relationship (predecessor link)
  */
 export interface TaskDependency {
@@ -82,6 +93,12 @@ export interface Task {
    * Independent of accepted/progress — consumer controls both separately.
    */
   locked?: boolean;
+  /**
+   * Optional array of work segments for intermittent execution.
+   * When defined, renders multiple bars in the same row.
+   * If segments is empty/undefined, falls back to startDate/endDate for single bar.
+   */
+  segments?: TaskSegment[];
 }
 
 /**
