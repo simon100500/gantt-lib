@@ -356,7 +356,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() === taskEnd.getUTCDate()) ||
         (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() === taskEnd.getUTCDate());
       const elapsedCutoff = isTaskEndingTodayOrTomorrow ? new Date(today.getTime() - msPerDay) : today;
-      const daysFromStart = elapsedCutoff.getTime() - taskStart.getTime() + msPerDay;
+      const daysFromStart = elapsedCutoff.getTime() - taskStart.getTime();
       const expectedProgress = Math.min(100, Math.max(0, (daysFromStart / taskDuration) * 100));
       const isExpired = actualProgress < expectedProgress;
 

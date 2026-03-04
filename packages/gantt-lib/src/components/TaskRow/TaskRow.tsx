@@ -138,7 +138,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         ? new Date(today.getTime() - msPerDay)
         : today;
 
-      const daysFromStart = elapsedCutoff.getTime() - taskStart.getTime() + msPerDay;  // +1 day to include start date in elapsed count
+      const daysFromStart = elapsedCutoff.getTime() - taskStart.getTime();
       const todayPosition = Math.min(100, Math.max(0, (daysFromStart / taskDuration) * 100));
 
       // console.log('TASK_ID', task.id);
