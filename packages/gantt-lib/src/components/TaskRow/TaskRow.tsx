@@ -103,6 +103,21 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const taskStartDate = useMemo(() => parseUTCDate(task.startDate), [task.startDate]);
     const taskEndDate = useMemo(() => parseUTCDate(task.endDate), [task.endDate]);
 
+    // Derive segments array from task (multi-segment or single fallback)
+    const segments = useMemo(() => {
+      if (task.segments && task.segments.length > 0) {
+        return task.segments.map(seg => ({
+          startDate: parseUTCDate(seg.startDate),
+          endDate: parseUTCDate(seg.endDate)
+        }));
+      }
+      // Fallback to single segment from task dates
+      return [{ startDate: taskStartDate, endDate: taskEndDate }];
+    }, [task.segments, taskStartDate, taskEndDate]);
+
+    // Check if this is a multi-segment task
+    const isMultiSegment = segments.length > 1;
+
     // Calculate expiration status for overdue tasks
     const isExpired = useMemo(() => {
       if (!highlightExpiredTasks) return false;
@@ -179,6 +194,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     };
 
     // Use drag hook for interactive drag/resize
+    // Disable drag for multi-segment tasks (complex interaction)
     const {
       isDragging,
       dragMode,
@@ -198,7 +214,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       rowIndex,
       enableAutoSchedule,
       disableConstraints,
-      locked: task.locked,
+      locked: task.locked || isMultiSegment, // Lock multi-segment tasks
       onCascadeProgress,
       onCascade,
     });
@@ -228,6 +244,17 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const estimatedTextWidth = durationDays >= 10 ? 76 : 62; // "15 д 100%" = ~76px, "1 д 100%" = ~62px
     const showProgressInside = progressWidth > 0 && displayWidth > estimatedTextWidth;
 
+    // Calculate overall task bounds for labels (leftmost start, rightmost end)
+    const overallBounds = useMemo(() => {
+      const startDates = segments.map(s => s.startDate.getTime());
+      const endDates = segments.map(s => s.endDate.getTime());
+      const minStart = Math.min(...startDates);
+      const maxEnd = Math.max(...endDates);
+      const minStartSegment = segments.find(s => s.startDate.getTime() === minStart) || segments[0];
+      const maxEndSegment = segments.find(s => s.endDate.getTime() === maxEnd) || segments[segments.length - 1];
+      return { minStart, maxEnd, minStartSegment, maxEndSegment };
+    }, [segments]);
+
     return (
       <div
         className="gantt-tr-row"
@@ -235,85 +262,114 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       >
         {taskDivider === 'top' && <div className="gantt-tr-divider gantt-tr-divider-top" />}
         <div className="gantt-tr-taskContainer">
-          <div
-            data-taskbar
-            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''}`}
-            style={{
-              left: `${displayLeft}px`,
-              width: `${displayWidth}px`,
-              backgroundColor: barColor,
-              height: 'var(--gantt-task-bar-height)',
-              cursor: dragHandleProps.style.cursor,
-              userSelect: dragHandleProps.style.userSelect,
-            }}
-            onMouseDown={dragHandleProps.onMouseDown}
-          >
-            {progressWidth > 0 && (
-              <div
-                className="gantt-tr-progressBar"
-                style={{
-                  width: `${progressWidth}%`,
-                  backgroundColor: progressColor,
-                }}
-              />
-            )}
-            <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
-            <span className="gantt-tr-taskDuration">
-              {durationDays} д
-            </span>
-            {progressWidth > 0 && showProgressInside && (
-              <span className="gantt-tr-progressText">
-                {progressWidth}%
-              </span>
-            )}
-            <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />
-          </div>
-          <div
-            className={`gantt-tr-leftLabels ${task.locked ? 'gantt-tr-leftLabels-locked' : ''}`}
-            style={{
-              left: `${displayLeft}px`
-            }}
-          >
-            <span className="gantt-tr-dateLabel gantt-tr-dateLabelLeft">
-              {startDateLabel}–{endDateLabel}
-            </span>
-          </div>
-          {task.locked && (
-            <svg
-              className="gantt-tr-lockIcon"
-              style={{
-                position: 'absolute',
-                left: `${displayLeft - 16}px`,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '12px',
-                height: '12px',
-                color: '#444',
-                pointerEvents: 'none',
-              }}
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-label="Locked"
-              aria-hidden="false"
-            >
-              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
-            </svg>
-          )}
-          <div
-            className="gantt-tr-rightLabels"
-            style={{
-              left: `${displayLeft + displayWidth}px`,
-            }}
-          >
-            {progressWidth > 0 && !showProgressInside && (
-              <span className="gantt-tr-externalProgress">
-                {progressWidth}%
-              </span>
-            )}
-            <span className="gantt-tr-externalTaskName">
-              {task.name}
-            </span>
-          </div>
+          {segments.map((seg, idx) => {
+            const { left: segLeft, width: segWidth } = calculateTaskBar(seg.startDate, seg.endDate, monthStart, dayWidth);
+            const segDurationDays = Math.round(
+              (seg.endDate.getTime() - seg.startDate.getTime()) / (1000 * 60 * 60 * 24)
+            ) + 1;
+
+            // Determine if this is the leftmost or rightmost segment for label positioning
+            const isLeftmost = seg.startDate.getTime() === overallBounds.minStart;
+            const isRightmost = seg.endDate.getTime() === overallBounds.maxEnd;
+
+            // Use drag position for first segment if dragging, otherwise use calculated position
+            const displaySegLeft = (idx === 0 && isDragging) ? displayLeft : segLeft;
+            const displaySegWidth = (idx === 0 && isDragging) ? displayWidth : segWidth;
+
+            return (
+              <React.Fragment key={`segment-${idx}`}>
+                <div
+                  data-taskbar
+                  className={`gantt-tr-taskBar gantt-tr-taskSegment ${isDragging && idx === 0 ? 'gantt-tr-dragging' : ''} ${(task.locked || isMultiSegment) ? 'gantt-tr-locked' : ''}`}
+                  style={{
+                    left: `${displaySegLeft}px`,
+                    width: `${displaySegWidth}px`,
+                    backgroundColor: barColor,
+                    height: 'var(--gantt-task-bar-height)',
+                    cursor: dragHandleProps.style.cursor,
+                    userSelect: dragHandleProps.style.userSelect,
+                  }}
+                  onMouseDown={idx === 0 ? dragHandleProps.onMouseDown : undefined}
+                >
+                  {progressWidth > 0 && (
+                    <div
+                      className="gantt-tr-progressBar"
+                      style={{
+                        width: `${progressWidth}%`,
+                        backgroundColor: progressColor,
+                      }}
+                    />
+                  )}
+                  <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
+                  <span className="gantt-tr-taskDuration">
+                    {segDurationDays} д
+                  </span>
+                  {progressWidth > 0 && showProgressInside && (
+                    <span className="gantt-tr-progressText">
+                      {progressWidth}%
+                    </span>
+                  )}
+                  <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />
+                </div>
+
+                {/* Left labels only on leftmost segment */}
+                {isLeftmost && (
+                  <div
+                    className={`gantt-tr-leftLabels ${(task.locked || isMultiSegment) ? 'gantt-tr-leftLabels-locked' : ''}`}
+                    style={{
+                      left: `${displaySegLeft}px`
+                    }}
+                  >
+                    <span className="gantt-tr-dateLabel gantt-tr-dateLabelLeft">
+                      {startDateLabel}–{endDateLabel}
+                    </span>
+                  </div>
+                )}
+
+                {/* Lock icon on leftmost segment */}
+                {(task.locked || isMultiSegment) && isLeftmost && (
+                  <svg
+                    className="gantt-tr-lockIcon"
+                    style={{
+                      position: 'absolute',
+                      left: `${displaySegLeft - 16}px`,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '12px',
+                      height: '12px',
+                      color: '#444',
+                      pointerEvents: 'none',
+                    }}
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-label="Locked"
+                    aria-hidden="false"
+                  >
+                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                  </svg>
+                )}
+
+                {/* Right labels only on rightmost segment */}
+                {isRightmost && (
+                  <div
+                    className="gantt-tr-rightLabels"
+                    style={{
+                      left: `${displaySegLeft + displaySegWidth}px`,
+                    }}
+                  >
+                    {progressWidth > 0 && !showProgressInside && (
+                      <span className="gantt-tr-externalProgress">
+                        {progressWidth}%
+                      </span>
+                    )}
+                    <span className="gantt-tr-externalTaskName">
+                      {task.name}
+                    </span>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
         {taskDivider === 'bottom' && <div className="gantt-tr-divider gantt-tr-divider-bottom" />}
       </div>

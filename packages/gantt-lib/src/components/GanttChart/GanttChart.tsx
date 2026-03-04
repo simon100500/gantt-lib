@@ -63,6 +63,12 @@ export interface Task {
    * The line spans the full grid width.
    */
   divider?: 'top' | 'bottom';
+  /**
+   * Optional array of work segments for intermittent execution.
+   * When defined, renders multiple bars in the same row.
+   * If segments is empty/undefined, falls back to startDate/endDate for single bar.
+   */
+  segments?: TaskSegment[];
 }
 
 /**
@@ -75,6 +81,17 @@ export interface TaskDependency {
   type: 'FS' | 'SS' | 'FF' | 'SF';
   /** Optional lag in days (default: 0) */
   lag?: number;
+}
+
+/**
+ * Single work segment for tasks with intermittent execution
+ * Multiple segments can be defined in Task.segments array
+ */
+export interface TaskSegment {
+  /** Segment start date (ISO string or Date object) */
+  startDate: string | Date;
+  /** Segment end date (ISO string or Date object) */
+  endDate: string | Date;
 }
 
 export interface GanttChartProps {
