@@ -333,39 +333,6 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const cascadedChain = cascadeByLinks(updatedTask.id, newStart, newEnd, tasks);
 
     const allCascaded = [cascadedTask, ...cascadedChain];
-
-    // Log isExpired calculation for each cascaded task
-    const now = new Date();
-    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const tomorrow = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
-    const msPerDay = 1000 * 60 * 60 * 24;
-
-    console.log('[GanttChart handleTaskChange] IsExpired calculation:');
-    for (const t of allCascaded) {
-      const taskStart = new Date(t.startDate as string);
-      const taskEnd = new Date(t.endDate as string);
-      const actualProgress = t.progress ?? 0;
-
-      if (actualProgress >= 100) {
-        console.log(`  [${t.id}] START=${t.startDate} END=${t.endDate} TODAY=${today.toISOString().split('T')[0]} PROGRESS=${actualProgress}% EXPECTED=N/A (completed) EXPIRED=NO`);
-        continue;
-      }
-
-      const taskDuration = taskEnd.getTime() - taskStart.getTime() + msPerDay;  // +1 day to include end date
-      const isTaskEndingTodayOrTomorrow =
-        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() === taskEnd.getUTCDate()) ||
-        (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() === taskEnd.getUTCDate());
-      const elapsedCutoff = isTaskEndingTodayOrTomorrow ? new Date(today.getTime() - msPerDay) : today;
-      const daysFromStart = elapsedCutoff.getTime() - taskStart.getTime();
-      const expectedProgress = Math.min(100, Math.max(0, (daysFromStart / taskDuration) * 100));
-      const isExpired = actualProgress < expectedProgress;
-
-      // Debug logging
-      const durationDays = Math.round(taskDuration / msPerDay);
-      const elapsedDays = Math.round(daysFromStart / msPerDay);
-      console.log(`  [${t.id}] START=${t.startDate} END=${t.endDate} TODAY=${today.toISOString().split('T')[0]} PROGRESS=${actualProgress}% DURATION=${durationDays}d ELAPSED=${elapsedDays}d EXPECTED=${expectedProgress.toFixed(1)}% EXPIRED=${isExpired ? 'YES' : 'NO'}`);
-    }
-
     onChange?.((currentTasks) => {
       const m = new Map(allCascaded.map(t => [t.id, t]));
       return currentTasks.map(t => m.get(t.id) ?? t);
