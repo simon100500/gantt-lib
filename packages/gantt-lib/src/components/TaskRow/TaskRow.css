@@ -205,6 +205,17 @@
   cursor: not-allowed;
 }
 
+/* Multi-segment task bars */
+.gantt-tr-taskSegment {
+  /* Inherits all gantt-tr-taskBar styles */
+  /* Segments are naturally separated by gaps from date ranges */
+}
+
+/* Optional: Add subtle rounded corners to each segment for visual distinction */
+.gantt-tr-taskSegment {
+  border-radius: var(--gantt-task-bar-border-radius);
+}
+
 /* Divider line for visual grouping of task sets */
 .gantt-tr-divider {
   position: absolute;
