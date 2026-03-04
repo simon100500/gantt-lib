@@ -194,7 +194,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     };
 
     // Use drag hook for interactive drag/resize
-    // Disable drag for multi-segment tasks (complex interaction)
     const {
       isDragging,
       dragMode,
@@ -272,15 +271,37 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             const isLeftmost = seg.startDate.getTime() === overallBounds.minStart;
             const isRightmost = seg.endDate.getTime() === overallBounds.maxEnd;
 
-            // Use drag position for first segment if dragging, otherwise use calculated position
-            const displaySegLeft = (idx === 0 && isDragging) ? displayLeft : segLeft;
-            const displaySegWidth = (idx === 0 && isDragging) ? displayWidth : segWidth;
+            // Calculate display position for each segment during drag
+            let displaySegLeft = segLeft;
+            let displaySegWidth = segWidth;
+
+            if (isDragging && isMultiSegment) {
+              // Calculate delta from original overall task position
+              const deltaLeft = displayLeft - left;
+              const deltaWidth = displayWidth - width;
+
+              if (dragMode === 'move') {
+                // Move: shift all segments by the same delta
+                displaySegLeft = segLeft + deltaLeft;
+              } else if (dragMode === 'resize-left' && idx === 0) {
+                // Resize-left: only first segment changes position/width
+                displaySegLeft = segLeft + deltaLeft;
+                displaySegWidth = segWidth + deltaWidth;
+              } else if (dragMode === 'resize-right' && isRightmost) {
+                // Resize-right: only last segment changes width
+                displaySegWidth = segWidth + deltaWidth;
+              }
+            } else if (isDragging && idx === 0) {
+              // Single segment task - use drag position directly
+              displaySegLeft = displayLeft;
+              displaySegWidth = displayWidth;
+            }
 
             return (
               <React.Fragment key={`segment-${idx}`}>
                 <div
                   data-taskbar
-                  className={`gantt-tr-taskBar gantt-tr-taskSegment ${isDragging && idx === 0 ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''}`}
+                  className={`gantt-tr-taskBar gantt-tr-taskSegment ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''}`}
                   style={{
                     left: `${displaySegLeft}px`,
                     width: `${displaySegWidth}px`,
