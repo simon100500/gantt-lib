@@ -639,8 +639,19 @@ export default function Home() {
   );
 
   const handleExpiredTasksChange = useCallback(
-    (updated: Task[] | ((t: Task[]) => Task[])) =>
-      setExpiredTasks(typeof updated === "function" ? updated : () => updated),
+    (updated: Task[] | ((t: Task[]) => Task[])) => {
+      console.log('[handleExpiredTasksChange] onChange called, type:', typeof updated);
+      if (typeof updated === 'function') {
+        setExpiredTasks((currentTasks) => {
+          const newTasks = updated(currentTasks);
+          console.log('[handleExpiredTasksChange] Tasks updated:', newTasks.map(t => ({ id: t.id, start: t.startDate, end: t.endDate })));
+          return newTasks;
+        });
+      } else {
+        console.log('[handleExpiredTasksChange] Direct tasks update:', updated.map(t => ({ id: t.id, start: t.startDate, end: t.endDate })));
+        setExpiredTasks(() => updated);
+      }
+    },
     [],
   );
 

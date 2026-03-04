@@ -122,15 +122,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         return false; // Completed tasks are never expired
       }
 
-      // Tasks ending AFTER tomorrow are truly future tasks - never expired
-      if (
-        tomorrow.getUTCFullYear() < taskEnd.getUTCFullYear() ||
-        (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() < taskEnd.getUTCMonth()) ||
-        (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() < taskEnd.getUTCDate())
-      ) {
-        return false;
-      }
-
       // Calculate "today" position as percentage within the task bar
       // KEY FIX: Current day doesn't count as elapsed time
       // For tasks ending today or tomorrow, use "yesterday" as elapsed cutoff

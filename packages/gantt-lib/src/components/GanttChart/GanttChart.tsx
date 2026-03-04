@@ -309,10 +309,17 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
    * relying on the fact that onChange fires only after drag completes.
    */
   const handleTaskChange = useCallback((updatedTask: Task) => {
+    console.log('[========== GanttChart handleTaskChange START ==========]');
+    console.log('[GanttChart handleTaskChange] Task updated:', updatedTask.id, {
+      startDate: updatedTask.startDate,
+      endDate: updatedTask.endDate,
+    });
     // Find original task to detect date changes
     const originalTask = tasks.find(t => t.id === updatedTask.id);
     if (!originalTask) {
+      console.log('[GanttChart handleTaskChange] Original task not found, doing simple update');
       onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      console.log('[========== GanttChart handleTaskChange END (no original) ==========]');
       return;
     }
 
@@ -322,9 +329,19 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const newEnd = new Date(updatedTask.endDate as string);
     const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
 
+    console.log('[GanttChart handleTaskChange] Dates changed:', datesChanged, {
+      origStart: origStart.toISOString(),
+      newStart: newStart.toISOString(),
+      origEnd: origEnd.toISOString(),
+      newEnd: newEnd.toISOString(),
+      disableConstraints,
+    });
+
     // No date change (name edit) or constraints disabled: simple update
     if (!datesChanged || disableConstraints) {
+      console.log('[GanttChart handleTaskChange] Doing simple update (no date change or constraints disabled)');
       onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      console.log('[========== GanttChart handleTaskChange END (simple update) ==========]');
       return;
     }
 
@@ -333,11 +350,13 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const cascadedChain = cascadeByLinks(updatedTask.id, newStart, newEnd, tasks);
 
     const allCascaded = [cascadedTask, ...cascadedChain];
+    console.log('[GanttChart handleTaskChange] Cascade update, tasks:', allCascaded.map(t => ({ id: t.id, start: t.startDate, end: t.endDate })));
     onChange?.((currentTasks) => {
       const m = new Map(allCascaded.map(t => [t.id, t]));
       return currentTasks.map(t => m.get(t.id) ?? t);
     });
     onCascade?.(allCascaded);
+    console.log('[========== GanttChart handleTaskChange END (cascade) ==========]');
   }, [tasks, onChange, disableConstraints, onCascade]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
