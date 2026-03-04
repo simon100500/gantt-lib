@@ -126,7 +126,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       // KEY FIX: Current day doesn't count as elapsed time
       // For tasks ending today or tomorrow, use "yesterday" as elapsed cutoff
       const msPerDay = 1000 * 60 * 60 * 24;
-      const taskDuration = taskEnd.getTime() - taskStart.getTime();
+      const taskDuration = taskEnd.getTime() - taskStart.getTime() + msPerDay;  // +1 day to include end date
 
       // For tasks ending today or tomorrow, subtract 1 day from elapsed calculation
       // because current day boundary is at the left (day just started, not finished)
