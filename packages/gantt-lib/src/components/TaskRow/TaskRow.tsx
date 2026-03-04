@@ -110,6 +110,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       // Create UTC today for comparison
       const now = new Date();
       const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      const tomorrow = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
 
       // Parse task dates as UTC
       const taskStart = parseUTCDate(task.startDate);
@@ -121,29 +122,28 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         return false; // Completed tasks are never expired
       }
 
-      // Tasks ending in the future are NEVER expired (deadline hasn't passed)
+      // Tasks ending AFTER tomorrow are truly future tasks - never expired
       if (
-        today.getUTCFullYear() < taskEnd.getUTCFullYear() ||
-        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() < taskEnd.getUTCMonth()) ||
-        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() < taskEnd.getUTCDate())
+        tomorrow.getUTCFullYear() < taskEnd.getUTCFullYear() ||
+        (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() < taskEnd.getUTCMonth()) ||
+        (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() < taskEnd.getUTCDate())
       ) {
         return false;
       }
 
       // Calculate "today" position as percentage within the task bar
       // KEY FIX: Current day doesn't count as elapsed time
-      // If task ends today or in future, use "yesterday" as elapsed cutoff
+      // For tasks ending today or tomorrow, use "yesterday" as elapsed cutoff
       const msPerDay = 1000 * 60 * 60 * 24;
       const taskDuration = taskEnd.getTime() - taskStart.getTime();
 
-      // For tasks ending today or future, subtract 1 day from elapsed calculation
+      // For tasks ending today or tomorrow, subtract 1 day from elapsed calculation
       // because current day boundary is at the left (day just started, not finished)
-      const isTaskEndingTodayOrLater =
-        today.getUTCFullYear() < taskEnd.getUTCFullYear() ||
-        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() < taskEnd.getUTCMonth()) ||
-        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() <= taskEnd.getUTCDate());
+      const isTaskEndingTodayOrTomorrow =
+        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() <= taskEnd.getUTCDate()) ||
+        (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() === taskEnd.getUTCDate());
 
-      const elapsedCutoff = isTaskEndingTodayOrLater
+      const elapsedCutoff = isTaskEndingTodayOrTomorrow
         ? new Date(today.getTime() - msPerDay)
         : today;
 

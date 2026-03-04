@@ -57,6 +57,7 @@ describe('isExpired calculation - edge cases', () => {
 
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const tomorrow = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
 
     const taskStart = new Date(Date.UTC(
       parseInt(startDateStr.substring(0, 4)),
@@ -72,28 +73,27 @@ describe('isExpired calculation - edge cases', () => {
     const actualProgress = progress ?? 0;
     if (actualProgress >= 100) return false;
 
-    // Tasks ending in the future are NEVER expired (deadline hasn't passed)
+    // Tasks ending AFTER tomorrow are truly future tasks - never expired
     if (
-      today.getUTCFullYear() < taskEnd.getUTCFullYear() ||
-      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() < taskEnd.getUTCMonth()) ||
-      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() < taskEnd.getUTCDate())
+      tomorrow.getUTCFullYear() < taskEnd.getUTCFullYear() ||
+      (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() < taskEnd.getUTCMonth()) ||
+      (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() < taskEnd.getUTCDate())
     ) {
       return false;
     }
 
     // Calculate "today" position as percentage within the task bar
     // KEY FIX: Current day doesn't count as elapsed time
-    // If task ends today or in future, use "yesterday" as elapsed cutoff
+    // For tasks ending today or tomorrow, use "yesterday" as elapsed cutoff
     const msPerDay = 1000 * 60 * 60 * 24;
     const taskDuration = taskEnd.getTime() - taskStart.getTime();
 
-    // For tasks ending today or future, subtract 1 day from elapsed calculation
-    const isTaskEndingTodayOrLater =
-      today.getUTCFullYear() < taskEnd.getUTCFullYear() ||
-      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() < taskEnd.getUTCMonth()) ||
-      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() <= taskEnd.getUTCDate());
+    // For tasks ending today or tomorrow, subtract 1 day from elapsed calculation
+    const isTaskEndingTodayOrTomorrow =
+      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() <= taskEnd.getUTCDate()) ||
+      (tomorrow.getUTCFullYear() === taskEnd.getUTCFullYear() && tomorrow.getUTCMonth() === taskEnd.getUTCMonth() && tomorrow.getUTCDate() === taskEnd.getUTCDate());
 
-    const elapsedCutoff = isTaskEndingTodayOrLater
+    const elapsedCutoff = isTaskEndingTodayOrTomorrow
       ? new Date(today.getTime() - msPerDay)
       : today;
 
@@ -131,15 +131,16 @@ describe('isExpired calculation - edge cases', () => {
   });
 
   describe('Test 3: Task ending TOMORROW with 0% progress', () => {
-    it('should NOT be expired (future task)', () => {
+    it('should BE expired (0% < 50% expected)', () => {
       // Mock today as 2026-03-04
       mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0)));
 
-      // Task ending tomorrow with 0% progress
+      // 5-day task (01-05.03) ending tomorrow with 0% progress
+      // With fixed logic: elapsed = 2 days (current day doesn't count), expected = 50%
       const isExpired = calculateIsExpired('2026-03-01', '2026-03-05', 0);
 
-      // Expected: false (future task)
-      expect(isExpired).toBe(false);
+      // Expected: true (expired - 0% < 50% expected)
+      expect(isExpired).toBe(true);
     });
   });
 
@@ -220,6 +221,33 @@ describe('isExpired calculation - edge cases', () => {
       const isExpired = calculateIsExpired('2026-02-25', '2026-03-04', 90);
 
       // Expected: false (90% >= 87.5% expected - sufficient progress)
+      expect(isExpired).toBe(false);
+    });
+  });
+
+  describe('Test 10: Гидроизоляция фундамента - ending tomorrow (05.03) with 65%', () => {
+    it('should BE expired (65% < 89.7% expected)', () => {
+      // Mock today as 2026-03-04 (leap year, Feb has 29 days)
+      mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0)));
+
+      // 29-day task (05.02-05.03) ending tomorrow with 65% progress
+      // With fixed logic: elapsed = 26 days (current day doesn't count), expected = 89.7%
+      const isExpired = calculateIsExpired('2026-02-05', '2026-03-05', 65);
+
+      // Expected: true (expired - 65% < 89.7% expected)
+      expect(isExpired).toBe(true);
+    });
+  });
+
+  describe('Test 11: Task ending day AFTER tomorrow with 0% progress', () => {
+    it('should NOT be expired (truly future task)', () => {
+      // Mock today as 2026-03-04
+      mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0)));
+
+      // Task ending day after tomorrow (06.03) with 0% progress
+      const isExpired = calculateIsExpired('2026-03-01', '2026-03-06', 0);
+
+      // Expected: false (truly future task - ends after tomorrow)
       expect(isExpired).toBe(false);
     });
   });
