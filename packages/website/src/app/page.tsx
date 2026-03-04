@@ -570,12 +570,68 @@ const createExpiredTasks = (): Task[] => {
   ];
 };
 
+// Demo tasks with multiple segments (intermittent work)
+const createMultiSegmentTasks = (): Task[] => {
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const formatDate = (date: Date): string => date.toISOString().split('T')[0];
+  const addDays = (date: Date, days: number): Date => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  };
+
+  const week1 = addDays(today, -14);
+  const week2 = addDays(today, -7);
+  const week3 = today;
+  const week4 = addDays(today, 7);
+
+  return [
+    {
+      id: 'segment-1',
+      name: 'Прерывистая работа: 3 сегмента с перерывами',
+      startDate: formatDate(week1), // fallback (not used when segments defined)
+      endDate: formatDate(addDays(week4, 2)), // fallback (not used when segments defined)
+      color: '#3b82f6',
+      progress: 60,
+      segments: [
+        { startDate: formatDate(week1), endDate: formatDate(addDays(week1, 2)) },
+        { startDate: formatDate(week2), endDate: formatDate(addDays(week2, 3)) },
+        { startDate: formatDate(week3), endDate: formatDate(addDays(week3, 4)) },
+      ],
+    },
+    {
+      id: 'segment-2',
+      name: 'Работа с большими перерывами',
+      startDate: formatDate(week1),
+      endDate: formatDate(addDays(week4, 5)),
+      color: '#10b981',
+      progress: 35,
+      segments: [
+        { startDate: formatDate(addDays(today, -10)), endDate: formatDate(addDays(today, -8)) },
+        { startDate: formatDate(addDays(today, -5)), endDate: formatDate(addDays(today, -2)) },
+        { startDate: formatDate(addDays(today, 2)), endDate: formatDate(addDays(today, 5)) },
+      ],
+    },
+    {
+      id: 'segment-3',
+      name: 'Обычная задача (без сегментов)',
+      startDate: formatDate(today),
+      endDate: formatDate(addDays(today, 4)),
+      color: '#f59e0b',
+      progress: 50,
+      // no segments = single bar
+    },
+  ];
+};
+
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
   const [dependencyTasks, setDependencyTasks] = useState<Task[]>(createDependencyTasks);
   const [cascadeTasks, setCascadeTasks] = useState<Task[]>(createCascadeTasks);
   const [chain100Tasks, setChain100Tasks] = useState<Task[]>(createChain100Tasks);
   const [expiredTasks, setExpiredTasks] = useState<Task[]>(createExpiredTasks);
+  const [multiSegmentTasks, setMultiSegmentTasks] = useState<Task[]>(createMultiSegmentTasks);
   const [blockConstraints, setBlockConstraints] = useState(true);
   const [showTaskList, setShowTaskList] = useState(true);
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
@@ -642,6 +698,12 @@ export default function Home() {
     (updated: Task[] | ((t: Task[]) => Task[])) => {
       setExpiredTasks(typeof updated === "function" ? updated : () => updated);
     },
+    [],
+  );
+
+  const handleMultiSegmentChange = useCallback(
+    (updated: Task[] | ((t: Task[]) => Task[])) =>
+      setMultiSegmentTasks(typeof updated === "function" ? updated : () => updated),
     [],
   );
 
@@ -881,6 +943,32 @@ export default function Home() {
             rowHeight={40}
             containerHeight={250}
             highlightExpiredTasks={highlightExpired}
+          />
+        </div>
+      </div>
+
+      {/* Multi-Segment Tasks Demo (Quick 058) */}
+      <div style={{ marginBottom: "3rem" }}>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+          Мульти-сегментные задачи (Quick 058)
+        </h2>
+        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
+          Одна задача с несколькими сегментами выполнения. Наглядно показывает прерывистую работу.
+          Сегменты определяются через task.segments массив. Мульти-сегментные задачи заблокированы для перемещения.
+        </p>
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "1rem",
+          }}
+        >
+          <GanttChart
+            tasks={multiSegmentTasks}
+            onChange={handleMultiSegmentChange}
+            dayWidth={40}
+            rowHeight={40}
+            containerHeight={200}
           />
         </div>
       </div>
