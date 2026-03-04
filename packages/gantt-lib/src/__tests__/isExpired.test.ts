@@ -45,7 +45,7 @@ describe('isExpired calculation - edge cases', () => {
 
   /**
    * Simulates the isExpired calculation from TaskRow.tsx
-   * This is the CURRENT implementation (before fix)
+   * This uses the FIXED implementation that checks if task ends today or in the future
    */
   function calculateIsExpired(
     startDateStr: string,
@@ -71,8 +71,26 @@ describe('isExpired calculation - edge cases', () => {
 
     const actualProgress = progress ?? 0;
     if (actualProgress >= 100) return false;
-    if (today.getTime() < taskStart.getTime()) return false;
 
+    // Tasks ending in the future are NOT expired
+    if (
+      today.getUTCFullYear() < taskEnd.getUTCFullYear() ||
+      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() < taskEnd.getUTCMonth()) ||
+      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() < taskEnd.getUTCDate())
+    ) {
+      return false;
+    }
+
+    // Tasks ending today are NOT expired
+    if (
+      today.getUTCFullYear() === taskEnd.getUTCFullYear() &&
+      today.getUTCMonth() === taskEnd.getUTCMonth() &&
+      today.getUTCDate() === taskEnd.getUTCDate()
+    ) {
+      return false;
+    }
+
+    // For tasks ending in the past, check if progress is sufficient
     const msPerDay = 1000 * 60 * 60 * 24;
     const taskDuration = taskEnd.getTime() - taskStart.getTime();
     const daysFromStart = today.getTime() - taskStart.getTime();

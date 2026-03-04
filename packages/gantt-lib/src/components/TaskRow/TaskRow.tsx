@@ -121,11 +121,27 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         return false; // Completed tasks are never expired
       }
 
-      // Task must have started
-      if (today.getTime() < taskStart.getTime()) {
-        return false; // Future tasks cannot be expired
+      // Tasks ending in the future (today < taskEnd) are NOT expired
+      // Compare year, month, and date directly to handle dates correctly
+      if (
+        today.getUTCFullYear() < taskEnd.getUTCFullYear() ||
+        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() < taskEnd.getUTCMonth()) ||
+        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() < taskEnd.getUTCDate())
+      ) {
+        return false; // Tasks ending in the future are not expired
       }
 
+      // Tasks ending today are NOT expired - they still have the full day to work
+      // Compare year, month, and date directly to avoid timezone issues
+      if (
+        today.getUTCFullYear() === taskEnd.getUTCFullYear() &&
+        today.getUTCMonth() === taskEnd.getUTCMonth() &&
+        today.getUTCDate() === taskEnd.getUTCDate()
+      ) {
+        return false; // Tasks ending today are not expired
+      }
+
+      // For tasks ending in the past, check if progress is sufficient
       // Calculate "today" position as percentage within the task bar
       // If progress bar is shorter than "today" position → expired
       const msPerDay = 1000 * 60 * 60 * 24;
