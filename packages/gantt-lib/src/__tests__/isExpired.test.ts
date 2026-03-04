@@ -3,8 +3,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 /**
  * Test file for isExpired calculation in TaskRow component
  *
- * These tests verify that tasks ending today are NOT marked as expired
- * because the current day is still available for work.
+ * These tests verify that the current day doesn't count as elapsed time.
+ * For tasks ending today, we use "yesterday" as the elapsed cutoff.
  */
 
 describe('isExpired calculation - edge cases', () => {
@@ -45,7 +45,7 @@ describe('isExpired calculation - edge cases', () => {
 
   /**
    * Simulates the isExpired calculation from TaskRow.tsx
-   * This uses the FIXED implementation that checks if task ends today or in the future
+   * This uses the FIXED implementation where current day doesn't count as elapsed time
    */
   function calculateIsExpired(
     startDateStr: string,
@@ -72,7 +72,7 @@ describe('isExpired calculation - edge cases', () => {
     const actualProgress = progress ?? 0;
     if (actualProgress >= 100) return false;
 
-    // Tasks ending in the future are NOT expired
+    // Tasks ending in the future are NEVER expired (deadline hasn't passed)
     if (
       today.getUTCFullYear() < taskEnd.getUTCFullYear() ||
       (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() < taskEnd.getUTCMonth()) ||
@@ -81,36 +81,39 @@ describe('isExpired calculation - edge cases', () => {
       return false;
     }
 
-    // Tasks ending today are NOT expired
-    if (
-      today.getUTCFullYear() === taskEnd.getUTCFullYear() &&
-      today.getUTCMonth() === taskEnd.getUTCMonth() &&
-      today.getUTCDate() === taskEnd.getUTCDate()
-    ) {
-      return false;
-    }
-
-    // For tasks ending in the past, check if progress is sufficient
+    // Calculate "today" position as percentage within the task bar
+    // KEY FIX: Current day doesn't count as elapsed time
+    // If task ends today or in future, use "yesterday" as elapsed cutoff
     const msPerDay = 1000 * 60 * 60 * 24;
     const taskDuration = taskEnd.getTime() - taskStart.getTime();
-    const daysFromStart = today.getTime() - taskStart.getTime();
+
+    // For tasks ending today or future, subtract 1 day from elapsed calculation
+    const isTaskEndingTodayOrLater =
+      today.getUTCFullYear() < taskEnd.getUTCFullYear() ||
+      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() < taskEnd.getUTCMonth()) ||
+      (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() <= taskEnd.getUTCDate());
+
+    const elapsedCutoff = isTaskEndingTodayOrLater
+      ? new Date(today.getTime() - msPerDay)
+      : today;
+
+    const daysFromStart = elapsedCutoff.getTime() - taskStart.getTime();
     const todayPosition = Math.min(100, Math.max(0, (daysFromStart / taskDuration) * 100));
 
     return actualProgress < todayPosition;
   }
 
   describe('Test 1: Task ending TODAY with 0% progress', () => {
-    it('should NOT be expired (today is still available for work)', () => {
+    it('should BE expired (insufficient progress for elapsed time)', () => {
       // Mock today as 2026-03-04
       mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0))); // March 4, 2026 noon UTC
 
-      // Task ending today with 0% progress
+      // 4-day task (01-04.03) ending today with 0% progress
+      // With fixed logic: elapsed = 2 days (current day doesn't count), expected = 66.7%
       const isExpired = calculateIsExpired('2026-03-01', '2026-03-04', 0);
 
-      // This WILL FAIL with current implementation (bug)
-      // Expected: false (NOT expired)
-      // Actual: true (incorrectly marked as expired)
-      expect(isExpired).toBe(false);
+      // Expected: true (expired - 0% << 66.7% expected)
+      expect(isExpired).toBe(true);
     });
   });
 
@@ -141,15 +144,16 @@ describe('isExpired calculation - edge cases', () => {
   });
 
   describe('Test 4: Task ending TODAY with 50% progress', () => {
-    it('should NOT be expired (sufficient progress)', () => {
+    it('should BE expired (50% < 66.7% expected)', () => {
       // Mock today as 2026-03-04
       mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0)));
 
-      // 4-day task ending today with 50% progress
+      // 4-day task (01-04.03) ending today with 50% progress
+      // With fixed logic: elapsed = 2 days, expected = 66.7%
       const isExpired = calculateIsExpired('2026-03-01', '2026-03-04', 50);
 
-      // Expected: false (50% progress for 4-day task that started 3 days ago)
-      expect(isExpired).toBe(false);
+      // Expected: true (expired - 50% < 66.7% expected)
+      expect(isExpired).toBe(true);
     });
   });
 
@@ -188,6 +192,34 @@ describe('isExpired calculation - edge cases', () => {
       const isExpired = calculateIsExpired('2026-03-04', '2026-03-04', 0);
 
       // Expected: false (single-day task ending today should not be expired)
+      expect(isExpired).toBe(false);
+    });
+  });
+
+  describe('Test 8: User example - 10-day task ending today with 95%', () => {
+    it('should NOT be expired (95% > 90% expected)', () => {
+      // Mock today as 2026-03-04
+      mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0)));
+
+      // 10-day task (23.02-04.03) ending today with 95% progress
+      // With fixed logic: elapsed = 9 days (current day doesn't count), expected = 90%
+      const isExpired = calculateIsExpired('2026-02-23', '2026-03-04', 95);
+
+      // Expected: false (95% >= 90% expected - sufficient progress)
+      expect(isExpired).toBe(false);
+    });
+  });
+
+  describe('Test 9: User example - 8-day task ending today with 90%', () => {
+    it('should NOT be expired (90% > 87.5% expected)', () => {
+      // Mock today as 2026-03-04
+      mockToday(new Date(Date.UTC(2026, 2, 4, 12, 0, 0)));
+
+      // 8-day task (25.02-04.03) ending today with 90% progress
+      // With fixed logic: elapsed = 7 days (current day doesn't count), expected = 87.5%
+      const isExpired = calculateIsExpired('2026-02-25', '2026-03-04', 90);
+
+      // Expected: false (90% >= 87.5% expected - sufficient progress)
       expect(isExpired).toBe(false);
     });
   });

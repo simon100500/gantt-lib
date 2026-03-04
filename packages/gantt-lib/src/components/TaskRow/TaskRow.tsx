@@ -121,33 +121,41 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         return false; // Completed tasks are never expired
       }
 
-      // Tasks ending in the future (today < taskEnd) are NOT expired
-      // Compare year, month, and date directly to handle dates correctly
+      // Tasks ending in the future are NEVER expired (deadline hasn't passed)
       if (
         today.getUTCFullYear() < taskEnd.getUTCFullYear() ||
         (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() < taskEnd.getUTCMonth()) ||
         (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() < taskEnd.getUTCDate())
       ) {
-        return false; // Tasks ending in the future are not expired
+        return false;
       }
 
-      // Tasks ending today are NOT expired - they still have the full day to work
-      // Compare year, month, and date directly to avoid timezone issues
-      if (
-        today.getUTCFullYear() === taskEnd.getUTCFullYear() &&
-        today.getUTCMonth() === taskEnd.getUTCMonth() &&
-        today.getUTCDate() === taskEnd.getUTCDate()
-      ) {
-        return false; // Tasks ending today are not expired
-      }
-
-      // For tasks ending in the past, check if progress is sufficient
       // Calculate "today" position as percentage within the task bar
-      // If progress bar is shorter than "today" position → expired
+      // KEY FIX: Current day doesn't count as elapsed time
+      // If task ends today or in future, use "yesterday" as elapsed cutoff
       const msPerDay = 1000 * 60 * 60 * 24;
       const taskDuration = taskEnd.getTime() - taskStart.getTime();
-      const daysFromStart = today.getTime() - taskStart.getTime();
+
+      // For tasks ending today or future, subtract 1 day from elapsed calculation
+      // because current day boundary is at the left (day just started, not finished)
+      const isTaskEndingTodayOrLater =
+        today.getUTCFullYear() < taskEnd.getUTCFullYear() ||
+        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() < taskEnd.getUTCMonth()) ||
+        (today.getUTCFullYear() === taskEnd.getUTCFullYear() && today.getUTCMonth() === taskEnd.getUTCMonth() && today.getUTCDate() <= taskEnd.getUTCDate());
+
+      const elapsedCutoff = isTaskEndingTodayOrLater
+        ? new Date(today.getTime() - msPerDay)
+        : today;
+
+      const daysFromStart = elapsedCutoff.getTime() - taskStart.getTime();
       const todayPosition = Math.min(100, Math.max(0, (daysFromStart / taskDuration) * 100));
+
+      // console.log('TASK_ID', task.id);
+      // console.log('daysFromStart', daysFromStart);
+      // console.log('taskDuration', taskDuration);
+      // console.log('todayPosition', todayPosition);
+      // console.log('actualProgress', actualProgress);
+      // console.log('isExpired', actualProgress < todayPosition);
 
       // Expired if progress doesn't reach the "today" vertical line
       return actualProgress < todayPosition;
