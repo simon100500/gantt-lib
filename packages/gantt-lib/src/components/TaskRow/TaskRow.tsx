@@ -214,7 +214,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       rowIndex,
       enableAutoSchedule,
       disableConstraints,
-      locked: task.locked || isMultiSegment, // Lock multi-segment tasks
+      locked: task.locked,
       onCascadeProgress,
       onCascade,
     });
@@ -280,7 +280,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               <React.Fragment key={`segment-${idx}`}>
                 <div
                   data-taskbar
-                  className={`gantt-tr-taskBar gantt-tr-taskSegment ${isDragging && idx === 0 ? 'gantt-tr-dragging' : ''} ${(task.locked || isMultiSegment) ? 'gantt-tr-locked' : ''}`}
+                  className={`gantt-tr-taskBar gantt-tr-taskSegment ${isDragging && idx === 0 ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''}`}
                   style={{
                     left: `${displaySegLeft}px`,
                     width: `${displaySegWidth}px`,
@@ -315,7 +315,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 {/* Left labels only on leftmost segment */}
                 {isLeftmost && (
                   <div
-                    className={`gantt-tr-leftLabels ${(task.locked || isMultiSegment) ? 'gantt-tr-leftLabels-locked' : ''}`}
+                    className={`gantt-tr-leftLabels ${task.locked ? 'gantt-tr-leftLabels-locked' : ''}`}
                     style={{
                       left: `${displaySegLeft}px`
                     }}
@@ -327,7 +327,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 )}
 
                 {/* Lock icon on leftmost segment */}
-                {(task.locked || isMultiSegment) && isLeftmost && (
+                {task.locked && isLeftmost && (
                   <svg
                     className="gantt-tr-lockIcon"
                     style={{
