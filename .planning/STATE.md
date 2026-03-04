@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: "Completed quick task 058: Multi-segment task support"
+stopped_at: "Completed quick task 058: Multi-segment task support - multiple bars in one row for intermittent work"
 last_updated: "2026-03-04T21:27:55.980Z"
 last_activity: "2026-03-04 - Fixed quick task 56: removed incorrect "future task" early return, now ALL tasks are checked for expiration"
 progress:
@@ -120,7 +120,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 14 of 14 (14-dependencies-edit-task-list)
 Plan: 2 of 2 in current phase (2 complete, 0 pending)
 Status: COMPLETE - Plan 14-02 complete: TaskListRow Связи cell with chips, picker mode, overflow Popover
-Last activity: 2026-03-04 - Fixed quick task 56: removed incorrect "future task" early return, now ALL tasks are checked for expiration
+Last activity: 2026-03-04 - Completed quick task 58: Multi-segment task support - multiple bars in one row for intermittent work
 
 Progress: [████████████] Phase 14: 2 of 2 plans complete (PHASE COMPLETE)
 
@@ -372,6 +372,7 @@ None yet.
 | 54 | Native tooltip on dep chips showing predecessor task name on hover | 2026-03-03 | 2b74d38 | [054-tooltip-dep-chip](./quick/054-tooltip-dep-chip/) |
 | 55 | Radix Popover on dep chip click showing Russian human-readable dependency description | 2026-03-03 | 0a169d1 | [055-popover-dep-chip](./quick/055-popover-dep-chip/) |
 | 56 | Fix overdue calculation edge cases - current day should not count as completed | 2026-03-04 | a6ba702 | [56-fix-overdue-calculation-edge-cases-in-ga](./quick/56-fix-overdue-calculation-edge-cases-in-ga/) |
+| 58 | Multi-segment task support - multiple bars in one row for intermittent work | 2026-03-04 | 7b9ecbd | [58-multi-segment-task](./quick/058-multi-segment-task/) |
 
 ## Session Continuity
 
