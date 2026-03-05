@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback, useRef } from 'react';
 import { parseUTCDate, formatDateLabel } from '../../utils/dateUtils';
 import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
@@ -118,6 +118,19 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Check if this is a multi-segment task
     const isMultiSegment = segments.length > 1;
 
+    // Phase 059: Track which segment is being dragged
+    const draggedSegmentIndexRef = useRef<number | undefined>(undefined);
+
+    // Wrapper for onDragStateChange to capture segment index
+    const handleDragStateChange = useCallback((state: {
+      isDragging: boolean;
+      dragMode: 'move' | 'resize-left' | 'resize-right' | null;
+      left: number;
+      width: number;
+    }) => {
+      onDragStateChange?.(state);
+    }, [onDragStateChange]);
+
     // Calculate expiration status for overdue tasks
     const isExpired = useMemo(() => {
       if (!highlightExpiredTasks) return false;
@@ -183,13 +196,16 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     }, [isExpired, progressWidth, task.accepted, task.color]);
 
     // Handle drag end - call onChange with updated task
-    const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
+    const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'], segmentIndex?: number, totalSegments?: number }) => {
       // Calculate delta in days
       const msPerDay = 1000 * 60 * 60 * 24;
       const startDeltaMs = result.startDate.getTime() - taskStartDate.getTime();
       const endDeltaMs = result.endDate.getTime() - taskEndDate.getTime();
       const startDeltaDays = Math.round(startDeltaMs / msPerDay);
       const endDeltaDays = Math.round(endDeltaMs / msPerDay);
+
+      // Phase 059: Extract segment index for segment-level drag
+      const draggedSegmentIndex = result.segmentIndex;
 
       // Update segments if they exist
       let updatedSegments = task.segments;
@@ -204,7 +220,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           const segEnd = parseUTCDate(seg.endDate);
 
           if (isMove) {
-            // Move: shift all segments by startDeltaDays
+            // Phase 059: For segment-level drag, only shift the dragged segment and followers
+            if (draggedSegmentIndex !== undefined && idx < draggedSegmentIndex) {
+              // Before dragged segment: no change
+              return seg;
+            }
+            // Dragged segment and all followers: shift by startDeltaDays
             return {
               startDate: new Date(segStart.getTime() + startDeltaMs).toISOString(),
               endDate: new Date(segEnd.getTime() + startDeltaMs).toISOString(),
@@ -250,7 +271,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       monthStart,
       dayWidth,
       onDragEnd: handleDragEnd,
-      onDragStateChange,
+      onDragStateChange: handleDragStateChange,
       edgeZoneWidth: 20,
       allTasks,
       rowIndex,
@@ -260,6 +281,27 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       onCascadeProgress,
       onCascade,
     });
+
+    // Phase 059: Create segment-specific drag handler
+    // For multi-segment tasks, enable individual segment dragging where
+    // dragging a segment shifts all subsequent segments (followers)
+    const handleSegmentMouseDown = useCallback((e: React.MouseEvent, segmentIndex: number) => {
+      // For single-segment tasks, use the original drag handler
+      if (!isMultiSegment) {
+        dragHandleProps.onMouseDown(e);
+        return;
+      }
+
+      // For multi-segment tasks, track which segment is being dragged
+      draggedSegmentIndexRef.current = segmentIndex;
+
+      // Store segment index in event for use by the drag handler
+      (e as any)._segmentIndex = segmentIndex;
+      (e as any)._totalSegments = segments.length;
+
+      // Delegate to the main drag handler
+      dragHandleProps.onMouseDown(e);
+    }, [isMultiSegment, dragHandleProps, segments.length]);
 
     // Use override position (for cascade preview) with fallback to drag or static position
     const displayLeft = overridePosition?.left ?? (isDragging ? currentLeft : left);
@@ -323,9 +365,18 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               const deltaLeft = displayLeft - left;
               const deltaWidth = displayWidth - width;
 
+              // Phase 059: Segment-level drag behavior
+              // When dragging a specific segment, only that segment and followers move
+              // Default to 0 for backward compatibility (first segment = whole task drag)
+              const draggedSegmentIndex = draggedSegmentIndexRef.current ?? 0;
+
               if (dragMode === 'move') {
-                // Move: shift all segments by the same delta
-                displaySegLeft = segLeft + deltaLeft;
+                // Move: shift the dragged segment and all followers
+                // Segments before the dragged one stay in place
+                if (idx >= draggedSegmentIndex) {
+                  displaySegLeft = segLeft + deltaLeft;
+                }
+                // Otherwise keep original position (no shift)
               } else if (dragMode === 'resize-left' && idx === 0) {
                 // Resize-left: only first segment changes position/width
                 displaySegLeft = segLeft + deltaLeft;
@@ -344,6 +395,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               <React.Fragment key={`segment-${idx}`}>
                 <div
                   data-taskbar
+                  data-segment-index={idx}
                   className={`gantt-tr-taskBar gantt-tr-taskSegment ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''}`}
                   style={{
                     left: `${displaySegLeft}px`,
@@ -353,7 +405,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                     cursor: dragHandleProps.style.cursor,
                     userSelect: dragHandleProps.style.userSelect,
                   }}
-                  onMouseDown={idx === 0 ? dragHandleProps.onMouseDown : undefined}
+                  onMouseDown={(e) => handleSegmentMouseDown(e, idx)}
                 >
                   {progressWidth > 0 && (
                     <div

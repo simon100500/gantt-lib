@@ -421,7 +421,7 @@ export interface UseTaskDragOptions {
   /** Width of each day in pixels */
   dayWidth: number;
   /** Callback when drag operation completes */
-  onDragEnd?: (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => void;
+  onDragEnd?: (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'], segmentIndex?: number, totalSegments?: number }) => void;
   /** Callback for drag state changes (for parent components to render guide lines) */
   onDragStateChange?: (state: {
     isDragging: boolean;
@@ -706,14 +706,18 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
       // Soft mode OR hard mode with no FS successors: call onDragEnd
       // Always recalculate lag so hard-mode drags (chain.length===0) also persist the new lag
+      // Phase 059: Include segmentIndex in onDragEnd result for segment-level drag handling
+      const segmentIndex = globalActiveDrag?.segmentIndex;
+      const totalSegments = globalActiveDrag?.totalSegments;
+
       if (allTasks.length > 0 && onDragEnd) {
         const currentTaskData = allTasks.find(t => t.id === taskId);
         const updatedDependencies = currentTaskData?.dependencies
           ? recalculateIncomingLags(currentTaskData, newStartDate, newEndDate, allTasks)
           : undefined;
-        onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate, updatedDependencies });
+        onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate, updatedDependencies, segmentIndex, totalSegments });
       } else if (onDragEnd) {
-        onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate });
+        onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate, segmentIndex, totalSegments });
       }
     }
   }, [dayWidth, monthStart, onDragEnd, onDragStateChange, taskId, disableConstraints, onCascade, allTasks, initialStartDate, initialEndDate]);
@@ -754,6 +758,10 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Phase 11: locked tasks cannot be dragged or resized
     if (locked) return;
+
+    // Phase 059: Extract segment index from event (set by TaskRow)
+    const segmentIndex = (e as any)._segmentIndex as number | undefined;
+    const totalSegments = (e as any)._totalSegments as number | undefined;
 
     const target = e.currentTarget as HTMLElement;
     const edgeZone = detectEdgeZone(e.clientX, target, edgeZoneWidth);
@@ -829,7 +837,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])    // FS + FF for resize-right cascade (Phase 9)
         : [],
       onCascadeProgress,
-      // Phase 059: Store segment info for segment-level drag
+      // Phase 059: Store segment info from event (set by TaskRow's handleSegmentMouseDown)
+      // If not provided, defaults to undefined (whole task drag)
       segmentIndex,
       totalSegments,
     };
