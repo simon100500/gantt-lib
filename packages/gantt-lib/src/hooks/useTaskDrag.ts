@@ -55,6 +55,9 @@ interface ActiveDragState {
   cascadeChainStart: Task[];   // SS+SF successors (resize-left cascade) - Phase 10: renamed from cascadeChainSS
   cascadeChainEnd: Task[];     // FS+FF successors (resize-right cascade) - Phase 9
   onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
+  // Phase 059: Segment-level drag support
+  segmentIndex?: number;       // Index of segment being dragged (undefined = whole task)
+  totalSegments?: number;      // Total number of segments in task
 }
 
 let globalActiveDrag: ActiveDragState | null = null;
@@ -442,6 +445,10 @@ export interface UseTaskDragOptions {
   onCascade?: (tasks: Task[]) => void;
   /** When true, all drag and resize interactions are disabled for this task */
   locked?: boolean;
+  /** Phase 059: Index of segment being dragged (undefined = whole task) */
+  segmentIndex?: number;
+  /** Phase 059: Total number of segments in the task */
+  totalSegments?: number;
 }
 
 /**
@@ -486,6 +493,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     disableConstraints = false,
     onCascadeProgress,
     onCascade,
+    segmentIndex,
+    totalSegments,
   } = options;
 
   // Track if this hook instance owns the current global drag
@@ -820,8 +829,11 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])    // FS + FF for resize-right cascade (Phase 9)
         : [],
       onCascadeProgress,
+      // Phase 059: Store segment info for segment-level drag
+      segmentIndex,
+      totalSegments,
     };
-  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, locked]);
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, locked, segmentIndex, totalSegments]);
 
   /**
    * Get cursor style based on current position
