@@ -123,12 +123,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
       // Simple formula:
       // duration = (end - start + 1) days
-      // elapsed = (min(today, end) - start) days
+      // elapsed = min(today - start, duration) days
       // expected = elapsed / duration * 100
       const msPerDay = 1000 * 60 * 60 * 24;
       const duration = taskEnd.getTime() - taskStart.getTime() + msPerDay;
-      const elapsedCutoff = taskEnd.getTime() < today.getTime() ? taskEnd.getTime() : today.getTime();
-      const elapsed = elapsedCutoff - taskStart.getTime();
+      const elapsedFromToday = today.getTime() - taskStart.getTime();
+      const elapsed = Math.min(Math.max(0, elapsedFromToday), duration);
       const expected = (elapsed / duration) * 100;
 
       return actualProgress < expected;

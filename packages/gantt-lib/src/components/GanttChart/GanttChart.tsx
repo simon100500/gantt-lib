@@ -322,25 +322,36 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const newEnd = new Date(updatedTask.endDate as string);
     const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
 
-    // No date change (name edit) or constraints disabled: simple update
-    if (!datesChanged || disableConstraints) {
-      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
-      return;
-    }
-
-    // Lags are fixed constraints — preserve as-is, only reposition dates
-    const cascadedTask: Task = updatedTask;
-    const cascadedChain = cascadeByLinks(updatedTask.id, newStart, newEnd, tasks);
-
-    const allCascaded = [cascadedTask, ...cascadedChain];
-
-    // Log isExpired calculation for each cascaded task
+    // Prepare for logging - determine which tasks to log
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const msPerDay = 1000 * 60 * 60 * 24;
 
+    // Determine tasks to process and log
+    let tasksToProcess: Task[];
+    let cascadedTasksForCallback: Task[] = [];
+
+    if (!datesChanged) {
+      // Name edit - no date change, no logging needed
+      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      return;
+    }
+
+    if (disableConstraints) {
+      // Constraints disabled - only log the moved task itself
+      tasksToProcess = [updatedTask];
+      cascadedTasksForCallback = [updatedTask];
+    } else {
+      // Constraints enabled - cascade by links
+      const cascadedTask: Task = updatedTask;
+      const cascadedChain = cascadeByLinks(updatedTask.id, newStart, newEnd, tasks);
+      tasksToProcess = [cascadedTask, ...cascadedChain];
+      cascadedTasksForCallback = tasksToProcess;
+    }
+
+    // Log isExpired calculation for each affected task
     console.log('[GanttChart handleTaskChange] IsExpired calculation:');
-    for (const t of allCascaded) {
+    for (const t of tasksToProcess) {
       const taskStart = new Date(t.startDate as string);
       const taskEnd = new Date(t.endDate as string);
       const actualProgress = t.progress ?? 0;
@@ -350,10 +361,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         continue;
       }
 
-      // Simple formula: duration = (end - start + 1), elapsed = (min(today, end) - start)
+      // Simple formula: duration = (end - start + 1), elapsed = min(today - start, duration)
       const duration = taskEnd.getTime() - taskStart.getTime() + msPerDay;
-      const elapsedCutoff = taskEnd.getTime() < today.getTime() ? taskEnd.getTime() : today.getTime();
-      const elapsed = elapsedCutoff - taskStart.getTime();
+      const elapsedFromToday = today.getTime() - taskStart.getTime();
+      const elapsed = Math.min(Math.max(0, elapsedFromToday), duration);
       const expectedProgress = Math.min(100, Math.max(0, (elapsed / duration) * 100));
       const isExpired = actualProgress < expectedProgress;
 
@@ -362,11 +373,16 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       console.log(`  [${t.id}] START=${t.startDate} END=${t.endDate} TODAY=${today.toISOString().split('T')[0]} PROGRESS=${actualProgress}% DURATION=${durationDays}d ELAPSED=${elapsedDays}d EXPECTED=${expectedProgress.toFixed(1)}% EXPIRED=${isExpired ? 'YES' : 'NO'}`);
     }
 
-    onChange?.((currentTasks) => {
-      const m = new Map(allCascaded.map(t => [t.id, t]));
-      return currentTasks.map(t => m.get(t.id) ?? t);
-    });
-    onCascade?.(allCascaded);
+    // Apply changes
+    if (disableConstraints) {
+      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+    } else {
+      onChange?.((currentTasks) => {
+        const m = new Map(cascadedTasksForCallback.map(t => [t.id, t]));
+        return currentTasks.map(t => m.get(t.id) ?? t);
+      });
+      onCascade?.(cascadedTasksForCallback);
+    }
   }, [tasks, onChange, disableConstraints, onCascade]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
