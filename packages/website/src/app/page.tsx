@@ -590,6 +590,14 @@ export default function Home() {
     [],
   );
 
+  const handleAdd = useCallback((task: Task) => {
+    setTasks(prev => [...prev, task]);
+  }, []);
+
+  const handleDelete = useCallback((taskId: string) => {
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+  }, []);
+
   const exportTasksAsJson = useCallback((taskList: Task[]) => {
     const result = taskList.map((task) => ({
       id: task.id,
@@ -690,6 +698,8 @@ export default function Home() {
               dayWidth={24}
               rowHeight={36}
               onChange={handleChange}
+              onAdd={handleAdd}
+              onDelete={handleDelete}
               containerHeight={"80dvh"}
               showTaskList={showTaskList}
               taskListWidth={500}
