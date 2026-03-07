@@ -135,7 +135,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 14 of 14 (14-dependencies-edit-task-list)
 Plan: 2 of 2 in current phase (2 complete, 0 pending)
 Status: COMPLETE - Plan 14-02 complete: TaskListRow Связи cell with chips, picker mode, overflow Popover
-Last activity: 2026-03-07 - Completed quick task 59: давай сделаем ручки для растягивания - только по hover. но зону растягивания оставим такой же широкой как сейчас.
+Last activity: 2026-03-07 - Completed quick task 61: Устранить дублирование CSS файлов в gantt-lib
 
 Progress: [████████████] Phase 14: 2 of 2 plans complete (PHASE COMPLETE)
 
@@ -391,6 +391,7 @@ None yet.
 | 56 | Fix overdue calculation edge cases - current day should not count as completed | 2026-03-04 | a6ba702 | [56-fix-overdue-calculation-edge-cases-in-ga](./quick/56-fix-overdue-calculation-edge-cases-in-ga/) |
 | 59 | давай сделаем ручки для растягивания - только по hover. но зону растягивания оставим такой же широкой как сейчас. | 2026-03-07 | 039d3b2 | [59-hover](./quick/59-hover/) |
 | 60 | visual offset for resize handles while keeping activation zone | 2026-03-07 | 63a3c30 | [60-visual-offset-for-resize-handles-while-k](./quick/60-visual-offset-for-resize-handles-while-k/) |
+| 61 | Устранить дублирование CSS файлов в gantt-lib | 2026-03-07 | 5c07de7 | [61-css-gantt-lib](./quick/61-css-gantt-lib/) |
 
 ## Session Continuity
 
