@@ -13,7 +13,6 @@ import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
 import { TaskList } from '../TaskList';
 import './GanttChart.css';
-import '../TaskList/TaskList.css';
 
 /**
  * Task data structure for Gantt chart
