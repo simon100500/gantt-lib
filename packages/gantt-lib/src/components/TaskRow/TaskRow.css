@@ -91,17 +91,22 @@
 .gantt-tr-resizeHandle {
   position: absolute;
   top: 0;
-  width: 8px;
+  width: 20px;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
+  background-clip: content-box;
+  padding-left: 6px;
+  padding-right: 6px;
   cursor: ew-resize;
   pointer-events: auto;
   z-index: 10;
   opacity: 0;
   transition: opacity 0.15s ease;
+  box-sizing: border-box;
   /* z-index requires a positioning context; position: absolute is set here.
      Do NOT add position: relative via a shared selector - that would override
-     this rule and break the absolute positioning at bar edges. */
+     this rule and break the absolute positioning at bar edges.
+     Visual offset: 8px handle centered in 20px zone (6px padding on each side). */
 }
 
 /**
