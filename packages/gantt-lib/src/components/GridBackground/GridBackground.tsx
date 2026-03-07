@@ -17,14 +17,14 @@ export interface GridBackgroundProps {
 /**
  * Custom comparison function for React.memo
  *
- * Performance optimization: Only re-renders if dateRange or dayWidth change.
- * totalHeight is excluded because it only affects container height, not grid calculations.
+ * Performance optimization: Re-renders when dateRange length, dayWidth, or totalHeight change.
+ * Returns true (skip re-render) only when all three are unchanged.
  */
 const arePropsEqual = (prevProps: GridBackgroundProps, nextProps: GridBackgroundProps) => {
   return (
     prevProps.dayWidth === nextProps.dayWidth &&
     prevProps.dateRange.length === nextProps.dateRange.length &&
-    prevProps.totalHeight !== nextProps.totalHeight // totalHeight changes still trigger update
+    prevProps.totalHeight === nextProps.totalHeight // skip re-render only when totalHeight unchanged
   );
 };
 
