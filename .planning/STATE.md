@@ -3,14 +3,29 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 16-02: TaskList add/delete UI implementation
-last_updated: "2026-03-08T00:27:00.000Z"
-last_activity: "2026-03-08 - Completed 16-02: NewTaskRow ghost component, TaskList add/delete UI with hover-reveal trash button"
+stopped_at: "Completed 16-01: Add/Delete API Foundation"
+last_updated: "2026-03-07T23:28:32.059Z"
+last_activity: "2026-03-08 - Completed 16-01: Add/Delete API Foundation"
 progress:
   total_phases: 16
   completed_phases: 15
   total_plans: 40
   completed_plans: 39
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
+stopped_at: Completed 16-01: Add/Delete API Foundation
+last_updated: "2026-03-08T00:27:49.000Z"
+last_activity: "2026-03-08 - Completed 16-01: onAdd/onDelete callbacks, handleDelete with dependency cleanup, unit tests"
+progress:
+  total_phases: 16
+  completed_phases: 15
+  total_plans: 40
+  completed_plans: 38
 ---
 
 ---
@@ -147,12 +162,12 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 
 ## Current Position
 
-Phase: 14 of 14 (14-dependencies-edit-task-list)
-Plan: 2 of 2 in current phase (2 complete, 0 pending)
-Status: COMPLETE - Plan 14-02 complete: TaskListRow Связи cell with chips, picker mode, overflow Popover
-Last activity: 2026-03-07 - Completed quick task 62: добавь анимацию при подъезде к today или выбранной работе (плавный скролл)
+Phase: 16 of 16 (16-adding-tasks)
+Plan: 1 of 3 in current phase (1 complete, 2 pending)
+Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
+Last activity: 2026-03-08 - Completed 16-01: Add/Delete API Foundation
 
-Progress: [████████████] Phase 14: 2 of 2 plans complete (PHASE COMPLETE)
+Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
 ## Performance Metrics
 
@@ -225,6 +240,7 @@ Progress: [████████████] Phase 14: 2 of 2 plans complete
 | Phase 15-expired-coloring P01 | 15 | 5 tasks | 4 files |
 | Phase quick-59-hover P01 | 10s | 1 tasks | 1 files |
 | Phase quick P60 | 127 | 1 tasks | 1 files |
+| Phase 16-adding-tasks P01 | 91s | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -343,6 +359,9 @@ Recent decisions affecting current work:
 - [Phase 14-dependencies-edit-task-list]: Extend TaskListRow props interface in Plan 01 to accept all dependency props; actual cell rendering deferred to Plan 02
 - [Phase 15]: Time-based expiration calculation using expectedProgress formula instead of simple end date comparison
 - [Phase 15]: Red color for both task background AND progress bar when expired (user-requested visual change)
+- [Phase 16-adding-tasks]: Use functional updater pattern in handleDelete to avoid stale closure on tasks prop
+- [Phase 16-adding-tasks]: Library filters deleted task and cleans dependencies before calling callbacks
+- [Phase 16-adding-tasks]: Test pure functions locally in test file, implement inline in components
 
 ### Pending Todos
 
@@ -413,8 +432,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-07T23:02:35.367Z
-Stopped at: Phase 16 context gathered
+Last session: 2026-03-07T23:28:32.057Z
+Stopped at: Completed 16-01: Add/Delete API Foundation
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)

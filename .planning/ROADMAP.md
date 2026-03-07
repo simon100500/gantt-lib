@@ -195,7 +195,7 @@ Plans:
 
 **Goal:** Add and delete tasks via the TaskList panel — onAdd callback creates a new task via inline ghost row, onDelete removes a task with automatic dependency cleanup
 **Depends on:** Phase 15
-**Plans:** 3 plans, 2/3 complete
+**Plans:** 2/3 plans executed
 
 Plans:
 - [x] 16-01-PLAN.md — Unit test scaffold + GanttChart API layer (onAdd/onDelete props, handleDelete with dep cleanup, TaskList prop threading)
