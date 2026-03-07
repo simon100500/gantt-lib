@@ -66,8 +66,8 @@
 }
 
 .gantt-tsh-today {
-  background-color: #3b82f6;
-  border-radius: 4px;
+  background-color: #dc2626;
+  border-radius: 4px 4px 4px 0;
 }
 
 .gantt-tsh-today .gantt-tsh-dayLabel {

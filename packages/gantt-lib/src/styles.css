@@ -273,15 +273,6 @@
   color: #dc2626;
 }
 
-.gantt-tsh-today {
-  background-color: #dc2626;
-  border-radius: 0 4px 4px 0;
-}
-
-.gantt-tsh-today .gantt-tsh-dayLabel {
-  color: #ffffff;
-}
-
 /* GridBackground Component Styles */
 .gantt-gb-gridBackground {
   position: absolute;
