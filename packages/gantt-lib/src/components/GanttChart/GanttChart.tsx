@@ -107,6 +107,10 @@ export interface GanttChartProps {
   disableDependencyEditing?: boolean;
   /** Highlight expired/overdue tasks with red background (default: false) */
   highlightExpiredTasks?: boolean;
+  /** Callback when a new task is added via the task list */
+  onAdd?: (task: Task) => void;
+  /** Callback when a task is deleted via the task list */
+  onDelete?: (taskId: string) => void;
 }
 
 /**
@@ -149,6 +153,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   disableTaskNameEditing = false,
   disableDependencyEditing = false,
   highlightExpiredTasks = false,
+  onAdd,
+  onDelete,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -347,6 +353,22 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     }
   }, [tasks, onChange, disableConstraints, onCascade]);
 
+  /**
+   * Handle task deletion: purge deleted taskId from all other tasks' dependency arrays,
+   * emit onChange with cleaned tasks, then emit onDelete with the taskId.
+   */
+  const handleDelete = useCallback((taskId: string) => {
+    onChange?.((currentTasks) =>
+      currentTasks
+        .filter(t => t.id !== taskId)
+        .map(t => ({
+          ...t,
+          dependencies: (t.dependencies ?? []).filter(d => d.taskId !== taskId),
+        }))
+    );
+    onDelete?.(taskId);
+  }, [onChange, onDelete]);
+
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
   const dependencyOverrides = useMemo(() => {
     const map = new Map(cascadeOverrides);
@@ -468,6 +490,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             disableDependencyEditing={disableDependencyEditing}
             onScrollToTask={scrollToTask}
             onSelectedChipChange={setSelectedChip}
+            onAdd={onAdd}
+            onDelete={handleDelete}
           />
 
           {/* Chart area */}
