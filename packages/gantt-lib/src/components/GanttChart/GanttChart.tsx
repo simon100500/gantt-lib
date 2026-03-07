@@ -232,7 +232,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const containerWidth = container.clientWidth;
     const scrollLeft = Math.round(todayOffset - (containerWidth / 2) + (dayWidth / 2));
 
-    container.scrollLeft = Math.max(0, scrollLeft);
+    container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
   }, [dateRange, dayWidth]);
 
   /**
@@ -256,7 +256,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
     const taskOffset = taskIndex * dayWidth;
     const scrollLeft = Math.round(taskOffset - dayWidth * 2);
-    container.scrollLeft = Math.max(0, scrollLeft);
+    container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
   }, [tasks, dateRange, dayWidth]);
 
   /**
