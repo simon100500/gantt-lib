@@ -93,20 +93,27 @@
   top: 25%;
   width: 20px;
   height: 50%;
-  background-color: rgb(255 255 255 / 80%);
-  background-clip: content-box;
-  padding: 0 5px;
-  border-radius: 4px;
   cursor: ew-resize;
   pointer-events: auto;
   z-index: 10;
   opacity: 0;
   transition: opacity 0.15s ease;
-  box-sizing: border-box;
   /* z-index requires a positioning context; position: absolute is set here.
      Do NOT add position: relative via a shared selector - that would override
      this rule and break the absolute positioning at bar edges.
-     Visual: 10px handle centered in 20px activation zone (5px padding each side). */
+     Click zone: 20px, visual: 10px ::before element centered with border-radius. */
+}
+
+/* Visual handle element - 10px rounded rectangle centered in 20px click zone */
+.gantt-tr-resizeHandle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 5px;
+  width: 10px;
+  height: 100%;
+  background-color: rgb(255 255 255 / 80%);
+  border-radius: 4px;
 }
 
 /**
