@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
+stopped_at: Phase 16 context gathered
+last_updated: "2026-03-07T23:02:35.370Z"
+last_activity: "2026-03-07 - Completed quick task 62: добавь анимацию при подъезде к today или выбранной работе (плавный скролл)"
+progress:
+  total_phases: 16
+  completed_phases: 15
+  total_plans: 37
+  completed_plans: 37
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
 stopped_at: Completed quick-60-visual-offset-for-resize-handles-while-k-PLAN.md
 last_updated: "2026-03-07T21:18:16.328Z"
 last_activity: "2026-03-07 - Completed quick task 60: visual offset for resize handles while keeping activation zone"
@@ -226,6 +241,7 @@ Progress: [████████████] Phase 14: 2 of 2 plans complete
 - Phase 12 added: task-list (overlay approach with inline editing)
 - Phase 14 added: dependencies-edit — механизм создания связей между задачами через столбец в task list (тип связи + кнопка "+", выбор дочерней задачи, отображение типов ОН/НН/ОО/НО)
 - Phase 15 added: expired-coloring — Закраска красным цветом если просрочена (общий пропс вкл / выкл). И будем красить задачи если они просрочены с учётом текущего процента выполнения
+- Phase 16 added: adding-tasks
 
 ### Decisions
 
@@ -397,8 +413,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T00:00:00.000Z
-Stopped at: Completed quick-60-visual-offset-for-resize-handles-while-k-PLAN.md
+Last session: 2026-03-07T23:02:35.367Z
+Stopped at: Phase 16 context gathered
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
