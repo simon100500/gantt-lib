@@ -321,55 +321,18 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const newEnd = new Date(updatedTask.endDate as string);
     const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
 
-    // Prepare for logging - determine which tasks to log
-    const now = new Date();
-    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const msPerDay = 1000 * 60 * 60 * 24;
-
-    // Determine tasks to process and log
-    let tasksToProcess: Task[];
-    let cascadedTasksForCallback: Task[] = [];
-
     if (!datesChanged) {
-      // Name edit - no date change, no logging needed
       onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
       return;
     }
 
+    let cascadedTasksForCallback: Task[];
+
     if (disableConstraints) {
-      // Constraints disabled - only log the moved task itself
-      tasksToProcess = [updatedTask];
       cascadedTasksForCallback = [updatedTask];
     } else {
-      // Constraints enabled - cascade by links
-      const cascadedTask: Task = updatedTask;
       const cascadedChain = cascadeByLinks(updatedTask.id, newStart, newEnd, tasks);
-      tasksToProcess = [cascadedTask, ...cascadedChain];
-      cascadedTasksForCallback = tasksToProcess;
-    }
-
-    // Log isExpired calculation for each affected task
-    console.log('[GanttChart handleTaskChange] IsExpired calculation:');
-    for (const t of tasksToProcess) {
-      const taskStart = new Date(t.startDate as string);
-      const taskEnd = new Date(t.endDate as string);
-      const actualProgress = t.progress ?? 0;
-
-      if (actualProgress >= 100) {
-        console.log(`  [${t.id}] START=${t.startDate} END=${t.endDate} TODAY=${today.toISOString().split('T')[0]} PROGRESS=${actualProgress}% EXPECTED=N/A (completed) EXPIRED=NO`);
-        continue;
-      }
-
-      // Simple formula: duration = (end - start + 1), elapsed = min(today - start, duration)
-      const duration = taskEnd.getTime() - taskStart.getTime() + msPerDay;
-      const elapsedFromToday = today.getTime() - taskStart.getTime();
-      const elapsed = Math.min(Math.max(0, elapsedFromToday), duration);
-      const expectedProgress = Math.min(100, Math.max(0, (elapsed / duration) * 100));
-      const isExpired = actualProgress < expectedProgress;
-
-      const durationDays = Math.round(duration / msPerDay);
-      const elapsedDays = Math.round(elapsed / msPerDay);
-      console.log(`  [${t.id}] START=${t.startDate} END=${t.endDate} TODAY=${today.toISOString().split('T')[0]} PROGRESS=${actualProgress}% DURATION=${durationDays}d ELAPSED=${elapsedDays}d EXPECTED=${expectedProgress.toFixed(1)}% EXPIRED=${isExpired ? 'YES' : 'NO'}`);
+      cascadedTasksForCallback = [updatedTask, ...cascadedChain];
     }
 
     // Apply changes
