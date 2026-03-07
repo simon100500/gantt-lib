@@ -6,6 +6,7 @@ import type { LinkType } from '../../types';
 import { validateDependencies, calculateSuccessorDate } from '../../utils/dependencyUtils';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
+import { NewTaskRow } from './NewTaskRow';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
 import './TaskList.css';
 
@@ -38,6 +39,10 @@ export interface TaskListProps {
   onScrollToTask?: (taskId: string) => void;
   /** Callback when selected chip changes (used by GanttChart to highlight the corresponding arrow) */
   onSelectedChipChange?: (chip: { successorId: string; predecessorId: string; linkType: string } | null) => void;
+  /** Callback when a new task is added (called with full Task object including generated id) */
+  onAdd?: (task: Task) => void;
+  /** Callback when a task is deleted (called with taskId) */
+  onDelete?: (taskId: string) => void;
 }
 
 /**
@@ -59,6 +64,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   disableDependencyEditing = false,
   onScrollToTask,
   onSelectedChipChange,
+  onAdd,
+  onDelete,
 }) => {
   const totalHeight = useMemo(
     () => tasks.length * rowHeight,
@@ -205,6 +212,29 @@ export const TaskList: React.FC<TaskListProps> = ({
     onTaskChange?.({ ...task, dependencies: updatedDeps });
   }, [tasks, onTaskChange]);
 
+  // New task creation state
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleConfirmNewTask = useCallback((name: string) => {
+    const now = new Date();
+    const todayISO = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
+    )).toISOString().split('T')[0];
+    const endISO = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7
+    )).toISOString().split('T')[0];
+    const newTask: Task = {
+      id: crypto.randomUUID(),
+      name,
+      startDate: todayISO,
+      endDate: endISO,
+    };
+    onAdd?.(newTask);
+    setIsCreating(false);
+  }, [onAdd]);
+
+  const handleCancelNewTask = useCallback(() => setIsCreating(false), []);
+
   return (
     <div
       ref={overlayRef}
@@ -273,9 +303,30 @@ export const TaskList: React.FC<TaskListProps> = ({
               selectedChip={selectedChip}
               onChipSelect={handleChipSelect}
               onScrollToTask={onScrollToTask}
+              onDelete={onDelete}
             />
           ))}
         </div>
+
+        {/* Ghost row for new task creation — positioned OUTSIDE body div to avoid height desync */}
+        {isCreating && (
+          <NewTaskRow
+            rowHeight={rowHeight}
+            onConfirm={handleConfirmNewTask}
+            onCancel={handleCancelNewTask}
+          />
+        )}
+
+        {/* Add task button */}
+        {onAdd && !isCreating && (
+          <button
+            className="gantt-tl-add-btn"
+            onClick={() => setIsCreating(true)}
+            type="button"
+          >
+            + Добавить задачу
+          </button>
+        )}
       </div>
     </div>
   );

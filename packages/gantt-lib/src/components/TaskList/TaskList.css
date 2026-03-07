@@ -66,6 +66,7 @@
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   box-sizing: border-box;
   cursor: pointer;
+  position: relative;
 }
 
 .gantt-tl-row:hover {
@@ -74,6 +75,35 @@
 
 .gantt-tl-row-selected {
   background-color: rgba(59, 130, 246, 0.15);
+}
+
+/* Hover-reveal trash button on task rows */
+.gantt-tl-row-trash {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  color: var(--gantt-text-muted, #9ca3af);
+  display: flex;
+  align-items: center;
+}
+
+.gantt-tl-row:hover .gantt-tl-row-trash {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.gantt-tl-row-trash:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* Cells */
@@ -492,4 +522,33 @@
   color: #dc2626;
   z-index: 10;
   white-space: nowrap;
+}
+
+/* Add task button */
+.gantt-tl-add-btn {
+  width: 100%;
+  padding: 6px 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-top: 1px dashed var(--gantt-grid-line-color, #e0e0e0);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--gantt-text-muted, #9ca3af);
+  transition: background 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+
+.gantt-tl-add-btn:hover {
+  background: var(--gantt-hover-bg, rgba(0, 0, 0, 0.04));
+  color: var(--gantt-text-color, #374151);
+}
+
+/* Ghost row for new task creation */
+.gantt-tl-row-new {
+  border-top: 1px dashed var(--gantt-grid-line-color, #e0e0e0);
+}
+
+.gantt-tl-cell-new-name {
+  padding: 2px 4px;
 }

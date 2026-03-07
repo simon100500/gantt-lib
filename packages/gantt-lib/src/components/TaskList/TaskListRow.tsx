@@ -181,6 +181,8 @@ export interface TaskListRowProps {
   onChipSelect?: (chip: { successorId: string; predecessorId: string; linkType: LinkType } | null) => void;
   /** Callback to scroll the chart grid to center this task (called when № cell is clicked) */
   onScrollToTask?: (taskId: string) => void;
+  /** Callback when task is deleted */
+  onDelete?: (taskId: string) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -209,6 +211,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     selectedChip,
     onChipSelect,
     onScrollToTask,
+    onDelete,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -338,9 +341,23 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isPicking && !isSourceRow ? 'gantt-tl-row-picking' : '',
           isSourceRow ? 'gantt-tl-row-picking-self' : '',
         ].filter(Boolean).join(' ')}
-        style={{ minHeight: `${rowHeight}px` }}
+        style={{ minHeight: `${rowHeight}px`, position: 'relative' }}
         onClick={handleRowClickInternal}
       >
+        {/* Trash button — hover-revealed, absolutely positioned */}
+        {onDelete && (
+          <button
+            className="gantt-tl-row-trash"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(task.id);
+            }}
+            type="button"
+            aria-label="Удалить задачу"
+          >
+            <TrashIcon />
+          </button>
+        )}
         {/* Number column — click selects the row and scrolls the grid to this task */}
         <div
           className="gantt-tl-cell gantt-tl-cell-number"
