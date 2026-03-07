@@ -156,31 +156,6 @@
   margin-left: 4px;
 }
 
-.gantt-tr-resizeHandle {
-  position: absolute;
-  top: 0;
-  width: 8px;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.1);
-  cursor: ew-resize;
-}
-
-.gantt-tr-resizeHandleLeft {
-  left: 0;
-}
-
-.gantt-tr-resizeHandleRight {
-  right: 0;
-}
-
-.gantt-tr-resizeZoneLeft {
-  cursor: ew-resize;
-}
-
-.gantt-tr-resizeZoneRight {
-  cursor: ew-resize;
-}
-
 .gantt-tr-taskContainer {
   position: relative;
   width: 100%;

@@ -90,9 +90,9 @@
 
 .gantt-tr-resizeHandle {
   position: absolute;
-  top: 25%;
+  top: 0;
   width: 20px;
-  height: 50%;
+  height: 100%;
   cursor: ew-resize;
   pointer-events: auto;
   z-index: 10;
@@ -104,13 +104,12 @@
      Click zone: 20px, visual: 10px ::before element centered with border-radius. */
 }
 
-/* Visual handle element - 10px rounded rectangle centered in 20px click zone */
+/* Visual handle element - 8px rounded rectangle near bar edge */
 .gantt-tr-resizeHandle::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 5px;
-  width: 10px;
+  width: 8px;
   height: 100%;
   background-color: rgb(255 255 255 / 80%);
   border-radius: 4px;
@@ -129,8 +128,16 @@
   left: 0;
 }
 
+.gantt-tr-resizeHandleLeft::before {
+  left: 2px;
+}
+
 .gantt-tr-resizeHandleRight {
   right: 0;
+}
+
+.gantt-tr-resizeHandleRight::before {
+  right: 2px;
 }
 
 .gantt-tr-resizeZoneLeft {
