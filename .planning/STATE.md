@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Phase 16 context gathered
-last_updated: "2026-03-07T23:02:35.370Z"
-last_activity: "2026-03-07 - Completed quick task 62: добавь анимацию при подъезде к today или выбранной работе (плавный скролл)"
+status: in_progress
+stopped_at: Completed 16-02: TaskList add/delete UI implementation
+last_updated: "2026-03-08T00:27:00.000Z"
+last_activity: "2026-03-08 - Completed 16-02: NewTaskRow ghost component, TaskList add/delete UI with hover-reveal trash button"
 progress:
   total_phases: 16
   completed_phases: 15
-  total_plans: 37
-  completed_plans: 37
+  total_plans: 40
+  completed_plans: 39
 ---
 
 ---
