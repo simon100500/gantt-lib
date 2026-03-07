@@ -97,9 +97,20 @@
   cursor: ew-resize;
   pointer-events: auto;
   z-index: 10;
+  opacity: 0;
+  transition: opacity 0.15s ease;
   /* z-index requires a positioning context; position: absolute is set here.
      Do NOT add position: relative via a shared selector - that would override
      this rule and break the absolute positioning at bar edges. */
+}
+
+/**
+ * Hover state - show resize handles when hovering over task bar
+ * The 20px edgeZoneWidth in useTaskDrag hook maintains interaction
+ * for cursor changes and drag initiation even when handles are invisible.
+ */
+.gantt-tr-taskBar:hover .gantt-tr-resizeHandle {
+  opacity: 1;
 }
 
 .gantt-tr-resizeHandleLeft {
