@@ -108,9 +108,9 @@
 .gantt-tr-resizeHandle::before {
   content: '';
   position: absolute;
-  top: 0;
-  width: 8px;
-  height: 100%;
+  top: 15%;
+  width: 4px;
+  height: 70%;
   background-color: rgb(255 255 255 / 80%);
   border-radius: 4px;
 }
@@ -129,7 +129,7 @@
 }
 
 .gantt-tr-resizeHandleLeft::before {
-  left: 2px;
+  left: 4px;
 }
 
 .gantt-tr-resizeHandleRight {
@@ -137,7 +137,7 @@
 }
 
 .gantt-tr-resizeHandleRight::before {
-  right: 2px;
+  right: 4px;
 }
 
 .gantt-tr-resizeZoneLeft {
