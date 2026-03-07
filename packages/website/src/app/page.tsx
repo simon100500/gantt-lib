@@ -646,243 +646,150 @@ export default function Home() {
   );
 
   return (
-    <main style={{ padding: "2rem" }}>
-      <h1 style={{ marginBottom: "0.5rem" }}>gantt-lib demo</h1>
-      <p style={{ marginBottom: "2rem", color: "#6b7280" }}>
-        Drag task bars to move or resize. Install:{" "}
-        <code>npm install gantt-lib</code>
-      </p>
+    <main>
+      <div className="demo-page">
+        <header className="demo-hero">
+          <h1>gantt-lib</h1>
+          <p>Drag task bars to move or resize. Dependency links, cascade shifting, and expired task highlighting included.</p>
+          <code>npm install gantt-lib</code>
+        </header>
 
-      {/* Main Demo */}
-      <div style={{ marginBottom: "3rem" }}>
-        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
-          Construction Project
-        </h2>
-        <button
-          onClick={() => setShowTaskList(!showTaskList)}
-          style={{
-            padding: "0.5rem 1rem",
-            marginBottom: "1rem",
-            marginRight: "0.5rem",
-            backgroundColor: showTaskList ? "#ef4444" : "#3b82f6",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "0.875rem",
-            fontWeight: "500",
-            transition: "background-color 0.2s",
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = showTaskList ? "#dc2626" : "#2563eb"}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = showTaskList ? "#ef4444" : "#3b82f6"}
-        >
-          {showTaskList ? "Hide Task List" : "Show Task List"}
-        </button>
-        <button
-          onClick={() => ganttChartRef.current?.scrollToToday()}
-          style={{
-            padding: "0.5rem 1rem",
-            marginBottom: "1rem",
-            marginRight: "0.5rem",
-            backgroundColor: "#8b5cf6",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "0.875rem",
-            fontWeight: "500",
-            transition: "background-color 0.2s",
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#7c3aed"}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#8b5cf6"}
-        >
-          Today
-        </button>
-        <button
-          onClick={() => setDisableTaskNameEditing(!disableTaskNameEditing)}
-          style={{
-            padding: "0.5rem 1rem",
-            marginBottom: "1rem",
-            backgroundColor: disableTaskNameEditing ? "#6b7280" : "#10b981",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "0.875rem",
-            fontWeight: "500",
-            transition: "background-color 0.2s",
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = disableTaskNameEditing ? "#4b5563" : "#059669"}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = disableTaskNameEditing ? "#6b7280" : "#10b981"}
-        >
-          {disableTaskNameEditing ? "Enable Name Editing" : "Disable Name Editing"}
-        </button>
-        <button
-          onClick={() => setHighlightExpired(!highlightExpired)}
-          style={{
-            padding: "0.5rem 1rem",
-            marginBottom: "1rem",
-            backgroundColor: highlightExpired ? "#ef4444" : "#6b7280",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "0.875rem",
-            fontWeight: "500",
-            transition: "background-color 0.2s",
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = highlightExpired ? "#dc2626" : "#4b5563"}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = highlightExpired ? "#ef4444" : "#6b7280"}
-        >
-          {highlightExpired ? "Disable Expired Highlight" : "Enable Expired Highlight"}
-        </button>
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
-            padding: "1rem",
-          }}
-        >
-          <GanttChart
-            ref={ganttChartRef}
-            tasks={tasks}
-            dayWidth={24}
-            rowHeight={36}
-            onChange={handleChange}
-            containerHeight={"80dvh"}
-            showTaskList={showTaskList}
-            taskListWidth={500}
-            disableTaskNameEditing={disableTaskNameEditing}
-            highlightExpiredTasks={highlightExpired}
-          />
-        </div>
-      </div>
-
-      {/* Dependencies Demo */}
-      <div style={{ marginBottom: "3rem" }}>
-        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
-          Task Dependencies
-        </h2>
-        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
-          Tasks can have dependencies with 4 link types (FS, SS, FF, SF) and optional lag.
-          Circular dependencies are highlighted in red.
-        </p>
-        <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.875rem', color: '#374151', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={blockConstraints}
-              onChange={(e) => setBlockConstraints(e.target.checked)}
-              style={{ marginRight: '0.375rem' }}
+        {/* Main Demo */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Construction Project</h2>
+          <div className="demo-controls">
+            <button
+              className={`demo-btn ${showTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowTaskList(!showTaskList)}
+            >
+              {showTaskList ? "Hide Task List" : "Show Task List"}
+            </button>
+            <button
+              className="demo-btn demo-btn-purple"
+              onClick={() => ganttChartRef.current?.scrollToToday()}
+            >
+              Today
+            </button>
+            <button
+              className={`demo-btn ${disableTaskNameEditing ? "demo-btn-muted" : "demo-btn-active"}`}
+              onClick={() => setDisableTaskNameEditing(!disableTaskNameEditing)}
+            >
+              {disableTaskNameEditing ? "Enable Name Editing" : "Disable Name Editing"}
+            </button>
+            <button
+              className={`demo-btn ${highlightExpired ? "demo-btn-danger" : "demo-btn-muted"}`}
+              onClick={() => setHighlightExpired(!highlightExpired)}
+            >
+              {highlightExpired ? "Disable Expired Highlight" : "Enable Expired Highlight"}
+            </button>
+          </div>
+          <div className="demo-chart-card">
+            <GanttChart
+              ref={ganttChartRef}
+              tasks={tasks}
+              dayWidth={24}
+              rowHeight={36}
+              onChange={handleChange}
+              containerHeight={"80dvh"}
+              showTaskList={showTaskList}
+              taskListWidth={500}
+              disableTaskNameEditing={disableTaskNameEditing}
+              highlightExpiredTasks={highlightExpired}
             />
-            Block constraints during drag
-          </label>
-          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-            (uncheck to drag freely past dependency boundaries)
-          </span>
-        </div>
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
-            padding: "1rem",
-          }}
-        >
-          <GanttChart
-            tasks={dependencyTasks}
-            onChange={handleDependencyChange}
-            dayWidth={24}
-            rowHeight={36}
-            disableConstraints={!blockConstraints}
-            onValidateDependencies={(result) => {
-              if (!result.isValid) {
-                console.log('Dependency validation:', result.errors);
-              }
-            }}
-          />
-        </div>
-      </div>
+          </div>
+        </section>
 
-      {/* Cascade Demo (Phase 7) */}
-      <div>
-        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
-          Каскадное смещение (Phase 7)
-        </h2>
-        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
-          Жесткий режим: перетащи «Задача A» — B и C двигаются вместе в реальном времени.
-          D — независимая, не смещается. После отпускания проверь консоль.
-        </p>
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
-            padding: "1rem",
-          }}
-        >
-          <GanttChart
-            tasks={cascadeTasks}
-            onChange={handleCascadeChange}
-            onCascade={(shifted) => console.log('Cascade:', shifted.map(t => `${t.name}: ${t.startDate}`))}
-            dayWidth={40}
-            rowHeight={40}
-            containerHeight={250}
-          />
-        </div>
-      </div>
+        {/* Dependencies Demo */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Task Dependencies</h2>
+          <p className="demo-section-desc">
+            Tasks can have dependencies with 4 link types (FS, SS, FF, SF) and optional lag.
+            Circular dependencies are highlighted in red.
+          </p>
+          <div className="demo-controls">
+            <label className="demo-checkbox-label">
+              <input
+                type="checkbox"
+                checked={blockConstraints}
+                onChange={(e) => setBlockConstraints(e.target.checked)}
+              />
+              Block constraints during drag
+            </label>
+            <span className="demo-hint">(uncheck to drag freely past dependency boundaries)</span>
+          </div>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={dependencyTasks}
+              onChange={handleDependencyChange}
+              dayWidth={24}
+              rowHeight={36}
+              disableConstraints={!blockConstraints}
+              onValidateDependencies={(result) => {
+                if (!result.isValid) {
+                  console.log('Dependency validation:', result.errors);
+                }
+              }}
+            />
+          </div>
+        </section>
 
-      {/* Chain 100 Demo - 100 задач с FS+2 */}
-      <div style={{ marginBottom: "3rem" }}>
-        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
-          Цепочка из 100 задач (FS +2 дня)
-        </h2>
-        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
-          Генератор для тестирования: 100 задач, каждая связана с предыдущей зависимостью FS с лагом +2 дня.
-          Перетащи первую задачу — cascade сдвинет всю цепочку.
-        </p>
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
-            padding: "1rem",
-          }}
-        >
-          <GanttChart
-            tasks={chain100Tasks}
-            onChange={handleChain100Change}
-            onCascade={(shifted) => console.log(`Cascade: ${shifted.length} tasks shifted`)}
-            dayWidth={24}
-            rowHeight={36}
-            containerHeight={600}
-          />
-        </div>
-      </div>
+        {/* Cascade Demo (Phase 7) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Каскадное смещение (Phase 7)</h2>
+          <p className="demo-section-desc">
+            Жесткий режим: перетащи «Задача A» — B и C двигаются вместе в реальном времени.
+            D — независимая, не смещается. После отпускания проверь консоль.
+          </p>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={cascadeTasks}
+              onChange={handleCascadeChange}
+              onCascade={(shifted) => console.log('Cascade:', shifted.map(t => `${t.name}: ${t.startDate}`))}
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={250}
+            />
+          </div>
+        </section>
 
-      {/* Expired Tasks Demo (Phase 15) */}
-      <div style={{ marginBottom: "3rem" }}>
-        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.5rem" }}>
-          Подсветка просроченных задач (Phase 15)
-        </h2>
-        <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
-          <strong>Логика просрочки по времени:</strong> ожидаемый прогресс = (прошедшие дни / длительность) × 100.<br/>
-          Задача красная, если: endDate &lt; today AND (progress &lt; expectedProgress OR not accepted).<br/>
-          Выполненные и принятые задачи (progress = 100 AND accepted = true) не красные.
-        </p>
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
-            padding: "1rem",
-          }}
-        >
-          <GanttChart
-            tasks={expiredTasks}
-            onChange={handleExpiredTasksChange}
-            dayWidth={40}
-            rowHeight={40}
-            containerHeight={250}
-            highlightExpiredTasks={highlightExpired}
-          />
-        </div>
+        {/* Chain 100 Demo - 100 задач с FS+2 */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Цепочка из 100 задач (FS +2 дня)</h2>
+          <p className="demo-section-desc">
+            Генератор для тестирования: 100 задач, каждая связана с предыдущей зависимостью FS с лагом +2 дня.
+            Перетащи первую задачу — cascade сдвинет всю цепочку.
+          </p>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={chain100Tasks}
+              onChange={handleChain100Change}
+              onCascade={(shifted) => console.log(`Cascade: ${shifted.length} tasks shifted`)}
+              dayWidth={24}
+              rowHeight={36}
+              containerHeight={600}
+            />
+          </div>
+        </section>
+
+        {/* Expired Tasks Demo (Phase 15) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Подсветка просроченных задач (Phase 15)</h2>
+          <p className="demo-section-desc">
+            <strong>Логика просрочки по времени:</strong> ожидаемый прогресс = (прошедшие дни / длительность) × 100.<br/>
+            Задача красная, если: endDate &lt; today AND (progress &lt; expectedProgress OR not accepted).<br/>
+            Выполненные и принятые задачи (progress = 100 AND accepted = true) не красные.
+          </p>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={expiredTasks}
+              onChange={handleExpiredTasksChange}
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={250}
+              highlightExpiredTasks={highlightExpired}
+            />
+          </div>
+        </section>
       </div>
     </main>
   );
