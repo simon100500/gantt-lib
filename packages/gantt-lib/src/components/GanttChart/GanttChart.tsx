@@ -166,6 +166,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
   // Cascade override positions for non-dragged chain members
   const [cascadeOverrides, setCascadeOverrides] = useState<Map<string, { left: number; width: number }>>(new Map());
+  // Frame counter for throttling cascade setState — only update every N frames
+  const cascadeFrameCountRef = useRef(0);
+  const CASCADE_THROTTLE_FRAMES = 3;
 
   // Calculate grid width
   const gridWidth = useMemo(
@@ -402,6 +405,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
    * new Map() forces React to detect the state change.
    */
   const handleCascadeProgress = useCallback((overrides: Map<string, { left: number; width: number }>) => {
+    if (overrides.size === 0) {
+      // Drag ended — always flush the clear and reset counter
+      cascadeFrameCountRef.current = 0;
+      setCascadeOverrides(new Map());
+      return;
+    }
+    cascadeFrameCountRef.current += 1;
+    if (cascadeFrameCountRef.current % CASCADE_THROTTLE_FRAMES !== 0) return;
     setCascadeOverrides(new Map(overrides));
   }, []);
 
