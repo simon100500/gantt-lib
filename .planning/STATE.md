@@ -5,7 +5,7 @@ milestone_name: milestone
 status: unknown
 stopped_at: Completed quick-60-visual-offset-for-resize-handles-while-k-PLAN.md
 last_updated: "2026-03-07T21:18:16.328Z"
-last_activity: "2026-03-07 - Completed quick task 59: давай сделаем ручки для растягивания - только по hover. но зону растягивания оставим такой же широкой как сейчас."
+last_activity: "2026-03-07 - Completed quick task 60: visual offset for resize handles while keeping activation zone"
 progress:
   total_phases: 15
   completed_phases: 15
@@ -390,6 +390,7 @@ None yet.
 | 55 | Radix Popover on dep chip click showing Russian human-readable dependency description | 2026-03-03 | 0a169d1 | [055-popover-dep-chip](./quick/055-popover-dep-chip/) |
 | 56 | Fix overdue calculation edge cases - current day should not count as completed | 2026-03-04 | a6ba702 | [56-fix-overdue-calculation-edge-cases-in-ga](./quick/56-fix-overdue-calculation-edge-cases-in-ga/) |
 | 59 | давай сделаем ручки для растягивания - только по hover. но зону растягивания оставим такой же широкой как сейчас. | 2026-03-07 | 039d3b2 | [59-hover](./quick/59-hover/) |
+| 60 | visual offset for resize handles while keeping activation zone | 2026-03-07 | 63a3c30 | [60-visual-offset-for-resize-handles-while-k](./quick/60-visual-offset-for-resize-handles-while-k/) |
 
 ## Session Continuity
 
