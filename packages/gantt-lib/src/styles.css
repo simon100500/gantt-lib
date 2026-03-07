@@ -311,15 +311,6 @@
   background-color: var(--gantt-day-line-color, #f3f4f6);
 }
 
-/* TodayIndicator Component Styles */
-.gantt-ti-indicator {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  z-index: 5;
-  pointer-events: none;
-}
-
 /* DragGuideLines Component Styles */
 .gantt-dgl-guideLine {
   position: absolute;
