@@ -26,6 +26,8 @@
   color: #1f2937;
   border-left: var(--gantt-month-separator-width, 2px) solid var(--gantt-month-separator-color, #a1a1a1);
   text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .gantt-tsh-monthCell:first-child {
@@ -56,16 +58,16 @@
 }
 
 .gantt-tsh-weekendDay {
-  background-color: var(--gantt-weekend-background, #fee2e2);
+  background-color: var(--gantt-weekend-background, #fef3f2);
 }
 
 .gantt-tsh-weekendDay .gantt-tsh-dayLabel {
-  color: #dc2626;
+  color: #ef4444;
 }
 
 .gantt-tsh-today {
-  background-color: #dc2626;
-  border-radius: 0 4px 4px 0;
+  background-color: #3b82f6;
+  border-radius: 4px;
 }
 
 .gantt-tsh-today .gantt-tsh-dayLabel {

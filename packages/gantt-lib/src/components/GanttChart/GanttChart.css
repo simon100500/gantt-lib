@@ -3,6 +3,8 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   background-color: var(--gantt-cell-background, #ffffff);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .gantt-scrollContainer {
