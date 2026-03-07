@@ -95,8 +95,8 @@
   height: 50%;
   background-color: rgb(255 255 255 / 80%);
   background-clip: content-box;
-  padding: 0 2px;
-  border-radius: 7px;
+  padding: 0 5px;
+  border-radius: 4px;
   cursor: ew-resize;
   pointer-events: auto;
   z-index: 10;
@@ -106,7 +106,7 @@
   /* z-index requires a positioning context; position: absolute is set here.
      Do NOT add position: relative via a shared selector - that would override
      this rule and break the absolute positioning at bar edges.
-     Visual: 16px rounded handle centered in 20px activation zone (2px padding each side). */
+     Visual: 10px handle centered in 20px activation zone (5px padding each side). */
 }
 
 /**
