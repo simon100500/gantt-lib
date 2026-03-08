@@ -57,7 +57,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   rowHeight,
   headerHeight,
-  taskListWidth = 520,
+  taskListWidth = 472,
   onTaskChange,
   selectedTaskId,
   onTaskSelect,
@@ -282,8 +282,6 @@ export const TaskList: React.FC<TaskListProps> = ({
               <div className="gantt-tl-dep-error">Цикл зависимостей!</div>
             )}
           </div>
-          {/* NEW: Action panel header cell */}
-          <div className="gantt-tl-headerCell gantt-tl-cell-actions" aria-label="Действия"></div>
         </div>
 
         {/* Data rows */}
