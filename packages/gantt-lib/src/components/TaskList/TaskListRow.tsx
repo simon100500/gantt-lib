@@ -191,6 +191,8 @@ export interface TaskListRowProps {
   onDelete?: (taskId: string) => void;
   /** Callback when a new task is inserted below this row */
   onAdd?: (task: Task) => void;
+  /** Callback when a new task is inserted after this task */
+  onInsertAfter?: (taskId: string, newTask: Task) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -221,6 +223,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onScrollToTask,
     onDelete,
     onAdd,
+    onInsertAfter,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -367,33 +370,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             <TrashIcon />
           </button>
         )}
-        {/* Insert task button — hover-reveal on left side */}
-        {onAdd && (
-          <button
-            type="button"
-            className="gantt-tl-row-insert"
-            onClick={(e) => {
-              e.stopPropagation();
-              const now = new Date();
-              const todayISO = new Date(Date.UTC(
-                now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
-              )).toISOString().split('T')[0];
-              const endISO = new Date(Date.UTC(
-                now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7
-              )).toISOString().split('T')[0];
-              const newTask: Task = {
-                id: crypto.randomUUID(),
-                name: 'Новая задача',
-                startDate: todayISO,
-                endDate: endISO,
-              };
-              onAdd(newTask);
-            }}
-            aria-label="Вставить задачу ниже"
-          >
-            <PlusIcon />
-          </button>
-        )}
         {/* Number column — click selects the row and scrolls the grid to this task */}
         <div
           className="gantt-tl-cell gantt-tl-cell-number"
@@ -533,6 +509,34 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   aria-label="Добавить связь"
                 >
                   +
+                </button>
+              )}
+
+              {/* Insert task button — inline with chips, shown on hover */}
+              {onInsertAfter && !isPicking && (
+                <button
+                  type="button"
+                  className="gantt-tl-dep-insert"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const now = new Date();
+                    const todayISO = new Date(Date.UTC(
+                      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
+                    )).toISOString().split('T')[0];
+                    const endISO = new Date(Date.UTC(
+                      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7
+                    )).toISOString().split('T')[0];
+                    const newTask: Task = {
+                      id: crypto.randomUUID(),
+                      name: 'Новая задача',
+                      startDate: todayISO,
+                      endDate: endISO,
+                    };
+                    onInsertAfter(task.id, newTask);
+                  }}
+                  aria-label="Вставить задачу после этой"
+                >
+                  <PlusIcon />
                 </button>
               )}
             </>
