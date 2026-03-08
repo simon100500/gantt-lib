@@ -598,6 +598,17 @@ export default function Home() {
     setTasks(prev => prev.filter(t => t.id !== taskId));
   }, []);
 
+  const handleInsertAfter = useCallback((taskId: string, newTask: Task) => {
+    setTasks(prev => {
+      const index = prev.findIndex(t => t.id === taskId);
+      if (index === -1) return prev;
+      // Insert after the found index
+      const newTasks = [...prev];
+      newTasks.splice(index + 1, 0, newTask);
+      return newTasks;
+    });
+  }, []);
+
   const exportTasksAsJson = useCallback((taskList: Task[]) => {
     const result = taskList.map((task) => ({
       id: task.id,
@@ -700,6 +711,7 @@ export default function Home() {
               onChange={handleChange}
               onAdd={handleAdd}
               onDelete={handleDelete}
+              onInsertAfter={handleInsertAfter}
               containerHeight={"80dvh"}
               showTaskList={showTaskList}
               taskListWidth={500}
