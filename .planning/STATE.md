@@ -5,7 +5,7 @@ milestone_name: milestone
 status: in_progress
 stopped_at: "Completed 17-01: Action Buttons Panel"
 last_updated: "2026-03-08T15:28:12.697Z"
-last_activity: "2026-03-08 - Completed quick task 65: insert button in deps cell, onInsertAfter callback"
+last_activity: "2026-03-08 - Completed quick task 66: change task name field behavior"
 progress:
   total_phases: 17
   completed_phases: 16
@@ -452,6 +452,7 @@ None yet.
 | 63 | fix GridBackground arePropsEqual bug and optimize cascade drag DOM mutation | 2026-03-08 | bed7458 | [63-fix-gridbackground-arepropsequal-bug-and](./quick/63-fix-gridbackground-arepropsequal-bug-and/) |
 | 64 | add hover button to insert task below current row | 2026-03-08 | e17e2b5 | [64-add-hover-button-to-insert-task-below-cu](./quick/64-add-hover-button-to-insert-task-below-cu/) |
 | 65 | fix insert button position and insert after current task | 2026-03-08 | 5d77072 | [65-fix-insert-button-position-and-insert-af](./quick/65-fix-insert-button-position-and-insert-af/) |
+| 66 | change task name field behavior | 2026-03-08 | d930376 | [66-change-task-name-field-behavior-click-se](./quick/66-change-task-name-field-behavior-click-se/) |
 
 ## Session Continuity
 
