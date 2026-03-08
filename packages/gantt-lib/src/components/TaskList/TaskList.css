@@ -77,35 +77,6 @@
   background-color: rgba(59, 130, 246, 0.15);
 }
 
-/* Hover-reveal trash button on task rows */
-.gantt-tl-row-trash {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 3px;
-  color: var(--gantt-text-muted, #9ca3af);
-  display: flex;
-  align-items: center;
-}
-
-.gantt-tl-row:hover .gantt-tl-row-trash {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.gantt-tl-row-trash:hover {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-}
-
 /* Cells */
 .gantt-tl-cell {
   display: flex;
@@ -509,37 +480,6 @@
 .gantt-tl-dep-add:hover {
   background-color: rgba(59, 130, 246, 0.1);
   border-color: #3b82f6;
-}
-
-/* Insert task button — inline in deps cell, green to differentiate */
-.gantt-tl-dep-insert {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px dashed rgba(34, 197, 94, 0.4);
-  border-radius: 4px;
-  width: 23px;
-  height: 23px;
-  font-size: 0.9rem;
-  color: var(--gantt-success-color, #22c55e);
-  cursor: pointer;
-  padding: 0;
-  font-family: inherit;
-  flex-shrink: 0;
-  opacity: 0.6;
-  transition: opacity 0.15s ease;
-}
-
-.gantt-tl-dep-insert:hover {
-  background-color: rgba(34, 197, 94, 0.1);
-  border-color: var(--gantt-success-color, #22c55e);
-  opacity: 1;
-}
-
-/* Reveal on cell hover when not in picker mode */
-.gantt-tl-cell-deps:hover .gantt-tl-dep-insert {
-  opacity: 1;
 }
 
 /* Picker mode: «Связи» cell on all rows becomes a selection target */
