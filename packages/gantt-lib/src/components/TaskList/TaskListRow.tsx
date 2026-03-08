@@ -356,20 +356,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         style={{ minHeight: `${rowHeight}px`, position: 'relative' }}
         onClick={handleRowClickInternal}
       >
-        {/* Trash button — hover-revealed, absolutely positioned */}
-        {onDelete && (
-          <button
-            className="gantt-tl-row-trash"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(task.id);
-            }}
-            type="button"
-            aria-label="Удалить задачу"
-          >
-            <TrashIcon />
-          </button>
-        )}
         {/* Number column — click selects the row and scrolls the grid to this task */}
         <div
           className="gantt-tl-cell gantt-tl-cell-number"
@@ -509,34 +495,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   aria-label="Добавить связь"
                 >
                   +
-                </button>
-              )}
-
-              {/* Insert task button — inline with chips, shown on hover */}
-              {onInsertAfter && !isPicking && (
-                <button
-                  type="button"
-                  className="gantt-tl-dep-insert"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const now = new Date();
-                    const todayISO = new Date(Date.UTC(
-                      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
-                    )).toISOString().split('T')[0];
-                    const endISO = new Date(Date.UTC(
-                      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7
-                    )).toISOString().split('T')[0];
-                    const newTask: Task = {
-                      id: crypto.randomUUID(),
-                      name: 'Новая задача',
-                      startDate: todayISO,
-                      endDate: endISO,
-                    };
-                    onInsertAfter(task.id, newTask);
-                  }}
-                  aria-label="Вставить задачу после этой"
-                >
-                  <PlusIcon />
                 </button>
               )}
             </>
