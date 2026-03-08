@@ -231,6 +231,67 @@
   position: relative;
 }
 
+/* Action panel cell — narrow column for icon buttons */
+.gantt-tl-cell-actions {
+  width: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 4px;
+  border-right: none; /* Last column, no border */
+}
+
+/* Action panel header cell */
+.gantt-tl-headerCell.gantt-tl-cell-actions {
+  justify-content: center;
+  padding: 0;
+}
+
+/* Action buttons — hover-reveal, compact icon buttons */
+.gantt-tl-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Reveal buttons on row hover */
+.gantt-tl-row:hover .gantt-tl-action-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Insert button styling (green) */
+.gantt-tl-action-insert {
+  color: var(--gantt-success-color, #22c55e);
+}
+
+.gantt-tl-action-insert:hover {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: var(--gantt-success-color, #22c55e);
+}
+
+/* Delete button styling (red) */
+.gantt-tl-action-delete {
+  color: #ef4444;
+}
+
+.gantt-tl-action-delete:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+}
+
 /* Type switcher button in header */
 .gantt-tl-dep-type-trigger {
   display: flex;
