@@ -232,6 +232,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const [nameValue, setNameValue] = useState('');
     const nameInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
+    const confirmedRef = useRef(false);  // Prevent double-save on Enter + blur
 
     const isSelected = selectedTaskId === task.id;
 
@@ -301,6 +302,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [editingName, disableTaskNameEditing]);
 
     const handleNameSave = useCallback(() => {
+      if (confirmedRef.current) {
+        // Already saved via Enter key, skip blur handler
+        confirmedRef.current = false;
+        return;
+      }
       if (nameValue.trim()) {
         onTaskChange?.({ ...task, name: nameValue.trim() });
       }
@@ -312,9 +318,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, []);
 
     const handleNameKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') handleNameSave();
-      else if (e.key === 'Escape') handleNameCancel();
-    }, [handleNameSave, handleNameCancel]);
+      if (e.key === 'Enter') {
+        confirmedRef.current = true;  // Mark as saved to prevent blur from triggering again
+        if (nameValue.trim()) {
+          onTaskChange?.({ ...task, name: nameValue.trim() });
+        }
+        setEditingName(false);
+      } else if (e.key === 'Escape') {
+        handleNameCancel();
+      }
+    }, [nameValue, task, onTaskChange, handleNameCancel]);
 
     // Both date pickers shift the whole task (preserving duration), same as drag-move
     const handleStartDateChange = useCallback((newDateISO: string) => {
