@@ -201,3 +201,13 @@ Plans:
 - [x] 16-01-PLAN.md — Unit test scaffold + GanttChart API layer (onAdd/onDelete props, handleDelete with dep cleanup, TaskList prop threading)
 - [x] 16-02-PLAN.md — TaskList UI: NewTaskRow ghost component, "+" add button, hover-reveal trash on TaskListRow, CSS
 - [ ] 16-03-PLAN.md — Demo page wiring (onAdd/onDelete handlers) + human verification checkpoint
+
+### Phase 17: action-buttons-panel
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 16
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 17 to break down)

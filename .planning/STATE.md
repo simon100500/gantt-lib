@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: Phase 17 context gathered
+last_updated: "2026-03-08T13:20:16.594Z"
+last_activity: "2026-03-08 - Completed quick task 65: insert button in deps cell, onInsertAfter callback"
+progress:
+  total_phases: 17
+  completed_phases: 15
+  total_plans: 40
+  completed_plans: 39
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: "Completed 16-01: Add/Delete API Foundation"
 last_updated: "2026-03-07T23:28:32.059Z"
 last_activity: "2026-03-08 - Completed 16-01: Add/Delete API Foundation"
@@ -258,6 +273,7 @@ Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 - Phase 14 added: dependencies-edit — механизм создания связей между задачами через столбец в task list (тип связи + кнопка "+", выбор дочерней задачи, отображение типов ОН/НН/ОО/НО)
 - Phase 15 added: expired-coloring — Закраска красным цветом если просрочена (общий пропс вкл / выкл). И будем красить задачи если они просрочены с учётом текущего процента выполнения
 - Phase 16 added: adding-tasks
+- Phase 17 added: action-buttons-panel
 
 ### Decisions
 
@@ -434,8 +450,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-07T23:28:32.057Z
-Stopped at: Completed 16-01: Add/Delete API Foundation
+Last session: 2026-03-08T13:20:16.590Z
+Stopped at: Phase 17 context gathered
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
