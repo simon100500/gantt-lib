@@ -267,9 +267,25 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const handleNameClick = useCallback((e: React.MouseEvent) => {
       if (disableTaskNameEditing) return;
       e.stopPropagation();
+      onRowClick?.(task.id);
+    }, [task.id, disableTaskNameEditing, onRowClick]);
+
+    const handleNameDoubleClick = useCallback((e: React.MouseEvent) => {
+      if (disableTaskNameEditing) return;
+      e.stopPropagation();
       setNameValue(task.name);
       setEditingName(true);
     }, [task.name, disableTaskNameEditing]);
+
+    const handleRowKeyDown = useCallback((e: React.KeyboardEvent) => {
+      // If not editing and a printable key is pressed, start editing
+      if (!editingName && !disableTaskNameEditing && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setNameValue('');
+        setEditingName(true);
+        // Input will be focused by existing useEffect (line 262)
+      }
+    }, [editingName, disableTaskNameEditing]);
 
     const handleNameSave = useCallback(() => {
       if (nameValue.trim()) {
@@ -355,6 +371,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         ].filter(Boolean).join(' ')}
         style={{ minHeight: `${rowHeight}px`, position: 'relative' }}
         onClick={handleRowClickInternal}
+        onKeyDown={handleRowKeyDown}
+        tabIndex={isSelected ? 0 : -1}
       >
         {/* Number column — click selects the row and scrolls the grid to this task */}
         <div
@@ -388,6 +406,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             type="button"
             className={`gantt-tl-name-trigger ${disableTaskNameEditing ? 'gantt-tl-name-locked' : ''}`}
             onClick={handleNameClick}
+            onDoubleClick={handleNameDoubleClick}
             style={editingName ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}
           >
             {task.name}
