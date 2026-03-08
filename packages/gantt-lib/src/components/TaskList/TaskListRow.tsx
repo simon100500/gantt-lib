@@ -35,6 +35,12 @@ const TrashIcon = () => (
   </svg>
 );
 
+const PlusIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
 function formatDepDescription(type: LinkType, lag: number | undefined): string {
   const effectiveLag = lag ?? 0;
 
@@ -183,6 +189,8 @@ export interface TaskListRowProps {
   onScrollToTask?: (taskId: string) => void;
   /** Callback when task is deleted */
   onDelete?: (taskId: string) => void;
+  /** Callback when a new task is inserted below this row */
+  onAdd?: (task: Task) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -212,6 +220,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onChipSelect,
     onScrollToTask,
     onDelete,
+    onAdd,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -356,6 +365,33 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             aria-label="Удалить задачу"
           >
             <TrashIcon />
+          </button>
+        )}
+        {/* Insert task button — hover-reveal on left side */}
+        {onAdd && (
+          <button
+            type="button"
+            className="gantt-tl-row-insert"
+            onClick={(e) => {
+              e.stopPropagation();
+              const now = new Date();
+              const todayISO = new Date(Date.UTC(
+                now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
+              )).toISOString().split('T')[0];
+              const endISO = new Date(Date.UTC(
+                now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7
+              )).toISOString().split('T')[0];
+              const newTask: Task = {
+                id: crypto.randomUUID(),
+                name: 'Новая задача',
+                startDate: todayISO,
+                endDate: endISO,
+              };
+              onAdd(newTask);
+            }}
+            aria-label="Вставить задачу ниже"
+          >
+            <PlusIcon />
           </button>
         )}
         {/* Number column — click selects the row and scrolls the grid to this task */}

@@ -304,6 +304,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onChipSelect={handleChipSelect}
               onScrollToTask={onScrollToTask}
               onDelete={onDelete}
+              onAdd={onAdd}
             />
           ))}
         </div>
