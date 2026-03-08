@@ -233,6 +233,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const nameInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
     const confirmedRef = useRef(false);  // Prevent double-save on Enter + blur
+    const autoEditedForRef = useRef<string | null>(null);  // Track which editingTaskId we already auto-entered for
+    const editTriggerRef = useRef<'keypress' | 'doubleclick' | 'autoedit'>('doubleclick');  // How editing was started
 
     const isSelected = selectedTaskId === task.id;
 
@@ -265,17 +267,35 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     useEffect(() => {
       if (editingName && nameInputRef.current) {
         nameInputRef.current.focus();
-        nameInputRef.current.select();
+        if (editTriggerRef.current === 'keypress') {
+          // Cursor to end — the typed char is already in the input, don't select it
+          const len = nameInputRef.current.value.length;
+          nameInputRef.current.setSelectionRange(len, len);
+        } else {
+          // Double-click or auto-edit-on-insert: select all for easy replacement
+          nameInputRef.current.select();
+        }
       }
     }, [editingName]);
 
-    // Auto-enter edit mode when this task is created via insert
+    // Auto-enter edit mode when this task is created via insert.
+    // We track which editingTaskId we already reacted to (autoEditedForRef) so that
+    // subsequent re-renders caused by saving the name (which changes task.name) do NOT
+    // re-trigger edit mode. Without this guard, saving the name → onTaskChange → new task.name
+    // → re-render → effect fires again → edit mode re-entered → user must press Enter twice.
     useEffect(() => {
-      if (editingTaskId === task.id && !disableTaskNameEditing) {
+      if (
+        editingTaskId === task.id &&
+        !disableTaskNameEditing &&
+        autoEditedForRef.current !== editingTaskId
+      ) {
+        autoEditedForRef.current = editingTaskId;
+        editTriggerRef.current = 'autoedit';
         setNameValue(task.name);
         setEditingName(true);
       }
-    }, [editingTaskId, task.id, task.name, disableTaskNameEditing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editingTaskId, task.id, disableTaskNameEditing]);
 
     const handleNameClick = useCallback((e: React.MouseEvent) => {
       if (disableTaskNameEditing) return;
@@ -287,6 +307,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const handleNameDoubleClick = useCallback((e: React.MouseEvent) => {
       if (disableTaskNameEditing) return;
       e.stopPropagation();
+      editTriggerRef.current = 'doubleclick';
       setNameValue(task.name);
       setEditingName(true);
     }, [task.name, disableTaskNameEditing]);
@@ -295,9 +316,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       // If not editing and a printable key is pressed, start editing
       if (!editingName && !disableTaskNameEditing && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
+        editTriggerRef.current = 'keypress';
         setNameValue(e.key);
         setEditingName(true);
-        // Input will be focused by existing useEffect (line 262)
+        // Input will be focused by existing useEffect; cursor placed at end (not select-all)
       }
     }, [editingName, disableTaskNameEditing]);
 
