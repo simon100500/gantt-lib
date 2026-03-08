@@ -15,7 +15,10 @@ export const NewTaskRow: React.FC<NewTaskRowProps> = ({ rowHeight, onConfirm, on
   const confirmedRef = useRef(false);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    if (inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
