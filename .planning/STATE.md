@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 17 context gathered
-last_updated: "2026-03-08T13:20:16.594Z"
+stopped_at: "Completed 17-01: Action Buttons Panel"
+last_updated: "2026-03-08T15:26:06.712Z"
 last_activity: "2026-03-08 - Completed quick task 65: insert button in deps cell, onInsertAfter callback"
 progress:
   total_phases: 17
-  completed_phases: 15
-  total_plans: 40
-  completed_plans: 39
+  completed_phases: 16
+  total_plans: 41
+  completed_plans: 40
 ---
 
 ---
@@ -256,6 +256,7 @@ Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 | Phase quick-59-hover P01 | 10s | 1 tasks | 1 files |
 | Phase quick P60 | 127 | 1 tasks | 1 files |
 | Phase 16-adding-tasks P01 | 91s | 2 tasks | 2 files |
+| Phase 17 P01 | 1min | 6 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -378,6 +379,10 @@ Recent decisions affecting current work:
 - [Phase 16-adding-tasks]: Use functional updater pattern in handleDelete to avoid stale closure on tasks prop
 - [Phase 16-adding-tasks]: Library filters deleted task and cleans dependencies before calling callbacks
 - [Phase 16-adding-tasks]: Test pure functions locally in test file, implement inline in components
+- [Phase 17]: 48px fixed width for action panel — narrow enough for compact layout, wide enough for 2 buttons
+- [Phase 17]: Hover-reveal pattern with opacity 0→1 on row hover keeps UI clean while making actions available
+- [Phase 17]: Kept existing PlusIcon and TrashIcon components, reused in new action panel location
+- [Phase 17]: Removed old inline buttons after verification — clean migration without breaking changes
 
 ### Pending Todos
 
@@ -450,8 +455,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T13:20:16.590Z
-Stopped at: Phase 17 context gathered
+Last session: 2026-03-08T15:26:06.709Z
+Stopped at: Completed 17-01: Action Buttons Panel
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)

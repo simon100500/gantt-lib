@@ -202,4 +202,4 @@ Plans:
 - [x] 16-02-PLAN.md — TaskList UI: NewTaskRow ghost component, "+" add button, hover-reveal trash on TaskListRow, CSS
 - [ ] 16-03-PLAN.md — Demo page wiring (onAdd/onDelete handlers) + human verification checkpoint
 
-### Phase 17: action-buttons-panel**Goal:** Consolidate task row action buttons (insert after and delete) into a dedicated action buttons panel column**Requirements**: None (UI refactoring, no new API)**Depends on:** Phase 16**Plans:** 1 planPlans:- [ ] 17-01-PLAN.md — Action panel column: header cell, row cells with hover-reveal buttons, CSS styles, cleanup old inline buttons
+### Phase 17: action-buttons-panel**Goal:** Consolidate task row action buttons (insert after and delete) into a dedicated action buttons panel column**Requirements**: None (UI refactoring, no new API)**Depends on:** Phase 16**Plans:** 1/1 plans complete
