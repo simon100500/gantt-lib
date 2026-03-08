@@ -465,12 +465,14 @@
 
 /* Hover-reveal variant for dep add button */
 .gantt-tl-dep-add-hover {
-  opacity: 0.6;
+  opacity: 0;
+  pointer-events: none;
   transition: opacity 0.15s ease;
 }
 
 .gantt-tl-row:hover .gantt-tl-dep-add-hover {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .gantt-tl-dep-add:hover {
