@@ -111,6 +111,8 @@ export interface GanttChartProps {
   onAdd?: (task: Task) => void;
   /** Callback when a task is deleted via the task list */
   onDelete?: (taskId: string) => void;
+  /** Callback when a new task is inserted after a specific task via the task list */
+  onInsertAfter?: (taskId: string, newTask: Task) => void;
 }
 
 /**
@@ -155,6 +157,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   highlightExpiredTasks = false,
   onAdd,
   onDelete,
+  onInsertAfter,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -492,6 +495,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onSelectedChipChange={setSelectedChip}
             onAdd={onAdd}
             onDelete={handleDelete}
+            onInsertAfter={onInsertAfter}
           />
 
           {/* Chart area */}

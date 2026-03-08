@@ -43,6 +43,8 @@ export interface TaskListProps {
   onAdd?: (task: Task) => void;
   /** Callback when a task is deleted (called with taskId) */
   onDelete?: (taskId: string) => void;
+  /** Callback when a new task is inserted after a specific task */
+  onInsertAfter?: (taskId: string, newTask: Task) => void;
 }
 
 /**
@@ -66,6 +68,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onSelectedChipChange,
   onAdd,
   onDelete,
+  onInsertAfter,
 }) => {
   const totalHeight = useMemo(
     () => tasks.length * rowHeight,
@@ -305,6 +308,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onScrollToTask={onScrollToTask}
               onDelete={onDelete}
               onAdd={onAdd}
+              onInsertAfter={onInsertAfter}
             />
           ))}
         </div>
