@@ -45,6 +45,8 @@ export interface TaskListProps {
   onDelete?: (taskId: string) => void;
   /** Callback when a new task is inserted after a specific task */
   onInsertAfter?: (taskId: string, newTask: Task) => void;
+  /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
+  editingTaskId?: string | null;
 }
 
 /**
@@ -69,6 +71,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onAdd,
   onDelete,
   onInsertAfter,
+  editingTaskId: propEditingTaskId,
 }) => {
   const totalHeight = useMemo(
     () => tasks.length * rowHeight,
@@ -309,6 +312,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onDelete={onDelete}
               onAdd={onAdd}
               onInsertAfter={onInsertAfter}
+              editingTaskId={propEditingTaskId}
             />
           ))}
         </div>

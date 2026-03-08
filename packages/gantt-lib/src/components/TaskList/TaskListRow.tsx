@@ -193,6 +193,8 @@ export interface TaskListRowProps {
   onAdd?: (task: Task) => void;
   /** Callback when a new task is inserted after this task */
   onInsertAfter?: (taskId: string, newTask: Task) => void;
+  /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
+  editingTaskId?: string | null;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -224,6 +226,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onDelete,
     onAdd,
     onInsertAfter,
+    editingTaskId,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -261,8 +264,17 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     useEffect(() => {
       if (editingName && nameInputRef.current) {
         nameInputRef.current.focus();
+        nameInputRef.current.select();
       }
     }, [editingName]);
+
+    // Auto-enter edit mode when this task is created via insert
+    useEffect(() => {
+      if (editingTaskId === task.id && !disableTaskNameEditing) {
+        setNameValue(task.name);
+        setEditingName(true);
+      }
+    }, [editingTaskId, task.id, task.name, disableTaskNameEditing]);
 
     const handleNameClick = useCallback((e: React.MouseEvent) => {
       if (disableTaskNameEditing) return;

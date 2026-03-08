@@ -113,6 +113,8 @@ export interface GanttChartProps {
   onDelete?: (taskId: string) => void;
   /** Callback when a new task is inserted after a specific task via the task list */
   onInsertAfter?: (taskId: string, newTask: Task) => void;
+  /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
+  editingTaskId?: string | null;
 }
 
 /**
@@ -158,6 +160,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   onAdd,
   onDelete,
   onInsertAfter,
+  editingTaskId,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -496,6 +499,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onAdd={onAdd}
             onDelete={handleDelete}
             onInsertAfter={onInsertAfter}
+            editingTaskId={editingTaskId}
           />
 
           {/* Chart area */}
