@@ -113,8 +113,8 @@
   position: relative;
   overflow: visible;
   align-items: center;
-  padding: 0;
-  /* remove all padding so button fills full cell */
+  padding: 0 4px;
+  /* add right padding for button space */
 }
 
 /* Date cell — relative for transparent picker overlay */
@@ -183,38 +183,19 @@
   cursor: default !important;
 }
 
-/* Dependencies column — header and data cells */
-.gantt-tl-cell-deps {
-  width: 120px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  gap: 2px;
-  padding: 2px 4px;
-  align-items: center;
-  overflow: visible;
-  position: relative;
-}
-
-/* Action panel cell — narrow column for icon buttons */
-.gantt-tl-cell-actions {
-  width: 48px;
-  flex-shrink: 0;
+/* Name cell action buttons container */
+.gantt-tl-name-actions {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 4px;
-  padding: 0 4px;
-  border-right: none; /* Last column, no border */
+  align-items: center;
 }
 
-/* Action panel header cell */
-.gantt-tl-headerCell.gantt-tl-cell-actions {
-  justify-content: center;
-  padding: 0;
-}
-
-/* Action buttons — hover-reveal, compact icon buttons */
-.gantt-tl-action-btn {
+/* Name cell action buttons — hover-reveal */
+.gantt-tl-name-action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -230,10 +211,22 @@
   transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
-/* Reveal buttons on row hover */
-.gantt-tl-row:hover .gantt-tl-action-btn {
+/* Reveal buttons on name cell hover */
+.gantt-tl-cell-name:hover .gantt-tl-name-action-btn {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Dependencies column — header and data cells */
+.gantt-tl-cell-deps {
+  width: 120px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px 4px;
+  align-items: center;
+  overflow: visible;
+  position: relative;
 }
 
 /* Insert button styling (green) */
@@ -468,6 +461,16 @@
   padding: 0;
   font-family: inherit;
   flex-shrink: 0;
+}
+
+/* Hover-reveal variant for dep add button */
+.gantt-tl-dep-add-hover {
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.gantt-tl-row:hover .gantt-tl-dep-add-hover {
+  opacity: 1;
 }
 
 .gantt-tl-dep-add:hover {
