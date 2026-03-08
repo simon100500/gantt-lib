@@ -542,6 +542,49 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             </>
           )}
         </div>
+
+        {/* NEW: Action panel cell with insert and delete buttons */}
+        <div className="gantt-tl-cell gantt-tl-cell-actions">
+          {onInsertAfter && (
+            <button
+              type="button"
+              className="gantt-tl-action-btn gantt-tl-action-insert"
+              onClick={(e) => {
+                e.stopPropagation();
+                const now = new Date();
+                const todayISO = new Date(Date.UTC(
+                  now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
+                )).toISOString().split('T')[0];
+                const endISO = new Date(Date.UTC(
+                  now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7
+                )).toISOString().split('T')[0];
+                const newTask: Task = {
+                  id: crypto.randomUUID(),
+                  name: 'Новая задача',
+                  startDate: todayISO,
+                  endDate: endISO,
+                };
+                onInsertAfter(task.id, newTask);
+              }}
+              aria-label="Вставить задачу после этой"
+            >
+              <PlusIcon />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              className="gantt-tl-action-btn gantt-tl-action-delete"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(task.id);
+              }}
+              aria-label="Удалить задачу"
+            >
+              <TrashIcon />
+            </button>
+          )}
+        </div>
       </div>
     );
   }
