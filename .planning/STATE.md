@@ -470,7 +470,7 @@ None yet.
 | 65 | fix insert button position and insert after current task | 2026-03-08 | 5d77072 | [65-fix-insert-button-position-and-insert-af](./quick/65-fix-insert-button-position-and-insert-af/) |
 | 66 | change task name field behavior | 2026-03-08 | d930376 | [66-change-task-name-field-behavior-click-se](./quick/66-change-task-name-field-behavior-click-se/) |
 | 68 | buttons-position hover | 2026-03-08 | e806743 | [68-buttons-position-hover](./quick/68-buttons-position-hover/) |
-| 69 | dashed border removal and column width adjustment | 2026-03-09 | f9a4dbe | [69-dashed](./quick/69-dashed/) |
+| 69 | dashed border removal and column width adjustment | 2026-03-09 | cfa1174 | [69-dashed](./quick/69-dashed/) |
 
 ## Session Continuity
 
