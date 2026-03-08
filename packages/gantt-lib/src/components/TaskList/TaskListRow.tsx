@@ -185,7 +185,7 @@ export interface TaskListRowProps {
   selectedChip?: { successorId: string; predecessorId: string; linkType: string } | null;
   /** Callback when a chip is clicked (selects it) */
   onChipSelect?: (chip: { successorId: string; predecessorId: string; linkType: LinkType } | null) => void;
-  /** Callback to scroll the chart grid to center this task (called when № cell is clicked) */
+  /** Callback to scroll the chart grid to center this task (called when task name is clicked) */
   onScrollToTask?: (taskId: string) => void;
   /** Callback when task is deleted */
   onDelete?: (taskId: string) => void;
@@ -268,7 +268,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       if (disableTaskNameEditing) return;
       e.stopPropagation();
       onRowClick?.(task.id);
-    }, [task.id, disableTaskNameEditing, onRowClick]);
+      onScrollToTask?.(task.id);
+    }, [task.id, disableTaskNameEditing, onRowClick, onScrollToTask]);
 
     const handleNameDoubleClick = useCallback((e: React.MouseEvent) => {
       if (disableTaskNameEditing) return;
@@ -281,7 +282,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       // If not editing and a printable key is pressed, start editing
       if (!editingName && !disableTaskNameEditing && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        setNameValue('');
+        setNameValue(e.key);
         setEditingName(true);
         // Input will be focused by existing useEffect (line 262)
       }
@@ -331,8 +332,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const handleNumberClick = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
       onRowClick?.(task.id);
-      onScrollToTask?.(task.id);
-    }, [task.id, onRowClick, onScrollToTask]);
+    }, [task.id, onRowClick]);
 
     // Dependency handlers
     const handleAddClick = useCallback((e: React.MouseEvent) => {
@@ -374,7 +374,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         onKeyDown={handleRowKeyDown}
         tabIndex={isSelected ? 0 : -1}
       >
-        {/* Number column — click selects the row and scrolls the grid to this task */}
+        {/* Number column — click selects the row */}
         <div
           className="gantt-tl-cell gantt-tl-cell-number"
           onClick={handleNumberClick}
