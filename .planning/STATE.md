@@ -165,7 +165,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-08 - Completed quick task 64: hover-reveal insert button for tasks
+Last activity: 2026-03-08 - Completed quick task 65: insert button in deps cell, onInsertAfter callback
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -430,6 +430,7 @@ None yet.
 | 62 | добавь анимацию при подъезде к today или выбранной работе (плавный скролл) | 2026-03-07 | 45a4a91 | [62-today](./quick/62-today/) |
 | 63 | fix GridBackground arePropsEqual bug and optimize cascade drag DOM mutation | 2026-03-08 | bed7458 | [63-fix-gridbackground-arepropsequal-bug-and](./quick/63-fix-gridbackground-arepropsequal-bug-and/) |
 | 64 | add hover button to insert task below current row | 2026-03-08 | e17e2b5 | [64-add-hover-button-to-insert-task-below-cu](./quick/64-add-hover-button-to-insert-task-below-cu/) |
+| 65 | fix insert button position and insert after current task | 2026-03-08 | 5d77072 | [65-fix-insert-button-position-and-insert-af](./quick/65-fix-insert-button-position-and-insert-af/) |
 
 ## Session Continuity
 
