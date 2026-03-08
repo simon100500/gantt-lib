@@ -290,6 +290,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         autoEditedForRef.current !== editingTaskId
       ) {
         autoEditedForRef.current = editingTaskId;
+        confirmedRef.current = false;  // Reset stale flag from any previous Enter-key save
         editTriggerRef.current = 'autoedit';
         setNameValue(task.name);
         setEditingName(true);
@@ -307,6 +308,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const handleNameDoubleClick = useCallback((e: React.MouseEvent) => {
       if (disableTaskNameEditing) return;
       e.stopPropagation();
+      confirmedRef.current = false;  // Reset stale flag from any previous Enter-key save
       editTriggerRef.current = 'doubleclick';
       setNameValue(task.name);
       setEditingName(true);
@@ -316,6 +318,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       // If not editing and a printable key is pressed, start editing
       if (!editingName && !disableTaskNameEditing && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
+        confirmedRef.current = false;  // Reset stale flag from any previous Enter-key save
         editTriggerRef.current = 'keypress';
         setNameValue(e.key);
         setEditingName(true);
