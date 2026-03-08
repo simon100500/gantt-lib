@@ -378,14 +378,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         <div
           className="gantt-tl-cell gantt-tl-cell-number"
           onClick={handleNumberClick}
-          title="Перейти к работе"
         >
           <span className="gantt-tl-num-label">{rowIndex + 1}</span>
-          <svg className="gantt-tl-num-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 12H3" />
-            <path d="m11 18 6-6-6-6" />
-            <path d="M21 5v14" />
-          </svg>
         </div>
 
         {/* Name column — styled Input overlay on edit */}

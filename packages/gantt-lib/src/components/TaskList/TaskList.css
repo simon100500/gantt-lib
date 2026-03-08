@@ -99,18 +99,7 @@
   cursor: pointer;
 }
 
-.gantt-tl-num-icon {
-  display: none;
-  color: #6b7280;
-}
-
-.gantt-tl-cell-number:hover .gantt-tl-num-label {
-  display: none;
-}
-
-.gantt-tl-cell-number:hover .gantt-tl-num-icon {
-  display: block;
-}
+/* Navigate icon removed - single click on task name now selects row */
 
 /* Restore left padding for the name column header */
 .gantt-tl-headerCell.gantt-tl-cell-name {
@@ -153,7 +142,7 @@
   color: #374151;
   background: transparent;
   border: none;
-  cursor: text;
+  cursor: pointer;
   text-align: left;
   user-select: none;
   white-space: normal;
@@ -164,6 +153,10 @@
 
 .gantt-tl-name-trigger:hover {
   background-color: rgba(59, 130, 246, 0.1);
+}
+
+.gantt-tl-name-trigger:active {
+  background-color: rgba(59, 130, 246, 0.2);
 }
 
 /* Name edit — Input component used as floating overlay */
