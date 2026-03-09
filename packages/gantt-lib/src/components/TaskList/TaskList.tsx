@@ -224,6 +224,50 @@ export const TaskList: React.FC<TaskListProps> = ({
   // New task creation state
   const [isCreating, setIsCreating] = useState(false);
 
+  // Drag-to-reorder state
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragOriginIndexRef = useRef<number | null>(null);
+
+  const handleDragStart = useCallback((index: number, e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingIndex(index);
+    dragOriginIndexRef.current = index;
+  }, []);
+
+  const handleDragOver = useCallback((index: number, e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
+    e.preventDefault();
+    const originIndex = dragOriginIndexRef.current;
+    if (originIndex === null || originIndex === dropIndex) {
+      setDraggingIndex(null);
+      setDragOverIndex(null);
+      dragOriginIndexRef.current = null;
+      return;
+    }
+    const reordered = [...tasks];
+    const [moved] = reordered.splice(originIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+    onReorder?.(reordered);
+    onTaskSelect?.(moved.id);
+    setDraggingIndex(null);
+    setDragOverIndex(null);
+    dragOriginIndexRef.current = null;
+  }, [tasks, onReorder, onTaskSelect]);
+
+  const handleDragEnd = useCallback(() => {
+    // Called when drag ends without a valid drop (Escape, or dropped outside)
+    // handleDrop already clears state on successful drop, so this is only the cancel path
+    setDraggingIndex(null);
+    setDragOverIndex(null);
+    dragOriginIndexRef.current = null;
+  }, []);
+
   const handleConfirmNewTask = useCallback((name: string) => {
     const now = new Date();
     const todayISO = new Date(Date.UTC(
@@ -316,6 +360,12 @@ export const TaskList: React.FC<TaskListProps> = ({
               onAdd={onAdd}
               onInsertAfter={onInsertAfter}
               editingTaskId={propEditingTaskId}
+              isDragging={draggingIndex === index}
+              isDragOver={dragOverIndex === index}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
             />
           ))}
         </div>

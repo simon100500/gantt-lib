@@ -609,6 +609,10 @@ export default function Home() {
     });
   }, []);
 
+  const handleReorder = useCallback((reorderedTasks: Task[]) => {
+    setTasks(reorderedTasks);
+  }, []);
+
   const exportTasksAsJson = useCallback((taskList: Task[]) => {
     const result = taskList.map((task) => ({
       id: task.id,
@@ -712,6 +716,7 @@ export default function Home() {
               onAdd={handleAdd}
               onDelete={handleDelete}
               onInsertAfter={handleInsertAfter}
+              onReorder={handleReorder}
               containerHeight={"80dvh"}
               showTaskList={showTaskList}
               taskListWidth={500}
