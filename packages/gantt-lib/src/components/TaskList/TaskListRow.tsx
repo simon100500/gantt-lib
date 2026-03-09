@@ -41,6 +41,17 @@ const PlusIcon = () => (
   </svg>
 );
 
+const DragHandleIcon = () => (
+  <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+    <circle cx="2" cy="2" r="1.5" />
+    <circle cx="8" cy="2" r="1.5" />
+    <circle cx="2" cy="7" r="1.5" />
+    <circle cx="8" cy="7" r="1.5" />
+    <circle cx="2" cy="12" r="1.5" />
+    <circle cx="8" cy="12" r="1.5" />
+  </svg>
+);
+
 function formatDepDescription(type: LinkType, lag: number | undefined): string {
   const effectiveLag = lag ?? 0;
 
@@ -180,6 +191,18 @@ export interface TaskListRowProps {
   onInsertAfter?: (taskId: string, newTask: Task) => void;
   /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
   editingTaskId?: string | null;
+  /** Whether this row is currently being dragged (shows semi-transparent) */
+  isDragging?: boolean;
+  /** Whether this row is the current drag-over target (shows top border indicator) */
+  isDragOver?: boolean;
+  /** Called when drag starts on the handle for this row */
+  onDragStart?: (index: number, e: React.DragEvent) => void;
+  /** Called when something is dragged over this row */
+  onDragOver?: (index: number, e: React.DragEvent) => void;
+  /** Called when something is dropped on this row */
+  onDrop?: (index: number, e: React.DragEvent) => void;
+  /** Called when drag ends (drop or Escape) */
+  onDragEnd?: (e: React.DragEvent) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -212,6 +235,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onAdd,
     onInsertAfter,
     editingTaskId,
+    isDragging = false,
+    isDragOver = false,
+    onDragStart,
+    onDragOver,
+    onDrop,
+    onDragEnd,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -417,10 +446,14 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isSelected ? 'gantt-tl-row-selected' : '',
           isPicking && !isSourceRow ? 'gantt-tl-row-picking' : '',
           isSourceRow ? 'gantt-tl-row-picking-self' : '',
+          isDragging ? 'gantt-tl-row-dragging' : '',
+          isDragOver ? 'gantt-tl-row-drag-over' : '',
         ].filter(Boolean).join(' ')}
         style={{ minHeight: `${rowHeight}px`, position: 'relative' }}
         onClick={handleRowClickInternal}
         onKeyDown={handleRowKeyDown}
+        onDragOver={(e) => onDragOver?.(rowIndex, e)}
+        onDrop={(e) => onDrop?.(rowIndex, e)}
         tabIndex={isSelected ? 0 : -1}
       >
         {/* Number column — click selects the row */}
@@ -428,6 +461,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-number"
           onClick={handleNumberClick}
         >
+          <span
+            className="gantt-tl-drag-handle"
+            draggable={true}
+            onDragStart={(e) => {
+              e.stopPropagation();
+              onDragStart?.(rowIndex, e);
+            }}
+            onDragEnd={(e) => onDragEnd?.(e)}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DragHandleIcon />
+          </span>
           <span className="gantt-tl-num-label">{rowIndex + 1}</span>
         </div>
 
