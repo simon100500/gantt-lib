@@ -20,7 +20,7 @@ milestone_name: milestone
 status: in_progress
 stopped_at: Completed quick-74-01-PLAN.md
 last_updated: "2026-03-09T08:13:36.000Z"
-last_activity: "2026-03-09 - Completed quick task 75: constrain width on deps cell hover in picking mode"
+last_activity: "2026-03-09 - Completed quick task 76: reduce name column min-width and remove redundant width constraints"
 progress:
   total_phases: 17
   completed_phases: 16
@@ -554,6 +554,7 @@ None yet.
 | 73 | добавь в компонент календаря кнопки внизу компонента: -7 -1 Сегодня +1 +7 Для быстрого переноса | 2026-03-09 | 155207b | [73-7-1-1-7](./quick/73-7-1-1-7/) |
 | 74 | allow text wrapping for source hint placeholder | 2026-03-09 | 6dd8f32 | [74-overflow-90px](./quick/74-overflow-90px/) |
 | 75 | constrain width on deps cell hover in picking mode | 2026-03-09 | 6d20c16 | [75-overflow-gantt-tl-cell-deps-hover-pickin](./quick/75-overflow-gantt-tl-cell-deps-hover-pickin/) |
+| 76 | reduce name column min-width and remove redundant width constraints | 2026-03-09 | 0665ff8 | [76-90px-flex-grow](./quick/76-90px-flex-grow/) |
 
 ## Session Continuity
 
