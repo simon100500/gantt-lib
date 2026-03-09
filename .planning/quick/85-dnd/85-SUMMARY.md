@@ -55,11 +55,11 @@ Modified `handleDrop` to correctly handle the case where `dropIndex === tasks.le
 
 ```typescript
 const insertIndex = dropIndex === tasks.length
-  ? tasks.length - 1  // After last means position at last
+  ? tasks.length  // After last means append to end
   : originIndex < dropIndex ? dropIndex - 1 : dropIndex;
 ```
 
-This fixes the edge case where dragging the last row to the after-last position would incorrectly place it at `tasks.length - 2`.
+**Bug fix:** Initially used `tasks.length - 1` which replaced the last task instead of inserting after it. Fixed by using `tasks.length` to append to the end of the array.
 
 ### Task 3: Add CSS Styling for Drop Zone Indicator
 **File:** `packages/gantt-lib/src/components/TaskList/TaskList.css`
@@ -94,6 +94,8 @@ None - plan executed exactly as written.
 - **5c517da**: `fix(quick-85): enable pointer events on drop zone for DnD detection`
   - Fixed pointer-events: none blocking onDragOver from firing
   - Changed to pointer-events: auto for proper drag event detection
+- **b106246**: `fix(quick-85): insert task at end of array when dropping after last row`
+  - Fixed tasks.length - 1 → tasks.length to append instead of replacing last task
 
 ## Files Modified
 
