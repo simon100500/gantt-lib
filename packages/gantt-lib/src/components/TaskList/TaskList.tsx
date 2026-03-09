@@ -244,9 +244,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
     e.preventDefault();
     const originIndex = dragOriginIndexRef.current;
-    // No-op: dragging to same position, or dragging to adjacent position (already there)
-    // Example: dragging row 0 to hover over row 1 means inserting between 0 and 1 (where row 0 already is)
-    if (originIndex === null || originIndex === dropIndex || dropIndex === originIndex + 1) {
+    // No-op: same position (line is already where the row is)
+    if (originIndex === null || originIndex === dropIndex) {
       setDraggingIndex(null);
       setDragOverIndex(null);
       dragOriginIndexRef.current = null;
@@ -254,8 +253,11 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
     const reordered = [...tasks];
     const [moved] = reordered.splice(originIndex, 1);
-    // Blue line ABOVE row N means insert position between N-1 and N
-    // When dragging down (origin < drop), need to subtract 1 to account for splice removal
+    // Blue line appears ABOVE row at dropIndex
+    // So dropIndex=0 means insert at 0 (before first row)
+    // dropIndex=1 means insert at 1 (between row 0 and row 1)
+    // When dragging down (originIndex < dropIndex), after splice the indices shift by 1
+    // So we need to insert at dropIndex - 1
     const insertIndex = originIndex < dropIndex ? dropIndex - 1 : dropIndex;
     reordered.splice(insertIndex, 0, moved);
     onReorder?.(reordered);
