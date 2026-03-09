@@ -475,8 +475,7 @@
 
 /* Hide add button when a chip is selected (to avoid clutter with delete button) */
 .gantt-tl-dep-add-hidden {
-  opacity: 0 !important;
-  pointer-events: none !important;
+  display: none !important;
 }
 
 .gantt-tl-dep-add:hover {
