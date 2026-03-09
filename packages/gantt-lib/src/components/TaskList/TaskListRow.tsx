@@ -315,6 +315,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [task.name, disableTaskNameEditing]);
 
     const handleRowKeyDown = useCallback((e: React.KeyboardEvent) => {
+      // F2: enter edit mode with cursor at end of existing name
+      if (!editingName && !disableTaskNameEditing && e.key === 'F2') {
+        e.preventDefault();
+        confirmedRef.current = false;  // Reset stale flag from any previous Enter-key save
+        editTriggerRef.current = 'keypress';  // 'keypress' trigger = cursor at end (not select-all)
+        setNameValue(task.name);
+        setEditingName(true);
+        return;
+      }
       // If not editing and a printable key is pressed, start editing
       if (!editingName && !disableTaskNameEditing && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
@@ -324,7 +333,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         setEditingName(true);
         // Input will be focused by existing useEffect; cursor placed at end (not select-all)
       }
-    }, [editingName, disableTaskNameEditing]);
+    }, [editingName, disableTaskNameEditing, task.name]);
 
     const handleNameSave = useCallback(() => {
       if (confirmedRef.current) {
