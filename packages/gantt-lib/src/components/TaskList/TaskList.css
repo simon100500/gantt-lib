@@ -101,12 +101,16 @@
   padding: 0 4px;
   flex-shrink: 0;
   cursor: pointer;
+  position: relative;
 }
 
 /* Drag handle (hidden by default, reveal on row hover) */
 .gantt-tl-drag-handle {
-  width: 16px;
-  height: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,13 +119,17 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
-  flex-shrink: 0;
   user-select: none;
+  background: #f9fafb;
 }
 
 .gantt-tl-row:hover .gantt-tl-drag-handle {
   opacity: 1;
   pointer-events: auto;
+}
+
+.gantt-tl-row:hover .gantt-tl-num-label {
+  visibility: hidden;
 }
 
 .gantt-tl-drag-handle:active {
