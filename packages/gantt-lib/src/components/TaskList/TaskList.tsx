@@ -260,7 +260,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     // When dragging down (originIndex < dropIndex), after splice the indices shift by 1
     // So we need to insert at dropIndex - 1
     const insertIndex = dropIndex === tasks.length
-      ? tasks.length - 1  // After last means position at last
+      ? tasks.length  // After last means append to end
       : originIndex < dropIndex ? dropIndex - 1 : dropIndex;
     reordered.splice(insertIndex, 0, moved);
     onReorder?.(reordered);
