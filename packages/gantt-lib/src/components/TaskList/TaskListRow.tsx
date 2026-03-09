@@ -95,6 +95,7 @@ const DepChip: React.FC<DepChipProps> = ({
       return;
     }
     onChipSelect?.({ successorId: taskId, predecessorId: dep.taskId, linkType: dep.type });
+    onScrollToTask?.(dep.taskId);
   };
 
   const handleOpenChange = useCallback((open: boolean) => {
