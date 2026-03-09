@@ -227,7 +227,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-08 - Completed quick task 68: buttons position hover
+Last activity: 2026-03-09 - Completed quick task 72: constrain dependencies column overflow to 90px
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -504,6 +504,7 @@ None yet.
 | 68 | buttons-position hover | 2026-03-08 | e806743 | [68-buttons-position-hover](./quick/68-buttons-position-hover/) |
 | 69 | dashed border removal and column width adjustment | 2026-03-09 | cfa1174 | [69-dashed](./quick/69-dashed/) |
 | 71 | expose --gantt-container-border-radius CSS variable | 2026-03-09 | 06deec9 | [71-global-style](./quick/71-global-style/) |
+| 72 | constrain dependencies column overflow to 90px | 2026-03-09 | bf92cb1 | [72-gantt-tl-cell-deps-90px](./quick/72-gantt-tl-cell-deps-90px/) |
 
 ## Session Continuity
 
