@@ -287,7 +287,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-09 - Completed quick task 82: code review - editingTaskId refactoring from prop to internal state
+Last activity: 2026-03-09 - Completed quick task 83: add delete confirmation: delete button becomes 'Delete?' on first click, then deletes on second click
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -580,6 +580,7 @@ None yet.
 | 80 | давай в режиме выделения связей (при клике на чип связи) - мы не будем показывать по hover кнопку добавления новой связи (а то она не помещается в одну ячейку с кнопкой удаления связи) | 2026-03-09 | 4317142 | [80-hover](./quick/80-hover/) |
 | 81 | у нас есть разделители месяцев. так вот в календарной сетке в самом первом месяце эта линия не нужна. | 2026-03-09 | 23d7b0a | [81-remove-first-month-separator](./quick/081-remove-first-month-separator/) |
 | 82 | проверь верность решения и чистоту кода: редактирование задачи из пропса в событие | 2026-03-09 | N/A | [82-ganttchart-tsx-page-tsx](./quick/82-ganttchart-tsx-page-tsx/) |
+| 83 | add delete confirmation: delete button becomes 'Delete?' on first click, then deletes on second click | 2026-03-09 | b6c4ed5 | [83-add-delete-confirmation-delete-button-be](./quick/83-add-delete-confirmation-delete-button-be/) |
 
 ## Session Continuity
 
