@@ -244,10 +244,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
     e.preventDefault();
     const originIndex = dragOriginIndexRef.current;
-    // No-op: same position, dragging down to next row, or dragging up to prev row (already there)
-    if (originIndex === null || originIndex === dropIndex ||
-        dropIndex === originIndex + 1 ||  // dragging down: already before next row
-        dropIndex === originIndex - 1) {   // dragging up: already after prev row
+    if (originIndex === null || originIndex === dropIndex) {
       setDraggingIndex(null);
       setDragOverIndex(null);
       dragOriginIndexRef.current = null;
@@ -255,7 +252,10 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
     const reordered = [...tasks];
     const [moved] = reordered.splice(originIndex, 1);
-    reordered.splice(dropIndex, 0, moved);
+    // Blue line ABOVE row N means insert position between N-1 and N
+    // When dragging down (origin < drop), need to subtract 1 to account for splice removal
+    const insertIndex = originIndex < dropIndex ? dropIndex - 1 : dropIndex;
+    reordered.splice(insertIndex, 0, moved);
     onReorder?.(reordered);
     onTaskSelect?.(moved.id);
     setDraggingIndex(null);
