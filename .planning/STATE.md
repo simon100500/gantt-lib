@@ -287,7 +287,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-09 - Completed quick task 84: reset delete confirmation when hovering to different row
+Last activity: 2026-03-09 - Completed quick task 85: fix drag and drop to allow moving tasks to the very end (fixed pointer-events for drop zone detection)
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -582,7 +582,7 @@ None yet.
 | 82 | проверь верность решения и чистоту кода: редактирование задачи из пропса в событие | 2026-03-09 | N/A | [82-ganttchart-tsx-page-tsx](./quick/82-ganttchart-tsx-page-tsx/) |
 | 83 | add delete confirmation: delete button becomes 'Delete?' on first click, then deletes on second click | 2026-03-09 | b6c4ed5 | [83-add-delete-confirmation-delete-button-be](./quick/83-add-delete-confirmation-delete-button-be/) |
 | 84 | reset delete confirmation when hovering to different row | 2026-03-09 | 971a547 | [84-reset-delete-confirmation-when-hovering-](./quick/84-reset-delete-confirmation-when-hovering-/) |
-| 85 | fix drag and drop to allow moving tasks to the very end | 2026-03-09 | 2c6904f | [85-dnd](./quick/85-dnd/) |
+| 85 | fix drag and drop to allow moving tasks to the very end | 2026-03-09 | 5c517da | [85-dnd](./quick/85-dnd/) |
 
 ## Session Continuity
 
