@@ -595,7 +595,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               {!disableDependencyEditing && !isPicking && (
                 <button
                   type="button"
-                  className="gantt-tl-dep-add gantt-tl-dep-add-hover"
+                  className={`gantt-tl-dep-add gantt-tl-dep-add-hover${selectedChip ? ' gantt-tl-dep-add-hidden' : ''}`}
                   onClick={handleAddClick}
                   aria-label="Добавить связь"
                 >
