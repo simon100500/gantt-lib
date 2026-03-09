@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2026-03-09
+
+### Fixes
+- Remove first month separator line at the left edge of calendar grid
+
+### Refactor
+- Move `editingTaskId` from prop to internal state for better encapsulation
+
+### Documentation
+- Add detailed installation guide emphasizing CSS import requirement
+- Fix `onAdd` and `onInsertAfter` callback signatures in API reference
+- Add troubleshooting note for missing hover buttons (CSS import issue)
+
 ## [0.4.0] - 2026-03-09
 
 ### Features
