@@ -94,9 +94,48 @@
 
 .gantt-tl-cell-number {
   width: 40px;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 0;
+  padding: 0 4px;
   flex-shrink: 0;
   cursor: pointer;
+}
+
+/* Drag handle (hidden by default, reveal on row hover) */
+.gantt-tl-drag-handle {
+  width: 16px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: #9ca3af;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.gantt-tl-row:hover .gantt-tl-drag-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.gantt-tl-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Dragging row (semi-transparent) */
+.gantt-tl-row-dragging {
+  opacity: 0.4;
+}
+
+/* Drop target indicator (blue top border) */
+.gantt-tl-row-drag-over {
+  border-top: 2px solid #3b82f6 !important;
 }
 
 /* Navigate icon removed - single click on task name now selects row */
