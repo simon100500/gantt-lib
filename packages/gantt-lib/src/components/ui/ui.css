@@ -294,3 +294,22 @@
 .gantt-day-btn.disabled:hover {
   background: transparent;
 }
+
+/* =========================================================
+ * Calendar navigation buttons
+ * ========================================================= */
+
+.gantt-cal-nav {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid var(--gantt-input-border);
+  margin-top: 4px;
+}
+
+.gantt-cal-nav .gantt-btn {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  padding: 0 8px;
+}

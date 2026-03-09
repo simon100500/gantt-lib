@@ -13,6 +13,8 @@ import {
   format,
   addMonths,
   subMonths,
+  addDays,
+  subDays,
   isSameDay,
   getDay,
   isToday,
@@ -162,9 +164,65 @@ export const Calendar: React.FC<CalendarProps> = ({
     [months, renderMonth]
   );
 
+  const handleDayShift = useCallback(
+    (deltaDays: number) => {
+      if (!onSelect || disabled) return;
+      const baseDate = selected ?? new Date();
+      onSelect(addDays(baseDate, deltaDays));
+    },
+    [onSelect, selected, disabled]
+  );
+
+  const handleToday = useCallback(() => {
+    if (!onSelect || disabled) return;
+    onSelect(new Date());
+  }, [onSelect, disabled]);
+
   return (
     <div ref={scrollRef} className="gantt-cal-container">
       {renderedMonths}
+      <div className="gantt-cal-nav">
+        <button
+          type="button"
+          className="gantt-btn gantt-btn-sm"
+          onClick={() => handleDayShift(-7)}
+          disabled={disabled}
+        >
+          -7
+        </button>
+        <button
+          type="button"
+          className="gantt-btn gantt-btn-sm"
+          onClick={() => handleDayShift(-1)}
+          disabled={disabled}
+        >
+          -1
+        </button>
+        <button
+          type="button"
+          className="gantt-btn gantt-btn-sm"
+          onClick={handleToday}
+          disabled={disabled}
+        >
+          Сегодня
+        </button>
+        <button
+          type="button"
+          className="gantt-btn gantt-btn-sm"
+          onClick={() => handleDayShift(1)}
+          disabled={disabled}
+        >
+          +1
+        </button>
+        <button
+          type="button"
+          className="gantt-btn gantt-btn-sm"
+          onClick={() => handleDayShift(7)}
+          disabled={disabled}
+        >
+          +7
+        </button>
+      </div>
     </div>
   );
 };
