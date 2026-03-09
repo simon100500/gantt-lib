@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed quick-70 F2 edit shortcut
-last_updated: "2026-03-09T06:28:39.422Z"
-last_activity: "2026-03-08 - Completed quick task 68: buttons position hover"
+stopped_at: Completed quick-71 global-style container border-radius CSS variable
+last_updated: "2026-03-09T00:00:00.000Z"
+last_activity: "2026-03-09 - Completed quick task 71: expose --gantt-container-border-radius CSS variable"
 progress:
   total_phases: 17
   completed_phases: 16
@@ -486,11 +486,12 @@ None yet.
 | 66 | change task name field behavior | 2026-03-08 | d930376 | [66-change-task-name-field-behavior-click-se](./quick/66-change-task-name-field-behavior-click-se/) |
 | 68 | buttons-position hover | 2026-03-08 | e806743 | [68-buttons-position-hover](./quick/68-buttons-position-hover/) |
 | 69 | dashed border removal and column width adjustment | 2026-03-09 | cfa1174 | [69-dashed](./quick/69-dashed/) |
+| 71 | expose --gantt-container-border-radius CSS variable | 2026-03-09 | 06deec9 | [71-global-style](./quick/71-global-style/) |
 
 ## Session Continuity
 
-Last session: 2026-03-09T06:28:39.419Z
-Stopped at: Completed quick-70 F2 edit shortcut
+Last session: 2026-03-09T00:00:00.000Z
+Stopped at: Completed quick-71 global-style container border-radius CSS variable
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
