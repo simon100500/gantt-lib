@@ -252,7 +252,9 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
     const reordered = [...tasks];
     const [moved] = reordered.splice(originIndex, 1);
-    reordered.splice(dropIndex, 0, moved);
+    // Adjust dropIndex: after splice, indices shift when moving down
+    const adjustedDropIndex = originIndex < dropIndex ? dropIndex - 1 : dropIndex;
+    reordered.splice(adjustedDropIndex, 0, moved);
     onReorder?.(reordered);
     onTaskSelect?.(moved.id);
     setDraggingIndex(null);
