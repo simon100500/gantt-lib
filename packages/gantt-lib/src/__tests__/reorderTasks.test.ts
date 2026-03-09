@@ -1,7 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import type { Task } from '../components/GanttChart';
 
-// ===== RED phase: Tests first (function not yet defined) =====
+// ===== GREEN phase: Function implementation =====
+
+/**
+ * Pure function to reorder tasks array by moving an item from fromIndex to toIndex.
+ * Does NOT mutate the original array.
+ * @param tasks - Array of tasks to reorder
+ * @param fromIndex - Index of task to move
+ * @param toIndex - Target index where task should be inserted
+ * @returns New array with tasks reordered
+ */
+function reorderTasks(tasks: Task[], fromIndex: number, toIndex: number): Task[] {
+  if (fromIndex === toIndex) return tasks;
+  const result = [...tasks];
+  const [moved] = result.splice(fromIndex, 1);
+  result.splice(toIndex, 0, moved);
+  return result;
+}
+
+// ===== Tests =====
 
 describe('reorderTasks', () => {
   // REORDER-01: move first to last
