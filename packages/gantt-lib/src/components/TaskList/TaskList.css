@@ -144,9 +144,19 @@
   color: #3b82f6 !important;
 }
 
-/* Drop target indicator (blue top border) */
+/* Drop target indicator (blue top border) - uses ::before to avoid layout shift */
 .gantt-tl-row-drag-over {
-  border-top: 2px solid #3b82f6 !important;
+  position: relative;
+}
+.gantt-tl-row-drag-over::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #3b82f6;
+  z-index: 1;
 }
 
 /* Navigate icon removed - single click on task name now selects row */
