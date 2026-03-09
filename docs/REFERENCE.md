@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.4.0
+**Version:** 0.4.1
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
@@ -20,7 +20,42 @@ The CSS import MUST appear as a separate import line. Without it, task bars, gri
 
 ---
 
-## 2. Minimal Working Example
+## 2. Installation
+
+### Step 1: Install the package
+
+```bash
+npm install gantt-lib
+```
+
+### Step 2: Import the component and CSS (REQUIRED)
+
+```tsx
+import { GanttChart, type Task } from 'gantt-lib';
+import 'gantt-lib/styles.css';  // <-- REQUIRED! See below
+```
+
+**⚠️ CRITICAL: The CSS import is REQUIRED**
+
+The CSS import `import 'gantt-lib/styles.css'` must be included as a separate line. Without it:
+- Task bars will not render
+- Grid lines will be invisible
+- Hover buttons (Add/Delete) will NOT appear
+- The entire layout will be broken
+
+The CSS contains all styling including:
+- Task list panel layout
+- Hover-reveal action buttons (+ insert, 🗑 delete)
+- Calendar grid and month/day separators
+- Progress bars and dependency lines
+
+### Step 3: Use in your component
+
+See Section 3 for a complete working example.
+
+---
+
+## 3. Minimal Working Example
 
 ```tsx
 import { useState, useRef } from 'react';
@@ -48,25 +83,28 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void }>(null);
 
-  const handleAddTask = (afterTaskId: string | null) => {
-    const newId = String(tasks.length + 1);
-    const newTask: Task = {
-      id: newId,
-      name: 'New Task',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    };
-
-    if (afterTaskId === null) {
-      setTasks([newTask, ...tasks]);
-    } else {
-      const index = tasks.findIndex(t => t.id === afterTaskId);
-      setTasks([...tasks.slice(0, index + 1), newTask, ...tasks.slice(index + 1)]);
-    }
+  const handleAdd = (task: Task) => {
+    // Called when user adds a task via the task list
+    // The library creates a new task with auto-generated ID
+    setTasks(prev => [...prev, task]);
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    setTasks(tasks.filter(t => t.id !== taskId));
+  const handleDelete = (taskId: string) => {
+    // Called when user clicks the trash icon
+    // The library also cleans up dependencies pointing to this task
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+  };
+
+  const handleInsertAfter = (taskId: string, newTask: Task) => {
+    // Called when user clicks "+" to insert after a specific task
+    // After insertion, the new task automatically enters edit mode
+    setTasks(prev => {
+      const index = prev.findIndex(t => t.id === taskId);
+      if (index === -1) return prev;
+      const newTasks = [...prev];
+      newTasks.splice(index + 1, 0, newTask);
+      return newTasks;
+    });
   };
 
   return (
@@ -83,8 +121,9 @@ export default function App() {
         dayWidth={40}
         rowHeight={40}
         onChange={setTasks}
-        onAdd={handleAddTask}
-        onDelete={handleDeleteTask}
+        onAdd={handleAdd}
+        onDelete={handleDelete}
+        onInsertAfter={handleInsertAfter}
         showTaskList={true}
       />
     </div>
@@ -93,13 +132,14 @@ export default function App() {
 ```
 
 Key points:
-- CSS import comes before the component usage
+- **CSS import is required** for all visual features including hover buttons
 - Use ISO strings (`'YYYY-MM-DD'`) for dates — avoids timezone issues
 - Pass the `useState` setter directly to `onChange` — the library emits functional updaters
-- Implement `onAdd` and `onDelete` to handle task creation/deletion from the UI
+- Implement `onAdd`, `onDelete`, and `onInsertAfter` to handle task operations from the UI
+- After inserting via `onInsertAfter`, the new task automatically enters edit mode (managed internally)
 - No `month` prop needed — the calendar range is derived automatically from task dates
 - Use `ref` to access `scrollToToday()` and `scrollToTask()` methods for programmatic scroll
-- Enable `showTaskList={true}` for the editable task list panel with action buttons
+- Enable `showTaskList={true}` for the editable task list panel with hover-reveal action buttons
 
 ---
 
@@ -232,8 +272,9 @@ interface GanttChartProps {
   headerHeight?: number;
   containerHeight?: number | string;
   onChange?: (tasks: Task[] | ((currentTasks: Task[]) => Task[])) => void;
-  onAdd?: (afterTaskId: string | null) => void;
+  onAdd?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
+  onInsertAfter?: (taskId: string, newTask: Task) => void;
   onValidateDependencies?: (result: ValidationResult) => void;
   enableAutoSchedule?: boolean;
   disableConstraints?: boolean;
@@ -254,13 +295,14 @@ interface GanttChartProps {
 | `headerHeight` | `number` | `40` | Height of the time-scale header (month + day rows) in pixels. |
 | `containerHeight` | `number \| string` | `undefined` | Container height. Can be pixels (`600`), string (`"90vh"`, `"100%"`, `"500px"`), or `undefined` for auto height (adapts to content). |
 | `onChange` | `(tasks: Task[] \| ((currentTasks: Task[]) => Task[])) => void` | `undefined` | Called once on mouseup after any drag or resize. Receives either a new tasks array or a functional updater `(prev) => next`. **Best usage:** pass the `useState` setter directly — `onChange={setTasks}`. This works because the library already wraps updates in functional updaters. |
-| `onAdd` | `(afterTaskId: string \| null) => void` | `undefined` | Called when user clicks the "+" insert button in the task list. Receives the `afterTaskId` where the new task should be inserted (the task above the insert button). `null` means insert at the beginning. |
-| `onDelete` | `(taskId: string) => void` | `undefined` | Called when user clicks the trash icon in the task list action panel. Receives the `taskId` of the task to delete. The library does NOT modify the tasks array — consumer must handle deletion and update state. |
+| `onAdd` | `(task: Task) => void` | `undefined` | Called when user adds a new task. The library creates a task with auto-generated ID and default dates. Consumer adds the task to the array. |
+| `onDelete` | `(taskId: string) => void` | `undefined` | Called when user clicks the trash icon in the task list action panel. Receives the `taskId` of the task to delete. The library automatically cleans up dependencies pointing to this task. |
+| `onInsertAfter` | `(taskId: string, newTask: Task) => void` | `undefined` | Called when user clicks the "+" insert button in the action panel. Receives the `taskId` to insert after and the `newTask` object. After insertion, the new task automatically enters edit mode (managed internally by the component). |
 | `onValidateDependencies` | `(result: ValidationResult) => void` | `undefined` | Called every time the tasks array changes. Receives a `ValidationResult` with all dependency errors (cycles, constraint violations, missing task references). |
 | `enableAutoSchedule` | `boolean` | `false` | When `true` (hard mode): dragging a predecessor cascades all successor tasks to maintain their constraints. Dependency lines redraw in real-time during drag. |
 | `disableConstraints` | `boolean` | `false` | When `true`: all drag constraint checks are skipped. Tasks can be placed freely, ignoring all dependency rules. Useful for debugging layouts or building unconstrained editors. |
 | `onCascade` | `(tasks: Task[]) => void` | `undefined` | Called when a cascade drag completes in hard mode (`enableAutoSchedule={true}`). Receives all affected tasks including the dragged task. **When `onCascade` fires, `onChange` does NOT fire for that drag.** Use `onCascade` to update state in hard mode. |
-| `showTaskList` | `boolean` | `false` | When `true`, displays a task list table on the left side of the chart with columns for №, Name, Start Date, End Date. The task list supports inline editing and synchronized scrolling. |
+| `showTaskList` | `boolean` | `false` | When `true`, displays a task list table on the left side of the chart with columns for №, Name, Start Date, End Date. The task list supports inline editing and synchronized scrolling. **CSS import required for hover-reveal action buttons.** |
 | `taskListWidth` | `number` | `520` | Width of the task list panel in pixels. Only effective when `showTaskList={true}`. |
 | `disableTaskNameEditing` | `boolean` | `false` | When `true`, task names cannot be edited in the task list. Date editing is also disabled for locked tasks (see `task.locked` property). |
 | `disableDependencyEditing` | `boolean` | `false` | When `true`, dependency editing is disabled in the task list. Users cannot add, remove, or modify dependencies via the UI. |
