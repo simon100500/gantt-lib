@@ -135,7 +135,7 @@ export const calculateGridLines = (
   for (let i = 0; i < dateRange.length; i++) {
     const date = dateRange[i];
     const x = Math.round(i * dayWidth);
-    const isMonthStart = date.getUTCDate() === 1;
+    const isMonthStart = i === 0 ? false : date.getUTCDate() === 1;
     const isWeekStart = date.getUTCDay() === 1; // Monday
 
     lines.push({ x, isMonthStart, isWeekStart });

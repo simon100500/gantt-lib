@@ -134,7 +134,7 @@ describe('calculateGridLines', () => {
     const result = calculateGridLines(dateRange, dayWidth);
     expect(result).toHaveLength(2); // Start + end lines
     expect(result[0].x).toBe(0);
-    expect(result[0].isMonthStart).toBe(true);
+    expect(result[0].isMonthStart).toBe(false); // First date should not have month separator at x=0
     expect(result[1].x).toBe(40);
   });
 
@@ -145,9 +145,9 @@ describe('calculateGridLines', () => {
       new Date('2024-04-01T00:00:00Z')
     ];
     const result = calculateGridLines(dateRange, dayWidth);
-    expect(result[0].isMonthStart).toBe(true);
+    expect(result[0].isMonthStart).toBe(false); // First date should not have month separator at x=0
     expect(result[1].isMonthStart).toBe(false);
-    expect(result[2].isMonthStart).toBe(true); // April 1
+    expect(result[2].isMonthStart).toBe(true); // April 1 - should still have month separator
   });
 
   it('should detect week start (Monday) correctly', () => {
