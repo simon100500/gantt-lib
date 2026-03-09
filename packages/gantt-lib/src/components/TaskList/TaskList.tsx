@@ -252,9 +252,10 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
     const reordered = [...tasks];
     const [moved] = reordered.splice(originIndex, 1);
-    // Adjust dropIndex: after splice, indices shift when moving down
-    const adjustedDropIndex = originIndex < dropIndex ? dropIndex - 1 : dropIndex;
-    reordered.splice(adjustedDropIndex, 0, moved);
+    // When dragging down (originIndex < dropIndex), blue line is ABOVE target row
+    // but we need to insert AFTER that row, so add 1 to dropIndex
+    const insertIndex = originIndex < dropIndex ? dropIndex + 1 : dropIndex;
+    reordered.splice(insertIndex, 0, moved);
     onReorder?.(reordered);
     onTaskSelect?.(moved.id);
     setDraggingIndex(null);
