@@ -132,10 +132,10 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  width: 100%;
-  height: 100%;
-  padding: 0 0.2rem;
-  /* restore visual padding inside the button */
+  position: absolute;
+  inset: 0;
+  padding: 0 4px;
+  /* match parent cell padding so text stays visually aligned */
   font-size: 0.8rem;
   line-height: 1.2;
   font-family: inherit;
@@ -148,7 +148,6 @@
   white-space: normal;
   word-break: break-word;
   box-sizing: border-box;
-  min-height: 100%;
 }
 
 .gantt-tl-name-trigger:hover {
