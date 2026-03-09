@@ -62,16 +62,20 @@ export const getDayOffset = (date: Date, monthStart: Date): number => {
 };
 
 /**
- * Check if date is today (UTC comparison)
+ * Check if date is today (local timezone comparison)
+ * Uses local time to determine today's date boundary so the result matches
+ * the user's timezone rather than UTC (prevents off-by-one errors at midnight).
  * @param date - Date to check
  * @returns True if date is today, false otherwise
  */
 export const isToday = (date: Date): boolean => {
   const now = new Date();
+  // Use local time methods so the "today" boundary reflects the user's timezone.
+  // getUTCFullYear/Month/Date would shift the day for non-UTC users.
   const today = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate()
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
   ));
   const compareDate = new Date(Date.UTC(
     date.getUTCFullYear(),

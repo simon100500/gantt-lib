@@ -107,9 +107,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const isExpired = useMemo(() => {
       if (!highlightExpiredTasks) return false;
 
-      // Create UTC today for comparison
+      // Create today boundary using LOCAL time so the day boundary matches the user's timezone.
+      // Using getUTCFullYear/Month/Date here would shift the day boundary by the UTC offset —
+      // e.g. for UTC+3 at 00:30 local, getUTCDate() still returns yesterday.
       const now = new Date();
-      const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
       // Parse task dates as UTC
       const taskStart = parseUTCDate(task.startDate);
