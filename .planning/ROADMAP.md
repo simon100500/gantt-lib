@@ -209,7 +209,7 @@ Plans:
 **Goal:** Drag-and-drop row reordering in TaskList — user grabs a grip handle (shown on hover, left of row number) to reorder tasks; onReorder callback receives the full reordered tasks array; chart and dependency lines synchronize automatically
 **Requirements**: none (UI feature, no new library API requirements)
 **Depends on:** Phase 17
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 18-01-PLAN.md — reorderTasks unit tests (TDD) + onReorder API wiring through GanttChart to TaskList
