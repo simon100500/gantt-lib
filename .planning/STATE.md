@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: Completed quick-73-01-PLAN.md
+last_updated: "2026-03-09T07:48:37.619Z"
+last_activity: "2026-03-09 - Completed quick task 72: constrain dependencies column overflow to 90px"
+progress:
+  total_phases: 17
+  completed_phases: 16
+  total_plans: 41
+  completed_plans: 40
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: Completed quick-72-72-PLAN.md
 last_updated: "2026-03-09T07:44:23.298Z"
 last_activity: "2026-03-08 - Completed quick task 68: buttons position hover"
@@ -227,7 +242,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-09 - Completed quick task 72: constrain dependencies column overflow to 90px
+Last activity: 2026-03-09 - Completed quick task 73: добавь в компонент календаря кнопки внизу компонента: -7 -1 Сегодня +1 +7 Для быстрого переноса
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -305,6 +320,7 @@ Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 | Phase 16-adding-tasks P01 | 91s | 2 tasks | 2 files |
 | Phase 17 P01 | 1min | 6 tasks | 3 files |
 | Phase quick-72 P01 | 18s | 1 tasks | 1 files |
+| Phase quick-73 P01 | 68054497 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -505,11 +521,12 @@ None yet.
 | 69 | dashed border removal and column width adjustment | 2026-03-09 | cfa1174 | [69-dashed](./quick/69-dashed/) |
 | 71 | expose --gantt-container-border-radius CSS variable | 2026-03-09 | 06deec9 | [71-global-style](./quick/71-global-style/) |
 | 72 | constrain dependencies column overflow to 90px | 2026-03-09 | bf92cb1 | [72-gantt-tl-cell-deps-90px](./quick/72-gantt-tl-cell-deps-90px/) |
+| 73 | добавь в компонент календаря кнопки внизу компонента: -7 -1 Сегодня +1 +7 Для быстрого переноса | 2026-03-09 | 155207b | [73-7-1-1-7](./quick/73-7-1-1-7/) |
 
 ## Session Continuity
 
-Last session: 2026-03-09T07:44:23.295Z
-Stopped at: Completed quick-72-72-PLAN.md
+Last session: 2026-03-09T07:48:37.616Z
+Stopped at: Completed quick-73-01-PLAN.md
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
