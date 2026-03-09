@@ -256,9 +256,12 @@ export const TaskList: React.FC<TaskListProps> = ({
     // Blue line appears ABOVE row at dropIndex
     // So dropIndex=0 means insert at 0 (before first row)
     // dropIndex=1 means insert at 1 (between row 0 and row 1)
+    // dropIndex=tasks.length means insert at the end (after last row)
     // When dragging down (originIndex < dropIndex), after splice the indices shift by 1
     // So we need to insert at dropIndex - 1
-    const insertIndex = originIndex < dropIndex ? dropIndex - 1 : dropIndex;
+    const insertIndex = dropIndex === tasks.length
+      ? tasks.length - 1  // After last means position at last
+      : originIndex < dropIndex ? dropIndex - 1 : dropIndex;
     reordered.splice(insertIndex, 0, moved);
     onReorder?.(reordered);
     onTaskSelect?.(moved.id);
@@ -375,6 +378,20 @@ export const TaskList: React.FC<TaskListProps> = ({
               onDragEnd={handleDragEnd}
             />
           ))}
+          {/* Drop zone after the last row - allows placing tasks at the very end */}
+          <div
+            className={`gantt-tl-drop-zone${dragOverIndex === tasks.length ? ' gantt-tl-drop-zone-drag-over' : ''}`}
+            style={{ height: `${rowHeight}px` }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              setDragOverIndex(tasks.length);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              handleDrop(tasks.length, e);
+            }}
+          />
         </div>
 
         {/* Ghost row for new task creation — positioned OUTSIDE body div to avoid height desync */}
