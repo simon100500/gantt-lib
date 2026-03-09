@@ -654,6 +654,29 @@
   border-top: 1px dashed var(--gantt-grid-line-color, #e0e0e0);
 }
 
+/* Drop zone after last row - allows placing tasks at the very end */
+.gantt-tl-drop-zone {
+  position: relative;
+  width: 100%;
+  pointer-events: none; /* Let events pass through when not dragging */
+}
+
+/* Show blue top border when dragging over the after-last zone */
+.gantt-tl-drop-zone-drag-over {
+  pointer-events: auto; /* Accept drop events when dragging */
+}
+
+.gantt-tl-drop-zone-drag-over::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #3b82f6;
+  z-index: 1;
+}
+
 .gantt-tl-cell-new-name {
   padding: 2px 4px;
 }
