@@ -203,3 +203,14 @@ Plans:
 - [ ] 16-03-PLAN.md — Demo page wiring (onAdd/onDelete handlers) + human verification checkpoint
 
 ### Phase 17: action-buttons-panel**Goal:** Consolidate task row action buttons (insert after and delete) into a dedicated action buttons panel column**Requirements**: None (UI refactoring, no new API)**Depends on:** Phase 16**Plans:** 1/1 plans complete
+
+### Phase 18: tasks-order
+
+**Goal:** Drag-and-drop row reordering in TaskList — user grabs a grip handle (shown on hover, left of row number) to reorder tasks; onReorder callback receives the full reordered tasks array; chart and dependency lines synchronize automatically
+**Requirements**: none (UI feature, no new library API requirements)
+**Depends on:** Phase 17
+**Plans:** 2 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — reorderTasks unit tests (TDD) + onReorder API wiring through GanttChart to TaskList
+- [ ] 18-02-PLAN.md — TaskList drag state, TaskListRow drag handle + CSS, demo page wiring, human verification
