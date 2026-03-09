@@ -134,9 +134,14 @@
   cursor: grabbing;
 }
 
-/* Dragging row (semi-transparent) */
+/* Dragging row (semi-transparent background, blue text) */
 .gantt-tl-row-dragging {
   opacity: 0.4;
+}
+.gantt-tl-row-dragging .gantt-tl-cell-name,
+.gantt-tl-row-dragging .gantt-tl-cell-number,
+.gantt-tl-row-dragging .gantt-tl-cell-date {
+  color: #3b82f6 !important;
 }
 
 /* Drop target indicator (blue top border) */
