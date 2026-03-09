@@ -95,6 +95,12 @@ const DepChip: React.FC<DepChipProps> = ({
     }
   };
 
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      onChipSelect?.(null);
+    }
+  }, [onChipSelect]);
+
   const handleTrashClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onRemoveDependency?.(taskId, dep.taskId, dep.type);
@@ -106,7 +112,7 @@ const DepChip: React.FC<DepChipProps> = ({
   const depName = predecessorName ?? dep.taskId;
 
   return (
-    <Popover open={isSelected} onOpenChange={(open) => {}}>
+    <Popover open={isSelected} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <span className="gantt-tl-dep-chip-wrapper">
           <span
