@@ -113,6 +113,8 @@ export interface GanttChartProps {
   onDelete?: (taskId: string) => void;
   /** Callback when a new task is inserted after a specific task via the task list */
   onInsertAfter?: (taskId: string, newTask: Task) => void;
+  /** Callback when tasks are reordered via drag in the task list */
+  onReorder?: (tasks: Task[]) => void;
 }
 
 /**
@@ -158,6 +160,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   onAdd,
   onDelete,
   onInsertAfter,
+  onReorder,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -395,6 +398,17 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     onInsertAfter?.(taskId, newTask);
   }, [onInsertAfter]);
 
+  /**
+   * Handle task reordering: notify external consumer via onChange and onReorder callbacks.
+   *
+   * NOTE: onChange receives the full reordered array directly (not a functional updater).
+   * Reordering is always a full replacement, never a diff.
+   */
+  const handleReorder = useCallback((reorderedTasks: Task[]) => {
+    onChange?.(reorderedTasks);
+    onReorder?.(reorderedTasks);
+  }, [onChange, onReorder]);
+
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
   const dependencyOverrides = useMemo(() => {
     const map = new Map(cascadeOverrides);
@@ -519,6 +533,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onAdd={onAdd}
             onDelete={handleDelete}
             onInsertAfter={handleInsertAfter}
+            onReorder={handleReorder}
             editingTaskId={editingTaskId}
           />
 
