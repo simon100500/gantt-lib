@@ -406,6 +406,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
     }, [isPicking, isSourceRow, selectingPredecessorFor, task.id, activeLinkType, onAddDependency]);
 
+    const handleCancelPicking = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onSetSelectingPredecessorFor?.(null);
+    }, [onSetSelectingPredecessorFor]);
+
     // True when this row is the predecessor for the currently selected chip
     const isSelectedPredecessor = selectedChip != null && selectedChip.predecessorId === task.id;
 
@@ -534,7 +539,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         {/* Dependencies column */}
         <div
           className="gantt-tl-cell gantt-tl-cell-deps"
-          onClick={isPicking && !isSourceRow ? handlePredecessorPick : undefined}
+          onClick={isSourceRow ? handleCancelPicking : (isPicking ? handlePredecessorPick : undefined)}
         >
           {isSourceRow ? (
             <span className="gantt-tl-dep-source-hint">Выберите задачу</span>

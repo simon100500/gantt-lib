@@ -488,9 +488,9 @@
   background-color: rgba(59, 130, 246, 0.15);
 }
 
-/* Picker mode: current task's own row — disabled */
+/* Picker mode: current task's own row — clickable to cancel */
 .gantt-tl-row-picking-self .gantt-tl-cell-deps {
-  cursor: not-allowed;
+  cursor: pointer;
 }
 
 /* Placeholder text shown in source row's deps cell while picking a predecessor */
