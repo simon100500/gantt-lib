@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: in_progress
 stopped_at: Completed quick-77-01-PLAN.md
-last_updated: "2026-03-09T08:47:07.622Z"
-last_activity: "2026-03-09 - Completed quick task 73: добавь в компонент календаря кнопки внизу компонента: -7 -1 Сегодня +1 +7 Для быстрого переноса"
+last_updated: "2026-03-09T08:47:08.000Z"
+last_activity: "2026-03-09 - Completed quick task 77: давай при входе в режим добавления связи - можно из него выйти если кликнуть на текущую ячейку (с надписью Выберите задачу). И не надо делать курсор Blocked. Делай курсор Pointer"
 progress:
   total_phases: 17
   completed_phases: 16
@@ -287,7 +287,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-09 - Completed quick task 73: добавь в компонент календаря кнопки внизу компонента: -7 -1 Сегодня +1 +7 Для быстрого переноса
+Last activity: 2026-03-09 - Completed quick task 77: давай при входе в режим добавления связи - можно из него выйти если кликнуть на текущую ячейку (с надписью Выберите задачу). И не надо делать курсор Blocked. Делай курсор Pointer
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -571,6 +571,7 @@ None yet.
 | 74 | allow text wrapping for source hint placeholder | 2026-03-09 | 6dd8f32 | [74-overflow-90px](./quick/74-overflow-90px/) |
 | 75 | constrain width on deps cell hover in picking mode | 2026-03-09 | 6d20c16 | [75-overflow-gantt-tl-cell-deps-hover-pickin](./quick/75-overflow-gantt-tl-cell-deps-hover-pickin/) |
 | 76 | reduce name column min-width and remove redundant width constraints | 2026-03-09 | 0665ff8 | [76-90px-flex-grow](./quick/76-90px-flex-grow/) |
+| 77 | давай при входе в режим добавления связи - можно из него выйти если кликнуть на текущую ячейку (с надписью Выберите задачу). И не надо делать курсор Blocked. Делай курсор Pointer | 2026-03-09 | 401ee3f | [77-blocked-pointer](./quick/77-blocked-pointer/) |
 
 ## Session Continuity
 
