@@ -88,11 +88,15 @@ const DepChip: React.FC<DepChipProps> = ({
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (disableDependencyEditing) return;
-    onChipSelect?.(isSelected ? null : { successorId: taskId, predecessorId: dep.taskId, linkType: dep.type });
-    if (!isSelected) {
-      onRowClick?.(taskId);
-      onScrollToTask?.(taskId);
+    // When clicking on an already selected chip, prevent the PopoverTrigger from toggling
+    if (isSelected) {
+      e.preventDefault();
+      onChipSelect?.(null);
+      return;
     }
+    onChipSelect?.({ successorId: taskId, predecessorId: dep.taskId, linkType: dep.type });
+    onRowClick?.(taskId);
+    onScrollToTask?.(taskId);
   };
 
   const handleOpenChange = useCallback((open: boolean) => {
