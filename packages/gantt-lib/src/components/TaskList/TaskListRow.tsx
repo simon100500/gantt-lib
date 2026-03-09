@@ -9,6 +9,8 @@ import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { LINK_TYPE_ICONS } from './DepIcons';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // ---------------------------------------------------------------------------
 // DepChip — local unified component used in both single-chip cell and popover
@@ -195,14 +197,6 @@ export interface TaskListRowProps {
   isDragging?: boolean;
   /** Whether this row is the current drag-over target (shows top border indicator) */
   isDragOver?: boolean;
-  /** Called when drag starts on the handle for this row */
-  onDragStart?: (index: number, e: React.DragEvent) => void;
-  /** Called when something is dragged over this row */
-  onDragOver?: (index: number, e: React.DragEvent) => void;
-  /** Called when something is dropped on this row */
-  onDrop?: (index: number, e: React.DragEvent) => void;
-  /** Called when drag ends (drop or Escape) */
-  onDragEnd?: (e: React.DragEvent) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -235,13 +229,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onAdd,
     onInsertAfter,
     editingTaskId,
-    isDragging = false,
+    isDragging: propIsDragging = false,
     isDragOver = false,
-    onDragStart,
-    onDragOver,
-    onDrop,
-    onDragEnd,
   }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging: dndIsDragging,
+    } = useSortable({ id: task.id });
+
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
     const nameInputRef = useRef<HTMLInputElement>(null);
@@ -251,6 +250,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const editTriggerRef = useRef<'keypress' | 'doubleclick' | 'autoedit'>('doubleclick');  // How editing was started
 
     const isSelected = selectedTaskId === task.id;
+    const isDragging = propIsDragging || dndIsDragging;
 
     // Picker mode flags for this row
     const isPicking = selectingPredecessorFor != null;
@@ -441,6 +441,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     return (
       <div
+        ref={setNodeRef}
         className={[
           'gantt-tl-row',
           isSelected ? 'gantt-tl-row-selected' : '',
@@ -449,11 +450,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isDragging ? 'gantt-tl-row-dragging' : '',
           isDragOver ? 'gantt-tl-row-drag-over' : '',
         ].filter(Boolean).join(' ')}
-        style={{ minHeight: `${rowHeight}px`, position: 'relative' }}
+        style={{
+          minHeight: `${rowHeight}px`,
+          position: 'relative',
+          transform: CSS.Transform.toString(transform),
+          transition,
+          opacity: isDragging ? 0.5 : 1,
+        }}
         onClick={handleRowClickInternal}
         onKeyDown={handleRowKeyDown}
-        onDragOver={(e) => onDragOver?.(rowIndex, e)}
-        onDrop={(e) => onDrop?.(rowIndex, e)}
         tabIndex={isSelected ? 0 : -1}
       >
         {/* Number column — click selects the row */}
@@ -461,18 +466,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-number"
           onClick={handleNumberClick}
         >
-          <span
+          <button
             className="gantt-tl-drag-handle"
-            draggable={true}
-            onDragStart={(e) => {
-              e.stopPropagation();
-              onDragStart?.(rowIndex, e);
-            }}
-            onDragEnd={(e) => onDragEnd?.(e)}
+            {...attributes}
+            {...listeners}
+            type="button"
             onClick={(e) => e.stopPropagation()}
           >
             <DragHandleIcon />
-          </span>
+          </button>
           <span className="gantt-tl-num-label">{rowIndex + 1}</span>
         </div>
 

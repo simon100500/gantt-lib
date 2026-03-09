@@ -8,6 +8,23 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragOverEvent,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import './TaskList.css';
 
 export { LINK_TYPE_ICONS };
@@ -224,56 +241,48 @@ export const TaskList: React.FC<TaskListProps> = ({
   // New task creation state
   const [isCreating, setIsCreating] = useState(false);
 
-  // Drag-to-reorder state
-  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  // @dnd-kit drag-to-reorder state
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const dragOriginIndexRef = useRef<number | null>(null);
 
-  const handleDragStart = useCallback((index: number, e: React.DragEvent) => {
-    e.dataTransfer.effectAllowed = 'move';
-    setDraggingIndex(index);
-    dragOriginIndexRef.current = index;
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // 5px movement required to start drag (prevents accidental drags)
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
   }, []);
 
-  const handleDragOver = useCallback((index: number, e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverIndex(index);
-  }, []);
-
-  const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
-    e.preventDefault();
-    const originIndex = dragOriginIndexRef.current;
-    // No-op: same position (line is already where the row is)
-    if (originIndex === null || originIndex === dropIndex) {
-      setDraggingIndex(null);
-      setDragOverIndex(null);
-      dragOriginIndexRef.current = null;
-      return;
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = tasks.findIndex(t => t.id === active.id);
+      const newIndex = tasks.findIndex(t => t.id === over.id);
+      // Preview only - don't update tasks yet
+      setDragOverIndex(newIndex);
     }
-    const reordered = [...tasks];
-    const [moved] = reordered.splice(originIndex, 1);
-    // Blue line appears ABOVE row at dropIndex
-    // So dropIndex=0 means insert at 0 (before first row)
-    // dropIndex=1 means insert at 1 (between row 0 and row 1)
-    // When dragging down (originIndex < dropIndex), after splice the indices shift by 1
-    // So we need to insert at dropIndex - 1
-    const insertIndex = originIndex < dropIndex ? dropIndex - 1 : dropIndex;
-    reordered.splice(insertIndex, 0, moved);
-    onReorder?.(reordered);
-    onTaskSelect?.(moved.id);
-    setDraggingIndex(null);
-    setDragOverIndex(null);
-    dragOriginIndexRef.current = null;
-  }, [tasks, onReorder, onTaskSelect]);
+  }, [tasks]);
 
-  const handleDragEnd = useCallback(() => {
-    // Called when drag ends without a valid drop (Escape, or dropped outside)
-    // handleDrop already clears state on successful drop, so this is only the cancel path
-    setDraggingIndex(null);
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
     setDragOverIndex(null);
-    dragOriginIndexRef.current = null;
-  }, []);
+
+    if (over && active.id !== over.id) {
+      const oldIndex = tasks.findIndex(t => t.id === active.id);
+      const newIndex = tasks.findIndex(t => t.id === over.id);
+      const reordered = arrayMove(tasks, oldIndex, newIndex);
+      onReorder?.(reordered);
+      onTaskSelect?.(active.id as string);
+    }
+  }, [tasks, onReorder, onTaskSelect]);
 
   const handleConfirmNewTask = useCallback((name: string) => {
     const now = new Date();
@@ -342,40 +351,49 @@ export const TaskList: React.FC<TaskListProps> = ({
         </div>
 
         {/* Data rows */}
-        <div className="gantt-tl-body" style={{ height: `${totalHeight}px` }}>
-          {tasks.map((task, index) => (
-            <TaskListRow
-              key={task.id}
-              task={task}
-              rowIndex={index}
-              rowHeight={rowHeight}
-              onTaskChange={onTaskChange}
-              selectedTaskId={selectedTaskId}
-              onRowClick={handleRowClick}
-              disableTaskNameEditing={disableTaskNameEditing}
-              disableDependencyEditing={disableDependencyEditing}
-              allTasks={tasks}
-              activeLinkType={activeLinkType}
-              selectingPredecessorFor={selectingPredecessorFor}
-              onSetSelectingPredecessorFor={setSelectingPredecessorFor}
-              onAddDependency={handleAddDependency}
-              onRemoveDependency={handleRemoveDependency}
-              selectedChip={selectedChip}
-              onChipSelect={handleChipSelect}
-              onScrollToTask={onScrollToTask}
-              onDelete={onDelete}
-              onAdd={onAdd}
-              onInsertAfter={onInsertAfter}
-              editingTaskId={propEditingTaskId}
-              isDragging={draggingIndex === index}
-              isDragOver={dragOverIndex === index}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onDragEnd={handleDragEnd}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={tasks.map(t => t.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="gantt-tl-body" style={{ height: `${totalHeight}px` }}>
+              {tasks.map((task, index) => (
+                <TaskListRow
+                  key={task.id}
+                  task={task}
+                  rowIndex={index}
+                  rowHeight={rowHeight}
+                  onTaskChange={onTaskChange}
+                  selectedTaskId={selectedTaskId}
+                  onRowClick={handleRowClick}
+                  disableTaskNameEditing={disableTaskNameEditing}
+                  disableDependencyEditing={disableDependencyEditing}
+                  allTasks={tasks}
+                  activeLinkType={activeLinkType}
+                  selectingPredecessorFor={selectingPredecessorFor}
+                  onSetSelectingPredecessorFor={setSelectingPredecessorFor}
+                  onAddDependency={handleAddDependency}
+                  onRemoveDependency={handleRemoveDependency}
+                  selectedChip={selectedChip}
+                  onChipSelect={handleChipSelect}
+                  onScrollToTask={onScrollToTask}
+                  onDelete={onDelete}
+                  onAdd={onAdd}
+                  onInsertAfter={onInsertAfter}
+                  editingTaskId={propEditingTaskId}
+                  isDragging={activeId === task.id}
+                  isDragOver={dragOverIndex === index}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         {/* Ghost row for new task creation — positioned OUTSIDE body div to avoid height desync */}
         {isCreating && (
