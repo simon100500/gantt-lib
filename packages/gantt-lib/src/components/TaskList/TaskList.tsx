@@ -244,7 +244,9 @@ export const TaskList: React.FC<TaskListProps> = ({
   const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
     e.preventDefault();
     const originIndex = dragOriginIndexRef.current;
-    if (originIndex === null || originIndex === dropIndex) {
+    // No-op: dragging to same position, or dragging to adjacent position (already there)
+    // Example: dragging row 0 to hover over row 1 means inserting between 0 and 1 (where row 0 already is)
+    if (originIndex === null || originIndex === dropIndex || dropIndex === originIndex + 1) {
       setDraggingIndex(null);
       setDragOverIndex(null);
       dragOriginIndexRef.current = null;
