@@ -5,7 +5,7 @@ milestone_name: milestone
 status: in_progress
 stopped_at: Completed quick-74-01-PLAN.md
 last_updated: "2026-03-09T08:13:36.000Z"
-last_activity: "2026-03-09 - Completed quick task 74: allow text wrapping for source hint placeholder"
+last_activity: "2026-03-09 - Completed quick task 75: constrain width on deps cell hover in picking mode"
 progress:
   total_phases: 17
   completed_phases: 16
@@ -538,6 +538,7 @@ None yet.
 | 72 | constrain dependencies column overflow to 90px | 2026-03-09 | bf92cb1 | [72-gantt-tl-cell-deps-90px](./quick/72-gantt-tl-cell-deps-90px/) |
 | 73 | добавь в компонент календаря кнопки внизу компонента: -7 -1 Сегодня +1 +7 Для быстрого переноса | 2026-03-09 | 155207b | [73-7-1-1-7](./quick/73-7-1-1-7/) |
 | 74 | allow text wrapping for source hint placeholder | 2026-03-09 | 6dd8f32 | [74-overflow-90px](./quick/74-overflow-90px/) |
+| 75 | constrain width on deps cell hover in picking mode | 2026-03-09 | 6d20c16 | [75-overflow-gantt-tl-cell-deps-hover-pickin](./quick/75-overflow-gantt-tl-cell-deps-hover-pickin/) |
 
 ## Session Continuity
 
