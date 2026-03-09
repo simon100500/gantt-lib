@@ -118,7 +118,6 @@
   color: #9ca3af;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease;
   user-select: none;
   background: #f9fafb;
 }
