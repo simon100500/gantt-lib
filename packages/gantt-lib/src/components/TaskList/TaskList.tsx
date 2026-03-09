@@ -77,7 +77,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   editingTaskId: propEditingTaskId,
 }) => {
   const totalHeight = useMemo(
-    () => tasks.length * rowHeight,
+    () => tasks.length * rowHeight + rowHeight, // Extra rowHeight for drop zone
     [tasks.length, rowHeight]
   );
 
@@ -260,7 +260,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     // When dragging down (originIndex < dropIndex), after splice the indices shift by 1
     // So we need to insert at dropIndex - 1
     const insertIndex = dropIndex === tasks.length
-      ? tasks.length  // After last means append to end
+      ? tasks.length - 1  // After last means position at last
       : originIndex < dropIndex ? dropIndex - 1 : dropIndex;
     reordered.splice(insertIndex, 0, moved);
     onReorder?.(reordered);
@@ -382,10 +382,18 @@ export const TaskList: React.FC<TaskListProps> = ({
           <div
             className={`gantt-tl-drop-zone${dragOverIndex === tasks.length ? ' gantt-tl-drop-zone-drag-over' : ''}`}
             style={{ height: `${rowHeight}px` }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              setDragOverIndex(tasks.length);
+            }}
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
               setDragOverIndex(tasks.length);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setDragOverIndex(null);
             }}
             onDrop={(e) => {
               e.preventDefault();
