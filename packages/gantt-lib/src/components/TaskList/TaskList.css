@@ -499,7 +499,7 @@
   color: #6b7280;
   font-style: italic;
   pointer-events: none;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 /* Predecessor cell full-replacement: "Зависит от [name]" → hover → "Удалить" */
