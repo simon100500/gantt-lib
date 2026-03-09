@@ -122,7 +122,8 @@
   background: #f9fafb;
 }
 
-.gantt-tl-row:hover .gantt-tl-drag-handle {
+.gantt-tl-row:hover .gantt-tl-drag-handle,
+.gantt-tl-row-dragging .gantt-tl-drag-handle {
   opacity: 1;
   pointer-events: auto;
 }
