@@ -138,9 +138,9 @@
 .gantt-tl-row-dragging {
   background-color: rgba(59, 130, 246, 0.15);
 }
-.gantt-tl-row-dragging .gantt-tl-cell-name,
-.gantt-tl-row-dragging .gantt-tl-cell-number,
-.gantt-tl-row-dragging .gantt-tl-cell-date {
+.gantt-tl-row-dragging .gantt-tl-cell,
+.gantt-tl-row-dragging .gantt-tl-name-trigger,
+.gantt-tl-row-dragging .gantt-tl-num-label {
   color: #3b82f6 !important;
 }
 
