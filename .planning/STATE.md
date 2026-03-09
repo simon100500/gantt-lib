@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: Completed quick-76-01-PLAN.md
+last_updated: "2026-03-09T08:36:57.367Z"
+last_activity: "2026-03-09 - Completed quick task 73: добавь в компонент календаря кнопки внизу компонента: -7 -1 Сегодня +1 +7 Для быстрого переноса"
+progress:
+  total_phases: 17
+  completed_phases: 16
+  total_plans: 41
+  completed_plans: 40
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: Completed quick-74-01-PLAN.md
 last_updated: "2026-03-09T08:13:36.000Z"
 last_activity: "2026-03-09 - Completed quick task 75: constrain width on deps cell hover in picking mode"
@@ -542,8 +557,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T08:15:32.566Z
-Stopped at: Completed quick-74-01-PLAN.md
+Last session: 2026-03-09T08:36:57.364Z
+Stopped at: Completed quick-76-01-PLAN.md
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
