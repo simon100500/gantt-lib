@@ -77,7 +77,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   editingTaskId: propEditingTaskId,
 }) => {
   const totalHeight = useMemo(
-    () => tasks.length * rowHeight + rowHeight, // Extra rowHeight for drop zone
+    () => tasks.length * rowHeight,
     [tasks.length, rowHeight]
   );
 
@@ -378,10 +378,22 @@ export const TaskList: React.FC<TaskListProps> = ({
               onDragEnd={handleDragEnd}
             />
           ))}
-          {/* Drop zone after the last row - allows placing tasks at the very end */}
-          <div
-            className={`gantt-tl-drop-zone${dragOverIndex === tasks.length ? ' gantt-tl-drop-zone-drag-over' : ''}`}
-            style={{ height: `${rowHeight}px` }}
+        </div>
+
+        {/* Ghost row for new task creation — positioned OUTSIDE body div to avoid height desync */}
+        {isCreating && (
+          <NewTaskRow
+            rowHeight={rowHeight}
+            onConfirm={handleConfirmNewTask}
+            onCancel={handleCancelNewTask}
+          />
+        )}
+
+        {/* Add task button - also serves as drop target for moving tasks to end */}
+        {onAdd && !isCreating && (
+          <button
+            className={`gantt-tl-add-btn${dragOverIndex === tasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
+            onClick={() => setIsCreating(true)}
             onDragEnter={(e) => {
               e.preventDefault();
               setDragOverIndex(tasks.length);
@@ -399,23 +411,6 @@ export const TaskList: React.FC<TaskListProps> = ({
               e.preventDefault();
               handleDrop(tasks.length, e);
             }}
-          />
-        </div>
-
-        {/* Ghost row for new task creation — positioned OUTSIDE body div to avoid height desync */}
-        {isCreating && (
-          <NewTaskRow
-            rowHeight={rowHeight}
-            onConfirm={handleConfirmNewTask}
-            onCancel={handleCancelNewTask}
-          />
-        )}
-
-        {/* Add task button */}
-        {onAdd && !isCreating && (
-          <button
-            className="gantt-tl-add-btn"
-            onClick={() => setIsCreating(true)}
             type="button"
           >
             + Добавить задачу
