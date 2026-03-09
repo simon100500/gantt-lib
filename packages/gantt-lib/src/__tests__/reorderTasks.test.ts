@@ -1,16 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Task } from '../components/GanttChart';
 
-// ===== GREEN phase: Function implementation =====
-
-/**
- * Pure function to reorder tasks array by moving an item from fromIndex to toIndex.
- * Does NOT mutate the original array.
- * @param tasks - Array of tasks to reorder
- * @param fromIndex - Index of task to move
- * @param toIndex - Target index where task should be inserted
- * @returns New array with tasks reordered
- */
 function reorderTasks(tasks: Task[], fromIndex: number, toIndex: number): Task[] {
   if (fromIndex === toIndex) return tasks;
   const result = [...tasks];
@@ -19,102 +9,104 @@ function reorderTasks(tasks: Task[], fromIndex: number, toIndex: number): Task[]
   return result;
 }
 
-// ===== Tests =====
-
 describe('reorderTasks', () => {
-  // REORDER-01: move first to last
-  it('REORDER-01: reorderTasks([A,B,C], 0, 2) returns [B,C,A]', () => {
+  // REORDER-01: Move first to last
+  it('moves task from index 0 to index 2', () => {
     const tasks: Task[] = [
-      { id: 'A', name: 'Task A', startDate: '2026-03-01', endDate: '2026-03-05' },
-      { id: 'B', name: 'Task B', startDate: '2026-03-02', endDate: '2026-03-06' },
-      { id: 'C', name: 'Task C', startDate: '2026-03-03', endDate: '2026-03-07' },
+      { id: '1', name: 'A', startDate: '2026-01-01', endDate: '2026-01-03' },
+      { id: '2', name: 'B', startDate: '2026-01-04', endDate: '2026-01-06' },
+      { id: '3', name: 'C', startDate: '2026-01-07', endDate: '2026-01-09' },
     ];
-
-    // This will fail because reorderTasks is not yet defined
     const result = reorderTasks(tasks, 0, 2);
-
-    expect(result).toEqual([
-      { id: 'B', name: 'Task B', startDate: '2026-03-02', endDate: '2026-03-06' },
-      { id: 'C', name: 'Task C', startDate: '2026-03-03', endDate: '2026-03-07' },
-      { id: 'A', name: 'Task A', startDate: '2026-03-01', endDate: '2026-03-05' },
-    ]);
+    expect(result).toHaveLength(3);
+    expect(result[0].id).toBe('2');
+    expect(result[1].id).toBe('3');
+    expect(result[2].id).toBe('1');
   });
 
-  // REORDER-01b: move last to first
-  it('REORDER-01b: reorderTasks([A,B,C], 2, 0) returns [C,A,B]', () => {
+  // REORDER-01b: Move last to first
+  it('moves task from index 2 to index 0', () => {
     const tasks: Task[] = [
-      { id: 'A', name: 'Task A', startDate: '2026-03-01', endDate: '2026-03-05' },
-      { id: 'B', name: 'Task B', startDate: '2026-03-02', endDate: '2026-03-06' },
-      { id: 'C', name: 'Task C', startDate: '2026-03-03', endDate: '2026-03-07' },
+      { id: '1', name: 'A', startDate: '2026-01-01', endDate: '2026-01-03' },
+      { id: '2', name: 'B', startDate: '2026-01-04', endDate: '2026-01-06' },
+      { id: '3', name: 'C', startDate: '2026-01-07', endDate: '2026-01-09' },
     ];
-
     const result = reorderTasks(tasks, 2, 0);
-
-    expect(result).toEqual([
-      { id: 'C', name: 'Task C', startDate: '2026-03-03', endDate: '2026-03-07' },
-      { id: 'A', name: 'Task A', startDate: '2026-03-01', endDate: '2026-03-05' },
-      { id: 'B', name: 'Task B', startDate: '2026-03-02', endDate: '2026-03-06' },
-    ]);
+    expect(result).toHaveLength(3);
+    expect(result[0].id).toBe('3');
+    expect(result[1].id).toBe('1');
+    expect(result[2].id).toBe('2');
   });
 
-  // REORDER-02: no-op when from===to
-  it('REORDER-02: reorderTasks([A,B,C], 1, 1) returns [A,B,C] unchanged', () => {
+  // REORDER-02: No-op when from === to
+  it('returns unchanged array when fromIndex === toIndex', () => {
     const tasks: Task[] = [
-      { id: 'A', name: 'Task A', startDate: '2026-03-01', endDate: '2026-03-05' },
-      { id: 'B', name: 'Task B', startDate: '2026-03-02', endDate: '2026-03-06' },
-      { id: 'C', name: 'Task C', startDate: '2026-03-03', endDate: '2026-03-07' },
+      { id: '1', name: 'A', startDate: '2026-01-01', endDate: '2026-01-03' },
+      { id: '2', name: 'B', startDate: '2026-01-04', endDate: '2026-01-06' },
+      { id: '3', name: 'C', startDate: '2026-01-07', endDate: '2026-01-09' },
     ];
-
     const result = reorderTasks(tasks, 1, 1);
-
-    expect(result).toEqual(tasks);
+    expect(result).toHaveLength(3);
+    expect(result[0].id).toBe('1');
+    expect(result[1].id).toBe('2');
+    expect(result[2].id).toBe('3');
   });
 
-  // REORDER-02b: original array is NOT mutated
-  it('REORDER-02b: original array is NOT mutated after any call', () => {
+  // REORDER-02b: Original array is NOT mutated
+  it('does not mutate the original array', () => {
     const tasks: Task[] = [
-      { id: 'A', name: 'Task A', startDate: '2026-03-01', endDate: '2026-03-05' },
-      { id: 'B', name: 'Task B', startDate: '2026-03-02', endDate: '2026-03-06' },
-      { id: 'C', name: 'Task C', startDate: '2026-03-03', endDate: '2026-03-07' },
+      { id: '1', name: 'A', startDate: '2026-01-01', endDate: '2026-01-03' },
+      { id: '2', name: 'B', startDate: '2026-01-04', endDate: '2026-01-06' },
+      { id: '3', name: 'C', startDate: '2026-01-07', endDate: '2026-01-09' },
     ];
-
-    const originalOrder = [...tasks];
+    const originalOrder = tasks.map(t => t.id);
     reorderTasks(tasks, 0, 2);
-
-    expect(tasks).toEqual(originalOrder);
+    expect(tasks.map(t => t.id)).toEqual(originalOrder);
   });
 
-  // REORDER-03: boundary - first→last with 2 tasks
-  it('REORDER-03: reorderTasks([A,B], 0, 1) returns [B,A]', () => {
+  // REORDER-03: Boundary - first to last with 2 tasks
+  it('handles boundary: moves first to last with 2 tasks', () => {
     const tasks: Task[] = [
-      { id: 'A', name: 'Task A', startDate: '2026-03-01', endDate: '2026-03-05' },
-      { id: 'B', name: 'Task B', startDate: '2026-03-02', endDate: '2026-03-06' },
+      { id: '1', name: 'A', startDate: '2026-01-01', endDate: '2026-01-03' },
+      { id: '2', name: 'B', startDate: '2026-01-04', endDate: '2026-01-06' },
     ];
-
     const result = reorderTasks(tasks, 0, 1);
-
-    expect(result).toEqual([
-      { id: 'B', name: 'Task B', startDate: '2026-03-02', endDate: '2026-03-06' },
-      { id: 'A', name: 'Task A', startDate: '2026-03-01', endDate: '2026-03-05' },
-    ]);
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe('2');
+    expect(result[1].id).toBe('1');
   });
 
-  // REORDER-03b: boundary - last→first
-  it('REORDER-03b: reorderTasks([A,B,C,D], 3, 0) returns [D,A,B,C]', () => {
+  // REORDER-03b: Boundary - last to first with 4 tasks
+  it('handles boundary: moves last to first with 4 tasks', () => {
     const tasks: Task[] = [
-      { id: 'A', name: 'Task A', startDate: '2026-03-01', endDate: '2026-03-05' },
-      { id: 'B', name: 'Task B', startDate: '2026-03-02', endDate: '2026-03-06' },
-      { id: 'C', name: 'Task C', startDate: '2026-03-03', endDate: '2026-03-07' },
-      { id: 'D', name: 'Task D', startDate: '2026-03-04', endDate: '2026-03-08' },
+      { id: '1', name: 'A', startDate: '2026-01-01', endDate: '2026-01-03' },
+      { id: '2', name: 'B', startDate: '2026-01-04', endDate: '2026-01-06' },
+      { id: '3', name: 'C', startDate: '2026-01-07', endDate: '2026-01-09' },
+      { id: '4', name: 'D', startDate: '2026-01-10', endDate: '2026-01-12' },
     ];
-
     const result = reorderTasks(tasks, 3, 0);
+    expect(result).toHaveLength(4);
+    expect(result[0].id).toBe('4');
+    expect(result[1].id).toBe('1');
+    expect(result[2].id).toBe('2');
+    expect(result[3].id).toBe('3');
+  });
 
-    expect(result).toEqual([
-      { id: 'D', name: 'Task D', startDate: '2026-03-04', endDate: '2026-03-08' },
-      { id: 'A', name: 'Task A', startDate: '2026-03-01', endDate: '2026-03-05' },
-      { id: 'B', name: 'Task B', startDate: '2026-03-02', endDate: '2026-03-06' },
-      { id: 'C', name: 'Task C', startDate: '2026-03-03', endDate: '2026-03-07' },
-    ]);
+  // Additional test: middle to middle
+  it('moves task from middle index to another middle index', () => {
+    const tasks: Task[] = [
+      { id: '1', name: 'A', startDate: '2026-01-01', endDate: '2026-01-03' },
+      { id: '2', name: 'B', startDate: '2026-01-04', endDate: '2026-01-06' },
+      { id: '3', name: 'C', startDate: '2026-01-07', endDate: '2026-01-09' },
+      { id: '4', name: 'D', startDate: '2026-01-10', endDate: '2026-01-12' },
+      { id: '5', name: 'E', startDate: '2026-01-13', endDate: '2026-01-15' },
+    ];
+    const result = reorderTasks(tasks, 1, 3);
+    expect(result).toHaveLength(5);
+    expect(result[0].id).toBe('1');
+    expect(result[1].id).toBe('3');
+    expect(result[2].id).toBe('4');
+    expect(result[3].id).toBe('2');
+    expect(result[4].id).toBe('5');
   });
 });
