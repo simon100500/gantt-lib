@@ -113,8 +113,6 @@ export interface GanttChartProps {
   onDelete?: (taskId: string) => void;
   /** Callback when a new task is inserted after a specific task via the task list */
   onInsertAfter?: (taskId: string, newTask: Task) => void;
-  /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
-  editingTaskId?: string | null;
 }
 
 /**
@@ -160,7 +158,6 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   onAdd,
   onDelete,
   onInsertAfter,
-  editingTaskId,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -169,6 +166,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
+
+  // Track editing task ID for auto-edit mode after insert
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   // Calculate multi-month date range from tasks
   const dateRange = useMemo(() => getMultiMonthDays(tasks), [tasks]);
@@ -324,6 +324,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const originalTask = tasks.find(t => t.id === updatedTask.id);
     if (!originalTask) {
       onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      // Clear editingTaskId after name edit completes
+      if (editingTaskId === updatedTask.id) {
+        setEditingTaskId(null);
+      }
       return;
     }
 
@@ -335,6 +339,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
     if (!datesChanged) {
       onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      // Clear editingTaskId after name edit completes
+      if (editingTaskId === updatedTask.id) {
+        setEditingTaskId(null);
+      }
       return;
     }
 
@@ -357,7 +365,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       });
       onCascade?.(cascadedTasksForCallback);
     }
-  }, [tasks, onChange, disableConstraints, onCascade]);
+  }, [tasks, onChange, disableConstraints, onCascade, editingTaskId]);
 
   /**
    * Handle task deletion: purge deleted taskId from all other tasks' dependency arrays,
@@ -374,6 +382,18 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     );
     onDelete?.(taskId);
   }, [onChange, onDelete]);
+
+  /**
+   * Handle task insertion: set editingTaskId to trigger auto-edit mode,
+   * then notify external consumer via onInsertAfter callback.
+   *
+   * NOTE: The external onInsertAfter callback is responsible for adding
+   * the task to the tasks array via onChange.
+   */
+  const handleInsertAfter = useCallback((taskId: string, newTask: Task) => {
+    setEditingTaskId(newTask.id);
+    onInsertAfter?.(taskId, newTask);
+  }, [onInsertAfter]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
   const dependencyOverrides = useMemo(() => {
@@ -498,7 +518,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onSelectedChipChange={setSelectedChip}
             onAdd={onAdd}
             onDelete={handleDelete}
-            onInsertAfter={onInsertAfter}
+            onInsertAfter={handleInsertAfter}
             editingTaskId={editingTaskId}
           />
 

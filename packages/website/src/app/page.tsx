@@ -580,7 +580,6 @@ export default function Home() {
   const [showTaskList, setShowTaskList] = useState(true);
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
   const [highlightExpired, setHighlightExpired] = useState(true);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   // Ref for the main GanttChart to access scrollToToday method
   const ganttChartRef = useRef<GanttChartHandle>(null);
@@ -606,8 +605,6 @@ export default function Home() {
       // Insert after the found index
       const newTasks = [...prev];
       newTasks.splice(index + 1, 0, newTask);
-      // Set the new task to enter edit mode
-      setEditingTaskId(newTask.id);
       return newTasks;
     });
   }, []);
@@ -720,7 +717,6 @@ export default function Home() {
               taskListWidth={500}
               disableTaskNameEditing={disableTaskNameEditing}
               highlightExpiredTasks={highlightExpired}
-              editingTaskId={editingTaskId}
             />
           </div>
         </section>
