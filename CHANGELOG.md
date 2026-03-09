@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-03-09
+
+### Features
+
+#### Task Drag-to-Reorder (Phase 18)
+- Add drag handle overlay on task number cell hover
+- Implement drag-and-drop task reordering with visual feedback
+- Add `onReorder` callback to GanttChart for external state sync
+- Add blue text highlighting for dragging row visibility
+- Use transparent background for dragging row to maintain readability
+- Implement proper drop index calculation for drag-down scenarios
+- Add no-op checks for adjacent position drags
+
+#### Delete Confirmation
+- Add two-click delete confirmation to prevent accidental deletions
+- Delete button shows "Удалить?" on first click, deletes on second
+- Reset confirmation state when clicking outside button or hovering to different row
+
+### Fixes
+- Fix drop index calculation when dragging down (subtract 1 from dropIndex)
+- Add no-op checks for adjacent position drags
+- Simplify drop logic to only no-op for same position
+- Use ::before for drag indicator to prevent layout shift
+
+### Style
+- Remove transition on drag handle for instant feedback
+- Keep drag handle visible during dragging
+- Use visibility instead of pointer-events for drag handle
+
 ## [0.4.1] - 2026-03-09
 
 ### Fixes
