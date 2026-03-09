@@ -249,6 +249,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const confirmedRef = useRef(false);  // Prevent double-save on Enter + blur
     const autoEditedForRef = useRef<string | null>(null);  // Track which editingTaskId we already auto-entered for
     const editTriggerRef = useRef<'keypress' | 'doubleclick' | 'autoedit'>('doubleclick');  // How editing was started
+    const [deletePending, setDeletePending] = useState(false);
+    const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
     const isSelected = selectedTaskId === task.id;
 
@@ -291,6 +293,23 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         }
       }
     }, [editingName]);
+
+    // Reset delete confirmation when clicking elsewhere
+    useEffect(() => {
+      const handleMouseDownOutside = (event: MouseEvent) => {
+        if (deletePending && deleteButtonRef.current && !deleteButtonRef.current.contains(event.target as Node)) {
+          setDeletePending(false);
+        }
+      };
+
+      if (deletePending) {
+        document.addEventListener('mousedown', handleMouseDownOutside);
+      }
+
+      return () => {
+        document.removeEventListener('mousedown', handleMouseDownOutside);
+      };
+    }, [deletePending]);
 
     // Auto-enter edit mode when this task is created via insert.
     // We track which editingTaskId we already reacted to (autoEditedForRef) so that
@@ -530,14 +549,20 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               {onDelete && (
                 <button
                   type="button"
-                  className="gantt-tl-name-action-btn gantt-tl-action-delete"
+                  ref={deleteButtonRef}
+                  className={`gantt-tl-name-action-btn gantt-tl-action-delete${deletePending ? ' gantt-tl-action-delete-confirm' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDelete(task.id);
+                    if (!deletePending) {
+                      setDeletePending(true);
+                    } else {
+                      setDeletePending(false);
+                      onDelete(task.id);
+                    }
                   }}
                   aria-label="Удалить задачу"
                 >
-                  <TrashIcon />
+                  {deletePending ? 'Удалить?' : <TrashIcon />}
                 </button>
               )}
             </div>
