@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed quick-77-01-PLAN.md
-last_updated: "2026-03-09T08:47:08.000Z"
-last_activity: "2026-03-09 - Completed quick task 77: давай при входе в режим добавления связи - можно из него выйти если кликнуть на текущую ячейку (с надписью Выберите задачу). И не надо делать курсор Blocked. Делай курсор Pointer"
+stopped_at: Completed quick-78-01-PLAN.md
+last_updated: "2026-03-09T09:00:00.000Z"
+last_activity: "2026-03-09 - Completed quick task 78: toggle off dependency chip view on second click"
 progress:
   total_phases: 17
   completed_phases: 16
-  total_plans: 41
-  completed_plans: 40
+  total_plans: 42
+  completed_plans: 41
 ---
 
 ---
@@ -572,6 +572,7 @@ None yet.
 | 75 | constrain width on deps cell hover in picking mode | 2026-03-09 | 6d20c16 | [75-overflow-gantt-tl-cell-deps-hover-pickin](./quick/75-overflow-gantt-tl-cell-deps-hover-pickin/) |
 | 76 | reduce name column min-width and remove redundant width constraints | 2026-03-09 | 0665ff8 | [76-90px-flex-grow](./quick/76-90px-flex-grow/) |
 | 77 | давай при входе в режим добавления связи - можно из него выйти если кликнуть на текущую ячейку (с надписью Выберите задачу). И не надо делать курсор Blocked. Делай курсор Pointer | 2026-03-09 | 401ee3f | [77-blocked-pointer](./quick/77-blocked-pointer/) |
+| 78 | Toggle off dependency chip view on second click | 2026-03-09 | d43d419 | [78-chip-toggle-off](./quick/78-chip-toggle-off/) |
 
 ## Session Continuity
 
