@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.3.2
+**Version:** 0.4.0
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
@@ -10,7 +10,7 @@
 | Property | Value |
 |---|---|
 | Package name | `gantt-lib` |
-| Version | `0.3.2` |
+| Version | `0.4.0` |
 | NPM install | `npm install gantt-lib` |
 | Peer dependencies | `react >= 18`, `react-dom >= 18` |
 | CSS import (REQUIRED) | `import 'gantt-lib/styles.css'` |
@@ -48,6 +48,27 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void }>(null);
 
+  const handleAddTask = (afterTaskId: string | null) => {
+    const newId = String(tasks.length + 1);
+    const newTask: Task = {
+      id: newId,
+      name: 'New Task',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    };
+
+    if (afterTaskId === null) {
+      setTasks([newTask, ...tasks]);
+    } else {
+      const index = tasks.findIndex(t => t.id === afterTaskId);
+      setTasks([...tasks.slice(0, index + 1), newTask, ...tasks.slice(index + 1)]);
+    }
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setTasks(tasks.filter(t => t.id !== taskId));
+  };
+
   return (
     <div>
       <button onClick={() => ganttRef.current?.scrollToToday()}>
@@ -62,6 +83,9 @@ export default function App() {
         dayWidth={40}
         rowHeight={40}
         onChange={setTasks}
+        onAdd={handleAddTask}
+        onDelete={handleDeleteTask}
+        showTaskList={true}
       />
     </div>
   );
@@ -72,8 +96,10 @@ Key points:
 - CSS import comes before the component usage
 - Use ISO strings (`'YYYY-MM-DD'`) for dates — avoids timezone issues
 - Pass the `useState` setter directly to `onChange` — the library emits functional updaters
+- Implement `onAdd` and `onDelete` to handle task creation/deletion from the UI
 - No `month` prop needed — the calendar range is derived automatically from task dates
 - Use `ref` to access `scrollToToday()` and `scrollToTask()` methods for programmatic scroll
+- Enable `showTaskList={true}` for the editable task list panel with action buttons
 
 ---
 
@@ -206,6 +232,8 @@ interface GanttChartProps {
   headerHeight?: number;
   containerHeight?: number | string;
   onChange?: (tasks: Task[] | ((currentTasks: Task[]) => Task[])) => void;
+  onAdd?: (afterTaskId: string | null) => void;
+  onDelete?: (taskId: string) => void;
   onValidateDependencies?: (result: ValidationResult) => void;
   enableAutoSchedule?: boolean;
   disableConstraints?: boolean;
@@ -226,6 +254,8 @@ interface GanttChartProps {
 | `headerHeight` | `number` | `40` | Height of the time-scale header (month + day rows) in pixels. |
 | `containerHeight` | `number \| string` | `undefined` | Container height. Can be pixels (`600`), string (`"90vh"`, `"100%"`, `"500px"`), or `undefined` for auto height (adapts to content). |
 | `onChange` | `(tasks: Task[] \| ((currentTasks: Task[]) => Task[])) => void` | `undefined` | Called once on mouseup after any drag or resize. Receives either a new tasks array or a functional updater `(prev) => next`. **Best usage:** pass the `useState` setter directly — `onChange={setTasks}`. This works because the library already wraps updates in functional updaters. |
+| `onAdd` | `(afterTaskId: string \| null) => void` | `undefined` | Called when user clicks the "+" insert button in the task list. Receives the `afterTaskId` where the new task should be inserted (the task above the insert button). `null` means insert at the beginning. |
+| `onDelete` | `(taskId: string) => void` | `undefined` | Called when user clicks the trash icon in the task list action panel. Receives the `taskId` of the task to delete. The library does NOT modify the tasks array — consumer must handle deletion and update state. |
 | `onValidateDependencies` | `(result: ValidationResult) => void` | `undefined` | Called every time the tasks array changes. Receives a `ValidationResult` with all dependency errors (cycles, constraint violations, missing task references). |
 | `enableAutoSchedule` | `boolean` | `false` | When `true` (hard mode): dragging a predecessor cascades all successor tasks to maintain their constraints. Dependency lines redraw in real-time during drag. |
 | `disableConstraints` | `boolean` | `false` | When `true`: all drag constraint checks are skipped. Tasks can be placed freely, ignoring all dependency rules. Useful for debugging layouts or building unconstrained editors. |
@@ -314,6 +344,7 @@ Override these in any global CSS file to customize the chart appearance. All ove
 | `--gantt-expired-color` | `#ef4444` | Background color for expired (overdue) tasks when `highlightExpiredTasks={true}` |
 | `--gantt-today-indicator-color` | `#ef4444` | Color of the vertical "today" line |
 | `--gantt-today-indicator-width` | `2px` | Width of the vertical "today" line |
+| `--gantt-container-border-radius` | `0px` | Border radius of the chart container element |
 
 ---
 
@@ -473,9 +504,16 @@ const tasks: Task[] = [
 **Task List**
 - Enable with `showTaskList={true}` prop. Shows a table on the left with №, Name, Start Date, End Date, Dependencies columns.
 - Task list scrolls horizontally in sync with the chart. Row selection highlights both the list row and the task bar.
-- Inline editing: click to edit, Enter to save, Esc to cancel.
+- Inline editing: click to edit, Enter to save, Esc to cancel. Press F2 to enter edit mode for the selected task name.
+- **Action Panel:** Hover over any row to reveal "+" (insert) and trash (delete) buttons in the name cell.
+  - Click "+" to insert a new task below that row (triggers `onAdd` callback with the task ID).
+  - Click trash to delete the task (triggers `onDelete` callback with the task ID).
+  - Implement `onAdd` and `onDelete` handlers to manage your tasks array.
 - Dependencies column displays chips with SVG icons for link types (FS/SS/FF/SF) and lag values.
-- Click on a dependency chip to highlight the corresponding arrow on the chart.
+- Click on a dependency chip to highlight the corresponding arrow on the chart and scroll to the predecessor task.
+- Click the same chip again to toggle off the selection.
+- When a dependency chip is selected, the "add link" button is hidden to avoid UI clutter.
+- During link creation mode, click the source cell again to cancel (cursor shows pointer, not blocked).
 - Click the task number to scroll the chart to that task and highlight the row.
 - Use `taskListWidth` to control the panel width (default: 520px).
 - Use `disableTaskNameEditing={true}` to globally disable name editing.
@@ -486,6 +524,7 @@ const tasks: Task[] = [
 - `scrollToToday()` centers the current date in the viewport.
 - `scrollToTask(taskId)` scrolls to and highlights the specified task.
 - Example: `ganttRef.current?.scrollToToday()` or `ganttRef.current?.scrollToTask('task-1')`
+- **Calendar Navigation Buttons:** The task list header includes quick-jump buttons (-7, -1, Today, +1, +7) for fast navigation. Click to shift the chart view by the specified number of days.
 
 **Expired tasks highlight**
 - Enable with `highlightExpiredTasks={true}` prop.
