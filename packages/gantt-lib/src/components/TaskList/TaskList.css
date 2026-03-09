@@ -109,7 +109,7 @@
 /* Name cell — overflow visible so overlay input can extend past boundaries */
 .gantt-tl-cell-name {
   flex: 1;
-  min-width: 250px;
+  min-width: 150px;
   position: relative;
   overflow: visible;
   align-items: center;
@@ -486,9 +486,6 @@
 
 .gantt-tl-row-picking .gantt-tl-cell-deps:hover {
   background-color: rgba(59, 130, 246, 0.15);
-  width: 90px;
-  max-width: 90px;
-  overflow: hidden;
 }
 
 /* Picker mode: current task's own row — disabled */
