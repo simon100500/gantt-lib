@@ -564,7 +564,7 @@
   text-align: left;
   background: transparent;
   border: none;
-  border-top: 1px dashed var(--gantt-grid-line-color, #e0e0e0);
+  /* border-top: 1px dashed var(--gantt-grid-line-color, #e0e0e0); */
   cursor: pointer;
   font-size: 12px;
   color: var(--gantt-text-muted, #9ca3af);
