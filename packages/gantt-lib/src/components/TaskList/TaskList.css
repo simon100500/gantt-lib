@@ -658,12 +658,13 @@
 .gantt-tl-drop-zone {
   position: relative;
   width: 100%;
-  pointer-events: none; /* Let events pass through when not dragging */
+  /* Must accept drag events to detect when hovering over the drop zone */
+  pointer-events: auto;
 }
 
 /* Show blue top border when dragging over the after-last zone */
 .gantt-tl-drop-zone-drag-over {
-  pointer-events: auto; /* Accept drop events when dragging */
+  /* Blue border added via ::before pseudo-element */
 }
 
 .gantt-tl-drop-zone-drag-over::before {
