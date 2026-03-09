@@ -189,7 +189,7 @@ Plans:
 **Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 15-01-PLAN.md — CSS variable, GanttChart highlightExpiredTasks prop, TaskRow expiration logic with conditional red background, demo page with expired task examples
+- [x] 15-01-PLAN.md — CSS variable, GanttChart highlightExpiredTasks prop, TaskRow expiration logic with conditional red background, demo page with expired task examples
 
 ### Phase 16: adding-tasks
 
@@ -209,8 +209,9 @@ Plans:
 **Goal:** Drag-and-drop row reordering in TaskList — user grabs a grip handle (shown on hover, left of row number) to reorder tasks; onReorder callback receives the full reordered tasks array; chart and dependency lines synchronize automatically
 **Requirements**: none (UI feature, no new library API requirements)
 **Depends on:** Phase 17
-**Plans:** 2/2 plans complete
+**Plans:** 3 plans (2 complete, 1 gap closure)
 
 Plans:
-- [ ] 18-01-PLAN.md — reorderTasks unit tests (TDD) + onReorder API wiring through GanttChart to TaskList
-- [ ] 18-02-PLAN.md — TaskList drag state, TaskListRow drag handle + CSS, demo page wiring, human verification
+- [x] 18-01-PLAN.md — reorderTasks unit tests (TDD) + onReorder API wiring through GanttChart to TaskList
+- [x] 18-02-PLAN.md — TaskList drag state, TaskListRow drag handle + CSS, demo page wiring, human verification
+- [ ] 18-03-PLAN.md — Gap closure: complete TaskList drag implementation (drag state + handlers + prop passing) + demo page handleReorder wiring
