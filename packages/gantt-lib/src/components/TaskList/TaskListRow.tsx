@@ -473,6 +473,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         onKeyDown={handleRowKeyDown}
         onDragOver={(e) => onDragOver?.(rowIndex, e)}
         onDrop={(e) => onDrop?.(rowIndex, e)}
+        onMouseLeave={() => {
+          if (deletePending) {
+            setDeletePending(false);
+          }
+        }}
         tabIndex={isSelected ? 0 : -1}
       >
         {/* Number column — click selects the row */}
