@@ -11,6 +11,7 @@
   --gantt-row-height: 30px;
   --gantt-header-height: 40px;
   --gantt-day-width: 30px;
+  --gantt-container-border-radius: 10px;
 
   /* Task Bar Styling */
   --gantt-task-bar-default-color: #3b82f6;
