@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren } from '../../utils/dependencyUtils';
+import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks } from '../../utils/dependencyUtils';
 import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
@@ -588,8 +588,11 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         return currentTasks;
       }
 
-      // Apply parentId change first
-      let updatedTasks = currentTasks.map(t => {
+      // Remove any existing dependencies between the two tasks
+      let updatedTasks = removeDependenciesBetweenTasks(taskId, newParentId, currentTasks);
+
+      // Apply parentId change
+      updatedTasks = updatedTasks.map(t => {
         if (t.id === taskId) {
           // Set parentId to demote under new parent
           return { ...t, parentId: newParentId };
