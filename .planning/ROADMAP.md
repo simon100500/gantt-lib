@@ -220,3 +220,15 @@ Plans:
 - [x] 18-01-PLAN.md — reorderTasks unit tests (TDD) + onReorder API wiring through GanttChart to TaskList
 - [x] 18-02-PLAN.md — TaskList drag state, TaskListRow drag handle + CSS, demo page wiring, human verification
 - [x] 18-03-PLAN.md — Gap closure: complete TaskList drag implementation (drag state + handlers + prop passing) + demo page handleReorder wiring
+
+### Phase 19: hierachy
+
+**Goal:** Task hierarchy with parent-child relationships — one-level nesting with automatic date/progress aggregation, collapsible UI, distinct parent bar styling, and cascade drag behavior
+**Depends on:** Phase 18
+**Plans:** 4 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — Hierarchy utilities (TDD): getChildren, isTaskParent, computeParentDates, computeParentProgress
+- [ ] 19-02-PLAN.md — Task type extension + TaskList hierarchy UI: parentId field, indentation, collapse button, parent row styling
+- [ ] 19-03-PLAN.md — TaskRow parent bar rendering + cascade drag integration: parent bar visual style, reuse cascade engine
+- [ ] 19-04-PLAN.md — Promote/demote buttons + cascade delete + demo page: level change buttons, delete parent cascades to children, human verification
