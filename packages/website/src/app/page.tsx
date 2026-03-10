@@ -578,6 +578,10 @@ export default function Home() {
   const [expiredTasks, setExpiredTasks] = useState<Task[]>(createExpiredTasks);
   const [blockConstraints, setBlockConstraints] = useState(true);
   const [showTaskList, setShowTaskList] = useState(true);
+  const [showDependencyTaskList, setShowDependencyTaskList] = useState(false);
+  const [showCascadeTaskList, setShowCascadeTaskList] = useState(false);
+  const [showChain100TaskList, setShowChain100TaskList] = useState(false);
+  const [showExpiredTaskList, setShowExpiredTaskList] = useState(false);
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
   const [highlightExpired, setHighlightExpired] = useState(true);
 
@@ -743,6 +747,12 @@ export default function Home() {
               Block constraints during drag
             </label>
             <span className="demo-hint">(uncheck to drag freely past dependency boundaries)</span>
+            <button
+              className={`demo-btn ${showDependencyTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowDependencyTaskList(!showDependencyTaskList)}
+            >
+              {showDependencyTaskList ? "Hide Task List" : "Show Task List"}
+            </button>
           </div>
           <div className="demo-chart-card">
             <GanttChart
@@ -751,6 +761,7 @@ export default function Home() {
               dayWidth={24}
               rowHeight={36}
               disableConstraints={!blockConstraints}
+              showTaskList={showDependencyTaskList}
               onValidateDependencies={(result) => {
                 if (!result.isValid) {
                   console.log('Dependency validation:', result.errors);
@@ -767,6 +778,14 @@ export default function Home() {
             Жесткий режим: перетащи «Задача A» — B и C двигаются вместе в реальном времени.
             D — независимая, не смещается. После отпускания проверь консоль.
           </p>
+          <div className="demo-controls">
+            <button
+              className={`demo-btn ${showCascadeTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowCascadeTaskList(!showCascadeTaskList)}
+            >
+              {showCascadeTaskList ? "Hide Task List" : "Show Task List"}
+            </button>
+          </div>
           <div className="demo-chart-card">
             <GanttChart
               tasks={cascadeTasks}
@@ -775,6 +794,7 @@ export default function Home() {
               dayWidth={40}
               rowHeight={40}
               containerHeight={250}
+              showTaskList={showCascadeTaskList}
             />
           </div>
         </section>
@@ -786,6 +806,14 @@ export default function Home() {
             Генератор для тестирования: 100 задач, каждая связана с предыдущей зависимостью FS с лагом +2 дня.
             Перетащи первую задачу — cascade сдвинет всю цепочку.
           </p>
+          <div className="demo-controls">
+            <button
+              className={`demo-btn ${showChain100TaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowChain100TaskList(!showChain100TaskList)}
+            >
+              {showChain100TaskList ? "Hide Task List" : "Show Task List"}
+            </button>
+          </div>
           <div className="demo-chart-card">
             <GanttChart
               tasks={chain100Tasks}
@@ -794,6 +822,7 @@ export default function Home() {
               dayWidth={24}
               rowHeight={36}
               containerHeight={600}
+              showTaskList={showChain100TaskList}
             />
           </div>
         </section>
@@ -806,6 +835,14 @@ export default function Home() {
             Задача красная, если: endDate &lt; today AND (progress &lt; expectedProgress OR not accepted).<br/>
             Выполненные и принятые задачи (progress = 100 AND accepted = true) не красные.
           </p>
+          <div className="demo-controls">
+            <button
+              className={`demo-btn ${showExpiredTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowExpiredTaskList(!showExpiredTaskList)}
+            >
+              {showExpiredTaskList ? "Hide Task List" : "Show Task List"}
+            </button>
+          </div>
           <div className="demo-chart-card">
             <GanttChart
               tasks={expiredTasks}
@@ -813,6 +850,7 @@ export default function Home() {
               dayWidth={40}
               rowHeight={40}
               containerHeight={250}
+              showTaskList={showExpiredTaskList}
               highlightExpiredTasks={highlightExpired}
             />
           </div>
