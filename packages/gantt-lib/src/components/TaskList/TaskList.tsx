@@ -63,7 +63,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   rowHeight,
   headerHeight,
-  taskListWidth = 517,
+  taskListWidth = 542,
   onTaskChange,
   selectedTaskId,
   onTaskSelect,
