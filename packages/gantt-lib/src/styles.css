@@ -51,4 +51,10 @@
 
   /* Expired task color */
   --gantt-expired-color: #ef4444;
+
+  /* Parent Task Styling (Phase 19) */
+  --gantt-parent-bar-color: #6366f1;
+  --gantt-parent-bar-color-end: #8b5cf6;
+  --gantt-parent-icon-color: #6366f1;
+  --gantt-parent-row-bg: rgba(99, 102, 241, 0.05);
 }
