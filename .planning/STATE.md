@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: "Completed 18-03: Drag-to-Reorder Implementation Complete"
-last_updated: "2026-03-09T23:25:00.000Z"
-last_activity: "2026-03-09 - Completed 18-03: drag-to-reorder implementation in TaskList and demo page wiring"
+stopped_at: Completed quick-087-show-hide-tasklist-button
+last_updated: "2026-03-10T13:56:47.000Z"
+last_activity: "2026-03-10 - Completed quick task 087: add show/hide task list buttons to all demo pages"
 progress:
   total_phases: 18
   completed_phases: 17
@@ -584,6 +584,7 @@ None yet.
 | 84 | reset delete confirmation when hovering to different row | 2026-03-09 | 971a547 | [84-reset-delete-confirmation-when-hovering-](./quick/84-reset-delete-confirmation-when-hovering-/) |
 | 85 | fix drag and drop to allow moving tasks to the very end (use add button as drop target) | 2026-03-09 | 1358909 | [85-dnd](./quick/85-dnd/) |
 | 86 | убери вертикальные разделительные линии между столбцами списка задач (опционально стилем можно задать, но по умолчанию не показывай их) | 2026-03-10 | 98cd97f | [86-remove-vertical-separators](./quick/086-remove-vertical-separators/) |
+| 87 | Add show/hide task list buttons to all test/demo chart pages | 2026-03-10 | 1d4310d | [087-show-hide-tasklist-button](./quick/087-show-hide-tasklist-button/) |
 
 ## Session Continuity
 
