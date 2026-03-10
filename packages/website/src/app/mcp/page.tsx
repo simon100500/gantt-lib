@@ -7,6 +7,7 @@ export default function MCPPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showTaskList, setShowTaskList] = useState(false);
 
   useEffect(() => {
     fetch("/tasks.json")
@@ -57,6 +58,21 @@ export default function MCPPage() {
         График загружается из tasks.json
       </p>
 
+      <button
+        onClick={() => setShowTaskList(!showTaskList)}
+        style={{
+          padding: "0.5rem 1rem",
+          backgroundColor: showTaskList ? "#ef4444" : "#3b82f6",
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          marginBottom: "1rem",
+        }}
+      >
+        {showTaskList ? "Hide Task List" : "Show Task List"}
+      </button>
+
       <div
         style={{
           border: "1px solid #e5e7eb",
@@ -69,6 +85,7 @@ export default function MCPPage() {
           dayWidth={24}
           rowHeight={36}
           onChange={handleChange}
+          showTaskList={showTaskList}
         />
       </div>
 
