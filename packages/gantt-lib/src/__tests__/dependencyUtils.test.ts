@@ -6,6 +6,7 @@ import {
   validateDependencies,
   getAllDependencyEdges,
   getSuccessorChain,
+  removeDependenciesBetweenTasks,
 } from '../utils/dependencyUtils';
 import { Task } from '../types';
 
@@ -321,6 +322,147 @@ describe('dependencyUtils', () => {
       // predEnd=2025-01-15, newEndDate=2025-01-10 → lag=-5
       // Critical: FF allows negative lag (unlike SS which floors at 0)
       expect(true).toBe(true); // Placeholder
+    });
+  });
+
+  describe('removeDependenciesBetweenTasks', () => {
+    it('should remove dependency from child to parent when demoting', () => {
+      // Given: Task A depends on Task B
+      const tasks = [
+        createTask('A', '2026-01-01', '2026-01-05', [{ taskId: 'B', type: 'FS' }]),
+        createTask('B', '2026-01-06', '2026-01-10'),
+      ];
+
+      // When: Remove dependencies between A and B
+      const result = removeDependenciesBetweenTasks('A', 'B', tasks);
+
+      // Then: Task A should have no dependencies
+      const taskA = result.find(t => t.id === 'A');
+      expect(taskA?.dependencies).toBeUndefined();
+    });
+
+    it('should remove dependency from parent to child when demoting', () => {
+      // Given: Task B depends on Task A
+      const tasks = [
+        createTask('A', '2026-01-01', '2026-01-05'),
+        createTask('B', '2026-01-06', '2026-01-10', [{ taskId: 'A', type: 'FS' }]),
+      ];
+
+      // When: Remove dependencies between A and B
+      const result = removeDependenciesBetweenTasks('A', 'B', tasks);
+
+      // Then: Task B should have no dependencies
+      const taskB = result.find(t => t.id === 'B');
+      expect(taskB?.dependencies).toBeUndefined();
+    });
+
+    it('should preserve dependencies to other tasks', () => {
+      // Given: Task A depends on Task B and Task C
+      const tasks = [
+        createTask('A', '2026-01-01', '2026-01-05', [
+          { taskId: 'B', type: 'FS' },
+          { taskId: 'C', type: 'SS' },
+        ]),
+        createTask('B', '2026-01-06', '2026-01-10'),
+        createTask('C', '2026-01-11', '2026-01-15'),
+      ];
+
+      // When: Remove dependencies between A and B
+      const result = removeDependenciesBetweenTasks('A', 'B', tasks);
+
+      // Then: Task A.dependencies should only contain reference to Task C
+      const taskA = result.find(t => t.id === 'A');
+      expect(taskA?.dependencies).toEqual([{ taskId: 'C', type: 'SS' }]);
+    });
+
+    it('should handle tasks without dependencies array', () => {
+      // Given: Task A and Task B, neither has dependencies
+      const tasks = [
+        createTask('A', '2026-01-01', '2026-01-05'),
+        createTask('B', '2026-01-06', '2026-01-10'),
+      ];
+
+      // When: removeDependenciesBetweenTasks is called
+      const result = removeDependenciesBetweenTasks('A', 'B', tasks);
+
+      // Then: Should return tasks unchanged, no errors
+      expect(result).toEqual(tasks);
+    });
+
+    it('should remove bidirectional dependencies', () => {
+      // Given: Task A depends on B, and Task B depends on A
+      const tasks = [
+        createTask('A', '2026-01-01', '2026-01-05', [{ taskId: 'B', type: 'FS' }]),
+        createTask('B', '2026-01-06', '2026-01-10', [{ taskId: 'A', type: 'SS' }]),
+      ];
+
+      // When: Remove dependencies between A and B
+      const result = removeDependenciesBetweenTasks('A', 'B', tasks);
+
+      // Then: Both tasks should have no dependencies
+      const taskA = result.find(t => t.id === 'A');
+      const taskB = result.find(t => t.id === 'B');
+      expect(taskA?.dependencies).toBeUndefined();
+      expect(taskB?.dependencies).toBeUndefined();
+    });
+
+    it('should preserve other tasks dependencies unchanged', () => {
+      // Given: Three tasks, only A and B are related
+      const tasks = [
+        createTask('A', '2026-01-01', '2026-01-05', [{ taskId: 'B', type: 'FS' }]),
+        createTask('B', '2026-01-06', '2026-01-10'),
+        createTask('C', '2026-01-11', '2026-01-15', [{ taskId: 'A', type: 'FF' }]),
+      ];
+
+      // When: Remove dependencies between A and B
+      const result = removeDependenciesBetweenTasks('A', 'B', tasks);
+
+      // Then: Task C's dependency on A should remain unchanged
+      const taskC = result.find(t => t.id === 'C');
+      expect(taskC?.dependencies).toEqual([{ taskId: 'A', type: 'FF' }]);
+    });
+
+    it('should return new task objects (immutability)', () => {
+      // Given: Task A depends on Task B
+      const tasks = [
+        createTask('A', '2026-01-01', '2026-01-05', [{ taskId: 'B', type: 'FS' }]),
+        createTask('B', '2026-01-06', '2026-01-10'),
+      ];
+
+      // When: Remove dependencies
+      const result = removeDependenciesBetweenTasks('A', 'B', tasks);
+
+      // Then: Original tasks should be unchanged
+      const originalTaskA = tasks.find(t => t.id === 'A');
+      expect(originalTaskA?.dependencies).toBeDefined();
+
+      // And result should have modified tasks
+      const resultTaskA = result.find(t => t.id === 'A');
+      expect(resultTaskA?.dependencies).toBeUndefined();
+    });
+
+    it('should handle multiple dependencies on same task removing only one', () => {
+      // Given: Task A has two dependencies, remove only one
+      const tasks = [
+        createTask('A', '2026-01-01', '2026-01-05', [
+          { taskId: 'B', type: 'FS' },
+          { taskId: 'C', type: 'SS' },
+          { taskId: 'D', type: 'FF' },
+        ]),
+        createTask('B', '2026-01-06', '2026-01-10'),
+        createTask('C', '2026-01-11', '2026-01-15'),
+        createTask('D', '2026-01-16', '2026-01-20'),
+      ];
+
+      // When: Remove only dependency between A and B
+      const result = removeDependenciesBetweenTasks('A', 'B', tasks);
+
+      // Then: A should still have dependencies on C and D
+      const taskA = result.find(t => t.id === 'A');
+      expect(taskA?.dependencies).toEqual([
+        { taskId: 'C', type: 'SS' },
+        { taskId: 'D', type: 'FF' },
+      ]);
     });
   });
 });
