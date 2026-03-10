@@ -57,6 +57,8 @@ export interface Task {
   endDate: string | Date;
   /** Optional color for task bar visualization */
   color?: string;
+  /** Optional parent task ID for hierarchy relationship */
+  parentId?: string;
   /**
    * Optional progress value from 0-100
    * - Decimal values are allowed and rounded to nearest integer for display
