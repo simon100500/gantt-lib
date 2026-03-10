@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
-import { validateDependencies, calculateSuccessorDate } from '../../utils/dependencyUtils';
+import { validateDependencies, calculateSuccessorDate, isTaskParent } from '../../utils/dependencyUtils';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
@@ -79,9 +79,24 @@ export const TaskList: React.FC<TaskListProps> = ({
   editingTaskId: propEditingTaskId,
   enableAddTask = true,
 }) => {
+  // Hierarchy state: collapsed parent IDs
+  const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
+  const collapsedParentIds = useMemo(() => internalCollapsedParentIds, [internalCollapsedParentIds]);
+
+  // Filter tasks to hide children of collapsed parents
+  const visibleTasks = useMemo(() => {
+    return tasks.filter(task => {
+      // Root-level tasks (no parentId) are always visible
+      if (!task.parentId) return true;
+      // Child tasks are visible only if their parent is not collapsed
+      const parentCollapsed = collapsedParentIds.has(task.parentId);
+      return !parentCollapsed;
+    });
+  }, [tasks, collapsedParentIds]);
+
   const totalHeight = useMemo(
-    () => tasks.length * rowHeight,
-    [tasks.length, rowHeight]
+    () => visibleTasks.length * rowHeight,
+    [visibleTasks.length, rowHeight]
   );
 
   const handleRowClick = useCallback((taskId: string) => {
@@ -224,6 +239,19 @@ export const TaskList: React.FC<TaskListProps> = ({
     onTaskChange?.({ ...task, dependencies: updatedDeps });
   }, [tasks, onTaskChange]);
 
+  // Hierarchy callbacks
+  const handleToggleCollapse = useCallback((parentId: string) => {
+    setInternalCollapsedParentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(parentId)) {
+        next.delete(parentId);
+      } else {
+        next.add(parentId);
+      }
+      return next;
+    });
+  }, []);
+
   // New task creation state
   const [isCreating, setIsCreating] = useState(false);
 
@@ -350,7 +378,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
         {/* Data rows */}
         <div className="gantt-tl-body" style={{ height: `${totalHeight}px` }}>
-          {tasks.map((task, index) => (
+          {visibleTasks.map((task, index) => (
             <TaskListRow
               key={task.id}
               task={task}
@@ -380,6 +408,8 @@ export const TaskList: React.FC<TaskListProps> = ({
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onDragEnd={handleDragEnd}
+              collapsedParentIds={collapsedParentIds}
+              onToggleCollapse={handleToggleCollapse}
             />
           ))}
         </div>
