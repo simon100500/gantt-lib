@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: in_progress
 stopped_at: "Completed 19-03: Parent task bar visualization with cascade drag"
-last_updated: "2026-03-10T19:54:55.938Z"
+last_updated: "2026-03-10T21:15:46.042Z"
 last_activity: "2026-03-10 - Completed quick task 089: добавить столбец "Прогресс" в процентах. При клике будет сразу выделяться поле для ввода"
 progress:
   total_phases: 19
-  completed_phases: 17
+  completed_phases: 18
   total_plans: 48
-  completed_plans: 46
+  completed_plans: 47
   percent: 96
 ---
 
