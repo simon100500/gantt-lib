@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { calculateSuccessorDate, getSuccessorChain, getTransitiveCascadeChain, recalculateIncomingLags, getChildren } from '../utils/dependencyUtils';
+import { calculateSuccessorDate, getSuccessorChain, getTransitiveCascadeChain, recalculateIncomingLags, getChildren, isTaskParent } from '../utils/dependencyUtils';
 
 /**
  * Get transitive closure of successors for cascading.
@@ -278,13 +278,21 @@ function handleGlobalMouseMove(e: MouseEvent) {
       mode === 'resize-left'  ? globalActiveDrag.cascadeChainStart :  // SS + SF
       /* move */                globalActiveDrag.cascadeChain;         // FS + SS + FF + SF
 
-    // Phase 19: Merge hierarchy chain (parent drag) with dependency chain
+    // Phase 19: Merge hierarchy chain with dependency chain
     // Both systems work together: unique task IDs to prevent duplicates
     if (globalActiveDrag.hierarchyChain.length > 0) {
       const chainIds = new Set(activeChain.map(t => t.id));
       const hierarchyTasks = globalActiveDrag.hierarchyChain.filter(t => !chainIds.has(t.id));
       activeChain = [...activeChain, ...hierarchyTasks];
     }
+
+    // Track which tasks are parents in the hierarchy chain (for special positioning)
+    const hierarchyParents = new Set<string>();
+    globalActiveDrag.hierarchyChain.forEach(t => {
+      if (isTaskParent(t.id, allTasks)) {
+        hierarchyParents.add(t.id);
+      }
+    });
 
     // Hard mode cascade: emit position overrides for successor chain members
     if ((mode === 'move' || mode === 'resize-right' ||
@@ -342,7 +350,45 @@ function handleGlobalMouseMove(e: MouseEvent) {
         );
 
         let chainLeft;
-        if (hasFFDepOnDragged || hasSFDepOnDragged) {
+        if (hierarchyParents.has(chainTask.id)) {
+          // Phase 19 fix: Parent task in hierarchy chain - compute from all children
+          // Parent position = min(children.start) to max(children.end)
+          const children = getChildren(chainTask.id, allTasks);
+          if (children.length > 0) {
+            let minChildStart = Infinity;
+            let maxChildEnd = -Infinity;
+
+            children.forEach(child => {
+              const childStart = new Date(child.startDate as string);
+              const childEnd = new Date(child.endDate as string);
+              const childStartOffset = Math.round(
+                (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
+                  Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                  / (24 * 60 * 60 * 1000)
+              );
+              const childEndOffset = Math.round(
+                (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
+                  Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                  / (24 * 60 * 60 * 1000)
+              );
+
+              // If child is also being cascaded, apply delta to its position
+              const childIsCascaded = activeChain.some(c => c.id === child.id);
+              if (childIsCascaded) {
+                minChildStart = Math.min(minChildStart, childStartOffset + deltaDays);
+                maxChildEnd = Math.max(maxChildEnd, childEndOffset + deltaDays);
+              } else {
+                minChildStart = Math.min(minChildStart, childStartOffset);
+                maxChildEnd = Math.max(maxChildEnd, childEndOffset);
+              }
+            });
+
+            chainLeft = Math.round(minChildStart * dayWidth);
+          } else {
+            // No children - use original position
+            chainLeft = Math.round(chainStartOffset * dayWidth);
+          }
+        } else if (hasFFDepOnDragged || hasSFDepOnDragged) {
           // FF/SF: position based on end date shift, then back up by duration
           // This works correctly even when child starts before parent (negative lag)
           // For SF: endB shifts with startA, then back up by duration
@@ -819,9 +865,25 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     // Ensure global listeners are attached (idempotent)
     ensureGlobalListeners();
 
-    // Phase 19: Build hierarchy chain if task is a parent
+    // Phase 19: Build hierarchy chain for real-time parent movement
+    // When dragging a child: include parent so it moves with children
+    // When dragging a parent: include all children so they move with parent
     const currentTask = allTasks.find(t => t.id === taskId);
-    const hierarchyChain = currentTask ? getChildren(taskId, allTasks) : [];
+    let hierarchyChain: Task[] = [];
+
+    if (currentTask) {
+      const taskParentId = (currentTask as any).parentId;
+      if (taskParentId) {
+        // Dragging a child - include parent for real-time updates
+        const parentTask = allTasks.find(t => t.id === taskParentId);
+        if (parentTask) {
+          hierarchyChain.push(parentTask);
+        }
+      } else {
+        // Dragging a parent - include all children
+        hierarchyChain = getChildren(taskId, allTasks);
+      }
+    }
 
     // Store drag state in global singleton
     globalActiveDrag = {

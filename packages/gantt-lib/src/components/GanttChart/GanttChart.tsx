@@ -588,13 +588,26 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         return currentTasks;
       }
 
-      return currentTasks.map(t => {
+      // Apply parentId change first
+      let updatedTasks = currentTasks.map(t => {
         if (t.id === taskId) {
           // Set parentId to demote under new parent
           return { ...t, parentId: newParentId };
         }
         return t;
       });
+
+      // Compute and apply parent dates from all children
+      const parentDates = computeParentDates(newParentId, updatedTasks);
+      const parentProgress = computeParentProgress(newParentId, updatedTasks);
+
+      updatedTasks = updatedTasks.map(t =>
+        t.id === newParentId
+          ? { ...t, startDate: parentDates.startDate.toISOString().split('T')[0], endDate: parentDates.endDate.toISOString().split('T')[0], progress: parentProgress }
+          : t
+      );
+
+      return updatedTasks;
     });
   }, [onChange]);
 
