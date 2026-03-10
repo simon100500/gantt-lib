@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { calculateSuccessorDate, getSuccessorChain, getTransitiveCascadeChain, recalculateIncomingLags } from '../utils/dependencyUtils';
+import { calculateSuccessorDate, getSuccessorChain, getTransitiveCascadeChain, recalculateIncomingLags, getChildren } from '../utils/dependencyUtils';
 
 /**
  * Get transitive closure of successors for cascading.
@@ -54,6 +54,7 @@ interface ActiveDragState {
   cascadeChainFS: Task[];      // FS-only successors (part of resize-right cascade with FF)
   cascadeChainStart: Task[];   // SS+SF successors (resize-left cascade) - Phase 10: renamed from cascadeChainSS
   cascadeChainEnd: Task[];     // FS+FF successors (resize-right cascade) - Phase 9
+  hierarchyChain: Task[];      // Phase 19: children of parent task (for cascade drag)
   onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
 }
 
@@ -271,10 +272,19 @@ function handleGlobalMouseMove(e: MouseEvent) {
     // resize-right: FS+FF successors (endA changes, SS/SF unaffected)
     // resize-left: SS+SF successors only (startA changes, FS/FF unaffected)
     // Phase 10: added SF
-    const activeChain =
+    // Phase 19: merge hierarchy chain with dependency chain
+    let activeChain =
       mode === 'resize-right' ? globalActiveDrag.cascadeChainEnd :    // FS + FF
       mode === 'resize-left'  ? globalActiveDrag.cascadeChainStart :  // SS + SF
       /* move */                globalActiveDrag.cascadeChain;         // FS + SS + FF + SF
+
+    // Phase 19: Merge hierarchy chain (parent drag) with dependency chain
+    // Both systems work together: unique task IDs to prevent duplicates
+    if (globalActiveDrag.hierarchyChain.length > 0) {
+      const chainIds = new Set(activeChain.map(t => t.id));
+      const hierarchyTasks = globalActiveDrag.hierarchyChain.filter(t => !chainIds.has(t.id));
+      activeChain = [...activeChain, ...hierarchyTasks];
+    }
 
     // Hard mode cascade: emit position overrides for successor chain members
     if ((mode === 'move' || mode === 'resize-right' ||
@@ -337,6 +347,10 @@ function handleGlobalMouseMove(e: MouseEvent) {
           // This works correctly even when child starts before parent (negative lag)
           // For SF: endB shifts with startA, then back up by duration
           chainLeft = Math.round((chainEndOffset + deltaDays - chainDuration) * dayWidth);
+        } else if (globalActiveDrag.hierarchyChain.some(h => h.id === chainTask.id)) {
+          // Phase 19: Hierarchy chain - children move with parent by same delta
+          // Position based on start date shift (same as FS/SS move mode)
+          chainLeft = Math.round((chainStartOffset + deltaDays) * dayWidth);
         } else {
           // FS/SS: position based on start date shift
           chainLeft = Math.round((chainStartOffset + deltaDays) * dayWidth);
@@ -659,11 +673,25 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         // we use getTransitiveCascadeChain which includes cascaded tasks' successors regardless of link type.
         // Phase 9: FF included in resize-right and move chains
         const isResizeLeft = deltaFromStart !== 0 && deltaFromEnd === 0;
-        const chainForCompletion = deltaFromStart === 0
+        let chainForCompletion = deltaFromStart === 0
           ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])               // resize-right: FS + FF
           : isResizeLeft
             ? getTransitiveCascadeChain(taskId, allTasks, ['SS', 'SF'])             // resize-left: SS + SF
             : getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS', 'FF', 'SF']); // move: all types
+
+        // Phase 19: Merge hierarchy chain with dependency chain
+        const currentTask = allTasks.find(t => t.id === taskId);
+        if (currentTask && (currentTask as any).parentId) {
+          // This is a child task - check if parent is being dragged
+          // (Hierarchy chain is built when dragging starts, in handleMouseDown)
+        }
+        // Add hierarchy chain if this is a parent drag
+        const hierarchyChildren = currentTask ? getChildren(taskId, allTasks) : [];
+        if (hierarchyChildren.length > 0) {
+          const chainIds = new Set(chainForCompletion.map(t => t.id));
+          const uniqueHierarchyChildren = hierarchyChildren.filter(t => !chainIds.has(t.id));
+          chainForCompletion = [...chainForCompletion, ...uniqueHierarchyChildren];
+        }
 
         if (chainForCompletion.length > 0) {
           const draggedTaskData = allTasks.find(t => t.id === taskId);
@@ -791,6 +819,10 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     // Ensure global listeners are attached (idempotent)
     ensureGlobalListeners();
 
+    // Phase 19: Build hierarchy chain if task is a parent
+    const currentTask = allTasks.find(t => t.id === taskId);
+    const hierarchyChain = currentTask ? getChildren(taskId, allTasks) : [];
+
     // Store drag state in global singleton
     globalActiveDrag = {
       taskId,
@@ -819,6 +851,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       cascadeChainEnd: !disableConstraints
         ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])    // FS + FF for resize-right cascade (Phase 9)
         : [],
+      hierarchyChain, // Phase 19: children of parent task
       onCascadeProgress,
     };
   }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, locked]);
