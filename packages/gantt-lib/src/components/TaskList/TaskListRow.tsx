@@ -671,9 +671,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               {isChild && onPromoteTask && (
                 <button
                   type="button"
-                  className="gantt-tl-action-btn"
+                  className="gantt-tl-name-action-btn gantt-tl-action-promote"
                   onClick={handlePromote}
                   title="Сделать задачу корневой"
+                  style={{ width: 'auto', padding: '2px 8px', fontSize: '11px' }}
                 >
                   ⬆ Повысить
                 </button>
@@ -681,10 +682,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               {!isParent && onDemoteTask && (
                 <button
                   type="button"
-                  className="gantt-tl-action-btn"
+                  className="gantt-tl-name-action-btn gantt-tl-action-demote"
                   onClick={handleDemote}
                   disabled={rowIndex === 0}
                   title="Сделать подчиненной к предыдущей задаче"
+                  style={{ width: 'auto', padding: '2px 8px', fontSize: '11px' }}
                 >
                   ⬇ Понизить
                 </button>
