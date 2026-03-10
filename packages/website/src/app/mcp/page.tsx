@@ -33,6 +33,10 @@ export default function MCPPage() {
     [],
   );
 
+  const handleAdd = useCallback((task: Task) => {
+    setTasks(prev => [...prev, task]);
+  }, []);
+
   if (loading) {
     return (
       <main style={{ padding: "0rem" }}>
@@ -85,6 +89,7 @@ export default function MCPPage() {
           dayWidth={24}
           rowHeight={36}
           onChange={handleChange}
+          onAdd={handleAdd}
           showTaskList={showTaskList}
         />
       </div>
