@@ -653,11 +653,19 @@ export default function Home() {
     [],
   );
 
+  const handleDependencyAdd = useCallback((task: Task) => {
+    setDependencyTasks(prev => [...prev, task]);
+  }, []);
+
   const handleCascadeChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
       setCascadeTasks(typeof updated === "function" ? updated : () => updated),
     [],
   );
+
+  const handleCascadeAdd = useCallback((task: Task) => {
+    setCascadeTasks(prev => [...prev, task]);
+  }, []);
 
   const handleChain100Change = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) =>
@@ -665,12 +673,20 @@ export default function Home() {
     [],
   );
 
+  const handleChain100Add = useCallback((task: Task) => {
+    setChain100Tasks(prev => [...prev, task]);
+  }, []);
+
   const handleExpiredTasksChange = useCallback(
     (updated: Task[] | ((t: Task[]) => Task[])) => {
       setExpiredTasks(typeof updated === "function" ? updated : () => updated);
     },
     [],
   );
+
+  const handleExpiredTasksAdd = useCallback((task: Task) => {
+    setExpiredTasks(prev => [...prev, task]);
+  }, []);
 
   return (
     <main>
@@ -758,6 +774,7 @@ export default function Home() {
             <GanttChart
               tasks={dependencyTasks}
               onChange={handleDependencyChange}
+              onAdd={handleDependencyAdd}
               dayWidth={24}
               rowHeight={36}
               disableConstraints={!blockConstraints}
@@ -790,6 +807,7 @@ export default function Home() {
             <GanttChart
               tasks={cascadeTasks}
               onChange={handleCascadeChange}
+              onAdd={handleCascadeAdd}
               onCascade={(shifted) => console.log('Cascade:', shifted.map(t => `${t.name}: ${t.startDate}`))}
               dayWidth={40}
               rowHeight={40}
@@ -818,6 +836,7 @@ export default function Home() {
             <GanttChart
               tasks={chain100Tasks}
               onChange={handleChain100Change}
+              onAdd={handleChain100Add}
               onCascade={(shifted) => console.log(`Cascade: ${shifted.length} tasks shifted`)}
               dayWidth={24}
               rowHeight={36}
@@ -847,6 +866,7 @@ export default function Home() {
             <GanttChart
               tasks={expiredTasks}
               onChange={handleExpiredTasksChange}
+              onAdd={handleExpiredTasksAdd}
               dayWidth={40}
               rowHeight={40}
               containerHeight={250}
