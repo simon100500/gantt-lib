@@ -245,6 +245,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
     const nameInputRef = useRef<HTMLInputElement>(null);
+    const [editingProgress, setEditingProgress] = useState(false);
+    const [progressValue, setProgressValue] = useState(0);
+    const progressInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
     const confirmedRef = useRef(false);  // Prevent double-save on Enter + blur
     const autoEditedForRef = useRef<string | null>(null);  // Track which editingTaskId we already auto-entered for
@@ -395,6 +398,45 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         handleNameCancel();
       }
     }, [nameValue, task, onTaskChange, handleNameCancel]);
+
+    const handleProgressClick = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      confirmedRef.current = false;
+      setProgressValue(task.progress ?? 0);
+      setEditingProgress(true);
+    }, [task.progress]);
+
+    const handleProgressSave = useCallback(() => {
+      if (confirmedRef.current) {
+        confirmedRef.current = false;
+        return;
+      }
+      const clampedValue = Math.max(0, Math.min(100, progressValue));
+      onTaskChange?.({ ...task, progress: clampedValue });
+      setEditingProgress(false);
+    }, [progressValue, task, onTaskChange]);
+
+    const handleProgressCancel = useCallback(() => {
+      setEditingProgress(false);
+    }, []);
+
+    const handleProgressKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        confirmedRef.current = true;
+        const clampedValue = Math.max(0, Math.min(100, progressValue));
+        onTaskChange?.({ ...task, progress: clampedValue });
+        setEditingProgress(false);
+      } else if (e.key === 'Escape') {
+        handleProgressCancel();
+      }
+    }, [progressValue, task, onTaskChange, handleProgressCancel]);
+
+    useEffect(() => {
+      if (editingProgress && progressInputRef.current) {
+        progressInputRef.current.focus();
+        progressInputRef.current.select();
+      }
+    }, [editingProgress]);
 
     // Both date pickers shift the whole task (preserving duration), same as drag-move
     const handleStartDateChange = useCallback((newDateISO: string) => {
@@ -594,6 +636,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             portal={true}
             disabled={task.locked}
           />
+        </div>
+
+        {/* Progress column */}
+        <div className="gantt-tl-cell gantt-tl-cell-progress" onClick={handleProgressClick}>
+          {editingProgress && (
+            <Input
+              ref={progressInputRef}
+              type="number"
+              min={0}
+              max={100}
+              value={progressValue}
+              onChange={(e) => setProgressValue(parseInt(e.target.value) || 0)}
+              onBlur={handleProgressSave}
+              onKeyDown={handleProgressKeyDown}
+              className="gantt-tl-progress-input"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+          <span style={editingProgress ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
+            {task.progress ? `${Math.round(task.progress)}%` : '0%'}
+          </span>
         </div>
 
         {/* Dependencies column */}
