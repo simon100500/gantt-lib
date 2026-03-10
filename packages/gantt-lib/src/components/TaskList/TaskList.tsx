@@ -49,6 +49,8 @@ export interface TaskListProps {
   onReorder?: (tasks: Task[]) => void;
   /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
   editingTaskId?: string | null;
+  /** Enable add task button at bottom of task list (default: true) */
+  enableAddTask?: boolean;
 }
 
 /**
@@ -75,6 +77,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onInsertAfter,
   onReorder,
   editingTaskId: propEditingTaskId,
+  enableAddTask = true,
 }) => {
   const totalHeight = useMemo(
     () => tasks.length * rowHeight,
@@ -390,7 +393,7 @@ export const TaskList: React.FC<TaskListProps> = ({
         )}
 
         {/* Add task button - also serves as drop target for moving tasks to end */}
-        {onAdd && !isCreating && (
+        {enableAddTask && onAdd && !isCreating && (
           <button
             className={`gantt-tl-add-btn${dragOverIndex === tasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
             onClick={() => setIsCreating(true)}

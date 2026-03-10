@@ -115,6 +115,8 @@ export interface GanttChartProps {
   onInsertAfter?: (taskId: string, newTask: Task) => void;
   /** Callback when tasks are reordered via drag in the task list */
   onReorder?: (tasks: Task[]) => void;
+  /** Enable add task button at bottom of task list (default: true) */
+  enableAddTask?: boolean;
 }
 
 /**
@@ -161,6 +163,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   onDelete,
   onInsertAfter,
   onReorder,
+  enableAddTask = true,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -535,6 +538,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onInsertAfter={handleInsertAfter}
             onReorder={handleReorder}
             editingTaskId={editingTaskId}
+            enableAddTask={enableAddTask}
           />
 
           {/* Chart area */}
