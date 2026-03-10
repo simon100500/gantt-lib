@@ -351,6 +351,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [task.name, disableTaskNameEditing]);
 
     const handleRowKeyDown = useCallback((e: React.KeyboardEvent) => {
+      // Don't handle row keyboard events when editing progress
+      if (editingProgress) return;
       // F2: enter edit mode with cursor at end of existing name
       if (!editingName && !disableTaskNameEditing && e.key === 'F2') {
         e.preventDefault();
@@ -421,6 +423,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, []);
 
     const handleProgressKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+      e.stopPropagation(); // Prevent row-level keyboard handler from interfering
       if (e.key === 'Enter') {
         confirmedRef.current = true;
         const clampedValue = Math.max(0, Math.min(100, progressValue));
