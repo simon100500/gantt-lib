@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 19 context gathered
-last_updated: "2026-03-10T19:38:57.182Z"
-last_activity: "2026-03-10 - Completed quick task 089: добавить столбец "Прогресс" в процентах. При клике будет сразу выделяться поле для ввода"
+stopped_at: Completed 19-01: Hierarchy Utilities
+last_updated: "2026-03-10T22:50:00.000Z"
+last_activity: "2026-03-10 - Completed plan 19-01: Hierarchy Utilities (getChildren, isTaskParent, computeParentDates, computeParentProgress)"
 progress:
   total_phases: 19
   completed_phases: 17
-  total_plans: 44
-  completed_plans: 43
+  total_plans: 48
+  completed_plans: 45
 ---
 
 ---

@@ -228,7 +228,7 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 19-01-PLAN.md — Hierarchy utilities (TDD): getChildren, isTaskParent, computeParentDates, computeParentProgress
+- [x] 19-01-PLAN.md — Hierarchy utilities (TDD): getChildren, isTaskParent, computeParentDates, computeParentProgress
 - [ ] 19-02-PLAN.md — Task type extension + TaskList hierarchy UI: parentId field, indentation, collapse button, parent row styling
 - [ ] 19-03-PLAN.md — TaskRow parent bar rendering + cascade drag integration: parent bar visual style, reuse cascade engine
 - [ ] 19-04-PLAN.md — Promote/demote buttons + cascade delete + demo page: level change buttons, delete parent cascades to children, human verification
