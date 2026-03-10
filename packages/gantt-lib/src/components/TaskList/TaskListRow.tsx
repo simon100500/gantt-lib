@@ -207,6 +207,10 @@ export interface TaskListRowProps {
   collapsedParentIds?: Set<string>;
   /** Callback when collapse/expand button is clicked */
   onToggleCollapse?: (parentId: string) => void;
+  /** Callback when task is promoted (parentId removed) */
+  onPromoteTask?: (taskId: string) => void;
+  /** Callback when task is demoted (parentId set to previous task) */
+  onDemoteTask?: (taskId: string, newParentId: string) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -247,6 +251,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onDragEnd,
     collapsedParentIds = new Set(),
     onToggleCollapse,
+    onPromoteTask,
+    onDemoteTask,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -487,6 +493,22 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       onToggleCollapse?.(task.id);
     }, [task.id, onToggleCollapse]);
 
+    // Hierarchy handlers - promote/demote
+    const handlePromote = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onPromoteTask?.(task.id);
+    }, [task.id, onPromoteTask]);
+
+    const handleDemote = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      // Find previous task in allTasks
+      const currentIndex = allTasks.findIndex(t => t.id === task.id);
+      if (currentIndex > 0) {
+        const previousTask = allTasks[currentIndex - 1];
+        onDemoteTask?.(task.id, previousTask.id);
+      }
+    }, [task.id, allTasks, onDemoteTask]);
+
     // Dependency handlers
     const handleAddClick = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
@@ -644,6 +666,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   aria-label="Удалить задачу"
                 >
                   {deletePending ? 'Удалить?' : <TrashIcon />}
+                </button>
+              )}
+              {isChild && onPromoteTask && (
+                <button
+                  type="button"
+                  className="gantt-tl-action-btn"
+                  onClick={handlePromote}
+                  title="Сделать задачу корневой"
+                >
+                  ⬆ Повысить
+                </button>
+              )}
+              {!isParent && onDemoteTask && (
+                <button
+                  type="button"
+                  className="gantt-tl-action-btn"
+                  onClick={handleDemote}
+                  disabled={rowIndex === 0}
+                  title="Сделать подчиненной к предыдущей задаче"
+                >
+                  ⬇ Понизить
                 </button>
               )}
             </div>
