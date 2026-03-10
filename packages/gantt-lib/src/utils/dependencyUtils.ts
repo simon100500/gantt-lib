@@ -398,3 +398,87 @@ export function getAllDependencyEdges(tasks: Task[]): Array<{
 
   return edges;
 }
+
+// ============================================================================
+// Hierarchy Utilities (Phase 19)
+// ============================================================================
+
+/**
+ * Get all child tasks of a parent task.
+ * Returns tasks where task.parentId === parentId.
+ */
+export function getChildren(parentId: string, tasks: Task[]): Task[] {
+  return tasks.filter(t => (t as any).parentId === parentId);
+}
+
+/**
+ * Check if a task is a parent (has children).
+ * Returns true if any task has this task as parentId.
+ */
+export function isTaskParent(taskId: string, tasks: Task[]): boolean {
+  return tasks.some(t => (t as any).parentId === taskId);
+}
+
+/**
+ * Compute parent task dates from children.
+ * Returns { startDate, endDate } where:
+ * - startDate = min(children.startDate) or own startDate if no children
+ * - endDate = max(children.endDate) or own endDate if no children
+ */
+export function computeParentDates(parentId: string, tasks: Task[]): { startDate: Date; endDate: Date } {
+  const children = getChildren(parentId, tasks);
+
+  if (children.length === 0) {
+    // Empty parent - use own dates or default
+    const parent = tasks.find(t => t.id === parentId);
+    const start = parent ? new Date(parent.startDate) : new Date();
+    const end = parent ? new Date(parent.endDate) : new Date();
+    return { startDate: start, endDate: end };
+  }
+
+  const startDates = children.map(c => new Date(c.startDate));
+  const endDates = children.map(c => new Date(c.endDate));
+
+  const minTime = Math.min(...startDates.map(d => d.getTime()));
+  const maxTime = Math.max(...endDates.map(d => d.getTime()));
+
+  return {
+    startDate: new Date(minTime),
+    endDate: new Date(maxTime),
+  };
+}
+
+/**
+ * Compute parent task progress from children (weighted average by duration).
+ * Returns 0 if no children.
+ * Progress is rounded to 1 decimal place.
+ */
+export function computeParentProgress(parentId: string, tasks: Task[]): number {
+  const children = getChildren(parentId, tasks);
+
+  if (children.length === 0) {
+    return 0;
+  }
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  let totalWeight = 0;
+  let weightedSum = 0;
+
+  for (const child of children) {
+    const start = new Date(child.startDate).getTime();
+    const end = new Date(child.endDate).getTime();
+    // Inclusive duration: (end - start + 1 day) / DAY_MS
+    const duration = (end - start + DAY_MS) / DAY_MS;
+    const progress = (child.progress ?? 0);
+
+    totalWeight += duration;
+    weightedSum += duration * progress;
+  }
+
+  if (totalWeight === 0) {
+    return 0;
+  }
+
+  // Round to 1 decimal place
+  return Math.round((weightedSum / totalWeight) * 10) / 10;
+}
