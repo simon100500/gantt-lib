@@ -55,6 +55,10 @@ export interface TaskListProps {
   collapsedParentIds?: Set<string>;
   /** Callback when collapse/expand button is clicked */
   onToggleCollapse?: (parentId: string) => void;
+  /** Callback when task is promoted (parentId removed) */
+  onPromoteTask?: (taskId: string) => void;
+  /** Callback when task is demoted (parentId set to previous task) */
+  onDemoteTask?: (taskId: string, newParentId: string) => void;
 }
 
 /**
@@ -84,6 +88,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   enableAddTask = true,
   collapsedParentIds: externalCollapsedParentIds,
   onToggleCollapse: externalOnToggleCollapse,
+  onPromoteTask,
+  onDemoteTask,
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
@@ -418,6 +424,8 @@ export const TaskList: React.FC<TaskListProps> = ({
               onDragEnd={handleDragEnd}
               collapsedParentIds={collapsedParentIds}
               onToggleCollapse={handleToggleCollapse}
+              onPromoteTask={onPromoteTask}
+              onDemoteTask={onDemoteTask}
             />
           ))}
         </div>

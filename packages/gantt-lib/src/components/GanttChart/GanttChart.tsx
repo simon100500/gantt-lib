@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, cascadeByLinks, computeParentDates } from '../../utils/dependencyUtils';
+import { validateDependencies, cascadeByLinks, computeParentDates, getChildren } from '../../utils/dependencyUtils';
 import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
@@ -514,6 +514,51 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     });
   }, []);
 
+  const handlePromoteTask = useCallback((taskId: string) => {
+    onChange?.((currentTasks) => {
+      return currentTasks.map(t => {
+        if (t.id === taskId && (t as any).parentId) {
+          // Remove parentId to promote to root level
+          return { ...t, parentId: undefined };
+        }
+        return t;
+      });
+    });
+  }, [onChange]);
+
+  const handleDemoteTask = useCallback((taskId: string, newParentId: string) => {
+    onChange?.((currentTasks) => {
+      // Check for circular hierarchy
+      const wouldCreateCircular = (targetId: string, parentId: string, tasks: Task[]): boolean => {
+        if (targetId === parentId) return true; // Can't be own parent
+
+        const descendants = new Set<string>();
+        function collect(id: string) {
+          const children = getChildren(id, tasks);
+          children.forEach(child => {
+            descendants.add(child.id);
+            collect(child.id);
+          });
+        }
+        collect(targetId);
+        return descendants.has(parentId);
+      };
+
+      if (wouldCreateCircular(taskId, newParentId, currentTasks)) {
+        // Circular hierarchy detected, return unchanged
+        return currentTasks;
+      }
+
+      return currentTasks.map(t => {
+        if (t.id === taskId) {
+          // Set parentId to demote under new parent
+          return { ...t, parentId: newParentId };
+        }
+        return t;
+      });
+    });
+  }, [onChange]);
+
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
 
@@ -601,6 +646,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             enableAddTask={enableAddTask}
             collapsedParentIds={collapsedParentIds}
             onToggleCollapse={handleToggleCollapse}
+            onPromoteTask={handlePromoteTask}
+            onDemoteTask={handleDemoteTask}
           />
 
           {/* Chart area */}
