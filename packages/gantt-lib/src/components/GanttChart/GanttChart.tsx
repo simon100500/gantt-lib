@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, cascadeByLinks } from '../../utils/dependencyUtils';
+import { validateDependencies, cascadeByLinks, computeParentDates } from '../../utils/dependencyUtils';
 import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
@@ -391,7 +391,30 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     } else {
       onChange?.((currentTasks) => {
         const m = new Map(cascadedTasksForCallback.map(t => [t.id, t]));
-        return currentTasks.map(t => m.get(t.id) ?? t);
+
+        // Phase 19: Update parent dates when child task changes
+        // For each updated task, check if it has a parent and update parent dates
+        let finalTasks = currentTasks.map(t => m.get(t.id) ?? t);
+
+        // Collect parent IDs that need updating
+        const parentIdsToUpdate = new Set<string>();
+        cascadedTasksForCallback.forEach(task => {
+          if ((task as any).parentId) {
+            parentIdsToUpdate.add((task as any).parentId);
+          }
+        });
+
+        // Update each parent's dates
+        parentIdsToUpdate.forEach(parentId => {
+          const newDates = computeParentDates(parentId, finalTasks);
+          finalTasks = finalTasks.map(t =>
+            t.id === parentId
+              ? { ...t, startDate: newDates.startDate.toISOString().split('T')[0], endDate: newDates.endDate.toISOString().split('T')[0] }
+              : t
+          );
+        });
+
+        return finalTasks;
       });
       onCascade?.(cascadedTasksForCallback);
     }
