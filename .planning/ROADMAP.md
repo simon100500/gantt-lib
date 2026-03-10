@@ -225,7 +225,7 @@ Plans:
 
 **Goal:** Task hierarchy with parent-child relationships — one-level nesting with automatic date/progress aggregation, collapsible UI, distinct parent bar styling, and cascade drag behavior
 **Depends on:** Phase 18
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [x] 19-01-PLAN.md — Hierarchy utilities (TDD): getChildren, isTaskParent, computeParentDates, computeParentProgress

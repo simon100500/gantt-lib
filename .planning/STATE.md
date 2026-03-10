@@ -3,11 +3,27 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: "Completed 19-03: Parent task bar visualization with cascade drag"
+last_updated: "2026-03-10T19:54:55.938Z"
+last_activity: "2026-03-10 - Completed quick task 089: добавить столбец "Прогресс" в процентах. При клике будет сразу выделяться поле для ввода"
+progress:
+  total_phases: 19
+  completed_phases: 17
+  total_plans: 48
+  completed_plans: 46
+  percent: 96
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: Completed 19-02: Hierarchy UI (TaskList collapse/expand, indentation, parent styling)
 last_updated: "2026-03-10T22:52:33.000Z"
 last_activity: "2026-03-10 - Completed plan 19-02: Hierarchy UI (TaskList collapse/expand, child indentation, parent styling, collapse buttons)"
 progress:
-  total_phases: 19
+  [██████████] 96%
   completed_phases: 17
   total_plans: 48
   completed_plans: 46
@@ -400,6 +416,7 @@ Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 | Phase 18 P01 | 180 | 2 tasks | 3 files |
 | Phase 18 P02 | 319 | 3 tasks | 4 files |
 | Phase quick-089 P01 | 53 | 1 tasks | 3 files |
+| Phase 19 P03 | 179 | 4 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -528,6 +545,8 @@ Recent decisions affecting current work:
 - [Phase 17]: Hover-reveal pattern with opacity 0→1 on row hover keeps UI clean while making actions available
 - [Phase 17]: Kept existing PlusIcon and TrashIcon components, reused in new action panel location
 - [Phase 17]: Removed old inline buttons after verification — clean migration without breaking changes
+- [Phase 19]: Parent bars use gradient background (indigo to violet) with folder icon
+- [Phase 19]: Hierarchy cascade reuses Phase 7 cascade engine (getTransitiveCascadeChain pattern)
 
 ### Pending Todos
 
@@ -622,8 +641,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10T19:38:57.179Z
-Stopped at: Phase 19 context gathered
+Last session: 2026-03-10T19:54:55.935Z
+Stopped at: Completed 19-03: Parent task bar visualization with cascade drag
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
