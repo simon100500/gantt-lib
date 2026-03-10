@@ -51,6 +51,10 @@ export interface TaskListProps {
   editingTaskId?: string | null;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
+  /** Set of collapsed parent task IDs */
+  collapsedParentIds?: Set<string>;
+  /** Callback when collapse/expand button is clicked */
+  onToggleCollapse?: (parentId: string) => void;
 }
 
 /**
@@ -78,10 +82,27 @@ export const TaskList: React.FC<TaskListProps> = ({
   onReorder,
   editingTaskId: propEditingTaskId,
   enableAddTask = true,
+  collapsedParentIds: externalCollapsedParentIds,
+  onToggleCollapse: externalOnToggleCollapse,
 }) => {
-  // Hierarchy state: collapsed parent IDs
+  // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
-  const collapsedParentIds = useMemo(() => internalCollapsedParentIds, [internalCollapsedParentIds]);
+
+  // Use external collapsedParentIds if provided (controlled mode), otherwise use internal state
+  const collapsedParentIds = externalCollapsedParentIds ?? internalCollapsedParentIds;
+
+  // Use external onToggleCollapse if provided (controlled mode), otherwise use internal handler
+  const handleToggleCollapse = externalOnToggleCollapse ?? useCallback((parentId: string) => {
+    setInternalCollapsedParentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(parentId)) {
+        next.delete(parentId);
+      } else {
+        next.add(parentId);
+      }
+      return next;
+    });
+  }, []);
 
   // Filter tasks to hide children of collapsed parents
   const visibleTasks = useMemo(() => {
@@ -238,19 +259,6 @@ export const TaskList: React.FC<TaskListProps> = ({
     );
     onTaskChange?.({ ...task, dependencies: updatedDeps });
   }, [tasks, onTaskChange]);
-
-  // Hierarchy callbacks
-  const handleToggleCollapse = useCallback((parentId: string) => {
-    setInternalCollapsedParentIds(prev => {
-      const next = new Set(prev);
-      if (next.has(parentId)) {
-        next.delete(parentId);
-      } else {
-        next.add(parentId);
-      }
-      return next;
-    });
-  }, []);
 
   // New task creation state
   const [isCreating, setIsCreating] = useState(false);
