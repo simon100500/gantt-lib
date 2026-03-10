@@ -77,6 +77,35 @@
   background-color: rgba(59, 130, 246, 0.15);
 }
 
+/* Hierarchy row styles */
+.gantt-tl-row-child {
+  padding-left: 24px;
+}
+
+.gantt-tl-row-parent {
+  font-weight: 600;
+  background-color: var(--gantt-parent-row-bg, rgba(99, 102, 241, 0.05));
+}
+
+.gantt-tl-collapse-btn {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--gantt-text-color, #374151);
+}
+
+.gantt-tl-collapse-btn:hover {
+  background-color: var(--gantt-cell-background, #f9fafb);
+}
+
 /* Cells */
 .gantt-tl-cell {
   display: flex;
