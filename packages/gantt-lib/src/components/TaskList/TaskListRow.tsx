@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { Task } from '../GanttChart';
 import type { LinkType } from '../../types';
 import { parseUTCDate } from '../../utils/dateUtils';
-import { computeLagFromDates } from '../../utils/dependencyUtils';
+import { computeLagFromDates, isTaskParent } from '../../utils/dependencyUtils';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
@@ -203,6 +203,10 @@ export interface TaskListRowProps {
   onDrop?: (index: number, e: React.DragEvent) => void;
   /** Called when drag ends (drop or Escape) */
   onDragEnd?: (e: React.DragEvent) => void;
+  /** Set of collapsed parent task IDs */
+  collapsedParentIds?: Set<string>;
+  /** Callback when collapse/expand button is clicked */
+  onToggleCollapse?: (parentId: string) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -241,6 +245,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onDragOver,
     onDrop,
     onDragEnd,
+    collapsedParentIds = new Set(),
+    onToggleCollapse,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -256,6 +262,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
     const isSelected = selectedTaskId === task.id;
+
+    // Hierarchy computed values
+    const isParent = useMemo(() => isTaskParent(task.id, allTasks), [task.id, allTasks]);
+    const isChild = task.parentId !== undefined;
+    const isCollapsed = collapsedParentIds.has(task.id);
 
     // Picker mode flags for this row
     const isPicking = selectingPredecessorFor != null;
@@ -471,6 +482,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       onRowClick?.(task.id);
     }, [task.id, onRowClick]);
 
+    const handleToggleCollapse = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onToggleCollapse?.(task.id);
+    }, [task.id, onToggleCollapse]);
+
     // Dependency handlers
     const handleAddClick = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
@@ -512,6 +528,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isSourceRow ? 'gantt-tl-row-picking-self' : '',
           isDragging ? 'gantt-tl-row-dragging' : '',
           isDragOver ? 'gantt-tl-row-drag-over' : '',
+          isChild ? 'gantt-tl-row-child' : '',
+          isParent ? 'gantt-tl-row-parent' : '',
         ].filter(Boolean).join(' ')}
         style={{ minHeight: `${rowHeight}px`, position: 'relative' }}
         onClick={handleRowClickInternal}
@@ -530,19 +548,32 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-number"
           onClick={handleNumberClick}
         >
-          <span
-            className="gantt-tl-drag-handle"
-            draggable={true}
-            onDragStart={(e) => {
-              e.stopPropagation();
-              onDragStart?.(rowIndex, e);
-            }}
-            onDragEnd={(e) => onDragEnd?.(e)}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DragHandleIcon />
-          </span>
-          <span className="gantt-tl-num-label">{rowIndex + 1}</span>
+          {isParent ? (
+            <button
+              type="button"
+              className="gantt-tl-collapse-btn"
+              onClick={handleToggleCollapse}
+              aria-label={isCollapsed ? 'Развернуть' : 'Свернуть'}
+            >
+              {isCollapsed ? '+' : '-'}
+            </button>
+          ) : (
+            <>
+              <span
+                className="gantt-tl-drag-handle"
+                draggable={true}
+                onDragStart={(e) => {
+                  e.stopPropagation();
+                  onDragStart?.(rowIndex, e);
+                }}
+                onDragEnd={(e) => onDragEnd?.(e)}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <DragHandleIcon />
+              </span>
+              <span className="gantt-tl-num-label">{rowIndex + 1}</span>
+            </>
+          )}
         </div>
 
         {/* Name column — styled Input overlay on edit */}
