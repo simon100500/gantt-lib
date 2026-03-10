@@ -423,16 +423,37 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   /**
    * Handle task deletion: purge deleted taskId from all other tasks' dependency arrays,
    * emit onChange with cleaned tasks, then emit onDelete with the taskId.
+   * For parent tasks, cascade delete to all children.
    */
   const handleDelete = useCallback((taskId: string) => {
-    onChange?.((currentTasks) =>
-      currentTasks
-        .filter(t => t.id !== taskId)
-        .map(t => ({
-          ...t,
-          dependencies: (t.dependencies ?? []).filter(d => d.taskId !== taskId),
-        }))
-    );
+    onChange?.((currentTasks) => {
+      // Collect all tasks to delete (parent + descendants)
+      const toDelete = new Set<string>([taskId]);
+
+      function collectDescendants(parentId: string) {
+        const children = getChildren(parentId, currentTasks);
+        children.forEach(child => {
+          toDelete.add(child.id);
+          collectDescendants(child.id);
+        });
+      }
+
+      collectDescendants(taskId);
+
+      // Filter out deleted tasks
+      const filteredTasks = currentTasks.filter(t => !toDelete.has(t.id));
+
+      // Clean dependencies pointing to deleted tasks
+      const cleanedTasks = filteredTasks.map(task => {
+        if (!task.dependencies) return task;
+        return {
+          ...task,
+          dependencies: task.dependencies.filter(dep => !toDelete.has(dep.taskId))
+        };
+      });
+
+      return cleanedTasks;
+    });
     onDelete?.(taskId);
   }, [onChange, onDelete]);
 
