@@ -350,6 +350,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
         );
 
         let chainLeft;
+        let chainWidth;
         if (hierarchyParents.has(chainTask.id)) {
           // Phase 19 fix: Parent task in hierarchy chain - compute from all children
           // Parent position = min(children.start) to max(children.end)
@@ -359,50 +360,74 @@ function handleGlobalMouseMove(e: MouseEvent) {
             let maxChildEnd = -Infinity;
 
             children.forEach(child => {
-              const childStart = new Date(child.startDate as string);
-              const childEnd = new Date(child.endDate as string);
-              const childStartOffset = Math.round(
-                (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
-                  Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                  / (24 * 60 * 60 * 1000)
-              );
-              const childEndOffset = Math.round(
-                (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
-                  Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                  / (24 * 60 * 60 * 1000)
-              );
+              let childStartOffset: number;
+              let childEndOffset: number;
 
-              // If child is also being cascaded, apply delta to its position
-              const childIsCascaded = activeChain.some(c => c.id === child.id);
-              if (childIsCascaded) {
-                minChildStart = Math.min(minChildStart, childStartOffset + deltaDays);
-                maxChildEnd = Math.max(maxChildEnd, childEndOffset + deltaDays);
+              // If this child is the dragged task, use current drag position (newLeft)
+              if (child.id === draggedTaskId) {
+                const currentLeftInDays = Math.round(newLeft / dayWidth);
+                const currentWidthInDays = Math.round(newWidth / dayWidth) - 1; // -1 for inclusive
+                childStartOffset = currentLeftInDays;
+                childEndOffset = currentLeftInDays + currentWidthInDays;
+              } else if (activeChain.some(c => c.id === child.id)) {
+                // Child is being cascaded (moved by same delta)
+                const childStart = new Date(child.startDate as string);
+                const childEnd = new Date(child.endDate as string);
+                const origStartOffset = Math.round(
+                  (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
+                    Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                    / (24 * 60 * 60 * 1000)
+                );
+                const origEndOffset = Math.round(
+                  (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
+                    Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                    / (24 * 60 * 60 * 1000)
+                );
+                childStartOffset = origStartOffset + deltaDays;
+                childEndOffset = origEndOffset + deltaDays;
               } else {
-                minChildStart = Math.min(minChildStart, childStartOffset);
-                maxChildEnd = Math.max(maxChildEnd, childEndOffset);
+                // Child not being moved - use original position
+                const childStart = new Date(child.startDate as string);
+                const childEnd = new Date(child.endDate as string);
+                childStartOffset = Math.round(
+                  (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
+                    Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                    / (24 * 60 * 60 * 1000)
+                );
+                childEndOffset = Math.round(
+                  (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
+                    Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                    / (24 * 60 * 60 * 1000)
+                );
               }
+
+              minChildStart = Math.min(minChildStart, childStartOffset);
+              maxChildEnd = Math.max(maxChildEnd, childEndOffset);
             });
 
             chainLeft = Math.round(minChildStart * dayWidth);
+            chainWidth = Math.round((maxChildEnd - minChildStart + 1) * dayWidth);
           } else {
             // No children - use original position
             chainLeft = Math.round(chainStartOffset * dayWidth);
+            chainWidth = Math.round((chainDuration + 1) * dayWidth);
           }
         } else if (hasFFDepOnDragged || hasSFDepOnDragged) {
           // FF/SF: position based on end date shift, then back up by duration
           // This works correctly even when child starts before parent (negative lag)
           // For SF: endB shifts with startA, then back up by duration
           chainLeft = Math.round((chainEndOffset + deltaDays - chainDuration) * dayWidth);
+          chainWidth = Math.round((chainDuration + 1) * dayWidth);
         } else if (globalActiveDrag.hierarchyChain.some(h => h.id === chainTask.id)) {
           // Phase 19: Hierarchy chain - children move with parent by same delta
           // Position based on start date shift (same as FS/SS move mode)
           chainLeft = Math.round((chainStartOffset + deltaDays) * dayWidth);
+          chainWidth = Math.round((chainDuration + 1) * dayWidth);
         } else {
           // FS/SS: position based on start date shift
           chainLeft = Math.round((chainStartOffset + deltaDays) * dayWidth);
+          chainWidth = Math.round((chainDuration + 1) * dayWidth);
         }
-
-        const chainWidth = Math.round((chainDuration + 1) * dayWidth); // +1 inclusive
 
         // SS lag floor: when A moves left, B follows but chainLeft cannot go below A's new position
         // This keeps lag >= 0 (startB >= startA) during live drag preview
@@ -835,6 +860,15 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       case 'move':
         mode = 'move';
         break;
+    }
+
+    // Phase 19: Parent tasks cannot be resized - their dates are computed from children
+    // Force move mode for parent tasks to prevent resize operations
+    if (mode === 'resize-left' || mode === 'resize-right') {
+      const currentTask = allTasks.find(t => t.id === taskId);
+      if (currentTask && isTaskParent(taskId, allTasks)) {
+        mode = 'move';
+      }
     }
 
     if (!mode) {
