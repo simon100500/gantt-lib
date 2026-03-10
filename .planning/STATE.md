@@ -5,7 +5,7 @@ milestone_name: milestone
 status: in_progress
 stopped_at: Completed quick-087-show-hide-tasklist-button
 last_updated: "2026-03-10T13:56:47.000Z"
-last_activity: "2026-03-10 - Completed quick task 087: add show/hide task list buttons to all demo pages"
+last_activity: "2026-03-10 - Completed quick task 088: сделать добавление новых задач снизу - фишкой по умолчанию. Но её можно отключить пропсом. А то сейчас на тестовых графиках кроме первого этой строки нет."
 progress:
   total_phases: 18
   completed_phases: 17
@@ -287,7 +287,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-10 - Completed quick task 86: убери вертикальные разделительные линии между столбцами списка задач (опционально стилем можно задать, но по умолчанию не показывай их)
+Last activity: 2026-03-10 - Completed quick task 088: сделать добавление новых задач снизу - фишкой по умолчанию. Но её можно отключить пропсом. А то сейчас на тестовых графиках кроме первого этой строки нет.
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -585,6 +585,7 @@ None yet.
 | 85 | fix drag and drop to allow moving tasks to the very end (use add button as drop target) | 2026-03-09 | 1358909 | [85-dnd](./quick/85-dnd/) |
 | 86 | убери вертикальные разделительные линии между столбцами списка задач (опционально стилем можно задать, но по умолчанию не показывай их) | 2026-03-10 | 98cd97f | [86-remove-vertical-separators](./quick/086-remove-vertical-separators/) |
 | 87 | Add show/hide task list buttons to all test/demo chart pages | 2026-03-10 | 1d4310d | [087-show-hide-tasklist-button](./quick/087-show-hide-tasklist-button/) |
+| 88 | сделать добавление новых задач снизу - фишкой по умолчанию. Но её можно отключить пропсом. А то сейчас на тестовых графиках кроме первого этой строки нет. | 2026-03-10 | 46a54b5 | [088-add-tasks-from-bottom-default](./quick/088-add-tasks-from-bottom-default/) |
 
 ## Session Continuity
 
