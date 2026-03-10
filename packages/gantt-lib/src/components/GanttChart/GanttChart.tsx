@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, cascadeByLinks, computeParentDates, getChildren } from '../../utils/dependencyUtils';
+import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren } from '../../utils/dependencyUtils';
 import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
@@ -368,7 +368,24 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
 
     if (!datesChanged) {
-      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      // Dates didn't change, but progress or other fields might have
+      // Check if this task has a parent and update parent progress if needed
+      const taskParentId = (updatedTask as any).parentId;
+      if (taskParentId) {
+        onChange?.((currentTasks) => {
+          let finalTasks = currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+          // Update parent progress
+          const newProgress = computeParentProgress(taskParentId, finalTasks);
+          finalTasks = finalTasks.map(t =>
+            t.id === taskParentId
+              ? { ...t, progress: newProgress }
+              : t
+          );
+          return finalTasks;
+        });
+      } else {
+        onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      }
       // Clear editingTaskId after name edit completes
       if (editingTaskId === updatedTask.id) {
         setEditingTaskId(null);
@@ -404,12 +421,13 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
           }
         });
 
-        // Update each parent's dates
+        // Update each parent's dates and progress
         parentIdsToUpdate.forEach(parentId => {
           const newDates = computeParentDates(parentId, finalTasks);
+          const newProgress = computeParentProgress(parentId, finalTasks);
           finalTasks = finalTasks.map(t =>
             t.id === parentId
-              ? { ...t, startDate: newDates.startDate.toISOString().split('T')[0], endDate: newDates.endDate.toISOString().split('T')[0] }
+              ? { ...t, startDate: newDates.startDate.toISOString().split('T')[0], endDate: newDates.endDate.toISOString().split('T')[0], progress: newProgress }
               : t
           );
         });
