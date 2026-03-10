@@ -482,3 +482,35 @@ export function computeParentProgress(parentId: string, tasks: Task[]): number {
   // Round to 1 decimal place
   return Math.round((weightedSum / totalWeight) * 10) / 10;
 }
+
+/**
+ * Remove dependencies between two tasks in both directions.
+ * When tasks become parent-child, their dependency link becomes meaningless.
+ *
+ * @param taskId1 - First task ID
+ * @param taskId2 - Second task ID
+ * @param tasks - All tasks array
+ * @returns New tasks array with dependencies between the two tasks removed
+ */
+export function removeDependenciesBetweenTasks(
+  taskId1: string,
+  taskId2: string,
+  tasks: Task[]
+): Task[] {
+  return tasks.map(task => {
+    if (task.id === taskId1 || task.id === taskId2) {
+      if (!task.dependencies) return task;
+      const otherTaskId = task.id === taskId1 ? taskId2 : taskId1;
+      const filteredDependencies = task.dependencies.filter(dep => dep.taskId !== otherTaskId);
+      // Only create new object if dependencies actually changed
+      if (filteredDependencies.length === task.dependencies.length) {
+        return task;
+      }
+      return {
+        ...task,
+        dependencies: filteredDependencies.length > 0 ? filteredDependencies : undefined,
+      };
+    }
+    return task;
+  });
+}
