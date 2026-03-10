@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: Completed quick-089-add-progress-clickable
+last_updated: "2026-03-10T14:25:00.000Z"
+last_activity: "2026-03-10 - Completed quick task 089: добавить столбец Прогресс в процентах. При клике будет сразу выделяться поле для ввода"
+progress:
+  total_phases: 18
+  completed_phases: 17
+  total_plans: 44
+  completed_plans: 43
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: Completed quick-087-show-hide-tasklist-button
 last_updated: "2026-03-10T13:56:47.000Z"
 last_activity: "2026-03-10 - Completed quick task 088: сделать добавление новых задач снизу - фишкой по умолчанию. Но её можно отключить пропсом. А то сейчас на тестовых графиках кроме первого этой строки нет."
@@ -287,7 +302,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-10 - Completed quick task 088: сделать добавление новых задач снизу - фишкой по умолчанию. Но её можно отключить пропсом. А то сейчас на тестовых графиках кроме первого этой строки нет.
+Last activity: 2026-03-10 - Completed quick task 089: добавить столбец "Прогресс" в процентах. При клике будет сразу выделяться поле для ввода
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -369,6 +384,7 @@ Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 | Phase quick-77 P01 | 120 | 1 tasks | 2 files |
 | Phase 18 P01 | 180 | 2 tasks | 3 files |
 | Phase 18 P02 | 319 | 3 tasks | 4 files |
+| Phase quick-089 P01 | 53 | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -586,11 +602,12 @@ None yet.
 | 86 | убери вертикальные разделительные линии между столбцами списка задач (опционально стилем можно задать, но по умолчанию не показывай их) | 2026-03-10 | 98cd97f | [86-remove-vertical-separators](./quick/086-remove-vertical-separators/) |
 | 87 | Add show/hide task list buttons to all test/demo chart pages | 2026-03-10 | 1d4310d | [087-show-hide-tasklist-button](./quick/087-show-hide-tasklist-button/) |
 | 88 | сделать добавление новых задач снизу - фишкой по умолчанию. Но её можно отключить пропсом. А то сейчас на тестовых графиках кроме первого этой строки нет. | 2026-03-10 | 46a54b5 | [088-add-tasks-from-bottom-default](./quick/088-add-tasks-from-bottom-default/) |
+| 89 | добавить столбец "Прогресс" в процентах. При клике будет сразу выделяться поле для ввода | 2026-03-10 | 1a6d31d | [089-add-progress-clickable](./quick/089-add-progress-clickable/) |
 
 ## Session Continuity
 
-Last session: 2026-03-09T14:56:23.669Z
-Stopped at: Completed 18-02: Drag-to-Reorder UI Implementation
+Last session: 2026-03-10T14:24:46.489Z
+Stopped at: Completed quick-089-add-progress-clickable
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
