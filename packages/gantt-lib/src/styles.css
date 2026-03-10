@@ -35,6 +35,11 @@
   --gantt-day-line-width: 1px;
   --gantt-day-line-color: #f3f4f6;
 
+  /* Task List - Vertical Separators (hidden by default) */
+  --gantt-tl-vertical-separators: none;
+  --gantt-tl-vertical-separators-width: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  /* To enable separators, set: --gantt-tl-vertical-separators: var(--gantt-tl-vertical-separators-width); */
+
   /* Progress Bar Colors */
   --gantt-progress-color: rgba(0, 0, 0, 0.4);
   --gantt-progress-completed: #ffb800;
