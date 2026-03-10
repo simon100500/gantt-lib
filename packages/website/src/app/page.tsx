@@ -688,6 +688,98 @@ export default function Home() {
     setExpiredTasks(prev => [...prev, task]);
   }, []);
 
+  // Demo tasks for hierarchy (Phase 19)
+  const createHierarchyTasks = (): Task[] => {
+    const baseDate = new Date('2026-03-01');
+    const formatDate = (date: Date): string => date.toISOString().split('T')[0];
+    const addDays = (date: Date, days: number): Date => {
+      const result = new Date(date);
+      result.setDate(result.getDate() + days);
+      return result;
+    };
+
+    return [
+      // Root task 1 with children
+      {
+        id: 'hierarchy-1',
+        name: 'Фундаментные работы (родитель)',
+        startDate: formatDate(baseDate),
+        endDate: formatDate(addDays(addDays(baseDate, 4), 7)), // Mar 1 - Mar 11 (11 days)
+        progress: 70,
+        accepted: false,
+      },
+      {
+        id: 'hierarchy-1-1',
+        name: 'Котлован (ребенок)',
+        parentId: 'hierarchy-1',
+        startDate: formatDate(baseDate),
+        endDate: formatDate(addDays(baseDate, 4)), // Mar 1 - Mar 5
+        progress: 100,
+        accepted: true,
+      },
+      {
+        id: 'hierarchy-1-2',
+        name: 'Бетонная подготовка (ребенок)',
+        parentId: 'hierarchy-1',
+        startDate: formatDate(addDays(baseDate, 5)),
+        endDate: formatDate(addDays(addDays(baseDate, 5), 5)), // Mar 6 - Mar 11
+        progress: 60,
+        accepted: false,
+      },
+
+      // Root task 2 with children
+      {
+        id: 'hierarchy-2',
+        name: 'Строительство стен (родитель)',
+        startDate: formatDate(addDays(baseDate, 12)),
+        endDate: formatDate(addDays(addDays(baseDate, 12), 14)), // Mar 13 - Mar 27
+        progress: 40,
+        accepted: false,
+      },
+      {
+        id: 'hierarchy-2-1',
+        name: 'Кладка 1 этажа (ребенок)',
+        parentId: 'hierarchy-2',
+        startDate: formatDate(addDays(baseDate, 12)),
+        endDate: formatDate(addDays(addDays(baseDate, 12), 6)), // Mar 13 - Mar 19
+        progress: 80,
+        accepted: false,
+      },
+      {
+        id: 'hierarchy-2-2',
+        name: 'Кладка 2 этажа (ребенок)',
+        parentId: 'hierarchy-2',
+        startDate: formatDate(addDays(baseDate, 20)),
+        endDate: formatDate(addDays(addDays(baseDate, 20), 6)), // Mar 21 - Mar 27
+        progress: 20,
+        accepted: false,
+      },
+
+      // Standalone root task (can be demoted)
+      {
+        id: 'hierarchy-3',
+        name: 'Кровельные работы (отдельная задача)',
+        startDate: formatDate(addDays(baseDate, 28)),
+        endDate: formatDate(addDays(addDays(baseDate, 28), 5)), // Mar 29 - Apr 3
+        progress: 0,
+        accepted: false,
+      },
+    ];
+  };
+
+  const [hierarchyTasks, setHierarchyTasks] = useState<Task[]>(createHierarchyTasks);
+  const [showHierarchyTaskList, setShowHierarchyTaskList] = useState(true);
+
+  const handleHierarchyChange = useCallback(
+    (updated: Task[] | ((t: Task[]) => Task[])) =>
+      setHierarchyTasks(typeof updated === "function" ? updated : () => updated),
+    [],
+  );
+
+  const handleHierarchyAdd = useCallback((task: Task) => {
+    setHierarchyTasks(prev => [...prev, task]);
+  }, []);
+
   return (
     <main>
       <div className="demo-page">
@@ -872,6 +964,37 @@ export default function Home() {
               containerHeight={250}
               showTaskList={showExpiredTaskList}
               highlightExpiredTasks={highlightExpired}
+            />
+          </div>
+        </section>
+
+        {/* Hierarchy Demo (Phase 19) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Иерархия задач (Phase 19)</h2>
+          <p className="demo-section-desc">
+            <strong>Родительские задачи:</strong> отображаются жирным шрифтом с кнопкой сворачивания (-/+).<br/>
+            <strong>Дочерние задачи:</strong> имеют отступ и кнопку «⬆ Повысить» для удаления parentId.<br/>
+            <strong>Кнопка «⬇ Понизить»:</strong> появляется для корневых задач (не родителей) для создания иерархии.<br/>
+            <strong>Каскадное удаление:</strong> удаление родителя удаляет всех детей.<br/>
+            <strong>Обновление прогресса родителя:</strong> рассчитывается как взвешенное среднее по длительности детей.
+          </p>
+          <div className="demo-controls">
+            <button
+              className={`demo-btn ${showHierarchyTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowHierarchyTaskList(!showHierarchyTaskList)}
+            >
+              {showHierarchyTaskList ? "Hide Task List" : "Show Task List"}
+            </button>
+          </div>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={hierarchyTasks}
+              onChange={handleHierarchyChange}
+              onAdd={handleHierarchyAdd}
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={300}
+              showTaskList={showHierarchyTaskList}
             />
           </div>
         </section>
