@@ -183,6 +183,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
 
+  // Hierarchy state: collapsed parent IDs
+  const [collapsedParentIds, setCollapsedParentIds] = useState<Set<string>>(new Set());
+
   // Track editing task ID for auto-edit mode after insert
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
@@ -201,10 +204,21 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     [dateRange.length, dayWidth]
   );
 
-  // Calculate total grid height
+  // Filter tasks to hide children of collapsed parents (for chart rendering)
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(task => {
+      // Root-level tasks (no parentId) are always visible
+      if (!task.parentId) return true;
+      // Child tasks are visible only if their parent is not collapsed
+      const parentCollapsed = collapsedParentIds.has(task.parentId);
+      return !parentCollapsed;
+    });
+  }, [tasks, collapsedParentIds]);
+
+  // Calculate total grid height (based on filtered tasks)
   const totalGridHeight = useMemo(
-    () => tasks.length * rowHeight,
-    [tasks.length, rowHeight]
+    () => filteredTasks.length * rowHeight,
+    [filteredTasks.length, rowHeight]
   );
 
   // Get month start for calculations (first day of date range)
@@ -464,6 +478,19 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     setSelectedTaskId(taskId);
   }, []);
 
+  // Hierarchy callbacks
+  const handleToggleCollapse = useCallback((parentId: string) => {
+    setCollapsedParentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(parentId)) {
+        next.delete(parentId);
+      } else {
+        next.add(parentId);
+      }
+      return next;
+    });
+  }, []);
+
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
 
@@ -549,6 +576,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onReorder={handleReorder}
             editingTaskId={editingTaskId}
             enableAddTask={enableAddTask}
+            collapsedParentIds={collapsedParentIds}
+            onToggleCollapse={handleToggleCollapse}
           />
 
           {/* Chart area */}
@@ -599,7 +628,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             />
           )}
 
-          {tasks.map((task, index) => (
+          {filteredTasks.map((task, index) => (
             <TaskRow
               key={task.id}
               task={task}
