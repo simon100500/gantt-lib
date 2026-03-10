@@ -47,7 +47,7 @@
   font-weight: 600;
   color: #6b7280;
   box-sizing: border-box;
-  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  border-right: var(--gantt-tl-vertical-separators);
 }
 
 .gantt-tl-headerCell:last-child {
@@ -83,7 +83,7 @@
   align-items: center;
   padding: 0 0.5rem;
   box-sizing: border-box;
-  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  border-right: var(--gantt-tl-vertical-separators);
   font-size: 0.85rem;
   color: #374151;
 }
