@@ -63,7 +63,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   rowHeight,
   headerHeight,
-  taskListWidth = 542,
+  taskListWidth = 517,
   onTaskChange,
   selectedTaskId,
   onTaskSelect,
@@ -314,7 +314,7 @@ export const TaskList: React.FC<TaskListProps> = ({
           <div className="gantt-tl-headerCell gantt-tl-cell-name">Имя</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Начало</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Окончание</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-progress">Прогресс</div>
+          <div className="gantt-tl-headerCell gantt-tl-cell-progress">%</div>
           {/* Dependencies column header with type switcher */}
           <div className="gantt-tl-headerCell gantt-tl-cell-deps" style={{ position: 'relative' }}>
             <Popover open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>

@@ -188,9 +188,10 @@
 
 /* Progress cell */
 .gantt-tl-cell-progress {
-  width: 70px;
+  width: 45px;
   flex-shrink: 0;
-  justify-content: center;
+  justify-content: flex-end;
+  padding-right: 8px;
   cursor: pointer;
   position: relative;
   overflow: visible;
