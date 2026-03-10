@@ -142,6 +142,14 @@ export interface GanttChartHandle {
  *   ]}
  * />
  * ```
+ * @example
+ * ```tsx
+ * // Hide add task button
+ * <GanttChart
+ *   tasks={tasks}
+ *   enableAddTask={false}
+ * />
+ * ```
  */
 export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   tasks,
