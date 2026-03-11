@@ -5,7 +5,7 @@ milestone_name: milestone
 status: in_progress
 stopped_at: "Completed quick-092: Change task grouping behavior for smart hierarchy inference"
 last_updated: "2026-03-11T09:25:51.059Z"
-last_activity: "2026-03-11 - Completed quick task 92: Change task grouping behavior for smart hierarchy inference"
+last_activity: "2026-03-11 - Completed quick task 93: Change hierarchy button to single arrow icon (SVG, no lucide)"
 progress:
   total_phases: 19
   completed_phases: 18
@@ -676,6 +676,7 @@ None yet.
 | 90 | Remove dependency links when tasks become parent-child relationship | 2026-03-10 | d4dec92 | [090-remove-dependency-parent-child](./quick/090-remove-dependency-parent-child/) |
 | 91 | создай стиль для родиельской задачи как в d:\Projects\gantt-lib\.planning\parent-prototype.html | 2026-03-11 | 818e636 | [91-d-projects-gantt-lib-planning-parent-pro](./quick/91-d-projects-gantt-lib-planning-parent-pro/) |
 | 92 | Change task grouping behavior for smart hierarchy inference | 2026-03-11 | fd28870 | [092-change-task-grouping](./quick/092-change-task-grouping/) |
+| 93 | Change hierarchy button to single arrow icon (SVG, no lucide) | 2026-03-11 | ec9b5f4 | [093-promote-demote-to-arrows](./quick/093-promote-demote-to-arrows/) |
 
 ## Session Continuity
 
