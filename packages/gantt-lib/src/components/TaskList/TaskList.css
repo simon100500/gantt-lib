@@ -84,26 +84,39 @@
 
 .gantt-tl-row-parent {
   font-weight: 600;
-  background-color: var(--gantt-parent-row-bg, rgba(99, 102, 241, 0.05));
+  background-color: var(--gantt-parent-row-bg, rgb(120 47 196 / 0.15));
 }
 
 .gantt-tl-collapse-btn {
-  width: 20px;
-  height: 20px;
-  border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
-  background: white;
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
   border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: bold;
   color: var(--gantt-text-color, #374151);
+  padding: 0;
+  transition: background-color 0.15s ease;
 }
 
 .gantt-tl-collapse-btn:hover {
-  background-color: var(--gantt-cell-background, #f9fafb);
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.gantt-tl-collapse-btn svg {
+  transition: transform 0.15s ease;
+}
+
+.gantt-tl-collapse-btn:not(.gantt-tl-collapse-btn-collapsed) svg {
+  transform: rotate(90deg);
 }
 
 /* Cells */
@@ -167,6 +180,7 @@
 .gantt-tl-row-dragging {
   background-color: rgba(59, 130, 246, 0.15);
 }
+
 .gantt-tl-row-dragging .gantt-tl-cell,
 .gantt-tl-row-dragging .gantt-tl-name-trigger,
 .gantt-tl-row-dragging .gantt-tl-num-label {
@@ -177,6 +191,7 @@
 .gantt-tl-row-drag-over {
   position: relative;
 }
+
 .gantt-tl-row-drag-over::before {
   content: '';
   position: absolute;
@@ -251,6 +266,7 @@
   font-size: 0.8rem;
   line-height: 1.2;
   font-family: inherit;
+  font-weight: inherit;
   color: #374151;
   background: transparent;
   border: none;
@@ -260,6 +276,10 @@
   white-space: normal;
   word-break: break-word;
   box-sizing: border-box;
+}
+
+.gantt-tl-name-trigger-parent {
+  padding-left: 26px;
 }
 
 .gantt-tl-name-trigger:hover {

@@ -52,6 +52,12 @@ const DragHandleIcon = () => (
   </svg>
 );
 
+const ChevronRightIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m9 18 6-6-6-6" />
+  </svg>
+);
+
 // ---------------------------------------------------------------------------
 // HierarchyButton — Single button with left/right arrows for hierarchy navigation
 // ---------------------------------------------------------------------------
@@ -645,36 +651,33 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-number"
           onClick={handleNumberClick}
         >
-          {isParent ? (
-            <button
-              type="button"
-              className="gantt-tl-collapse-btn"
-              onClick={handleToggleCollapse}
-              aria-label={isCollapsed ? 'Развернуть' : 'Свернуть'}
-            >
-              {isCollapsed ? '+' : '-'}
-            </button>
-          ) : (
-            <>
-              <span
-                className="gantt-tl-drag-handle"
-                draggable={true}
-                onDragStart={(e) => {
-                  e.stopPropagation();
-                  onDragStart?.(rowIndex, e);
-                }}
-                onDragEnd={(e) => onDragEnd?.(e)}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <DragHandleIcon />
-              </span>
-              <span className="gantt-tl-num-label">{rowIndex + 1}</span>
-            </>
-          )}
+          <span
+            className="gantt-tl-drag-handle"
+            draggable={true}
+            onDragStart={(e) => {
+              e.stopPropagation();
+              onDragStart?.(rowIndex, e);
+            }}
+            onDragEnd={(e) => onDragEnd?.(e)}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DragHandleIcon />
+          </span>
+          <span className="gantt-tl-num-label">{rowIndex + 1}</span>
         </div>
 
         {/* Name column — styled Input overlay on edit */}
         <div className="gantt-tl-cell gantt-tl-cell-name">
+          {isParent && !editingName && (
+            <button
+              type="button"
+              className={`gantt-tl-collapse-btn ${isCollapsed ? 'gantt-tl-collapse-btn-collapsed' : ''}`}
+              onClick={handleToggleCollapse}
+              aria-label={isCollapsed ? 'Expand children' : 'Collapse children'}
+            >
+              <ChevronRightIcon />
+            </button>
+          )}
           {editingName && (
             <Input
               ref={nameInputRef}
@@ -689,7 +692,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           )}
           <button
             type="button"
-            className={`gantt-tl-name-trigger ${disableTaskNameEditing ? 'gantt-tl-name-locked' : ''}`}
+            className={['gantt-tl-name-trigger', disableTaskNameEditing ? 'gantt-tl-name-locked' : '', isParent ? 'gantt-tl-name-trigger-parent' : ''].filter(Boolean).join(' ')}
             onClick={handleNameClick}
             onDoubleClick={handleNameDoubleClick}
             style={editingName ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}
