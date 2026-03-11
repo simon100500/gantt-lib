@@ -9,6 +9,7 @@ import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { LINK_TYPE_ICONS } from './DepIcons';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // DepChip — local unified component used in both single-chip cell and popover
@@ -85,29 +86,28 @@ const HierarchyButton: React.FC<HierarchyButtonProps> = ({
     return null;
   }
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (canPromote) {
+      onPromote!(e);
+    } else if (canDemote) {
+      onDemote!(e);
+    }
+  };
+
+  const title = canPromote
+    ? 'Повысить (сделать корневой)'
+    : 'Понизить (сделать подчиненной)';
+
   return (
-    <div className="gantt-tl-name-action-btn gantt-tl-action-hierarchy">
-      {/* Left arrow for promote (to root level) */}
-      <button
-        type="button"
-        className="gantt-tl-hierarchy-arrow"
-        onClick={onPromote}
-        disabled={!canPromote}
-        title="Повысить (сделать корневой)"
-      >
-        &larr;
-      </button>
-      {/* Right arrow for demote (to child of previous) */}
-      <button
-        type="button"
-        className="gantt-tl-hierarchy-arrow"
-        onClick={onDemote}
-        disabled={!canDemote}
-        title="Понизить (сделать подчиненной)"
-      >
-        &rarr;
-      </button>
-    </div>
+    <button
+      type="button"
+      className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
+      onClick={handleClick}
+      title={title}
+    >
+      {canPromote ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+    </button>
   );
 };
 
