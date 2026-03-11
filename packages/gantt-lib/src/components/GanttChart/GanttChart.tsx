@@ -913,6 +913,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
           {/* Dependency lines SVG overlay */}
           <DependencyLines
             tasks={filteredTasks}
+            allTasks={tasks}
+            collapsedParentIds={collapsedParentIds}
             monthStart={monthStart}
             dayWidth={dayWidth}
             rowHeight={rowHeight}
