@@ -247,7 +247,7 @@
 .gantt-tr-parentBar::after {
   content: "";
   position: absolute;
-  top: var(--gantt-parent-bar-height, 14px);
+  top: calc(var(--gantt-parent-bar-height, 14px) - 1px);
   height: var(--gantt-parent-ear-depth, 8px);
   width: var(--gantt-parent-ear-width, 10px);
   background-color: var(--gantt-parent-bar-color, #333333);
