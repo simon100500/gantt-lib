@@ -414,13 +414,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: #e5e7eb;
-  color: #374151;
+  background-color: #3b82f6;
+  color: white;
 }
 
 .gantt-tl-action-hierarchy:hover {
-  background-color: #3b82f6;
-  color: white;
+  background-color: #2563eb;
 }
 
 /* Type switcher button in header */
