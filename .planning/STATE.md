@@ -5,7 +5,7 @@ milestone_name: milestone
 status: in_progress
 stopped_at: "Completed quick-092: Change task grouping behavior for smart hierarchy inference"
 last_updated: "2026-03-11T09:25:51.059Z"
-last_activity: "2026-03-11 - Completed quick task 91: создай стиль для родиельской задачи как в d:\Projects\gantt-lib\.planning\parent-prototype.html"
+last_activity: "2026-03-11 - Completed quick task 92: Change task grouping behavior for smart hierarchy inference"
 progress:
   total_phases: 19
   completed_phases: 18
@@ -675,6 +675,7 @@ None yet.
 | 89 | добавить столбец "Прогресс" в процентах. При клике будет сразу выделяться поле для ввода | 2026-03-10 | 1a6d31d | [089-add-progress-clickable](./quick/089-add-progress-clickable/) |
 | 90 | Remove dependency links when tasks become parent-child relationship | 2026-03-10 | d4dec92 | [090-remove-dependency-parent-child](./quick/090-remove-dependency-parent-child/) |
 | 91 | создай стиль для родиельской задачи как в d:\Projects\gantt-lib\.planning\parent-prototype.html | 2026-03-11 | 818e636 | [91-d-projects-gantt-lib-planning-parent-pro](./quick/91-d-projects-gantt-lib-planning-parent-pro/) |
+| 92 | Change task grouping behavior for smart hierarchy inference | 2026-03-11 | fd28870 | [092-change-task-grouping](./quick/092-change-task-grouping/) |
 
 ## Session Continuity
 
