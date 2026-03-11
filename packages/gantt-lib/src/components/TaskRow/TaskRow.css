@@ -238,7 +238,7 @@
   /* Allow trapezoid ears to extend below the bar */
   /* Center the entire shape (bar + ears) vertically */
   /* Total height = 14px (bar) + 8px (ears) = 22px, midpoint at 11px from top */
-  top: calc(50% - 18px);
+  top: calc(50% - 20px);
   transform: none;
 }
 
