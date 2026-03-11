@@ -315,6 +315,36 @@ const createSampleTasks = (): Task[] => {
       ]
     },
     {
+      "id": "m1",
+      "name": "💎 Фундамент готов",
+      "type": "milestone",
+      "startDate": "2026-03-15T00:00:00.000Z",
+      "endDate": "2026-03-15T00:00:00.000Z",
+      "color": "#10b981",
+      "dependencies": [
+        {
+          "taskId": "9",
+          "type": "FS",
+          "lag": 0
+        }
+      ]
+    },
+    {
+      "id": "m2",
+      "name": "🏠 Ключи заказчику",
+      "type": "milestone",
+      "startDate": "2026-07-28T00:00:00.000Z",
+      "endDate": "2026-07-28T00:00:00.000Z",
+      "color": "#ef4444",
+      "dependencies": [
+        {
+          "taskId": "20",
+          "type": "FS",
+          "lag": 0
+        }
+      ]
+    },
+    {
       "id": "sf-1",
       "name": "Установка лифта (SF predecessor)",
       "startDate": "2026-07-01",
