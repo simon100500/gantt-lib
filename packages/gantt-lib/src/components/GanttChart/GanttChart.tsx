@@ -496,15 +496,93 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
    * Extended signature: also accepts movedTaskId and inferredParentId for smart hierarchy.
    */
   const handleReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
+    console.log('=== GANTT CHART handleReorder START ===');
+    console.log('[INPUTS]', {
+      movedTaskId,
+      inferredParentId,
+      inferredParentIdType: typeof inferredParentId,
+      reorderedTasksCount: reorderedTasks.length
+    });
+
+    // Find the moved task in reorderedTasks
+    const movedTaskInReordered = reorderedTasks.find(t => t.id === movedTaskId);
+    if (movedTaskInReordered) {
+      console.log('[MOVED TASK IN REORDERED]', {
+        id: movedTaskInReordered.id,
+        name: movedTaskInReordered.name,
+        currentParentId: movedTaskInReordered.parentId
+      });
+    } else {
+      console.log('[MOVED TASK NOT FOUND IN REORDERED]');
+    }
+
     onChange?.((currentTasks) => {
-      let updated = reorderedTasks;
-      if (movedTaskId && inferredParentId !== undefined) {
-        updated = updated.map(t =>
-          t.id === movedTaskId
-            ? { ...t, parentId: inferredParentId || undefined }
-            : t
-        );
+      console.log('[ONCHANGE START]', {
+        currentTasksCount: currentTasks.length,
+        movedTaskId,
+        inferredParentId
+      });
+
+      // Find the moved task in currentTasks
+      const movedTaskInCurrent = currentTasks.find(t => t.id === movedTaskId);
+      if (movedTaskInCurrent) {
+        console.log('[MOVED TASK IN CURRENT BEFORE UPDATE]', {
+          id: movedTaskInCurrent.id,
+          name: movedTaskInCurrent.name,
+          currentParentId: movedTaskInCurrent.parentId
+        });
       }
+
+      let updated = reorderedTasks;
+      // CRITICAL: Check movedTaskId only, NOT inferredParentId !== undefined
+      // When inferredParentId is undefined, we want to CLEAR the parentId (exit group)
+      // The old condition `inferredParentId !== undefined` prevented this!
+      if (movedTaskId) {
+        console.log('[CONDITION CHECK]', {
+          condition: 'if (movedTaskId)',
+          movedTaskId,
+          isTrue: !!movedTaskId,
+          willUpdateParentId: true
+        });
+        updated = updated.map(t => {
+          if (t.id === movedTaskId) {
+            const newParentId = inferredParentId || undefined;
+            console.log('[UPDATING TASK]', {
+              taskId: t.id,
+              taskName: t.name,
+              oldParentId: t.parentId,
+              newParentId: newParentId,
+              inferredParentId: inferredParentId,
+              finalValue: newParentId
+            });
+            return { ...t, parentId: newParentId };
+          }
+          return t;
+        });
+      } else {
+        console.log('[CONDITION CHECK]', {
+          condition: 'if (movedTaskId)',
+          movedTaskId,
+          isTrue: false,
+          willUpdateParentId: false
+        });
+      }
+
+      // Verify the updated task
+      const updatedTask = updated.find(t => t.id === movedTaskId);
+      if (updatedTask) {
+        console.log('[UPDATED TASK VERIFICATION]', {
+          id: updatedTask.id,
+          name: updatedTask.name,
+          finalParentId: updatedTask.parentId
+        });
+      }
+
+      console.log('[ONCHANGE END]', {
+        updatedCount: updated.length
+      });
+      console.log('=== GANTT CHART handleReorder END ===\n');
+
       return updated;
     });
     onReorder?.(reorderedTasks, movedTaskId, inferredParentId);

@@ -614,8 +614,10 @@ export default function Home() {
   }, []);
 
   const handleReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
-    if (movedTaskId && inferredParentId !== undefined) {
+    if (movedTaskId) {
       // Update the moved task's parentId
+      // CRITICAL: Allow undefined values to clear parentId (exit group)
+      // The old condition `inferredParentId !== undefined` prevented this!
       setTasks(reorderedTasks.map(t =>
         t.id === movedTaskId
           ? { ...t, parentId: inferredParentId || undefined }
@@ -791,7 +793,10 @@ export default function Home() {
   }, []);
 
   const handleHierarchyReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
-    if (movedTaskId && inferredParentId !== undefined) {
+    if (movedTaskId) {
+      // Update the moved task's parentId
+      // CRITICAL: Allow undefined values to clear parentId (exit group)
+      // The old condition `inferredParentId !== undefined` prevented this!
       setHierarchyTasks(reorderedTasks.map(t =>
         t.id === movedTaskId
           ? { ...t, parentId: inferredParentId || undefined }
