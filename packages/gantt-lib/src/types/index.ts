@@ -8,6 +8,13 @@
 export type LinkType = 'FS' | 'SS' | 'FF' | 'SF';
 
 /**
+ * Task type enumeration
+ * - 'task': Regular task that renders as a rectangular bar
+ * - 'milestone': Milestone that renders as a diamond shape
+ */
+export type TaskType = 'task' | 'milestone';
+
+/**
  * Single dependency relationship (predecessor link)
  */
 export interface TaskDependency {
@@ -84,6 +91,13 @@ export interface Task {
    * Independent of accepted/progress — consumer controls both separately.
    */
   locked?: boolean;
+  /**
+   * Optional task type to distinguish milestones from regular tasks
+   * - 'task': Regular task that renders as a rectangular bar (default)
+   * - 'milestone': Milestone that renders as a diamond shape
+   * - Milestone tasks should have startDate === endDate (1-day duration)
+   */
+  type?: TaskType;
 }
 
 /**
