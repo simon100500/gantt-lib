@@ -4,6 +4,7 @@ import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
 import { validateDependencies, calculateSuccessorDate, isTaskParent } from '../../utils/dependencyUtils';
+import { flattenHierarchy } from '../../utils/hierarchyOrder';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
@@ -110,16 +111,18 @@ export const TaskList: React.FC<TaskListProps> = ({
     });
   }, []);
 
+  const orderedTasks = useMemo(() => flattenHierarchy(tasks), [tasks]);
+
   // Filter tasks to hide children of collapsed parents
   const visibleTasks = useMemo(() => {
-    return tasks.filter(task => {
+    return orderedTasks.filter(task => {
       // Root-level tasks (no parentId) are always visible
       if (!task.parentId) return true;
       // Child tasks are visible only if their parent is not collapsed
       const parentCollapsed = collapsedParentIds.has(task.parentId);
       return !parentCollapsed;
     });
-  }, [tasks, collapsedParentIds]);
+  }, [orderedTasks, collapsedParentIds]);
 
   const totalHeight = useMemo(
     () => visibleTasks.length * rowHeight,
@@ -296,7 +299,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       dragOriginIndexRef.current = null;
       return;
     }
-    const reordered = [...tasks];
+    const reordered = [...orderedTasks];
     const [moved] = reordered.splice(originIndex, 1);
 
     // Blue line appears ABOVE row at dropIndex
@@ -305,8 +308,8 @@ export const TaskList: React.FC<TaskListProps> = ({
     // dropIndex=tasks.length means insert at the end (after last row)
     // When dragging down (originIndex < dropIndex), after splice the indices shift by 1
     // So we need to insert at dropIndex - 1
-    const insertIndex = dropIndex === tasks.length
-      ? tasks.length - 1  // After last means position at last
+    const insertIndex = dropIndex === visibleTasks.length
+      ? visibleTasks.length - 1  // After last means position at last
       : originIndex < dropIndex ? dropIndex - 1 : dropIndex;
 
     // ============================================
@@ -327,7 +330,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       insertIndex: insertIndex,
       direction: originIndex < dropIndex ? 'DOWN' : 'UP'
     });
-    console.log('[TASKS ARRAY LENGTH]', tasks.length);
+    console.log('[TASKS ARRAY LENGTH]', orderedTasks.length);
     // ============================================
 
     // parentId inference: determine if task should be in a group
@@ -444,7 +447,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     setDraggingIndex(null);
     setDragOverIndex(null);
     dragOriginIndexRef.current = null;
-  }, [tasks, onReorder, onTaskSelect]);
+  }, [orderedTasks, visibleTasks.length, onReorder, onTaskSelect]);
 
   const handleDragEnd = useCallback(() => {
     // Called when drag ends without a valid drop (Escape, or dropped outside)
@@ -573,16 +576,16 @@ export const TaskList: React.FC<TaskListProps> = ({
         {/* Add task button - also serves as drop target for moving tasks to end */}
         {enableAddTask && onAdd && !isCreating && (
           <button
-            className={`gantt-tl-add-btn${dragOverIndex === tasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
+            className={`gantt-tl-add-btn${dragOverIndex === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
             onClick={() => setIsCreating(true)}
             onDragEnter={(e) => {
               e.preventDefault();
-              setDragOverIndex(tasks.length);
+              setDragOverIndex(visibleTasks.length);
             }}
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
-              setDragOverIndex(tasks.length);
+              setDragOverIndex(visibleTasks.length);
             }}
             onDragLeave={(e) => {
               e.preventDefault();
@@ -590,7 +593,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             }}
             onDrop={(e) => {
               e.preventDefault();
-              handleDrop(tasks.length, e);
+              handleDrop(visibleTasks.length, e);
             }}
             type="button"
           >

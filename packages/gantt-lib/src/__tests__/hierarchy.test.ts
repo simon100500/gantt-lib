@@ -5,6 +5,7 @@ import {
   computeParentDates,
   computeParentProgress,
 } from '../utils/dependencyUtils';
+import { flattenHierarchy } from '../utils/hierarchyOrder';
 import { Task } from '../types';
 
 describe('hierarchy utilities', () => {
@@ -39,6 +40,30 @@ describe('hierarchy utilities', () => {
     it('should return empty array for empty tasks array', () => {
       const result = getChildren('1', []);
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('flattenHierarchy', () => {
+    it('places children immediately after their parent even when input is root-first', () => {
+      const rootFirstTasks: Task[] = [
+        { id: '1', name: 'Parent 1', startDate: '2026-01-01', endDate: '2026-01-10' },
+        { id: '2', name: 'Parent 2', startDate: '2026-01-11', endDate: '2026-01-20' },
+        { id: '3', name: 'Child 1.1', startDate: '2026-01-02', endDate: '2026-01-03', parentId: '1' },
+        { id: '4', name: 'Child 1.2', startDate: '2026-01-04', endDate: '2026-01-05', parentId: '1' },
+        { id: '5', name: 'Child 2.1', startDate: '2026-01-12', endDate: '2026-01-13', parentId: '2' },
+      ];
+
+      expect(flattenHierarchy(rootFirstTasks).map((task) => task.id)).toEqual(['1', '3', '4', '2', '5']);
+    });
+
+    it('treats orphaned children as root tasks while preserving input order', () => {
+      const orphanTasks: Task[] = [
+        { id: '1', name: 'Parent', startDate: '2026-01-01', endDate: '2026-01-10' },
+        { id: '2', name: 'Orphan', startDate: '2026-01-02', endDate: '2026-01-03', parentId: 'missing' },
+        { id: '3', name: 'Child', startDate: '2026-01-04', endDate: '2026-01-05', parentId: '1' },
+      ];
+
+      expect(flattenHierarchy(orphanTasks).map((task) => task.id)).toEqual(['1', '3', '2']);
     });
   });
 

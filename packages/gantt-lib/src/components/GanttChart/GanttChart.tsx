@@ -4,6 +4,7 @@ import React, { useMemo, useCallback, useRef, useState, useEffect, useImperative
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks } from '../../utils/dependencyUtils';
+import { flattenHierarchy } from '../../utils/hierarchyOrder';
 import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
@@ -204,16 +205,18 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     [dateRange.length, dayWidth]
   );
 
+  const orderedTasks = useMemo(() => flattenHierarchy(tasks), [tasks]);
+
   // Filter tasks to hide children of collapsed parents (for chart rendering)
   const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
+    return orderedTasks.filter(task => {
       // Root-level tasks (no parentId) are always visible
       if (!task.parentId) return true;
       // Child tasks are visible only if their parent is not collapsed
       const parentCollapsed = collapsedParentIds.has(task.parentId);
       return !parentCollapsed;
     });
-  }, [tasks, collapsedParentIds]);
+  }, [orderedTasks, collapsedParentIds]);
 
   // Calculate total grid height (based on filtered tasks)
   const totalGridHeight = useMemo(
@@ -596,9 +599,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       });
       console.log('=== GANTT CHART handleReorder END ===\n');
 
-      return updated;
+      return flattenHierarchy(updated);
     });
-    onReorder?.(reorderedTasks, movedTaskId, inferredParentId);
+    onReorder?.(flattenHierarchy(reorderedTasks), movedTaskId, inferredParentId);
   }, [onChange, onReorder]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
@@ -711,9 +714,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
       if (siblings.length <= 1) {
         // Only child, just remove parentId
-        return currentTasks.map(t =>
+        return flattenHierarchy(currentTasks.map(t =>
           t.id === taskId ? { ...t, parentId: undefined } : t
-        );
+        ));
       }
 
       // Find the last sibling in array order
@@ -723,9 +726,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         .sort((a, b) => b.index - a.index)[0];
 
       if (!lastSiblingIndex) {
-        return currentTasks.map(t =>
+        return flattenHierarchy(currentTasks.map(t =>
           t.id === taskId ? { ...t, parentId: undefined } : t
-        );
+        ));
       }
 
       // Create new array with task moved after last sibling
@@ -739,7 +742,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         ...withoutPromotedTask.slice(insertIndex)
       ];
 
-      return newTasks;
+      return flattenHierarchy(newTasks);
     });
   }, [onChange]);
 
@@ -788,7 +791,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
           : t
       );
 
-      return updatedTasks;
+      return flattenHierarchy(updatedTasks);
     });
   }, [onChange]);
 
@@ -859,7 +862,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         <div className="gantt-scrollContent">
           {/* TaskList - sticky left, scrolls with content horizontally */}
           <TaskList
-            tasks={tasks}
+            tasks={orderedTasks}
             rowHeight={rowHeight}
             headerHeight={headerHeight}
             taskListWidth={taskListWidth}
@@ -913,7 +916,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
           {/* Dependency lines SVG overlay */}
           <DependencyLines
             tasks={filteredTasks}
-            allTasks={tasks}
+            allTasks={orderedTasks}
             collapsedParentIds={collapsedParentIds}
             monthStart={monthStart}
             dayWidth={dayWidth}
@@ -951,7 +954,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
                 }
               }}
               rowIndex={index}
-              allTasks={tasks}
+            allTasks={orderedTasks}
               enableAutoSchedule={enableAutoSchedule ?? false}
               disableConstraints={disableConstraints ?? false}
               overridePosition={cascadeOverrides.get(task.id)}
