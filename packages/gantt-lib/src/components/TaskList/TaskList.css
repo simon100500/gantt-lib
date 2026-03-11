@@ -17,6 +17,10 @@
   pointer-events: auto;
 }
 
+.gantt-tl-overlay.gantt-tl-overlay-shadowed {
+  box-shadow: 10px 0 18px -14px rgba(15, 23, 42, 0.45);
+}
+
 /* Hidden state - element completely removed from layout */
 .gantt-tl-overlay.gantt-tl-hidden {
   display: none;

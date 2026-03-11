@@ -33,6 +33,8 @@ export interface TaskListProps {
   onTaskSelect?: (taskId: string | null) => void;
   /** Show or hide the task list (default: true) */
   show?: boolean;
+  /** Show right-side shadow when chart content is horizontally scrolled */
+  hasRightShadow?: boolean;
   /** Disable task name editing in the task list (default: false) */
   disableTaskNameEditing?: boolean;
   /** Disable dependency editing (hides +, ×, and type menu; read-only column) (default: false) */
@@ -78,6 +80,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   selectedTaskId,
   onTaskSelect,
   show = true,
+  hasRightShadow = false,
   disableTaskNameEditing = false,
   disableDependencyEditing = false,
   onScrollToTask,
@@ -496,7 +499,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   return (
     <div
       ref={overlayRef}
-      className={`gantt-tl-overlay${show ? '' : ' gantt-tl-hidden'}`}
+      className={`gantt-tl-overlay${show ? '' : ' gantt-tl-hidden'}${hasRightShadow ? ' gantt-tl-overlay-shadowed' : ''}`}
       style={{ width: `${taskListWidth}px` }}
     >
       <div className="gantt-tl-table">

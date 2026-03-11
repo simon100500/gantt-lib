@@ -180,6 +180,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
@@ -258,6 +259,21 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
     container.scrollLeft = Math.max(0, scrollLeft);
   }, []); // Empty deps array - run only on mount
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const updateShadow = () => {
+      setTaskListHasRightShadow(container.scrollLeft > 0);
+    };
+
+    updateShadow();
+    container.addEventListener('scroll', updateShadow, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', updateShadow);
+    };
+  }, []);
 
   /**
    * Scroll to today's date when the "Today" button is clicked
@@ -870,6 +886,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             selectedTaskId={selectedTaskId ?? undefined}
             onTaskSelect={handleTaskSelect}
             show={showTaskList}
+            hasRightShadow={taskListHasRightShadow}
             disableTaskNameEditing={disableTaskNameEditing}
             disableDependencyEditing={disableDependencyEditing}
             onScrollToTask={scrollToTask}
