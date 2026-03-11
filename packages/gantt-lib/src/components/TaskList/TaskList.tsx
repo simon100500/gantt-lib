@@ -309,23 +309,25 @@ export const TaskList: React.FC<TaskListProps> = ({
       : originIndex < dropIndex ? dropIndex - 1 : dropIndex;
     reordered.splice(insertIndex, 0, moved);
 
-    // Infer parentId from context after reorder
+    // Simplified parentId inference: if task above/below has a parent, inherit it
     let inferredParentId: string | undefined;
+
+    // Check task above first (primary)
     if (insertIndex > 0) {
       const taskAbove = reordered[insertIndex - 1];
       if (taskAbove.parentId) {
-        // Task above is a child, use its parent
         inferredParentId = taskAbove.parentId;
-      } else {
-        // Task above is root, check if task below is child of taskAbove
-        const taskBelow = reordered[insertIndex + 1];
-        if (taskBelow?.parentId === taskAbove.id) {
-          // Task below is child of taskAbove, use taskAbove as parent
-          inferredParentId = taskAbove.id;
-        }
       }
     }
-    // If no parent inferred, moved task becomes root
+
+    // If task above has no parent, check task below
+    if (inferredParentId === undefined && insertIndex < reordered.length - 1) {
+      const taskBelow = reordered[insertIndex + 1];
+      if (taskBelow.parentId) {
+        inferredParentId = taskBelow.parentId;
+      }
+    }
+    // If neither has a parent, task becomes root (inferredParentId stays undefined)
 
     onReorder?.(reordered, moved.id, inferredParentId);
     onTaskSelect?.(moved.id);

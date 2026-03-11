@@ -589,13 +589,48 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
   const handlePromoteTask = useCallback((taskId: string) => {
     onChange?.((currentTasks) => {
-      return currentTasks.map(t => {
-        if (t.id === taskId && (t as any).parentId) {
-          // Remove parentId to promote to root level
-          return { ...t, parentId: undefined };
-        }
-        return t;
-      });
+      // Find the task to promote
+      const taskToPromote = currentTasks.find(t => t.id === taskId);
+      if (!taskToPromote || !(taskToPromote as any).parentId) {
+        return currentTasks; // No parent to remove from
+      }
+
+      const parentId = (taskToPromote as any).parentId;
+
+      // Find all siblings (children of the same parent)
+      const siblings = currentTasks.filter(t => (t as any).parentId === parentId);
+
+      if (siblings.length <= 1) {
+        // Only child, just remove parentId
+        return currentTasks.map(t =>
+          t.id === taskId ? { ...t, parentId: undefined } : t
+        );
+      }
+
+      // Find the last sibling in array order
+      const lastSiblingIndex = currentTasks
+        .map((t, i) => ({ task: t, index: i }))
+        .filter(({ task }) => (task as any).parentId === parentId)
+        .sort((a, b) => b.index - a.index)[0];
+
+      if (!lastSiblingIndex) {
+        return currentTasks.map(t =>
+          t.id === taskId ? { ...t, parentId: undefined } : t
+        );
+      }
+
+      // Create new array with task moved after last sibling
+      const withoutPromotedTask = currentTasks.filter(t => t.id !== taskId);
+      const insertIndex = lastSiblingIndex.index + 1;
+
+      const promotedTask = { ...taskToPromote, parentId: undefined };
+      const newTasks = [
+        ...withoutPromotedTask.slice(0, insertIndex),
+        promotedTask,
+        ...withoutPromotedTask.slice(insertIndex)
+      ];
+
+      return newTasks;
     });
   }, [onChange]);
 
