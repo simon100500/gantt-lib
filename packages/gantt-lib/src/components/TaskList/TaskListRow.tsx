@@ -52,6 +52,65 @@ const DragHandleIcon = () => (
   </svg>
 );
 
+// ---------------------------------------------------------------------------
+// HierarchyButton — Single button with left/right arrows for hierarchy navigation
+// ---------------------------------------------------------------------------
+interface HierarchyButtonProps {
+  /** Whether the task is a child (can be promoted) */
+  isChild: boolean;
+  /** Whether the task is a parent (has children) */
+  isParent: boolean;
+  /** Row index - first row cannot demote */
+  rowIndex: number;
+  /** Callback when promote is clicked (left arrow) */
+  onPromote?: (e: React.MouseEvent) => void;
+  /** Callback when demote is clicked (right arrow) */
+  onDemote?: (e: React.MouseEvent) => void;
+}
+
+const HierarchyButton: React.FC<HierarchyButtonProps> = ({
+  isChild,
+  isParent,
+  rowIndex,
+  onPromote,
+  onDemote,
+}) => {
+  // Can promote if task is a child
+  const canPromote = isChild && onPromote;
+  // Can demote if not a parent and not first row
+  const canDemote = !isParent && onDemote && rowIndex > 0;
+
+  // If neither action available, don't render
+  if (!canPromote && !canDemote) {
+    return null;
+  }
+
+  return (
+    <div className="gantt-tl-name-action-btn gantt-tl-action-hierarchy">
+      {/* Left arrow for promote (to root level) */}
+      <button
+        type="button"
+        className="gantt-tl-hierarchy-arrow"
+        onClick={onPromote}
+        disabled={!canPromote}
+        title="Повысить (сделать корневой)"
+      >
+        &larr;
+      </button>
+      {/* Right arrow for demote (to child of previous) */}
+      <button
+        type="button"
+        className="gantt-tl-hierarchy-arrow"
+        onClick={onDemote}
+        disabled={!canDemote}
+        title="Понизить (сделать подчиненной)"
+      >
+        &rarr;
+      </button>
+    </div>
+  );
+};
+
 function formatDepDescription(type: LinkType, lag: number | undefined): string {
   const effectiveLag = lag ?? 0;
 
@@ -671,29 +730,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   {deletePending ? 'Удалить?' : <TrashIcon />}
                 </button>
               )}
-              {isChild && onPromoteTask && (
-                <button
-                  type="button"
-                  className="gantt-tl-name-action-btn gantt-tl-action-promote"
-                  onClick={handlePromote}
-                  title="Сделать задачу корневой"
-                  style={{ width: 'auto', padding: '2px 8px', fontSize: '11px' }}
-                >
-                  ⬆ Повысить
-                </button>
-              )}
-              {!isParent && onDemoteTask && (
-                <button
-                  type="button"
-                  className="gantt-tl-name-action-btn gantt-tl-action-demote"
-                  onClick={handleDemote}
-                  disabled={rowIndex === 0}
-                  title="Сделать подчиненной к предыдущей задаче"
-                  style={{ width: 'auto', padding: '2px 8px', fontSize: '11px' }}
-                >
-                  ⬇ Понизить
-                </button>
-              )}
+              <HierarchyButton
+                isChild={isChild}
+                isParent={isParent}
+                rowIndex={rowIndex}
+                onPromote={onPromoteTask ? handlePromote : undefined}
+                onDemote={onDemoteTask ? handleDemote : undefined}
+              />
             </div>
           )}
         </div>
