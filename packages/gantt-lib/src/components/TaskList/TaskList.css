@@ -79,7 +79,7 @@
 
 /* Hierarchy row styles */
 .gantt-tl-row-child {
-  padding-left: 24px;
+  padding-left: 0;
 }
 
 .gantt-tl-row-parent {
@@ -282,6 +282,10 @@
   padding-left: 26px;
 }
 
+.gantt-tl-name-trigger-child {
+  padding-left: 24px;
+}
+
 .gantt-tl-name-trigger:hover,
 .gantt-tl-name-trigger:active {
   background-color: transparent;
@@ -300,6 +304,10 @@
   border-color: #3b82f6;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
   white-space: nowrap;
+}
+
+.gantt-tl-name-input-child {
+  padding-left: 24px;
 }
 
 .gantt-tl-name-input:focus {

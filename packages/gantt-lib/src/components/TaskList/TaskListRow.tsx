@@ -686,13 +686,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onChange={(e) => setNameValue(e.target.value)}
               onBlur={handleNameSave}
               onKeyDown={handleNameKeyDown}
-              className="gantt-tl-name-input"
+              className={['gantt-tl-name-input', isChild ? 'gantt-tl-name-input-child' : ''].filter(Boolean).join(' ')}
               onClick={(e) => e.stopPropagation()}
             />
           )}
           <button
             type="button"
-            className={['gantt-tl-name-trigger', disableTaskNameEditing ? 'gantt-tl-name-locked' : '', isParent ? 'gantt-tl-name-trigger-parent' : ''].filter(Boolean).join(' ')}
+            className={[
+              'gantt-tl-name-trigger',
+              disableTaskNameEditing ? 'gantt-tl-name-locked' : '',
+              isParent ? 'gantt-tl-name-trigger-parent' : '',
+              isChild ? 'gantt-tl-name-trigger-child' : '',
+            ].filter(Boolean).join(' ')}
             onClick={handleNameClick}
             onDoubleClick={handleNameDoubleClick}
             style={editingName ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}
