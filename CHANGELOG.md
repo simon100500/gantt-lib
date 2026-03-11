@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-03-11
+
+### Features
+
+#### Hierarchy System (Phase 19)
+- Add parent-child task hierarchy support with `parentId` field
+- Implement hierarchy utilities (getChildren, isParent, isDescendant, getAncestors)
+- Add hierarchy UI with indentation, collapse buttons, and parent row styling
+- Parent task bar with MS Project bracket styling (trapezoid ears)
+- Promote/demote functionality with single directional button
+- Smart parentId inference in drag-drop reordering
+- Virtual dependency links for collapsed parent tasks
+- Parent tasks automatically stretch when children are dragged
+- Cascade delete for parent removal
+- Parent progress auto-updates based on children progress
+
+#### Task List Improvements
+- Add clickable progress column in task list
+- Add show/hide task list toggle buttons
+- Add `enableAddTask` prop for task creation control
+
+#### Styling
+- Add CSS variables for optional vertical separators between columns
+
+### Fixes
+- Children follow parent when moved by dependency link
+- Child tasks can exit group when moved above parent
+- Cascade successors when moving collapsed parents
+- Fix parent task resize boundaries
+- Enable progress bar for parent tasks
+- Fix parent bar centering and positioning
+- Prevent row keydown from interfering with progress input
+- Remove vertical separator lines between task list columns
+
+### Documentation
+- Add REFERENCE.md with hierarchy examples and full API reference
+
 ## [0.5.1] - 2026-03-09
 
 ### Fixes
