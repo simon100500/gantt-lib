@@ -70,11 +70,11 @@
 }
 
 .gantt-tl-row:hover {
-  background-color: rgba(59, 130, 246, 0.04);
+  box-shadow: inset 0 0 0 9999px rgba(17, 24, 39, 0.04);
 }
 
 .gantt-tl-row-selected {
-  background-color: rgba(59, 130, 246, 0.15);
+  box-shadow: inset 0 0 0 9999px rgba(17, 24, 39, 0.08);
 }
 
 /* Hierarchy row styles */
@@ -108,7 +108,7 @@
 }
 
 .gantt-tl-collapse-btn:hover {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: transparent;
 }
 
 .gantt-tl-collapse-btn svg {
@@ -160,7 +160,7 @@
   color: #9ca3af;
   visibility: hidden;
   user-select: none;
-  background: #f9fafb;
+  background: transparent;
 }
 
 .gantt-tl-row:hover .gantt-tl-drag-handle,
@@ -282,12 +282,9 @@
   padding-left: 26px;
 }
 
-.gantt-tl-name-trigger:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-}
-
+.gantt-tl-name-trigger:hover,
 .gantt-tl-name-trigger:active {
-  background-color: rgba(59, 130, 246, 0.2);
+  background-color: transparent;
 }
 
 /* Name edit — Input component used as floating overlay */

@@ -3,3 +3,4 @@ export * from './dateUtils';
 export * from './dependencyUtils';
 export * from './geometry';
 export * from './hierarchyOrder';
+export * from './taskListReorder';

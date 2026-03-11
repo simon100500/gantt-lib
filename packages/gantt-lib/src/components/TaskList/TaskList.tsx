@@ -5,6 +5,7 @@ import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
 import { validateDependencies, calculateSuccessorDate, isTaskParent } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
+import { getVisibleReorderPosition } from '../../utils/taskListReorder';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
@@ -276,12 +277,14 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragOriginIndexRef = useRef<number | null>(null);
+  const dragTaskIdRef = useRef<string | null>(null);
 
   const handleDragStart = useCallback((index: number, e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'move';
     setDraggingIndex(index);
     dragOriginIndexRef.current = index;
-  }, []);
+    dragTaskIdRef.current = visibleTasks[index]?.id ?? null;
+  }, [visibleTasks]);
 
   const handleDragOver = useCallback((index: number, e: React.DragEvent) => {
     e.preventDefault();
@@ -291,26 +294,36 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
     e.preventDefault();
-    const originIndex = dragOriginIndexRef.current;
+    const originVisibleIndex = dragOriginIndexRef.current;
+    const movedTaskId = dragTaskIdRef.current;
     // No-op: same position (line is already where the row is)
-    if (originIndex === null || originIndex === dropIndex) {
+    if (originVisibleIndex === null || movedTaskId === null || originVisibleIndex === dropIndex) {
       setDraggingIndex(null);
       setDragOverIndex(null);
       dragOriginIndexRef.current = null;
+      dragTaskIdRef.current = null;
       return;
     }
-    const reordered = [...orderedTasks];
-    const [moved] = reordered.splice(originIndex, 1);
 
-    // Blue line appears ABOVE row at dropIndex
-    // So dropIndex=0 means insert at 0 (before first row)
-    // dropIndex=1 means insert at 1 (between row 0 and row 1)
-    // dropIndex=tasks.length means insert at the end (after last row)
-    // When dragging down (originIndex < dropIndex), after splice the indices shift by 1
-    // So we need to insert at dropIndex - 1
-    const insertIndex = dropIndex === visibleTasks.length
-      ? visibleTasks.length - 1  // After last means position at last
-      : originIndex < dropIndex ? dropIndex - 1 : dropIndex;
+    const reorderPosition = getVisibleReorderPosition(
+      orderedTasks,
+      visibleTasks,
+      movedTaskId,
+      originVisibleIndex,
+      dropIndex,
+    );
+
+    if (!reorderPosition) {
+      setDraggingIndex(null);
+      setDragOverIndex(null);
+      dragOriginIndexRef.current = null;
+      dragTaskIdRef.current = null;
+      return;
+    }
+
+    const { originOrderedIndex, insertIndex } = reorderPosition;
+    const reordered = [...orderedTasks];
+    const [moved] = reordered.splice(originOrderedIndex, 1);
 
     // ============================================
     // COMPREHENSIVE LOGGING - START
@@ -322,14 +335,15 @@ export const TaskList: React.FC<TaskListProps> = ({
     console.log('=== DRAG & DROP START ===');
     console.log('[MOVED TASK]', {
       id: moved.id,
-      name: moved.name,
-      type: taskType,
-      parentId: moved.parentId,
-      originIndex: originIndex,
-      dropIndex: dropIndex,
-      insertIndex: insertIndex,
-      direction: originIndex < dropIndex ? 'DOWN' : 'UP'
-    });
+        name: moved.name,
+        type: taskType,
+        parentId: moved.parentId,
+        originIndex: originOrderedIndex,
+        originVisibleIndex,
+        dropIndex: dropIndex,
+        insertIndex: insertIndex,
+        direction: originVisibleIndex < dropIndex ? 'DOWN' : 'UP'
+      });
     console.log('[TASKS ARRAY LENGTH]', orderedTasks.length);
     // ============================================
 
@@ -447,7 +461,8 @@ export const TaskList: React.FC<TaskListProps> = ({
     setDraggingIndex(null);
     setDragOverIndex(null);
     dragOriginIndexRef.current = null;
-  }, [orderedTasks, visibleTasks.length, onReorder, onTaskSelect]);
+    dragTaskIdRef.current = null;
+  }, [orderedTasks, visibleTasks, onReorder, onTaskSelect]);
 
   const handleDragEnd = useCallback(() => {
     // Called when drag ends without a valid drop (Escape, or dropped outside)
@@ -455,6 +470,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     setDraggingIndex(null);
     setDragOverIndex(null);
     dragOriginIndexRef.current = null;
+    dragTaskIdRef.current = null;
   }, []);
 
   const handleConfirmNewTask = useCallback((name: string) => {

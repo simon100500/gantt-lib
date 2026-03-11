@@ -180,8 +180,8 @@
 }
 
 .gantt-datepicker-trigger:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-  border-radius: 2px;
+  background-color: transparent;
+  border-radius: 0;
 }
 
 .gantt-datepicker-trigger:focus-visible {
