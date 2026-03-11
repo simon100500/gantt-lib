@@ -15,6 +15,7 @@ import './TaskList.css';
 export { LINK_TYPE_ICONS };
 
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
+const MIN_TASK_LIST_WIDTH = 640;
 
 export interface TaskListProps {
   /** Array of tasks to display */
@@ -75,7 +76,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   rowHeight,
   headerHeight,
-  taskListWidth = 594,
+  taskListWidth = 640,
   onTaskChange,
   selectedTaskId,
   onTaskSelect,
@@ -495,12 +496,13 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [onAdd]);
 
   const handleCancelNewTask = useCallback(() => setIsCreating(false), []);
+  const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH);
 
   return (
     <div
       ref={overlayRef}
       className={`gantt-tl-overlay${show ? '' : ' gantt-tl-hidden'}${hasRightShadow ? ' gantt-tl-overlay-shadowed' : ''}`}
-      style={{ width: `${taskListWidth}px` }}
+      style={{ width: `${effectiveTaskListWidth}px`, minWidth: `${MIN_TASK_LIST_WIDTH}px` }}
     >
       <div className="gantt-tl-table">
         {/* Header row - aligns with TimeScaleHeader, 1px taller for row alignment */}

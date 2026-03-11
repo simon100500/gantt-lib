@@ -166,7 +166,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   disableConstraints,
   onCascade,
   showTaskList = false,
-  taskListWidth = 520,
+  taskListWidth = 660,
   disableTaskNameEditing = false,
   disableDependencyEditing = false,
   highlightExpiredTasks = false,
