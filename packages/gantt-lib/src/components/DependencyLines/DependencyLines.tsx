@@ -25,9 +25,74 @@ function calculateEffectiveLag(
   return computeLagFromDates(edge.type as LinkType, predStart, predEnd, succStart, succEnd);
 }
 
+/**
+ * Check if a task is hidden inside a collapsed parent.
+ */
+function isTaskHidden(taskId: string, collapsedParentIds: Set<string>, taskMap: Map<string, Task>): boolean {
+  const task = taskMap.get(taskId);
+  if (!task || !task.parentId) return false;
+  return collapsedParentIds.has(task.parentId);
+}
+
+/**
+ * Find the nearest visible ancestor of a hidden task.
+ * Returns the ancestor task or null if the task is visible.
+ */
+function findVisibleAncestor(
+  task: Task,
+  collapsedParentIds: Set<string>,
+  taskMap: Map<string, Task>
+): Task | null {
+  if (!task.parentId) return null;
+  if (collapsedParentIds.has(task.parentId)) {
+    const parent = taskMap.get(task.parentId);
+    if (!parent) return null;
+    // Check if parent is also hidden
+    if (parent.parentId && collapsedParentIds.has(parent.parentId)) {
+      return findVisibleAncestor(parent, collapsedParentIds, taskMap);
+    }
+    return parent;
+  }
+  return null;
+}
+
+/**
+ * Check if two tasks share the same collapsed parent ancestor.
+ * If both predecessor and successor are hidden inside the same parent,
+ * the dependency line should NOT be rendered (it's internal to the collapsed group).
+ */
+function areBothHiddenInSameParent(
+  predecessorId: string,
+  successorId: string,
+  collapsedParentIds: Set<string>,
+  taskMap: Map<string, Task>
+): boolean {
+  const predTask = taskMap.get(predecessorId);
+  const succTask = taskMap.get(successorId);
+
+  if (!predTask || !succTask) return false;
+
+  // Both must have parentIds
+  if (!predTask.parentId || !succTask.parentId) return false;
+
+  // Find the visible ancestor (collapsed parent) for each
+  const predVisibleAncestor = findVisibleAncestor(predTask, collapsedParentIds, taskMap);
+  const succVisibleAncestor = findVisibleAncestor(succTask, collapsedParentIds, taskMap);
+
+  // Both must be hidden (have visible ancestors)
+  if (!predVisibleAncestor || !succVisibleAncestor) return false;
+
+  // Check if they share the same collapsed parent
+  return predVisibleAncestor.id === succVisibleAncestor.id;
+}
+
 export interface DependencyLinesProps {
-  /** All tasks in the chart */
+  /** Visible tasks only (for row calculation) */
   tasks: Task[];
+  /** All tasks including hidden children (for virtual position calculation) */
+  allTasks?: Task[];
+  /** Set of collapsed parent IDs */
+  collapsedParentIds?: Set<string>;
   /** Start of the visible range (e.g., month start) */
   monthStart: Date;
   /** Width of each day column in pixels */
@@ -49,10 +114,16 @@ export interface DependencyLinesProps {
  * of successor tasks using horizontal/vertical lines with arc rounded corners.
  * Circular dependencies are highlighted in red.
  *
+ * Virtual dependency links: When a task is hidden inside a collapsed parent,
+ * its dependency lines render at "virtual positions" using the parent's row.
+ * These virtual lines are styled with dashed strokes to indicate the hidden status.
+ *
  * Performance: Uses React.memo to prevent re-renders when dependencies haven't changed.
  */
 export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   tasks,
+  allTasks,
+  collapsedParentIds = new Set(),
   monthStart,
   dayWidth,
   rowHeight,
@@ -60,11 +131,18 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   dragOverrides,
   selectedDep,
 }) => {
-  // Create a lookup map for task positions and their indices
-  const { taskPositions, taskIndices } = useMemo(() => {
-    const positions = new Map<string, { left: number; right: number; rowTop: number }>();
-    const indices = new Map<string, number>();
+  // Use allTasks for virtual position calculation if provided, otherwise use tasks
+  const tasksForPositions = allTasks ?? tasks;
 
+  // Create a lookup map for task positions and their indices
+  const { taskPositions, taskIndices, hiddenTaskIds } = useMemo(() => {
+    const positions = new Map<string, { left: number; right: number; rowTop: number; isVirtual: boolean }>();
+    const indices = new Map<string, number>();
+    const hidden = new Set<string>();
+    const taskMap = new Map(tasksForPositions.map(t => [t.id, t]));
+    const visibleTaskMap = new Map(tasks.map(t => [t.id, t]));
+
+    // First pass: Calculate positions for visible tasks (existing logic)
     tasks.forEach((task, index) => {
       const startDate = new Date(task.startDate);
       const endDate = new Date(task.endDate);
@@ -80,22 +158,64 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         left: resolvedLeft,
         right: resolvedLeft + resolvedWidth,
         rowTop: index * rowHeight,
+        isVirtual: false,
       });
     });
 
-    return { taskPositions: positions, taskIndices: indices };
-  }, [tasks, monthStart, dayWidth, rowHeight, dragOverrides]);
+    // Second pass: Calculate virtual positions for hidden tasks
+    if (allTasks && collapsedParentIds.size > 0) {
+      for (const task of allTasks) {
+        // Skip if already processed (visible task)
+        if (positions.has(task.id)) continue;
 
-  // Detect cycles for highlighting
+        // Check if task is hidden inside a collapsed parent
+        if (!isTaskHidden(task.id, collapsedParentIds, taskMap)) continue;
+
+        hidden.add(task.id);
+
+        // Find the visible ancestor (collapsed parent)
+        const visibleAncestor = findVisibleAncestor(task, collapsedParentIds, taskMap);
+        if (!visibleAncestor) continue;
+
+        // Get the ancestor's row position
+        const ancestorPosition = positions.get(visibleAncestor.id);
+        if (!ancestorPosition) continue;
+
+        // Calculate horizontal position from task's dates
+        const startDate = new Date(task.startDate);
+        const endDate = new Date(task.endDate);
+        const computed = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
+
+        // Use real-time pixel override if available (during drag)
+        const override = dragOverrides?.get(task.id);
+        const resolvedLeft = override?.left ?? computed.left;
+        const resolvedWidth = override?.width ?? computed.width;
+
+        // Store virtual position using ancestor's rowTop
+        positions.set(task.id, {
+          left: resolvedLeft,
+          right: resolvedLeft + resolvedWidth,
+          rowTop: ancestorPosition.rowTop,
+          isVirtual: true,
+        });
+      }
+    }
+
+    return { taskPositions: positions, taskIndices: indices, hiddenTaskIds: hidden };
+  }, [tasks, tasksForPositions, allTasks, collapsedParentIds, monthStart, dayWidth, rowHeight, dragOverrides]);
+
+  // Detect cycles for highlighting (use allTasks for accurate cycle detection)
   const cycleInfo = useMemo(() => {
-    const result = detectCycles(tasks);
+    const tasksForCycleDetection = allTasks ?? tasks;
+    const result = detectCycles(tasksForCycleDetection);
     const cycleTaskIds = new Set(result.cyclePath || []);
     return cycleTaskIds;
-  }, [tasks]);
+  }, [tasks, allTasks]);
 
-  // Calculate all dependency line paths
+  // Calculate all dependency line paths (use allTasks if available)
   const lines = useMemo(() => {
-    const edges = getAllDependencyEdges(tasks);
+    const tasksForEdges = allTasks ?? tasks;
+    const edges = getAllDependencyEdges(tasksForEdges);
     const lines: Array<{
       id: string;
       path: string;
@@ -105,6 +225,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       toX: number;
       fromY: number;
       reverseOrder: boolean;
+      isVirtual: boolean;
     }> = [];
 
     for (const edge of edges) {
@@ -113,12 +234,31 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       const predecessorIndex = taskIndices.get(edge.predecessorId);
       const successorIndex = taskIndices.get(edge.successorId);
 
-      if (!predecessor || !successor || predecessorIndex === undefined || successorIndex === undefined) {
+      if (!predecessor || !successor) {
         continue; // Skip if task not found (shouldn't happen with validation)
       }
 
+      // Check if both tasks are hidden inside the same collapsed parent
+      // If so, skip rendering this line (it's internal to the collapsed group)
+      if (allTasks && collapsedParentIds.size > 0) {
+        const taskMap = new Map(allTasks.map(t => [t.id, t]));
+        if (areBothHiddenInSameParent(edge.predecessorId, edge.successorId, collapsedParentIds, taskMap)) {
+          continue;
+        }
+      }
+
+      // Check if either endpoint is virtual (hidden task)
+      const isVirtual = predecessor.isVirtual || successor.isVirtual;
+
       // Determine if tasks are in reverse order (predecessor appears below successor)
-      const reverseOrder = predecessorIndex > successorIndex;
+      // For virtual tasks, use the predecessor's rowTop for comparison
+      let reverseOrder = false;
+      if (predecessorIndex !== undefined && successorIndex !== undefined) {
+        reverseOrder = predecessorIndex > successorIndex;
+      } else {
+        // One or both are virtual - use rowTop for comparison
+        reverseOrder = predecessor.rowTop > successor.rowTop;
+      }
 
       // Calculate direction-specific Y coordinates
       let fromY: number;
@@ -169,17 +309,21 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         toX,
         fromY,
         reverseOrder,
+        isVirtual,
       });
     }
 
     return lines;
-  }, [tasks, taskPositions, taskIndices, cycleInfo, monthStart, dayWidth, dragOverrides]);
+  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, monthStart, dayWidth, dragOverrides]);
+
+  // Calculate SVG height based on visible tasks (not all tasks)
+  const svgHeight = tasks.length * rowHeight;
 
   return (
     <svg
       className="gantt-dependencies-svg"
       width={gridWidth}
-      height={tasks.length * rowHeight}
+      height={svgHeight}
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
@@ -232,7 +376,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         </marker>
       </defs>
 
-      {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY, reverseOrder }) => {
+      {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual }) => {
         const isSelected =
           selectedDep != null &&
           id === `${selectedDep.predecessorId}-${selectedDep.successorId}-${selectedDep.linkType}`;
@@ -240,6 +384,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         let pathClassName = 'gantt-dependency-path';
         if (isSelected) pathClassName += ' gantt-dependency-selected';
         else if (hasCycle) pathClassName += ' gantt-dependency-cycle';
+        if (isVirtual && !isSelected) pathClassName += ' gantt-dependency-virtual';
 
         let markerEnd: string;
         if (isSelected) markerEnd = 'url(#arrowhead-selected)';

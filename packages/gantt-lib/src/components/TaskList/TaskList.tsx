@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
-import { validateDependencies, calculateSuccessorDate } from '../../utils/dependencyUtils';
+import { validateDependencies, calculateSuccessorDate, isTaskParent } from '../../utils/dependencyUtils';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
@@ -46,11 +46,19 @@ export interface TaskListProps {
   /** Callback when a new task is inserted after a specific task */
   onInsertAfter?: (taskId: string, newTask: Task) => void;
   /** Callback when tasks are reordered via drag in the task list */
-  onReorder?: (tasks: Task[]) => void;
+  onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
   /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
   editingTaskId?: string | null;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
+  /** Set of collapsed parent task IDs */
+  collapsedParentIds?: Set<string>;
+  /** Callback when collapse/expand button is clicked */
+  onToggleCollapse?: (parentId: string) => void;
+  /** Callback when task is promoted (parentId removed) */
+  onPromoteTask?: (taskId: string) => void;
+  /** Callback when task is demoted (parentId set to previous task) */
+  onDemoteTask?: (taskId: string, newParentId: string) => void;
 }
 
 /**
@@ -78,10 +86,44 @@ export const TaskList: React.FC<TaskListProps> = ({
   onReorder,
   editingTaskId: propEditingTaskId,
   enableAddTask = true,
+  collapsedParentIds: externalCollapsedParentIds,
+  onToggleCollapse: externalOnToggleCollapse,
+  onPromoteTask,
+  onDemoteTask,
 }) => {
+  // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
+  const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
+
+  // Use external collapsedParentIds if provided (controlled mode), otherwise use internal state
+  const collapsedParentIds = externalCollapsedParentIds ?? internalCollapsedParentIds;
+
+  // Use external onToggleCollapse if provided (controlled mode), otherwise use internal handler
+  const handleToggleCollapse = externalOnToggleCollapse ?? useCallback((parentId: string) => {
+    setInternalCollapsedParentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(parentId)) {
+        next.delete(parentId);
+      } else {
+        next.add(parentId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Filter tasks to hide children of collapsed parents
+  const visibleTasks = useMemo(() => {
+    return tasks.filter(task => {
+      // Root-level tasks (no parentId) are always visible
+      if (!task.parentId) return true;
+      // Child tasks are visible only if their parent is not collapsed
+      const parentCollapsed = collapsedParentIds.has(task.parentId);
+      return !parentCollapsed;
+    });
+  }, [tasks, collapsedParentIds]);
+
   const totalHeight = useMemo(
-    () => tasks.length * rowHeight,
-    [tasks.length, rowHeight]
+    () => visibleTasks.length * rowHeight,
+    [visibleTasks.length, rowHeight]
   );
 
   const handleRowClick = useCallback((taskId: string) => {
@@ -256,6 +298,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
     const reordered = [...tasks];
     const [moved] = reordered.splice(originIndex, 1);
+
     // Blue line appears ABOVE row at dropIndex
     // So dropIndex=0 means insert at 0 (before first row)
     // dropIndex=1 means insert at 1 (between row 0 and row 1)
@@ -265,8 +308,138 @@ export const TaskList: React.FC<TaskListProps> = ({
     const insertIndex = dropIndex === tasks.length
       ? tasks.length - 1  // After last means position at last
       : originIndex < dropIndex ? dropIndex - 1 : dropIndex;
+
+    // ============================================
+    // COMPREHENSIVE LOGGING - START
+    // ============================================
+    const isChild = !!moved.parentId;
+    const isParent = tasks.some(t => t.parentId === moved.id);
+    const taskType = isParent ? 'PARENT' : (isChild ? 'CHILD' : 'ROOT');
+
+    console.log('=== DRAG & DROP START ===');
+    console.log('[MOVED TASK]', {
+      id: moved.id,
+      name: moved.name,
+      type: taskType,
+      parentId: moved.parentId,
+      originIndex: originIndex,
+      dropIndex: dropIndex,
+      insertIndex: insertIndex,
+      direction: originIndex < dropIndex ? 'DOWN' : 'UP'
+    });
+    console.log('[TASKS ARRAY LENGTH]', tasks.length);
+    // ============================================
+
+    // parentId inference: determine if task should be in a group
+    // IMPORTANT: Calculate this BEFORE splicing moved task back into reordered
+    // because we need to find the parent's position in the array WITHOUT the moved task
+    let inferredParentId: string | undefined;
+
+    if (moved.parentId) {
+      // Task is currently a child - check if it's staying in or leaving its group
+      // Find parent position in the array WITHOUT the moved task (reordered after first splice)
+      const parentIndex = reordered.findIndex(t => t.id === moved.parentId);
+
+      console.log('[CHILD TASK - CHECKING GROUP POSITION]', {
+        currentParentId: moved.parentId,
+        parentIndex: parentIndex,
+        parentFound: parentIndex !== -1
+      });
+
+      if (parentIndex === -1) {
+        // Parent not found - should not happen, but handle gracefully
+        console.log('[PARENT NOT FOUND] - Setting parentId to undefined');
+        inferredParentId = undefined;
+      } else {
+        // Calculate where the moved task will end up AFTER we splice it in
+        // The key question: is insertIndex outside the range [parentIndex, parentIndex + numSiblings]?
+        const numSiblings = reordered.filter(t => t.parentId === moved.parentId).length;
+        const groupEnd = parentIndex + numSiblings;
+
+        console.log('[GROUP RANGE CALCULATION]', {
+          parentIndex: parentIndex,
+          numSiblings: numSiblings,
+          groupEnd: groupEnd,
+          groupRange: `[${parentIndex}, ${groupEnd}]`,
+          insertIndex: insertIndex,
+          condition1_atOrAboveParent: insertIndex <= parentIndex,
+          condition2_belowAllSiblings: insertIndex > groupEnd
+        });
+
+        // If insertIndex is <= parent (at or above parent position) or > groupEnd (below all siblings)
+        // Note: insertIndex == parentIndex means child will be inserted at parent's position,
+        // which after splicing puts child above parent (parent shifts down by 1)
+        if (insertIndex <= parentIndex || insertIndex > groupEnd) {
+          console.log('[DECISION] EXIT GROUP - insertIndex is outside group range');
+          console.log('  -> Reason:', insertIndex <= parentIndex ? 'At or above parent position' : 'Below all siblings');
+          console.log('  -> Setting inferredParentId = undefined');
+          inferredParentId = undefined; // Exit group - become root
+        } else {
+          console.log('[DECISION] STAY IN GROUP - insertIndex is within group range');
+          console.log('  -> Keeping original parentId:', moved.parentId);
+          // Staying within group - keep original parentId
+          inferredParentId = moved.parentId;
+        }
+      }
+    } else {
+      // Task is currently root - check if it should join a group
+      console.log('[ROOT TASK] - Will check if it should join a group after splicing');
+      // This needs to be calculated AFTER splicing, so we do it below
+    }
+
+    // Now splice the moved task into its final position
     reordered.splice(insertIndex, 0, moved);
-    onReorder?.(reordered);
+
+    console.log('[AFTER SPLICE]', {
+      movedTaskFinalPosition: insertIndex,
+      totalTasks: reordered.length
+    });
+
+    // For root tasks, check if they should join a group (need reordered for this)
+    if (!moved.parentId) {
+      // Prefer taskAbove if it has a parent (joining that group)
+      if (insertIndex > 0) {
+        const taskAbove = reordered[insertIndex - 1];
+        console.log('[ROOT TASK - CHECK TASK ABOVE]', {
+          taskAboveId: taskAbove.id,
+          taskAboveName: taskAbove.name,
+          taskAboveParentId: taskAbove.parentId
+        });
+        if (taskAbove.parentId) {
+          console.log('  -> Joining group from taskAbove:', taskAbove.parentId);
+          inferredParentId = taskAbove.parentId;
+        }
+      }
+
+      // Otherwise check taskBelow
+      if (inferredParentId === undefined && insertIndex < reordered.length - 1) {
+        const taskBelow = reordered[insertIndex + 1];
+        console.log('[ROOT TASK - CHECK TASK BELOW]', {
+          taskBelowId: taskBelow.id,
+          taskBelowName: taskBelow.name,
+          taskBelowParentId: taskBelow.parentId
+        });
+        if (taskBelow.parentId) {
+          console.log('  -> Joining group from taskBelow:', taskBelow.parentId);
+          inferredParentId = taskBelow.parentId;
+        }
+      }
+
+      if (!inferredParentId) {
+        console.log('[ROOT TASK] - Staying as root (no group to join)');
+      }
+    }
+
+    console.log('[FINAL RESULT]', {
+      inferredParentId: inferredParentId,
+      willExitGroup: moved.parentId && !inferredParentId,
+      willJoinGroup: !moved.parentId && !!inferredParentId,
+      willStayInGroup: moved.parentId && inferredParentId === moved.parentId,
+      willStayRoot: !moved.parentId && !inferredParentId
+    });
+    console.log('=== DRAG & DROP END ===\n');
+
+    onReorder?.(reordered, moved.id, inferredParentId);
     onTaskSelect?.(moved.id);
     setDraggingIndex(null);
     setDragOverIndex(null);
@@ -350,7 +523,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
         {/* Data rows */}
         <div className="gantt-tl-body" style={{ height: `${totalHeight}px` }}>
-          {tasks.map((task, index) => (
+          {visibleTasks.map((task, index) => (
             <TaskListRow
               key={task.id}
               task={task}
@@ -380,6 +553,10 @@ export const TaskList: React.FC<TaskListProps> = ({
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onDragEnd={handleDragEnd}
+              collapsedParentIds={collapsedParentIds}
+              onToggleCollapse={handleToggleCollapse}
+              onPromoteTask={onPromoteTask}
+              onDemoteTask={onDemoteTask}
             />
           ))}
         </div>

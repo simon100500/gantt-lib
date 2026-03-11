@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { parseUTCDate, formatDateLabel } from '../../utils/dateUtils';
 import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
+import { isTaskParent, getChildren } from '../../utils/dependencyUtils';
 import type { Task } from '../GanttChart';
 import './TaskRow.css';
 
@@ -103,6 +104,15 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const taskStartDate = useMemo(() => parseUTCDate(task.startDate), [task.startDate]);
     const taskEndDate = useMemo(() => parseUTCDate(task.endDate), [task.endDate]);
 
+    // Hierarchy: compute isParent and childCount
+    const isParent = useMemo(() => {
+      return allTasks ? isTaskParent(task.id, allTasks) : false;
+    }, [allTasks, task.id]);
+
+    const childCount = useMemo(() => {
+      return allTasks ? getChildren(task.id, allTasks).length : 0;
+    }, [allTasks, task.id]);
+
     // Calculate expiration status for overdue tasks
     const isExpired = useMemo(() => {
       if (!highlightExpiredTasks) return false;
@@ -146,6 +156,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const barColor = isExpired
       ? 'var(--gantt-expired-color)'
       : (task.color || 'var(--gantt-task-bar-default-color)');
+
+    // Parent bar uses gradient background (handled in CSS), override color here
+    const parentBarStyle = isParent ? {} : { backgroundColor: barColor };
 
     // Calculate clamped and rounded progress width
     const progressWidth = useMemo(() => {
@@ -225,6 +238,19 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       (currentEndDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24)
     ) + 1;
 
+    // Format child count label for parent tasks (Russian plural)
+    const getChildCountLabel = (count: number): string => {
+      if (count === 1) return '1 задача';
+      // For 2, 3, 4 tasks use "задачи" (genitive singular)
+      // For 5+ tasks use "задач" (genitive plural)
+      const lastTwoDigits = count % 100;
+      const lastDigit = count % 10;
+      if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return `${count} задач`;
+      if (lastDigit === 1) return `${count} задача`;
+      if (lastDigit >= 2 && lastDigit <= 4) return `${count} задачи`;
+      return `${count} задач`;
+    };
+
     // Determine if progress text fits inside the bar
     // Estimate: duration text (~"15 д" = ~30px) + progress text (~"100%" = ~30px) + padding (~16px)
     const estimatedTextWidth = durationDays >= 10 ? 76 : 62; // "15 д 100%" = ~76px, "1 д 100%" = ~62px
@@ -239,12 +265,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         <div className="gantt-tr-taskContainer">
           <div
             data-taskbar
-            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''}`}
+            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${isParent ? 'gantt-tr-parentBar' : ''}`}
             style={{
               left: `${displayLeft}px`,
               width: `${displayWidth}px`,
-              backgroundColor: barColor,
-              height: 'var(--gantt-task-bar-height)',
+              ...parentBarStyle,
+              height: isParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
               cursor: dragHandleProps.style.cursor,
               userSelect: dragHandleProps.style.userSelect,
             }}
@@ -259,16 +285,16 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 }}
               />
             )}
-            <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
+            {!isParent && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
             <span className="gantt-tr-taskDuration">
-              {durationDays} д
+              {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
             </span>
             {progressWidth > 0 && showProgressInside && (
               <span className="gantt-tr-progressText">
                 {progressWidth}%
               </span>
             )}
-            <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />
+            {!isParent && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
           </div>
           <div
             className={`gantt-tr-leftLabels ${task.locked ? 'gantt-tr-leftLabels-locked' : ''}`}

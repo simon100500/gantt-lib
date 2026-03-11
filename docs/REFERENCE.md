@@ -143,6 +143,172 @@ Key points:
 
 ---
 
+## 3.1. Full Example with Hierarchy and All Props
+
+```tsx
+import { useState, useRef, useCallback } from 'react';
+import { GanttChart, type Task } from 'gantt-lib';
+import 'gantt-lib/styles.css';
+
+const initialTasks: Task[] = [
+  // Root task (parent)
+  {
+    id: 'parent-1',
+    name: 'Фундаментные работы (родитель)',
+    startDate: '2026-03-01',
+    endDate: '2026-03-11',
+    progress: 70,
+  },
+  // Child tasks
+  {
+    id: 'child-1-1',
+    parentId: 'parent-1',
+    name: 'Котлован (ребенок)',
+    startDate: '2026-03-01',
+    endDate: '2026-03-05',
+    progress: 100,
+  },
+  {
+    id: 'child-1-2',
+    parentId: 'parent-1',
+    name: 'Бетонная подготовка (ребенок)',
+    startDate: '2026-03-06',
+    endDate: '2026-03-11',
+    progress: 60,
+  },
+  // Standalone root task
+  {
+    id: 'task-3',
+    name: 'Отдельная задача',
+    startDate: '2026-03-12',
+    endDate: '2026-03-15',
+  },
+];
+
+export default function FullExample() {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void }>(null);
+
+  // Basic task operations
+  const handleChange = useCallback((updated: Task[] | ((t: Task[]) => Task[])) => {
+    setTasks(typeof updated === 'function' ? updated : () => updated);
+  }, []);
+
+  const handleAdd = useCallback((task: Task) => {
+    setTasks(prev => [...prev, task]);
+  }, []);
+
+  const handleDelete = useCallback((taskId: string) => {
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+  }, []);
+
+  const handleInsertAfter = useCallback((taskId: string, newTask: Task) => {
+    setTasks(prev => {
+      const index = prev.findIndex(t => t.id === taskId);
+      if (index === -1) return prev;
+      const newTasks = [...prev];
+      newTasks.splice(index + 1, 0, newTask);
+      return newTasks;
+    });
+  }, []);
+
+  // Reorder with parent inference (for drag-drop hierarchy)
+  const handleReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
+    if (movedTaskId && inferredParentId !== undefined) {
+      // Update the moved task's parentId based on drop position
+      setTasks(reorderedTasks.map(t =>
+        t.id === movedTaskId
+          ? { ...t, parentId: inferredParentId || undefined }
+          : t
+      ));
+    } else {
+      setTasks(reorderedTasks);
+    }
+  }, []);
+
+  // Promote: remove parentId (move to root level, after last sibling)
+  const handlePromoteTask = useCallback((taskId: string) => {
+    setTasks(currentTasks => {
+      const task = currentTasks.find(t => t.id === taskId);
+      if (!task || !(task as any).parentId) return currentTasks;
+
+      const parentId = (task as any).parentId;
+      const siblings = currentTasks.filter(t => (t as any).parentId === parentId);
+
+      if (siblings.length <= 1) {
+        return currentTasks.map(t => t.id === taskId ? { ...t, parentId: undefined } : t);
+      }
+
+      // Find position after last sibling
+      const lastSiblingIndex = currentTasks
+        .map((t, i) => ({ task: t, index: i }))
+        .filter(({ task }) => (task as any).parentId === parentId)
+        .sort((a, b) => b.index - a.index)[0];
+
+      if (!lastSiblingIndex) return currentTasks;
+
+      const withoutPromoted = currentTasks.filter(t => t.id !== taskId);
+      const insertIndex = lastSiblingIndex.index + 1;
+      const promotedTask = { ...task, parentId: undefined };
+
+      return [
+        ...withoutPromoted.slice(0, insertIndex),
+        promotedTask,
+        ...withoutPromoted.slice(insertIndex)
+      ];
+    });
+  }, []);
+
+  // Demote: set parentId to previous task (make it a child)
+  const handleDemoteTask = useCallback((taskId: string, newParentId: string) => {
+    setTasks(currentTasks => {
+      return currentTasks.map(t =>
+        t.id === taskId ? { ...t, parentId: newParentId } : t
+      );
+    });
+  }, []);
+
+  // Collapse/expand state (uncontrolled mode - internal)
+  // For controlled mode, pass collapsedParentIds and onToggleCollapse
+
+  return (
+    <div>
+      <button onClick={() => ganttRef.current?.scrollToToday()}>
+        Сегодня
+      </button>
+
+      <GanttChart
+        ref={ganttRef}
+        tasks={tasks}
+        dayWidth={40}
+        rowHeight={40}
+        containerHeight={400}
+        onChange={handleChange}
+        onAdd={handleAdd}
+        onDelete={handleDelete}
+        onInsertAfter={handleInsertAfter}
+        onReorder={handleReorder}
+        onPromoteTask={handlePromoteTask}
+        onDemoteTask={handleDemoteTask}
+        showTaskList={true}
+        taskListWidth={500}
+        enableAddTask={true}
+      />
+    </div>
+  );
+}
+```
+
+**Hierarchy behavior:**
+- **Parent tasks:** Displayed with gradient background (indigo to violet) and collapse/expand button (-/+)
+- **Child tasks:** Indented in task list with "⬆" button to promote (remove parentId)
+- **Root tasks:** Show "⬇" button to demote (become child of previous task)
+- **Drag-and-drop:** Dragging a task between child tasks automatically assigns it the same parent
+- **Promote:** Clicking "⬆" moves task after last sibling and removes parentId
+- **Demote:** Clicking "⬇" makes task a child of the previous task (or sibling if previous task is a child)
+
+---
+
 ## 3. Task Interface
 
 ```typescript
@@ -157,6 +323,7 @@ interface Task {
   dependencies?: TaskDependency[];
   locked?: boolean;
   divider?: 'top' | 'bottom';
+  parentId?: string;
 }
 ```
 
@@ -172,6 +339,7 @@ interface Task {
 | `dependencies` | `TaskDependency[]` | no | `undefined` | Array of predecessor links. Dependencies are defined on the **successor** task, pointing to the predecessor via `taskId`. See Section 4 and Section 5. |
 | `locked` | `boolean` | no | `undefined` | When `true`, the task cannot be dragged or resized. Task name and dates cannot be edited in the task list. Independent of `progress` and `accepted` — consumer controls locking separately. |
 | `divider` | `'top' \| 'bottom'` | no | `undefined` | Optional horizontal divider line for visual grouping. `'top'` renders a bold line above the task row. `'bottom'` renders a bold line below the task row. Spans the full grid width. |
+| `parentId` | `string` | no | `undefined` | ID of the parent task for hierarchy (parent-child relationships). Child tasks are indented in the task list. Parent tasks display with a gradient background and collapse/expand button. Dragging a task between child tasks automatically assigns it the same parent. |
 
 ---
 
@@ -275,6 +443,9 @@ interface GanttChartProps {
   onAdd?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
   onInsertAfter?: (taskId: string, newTask: Task) => void;
+  onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
+  onPromoteTask?: (taskId: string) => void;
+  onDemoteTask?: (taskId: string, newParentId: string) => void;
   onValidateDependencies?: (result: ValidationResult) => void;
   enableAutoSchedule?: boolean;
   disableConstraints?: boolean;
@@ -284,6 +455,9 @@ interface GanttChartProps {
   disableTaskNameEditing?: boolean;
   disableDependencyEditing?: boolean;
   highlightExpiredTasks?: boolean;
+  collapsedParentIds?: Set<string>;
+  onToggleCollapse?: (parentId: string) => void;
+  enableAddTask?: boolean;
 }
 ```
 
@@ -298,6 +472,9 @@ interface GanttChartProps {
 | `onAdd` | `(task: Task) => void` | `undefined` | Called when user adds a new task. The library creates a task with auto-generated ID and default dates. Consumer adds the task to the array. |
 | `onDelete` | `(taskId: string) => void` | `undefined` | Called when user clicks the trash icon in the task list action panel. Receives the `taskId` of the task to delete. The library automatically cleans up dependencies pointing to this task. |
 | `onInsertAfter` | `(taskId: string, newTask: Task) => void` | `undefined` | Called when user clicks the "+" insert button in the action panel. Receives the `taskId` to insert after and the `newTask` object. After insertion, the new task automatically enters edit mode (managed internally by the component). |
+| `onReorder` | `(tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void` | `undefined` | Called when tasks are reordered via drag-and-drop in the task list. `movedTaskId` is the ID of the dragged task. `inferredParentId` is the parent ID inferred from the drop position (undefined if dropped at root level). **Implementation:** update `parentId` of `movedTaskId` to `inferredParentId` (or remove `parentId` if `inferredParentId` is undefined). |
+| `onPromoteTask` | `(taskId: string) => void` | `undefined` | Called when user clicks the "⬆" button to promote a child task to root level. Task is moved after the last sibling and `parentId` is removed. |
+| `onDemoteTask` | `(taskId: string, newParentId: string) => void` | `undefined` | Called when user clicks the "⬇" button to make a task a child of the previous task. `newParentId` is the ID of the parent task. |
 | `onValidateDependencies` | `(result: ValidationResult) => void` | `undefined` | Called every time the tasks array changes. Receives a `ValidationResult` with all dependency errors (cycles, constraint violations, missing task references). |
 | `enableAutoSchedule` | `boolean` | `false` | When `true` (hard mode): dragging a predecessor cascades all successor tasks to maintain their constraints. Dependency lines redraw in real-time during drag. |
 | `disableConstraints` | `boolean` | `false` | When `true`: all drag constraint checks are skipped. Tasks can be placed freely, ignoring all dependency rules. Useful for debugging layouts or building unconstrained editors. |
@@ -307,6 +484,9 @@ interface GanttChartProps {
 | `disableTaskNameEditing` | `boolean` | `false` | When `true`, task names cannot be edited in the task list. Date editing is also disabled for locked tasks (see `task.locked` property). |
 | `disableDependencyEditing` | `boolean` | `false` | When `true`, dependency editing is disabled in the task list. Users cannot add, remove, or modify dependencies via the UI. |
 | `highlightExpiredTasks` | `boolean` | `false` | When `true`, tasks that are behind schedule are visually highlighted. An expired task is one where today's date is within the task's date range and the current progress is less than the elapsed percentage. Expired tasks render with the `--gantt-expired-color` background. |
+| `collapsedParentIds` | `Set<string>` | `undefined` | Set of parent task IDs that are collapsed (children hidden). Pass `undefined` for uncontrolled mode (internal state). |
+| `onToggleCollapse` | `(parentId: string) => void` | `undefined` | Called when user clicks collapse/expand button on a parent task. Receives the `parentId` of the parent being toggled. Required for controlled mode when providing `collapsedParentIds`. |
+| `enableAddTask` | `boolean` | `true` | When `true`, shows the "+ Добавить задачу" button at the bottom of the task list for adding new tasks. |
 
 **Important — calendar range:** The visible date range is calculated automatically from the earliest `startDate` to the latest `endDate` across all tasks. The chart always shows complete calendar months. For example, if tasks span March 25 to May 5, the chart renders March 1 through May 31. There is no `month` prop.
 
@@ -582,6 +762,21 @@ const tasks: Task[] = [
 | 1–99 | any | Partial progress bar in `--gantt-progress-color` |
 | `100` | `false` or `undefined` | Full bar in `--gantt-progress-completed` (yellow) |
 | `100` | `true` | Full bar in `--gantt-progress-accepted` (green) |
+
+**Task Hierarchy (Parent-Child Relationships)**
+- Set `parentId` on a task to make it a child of another task.
+- Parent tasks display with a gradient background (indigo to violet) and a collapse/expand button (-/+).
+- Child tasks are indented in the task list and show a "⬆" button to promote (remove parentId).
+- Root tasks show a "⬇" button to demote (become a child of the previous task).
+- **Drag-and-drop parent inference:** When dragging a task between child tasks, it automatically inherits their parent. If neither task above nor below has a parent, the task becomes root-level.
+- **Promote behavior:** Clicking "⬆" moves the task after the last sibling of its current parent and removes `parentId`.
+- **Demote behavior:** Clicking "⬇" makes the task a child of the previous task. If the previous task is already a child, the task becomes a sibling (same parent).
+- **Implement `onReorder`:** The callback receives `(reorderedTasks, movedTaskId, inferredParentId)`. Update `parentId` of `movedTaskId` to `inferredParentId` (or remove `parentId` if `inferredParentId` is undefined).
+- **Implement `onPromoteTask`:** Remove `parentId` and optionally reposition the task after its last sibling.
+- **Implement `onDemoteTask`:** Set `parentId` to the specified parent task ID.
+- Parent task dates are automatically computed as the min/max of all child dates.
+- Parent task progress is calculated as a weighted average based on child task durations.
+- Deleting a parent task also deletes all its descendants (cascade delete).
 
 ---
 

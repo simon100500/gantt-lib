@@ -77,6 +77,35 @@
   background-color: rgba(59, 130, 246, 0.15);
 }
 
+/* Hierarchy row styles */
+.gantt-tl-row-child {
+  padding-left: 24px;
+}
+
+.gantt-tl-row-parent {
+  font-weight: 600;
+  background-color: var(--gantt-parent-row-bg, rgba(99, 102, 241, 0.05));
+}
+
+.gantt-tl-collapse-btn {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--gantt-text-color, #374151);
+}
+
+.gantt-tl-collapse-btn:hover {
+  background-color: var(--gantt-cell-background, #f9fafb);
+}
+
 /* Cells */
 .gantt-tl-cell {
   display: flex;
@@ -298,6 +327,41 @@
   pointer-events: auto;
 }
 
+/* Hierarchy action buttons (promote/demote) */
+.gantt-tl-action-buttons {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.gantt-tl-row:hover .gantt-tl-action-buttons {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.gantt-tl-action-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.gantt-tl-action-btn:hover {
+  background: var(--gantt-cell-background, #f9fafb);
+  border-color: var(--gantt-primary-color, #3b82f6);
+}
+
+.gantt-tl-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Dependencies column — header and data cells */
 .gantt-tl-cell-deps {
   width: 90px;
@@ -340,6 +404,22 @@
 
 .gantt-tl-action-delete.gantt-tl-action-delete-confirm:hover {
   background-color: #b91c1c;
+}
+
+/* Single hierarchy button with directional arrow */
+.gantt-tl-action-hierarchy {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #3b82f6;
+  color: white;
+}
+
+.gantt-tl-action-hierarchy:hover {
+  background-color: #2563eb;
 }
 
 /* Type switcher button in header */

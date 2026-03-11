@@ -223,3 +223,42 @@
 .gantt-tr-divider-bottom {
   bottom: 0;
 }
+
+/* ============================================================================
+   Parent Task Bar Styles (Phase 19)
+   ============================================================================ */
+
+/* Parent task bar - MS Project bracket style */
+.gantt-tr-parentBar {
+  background-color: var(--gantt-parent-bar-color, #333333);
+  height: var(--gantt-parent-bar-height, 14px) !important;
+  border-radius: var(--gantt-parent-bar-radius, 8px) var(--gantt-parent-bar-radius, 8px) 0 0;
+  position: relative;
+  overflow: visible;
+  /* Allow trapezoid ears to extend below the bar */
+  /* Center the entire shape (bar + ears) vertically */
+  /* Total height = 14px (bar) + 8px (ears) = 22px, midpoint at 11px from top */
+  top: calc(50% - 20px);
+  transform: none;
+}
+
+/* Trapezoid ears for bracket appearance */
+.gantt-tr-parentBar::before,
+.gantt-tr-parentBar::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--gantt-parent-bar-height, 14px) - 1px);
+  height: var(--gantt-parent-ear-depth, 8px);
+  width: var(--gantt-parent-ear-width, 10px);
+  background-color: var(--gantt-parent-bar-color, #333333);
+}
+
+.gantt-tr-parentBar::before {
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, 60% 100%, 0 100%);
+}
+
+.gantt-tr-parentBar::after {
+  right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 40% 100%);
+}

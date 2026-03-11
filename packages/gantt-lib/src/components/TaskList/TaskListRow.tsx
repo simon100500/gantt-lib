@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { Task } from '../GanttChart';
 import type { LinkType } from '../../types';
 import { parseUTCDate } from '../../utils/dateUtils';
-import { computeLagFromDates } from '../../utils/dependencyUtils';
+import { computeLagFromDates, isTaskParent, findParentId } from '../../utils/dependencyUtils';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
@@ -51,6 +51,78 @@ const DragHandleIcon = () => (
     <circle cx="8" cy="12" r="1.5" />
   </svg>
 );
+
+// ---------------------------------------------------------------------------
+// HierarchyButton — Single button with left/right arrows for hierarchy navigation
+// ---------------------------------------------------------------------------
+interface HierarchyButtonProps {
+  /** Whether the task is a child (can be promoted) */
+  isChild: boolean;
+  /** Whether the task is a parent (has children) */
+  isParent: boolean;
+  /** Row index - first row cannot demote */
+  rowIndex: number;
+  /** Callback when promote is clicked (left arrow) */
+  onPromote?: (e: React.MouseEvent) => void;
+  /** Callback when demote is clicked (right arrow) */
+  onDemote?: (e: React.MouseEvent) => void;
+}
+
+const HierarchyButton: React.FC<HierarchyButtonProps> = ({
+  isChild,
+  isParent,
+  rowIndex,
+  onPromote,
+  onDemote,
+}) => {
+  // Can promote if task is a child
+  const canPromote = isChild && onPromote;
+  // Can demote if not a parent and not first row
+  const canDemote = !isParent && onDemote && rowIndex > 0;
+
+  // If neither action available, don't render
+  if (!canPromote && !canDemote) {
+    return null;
+  }
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (canPromote) {
+      onPromote!(e);
+    } else if (canDemote) {
+      onDemote!(e);
+    }
+  };
+
+  const title = canPromote
+    ? 'Повысить (сделать корневой)'
+    : 'Понизить (сделать подчиненной)';
+
+  const ArrowLeft = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m12 19-7-7 7-7"/>
+      <path d="M19 12H5"/>
+    </svg>
+  );
+
+  const ArrowRight = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14"/>
+      <path d="m12 5 7 7-7 7"/>
+    </svg>
+  );
+
+  return (
+    <button
+      type="button"
+      className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
+      onClick={handleClick}
+      title={title}
+    >
+      {canPromote ? <ArrowLeft /> : <ArrowRight />}
+    </button>
+  );
+};
 
 function formatDepDescription(type: LinkType, lag: number | undefined): string {
   const effectiveLag = lag ?? 0;
@@ -203,6 +275,14 @@ export interface TaskListRowProps {
   onDrop?: (index: number, e: React.DragEvent) => void;
   /** Called when drag ends (drop or Escape) */
   onDragEnd?: (e: React.DragEvent) => void;
+  /** Set of collapsed parent task IDs */
+  collapsedParentIds?: Set<string>;
+  /** Callback when collapse/expand button is clicked */
+  onToggleCollapse?: (parentId: string) => void;
+  /** Callback when task is promoted (parentId removed) */
+  onPromoteTask?: (taskId: string) => void;
+  /** Callback when task is demoted (parentId set to previous task) */
+  onDemoteTask?: (taskId: string, newParentId: string) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -241,6 +321,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onDragOver,
     onDrop,
     onDragEnd,
+    collapsedParentIds = new Set(),
+    onToggleCollapse,
+    onPromoteTask,
+    onDemoteTask,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -256,6 +340,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
     const isSelected = selectedTaskId === task.id;
+
+    // Hierarchy computed values
+    const isParent = useMemo(() => isTaskParent(task.id, allTasks), [task.id, allTasks]);
+    const isChild = task.parentId !== undefined;
+    const isCollapsed = collapsedParentIds.has(task.id);
 
     // Picker mode flags for this row
     const isPicking = selectingPredecessorFor != null;
@@ -471,6 +560,30 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       onRowClick?.(task.id);
     }, [task.id, onRowClick]);
 
+    const handleToggleCollapse = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onToggleCollapse?.(task.id);
+    }, [task.id, onToggleCollapse]);
+
+    // Hierarchy handlers - promote/demote
+    const handlePromote = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onPromoteTask?.(task.id);
+    }, [task.id, onPromoteTask]);
+
+    const handleDemote = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      // Find previous task in allTasks
+      const currentIndex = allTasks.findIndex(t => t.id === task.id);
+      if (currentIndex > 0) {
+        const previousTask = allTasks[currentIndex - 1];
+        // Smart demote: if previous task has a parent, use that parent (sibling behavior)
+        // Otherwise, use previous task as parent (child behavior)
+        const targetParentId = previousTask.parentId || previousTask.id;
+        onDemoteTask?.(task.id, targetParentId);
+      }
+    }, [task.id, allTasks, onDemoteTask]);
+
     // Dependency handlers
     const handleAddClick = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
@@ -512,6 +625,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isSourceRow ? 'gantt-tl-row-picking-self' : '',
           isDragging ? 'gantt-tl-row-dragging' : '',
           isDragOver ? 'gantt-tl-row-drag-over' : '',
+          isChild ? 'gantt-tl-row-child' : '',
+          isParent ? 'gantt-tl-row-parent' : '',
         ].filter(Boolean).join(' ')}
         style={{ minHeight: `${rowHeight}px`, position: 'relative' }}
         onClick={handleRowClickInternal}
@@ -530,19 +645,32 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-number"
           onClick={handleNumberClick}
         >
-          <span
-            className="gantt-tl-drag-handle"
-            draggable={true}
-            onDragStart={(e) => {
-              e.stopPropagation();
-              onDragStart?.(rowIndex, e);
-            }}
-            onDragEnd={(e) => onDragEnd?.(e)}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DragHandleIcon />
-          </span>
-          <span className="gantt-tl-num-label">{rowIndex + 1}</span>
+          {isParent ? (
+            <button
+              type="button"
+              className="gantt-tl-collapse-btn"
+              onClick={handleToggleCollapse}
+              aria-label={isCollapsed ? 'Развернуть' : 'Свернуть'}
+            >
+              {isCollapsed ? '+' : '-'}
+            </button>
+          ) : (
+            <>
+              <span
+                className="gantt-tl-drag-handle"
+                draggable={true}
+                onDragStart={(e) => {
+                  e.stopPropagation();
+                  onDragStart?.(rowIndex, e);
+                }}
+                onDragEnd={(e) => onDragEnd?.(e)}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <DragHandleIcon />
+              </span>
+              <span className="gantt-tl-num-label">{rowIndex + 1}</span>
+            </>
+          )}
         </div>
 
         {/* Name column — styled Input overlay on edit */}
@@ -615,6 +743,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   {deletePending ? 'Удалить?' : <TrashIcon />}
                 </button>
               )}
+              <HierarchyButton
+                isChild={isChild}
+                isParent={isParent}
+                rowIndex={rowIndex}
+                onPromote={onPromoteTask ? handlePromote : undefined}
+                onDemote={onDemoteTask ? handleDemote : undefined}
+              />
             </div>
           )}
         </div>

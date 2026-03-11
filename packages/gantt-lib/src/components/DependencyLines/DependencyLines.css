@@ -18,6 +18,12 @@
   stroke-linejoin: round;
 }
 
+/* Virtual dependency lines (for hidden tasks inside collapsed parents) */
+.gantt-dependency-virtual {
+  stroke-dasharray: 4 2;
+  opacity: 0.6;
+}
+
 /* Circular dependency highlighting */
 .gantt-dependency-cycle {
   stroke: var(--gantt-dependency-cycle-color, #ef4444);

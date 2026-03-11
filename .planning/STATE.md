@@ -3,6 +3,83 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: "Completed quick-094: Virtual dependency links (partial - cascade investigation pending)"
+last_updated: "2026-03-11T14:36:55.452Z"
+last_activity: "2026-03-11 - Completed quick task 94: Virtual dependency links for collapsed parent tasks (partial - cascade investigation pending)"
+progress:
+  total_phases: 19
+  completed_phases: 18
+  total_plans: 48
+  completed_plans: 47
+  percent: 98
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
+stopped_at: "Completed quick-092: Change task grouping behavior for smart hierarchy inference"
+last_updated: "2026-03-11T09:25:51.059Z"
+last_activity: "2026-03-11 - Completed quick task 93: Change hierarchy button to single arrow icon (SVG, no lucide)"
+progress:
+  [██████████] 98%
+  completed_phases: 18
+  total_plans: 48
+  completed_plans: 47
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
+stopped_at: "Completed quick-091: MS Project parent task bracket styling (with ears fix)"
+last_updated: "2026-03-11T07:39:46.133Z"
+last_activity: "2026-03-10 - Completed quick task 090: Remove dependency links when tasks become parent-child relationship"
+progress:
+  total_phases: 19
+  completed_phases: 18
+  total_plans: 48
+  completed_plans: 47
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
+stopped_at: "Completed quick-090: Remove dependency links when tasks become parent-child relationship"
+last_updated: "2026-03-10T21:23:01.938Z"
+last_activity: "2026-03-10 - Completed quick task 089: добавить столбец "Прогресс" в процентах. При клике будет сразу выделяться поле для ввода"
+progress:
+  total_phases: 19
+  completed_phases: 18
+  total_plans: 48
+  completed_plans: 47
+  percent: 96
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
+stopped_at: Completed 19-02: Hierarchy UI (TaskList collapse/expand, indentation, parent styling)
+last_updated: "2026-03-10T22:52:33.000Z"
+last_activity: "2026-03-10 - Completed plan 19-02: Hierarchy UI (TaskList collapse/expand, child indentation, parent styling, collapse buttons)"
+progress:
+  [██████████] 96%
+  completed_phases: 17
+  total_plans: 48
+  completed_plans: 46
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: Completed quick-089-add-progress-clickable
 last_updated: "2026-03-10T14:25:00.000Z"
 last_activity: "2026-03-10 - Completed quick task 089: добавить столбец Прогресс в процентах. При клике будет сразу выделяться поле для ввода"
@@ -302,7 +379,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-10 - Completed quick task 089: добавить столбец "Прогресс" в процентах. При клике будет сразу выделяться поле для ввода
+Last activity: 2026-03-11 - Completed quick task 91: создай стиль для родиельской задачи как в d:\Projects\gantt-lib\.planning\parent-prototype.html
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -385,6 +462,11 @@ Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 | Phase 18 P01 | 180 | 2 tasks | 3 files |
 | Phase 18 P02 | 319 | 3 tasks | 4 files |
 | Phase quick-089 P01 | 53 | 1 tasks | 3 files |
+| Phase 19 P03 | 179 | 4 tasks | 5 files |
+| Phase quick-090 P01 | 1min | 3 tasks | 3 files |
+| Phase quick-091 P01 | 84 | 3 tasks | 2 files |
+| Phase quick P092 | 3 minutes | 3 tasks | 5 files |
+| Phase quick P094 | 45 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -404,6 +486,7 @@ Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 - Phase 16 added: adding-tasks
 - Phase 17 added: action-buttons-panel
 - Phase 18 added: tasks-order
+- Phase 19 added: hierachy
 
 ### Decisions
 
@@ -512,6 +595,10 @@ Recent decisions affecting current work:
 - [Phase 17]: Hover-reveal pattern with opacity 0→1 on row hover keeps UI clean while making actions available
 - [Phase 17]: Kept existing PlusIcon and TrashIcon components, reused in new action panel location
 - [Phase 17]: Removed old inline buttons after verification — clean migration without breaking changes
+- [Phase 19]: Parent bars use gradient background (indigo to violet) with folder icon
+- [Phase 19]: Hierarchy cascade reuses Phase 7 cascade engine (getTransitiveCascadeChain pattern)
+- [Phase quick-091]: CSS-only approach for parent bar height (simpler than TypeScript conditional)
+- [Phase quick-092]: Extended onReorder callback signature for parent inference instead of creating new callback
 
 ### Pending Todos
 
@@ -603,11 +690,16 @@ None yet.
 | 87 | Add show/hide task list buttons to all test/demo chart pages | 2026-03-10 | 1d4310d | [087-show-hide-tasklist-button](./quick/087-show-hide-tasklist-button/) |
 | 88 | сделать добавление новых задач снизу - фишкой по умолчанию. Но её можно отключить пропсом. А то сейчас на тестовых графиках кроме первого этой строки нет. | 2026-03-10 | 46a54b5 | [088-add-tasks-from-bottom-default](./quick/088-add-tasks-from-bottom-default/) |
 | 89 | добавить столбец "Прогресс" в процентах. При клике будет сразу выделяться поле для ввода | 2026-03-10 | 1a6d31d | [089-add-progress-clickable](./quick/089-add-progress-clickable/) |
+| 90 | Remove dependency links when tasks become parent-child relationship | 2026-03-10 | d4dec92 | [090-remove-dependency-parent-child](./quick/090-remove-dependency-parent-child/) |
+| 91 | создай стиль для родиельской задачи как в d:\Projects\gantt-lib\.planning\parent-prototype.html | 2026-03-11 | 818e636 | [91-d-projects-gantt-lib-planning-parent-pro](./quick/91-d-projects-gantt-lib-planning-parent-pro/) |
+| 92 | Change task grouping behavior for smart hierarchy inference | 2026-03-11 | fd28870 | [092-change-task-grouping](./quick/092-change-task-grouping/) |
+| 93 | Change hierarchy button to single arrow icon (SVG, no lucide) | 2026-03-11 | ec9b5f4 | [093-promote-demote-to-arrows](./quick/093-promote-demote-to-arrows/) |
+| 94 | Virtual dependency links for collapsed parent tasks (partial - internal deps filtered, cascade investigation pending) | 2026-03-11 | d4a8db5 | [094-virtual-dependency-links](./quick/094-virtual-dependency-links/) |
 
 ## Session Continuity
 
-Last session: 2026-03-10T14:24:46.489Z
-Stopped at: Completed quick-089-add-progress-clickable
+Last session: 2026-03-11T14:36:55.448Z
+Stopped at: Completed quick-094: Virtual dependency links (partial - cascade investigation pending)
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)

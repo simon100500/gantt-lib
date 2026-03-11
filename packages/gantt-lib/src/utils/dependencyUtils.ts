@@ -240,6 +240,8 @@ export function getSuccessorChain(
  * - FF/SF: constraintDate = new end of successor (duration preserved)
  *
  * Locked tasks break the chain.
+ * Also cascades hierarchy children when a parent moves (when parent moves by
+ * dependency link, children must move with it to maintain parent-child relationship).
  * Returns only the cascaded successors (not the moved task itself).
  */
 export function cascadeByLinks(
@@ -262,6 +264,38 @@ export function cascadeByLinks(
     const currentId = queue.shift()!;
     const { start: predStart, end: predEnd } = updatedDates.get(currentId)!;
 
+    // First, cascade hierarchy children of the current task if it's a parent
+    const children = getChildren(currentId, allTasks);
+    for (const child of children) {
+      if (visited.has(child.id) || child.locked) continue;
+
+      // When a parent moves, its children move by the same delta
+      const origStart = new Date(child.startDate as string);
+      const origEnd = new Date(child.endDate as string);
+      const durationMs = origEnd.getTime() - origStart.getTime();
+
+      const parentOrig = taskById.get(currentId)!;
+      const parentOrigStart = new Date(parentOrig.startDate as string);
+      const parentOrigEnd = new Date(parentOrig.endDate as string);
+
+      // Calculate delta from parent's original to new position
+      const parentStartDelta = predStart.getTime() - parentOrigStart.getTime();
+      const parentEndDelta = predEnd.getTime() - parentOrigEnd.getTime();
+
+      const newChildStart = new Date(origStart.getTime() + parentStartDelta);
+      const newChildEnd = new Date(origEnd.getTime() + parentEndDelta);
+
+      visited.add(child.id);
+      updatedDates.set(child.id, { start: newChildStart, end: newChildEnd });
+      result.push({
+        ...child,
+        startDate: newChildStart.toISOString().split('T')[0],
+        endDate: newChildEnd.toISOString().split('T')[0],
+      });
+      queue.push(child.id);
+    }
+
+    // Then, cascade dependency successors
     for (const task of allTasks) {
       if (visited.has(task.id) || !task.dependencies || task.locked) continue;
 
@@ -308,6 +342,9 @@ export function cascadeByLinks(
  *
  * Direct successors of the changed task are filtered by firstLevelLinkTypes.
  * Their successors (and so on) are included regardless of link type.
+ *
+ * Also includes hierarchy children of any parent task in the chain - when a parent
+ * moves via dependency cascade, its children must move with it.
  */
 export function getTransitiveCascadeChain(
   changedTaskId: string,
@@ -327,13 +364,29 @@ export function getTransitiveCascadeChain(
     }
   }
 
+  const directChildren = getChildren(changedTaskId, allTasks);
   const directSuccessors = getSuccessorChain(changedTaskId, allTasks, firstLevelLinkTypes);
-  const chain = [...directSuccessors];
-  const visited = new Set<string>([changedTaskId, ...directSuccessors.map(t => t.id)]);
-  const queue = [...directSuccessors];
+  const initialChain = [...directChildren, ...directSuccessors].filter((task, index, arr) =>
+    arr.findIndex(candidate => candidate.id === task.id) === index
+  );
+
+  const chain = [...initialChain];
+  const visited = new Set<string>([changedTaskId, ...initialChain.map(t => t.id)]);
+  const queue = [...initialChain];
 
   while (queue.length > 0) {
     const current = queue.shift()!;
+
+    // Add hierarchy children of the current task if it's a parent
+    const children = getChildren(current.id, allTasks);
+    for (const child of children) {
+      if (!visited.has(child.id)) {
+        visited.add(child.id);
+        chain.push(child);
+        queue.push(child);
+      }
+    }
+
     const successors = allTypesSuccessorMap.get(current.id) ?? [];
     for (const successor of successors) {
       if (!visited.has(successor.id)) {
@@ -397,4 +450,133 @@ export function getAllDependencyEdges(tasks: Task[]): Array<{
   }
 
   return edges;
+}
+
+// ============================================================================
+// Hierarchy Utilities (Phase 19)
+// ============================================================================
+
+/**
+ * Get all child tasks of a parent task.
+ * Returns tasks where task.parentId === parentId.
+ */
+export function getChildren(parentId: string, tasks: Task[]): Task[] {
+  return tasks.filter(t => (t as any).parentId === parentId);
+}
+
+/**
+ * Check if a task is a parent (has children).
+ * Returns true if any task has this task as parentId.
+ */
+export function isTaskParent(taskId: string, tasks: Task[]): boolean {
+  return tasks.some(t => (t as any).parentId === taskId);
+}
+
+/**
+ * Compute parent task dates from children.
+ * Returns { startDate, endDate } where:
+ * - startDate = min(children.startDate) or own startDate if no children
+ * - endDate = max(children.endDate) or own endDate if no children
+ */
+export function computeParentDates(parentId: string, tasks: Task[]): { startDate: Date; endDate: Date } {
+  const children = getChildren(parentId, tasks);
+
+  if (children.length === 0) {
+    // Empty parent - use own dates or default
+    const parent = tasks.find(t => t.id === parentId);
+    const start = parent ? new Date(parent.startDate) : new Date();
+    const end = parent ? new Date(parent.endDate) : new Date();
+    return { startDate: start, endDate: end };
+  }
+
+  const startDates = children.map(c => new Date(c.startDate));
+  const endDates = children.map(c => new Date(c.endDate));
+
+  const minTime = Math.min(...startDates.map(d => d.getTime()));
+  const maxTime = Math.max(...endDates.map(d => d.getTime()));
+
+  return {
+    startDate: new Date(minTime),
+    endDate: new Date(maxTime),
+  };
+}
+
+/**
+ * Compute parent task progress from children (weighted average by duration).
+ * Returns 0 if no children.
+ * Progress is rounded to 1 decimal place.
+ */
+export function computeParentProgress(parentId: string, tasks: Task[]): number {
+  const children = getChildren(parentId, tasks);
+
+  if (children.length === 0) {
+    return 0;
+  }
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  let totalWeight = 0;
+  let weightedSum = 0;
+
+  for (const child of children) {
+    const start = new Date(child.startDate).getTime();
+    const end = new Date(child.endDate).getTime();
+    // Inclusive duration: (end - start + 1 day) / DAY_MS
+    const duration = (end - start + DAY_MS) / DAY_MS;
+    const progress = (child.progress ?? 0);
+
+    totalWeight += duration;
+    weightedSum += duration * progress;
+  }
+
+  if (totalWeight === 0) {
+    return 0;
+  }
+
+  // Round to 1 decimal place
+  return Math.round((weightedSum / totalWeight) * 10) / 10;
+}
+
+/**
+ * Remove dependencies between two tasks in both directions.
+ * When tasks become parent-child, their dependency link becomes meaningless.
+ *
+ * @param taskId1 - First task ID
+ * @param taskId2 - Second task ID
+ * @param tasks - All tasks array
+ * @returns New tasks array with dependencies between the two tasks removed
+ */
+export function removeDependenciesBetweenTasks(
+  taskId1: string,
+  taskId2: string,
+  tasks: Task[]
+): Task[] {
+  return tasks.map(task => {
+    if (task.id === taskId1 || task.id === taskId2) {
+      if (!task.dependencies) return task;
+      const otherTaskId = task.id === taskId1 ? taskId2 : taskId1;
+      const filteredDependencies = task.dependencies.filter(dep => dep.taskId !== otherTaskId);
+      // Only create new object if dependencies actually changed
+      if (filteredDependencies.length === task.dependencies.length) {
+        return task;
+      }
+      return {
+        ...task,
+        dependencies: filteredDependencies.length > 0 ? filteredDependencies : undefined,
+      };
+    }
+    return task;
+  });
+}
+
+/**
+ * Find the parent ID of a task.
+ * Returns the parentId of the task if found, undefined otherwise.
+ *
+ * @param taskId - ID of the task to find parent for
+ * @param tasks - All tasks array
+ * @returns Parent task ID or undefined if task is root or not found
+ */
+export function findParentId(taskId: string, tasks: Task[]): string | undefined {
+  const task = tasks.find(t => t.id === taskId);
+  return task?.parentId;
 }
