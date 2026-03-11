@@ -4,7 +4,7 @@ import React, { useMemo, useCallback, useRef, useState, useEffect, useImperative
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks } from '../../utils/dependencyUtils';
-import { flattenHierarchy } from '../../utils/hierarchyOrder';
+import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
@@ -190,8 +190,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   // Track editing task ID for auto-edit mode after insert
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
-  // Calculate multi-month date range from tasks
-  const dateRange = useMemo(() => getMultiMonthDays(tasks), [tasks]);
+  const normalizedTasks = useMemo(() => normalizeHierarchyTasks(tasks), [tasks]);
+
+  // Calculate multi-month date range from normalized tasks
+  const dateRange = useMemo(() => getMultiMonthDays(normalizedTasks), [normalizedTasks]);
 
   // Track dependency validation results
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
@@ -205,18 +207,16 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     [dateRange.length, dayWidth]
   );
 
-  const orderedTasks = useMemo(() => flattenHierarchy(tasks), [tasks]);
-
   // Filter tasks to hide children of collapsed parents (for chart rendering)
   const filteredTasks = useMemo(() => {
-    return orderedTasks.filter(task => {
+    return normalizedTasks.filter(task => {
       // Root-level tasks (no parentId) are always visible
       if (!task.parentId) return true;
       // Child tasks are visible only if their parent is not collapsed
       const parentCollapsed = collapsedParentIds.has(task.parentId);
       return !parentCollapsed;
     });
-  }, [orderedTasks, collapsedParentIds]);
+  }, [normalizedTasks, collapsedParentIds]);
 
   // Calculate total grid height (based on filtered tasks)
   const totalGridHeight = useMemo(
@@ -599,9 +599,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       });
       console.log('=== GANTT CHART handleReorder END ===\n');
 
-      return flattenHierarchy(updated);
+      return normalizeHierarchyTasks(updated);
     });
-    onReorder?.(flattenHierarchy(reorderedTasks), movedTaskId, inferredParentId);
+    onReorder?.(normalizeHierarchyTasks(reorderedTasks), movedTaskId, inferredParentId);
   }, [onChange, onReorder]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
@@ -714,7 +714,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
       if (siblings.length <= 1) {
         // Only child, just remove parentId
-        return flattenHierarchy(currentTasks.map(t =>
+        return normalizeHierarchyTasks(currentTasks.map(t =>
           t.id === taskId ? { ...t, parentId: undefined } : t
         ));
       }
@@ -726,7 +726,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         .sort((a, b) => b.index - a.index)[0];
 
       if (!lastSiblingIndex) {
-        return flattenHierarchy(currentTasks.map(t =>
+        return normalizeHierarchyTasks(currentTasks.map(t =>
           t.id === taskId ? { ...t, parentId: undefined } : t
         ));
       }
@@ -742,7 +742,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         ...withoutPromotedTask.slice(insertIndex)
       ];
 
-      return flattenHierarchy(newTasks);
+      return normalizeHierarchyTasks(newTasks);
     });
   }, [onChange]);
 
@@ -791,7 +791,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
           : t
       );
 
-      return flattenHierarchy(updatedTasks);
+      return normalizeHierarchyTasks(updatedTasks);
     });
   }, [onChange]);
 
@@ -862,7 +862,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         <div className="gantt-scrollContent">
           {/* TaskList - sticky left, scrolls with content horizontally */}
           <TaskList
-            tasks={orderedTasks}
+            tasks={normalizedTasks}
             rowHeight={rowHeight}
             headerHeight={headerHeight}
             taskListWidth={taskListWidth}
@@ -916,7 +916,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
           {/* Dependency lines SVG overlay */}
           <DependencyLines
             tasks={filteredTasks}
-            allTasks={orderedTasks}
+            allTasks={normalizedTasks}
             collapsedParentIds={collapsedParentIds}
             monthStart={monthStart}
             dayWidth={dayWidth}
@@ -954,7 +954,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
                 }
               }}
               rowIndex={index}
-            allTasks={orderedTasks}
+            allTasks={normalizedTasks}
               enableAutoSchedule={enableAutoSchedule ?? false}
               disableConstraints={disableConstraints ?? false}
               overridePosition={cascadeOverrides.get(task.id)}

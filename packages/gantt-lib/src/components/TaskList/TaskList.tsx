@@ -4,7 +4,7 @@ import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
 import { validateDependencies, calculateSuccessorDate, isTaskParent } from '../../utils/dependencyUtils';
-import { flattenHierarchy } from '../../utils/hierarchyOrder';
+import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
@@ -111,7 +111,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     });
   }, []);
 
-  const orderedTasks = useMemo(() => flattenHierarchy(tasks), [tasks]);
+  const orderedTasks = useMemo(() => normalizeHierarchyTasks(tasks), [tasks]);
 
   // Filter tasks to hide children of collapsed parents
   const visibleTasks = useMemo(() => {

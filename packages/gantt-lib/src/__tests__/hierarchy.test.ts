@@ -5,7 +5,7 @@ import {
   computeParentDates,
   computeParentProgress,
 } from '../utils/dependencyUtils';
-import { flattenHierarchy } from '../utils/hierarchyOrder';
+import { flattenHierarchy, normalizeHierarchyTasks } from '../utils/hierarchyOrder';
 import { Task } from '../types';
 
 describe('hierarchy utilities', () => {
@@ -64,6 +64,22 @@ describe('hierarchy utilities', () => {
       ];
 
       expect(flattenHierarchy(orphanTasks).map((task) => task.id)).toEqual(['1', '3', '2']);
+    });
+  });
+
+  describe('normalizeHierarchyTasks', () => {
+    it('recomputes parent dates from children instead of using hardcoded parent dates', () => {
+      const tasksWithIncorrectParentDates: Task[] = [
+        { id: '1', name: 'Parent', startDate: '2026-02-01', endDate: '2026-02-28', progress: 0 },
+        { id: '2', name: 'Child 1', startDate: '2026-02-05', endDate: '2026-02-08', parentId: '1', progress: 25 },
+        { id: '3', name: 'Child 2', startDate: '2026-02-10', endDate: '2026-02-20', parentId: '1', progress: 100 },
+      ];
+
+      const normalized = normalizeHierarchyTasks(tasksWithIncorrectParentDates);
+      const parent = normalized.find((task) => task.id === '1');
+
+      expect(parent?.startDate).toBe('2026-02-05');
+      expect(parent?.endDate).toBe('2026-02-20');
     });
   });
 
