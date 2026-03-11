@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-03-11
+
+### Features
+- Add an inline `Дн.` duration column to the task list so end dates can be adjusted from a compact numeric editor
+
+### Fixes
+- Preview the recalculated end date immediately while editing duration and save the final value on confirm
+- Keep duration display accurate during inline editing
+- Keep task reordering stable when parent groups are collapsed
+
+### Styling
+- Compact the progress editor and enlarge its controls for easier interaction
+- Refine task list cell sizing, child padding, and task name tooltip behavior
+- Add a right-side shadow to the task list when the date grid is horizontally scrolled
+- Rebalance task list minimum widths so name and dependency columns stay usable together
+
 ## [0.6.2] - 2026-03-11
 
 ### Fixes
