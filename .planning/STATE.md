@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: "Completed quick-091: MS Project parent task bracket styling"
+stopped_at: "Completed quick-091: MS Project parent task bracket styling - STATE.md updated"
 last_updated: "2026-03-11T07:39:46.133Z"
 last_activity: "2026-03-10 - Completed quick task 090: Remove dependency links when tasks become parent-child relationship"
 progress:
@@ -348,7 +348,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-10 - Completed quick task 090: Remove dependency links when tasks become parent-child relationship
+Last activity: 2026-03-11 - Completed quick task 91: создай стиль для родиельской задачи как в d:\Projects\gantt-lib\.planning\parent-prototype.html
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -657,6 +657,7 @@ None yet.
 | 88 | сделать добавление новых задач снизу - фишкой по умолчанию. Но её можно отключить пропсом. А то сейчас на тестовых графиках кроме первого этой строки нет. | 2026-03-10 | 46a54b5 | [088-add-tasks-from-bottom-default](./quick/088-add-tasks-from-bottom-default/) |
 | 89 | добавить столбец "Прогресс" в процентах. При клике будет сразу выделяться поле для ввода | 2026-03-10 | 1a6d31d | [089-add-progress-clickable](./quick/089-add-progress-clickable/) |
 | 90 | Remove dependency links when tasks become parent-child relationship | 2026-03-10 | d4dec92 | [090-remove-dependency-parent-child](./quick/090-remove-dependency-parent-child/) |
+| 91 | создай стиль для родиельской задачи как в d:\Projects\gantt-lib\.planning\parent-prototype.html | 2026-03-11 | 818e636 | [91-d-projects-gantt-lib-planning-parent-pro](./quick/91-d-projects-gantt-lib-planning-parent-pro/) |
 
 ## Session Continuity
 
