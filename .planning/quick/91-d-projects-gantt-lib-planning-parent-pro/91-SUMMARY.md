@@ -81,3 +81,17 @@ None.
 - [x] a6e022e: feat(quick-091): update parent task CSS variables
 - [x] bf7840a: feat(quick-091): implement MS Project bracket styling
 - [x] 9283679: feat(quick-091): add !important to parent bar height
+- [x] 137216a: fix(quick-091): make parent bar height conditional to show ears
+
+## Hotfix: Trapezoid Ears Not Visible
+
+The CSS-only approach with `!important` did not work because the inline `height: 'var(--gantt-task-bar-height)'` style in TaskRow.tsx (line 273) was overriding the CSS class height. This caused:
+- Parent bars rendered at 24px (standard height) instead of 14px
+- Ears positioned at `top: 14px` appeared INSIDE the bar instead of below it
+
+**Solution:** Changed inline height to conditional based on `isParent` prop:
+```tsx
+height: isParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)'
+```
+
+Now parent bars use their own height variable, allowing the trapezoid ears to render correctly below the bar.

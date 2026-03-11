@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: "Completed quick-091: MS Project parent task bracket styling - STATE.md updated"
+stopped_at: "Completed quick-091: MS Project parent task bracket styling (with ears fix)"
 last_updated: "2026-03-11T07:39:46.133Z"
 last_activity: "2026-03-10 - Completed quick task 090: Remove dependency links when tasks become parent-child relationship"
 progress:
