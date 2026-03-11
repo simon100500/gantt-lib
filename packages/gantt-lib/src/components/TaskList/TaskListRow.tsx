@@ -522,6 +522,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       setEditingDuration(true);
     }, [task.locked, task.startDate, task.endDate]);
 
+    const applyDurationChange = useCallback((nextDuration: number) => {
+      const normalizedDuration = Math.max(1, Math.round(nextDuration) || 1);
+      setDurationValue(normalizedDuration);
+    }, []);
+
     const handleDurationSave = useCallback(() => {
       if (durationConfirmedRef.current) {
         durationConfirmedRef.current = false;
@@ -533,12 +538,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [durationValue, task, onTaskChange]);
 
     const handleDurationCancel = useCallback(() => {
+      setDurationValue(getInclusiveDurationDays(task.startDate, task.endDate));
       setEditingDuration(false);
-    }, []);
+    }, [task.startDate, task.endDate]);
 
     const handleDurationAdjust = useCallback((delta: number) => {
-      setDurationValue((current) => Math.max(1, current + delta));
-    }, []);
+      applyDurationChange(durationValue + delta);
+    }, [applyDurationChange, durationValue]);
 
     const handleDurationKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
       e.stopPropagation();
@@ -692,7 +698,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [selectedChip, onRemoveDependency, onChipSelect]);
 
     const startDateISO = toISODate(task.startDate);
-    const endDateISO = toISODate(task.endDate);
+    const endDateISO = editingDuration
+      ? getEndDateFromDuration(task.startDate, durationValue)
+      : toISODate(task.endDate);
 
     return (
       <div
@@ -867,7 +875,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 min={1}
                 step={1}
                 value={durationValue}
-                onChange={(e) => setDurationValue(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                onChange={(e) => applyDurationChange(parseInt(e.target.value, 10) || 1)}
                 onBlur={handleDurationSave}
                 onKeyDown={handleDurationKeyDown}
                 className="gantt-tl-number-input"
