@@ -527,7 +527,29 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     // Update state by merging cascaded tasks into current tasks
     onChange?.((currentTasks) => {
       const cascadeMap = new Map(cascadedTasks.map(t => [t.id, t]));
-      return currentTasks.map(t => cascadeMap.get(t.id) ?? t);
+      let finalTasks = currentTasks.map(t => cascadeMap.get(t.id) ?? t);
+
+      // Update parent dates for any cascaded tasks that have parents
+      // Collect parent IDs that need updating
+      const parentIdsToUpdate = new Set<string>();
+      cascadedTasks.forEach(task => {
+        if ((task as any).parentId) {
+          parentIdsToUpdate.add((task as any).parentId);
+        }
+      });
+
+      // Update each parent's dates and progress
+      parentIdsToUpdate.forEach(parentId => {
+        const newDates = computeParentDates(parentId, finalTasks);
+        const newProgress = computeParentProgress(parentId, finalTasks);
+        finalTasks = finalTasks.map(t =>
+          t.id === parentId
+            ? { ...t, startDate: newDates.startDate.toISOString().split('T')[0], endDate: newDates.endDate.toISOString().split('T')[0], progress: newProgress }
+            : t
+        );
+      });
+
+      return finalTasks;
     });
     // Notify external consumer
     onCascade?.(cascadedTasks);
