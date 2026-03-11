@@ -517,6 +517,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       setEditingProgress(false);
     }, []);
 
+    const handleProgressAdjust = useCallback((delta: number) => {
+      setProgressValue((current) => Math.max(0, Math.min(100, current + delta)));
+    }, []);
+
     const handleProgressKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
       e.stopPropagation(); // Prevent row-level keyboard handler from interfering
       if (e.key === 'Enter') {
@@ -788,18 +792,44 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         {/* Progress column */}
         <div className="gantt-tl-cell gantt-tl-cell-progress" onClick={handleProgressClick}>
           {editingProgress && (
-            <Input
-              ref={progressInputRef}
-              type="number"
-              min={0}
-              max={100}
-              value={progressValue}
-              onChange={(e) => setProgressValue(parseInt(e.target.value) || 0)}
-              onBlur={handleProgressSave}
-              onKeyDown={handleProgressKeyDown}
-              className="gantt-tl-progress-input"
-              onClick={(e) => e.stopPropagation()}
-            />
+            <div className="gantt-tl-progress-editor" onClick={(e) => e.stopPropagation()}>
+              <Input
+                ref={progressInputRef}
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                value={progressValue}
+                onChange={(e) => setProgressValue(parseInt(e.target.value, 10) || 0)}
+                onBlur={handleProgressSave}
+                onKeyDown={handleProgressKeyDown}
+                className="gantt-tl-progress-input"
+              />
+              <div className="gantt-tl-progress-steppers" aria-hidden="true">
+                <button
+                  type="button"
+                  className="gantt-tl-progress-stepper"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleProgressAdjust(1)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m18 15-6-6-6 6" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="gantt-tl-progress-stepper"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleProgressAdjust(-1)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           )}
           <span style={editingProgress ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
             {task.progress ? `${Math.round(task.progress)}%` : '0%'}
