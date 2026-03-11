@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { Task } from '../GanttChart';
 import type { LinkType } from '../../types';
 import { parseUTCDate } from '../../utils/dateUtils';
-import { computeLagFromDates, isTaskParent } from '../../utils/dependencyUtils';
+import { computeLagFromDates, isTaskParent, findParentId } from '../../utils/dependencyUtils';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
@@ -505,7 +505,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       const currentIndex = allTasks.findIndex(t => t.id === task.id);
       if (currentIndex > 0) {
         const previousTask = allTasks[currentIndex - 1];
-        onDemoteTask?.(task.id, previousTask.id);
+        // Smart demote: if previous task has a parent, use that parent (sibling behavior)
+        // Otherwise, use previous task as parent (child behavior)
+        const targetParentId = previousTask.parentId || previousTask.id;
+        onDemoteTask?.(task.id, targetParentId);
       }
     }, [task.id, allTasks, onDemoteTask]);
 
