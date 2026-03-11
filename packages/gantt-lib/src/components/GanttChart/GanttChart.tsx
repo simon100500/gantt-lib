@@ -423,6 +423,19 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
         // Update each parent's dates and progress
         parentIdsToUpdate.forEach(parentId => {
+          // Skip recomputing dates for the updated task itself if it's a parent
+          // The user's manual drag/resize position should be preserved
+          if (parentId === updatedTask.id) {
+            // Still update progress from children, but not dates
+            const newProgress = computeParentProgress(parentId, finalTasks);
+            finalTasks = finalTasks.map(t =>
+              t.id === parentId
+                ? { ...t, progress: newProgress }
+                : t
+            );
+            return;
+          }
+
           const newDates = computeParentDates(parentId, finalTasks);
           const newProgress = computeParentProgress(parentId, finalTasks);
           finalTasks = finalTasks.map(t =>
@@ -619,6 +632,11 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       const cascadeMap = new Map(cascadedTasks.map(t => [t.id, t]));
       let finalTasks = currentTasks.map(t => cascadeMap.get(t.id) ?? t);
 
+      // The first task in cascadedTasks is always the dragged task (from useTaskDrag.ts)
+      // If the dragged task is a parent, its dates should NOT be recomputed from children
+      // because the user explicitly positioned it. Children should follow the parent.
+      const draggedTaskId = cascadedTasks[0]?.id;
+
       // Update parent dates for any cascaded tasks that have parents
       // Collect parent IDs that need updating
       const parentIdsToUpdate = new Set<string>();
@@ -630,6 +648,19 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
       // Update each parent's dates and progress
       parentIdsToUpdate.forEach(parentId => {
+        // Skip recomputing dates for the dragged task itself
+        // The user's manual drag position should be preserved
+        if (parentId === draggedTaskId) {
+          // Still update progress from children, but not dates
+          const newProgress = computeParentProgress(parentId, finalTasks);
+          finalTasks = finalTasks.map(t =>
+            t.id === parentId
+              ? { ...t, progress: newProgress }
+              : t
+          );
+          return;
+        }
+
         const newDates = computeParentDates(parentId, finalTasks);
         const newProgress = computeParentProgress(parentId, finalTasks);
         finalTasks = finalTasks.map(t =>

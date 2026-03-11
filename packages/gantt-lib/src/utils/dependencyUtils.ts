@@ -240,6 +240,8 @@ export function getSuccessorChain(
  * - FF/SF: constraintDate = new end of successor (duration preserved)
  *
  * Locked tasks break the chain.
+ * Also cascades hierarchy children when a parent moves (when parent moves by
+ * dependency link, children must move with it to maintain parent-child relationship).
  * Returns only the cascaded successors (not the moved task itself).
  */
 export function cascadeByLinks(
@@ -262,6 +264,38 @@ export function cascadeByLinks(
     const currentId = queue.shift()!;
     const { start: predStart, end: predEnd } = updatedDates.get(currentId)!;
 
+    // First, cascade hierarchy children of the current task if it's a parent
+    const children = getChildren(currentId, allTasks);
+    for (const child of children) {
+      if (visited.has(child.id) || child.locked) continue;
+
+      // When a parent moves, its children move by the same delta
+      const origStart = new Date(child.startDate as string);
+      const origEnd = new Date(child.endDate as string);
+      const durationMs = origEnd.getTime() - origStart.getTime();
+
+      const parentOrig = taskById.get(currentId)!;
+      const parentOrigStart = new Date(parentOrig.startDate as string);
+      const parentOrigEnd = new Date(parentOrig.endDate as string);
+
+      // Calculate delta from parent's original to new position
+      const parentStartDelta = predStart.getTime() - parentOrigStart.getTime();
+      const parentEndDelta = predEnd.getTime() - parentOrigEnd.getTime();
+
+      const newChildStart = new Date(origStart.getTime() + parentStartDelta);
+      const newChildEnd = new Date(origEnd.getTime() + parentEndDelta);
+
+      visited.add(child.id);
+      updatedDates.set(child.id, { start: newChildStart, end: newChildEnd });
+      result.push({
+        ...child,
+        startDate: newChildStart.toISOString().split('T')[0],
+        endDate: newChildEnd.toISOString().split('T')[0],
+      });
+      queue.push(child.id);
+    }
+
+    // Then, cascade dependency successors
     for (const task of allTasks) {
       if (visited.has(task.id) || !task.dependencies || task.locked) continue;
 
@@ -308,6 +342,9 @@ export function cascadeByLinks(
  *
  * Direct successors of the changed task are filtered by firstLevelLinkTypes.
  * Their successors (and so on) are included regardless of link type.
+ *
+ * Also includes hierarchy children of any parent task in the chain - when a parent
+ * moves via dependency cascade, its children must move with it.
  */
 export function getTransitiveCascadeChain(
   changedTaskId: string,
@@ -334,6 +371,17 @@ export function getTransitiveCascadeChain(
 
   while (queue.length > 0) {
     const current = queue.shift()!;
+
+    // Add hierarchy children of the current task if it's a parent
+    const children = getChildren(current.id, allTasks);
+    for (const child of children) {
+      if (!visited.has(child.id)) {
+        visited.add(child.id);
+        chain.push(child);
+        queue.push(child);
+      }
+    }
+
     const successors = allTypesSuccessorMap.get(current.id) ?? [];
     for (const successor of successors) {
       if (!visited.has(successor.id)) {
