@@ -234,10 +234,11 @@
   height: var(--gantt-parent-bar-height, 14px) !important;
   border-radius: var(--gantt-parent-bar-radius, 8px) var(--gantt-parent-bar-radius, 8px) 0 0;
   position: relative;
-  overflow: visible; /* Allow trapezoid ears to extend below the bar */
+  overflow: visible;
+  /* Allow trapezoid ears to extend below the bar */
   /* Center the entire shape (bar + ears) vertically */
   /* Total height = 14px (bar) + 8px (ears) = 22px, midpoint at 11px from top */
-  top: calc(50% - 11px);
+  top: calc(50% - 18px);
   transform: none;
 }
 
@@ -260,16 +261,4 @@
 .gantt-tr-parentBar::after {
   right: 0;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 40% 100%);
-}
-
-/* Parent icon (folder) positioned left of bar */
-.gantt-tr-parentIcon {
-  position: absolute;
-  left: -24px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: var(--gantt-parent-icon-color, #6366f1);
-  pointer-events: none;
 }
