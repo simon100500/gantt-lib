@@ -4,6 +4,7 @@
 
 :root {
   --gantt-task-bar-border-radius: 6px;
+  --gantt-milestone-size: 24px;
 }
 
 .gantt-tr-row {
@@ -261,4 +262,30 @@
 .gantt-tr-parentBar::after {
   right: 0;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 40% 100%);
+}
+
+/* ============================================================================
+   Milestone Diamond Styles (Quick 096)
+   ============================================================================ */
+
+/* Milestone diamond shape: rotate square 45 degrees */
+.gantt-tr-milestone {
+  /* Diamond shape: rotate square 45 degrees */
+  transform: translateY(-50%) rotate(45deg);
+  /* Reset border-radius for diamond shape */
+  border-radius: 2px;
+}
+
+/* Diamond hover state - same shadow as regular bars */
+.gantt-tr-milestone:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Diamond dragging state - maintain rotation and disable transition */
+.gantt-tr-milestone.gantt-tr-dragging {
+  /* Maintain rotation during drag */
+  transform: translateY(-50%) rotate(45deg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+  transition: none !important;
 }
