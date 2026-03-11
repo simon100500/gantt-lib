@@ -5,7 +5,7 @@ milestone_name: milestone
 status: in_progress
 stopped_at: "Completed quick-094: Virtual dependency links (partial - cascade investigation pending)"
 last_updated: "2026-03-11T14:36:55.452Z"
-last_activity: "2026-03-11 - Completed quick task 91: создай стиль для родиельской задачи как в d:\Projects\gantt-lib\.planning\parent-prototype.html"
+last_activity: "2026-03-11 - Completed quick task 94: Virtual dependency links for collapsed parent tasks (partial - cascade investigation pending)"
 progress:
   total_phases: 19
   completed_phases: 18
@@ -694,6 +694,7 @@ None yet.
 | 91 | создай стиль для родиельской задачи как в d:\Projects\gantt-lib\.planning\parent-prototype.html | 2026-03-11 | 818e636 | [91-d-projects-gantt-lib-planning-parent-pro](./quick/91-d-projects-gantt-lib-planning-parent-pro/) |
 | 92 | Change task grouping behavior for smart hierarchy inference | 2026-03-11 | fd28870 | [092-change-task-grouping](./quick/092-change-task-grouping/) |
 | 93 | Change hierarchy button to single arrow icon (SVG, no lucide) | 2026-03-11 | ec9b5f4 | [093-promote-demote-to-arrows](./quick/093-promote-demote-to-arrows/) |
+| 94 | Virtual dependency links for collapsed parent tasks (partial - internal deps filtered, cascade investigation pending) | 2026-03-11 | d4a8db5 | [094-virtual-dependency-links](./quick/094-virtual-dependency-links/) |
 
 ## Session Continuity
 
