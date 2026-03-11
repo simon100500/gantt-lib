@@ -1077,4 +1077,74 @@ describe('useTaskDrag', () => {
       });
     });
   });
+
+  describe('Collapsed parent cascade (bug: collapsed-parent-hard-dependency-cascade)', () => {
+    const parentTasks = [
+      {
+        id: 'parent',
+        name: 'Parent',
+        startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+        endDate: new Date(Date.UTC(2026, 1, 15)).toISOString(),
+      },
+      {
+        id: 'child-1',
+        name: 'Hidden child',
+        startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+        endDate: new Date(Date.UTC(2026, 1, 15)).toISOString(),
+        parentId: 'parent',
+      },
+      {
+        id: 'task-2',
+        name: 'External successor',
+        startDate: new Date(Date.UTC(2026, 1, 16)).toISOString(),
+        endDate: new Date(Date.UTC(2026, 1, 20)).toISOString(),
+        dependencies: [{ taskId: 'child-1', type: 'FS' as const, lag: 0 }],
+      },
+    ];
+
+    it('should cascade strict successor when moving a parent with dependent hidden children', () => {
+      const onCascade = vi.fn();
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          taskId: 'parent',
+          allTasks: parentTasks,
+          disableConstraints: false,
+          onCascade,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 240 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 360 + 120,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 360 + 120 + 80 }));
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      waitFor(() => {
+        expect(onCascade).toHaveBeenCalledTimes(1);
+        const [cascadedTasks] = onCascade.mock.calls[0];
+
+        const child = cascadedTasks.find((t: { id: string }) => t.id === 'child-1');
+        expect(new Date(child.startDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 12)).toISOString());
+        expect(new Date(child.endDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 17)).toISOString());
+
+        const successor = cascadedTasks.find((t: { id: string }) => t.id === 'task-2');
+        expect(new Date(successor.startDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 18)).toISOString());
+        expect(new Date(successor.endDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 22)).toISOString());
+      });
+    });
+  });
 });

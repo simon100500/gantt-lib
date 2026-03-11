@@ -6,6 +6,7 @@ import {
   validateDependencies,
   getAllDependencyEdges,
   getSuccessorChain,
+  getTransitiveCascadeChain,
   removeDependenciesBetweenTasks,
   findParentId,
 } from '../utils/dependencyUtils';
@@ -294,6 +295,37 @@ describe('dependencyUtils', () => {
       const fsOnlyTasks = [taskA, taskB];
       const result2 = getSuccessorChain('A', fsOnlyTasks, ['SS']);
       expect(result2).toEqual([]);
+    });
+  });
+
+  describe('getTransitiveCascadeChain', () => {
+    it('includes parent children before traversing their external successors', () => {
+      const tasks: Task[] = [
+        {
+          id: 'parent',
+          name: 'Parent',
+          startDate: '2026-01-01',
+          endDate: '2026-01-10',
+        },
+        {
+          id: 'child',
+          name: 'Hidden child',
+          startDate: '2026-01-02',
+          endDate: '2026-01-04',
+          parentId: 'parent',
+        },
+        {
+          id: 'successor',
+          name: 'External successor',
+          startDate: '2026-01-05',
+          endDate: '2026-01-07',
+          dependencies: [{ taskId: 'child', type: 'FS', lag: 0 }],
+        },
+      ];
+
+      const result = getTransitiveCascadeChain('parent', tasks, ['FS', 'SS', 'FF', 'SF']);
+
+      expect(result.map(task => task.id)).toEqual(['child', 'successor']);
     });
   });
 

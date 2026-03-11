@@ -364,10 +364,15 @@ export function getTransitiveCascadeChain(
     }
   }
 
+  const directChildren = getChildren(changedTaskId, allTasks);
   const directSuccessors = getSuccessorChain(changedTaskId, allTasks, firstLevelLinkTypes);
-  const chain = [...directSuccessors];
-  const visited = new Set<string>([changedTaskId, ...directSuccessors.map(t => t.id)]);
-  const queue = [...directSuccessors];
+  const initialChain = [...directChildren, ...directSuccessors].filter((task, index, arr) =>
+    arr.findIndex(candidate => candidate.id === task.id) === index
+  );
+
+  const chain = [...initialChain];
+  const visited = new Set<string>([changedTaskId, ...initialChain.map(t => t.id)]);
+  const queue = [...initialChain];
 
   while (queue.length > 0) {
     const current = queue.shift()!;
