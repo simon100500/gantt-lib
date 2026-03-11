@@ -270,7 +270,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               left: `${displayLeft}px`,
               width: `${displayWidth}px`,
               ...parentBarStyle,
-              height: 'var(--gantt-task-bar-height)',
+              height: isParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
               cursor: dragHandleProps.style.cursor,
               userSelect: dragHandleProps.style.userSelect,
             }}
