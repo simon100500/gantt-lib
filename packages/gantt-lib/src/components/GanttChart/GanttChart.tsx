@@ -507,7 +507,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       }
       return updated;
     });
-    onReorder?.(reorderedTasks);
+    onReorder?.(reorderedTasks, movedTaskId, inferredParentId);
   }, [onChange, onReorder]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
