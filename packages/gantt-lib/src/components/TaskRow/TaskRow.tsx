@@ -75,6 +75,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.color === nextProps.task.color &&
     prevProps.task.progress === nextProps.task.progress &&
     prevProps.task.accepted === nextProps.task.accepted &&
+    prevProps.task.type === nextProps.task.type &&
     prevProps.monthStart.getTime() === nextProps.monthStart.getTime() &&
     prevProps.dayWidth === nextProps.dayWidth &&
     prevProps.rowHeight === nextProps.rowHeight &&
@@ -112,6 +113,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const childCount = useMemo(() => {
       return allTasks ? getChildren(task.id, allTasks).length : 0;
     }, [allTasks, task.id]);
+
+    // Milestone detection
+    const isMilestone = task.type === 'milestone';
 
     // Calculate expiration status for overdue tasks
     const isExpired = useMemo(() => {
@@ -256,6 +260,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const estimatedTextWidth = durationDays >= 10 ? 76 : 62; // "15 д 100%" = ~76px, "1 д 100%" = ~62px
     const showProgressInside = progressWidth > 0 && displayWidth > estimatedTextWidth;
 
+    // Milestone diamond size and positioning
+    const diamondSize = 24; // Fixed size for milestone diamond
+    const diamondLeft = isMilestone
+      ? displayLeft + (displayWidth - diamondSize) / 2
+      : displayLeft;
+
     return (
       <div
         className="gantt-tr-row"
@@ -263,39 +273,57 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       >
         {taskDivider === 'top' && <div className="gantt-tr-divider gantt-tr-divider-top" />}
         <div className="gantt-tr-taskContainer">
-          <div
-            data-taskbar
-            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${isParent ? 'gantt-tr-parentBar' : ''}`}
-            style={{
-              left: `${displayLeft}px`,
-              width: `${displayWidth}px`,
-              ...parentBarStyle,
-              height: isParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
-              cursor: dragHandleProps.style.cursor,
-              userSelect: dragHandleProps.style.userSelect,
-            }}
-            onMouseDown={dragHandleProps.onMouseDown}
-          >
-            {progressWidth > 0 && (
-              <div
-                className="gantt-tr-progressBar"
-                style={{
-                  width: `${progressWidth}%`,
-                  backgroundColor: progressColor,
-                }}
-              />
-            )}
-            {!isParent && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
-            <span className="gantt-tr-taskDuration">
-              {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
-            </span>
-            {progressWidth > 0 && showProgressInside && (
-              <span className="gantt-tr-progressText">
-                {progressWidth}%
+          {isMilestone ? (
+            // Milestone diamond
+            <div
+              data-taskbar
+              className={`gantt-tr-taskBar gantt-tr-milestone ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''}`}
+              style={{
+                left: `${diamondLeft}px`,
+                width: `${diamondSize}px`,
+                height: `${diamondSize}px`,
+                backgroundColor: barColor,
+                cursor: dragHandleProps.style.cursor,
+                userSelect: dragHandleProps.style.userSelect,
+              }}
+              onMouseDown={dragHandleProps.onMouseDown}
+            />
+          ) : (
+            // Regular rectangular task bar
+            <div
+              data-taskbar
+              className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${isParent ? 'gantt-tr-parentBar' : ''}`}
+              style={{
+                left: `${displayLeft}px`,
+                width: `${displayWidth}px`,
+                ...parentBarStyle,
+                height: isParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
+                cursor: dragHandleProps.style.cursor,
+                userSelect: dragHandleProps.style.userSelect,
+              }}
+              onMouseDown={dragHandleProps.onMouseDown}
+            >
+              {progressWidth > 0 && (
+                <div
+                  className="gantt-tr-progressBar"
+                  style={{
+                    width: `${progressWidth}%`,
+                    backgroundColor: progressColor,
+                  }}
+                />
+              )}
+              {!isParent && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
+              <span className="gantt-tr-taskDuration">
+                {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
               </span>
-            )}
-            {!isParent && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
-          </div>
+              {progressWidth > 0 && showProgressInside && (
+                <span className="gantt-tr-progressText">
+                  {progressWidth}%
+                </span>
+              )}
+              {!isParent && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
+            </div>
+          )}
           <div
             className={`gantt-tr-leftLabels ${task.locked ? 'gantt-tr-leftLabels-locked' : ''}`}
             style={{
@@ -330,7 +358,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           <div
             className="gantt-tr-rightLabels"
             style={{
-              left: `${displayLeft + displayWidth}px`,
+              left: isMilestone ? `${diamondLeft + diamondSize}px` : `${displayLeft + displayWidth}px`,
             }}
           >
             {progressWidth > 0 && !showProgressInside && (
