@@ -56,6 +56,36 @@ function findVisibleAncestor(
   return null;
 }
 
+/**
+ * Check if two tasks share the same collapsed parent ancestor.
+ * If both predecessor and successor are hidden inside the same parent,
+ * the dependency line should NOT be rendered (it's internal to the collapsed group).
+ */
+function areBothHiddenInSameParent(
+  predecessorId: string,
+  successorId: string,
+  collapsedParentIds: Set<string>,
+  taskMap: Map<string, Task>
+): boolean {
+  const predTask = taskMap.get(predecessorId);
+  const succTask = taskMap.get(successorId);
+
+  if (!predTask || !succTask) return false;
+
+  // Both must have parentIds
+  if (!predTask.parentId || !succTask.parentId) return false;
+
+  // Find the visible ancestor (collapsed parent) for each
+  const predVisibleAncestor = findVisibleAncestor(predTask, collapsedParentIds, taskMap);
+  const succVisibleAncestor = findVisibleAncestor(succTask, collapsedParentIds, taskMap);
+
+  // Both must be hidden (have visible ancestors)
+  if (!predVisibleAncestor || !succVisibleAncestor) return false;
+
+  // Check if they share the same collapsed parent
+  return predVisibleAncestor.id === succVisibleAncestor.id;
+}
+
 export interface DependencyLinesProps {
   /** Visible tasks only (for row calculation) */
   tasks: Task[];
@@ -206,6 +236,15 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
       if (!predecessor || !successor) {
         continue; // Skip if task not found (shouldn't happen with validation)
+      }
+
+      // Check if both tasks are hidden inside the same collapsed parent
+      // If so, skip rendering this line (it's internal to the collapsed group)
+      if (allTasks && collapsedParentIds.size > 0) {
+        const taskMap = new Map(allTasks.map(t => [t.id, t]));
+        if (areBothHiddenInSameParent(edge.predecessorId, edge.successorId, collapsedParentIds, taskMap)) {
+          continue;
+        }
       }
 
       // Check if either endpoint is virtual (hidden task)
