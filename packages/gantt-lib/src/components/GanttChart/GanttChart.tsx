@@ -4,7 +4,7 @@ import React, { useMemo, useCallback, useRef, useState, useEffect, useImperative
 import { getMultiMonthDays } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks } from '../../utils/dependencyUtils';
-import type { ValidationResult } from '../../types';
+import type { ValidationResult, Task, TaskType } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
@@ -15,68 +15,9 @@ import { TaskList } from '../TaskList';
 import './GanttChart.css';
 
 /**
- * Task data structure for Gantt chart
+ * Re-export Task and TaskDependency from central types for consumer convenience
  */
-export interface Task {
-  /** Unique identifier for the task */
-  id: string;
-  /** Display name of the task */
-  name: string;
-  /** Task start date (ISO string or Date object) */
-  startDate: string | Date;
-  /** Task end date (ISO string or Date object) */
-  endDate: string | Date;
-  /** Optional color for task bar visualization */
-  color?: string;
-  /** Optional parent task ID for hierarchy relationship */
-  parentId?: string;
-  /**
-   * Optional progress value from 0-100
-   * - Decimal values are allowed and rounded to nearest integer for display
-   * - Values are clamped to 0-100 range
-   * - Undefined or 0 means no progress is displayed
-   * - Progress is visual-only, no user interaction
-   */
-  progress?: number;
-  /**
-   * Optional flag indicating if task is accepted
-   * - Only meaningful when progress is 100%
-   * - Affects the color of the progress bar (green for accepted, yellow for completed)
-   */
-  accepted?: boolean;
-  /**
-   * Optional array of task dependencies
-   * - Each dependency references a predecessor task by ID
-   * - Supports 4 link types: FS (finish-to-start), SS (start-to-start), FF (finish-to-finish), SF (start-to-finish)
-   * - Lag is optional and defaults to 0 (positive = delay, negative = overlap)
-   */
-  dependencies?: TaskDependency[];
-  /**
-   * Optional flag to prevent drag and resize interactions.
-   * When true, the task bar cannot be moved or resized.
-   * Independent of accepted/progress — consumer controls both separately.
-   */
-  locked?: boolean;
-  /**
-   * Optional horizontal divider line for visual grouping.
-   * - 'top' renders a bold line above the task row
-   * - 'bottom' renders a bold line below the task row
-   * The line spans the full grid width.
-   */
-  divider?: 'top' | 'bottom';
-}
-
-/**
- * Task dependency definition
- */
-export interface TaskDependency {
-  /** ID of the predecessor task */
-  taskId: string;
-  /** Link type: FS, SS, FF, or SF */
-  type: 'FS' | 'SS' | 'FF' | 'SF';
-  /** Optional lag in days (default: 0) */
-  lag?: number;
-}
+export type { Task, TaskDependency, TaskType } from '../../types';
 
 export interface GanttChartProps {
   /** Array of tasks to display */
