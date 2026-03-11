@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2] - 2026-03-11
+
+### Fixes
+- Derive parent task dates from children (auto-stretch parent to encompass all children)
+
 ## [0.6.1] - 2026-03-11
 
 ### Fixes
