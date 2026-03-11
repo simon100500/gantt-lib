@@ -84,7 +84,7 @@
 
 .gantt-tl-row-parent {
   font-weight: 600;
-  background-color: var(--gantt-parent-row-bg, rgba(139, 92, 246, 0.15));
+  background-color: var(--gantt-parent-row-bg, rgba(139, 92, 246, 0.35));
 }
 
 .gantt-tl-collapse-btn {
