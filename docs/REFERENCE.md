@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.4.1
+**Version:** 0.6.0
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
@@ -10,7 +10,7 @@
 | Property | Value |
 |---|---|
 | Package name | `gantt-lib` |
-| Version | `0.4.0` |
+| Version | `0.6.0` |
 | NPM install | `npm install gantt-lib` |
 | Peer dependencies | `react >= 18`, `react-dom >= 18` |
 | CSS import (REQUIRED) | `import 'gantt-lib/styles.css'` |
@@ -567,6 +567,12 @@ Override these in any global CSS file to customize the chart appearance. All ove
 | `--gantt-today-indicator-color` | `#ef4444` | Color of the vertical "today" line |
 | `--gantt-today-indicator-width` | `2px` | Width of the vertical "today" line |
 | `--gantt-container-border-radius` | `0px` | Border radius of the chart container element |
+| `--gantt-parent-bar-color` | `#782fc4` | Color of parent task bars (gradient top section) |
+| `--gantt-parent-bar-height` | `20px` | Height of parent task bar top section |
+| `--gantt-parent-bar-radius` | `8px` | Corner radius of parent task bar top section |
+| `--gantt-parent-ear-depth` | `6px` | Depth of trapezoid "ear" extensions on parent bars |
+| `--gantt-parent-ear-width` | `8px` | Width of trapezoid "ear" extensions on parent bars |
+| `--gantt-parent-row-bg` | `rgba(99, 102, 241, 0.05)` | Background color of parent rows in task list (subtle indigo tint) |
 
 ---
 
@@ -765,18 +771,22 @@ const tasks: Task[] = [
 
 **Task Hierarchy (Parent-Child Relationships)**
 - Set `parentId` on a task to make it a child of another task.
-- Parent tasks display with a gradient background (indigo to violet) and a collapse/expand button (-/+).
-- Child tasks are indented in the task list and show a "⬆" button to promote (remove parentId).
-- Root tasks show a "⬇" button to demote (become a child of the previous task).
+- **Parent task bar styling:** Displays with MS Project-style bracket appearance — rounded top bar with trapezoid "ear" extensions on left and right sides. The color is controlled by `--gantt-parent-bar-color` (default: purple #782fc4).
+- **Parent row background:** Task list rows for parents display with subtle indigo tint (`--gantt-parent-row-bg`). This helps visually distinguish parent tasks from root and child tasks.
+- **Collapse/expand:** Parent tasks show a collapse/expand button (-/+) in the task list. When collapsed, children are hidden from both the task list and the chart.
+- **Virtual dependency links:** When a parent is collapsed, dependency lines from hidden children connect to/from the parent's bar edges, maintaining visual continuity of the project network.
+- **Child tasks:** Indented in the task list with "⬆" button to promote (remove parentId).
+- **Root tasks:** Show "⬇" button to demote (become a child of the previous task).
 - **Drag-and-drop parent inference:** When dragging a task between child tasks, it automatically inherits their parent. If neither task above nor below has a parent, the task becomes root-level.
 - **Promote behavior:** Clicking "⬆" moves the task after the last sibling of its current parent and removes `parentId`.
 - **Demote behavior:** Clicking "⬇" makes the task a child of the previous task. If the previous task is already a child, the task becomes a sibling (same parent).
 - **Implement `onReorder`:** The callback receives `(reorderedTasks, movedTaskId, inferredParentId)`. Update `parentId` of `movedTaskId` to `inferredParentId` (or remove `parentId` if `inferredParentId` is undefined).
 - **Implement `onPromoteTask`:** Remove `parentId` and optionally reposition the task after its last sibling.
-- **Implement `onDemoteTask`:** Set `parentId` to the specified parent task ID.
-- Parent task dates are automatically computed as the min/max of all child dates.
-- Parent task progress is calculated as a weighted average based on child task durations.
-- Deleting a parent task also deletes all its descendants (cascade delete).
+- **Implement `onDemoteTask`:** Set `parentId` to the specified parent task ID. The library automatically removes dependencies between the two tasks to prevent circular references.
+- **Parent date computation:** Parent task dates are automatically computed as the min/max of all child dates. When children are added/removed/moved, parent dates update automatically.
+- **Parent progress calculation:** Computed as a weighted average based on child task durations (longer children have more influence on parent progress).
+- **Cascade delete:** Deleting a parent task also deletes all its descendants (children and their children). The library also cleans up dependencies pointing to any deleted tasks.
+- **Controlled collapse mode:** Pass `collapsedParentIds` Set and `onToggleCollapse` callback to control collapse state from parent component. Omit these props for uncontrolled mode (internal state).
 
 ---
 
@@ -819,3 +829,10 @@ import 'gantt-lib/styles.css';
 | `disableConstraints={true}` | Drag freely ignores all FS/SS/FF/SF constraints. Validation still runs and reports via `onValidateDependencies`. |
 | Two tasks with the same `id` | Undefined behavior — cascade and validation operate on the first match. Always use unique IDs. |
 | `dayWidth` below 20 | Day labels in the header become illegible but no error is thrown. Layout still functions. |
+| Circular hierarchy (A is parent of B, B is parent of A) | Prevented by `onDemoteTask` — the library detects circular dependencies and blocks the operation. The task remains unchanged. |
+| Deleting a parent task | All descendants (children and their children) are also deleted. This is cascade delete behavior. |
+| Parent task with no children | Parent displays with its manually set dates (or defaults to current date). Progress is 0 if no children exist. |
+| Moving a collapsed parent | All hidden children move with the parent by the same delta. Dependency successors of collapsed children also cascade appropriately. |
+| Virtual dependency links | When a parent is collapsed, dependency lines from hidden children connect to/from the parent's edges for visual continuity. |
+
+---
