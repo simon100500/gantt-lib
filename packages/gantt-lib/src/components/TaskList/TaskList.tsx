@@ -66,14 +66,14 @@ export interface TaskListProps {
 /**
  * TaskList component - displays tasks in a table format as an overlay
  *
- * Renders a table with columns: № (number), Name, Start Date, End Date, Dependencies
+ * Renders a table with columns: № (number), Name, Start Date, End Date, Duration, Progress, Dependencies
  * Uses position: sticky for synchronized vertical scrolling with the chart.
  */
 export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   rowHeight,
   headerHeight,
-  taskListWidth = 542,
+  taskListWidth = 594,
   onTaskChange,
   selectedTaskId,
   onTaskSelect,
@@ -506,6 +506,7 @@ export const TaskList: React.FC<TaskListProps> = ({
           <div className="gantt-tl-headerCell gantt-tl-cell-name">Имя</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Начало</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Окончание</div>
+          <div className="gantt-tl-headerCell gantt-tl-cell-duration">Дн.</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-progress">%</div>
           {/* Dependencies column header with type switcher */}
           <div className="gantt-tl-headerCell gantt-tl-cell-deps" style={{ position: 'relative' }}>
