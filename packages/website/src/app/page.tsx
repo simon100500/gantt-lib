@@ -732,6 +732,7 @@ export default function Home() {
         parentId: 'hierarchy-1',
         startDate: formatDate(addDays(baseDate, 5)),
         endDate: formatDate(addDays(addDays(baseDate, 5), 5)), // Mar 6 - Mar 11
+        dependencies: [{ taskId: 'hierarchy-1-1', type: 'FS' as const, lag: 0 }],
         progress: 60,
         accepted: false,
       },
