@@ -14,15 +14,15 @@ user_setup: []
 
 must_haves:
   truths:
-    - "Single hierarchy button appears on hover in name cell"
-    - "Left arrow (←) promotes task to root level"
-    - "Right arrow (→) demotes task to child of previous task"
-    - "Only one button shown per task (not two separate buttons)"
+    - "Single button appears on hover in name cell (not two buttons)"
+    - "Root task shows RIGHT arrow (ChevronRight icon) for demote"
+    - "Child task shows LEFT arrow (ChevronLeft icon) for promote"
+    - "Button uses lucide-react icons (ChevronLeft, ChevronRight)"
     - "Button disabled when action not available (first row, parent tasks)"
   artifacts:
     - path: "packages/gantt-lib/src/components/TaskList/TaskListRow.tsx"
-      provides: "Hierarchy button component with left/right arrows"
-      contains: "hierarchy button with ←/→"
+      provides: "Hierarchy button component with single icon (left OR right)"
+      contains: "lucide-react ChevronLeft and ChevronRight icons"
     - path: "packages/gantt-lib/src/components/TaskList/TaskList.css"
       provides: "Styling for single hierarchy button"
       contains: ".gantt-tl-action-hierarchy"
@@ -34,10 +34,10 @@ must_haves:
 ---
 
 <objective>
-Replace separate "Повысить" and "Понизить" buttons with a single button showing left/right arrows (←/→) for hierarchy navigation.
+Replace separate "Повысить" and "Понизить" buttons with a SINGLE button showing EITHER left arrow (for promote) OR right arrow (for demote) using lucide-react icons.
 
-Purpose: Simplify UI for non-multi-level hierarchy - use standard arrow indicators instead of text buttons, reducing visual clutter while maintaining functionality.
-Output: Single hierarchy button with directional arrows that appears on hover.
+Purpose: Simplify UI for non-multi-level hierarchy - use standard arrow indicators instead of text buttons, reducing visual clutter while maintaining functionality. Only ONE button visible per task, icon changes based on task state.
+Output: Single hierarchy button with directional icon that appears on hover.
 </objective>
 
 <execution_context>
@@ -48,118 +48,138 @@ Output: Single hierarchy button with directional arrows that appears on hover.
 <context>
 @.planning/quick/092-change-task-grouping/092-SUMMARY.md
 
-# Current implementation (from TaskListRow.tsx lines 674-696)
-- Promote button: `⬆ Повысить` (shown when `isChild && onPromoteTask`)
-- Demote button: `⬇ Понизить` (shown when `!isParent && onDemoteTask`)
-- Both use `gantt-tl-name-action-btn` class with inline styles
-- Existing handlers: `handlePromote` (line 497) and `handleDemote` (line 502)
+# Current implementation (from TaskListRow.tsx lines 55-112)
+- HierarchyButton component renders BOTH left and right arrows in a container
+- Uses HTML entities `&larr;` and `&rarr;` (not lucide-react icons)
+- Disabled arrows are hidden via CSS (`display: none`)
+- This is WRONG - user wants ONE button showing EITHER left OR right icon
 </context>
 
 <tasks>
 
 <task type="auto">
-  <name>Task 1: Create single hierarchy button component</name>
+  <name>Task 1: Fix HierarchyButton to show ONE icon (left OR right, not both)</name>
   <files>packages/gantt-lib/src/components/TaskList/TaskListRow.tsx</files>
   <action>
-    Create a new HierarchyButton component (inside TaskListRow.tsx before main component) that:
-    - Accepts props: `isChild`, `isParent`, `onPromote`, `onDemote`, `rowIndex`
-    - Shows a single button with left arrow "←" when task can be promoted (isChild)
-    - Shows a single button with right arrow "→" when task can be demoted (!isParent && rowIndex > 0)
-    - Button uses existing `gantt-tl-name-action-btn gantt-tl-action-hierarchy` classes
-    - Click on left arrow calls `onPromote`, right arrow calls `onDemote`
-    - Button disabled when neither action available (first row demote, parent task promote is always available if child)
-    - Position: Replace existing promote/demote buttons (lines 674-696) with single HierarchyButton instance
+    Rewrite the HierarchyButton component (lines 55-112) to:
 
-    Implementation notes:
-    - Use two separate arrow spans/buttons within single container for better click targets
-    - Left arrow: `←` (promote to root), Right arrow: `→` (demote to child)
-    - Each arrow can be independently disabled based on context
-    - Maintain hover-reveal behavior via existing `gantt-tl-name-action-btn` class
+    1. Import lucide-react icons at top of file:
+       ```typescript
+       import { ChevronLeft, ChevronRight } from 'lucide-react';
+       ```
+
+    2. Replace the entire HierarchyButton component with logic that shows ONE button with ONE icon:
+       - If `isChild` is true → show ChevronLeft icon (promote to root)
+       - If `isChild` is false and `!isParent && rowIndex > 0` → show ChevronRight icon (demote to child)
+       - If neither condition → render nothing (don't show button)
+
+    3. Single button structure:
+       ```tsx
+       const HierarchyButton: React.FC<HierarchyButtonProps> = ({
+         isChild,
+         isParent,
+         rowIndex,
+         onPromote,
+         onDemote,
+       }) => {
+         const canPromote = isChild && onPromote;
+         const canDemote = !isParent && onDemote && rowIndex > 0;
+
+         if (!canPromote && !canDemote) {
+           return null;
+         }
+
+         const handleClick = (e: React.MouseEvent) => {
+           e.stopPropagation();
+           if (canPromote) {
+             onPromote!(e);
+           } else if (canDemote) {
+             onDemote!(e);
+           }
+         };
+
+         const title = canPromote
+           ? 'Повысить (сделать корневой)'
+           : 'Понизить (сделать подчиненной)';
+
+         return (
+           <button
+             type="button"
+             className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
+             onClick={handleClick}
+             title={title}
+           >
+             {canPromote ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+           </button>
+         );
+       };
+       ```
+
+    This ensures:
+    - Only ONE button element is rendered (not two separate arrow buttons)
+    - Icon changes based on task state (ChevronLeft for children, ChevronRight for roots)
+    - Proper lucide-react icon usage with consistent sizing
   </action>
   <verify>
     <automated>MISSING — No automated test exists for UI hierarchy buttons. Manual verification only.</automated>
   </verify>
   <done>
-    Single hierarchy button with left/right arrows replaces two separate text buttons
+    Single hierarchy button with ONE icon (left OR right) replaces two-arrow implementation
   </done>
 </task>
 
 <task type="auto">
-  <name>Task 2: Add CSS styling for hierarchy button</name>
+  <name>Task 2: Update CSS for single button layout</name>
   <files>packages/gantt-lib/src/components/TaskList/TaskList.css</files>
   <action>
-    Add styles for the new hierarchy button after existing action button styles (after line 408):
+    Simplify the hierarchy button CSS (lines 409-447). Since we now have a single button (not a container with two arrow buttons), update styles to:
 
-    ```css
-    /* Single hierarchy button with left/right arrows */
-    .gantt-tl-action-hierarchy {
-      width: auto;
-      min-width: 40px;
-      padding: 2px 6px;
-      gap: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    1. Keep `.gantt-tl-action-hierarchy` for the single button:
+       ```css
+       /* Single hierarchy button with directional arrow */
+       .gantt-tl-action-hierarchy {
+         width: 20px;
+         height: 20px;
+         padding: 0;
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+       }
+       ```
 
-    /* Individual arrow buttons within hierarchy container */
-    .gantt-tl-hierarchy-arrow {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      padding: 0;
-      border: none;
-      background: transparent;
-      color: #6b7280;
-      cursor: pointer;
-      border-radius: 3px;
-      font-size: 14px;
-      line-height: 1;
-      transition: background-color 0.15s ease, color 0.15s ease;
-    }
+    2. REMOVE the following obsolete CSS classes (no longer needed):
+       - `.gantt-tl-hierarchy-arrow` (lines 420-447) - we don't have separate arrow buttons anymore
 
-    .gantt-tl-hierarchy-arrow:hover:not(:disabled) {
-      background-color: rgba(59, 130, 246, 0.1);
-      color: #3b82f6;
-    }
-
-    .gantt-tl-hierarchy-arrow:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    /* Show only available arrow - hide disabled arrows */
-    .gantt-tl-hierarchy-arrow:disabled {
-      display: none;
-    }
-    ```
-
-    Remove obsolete CSS classes if any exist for `.gantt-tl-action-promote` and `.gantt-tl-action-demote` (none currently exist - styles are inline).
+    The single button will inherit base styles from `.gantt-tl-name-action-btn` which already handles:
+    - Hover reveal (opacity 0 → 1)
+    - Base button styling
+    - Transition effects
   </action>
   <verify>
     <automated>MISSING — CSS changes verified visually during manual testing.</automated>
   </verify>
   <done>
-    Hierarchy button displays left/right arrows with proper hover states
+    Hierarchy button displays single icon with proper sizing and hover states
   </done>
 </task>
 
 <task type="checkpoint:human-verify" gate="blocking">
   <what-built>
-    Single hierarchy button with left/right arrows replacing separate promote/demote text buttons
+    Single hierarchy button with directional icon (ChevronLeft OR ChevronRight) replacing two-arrow implementation
   </what-built>
   <how-to-verify>
     1. Open the Gantt chart application
-    2. Create test tasks: Root task, Child task (demoted from root), Another root task
+    2. Create test tasks: Root task 1, Child task (demoted from root), Root task 2
     3. Hover over Child task name:
-       - Verify LEFT ARROW (←) appears and works (click → task becomes root)
+       - Verify ONLY LEFT ARROW (ChevronLeft icon) appears
+       - Click → task becomes root (promoted)
     4. Hover over root task (not first row):
-       - Verify RIGHT ARROW (→) appears and works (click → task becomes child of previous)
-    5. Verify first row has NO right arrow (demote disabled)
-    6. Verify parent tasks still show promote option if they're children
+       - Verify ONLY RIGHT ARROW (ChevronRight icon) appears
+       - Click → task becomes child of previous (demoted)
+    5. Verify first row has NO button (cannot demote)
+    6. Verify parent tasks (that are also children) show left arrow
     7. Verify hover-reveal behavior works (button only visible on row hover)
+    8. Confirm icons are proper lucide-react icons (not HTML entities)
   </how-to-verify>
   <resume-signal>Type "approved" or describe issues</resume-signal>
 </task>
@@ -167,16 +187,16 @@ Output: Single hierarchy button with directional arrows that appears on hover.
 </tasks>
 
 <verification>
-- Single button with arrows appears on hover in name cell
-- Left arrow (←) promotes child tasks to root level
-- Right arrow (→) demotes root tasks to child of previous task
-- Only one button component rendered (not two separate buttons)
-- Proper disabled states: first row cannot demote, arrows hidden when disabled
+- Single button with ONE icon appears on hover in name cell
+- Child tasks show ChevronLeft icon (promote to root level)
+- Root tasks show ChevronRight icon (demote to child of previous task)
+- Only one button element rendered per task (not two separate arrows)
+- Proper disabled states: first row shows no button, lucide-react icons used
 - Existing promote/demote functionality preserved (smart hierarchy inference from 092 still works)
 </verification>
 
 <success_criteria>
-- Hierarchy navigation works with arrow UI instead of text buttons
+- Hierarchy navigation works with single directional icon button
 - Visual clutter reduced in task name cell
 - All existing hierarchy operations (promote/demote) function identically
 </success_criteria>
