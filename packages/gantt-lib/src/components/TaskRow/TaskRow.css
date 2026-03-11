@@ -234,6 +234,7 @@
   height: var(--gantt-parent-bar-height, 14px) !important;
   border-radius: var(--gantt-parent-bar-radius, 8px) var(--gantt-parent-bar-radius, 8px) 0 0;
   position: relative;
+  overflow: visible; /* Allow trapezoid ears to extend below the bar */
 }
 
 /* Trapezoid ears for bracket appearance */
