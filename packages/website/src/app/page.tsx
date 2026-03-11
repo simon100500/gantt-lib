@@ -613,8 +613,17 @@ export default function Home() {
     });
   }, []);
 
-  const handleReorder = useCallback((reorderedTasks: Task[]) => {
-    setTasks(reorderedTasks);
+  const handleReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
+    if (movedTaskId && inferredParentId !== undefined) {
+      // Update the moved task's parentId
+      setTasks(reorderedTasks.map(t =>
+        t.id === movedTaskId
+          ? { ...t, parentId: inferredParentId || undefined }
+          : t
+      ));
+    } else {
+      setTasks(reorderedTasks);
+    }
   }, []);
 
   const exportTasksAsJson = useCallback((taskList: Task[]) => {
@@ -778,6 +787,18 @@ export default function Home() {
 
   const handleHierarchyAdd = useCallback((task: Task) => {
     setHierarchyTasks(prev => [...prev, task]);
+  }, []);
+
+  const handleHierarchyReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
+    if (movedTaskId && inferredParentId !== undefined) {
+      setHierarchyTasks(reorderedTasks.map(t =>
+        t.id === movedTaskId
+          ? { ...t, parentId: inferredParentId || undefined }
+          : t
+      ));
+    } else {
+      setHierarchyTasks(reorderedTasks);
+    }
   }, []);
 
   return (
@@ -991,6 +1012,7 @@ export default function Home() {
               tasks={hierarchyTasks}
               onChange={handleHierarchyChange}
               onAdd={handleHierarchyAdd}
+              onReorder={handleHierarchyReorder}
               dayWidth={40}
               rowHeight={40}
               containerHeight={300}
