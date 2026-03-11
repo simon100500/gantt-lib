@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1] - 2026-03-11
+
+### Fixes
+- Keep children next to parent when dragging tasks
+
+### Documentation
+- Update API reference with hierarchy features and new CSS variables
+
 ## [0.6.0] - 2026-03-11
 
 ### Features
