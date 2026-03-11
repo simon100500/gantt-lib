@@ -116,7 +116,7 @@ export interface GanttChartProps {
   /** Callback when a new task is inserted after a specific task via the task list */
   onInsertAfter?: (taskId: string, newTask: Task) => void;
   /** Callback when tasks are reordered via drag in the task list */
-  onReorder?: (tasks: Task[]) => void;
+  onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
 }
@@ -492,9 +492,21 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
    *
    * NOTE: onChange receives the full reordered array directly (not a functional updater).
    * Reordering is always a full replacement, never a diff.
+   *
+   * Extended signature: also accepts movedTaskId and inferredParentId for smart hierarchy.
    */
-  const handleReorder = useCallback((reorderedTasks: Task[]) => {
-    onChange?.(reorderedTasks);
+  const handleReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
+    onChange?.((currentTasks) => {
+      let updated = reorderedTasks;
+      if (movedTaskId && inferredParentId !== undefined) {
+        updated = updated.map(t =>
+          t.id === movedTaskId
+            ? { ...t, parentId: inferredParentId || undefined }
+            : t
+        );
+      }
+      return updated;
+    });
     onReorder?.(reorderedTasks);
   }, [onChange, onReorder]);
 

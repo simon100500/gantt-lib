@@ -46,7 +46,7 @@ export interface TaskListProps {
   /** Callback when a new task is inserted after a specific task */
   onInsertAfter?: (taskId: string, newTask: Task) => void;
   /** Callback when tasks are reordered via drag in the task list */
-  onReorder?: (tasks: Task[]) => void;
+  onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
   /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
   editingTaskId?: string | null;
   /** Enable add task button at bottom of task list (default: true) */
@@ -308,7 +308,26 @@ export const TaskList: React.FC<TaskListProps> = ({
       ? tasks.length - 1  // After last means position at last
       : originIndex < dropIndex ? dropIndex - 1 : dropIndex;
     reordered.splice(insertIndex, 0, moved);
-    onReorder?.(reordered);
+
+    // Infer parentId from context after reorder
+    let inferredParentId: string | undefined;
+    if (insertIndex > 0) {
+      const taskAbove = reordered[insertIndex - 1];
+      if (taskAbove.parentId) {
+        // Task above is a child, use its parent
+        inferredParentId = taskAbove.parentId;
+      } else {
+        // Task above is root, check if task below is child of taskAbove
+        const taskBelow = reordered[insertIndex + 1];
+        if (taskBelow?.parentId === taskAbove.id) {
+          // Task below is child of taskAbove, use taskAbove as parent
+          inferredParentId = taskAbove.id;
+        }
+      }
+    }
+    // If no parent inferred, moved task becomes root
+
+    onReorder?.(reordered, moved.id, inferredParentId);
     onTaskSelect?.(moved.id);
     setDraggingIndex(null);
     setDragOverIndex(null);
