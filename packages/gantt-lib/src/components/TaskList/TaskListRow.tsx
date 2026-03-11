@@ -698,6 +698,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               isParent ? 'gantt-tl-name-trigger-parent' : '',
               isChild ? 'gantt-tl-name-trigger-child' : '',
             ].filter(Boolean).join(' ')}
+            title={task.name}
             onClick={handleNameClick}
             onDoubleClick={handleNameDoubleClick}
             style={editingName ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}

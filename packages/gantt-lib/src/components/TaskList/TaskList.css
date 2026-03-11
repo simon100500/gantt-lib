@@ -135,12 +135,12 @@
 }
 
 .gantt-tl-cell-number {
-  width: 40px;
+  width: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0;
-  padding: 0 4px;
+  padding: 0 2px;
   flex-shrink: 0;
   cursor: pointer;
   position: relative;
@@ -170,6 +170,10 @@
 
 .gantt-tl-row:hover .gantt-tl-num-label {
   visibility: hidden;
+}
+
+.gantt-tl-num-label {
+  font-size: 0.75rem;
 }
 
 .gantt-tl-drag-handle:active {
