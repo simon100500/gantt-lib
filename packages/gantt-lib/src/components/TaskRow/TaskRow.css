@@ -231,7 +231,7 @@
 /* Parent task bar - MS Project bracket style */
 .gantt-tr-parentBar {
   background-color: var(--gantt-parent-bar-color, #333333);
-  height: var(--gantt-parent-bar-height, 14px);
+  height: var(--gantt-parent-bar-height, 14px) !important;
   border-radius: var(--gantt-parent-bar-radius, 8px) var(--gantt-parent-bar-radius, 8px) 0 0;
   position: relative;
 }
