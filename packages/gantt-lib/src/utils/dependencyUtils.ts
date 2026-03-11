@@ -514,3 +514,16 @@ export function removeDependenciesBetweenTasks(
     return task;
   });
 }
+
+/**
+ * Find the parent ID of a task.
+ * Returns the parentId of the task if found, undefined otherwise.
+ *
+ * @param taskId - ID of the task to find parent for
+ * @param tasks - All tasks array
+ * @returns Parent task ID or undefined if task is root or not found
+ */
+export function findParentId(taskId: string, tasks: Task[]): string | undefined {
+  const task = tasks.find(t => t.id === taskId);
+  return task?.parentId;
+}

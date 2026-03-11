@@ -7,6 +7,7 @@ import {
   getAllDependencyEdges,
   getSuccessorChain,
   removeDependenciesBetweenTasks,
+  findParentId,
 } from '../utils/dependencyUtils';
 import { Task } from '../types';
 
@@ -463,6 +464,53 @@ describe('dependencyUtils', () => {
         { taskId: 'C', type: 'SS' },
         { taskId: 'D', type: 'FF' },
       ]);
+    });
+  });
+
+  describe('findParentId', () => {
+    const createTask = (id: string, parentId?: string): Task => ({
+      id,
+      name: `Task ${id}`,
+      startDate: '2026-01-01',
+      endDate: '2026-01-05',
+      ...(parentId !== undefined && { parentId }),
+    });
+
+    it('should return parent ID for a child task', () => {
+      const tasks = [
+        createTask('parent'),
+        createTask('child', 'parent'),
+      ];
+      const result = findParentId('child', tasks);
+      expect(result).toBe('parent');
+    });
+
+    it('should return undefined for a root task', () => {
+      const tasks = [
+        createTask('root'),
+      ];
+      const result = findParentId('root', tasks);
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for a non-existent task', () => {
+      const tasks = [
+        createTask('task1'),
+      ];
+      const result = findParentId('non-existent', tasks);
+      expect(result).toBeUndefined();
+    });
+
+    it('should handle multiple hierarchies correctly', () => {
+      const tasks = [
+        createTask('parent1'),
+        createTask('child1', 'parent1'),
+        createTask('parent2'),
+        createTask('child2', 'parent2'),
+      ];
+      expect(findParentId('child1', tasks)).toBe('parent1');
+      expect(findParentId('child2', tasks)).toBe('parent2');
+      expect(findParentId('parent1', tasks)).toBeUndefined();
     });
   });
 });
