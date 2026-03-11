@@ -276,7 +276,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
             onMouseDown={dragHandleProps.onMouseDown}
           >
-            {!isParent && progressWidth > 0 && (
+            {progressWidth > 0 && (
               <div
                 className="gantt-tr-progressBar"
                 style={{
@@ -289,7 +289,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             <span className="gantt-tr-taskDuration">
               {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
             </span>
-            {!isParent && progressWidth > 0 && showProgressInside && (
+            {progressWidth > 0 && showProgressInside && (
               <span className="gantt-tr-progressText">
                 {progressWidth}%
               </span>
