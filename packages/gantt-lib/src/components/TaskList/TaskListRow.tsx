@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { Task } from '../GanttChart';
 import type { LinkType } from '../../types';
-import { parseUTCDate } from '../../utils/dateUtils';
+import { parseUTCDate, normalizeTaskDates } from '../../utils/dateUtils';
 import { computeLagFromDates, isTaskParent, findParentId } from '../../utils/dependencyUtils';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
@@ -615,6 +615,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [editingDuration]);
 
     // Both date pickers shift the whole task (preserving duration), same as drag-move
+    // Also normalizes dates to ensure startDate is always before or equal to endDate
     const handleStartDateChange = useCallback((newDateISO: string) => {
       if (!newDateISO) return;
       const origStart = parseUTCDate(task.startDate);
@@ -622,7 +623,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       const durationMs = origEnd.getTime() - origStart.getTime();
       const newStart = new Date(newDateISO + 'T00:00:00Z');
       const newEnd = new Date(newStart.getTime() + durationMs);
-      onTaskChange?.({ ...task, startDate: newDateISO, endDate: newEnd.toISOString().split('T')[0] });
+      const { startDate: normalizedStart, endDate: normalizedEnd } = normalizeTaskDates(
+        newDateISO,
+        newEnd.toISOString().split('T')[0]
+      );
+      onTaskChange?.({ ...task, startDate: normalizedStart, endDate: normalizedEnd });
     }, [task, onTaskChange]);
 
     const handleEndDateChange = useCallback((newDateISO: string) => {
@@ -632,7 +637,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       const durationMs = origEnd.getTime() - origStart.getTime();
       const newEnd = new Date(newDateISO + 'T00:00:00Z');
       const newStart = new Date(newEnd.getTime() - durationMs);
-      onTaskChange?.({ ...task, startDate: newStart.toISOString().split('T')[0], endDate: newDateISO });
+      const { startDate: normalizedStart, endDate: normalizedEnd } = normalizeTaskDates(
+        newStart.toISOString().split('T')[0],
+        newDateISO
+      );
+      onTaskChange?.({ ...task, startDate: normalizedStart, endDate: normalizedEnd });
     }, [task, onTaskChange]);
 
     const handleRowClickInternal = useCallback(() => {

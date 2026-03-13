@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseUTCDate, getMonthDays, getDayOffset, isToday, isWeekend, getMultiMonthDays, getMonthSpans } from '../utils/dateUtils';
+import { parseUTCDate, getMonthDays, getDayOffset, isToday, isWeekend, getMultiMonthDays, getMonthSpans, normalizeTaskDates } from '../utils/dateUtils';
 
 describe('parseUTCDate', () => {
   it('should parse ISO date string as UTC', () => {
@@ -302,5 +302,64 @@ describe('getMonthSpans', () => {
     expect(result[1].days).toBe(2);
     expect(result[1].month.getUTCFullYear()).toBe(2025);
     expect(result[1].month.getUTCMonth()).toBe(0); // January
+  });
+});
+
+describe('normalizeTaskDates', () => {
+  it('should return dates as-is when startDate is before endDate', () => {
+    const result = normalizeTaskDates('2024-03-01', '2024-03-10');
+    expect(result.startDate).toBe('2024-03-01');
+    expect(result.endDate).toBe('2024-03-10');
+  });
+
+  it('should return dates as-is when startDate equals endDate', () => {
+    const result = normalizeTaskDates('2024-03-01', '2024-03-01');
+    expect(result.startDate).toBe('2024-03-01');
+    expect(result.endDate).toBe('2024-03-01');
+  });
+
+  it('should swap dates when endDate is before startDate (string dates)', () => {
+    const result = normalizeTaskDates('2024-03-10', '2024-03-01');
+    expect(result.startDate).toBe('2024-03-01');
+    expect(result.endDate).toBe('2024-03-10');
+  });
+
+  it('should swap dates when endDate is before startDate (Date objects)', () => {
+    const result = normalizeTaskDates(
+      new Date('2024-03-10T00:00:00Z'),
+      new Date('2024-03-01T00:00:00Z')
+    );
+    expect(result.startDate).toBe('2024-03-01');
+    expect(result.endDate).toBe('2024-03-10');
+  });
+
+  it('should swap dates when endDate is before startDate (mixed types)', () => {
+    const result = normalizeTaskDates(
+      '2024-03-10',
+      new Date('2024-03-01T00:00:00Z')
+    );
+    expect(result.startDate).toBe('2024-03-01');
+    expect(result.endDate).toBe('2024-03-10');
+  });
+
+  it('should handle dates across year boundary when swapped', () => {
+    const result = normalizeTaskDates('2025-01-05', '2024-12-25');
+    expect(result.startDate).toBe('2024-12-25');
+    expect(result.endDate).toBe('2025-01-05');
+  });
+
+  it('should return ISO date format (YYYY-MM-DD)', () => {
+    const result = normalizeTaskDates(
+      new Date('2024-03-15T12:30:45Z'),
+      new Date('2024-03-20T08:15:30Z')
+    );
+    expect(result.startDate).toBe('2024-03-15');
+    expect(result.endDate).toBe('2024-03-20');
+  });
+
+  it('should handle month boundary when swapped', () => {
+    const result = normalizeTaskDates('2024-04-01', '2024-03-31');
+    expect(result.startDate).toBe('2024-03-31');
+    expect(result.endDate).toBe('2024-04-01');
   });
 });

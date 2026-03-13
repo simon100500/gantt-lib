@@ -1,5 +1,6 @@
 import type { Task } from '../types';
 import { computeParentDates, computeParentProgress, isTaskParent } from './dependencyUtils';
+import { normalizeTaskDates } from './dateUtils';
 
 /**
  * Build a stable depth-first task order from parentId links.
@@ -47,9 +48,14 @@ export function flattenHierarchy<T extends Task>(tasks: T[]): T[] {
  * Normalize hierarchy-aware display fields.
  * Parent task dates and progress are always recomputed from children,
  * taking precedence over any hardcoded parent values from the input.
+ * Also normalizes task dates to ensure startDate is always before or equal to endDate.
  */
 export function normalizeHierarchyTasks<T extends Task>(tasks: T[]): T[] {
-  const orderedTasks = flattenHierarchy(tasks).map((task) => ({ ...task })) as T[];
+  const orderedTasks = flattenHierarchy(tasks).map((task) => {
+    // Normalize dates for all tasks (swap if endDate < startDate)
+    const { startDate, endDate } = normalizeTaskDates(task.startDate, task.endDate);
+    return { ...task, startDate: startDate as T['startDate'], endDate: endDate as T['endDate'] };
+  }) as T[];
 
   for (const task of [...orderedTasks].reverse()) {
     if (!isTaskParent(task.id, orderedTasks)) continue;

@@ -222,3 +222,32 @@ export const formatDateLabel = (date: Date | string): string => {
   const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
   return `${day}.${month}`;
 };
+
+/**
+ * Normalize task dates to ensure startDate is always before or equal to endDate.
+ * If dates are swapped (endDate < startDate), they are automatically swapped.
+ * @param startDate - Task start date (string or Date)
+ * @param endDate - Task end date (string or Date)
+ * @returns Object with normalized startDate and endDate as ISO date strings (YYYY-MM-DD)
+ */
+export const normalizeTaskDates = (
+  startDate: string | Date,
+  endDate: string | Date
+): { startDate: string; endDate: string } => {
+  const start = parseUTCDate(startDate);
+  const end = parseUTCDate(endDate);
+
+  // If dates are swapped, return them in correct order
+  if (end.getTime() < start.getTime()) {
+    return {
+      startDate: end.toISOString().split('T')[0],
+      endDate: start.toISOString().split('T')[0],
+    };
+  }
+
+  // Dates are already in correct order
+  return {
+    startDate: start.toISOString().split('T')[0],
+    endDate: end.toISOString().split('T')[0],
+  };
+};
