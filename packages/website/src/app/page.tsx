@@ -598,8 +598,12 @@ export default function Home() {
   const ganttChartRef = useRef<GanttChartHandle>(null);
 
   const handleChange = useCallback(
-    (updated: Task[] | ((t: Task[]) => Task[])) =>
-      setTasks(typeof updated === "function" ? updated : () => updated),
+    (updatedTasks: Task[]) => {
+      setTasks(prev => {
+        const updatedMap = new Map(updatedTasks.map(t => [t.id, t]));
+        return prev.map(t => updatedMap.get(t.id) ?? t);
+      });
+    },
     [],
   );
 
@@ -668,8 +672,12 @@ export default function Home() {
   }, []);
 
   const handleDependencyChange = useCallback(
-    (updated: Task[] | ((t: Task[]) => Task[])) =>
-      setDependencyTasks(typeof updated === "function" ? updated : () => updated),
+    (updatedTasks: Task[]) => {
+      setDependencyTasks(prev => {
+        const updatedMap = new Map(updatedTasks.map(t => [t.id, t]));
+        return prev.map(t => updatedMap.get(t.id) ?? t);
+      });
+    },
     [],
   );
 
@@ -678,8 +686,12 @@ export default function Home() {
   }, []);
 
   const handleCascadeChange = useCallback(
-    (updated: Task[] | ((t: Task[]) => Task[])) =>
-      setCascadeTasks(typeof updated === "function" ? updated : () => updated),
+    (updatedTasks: Task[]) => {
+      setCascadeTasks(prev => {
+        const updatedMap = new Map(updatedTasks.map(t => [t.id, t]));
+        return prev.map(t => updatedMap.get(t.id) ?? t);
+      });
+    },
     [],
   );
 
@@ -688,8 +700,12 @@ export default function Home() {
   }, []);
 
   const handleChain100Change = useCallback(
-    (updated: Task[] | ((t: Task[]) => Task[])) =>
-      setChain100Tasks(typeof updated === "function" ? updated : () => updated),
+    (updatedTasks: Task[]) => {
+      setChain100Tasks(prev => {
+        const updatedMap = new Map(updatedTasks.map(t => [t.id, t]));
+        return prev.map(t => updatedMap.get(t.id) ?? t);
+      });
+    },
     [],
   );
 
@@ -698,8 +714,11 @@ export default function Home() {
   }, []);
 
   const handleExpiredTasksChange = useCallback(
-    (updated: Task[] | ((t: Task[]) => Task[])) => {
-      setExpiredTasks(typeof updated === "function" ? updated : () => updated);
+    (updatedTasks: Task[]) => {
+      setExpiredTasks(prev => {
+        const updatedMap = new Map(updatedTasks.map(t => [t.id, t]));
+        return prev.map(t => updatedMap.get(t.id) ?? t);
+      });
     },
     [],
   );
@@ -792,8 +811,12 @@ export default function Home() {
   const [showHierarchyTaskList, setShowHierarchyTaskList] = useState(true);
 
   const handleHierarchyChange = useCallback(
-    (updated: Task[] | ((t: Task[]) => Task[])) =>
-      setHierarchyTasks(typeof updated === "function" ? updated : () => updated),
+    (updatedTasks: Task[]) => {
+      setHierarchyTasks(prev => {
+        const updatedMap = new Map(updatedTasks.map(t => [t.id, t]));
+        return prev.map(t => updatedMap.get(t.id) ?? t);
+      });
+    },
     [],
   );
 
@@ -860,7 +883,7 @@ export default function Home() {
               tasks={tasks}
               dayWidth={24}
               rowHeight={36}
-              onChange={handleChange}
+              onTasksChange={handleChange}
               onAdd={handleAdd}
               onDelete={handleDelete}
               onInsertAfter={handleInsertAfter}
@@ -901,7 +924,7 @@ export default function Home() {
           <div className="demo-chart-card">
             <GanttChart
               tasks={dependencyTasks}
-              onChange={handleDependencyChange}
+              onTasksChange={handleDependencyChange}
               onAdd={handleDependencyAdd}
               dayWidth={24}
               rowHeight={36}
@@ -934,7 +957,7 @@ export default function Home() {
           <div className="demo-chart-card">
             <GanttChart
               tasks={cascadeTasks}
-              onChange={handleCascadeChange}
+              onTasksChange={handleCascadeChange}
               onAdd={handleCascadeAdd}
               onCascade={(shifted) => console.log('Cascade:', shifted.map(t => `${t.name}: ${t.startDate}`))}
               dayWidth={40}
@@ -963,7 +986,7 @@ export default function Home() {
           <div className="demo-chart-card">
             <GanttChart
               tasks={chain100Tasks}
-              onChange={handleChain100Change}
+              onTasksChange={handleChain100Change}
               onAdd={handleChain100Add}
               onCascade={(shifted) => console.log(`Cascade: ${shifted.length} tasks shifted`)}
               dayWidth={24}
@@ -993,7 +1016,7 @@ export default function Home() {
           <div className="demo-chart-card">
             <GanttChart
               tasks={expiredTasks}
-              onChange={handleExpiredTasksChange}
+              onTasksChange={handleExpiredTasksChange}
               onAdd={handleExpiredTasksAdd}
               dayWidth={40}
               rowHeight={40}
@@ -1025,7 +1048,7 @@ export default function Home() {
           <div className="demo-chart-card">
             <GanttChart
               tasks={hierarchyTasks}
-              onChange={handleHierarchyChange}
+              onTasksChange={handleHierarchyChange}
               onAdd={handleHierarchyAdd}
               onReorder={handleHierarchyReorder}
               dayWidth={40}
