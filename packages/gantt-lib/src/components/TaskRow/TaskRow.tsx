@@ -17,8 +17,8 @@ export interface TaskRowProps {
   dayWidth: number;
   /** Height of the task row in pixels */
   rowHeight: number;
-  /** Callback when task is modified via drag/resize */
-  onChange?: (updatedTask: Task) => void;
+  /** Callback when task is modified via drag/resize. Receives array of changed tasks. */
+  onTasksChange?: (tasks: Task[]) => void;
   /** Callback when task drag state changes (for rendering guide lines) */
   onDragStateChange?: (state: {
     isDragging: boolean;
@@ -51,9 +51,9 @@ export interface TaskRowProps {
  *
  * Performance optimization: Only re-renders if task properties that affect rendering change.
  *
- * NOTE: onChange is intentionally excluded from this comparison because:
- * 1. The parent (GanttChart) wraps onChange in useCallback for referential stability
- * 2. onChange is only called AFTER drag completes (not during drag)
+ * NOTE: onTasksChange is intentionally excluded from this comparison because:
+ * 1. The parent (GanttChart) wraps onTasksChange in useCallback for referential stability
+ * 2. onTasksChange is only called AFTER drag completes (not during drag)
  * 3. During drag, only the dragged TaskRow re-renders due to its internal drag state
  * 4. Other TaskRows don't need to re-render when one task is dragged
  *
@@ -61,10 +61,10 @@ export interface TaskRowProps {
  * When the grid expands (e.g., dragging a task left beyond the boundary), monthStart changes
  * and all tasks need to re-render to update their positions.
  *
- * NOTE: onCascadeProgress and onCascade are excluded from comparison (same pattern as onChange —
+ * NOTE: onCascadeProgress and onCascade are excluded from comparison (same pattern as onTasksChange —
  * callbacks excluded from comparison because GanttChart wraps them in useCallback).
  *
- * Excluding onChange prevents re-render storms when dragging tasks with ~100 tasks.
+ * Excluding onTasksChange prevents re-render storms when dragging tasks with ~100 tasks.
  */
 const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
   return (
@@ -85,7 +85,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.locked === nextProps.task.locked &&
     prevProps.task.divider === nextProps.task.divider &&
     prevProps.highlightExpiredTasks === nextProps.highlightExpiredTasks
-    // onChange, onCascadeProgress, onCascade excluded - see note above
+    // onTasksChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
 
@@ -96,7 +96,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks }) => {
     // Extract divider from task prop
     const { divider: taskDivider } = task;
 
@@ -182,7 +182,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       return `color-mix(in srgb, ${baseColor} 40%, black)`;
     }, [isExpired, progressWidth, task.accepted, task.color]);
 
-    // Handle drag end - call onChange with updated task
+    // Handle drag end - call onTasksChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
       const updatedTask: Task = {
         ...task,
@@ -190,7 +190,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         endDate: result.endDate.toISOString(),
         ...(result.updatedDependencies !== undefined && { dependencies: result.updatedDependencies }),
       };
-      onChange?.(updatedTask);
+      onTasksChange?.([updatedTask]);
     };
 
     // Use drag hook for interactive drag/resize

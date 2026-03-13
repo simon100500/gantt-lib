@@ -246,8 +246,8 @@ export interface TaskListRowProps {
   rowIndex: number;
   /** Height of the task row in pixels */
   rowHeight: number;
-  /** Callback when task is modified via inline edit */
-  onTaskChange?: (task: Task) => void;
+  /** Callback when task is modified via inline edit. Receives array of changed tasks. */
+  onTasksChange?: (tasks: Task[]) => void;
   /** ID of currently selected task */
   selectedTaskId?: string;
   /** Callback when task row is clicked */
@@ -316,7 +316,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     task,
     rowIndex,
     rowHeight,
-    onTaskChange,
+    onTasksChange,
     selectedTaskId,
     onRowClick,
     disableTaskNameEditing = false,
@@ -430,7 +430,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     // Auto-enter edit mode when this task is created via insert.
     // We track which editingTaskId we already reacted to (autoEditedForRef) so that
     // subsequent re-renders caused by saving the name (which changes task.name) do NOT
-    // re-trigger edit mode. Without this guard, saving the name → onTaskChange → new task.name
+    // re-trigger edit mode. Without this guard, saving the name → onTasksChange → new task.name
     // → re-render → effect fires again → edit mode re-entered → user must press Enter twice.
     useEffect(() => {
       if (
@@ -493,10 +493,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         return;
       }
       if (nameValue.trim()) {
-        onTaskChange?.({ ...task, name: nameValue.trim() });
+        onTasksChange?.([{ ...task, name: nameValue.trim() }]);
       }
       setEditingName(false);
-    }, [nameValue, task, onTaskChange]);
+    }, [nameValue, task, onTasksChange]);
 
     const handleNameCancel = useCallback(() => {
       setEditingName(false);
@@ -506,13 +506,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       if (e.key === 'Enter') {
         nameConfirmedRef.current = true;  // Mark as saved to prevent blur from triggering again
         if (nameValue.trim()) {
-          onTaskChange?.({ ...task, name: nameValue.trim() });
+          onTasksChange?.([{ ...task, name: nameValue.trim() }]);
         }
         setEditingName(false);
       } else if (e.key === 'Escape') {
         handleNameCancel();
       }
-    }, [nameValue, task, onTaskChange, handleNameCancel]);
+    }, [nameValue, task, onTasksChange, handleNameCancel]);
 
     const handleDurationClick = useCallback((e: React.MouseEvent) => {
       if (task.locked) return;
@@ -533,9 +533,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         return;
       }
       const normalizedDuration = Math.max(1, Math.round(durationValue) || 1);
-      onTaskChange?.({ ...task, endDate: getEndDateFromDuration(task.startDate, normalizedDuration) });
+      onTasksChange?.([{ ...task, endDate: getEndDateFromDuration(task.startDate, normalizedDuration) }]);
       setEditingDuration(false);
-    }, [durationValue, task, onTaskChange]);
+    }, [durationValue, task, onTasksChange]);
 
     const handleDurationCancel = useCallback(() => {
       setDurationValue(getInclusiveDurationDays(task.startDate, task.endDate));
@@ -551,12 +551,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       if (e.key === 'Enter') {
         durationConfirmedRef.current = true;
         const normalizedDuration = Math.max(1, Math.round(durationValue) || 1);
-        onTaskChange?.({ ...task, endDate: getEndDateFromDuration(task.startDate, normalizedDuration) });
+        onTasksChange?.([{ ...task, endDate: getEndDateFromDuration(task.startDate, normalizedDuration) }]);
         setEditingDuration(false);
       } else if (e.key === 'Escape') {
         handleDurationCancel();
       }
-    }, [durationValue, task, onTaskChange, handleDurationCancel]);
+    }, [durationValue, task, onTasksChange, handleDurationCancel]);
 
     const handleProgressClick = useCallback((e: React.MouseEvent) => {
       if (task.locked) return;
@@ -572,9 +572,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         return;
       }
       const clampedValue = Math.max(0, Math.min(100, progressValue));
-      onTaskChange?.({ ...task, progress: clampedValue });
+      onTasksChange?.([{ ...task, progress: clampedValue }]);
       setEditingProgress(false);
-    }, [progressValue, task, onTaskChange]);
+    }, [progressValue, task, onTasksChange]);
 
     const handleProgressCancel = useCallback(() => {
       setEditingProgress(false);
@@ -589,12 +589,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       if (e.key === 'Enter') {
         progressConfirmedRef.current = true;
         const clampedValue = Math.max(0, Math.min(100, progressValue));
-        onTaskChange?.({ ...task, progress: clampedValue });
+        onTasksChange?.([{ ...task, progress: clampedValue }]);
         setEditingProgress(false);
       } else if (e.key === 'Escape') {
         handleProgressCancel();
       }
-    }, [progressValue, task, onTaskChange, handleProgressCancel]);
+    }, [progressValue, task, onTasksChange, handleProgressCancel]);
 
     useEffect(() => {
       if (editingProgress && progressInputRef.current) {
@@ -627,8 +627,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         newDateISO,
         newEnd.toISOString().split('T')[0]
       );
-      onTaskChange?.({ ...task, startDate: normalizedStart, endDate: normalizedEnd });
-    }, [task, onTaskChange]);
+      onTasksChange?.([{ ...task, startDate: normalizedStart, endDate: normalizedEnd }]);
+    }, [task, onTasksChange]);
 
     const handleEndDateChange = useCallback((newDateISO: string) => {
       if (!newDateISO) return;
@@ -641,8 +641,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         newStart.toISOString().split('T')[0],
         newDateISO
       );
-      onTaskChange?.({ ...task, startDate: normalizedStart, endDate: normalizedEnd });
-    }, [task, onTaskChange]);
+      onTasksChange?.([{ ...task, startDate: normalizedStart, endDate: normalizedEnd }]);
+    }, [task, onTasksChange]);
 
     const handleRowClickInternal = useCallback(() => {
       onRowClick?.(task.id);
