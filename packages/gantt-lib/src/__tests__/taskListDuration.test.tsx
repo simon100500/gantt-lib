@@ -16,7 +16,7 @@ vi.mock('../components/ui/Popover', () => ({
 
 describe('TaskListRow duration editing', () => {
   it('updates the visible end date immediately and saves on confirm', () => {
-    const onTaskChange = vi.fn();
+    const onTasksChange = vi.fn();
     const task: Task = {
       id: 'task-1',
       name: 'Task 1',
@@ -30,7 +30,7 @@ describe('TaskListRow duration editing', () => {
         task={task}
         rowIndex={0}
         rowHeight={40}
-        onTaskChange={onTaskChange}
+        onTasksChange={onTasksChange}
         onRowClick={() => {}}
         onChipSelect={() => {}}
       />
@@ -45,13 +45,13 @@ describe('TaskListRow duration editing', () => {
     fireEvent.change(input, { target: { value: '5' } });
 
     expect(screen.getByRole('button', { name: '2026-03-05' })).toBeTruthy();
-    expect(onTaskChange).not.toHaveBeenCalled();
+    expect(onTasksChange).not.toHaveBeenCalled();
 
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    expect(onTaskChange).toHaveBeenCalledWith({
+    expect(onTasksChange).toHaveBeenCalledWith([{
       ...task,
       endDate: '2026-03-05',
-    });
+    }]);
   });
 });

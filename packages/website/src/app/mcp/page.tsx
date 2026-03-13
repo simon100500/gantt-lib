@@ -28,8 +28,12 @@ export default function MCPPage() {
   }, []);
 
   const handleChange = useCallback(
-    (updated: Task[] | ((t: Task[]) => Task[])) =>
-      setTasks(typeof updated === "function" ? updated : () => updated),
+    (updatedTasks: Task[]) => {
+      setTasks(prev => {
+        const updatedMap = new Map(updatedTasks.map(t => [t.id, t]));
+        return prev.map(t => updatedMap.get(t.id) ?? t);
+      });
+    },
     [],
   );
 
@@ -88,7 +92,7 @@ export default function MCPPage() {
           tasks={tasks}
           dayWidth={24}
           rowHeight={36}
-          onChange={handleChange}
+          onTasksChange={handleChange}
           onAdd={handleAdd}
           showTaskList={showTaskList}
         />

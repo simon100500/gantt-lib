@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2026-03-14
+
+### Breaking Changes
+- **Removed:** `onChange` prop - replaced with `onTasksChange`
+- **Removed:** `onTaskChange` prop - merged into `onTasksChange`
+- `onTasksChange` now receives only the changed tasks (never the full array)
+- Single task changes are delivered as a single-element array
+- Consumer must merge changed tasks into state using the pattern documented in REFERENCE.md
+
+### Features
+- `onTasksChange` API enables efficient REST API integration
+  - Individual updates: `PATCH /api/tasks/:id`
+  - Batch updates: `PATCH /api/tasks` with array
+- All Task objects in callbacks include full properties (nested structures, dependencies, etc.)
+
+### Documentation
+- Updated REFERENCE.md to v0.8.0 with onTasksChange pattern examples
+
 ## [0.7.1] - 2026-03-13
 
 ### Fixes

@@ -26,8 +26,8 @@ export interface TaskListProps {
   headerHeight: number;
   /** Width of the task list overlay in pixels (default: 400) */
   taskListWidth?: number;
-  /** Callback when task is modified via inline edit */
-  onTaskChange?: (task: Task) => void;
+  /** Callback when tasks are modified via inline edit. Receives array of changed tasks. */
+  onTasksChange?: (tasks: Task[]) => void;
   /** ID of currently selected task */
   selectedTaskId?: string;
   /** Callback when task row is clicked */
@@ -77,7 +77,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   rowHeight,
   headerHeight,
   taskListWidth = 640,
-  onTaskChange,
+  onTasksChange,
   selectedTaskId,
   onTaskSelect,
   show = true,
@@ -252,14 +252,14 @@ export const TaskList: React.FC<TaskListProps> = ({
         startDate: newStart.toISOString().split('T')[0],
         endDate: newEnd.toISOString().split('T')[0],
       };
-      onTaskChange?.(snappedTask);
+      onTasksChange?.([snappedTask]);
     } else {
       // Predecessor not found — emit without snap (graceful fallback)
-      onTaskChange?.(updatedTask);
+      onTasksChange?.([updatedTask]);
     }
 
     setSelectingPredecessorFor(null);
-  }, [tasks, onTaskChange]);
+  }, [tasks, onTasksChange]);
 
   const handleRemoveDependency = useCallback((
     taskId: string,
@@ -271,8 +271,8 @@ export const TaskList: React.FC<TaskListProps> = ({
     const updatedDeps = (task.dependencies ?? []).filter(
       d => !(d.taskId === predecessorTaskId && d.type === linkType)
     );
-    onTaskChange?.({ ...task, dependencies: updatedDeps });
-  }, [tasks, onTaskChange]);
+    onTasksChange?.([{ ...task, dependencies: updatedDeps }]);
+  }, [tasks, onTasksChange]);
 
   // New task creation state
   const [isCreating, setIsCreating] = useState(false);
@@ -554,7 +554,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               task={task}
               rowIndex={index}
               rowHeight={rowHeight}
-              onTaskChange={onTaskChange}
+              onTasksChange={onTasksChange}
               selectedTaskId={selectedTaskId}
               onRowClick={handleRowClick}
               disableTaskNameEditing={disableTaskNameEditing}

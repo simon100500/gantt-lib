@@ -90,8 +90,8 @@ export interface GanttChartProps {
   headerHeight?: number;
   /** Container height. Can be pixels (600), string ("90vh", "100%", "500px"), or undefined for auto height */
   containerHeight?: number | string;
-  /** Callback when tasks are modified via drag/resize. Can receive either the new tasks array or a functional updater. */
-  onChange?: (tasks: Task[] | ((currentTasks: Task[]) => Task[])) => void;
+  /** Callback when tasks are modified. Receives ONLY the changed tasks as full objects with all properties. */
+  onTasksChange?: (tasks: Task[]) => void;
   /** Optional callback for dependency validation results */
   onValidateDependencies?: (result: ValidationResult) => void;
   /** Enable automatic shifting of dependent tasks when predecessor moves (default: false) */
@@ -160,7 +160,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   rowHeight = 40,
   headerHeight = 40,
   containerHeight,
-  onChange,
+  onTasksChange,
   onValidateDependencies,
   enableAutoSchedule,
   disableConstraints,
@@ -351,29 +351,16 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   }, [tasks, onValidateDependencies]);
 
   /**
-   * Stable callback for task updates
-   *
-   * FIXED: No longer depends on `tasks` to avoid stale closure bugs.
-   * Uses functional state update pattern: the callback receives an updater function
-   * that maps over the current tasks state, ensuring we always use the latest state.
-   *
-   * This prevents the "reverting" bug where dragging a second task causes the
-   * first task to revert to its original position.
-   *
-   * To prevent re-render storms during drag:
-   * 1. The onChange callback is only called AFTER drag completes (mouseUp)
-   * 2. During drag, only the dragged TaskRow re-renders (due to its internal state)
-   * 3. Other TaskRows don't re-render because their props haven't changed
-   *
-   * The React.memo comparison in TaskRow excludes onChange from comparison,
-   * relying on the fact that onChange fires only after drag completes.
+   * Callback when tasks are modified.
+   * Always receives ONLY the changed tasks as full objects with all properties.
+   * Single task = array of 1 element (batch of size 1).
    */
-  const handleTaskChange = useCallback((updatedTask: Task) => {
-    // Find original task to detect date changes
+  const handleTaskChange = useCallback((updatedTasks: Task[]) => {
+    const updatedTask = updatedTasks[0]; // TODO: handle batch properly
+    if (!updatedTask) return;
     const originalTask = tasks.find(t => t.id === updatedTask.id);
     if (!originalTask) {
-      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
-      // Clear editingTaskId after name edit completes
+      onTasksChange?.([updatedTask]);
       if (editingTaskId === updatedTask.id) {
         setEditingTaskId(null);
       }
@@ -387,132 +374,113 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
 
     if (!datesChanged) {
-      // Dates didn't change, but progress or other fields might have
-      // Check if this task has a parent and update parent progress if needed
       const taskParentId = (updatedTask as any).parentId;
       if (taskParentId) {
-        onChange?.((currentTasks) => {
-          let finalTasks = currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t);
-          // Update parent progress
-          const newProgress = computeParentProgress(taskParentId, finalTasks);
-          finalTasks = finalTasks.map(t =>
-            t.id === taskParentId
-              ? { ...t, progress: newProgress }
-              : t
-          );
-          return finalTasks;
-        });
+        const parentProgress = computeParentProgress(taskParentId, tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+        const parentTask = tasks.find(t => t.id === taskParentId);
+        if (parentTask) {
+          const updatedParent = { ...parentTask, progress: parentProgress };
+          onTasksChange?.([updatedTask, updatedParent]);
+        } else {
+          onTasksChange?.([updatedTask]);
+        }
       } else {
-        onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+        onTasksChange?.([updatedTask]);
       }
-      // Clear editingTaskId after name edit completes
       if (editingTaskId === updatedTask.id) {
         setEditingTaskId(null);
       }
       return;
     }
 
-    let cascadedTasksForCallback: Task[];
+    const cascadedTasks = disableConstraints
+      ? [updatedTask]
+      : [updatedTask, ...cascadeByLinks(updatedTask.id, newStart, newEnd, tasks)];
 
     if (disableConstraints) {
-      cascadedTasksForCallback = [updatedTask];
+      onTasksChange?.(cascadedTasks);
     } else {
-      const cascadedChain = cascadeByLinks(updatedTask.id, newStart, newEnd, tasks);
-      cascadedTasksForCallback = [updatedTask, ...cascadedChain];
-    }
-
-    // Apply changes
-    if (disableConstraints) {
-      onChange?.((currentTasks) => currentTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
-    } else {
-      onChange?.((currentTasks) => {
-        const m = new Map(cascadedTasksForCallback.map(t => [t.id, t]));
-
-        // Phase 19: Update parent dates when child task changes
-        // For each updated task, check if it has a parent and update parent dates
-        let finalTasks = currentTasks.map(t => m.get(t.id) ?? t);
-
-        // Collect parent IDs that need updating
-        const parentIdsToUpdate = new Set<string>();
-        cascadedTasksForCallback.forEach(task => {
-          if ((task as any).parentId) {
-            parentIdsToUpdate.add((task as any).parentId);
-          }
-        });
-
-        // Update each parent's dates and progress
-        parentIdsToUpdate.forEach(parentId => {
-          // Skip recomputing dates for the updated task itself if it's a parent
-          // The user's manual drag/resize position should be preserved
-          if (parentId === updatedTask.id) {
-            // Still update progress from children, but not dates
-            const newProgress = computeParentProgress(parentId, finalTasks);
-            finalTasks = finalTasks.map(t =>
-              t.id === parentId
-                ? { ...t, progress: newProgress }
-                : t
-            );
-            return;
-          }
-
-          const newDates = computeParentDates(parentId, finalTasks);
-          const newProgress = computeParentProgress(parentId, finalTasks);
-          finalTasks = finalTasks.map(t =>
-            t.id === parentId
-              ? { ...t, startDate: newDates.startDate.toISOString().split('T')[0], endDate: newDates.endDate.toISOString().split('T')[0], progress: newProgress }
-              : t
-          );
-        });
-
-        return finalTasks;
+      const changedTasks = new Map(cascadedTasks.map(t => [t.id, t]));
+      const parentIdsToUpdate = new Set<string>();
+      cascadedTasks.forEach(task => {
+        if ((task as any).parentId) {
+          parentIdsToUpdate.add((task as any).parentId);
+        }
       });
-      onCascade?.(cascadedTasksForCallback);
+
+      const additionalParentUpdates: Task[] = [];
+      parentIdsToUpdate.forEach(parentId => {
+        if (parentId === updatedTask.id) {
+          const parentTask = tasks.find(t => t.id === parentId);
+          if (parentTask) {
+            const newProgress = computeParentProgress(parentId, tasks.map(t => changedTasks.get(t.id) ?? t));
+            additionalParentUpdates.push({ ...parentTask, progress: newProgress });
+          }
+          return;
+        }
+
+        const parentTask = tasks.find(t => t.id === parentId);
+        if (parentTask) {
+          const tempTasks = tasks.map(t => changedTasks.get(t.id) ?? t);
+          const newDates = computeParentDates(parentId, tempTasks);
+          const newProgress = computeParentProgress(parentId, tempTasks);
+          additionalParentUpdates.push({
+            ...parentTask,
+            startDate: newDates.startDate.toISOString().split('T')[0],
+            endDate: newDates.endDate.toISOString().split('T')[0],
+            progress: newProgress
+          });
+        }
+      });
+
+      onTasksChange?.([...cascadedTasks, ...additionalParentUpdates]);
+      onCascade?.(cascadedTasks);
     }
-  }, [tasks, onChange, disableConstraints, onCascade, editingTaskId]);
+  }, [tasks, onTasksChange, disableConstraints, onCascade, editingTaskId]);
 
   /**
-   * Handle task deletion: purge deleted taskId from all other tasks' dependency arrays,
-   * emit onChange with cleaned tasks, then emit onDelete with the taskId.
+   * Handle task deletion: collect all changed tasks (with cleaned dependencies),
+   * emit onTasksChange with them, then emit onDelete with the taskId.
    * For parent tasks, cascade delete to all children.
    */
   const handleDelete = useCallback((taskId: string) => {
-    onChange?.((currentTasks) => {
-      // Collect all tasks to delete (parent + descendants)
-      const toDelete = new Set<string>([taskId]);
+    const toDelete = new Set<string>([taskId]);
 
-      function collectDescendants(parentId: string) {
-        const children = getChildren(parentId, currentTasks);
-        children.forEach(child => {
-          toDelete.add(child.id);
-          collectDescendants(child.id);
-        });
-      }
+    function collectDescendants(parentId: string) {
+      const children = getChildren(parentId, tasks);
+      children.forEach(child => {
+        toDelete.add(child.id);
+        collectDescendants(child.id);
+      });
+    }
 
-      collectDescendants(taskId);
+    collectDescendants(taskId);
 
-      // Filter out deleted tasks
-      const filteredTasks = currentTasks.filter(t => !toDelete.has(t.id));
+    const changedTasks: Task[] = [];
+    tasks.forEach(task => {
+      if (toDelete.has(task.id)) return;
 
-      // Clean dependencies pointing to deleted tasks
-      const cleanedTasks = filteredTasks.map(task => {
-        if (!task.dependencies) return task;
-        return {
+      if (task.dependencies && task.dependencies.some(dep => toDelete.has(dep.taskId))) {
+        changedTasks.push({
           ...task,
           dependencies: task.dependencies.filter(dep => !toDelete.has(dep.taskId))
-        };
-      });
-
-      return cleanedTasks;
+        });
+      }
     });
+
+    if (changedTasks.length > 0) {
+      onTasksChange?.(changedTasks);
+    }
+
     onDelete?.(taskId);
-  }, [onChange, onDelete]);
+  }, [tasks, onTasksChange, onDelete]);
 
   /**
    * Handle task insertion: set editingTaskId to trigger auto-edit mode,
    * then notify external consumer via onInsertAfter callback.
    *
    * NOTE: The external onInsertAfter callback is responsible for adding
-   * the task to the tasks array via onChange.
+   * the task and should emit onTasksChange with the new task.
    */
   const handleInsertAfter = useCallback((taskId: string, newTask: Task) => {
     setEditingTaskId(newTask.id);
@@ -520,12 +488,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   }, [onInsertAfter]);
 
   /**
-   * Handle task reordering: notify external consumer via onChange and onReorder callbacks.
-   *
-   * NOTE: onChange receives the full reordered array directly (not a functional updater).
-   * Reordering is always a full replacement, never a diff.
-   *
-   * Extended signature: also accepts movedTaskId and inferredParentId for smart hierarchy.
+   * Handle task reordering: notify external consumer via onTasksChange and onReorder callbacks.
+   * Reordering changes all tasks positions, so we emit the full reordered array.
    */
   const handleReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
     console.log('=== GANTT CHART handleReorder START ===');
@@ -536,7 +500,6 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       reorderedTasksCount: reorderedTasks.length
     });
 
-    // Find the moved task in reorderedTasks
     const movedTaskInReordered = reorderedTasks.find(t => t.id === movedTaskId);
     if (movedTaskInReordered) {
       console.log('[MOVED TASK IN REORDERED]', {
@@ -548,77 +511,56 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       console.log('[MOVED TASK NOT FOUND IN REORDERED]');
     }
 
-    onChange?.((currentTasks) => {
-      console.log('[ONCHANGE START]', {
-        currentTasksCount: currentTasks.length,
+    let updated = reorderedTasks;
+    if (movedTaskId) {
+      console.log('[CONDITION CHECK]', {
+        condition: 'if (movedTaskId)',
         movedTaskId,
-        inferredParentId
+        isTrue: !!movedTaskId,
+        willUpdateParentId: true
       });
-
-      // Find the moved task in currentTasks
-      const movedTaskInCurrent = currentTasks.find(t => t.id === movedTaskId);
-      if (movedTaskInCurrent) {
-        console.log('[MOVED TASK IN CURRENT BEFORE UPDATE]', {
-          id: movedTaskInCurrent.id,
-          name: movedTaskInCurrent.name,
-          currentParentId: movedTaskInCurrent.parentId
-        });
-      }
-
-      let updated = reorderedTasks;
-      // CRITICAL: Check movedTaskId only, NOT inferredParentId !== undefined
-      // When inferredParentId is undefined, we want to CLEAR the parentId (exit group)
-      // The old condition `inferredParentId !== undefined` prevented this!
-      if (movedTaskId) {
-        console.log('[CONDITION CHECK]', {
-          condition: 'if (movedTaskId)',
-          movedTaskId,
-          isTrue: !!movedTaskId,
-          willUpdateParentId: true
-        });
-        updated = updated.map(t => {
-          if (t.id === movedTaskId) {
-            const newParentId = inferredParentId || undefined;
-            console.log('[UPDATING TASK]', {
-              taskId: t.id,
-              taskName: t.name,
-              oldParentId: t.parentId,
-              newParentId: newParentId,
-              inferredParentId: inferredParentId,
-              finalValue: newParentId
-            });
-            return { ...t, parentId: newParentId };
-          }
-          return t;
-        });
-      } else {
-        console.log('[CONDITION CHECK]', {
-          condition: 'if (movedTaskId)',
-          movedTaskId,
-          isTrue: false,
-          willUpdateParentId: false
-        });
-      }
-
-      // Verify the updated task
-      const updatedTask = updated.find(t => t.id === movedTaskId);
-      if (updatedTask) {
-        console.log('[UPDATED TASK VERIFICATION]', {
-          id: updatedTask.id,
-          name: updatedTask.name,
-          finalParentId: updatedTask.parentId
-        });
-      }
-
-      console.log('[ONCHANGE END]', {
-        updatedCount: updated.length
+      updated = updated.map(t => {
+        if (t.id === movedTaskId) {
+          const newParentId = inferredParentId || undefined;
+          console.log('[UPDATING TASK]', {
+            taskId: t.id,
+            taskName: t.name,
+            oldParentId: t.parentId,
+            newParentId: newParentId,
+            inferredParentId: inferredParentId,
+            finalValue: newParentId
+          });
+          return { ...t, parentId: newParentId };
+        }
+        return t;
       });
-      console.log('=== GANTT CHART handleReorder END ===\n');
+    } else {
+      console.log('[CONDITION CHECK]', {
+        condition: 'if (movedTaskId)',
+        movedTaskId,
+        isTrue: false,
+        willUpdateParentId: false
+      });
+    }
 
-      return normalizeHierarchyTasks(updated);
+    const updatedTask = updated.find(t => t.id === movedTaskId);
+    if (updatedTask) {
+      console.log('[UPDATED TASK VERIFICATION]', {
+        id: updatedTask.id,
+        name: updatedTask.name,
+        finalParentId: updatedTask.parentId
+      });
+    }
+
+    console.log('[ONCHANGE END]', {
+      updatedCount: updated.length
     });
-    onReorder?.(normalizeHierarchyTasks(reorderedTasks), movedTaskId, inferredParentId);
-  }, [onChange, onReorder]);
+    console.log('=== GANTT CHART handleReorder END ===\n');
+
+    const normalized = normalizeHierarchyTasks(updated);
+    onTasksChange?.(normalized);
+    onReorder?.(normalized, movedTaskId, inferredParentId);
+  }, [onTasksChange, onReorder]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
   const dependencyOverrides = useMemo(() => {
@@ -642,58 +584,45 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   }, []);
 
   /**
-   * Handle cascade completion — updates all shifted tasks via onChange (functional updater)
-   * and notifies the external onCascade consumer.
+   * Handle cascade completion — emit all changed tasks (cascaded + parent updates).
    */
   const handleCascade = useCallback((cascadedTasks: Task[]) => {
-    // Update state by merging cascaded tasks into current tasks
-    onChange?.((currentTasks) => {
-      const cascadeMap = new Map(cascadedTasks.map(t => [t.id, t]));
-      let finalTasks = currentTasks.map(t => cascadeMap.get(t.id) ?? t);
+    const draggedTaskId = cascadedTasks[0]?.id;
+    const cascadeMap = new Map(cascadedTasks.map(t => [t.id, t]));
 
-      // The first task in cascadedTasks is always the dragged task (from useTaskDrag.ts)
-      // If the dragged task is a parent, its dates should NOT be recomputed from children
-      // because the user explicitly positioned it. Children should follow the parent.
-      const draggedTaskId = cascadedTasks[0]?.id;
-
-      // Update parent dates for any cascaded tasks that have parents
-      // Collect parent IDs that need updating
-      const parentIdsToUpdate = new Set<string>();
-      cascadedTasks.forEach(task => {
-        if ((task as any).parentId) {
-          parentIdsToUpdate.add((task as any).parentId);
-        }
-      });
-
-      // Update each parent's dates and progress
-      parentIdsToUpdate.forEach(parentId => {
-        // Skip recomputing dates for the dragged task itself
-        // The user's manual drag position should be preserved
-        if (parentId === draggedTaskId) {
-          // Still update progress from children, but not dates
-          const newProgress = computeParentProgress(parentId, finalTasks);
-          finalTasks = finalTasks.map(t =>
-            t.id === parentId
-              ? { ...t, progress: newProgress }
-              : t
-          );
-          return;
-        }
-
-        const newDates = computeParentDates(parentId, finalTasks);
-        const newProgress = computeParentProgress(parentId, finalTasks);
-        finalTasks = finalTasks.map(t =>
-          t.id === parentId
-            ? { ...t, startDate: newDates.startDate.toISOString().split('T')[0], endDate: newDates.endDate.toISOString().split('T')[0], progress: newProgress }
-            : t
-        );
-      });
-
-      return finalTasks;
+    const parentIdsToUpdate = new Set<string>();
+    cascadedTasks.forEach(task => {
+      if ((task as any).parentId) {
+        parentIdsToUpdate.add((task as any).parentId);
+      }
     });
-    // Notify external consumer
+
+    const additionalParentUpdates: Task[] = [];
+    parentIdsToUpdate.forEach(parentId => {
+      const parentTask = tasks.find(t => t.id === parentId);
+      if (!parentTask) return;
+
+      const tempTasks = tasks.map(t => cascadeMap.get(t.id) ?? t);
+
+      if (parentId === draggedTaskId) {
+        const newProgress = computeParentProgress(parentId, tempTasks);
+        additionalParentUpdates.push({ ...parentTask, progress: newProgress });
+        return;
+      }
+
+      const newDates = computeParentDates(parentId, tempTasks);
+      const newProgress = computeParentProgress(parentId, tempTasks);
+      additionalParentUpdates.push({
+        ...parentTask,
+        startDate: newDates.startDate.toISOString().split('T')[0],
+        endDate: newDates.endDate.toISOString().split('T')[0],
+        progress: newProgress
+      });
+    });
+
+    onTasksChange?.([...cascadedTasks, ...additionalParentUpdates]);
     onCascade?.(cascadedTasks);
-  }, [onChange, onCascade]);
+  }, [tasks, onTasksChange, onCascade]);
 
   /**
    * Handle task selection from TaskList or TaskRow
@@ -716,100 +645,83 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   }, []);
 
   const handlePromoteTask = useCallback((taskId: string) => {
-    onChange?.((currentTasks) => {
-      // Find the task to promote
-      const taskToPromote = currentTasks.find(t => t.id === taskId);
-      if (!taskToPromote || !(taskToPromote as any).parentId) {
-        return currentTasks; // No parent to remove from
-      }
+    const taskToPromote = tasks.find(t => t.id === taskId);
+    if (!taskToPromote || !(taskToPromote as any).parentId) {
+      return;
+    }
 
-      const parentId = (taskToPromote as any).parentId;
+    const parentId = (taskToPromote as any).parentId;
+    const siblings = tasks.filter(t => (t as any).parentId === parentId);
 
-      // Find all siblings (children of the same parent)
-      const siblings = currentTasks.filter(t => (t as any).parentId === parentId);
-
-      if (siblings.length <= 1) {
-        // Only child, just remove parentId
-        return normalizeHierarchyTasks(currentTasks.map(t =>
-          t.id === taskId ? { ...t, parentId: undefined } : t
-        ));
-      }
-
-      // Find the last sibling in array order
-      const lastSiblingIndex = currentTasks
-        .map((t, i) => ({ task: t, index: i }))
-        .filter(({ task }) => (task as any).parentId === parentId)
-        .sort((a, b) => b.index - a.index)[0];
-
-      if (!lastSiblingIndex) {
-        return normalizeHierarchyTasks(currentTasks.map(t =>
-          t.id === taskId ? { ...t, parentId: undefined } : t
-        ));
-      }
-
-      // Create new array with task moved after last sibling
-      const withoutPromotedTask = currentTasks.filter(t => t.id !== taskId);
-      const insertIndex = lastSiblingIndex.index + 1;
-
+    if (siblings.length <= 1) {
       const promotedTask = { ...taskToPromote, parentId: undefined };
-      const newTasks = [
-        ...withoutPromotedTask.slice(0, insertIndex),
-        promotedTask,
-        ...withoutPromotedTask.slice(insertIndex)
-      ];
+      onTasksChange?.([promotedTask]);
+      return;
+    }
 
-      return normalizeHierarchyTasks(newTasks);
-    });
-  }, [onChange]);
+    const lastSiblingIndex = tasks
+      .map((t, i) => ({ task: t, index: i }))
+      .filter(({ task }) => (task as any).parentId === parentId)
+      .sort((a, b) => b.index - a.index)[0];
+
+    if (!lastSiblingIndex) {
+      const promotedTask = { ...taskToPromote, parentId: undefined };
+      onTasksChange?.([promotedTask]);
+      return;
+    }
+
+    const promotedTask = { ...taskToPromote, parentId: undefined };
+    const reorderedTasks = normalizeHierarchyTasks([
+      ...tasks.filter(t => t.id !== taskId).slice(0, lastSiblingIndex.index + 1),
+      promotedTask,
+      ...tasks.filter(t => t.id !== taskId).slice(lastSiblingIndex.index + 1)
+    ]);
+
+    onTasksChange?.(reorderedTasks);
+  }, [tasks, onTasksChange]);
 
   const handleDemoteTask = useCallback((taskId: string, newParentId: string) => {
-    onChange?.((currentTasks) => {
-      // Check for circular hierarchy
-      const wouldCreateCircular = (targetId: string, parentId: string, tasks: Task[]): boolean => {
-        if (targetId === parentId) return true; // Can't be own parent
+    const wouldCreateCircular = (targetId: string, parentId: string, tasks: Task[]): boolean => {
+      if (targetId === parentId) return true;
 
-        const descendants = new Set<string>();
-        function collect(id: string) {
-          const children = getChildren(id, tasks);
-          children.forEach(child => {
-            descendants.add(child.id);
-            collect(child.id);
-          });
-        }
-        collect(targetId);
-        return descendants.has(parentId);
-      };
-
-      if (wouldCreateCircular(taskId, newParentId, currentTasks)) {
-        // Circular hierarchy detected, return unchanged
-        return currentTasks;
+      const descendants = new Set<string>();
+      function collect(id: string) {
+        const children = getChildren(id, tasks);
+        children.forEach(child => {
+          descendants.add(child.id);
+          collect(child.id);
+        });
       }
+      collect(targetId);
+      return descendants.has(parentId);
+    };
 
-      // Remove any existing dependencies between the two tasks
-      let updatedTasks = removeDependenciesBetweenTasks(taskId, newParentId, currentTasks);
+    if (wouldCreateCircular(taskId, newParentId, tasks)) {
+      return;
+    }
 
-      // Apply parentId change
-      updatedTasks = updatedTasks.map(t => {
-        if (t.id === taskId) {
-          // Set parentId to demote under new parent
-          return { ...t, parentId: newParentId };
-        }
-        return t;
-      });
+    let updatedTasks = removeDependenciesBetweenTasks(taskId, newParentId, tasks);
 
-      // Compute and apply parent dates from all children
-      const parentDates = computeParentDates(newParentId, updatedTasks);
-      const parentProgress = computeParentProgress(newParentId, updatedTasks);
+    const demotedTask = updatedTasks.find(t => t.id === taskId);
+    const parentTask = updatedTasks.find(t => t.id === newParentId);
 
-      updatedTasks = updatedTasks.map(t =>
-        t.id === newParentId
-          ? { ...t, startDate: parentDates.startDate.toISOString().split('T')[0], endDate: parentDates.endDate.toISOString().split('T')[0], progress: parentProgress }
-          : t
-      );
+    if (!demotedTask || !parentTask) return;
 
-      return normalizeHierarchyTasks(updatedTasks);
-    });
-  }, [onChange]);
+    const updatedDemotedTask = { ...demotedTask, parentId: newParentId };
+
+    const tempTasks = updatedTasks.map(t => t.id === taskId ? updatedDemotedTask : t);
+    const parentDates = computeParentDates(newParentId, tempTasks);
+    const parentProgress = computeParentProgress(newParentId, tempTasks);
+
+    const updatedParentTask = {
+      ...parentTask,
+      startDate: parentDates.startDate.toISOString().split('T')[0],
+      endDate: parentDates.endDate.toISOString().split('T')[0],
+      progress: parentProgress
+    };
+
+    onTasksChange?.([updatedDemotedTask, updatedParentTask]);
+  }, [tasks, onTasksChange]);
 
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
@@ -882,7 +794,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             rowHeight={rowHeight}
             headerHeight={headerHeight}
             taskListWidth={taskListWidth}
-            onTaskChange={handleTaskChange}
+            onTasksChange={handleTaskChange}
             selectedTaskId={selectedTaskId ?? undefined}
             onTaskSelect={handleTaskSelect}
             show={showTaskList}
@@ -960,7 +872,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
               monthStart={monthStart}
               dayWidth={dayWidth}
               rowHeight={rowHeight}
-              onChange={handleTaskChange}
+              onTasksChange={handleTaskChange}
               onDragStateChange={(state) => {
                 if (state.isDragging) {
                   setDragGuideLines(state);
