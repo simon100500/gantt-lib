@@ -5,6 +5,12 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.7.1] - 2026-03-13
+
+### Исправлено
+- Автоматический обмен дат задачи, если endDate < startDate (normalizeTaskDates)
+- Даты валидируются при начальной загрузке данных и при редактировании
+
 ## [0.7.0] - 2026-03-11
 
 ### Добавлено

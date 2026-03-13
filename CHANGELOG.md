@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.1] - 2026-03-13
+
+### Fixes
+- Automatically swap task dates when endDate < startDate (normalizeTaskDates)
+- Dates are validated on initial data load and during editing
+
 ## [0.7.0] - 2026-03-11
 
 ### Features
