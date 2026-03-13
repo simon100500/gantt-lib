@@ -337,6 +337,15 @@ const createSampleTasks = (): Task[] => {
           "lag": 0
         }
       ]
+    },
+    {
+      "id": "swapped-test",
+      "name": "🧪 TEST: Swapped Dates (start > end)",
+      "startDate": "2026-08-15",
+      "endDate": "2026-07-20",
+      "progress": 0,
+      "accepted": false,
+      "dependencies": []
     }
   ]
 };
