@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.6.0
+**Version:** 0.8.0
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
@@ -107,6 +107,15 @@ export default function App() {
     });
   };
 
+  const handleTasksChange = (changedTasks: Task[]) => {
+    // Called when tasks are modified
+    // Receives ONLY the changed tasks - merge them into state
+    setTasks(prev => {
+      const changedMap = new Map(changedTasks.map(t => [t.id, t]));
+      return prev.map(t => changedMap.get(t.id) ?? t);
+    });
+  };
+
   return (
     <div>
       <button onClick={() => ganttRef.current?.scrollToToday()}>
@@ -120,7 +129,7 @@ export default function App() {
         tasks={tasks}
         dayWidth={40}
         rowHeight={40}
-        onChange={setTasks}
+        onTasksChange={handleTasksChange}
         onAdd={handleAdd}
         onDelete={handleDelete}
         onInsertAfter={handleInsertAfter}
@@ -134,7 +143,7 @@ export default function App() {
 Key points:
 - **CSS import is required** for all visual features including hover buttons
 - Use ISO strings (`'YYYY-MM-DD'`) for dates — avoids timezone issues
-- Pass the `useState` setter directly to `onChange` — the library emits functional updaters
+- **`onTasksChange` receives ONLY changed tasks** — merge them into your state using the pattern shown in `handleTasksChange`
 - Implement `onAdd`, `onDelete`, and `onInsertAfter` to handle task operations from the UI
 - After inserting via `onInsertAfter`, the new task automatically enters edit mode (managed internally)
 - No `month` prop needed — the calendar range is derived automatically from task dates
@@ -190,8 +199,11 @@ export default function FullExample() {
   const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void }>(null);
 
   // Basic task operations
-  const handleChange = useCallback((updated: Task[] | ((t: Task[]) => Task[])) => {
-    setTasks(typeof updated === 'function' ? updated : () => updated);
+  const handleTasksChange = useCallback((changedTasks: Task[]) => {
+    setTasks(prev => {
+      const changedMap = new Map(changedTasks.map(t => [t.id, t]));
+      return prev.map(t => changedMap.get(t.id) ?? t);
+    });
   }, []);
 
   const handleAdd = useCallback((task: Task) => {
@@ -283,7 +295,7 @@ export default function FullExample() {
         dayWidth={40}
         rowHeight={40}
         containerHeight={400}
-        onChange={handleChange}
+        onTasksChange={handleTasksChange}
         onAdd={handleAdd}
         onDelete={handleDelete}
         onInsertAfter={handleInsertAfter}
@@ -426,7 +438,7 @@ Rare link type. B must be complete by the time A begins. Lag ceiling at 0 preven
 When `enableAutoSchedule={true}` and a predecessor is dragged:
 - All successor tasks shift automatically to maintain their link constraints
 - Dependency lines redraw in real-time during drag (not just on mouseup)
-- When cascade occurs, `onCascade` fires instead of `onChange` — they are mutually exclusive per drag event
+- When cascade occurs, `onCascade` fires instead of `onTasksChange` — they are mutually exclusive per drag event
 
 ---
 
@@ -439,7 +451,7 @@ interface GanttChartProps {
   rowHeight?: number;
   headerHeight?: number;
   containerHeight?: number | string;
-  onChange?: (tasks: Task[] | ((currentTasks: Task[]) => Task[])) => void;
+  onTasksChange?: (tasks: Task[]) => void;
   onAdd?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
   onInsertAfter?: (taskId: string, newTask: Task) => void;
@@ -468,7 +480,7 @@ interface GanttChartProps {
 | `rowHeight` | `number` | `40` | Height of each task row in pixels. Also controls the task bar vertical position within the row. |
 | `headerHeight` | `number` | `40` | Height of the time-scale header (month + day rows) in pixels. |
 | `containerHeight` | `number \| string` | `undefined` | Container height. Can be pixels (`600`), string (`"90vh"`, `"100%"`, `"500px"`), or `undefined` for auto height (adapts to content). |
-| `onChange` | `(tasks: Task[] \| ((currentTasks: Task[]) => Task[])) => void` | `undefined` | Called once on mouseup after any drag or resize. Receives either a new tasks array or a functional updater `(prev) => next`. **Best usage:** pass the `useState` setter directly — `onChange={setTasks}`. This works because the library already wraps updates in functional updaters. |
+| `onTasksChange` | `(tasks: Task[]) => void` | `undefined` | Called when tasks are modified. **Receives ONLY the changed tasks** (never the full array unless all actually changed). Single task = array of 1 element. Consumer must merge changed tasks into state. See Section 12 for usage patterns. |
 | `onAdd` | `(task: Task) => void` | `undefined` | Called when user adds a new task. The library creates a task with auto-generated ID and default dates. Consumer adds the task to the array. |
 | `onDelete` | `(taskId: string) => void` | `undefined` | Called when user clicks the trash icon in the task list action panel. Receives the `taskId` of the task to delete. The library automatically cleans up dependencies pointing to this task. |
 | `onInsertAfter` | `(taskId: string, newTask: Task) => void` | `undefined` | Called when user clicks the "+" insert button in the action panel. Receives the `taskId` to insert after and the `newTask` object. After insertion, the new task automatically enters edit mode (managed internally by the component). |
@@ -478,7 +490,7 @@ interface GanttChartProps {
 | `onValidateDependencies` | `(result: ValidationResult) => void` | `undefined` | Called every time the tasks array changes. Receives a `ValidationResult` with all dependency errors (cycles, constraint violations, missing task references). |
 | `enableAutoSchedule` | `boolean` | `false` | When `true` (hard mode): dragging a predecessor cascades all successor tasks to maintain their constraints. Dependency lines redraw in real-time during drag. |
 | `disableConstraints` | `boolean` | `false` | When `true`: all drag constraint checks are skipped. Tasks can be placed freely, ignoring all dependency rules. Useful for debugging layouts or building unconstrained editors. |
-| `onCascade` | `(tasks: Task[]) => void` | `undefined` | Called when a cascade drag completes in hard mode (`enableAutoSchedule={true}`). Receives all affected tasks including the dragged task. **When `onCascade` fires, `onChange` does NOT fire for that drag.** Use `onCascade` to update state in hard mode. |
+| `onCascade` | `(tasks: Task[]) => void` | `undefined` | Called when a cascade drag completes in hard mode (`enableAutoSchedule={true}`). Receives all affected tasks including the dragged task. **When `onCascade` fires, `onTasksChange` does NOT fire for that drag.** Use `onCascade` to update state in hard mode. |
 | `showTaskList` | `boolean` | `false` | When `true`, displays a task list table on the left side of the chart with columns for №, Name, Start Date, End Date. The task list supports inline editing and synchronized scrolling. **CSS import required for hover-reveal action buttons.** |
 | `taskListWidth` | `number` | `520` | Width of the task list panel in pixels. Only effective when `showTaskList={true}`. |
 | `disableTaskNameEditing` | `boolean` | `false` | When `true`, task names cannot be edited in the task list. Date editing is also disabled for locked tasks (see `task.locked` property). |
@@ -589,7 +601,7 @@ Override these in any global CSS file to customize the chart appearance. All ove
 
 **Drag tooltip:** During drag, a tooltip displays the current start and end dates of the task being dragged.
 
-**onChange timing:** `onChange` fires exactly once on `mouseup`, not during drag. This prevents re-render storms when 100+ tasks are in the array. During drag, only the dragged row re-renders internally.
+**onTasksChange timing:** `onTasksChange` fires exactly once on `mouseup`, not during drag. This prevents re-render storms when 100+ tasks are in the array. During drag, only the dragged row re-renders internally.
 
 **Snapping:** All drag operations snap to full day boundaries. Sub-day positioning is not supported.
 
@@ -631,33 +643,49 @@ Validation runs automatically on every tasks array change. You do not call it ma
 - **Use ISO strings.** Always pass dates as `'YYYY-MM-DD'` strings. `Date` objects from local environments can cause off-by-one errors due to timezone offsets.
 - **All internal calculations are UTC.** The library uses `Date.UTC()` internally. A date string `'2026-02-01'` is treated as `2026-02-01T00:00:00Z`.
 - **endDate is inclusive.** A task with `startDate: '2026-02-01'` and `endDate: '2026-02-01'` occupies exactly 1 day column. A task from Feb 1 to Feb 5 occupies 5 day columns.
-- **After drag, dates in onChange are ISO strings.** The callback always receives ISO UTC date strings regardless of the input format used when constructing tasks.
+- **After drag, dates in onTasksChange are ISO strings.** The callback always receives ISO UTC date strings regardless of the input format used when constructing tasks.
 - **Lag values after drag are integers (days).** The library rounds lag to whole days.
 
 ---
 
-## 12. onChange Pattern — Correct Usage
+## 12. onTasksChange Pattern — Correct Usage
 
-The `onChange` prop accepts both a new tasks array and a functional updater. The library internally emits functional updaters to avoid stale closure bugs with fast consecutive drags.
+The `onTasksChange` prop receives an array of **only the changed tasks**. You must merge these into your state. Single task changes are delivered as a single-element array.
 
 ```tsx
-// CORRECT: pass useState setter directly — the library handles functional updater emission
-<GanttChart tasks={tasks} onChange={setTasks} />
+// CORRECT: merge changed tasks into state
+const handleTasksChange = useCallback((changedTasks: Task[]) => {
+  setTasks(prev => {
+    const changedMap = new Map(changedTasks.map(t => [t.id, t]));
+    return prev.map(t => changedMap.get(t.id) ?? t);
+  });
+}, []);
 
-// CORRECT: manual functional updater wrapper (equivalent behavior)
-<GanttChart
-  tasks={tasks}
-  onChange={(update) => {
-    setTasks(prev => typeof update === 'function' ? update(prev) : update);
-  }}
-/>
-
-// WRONG: reading from tasks closure — stale closure bug with fast consecutive drags
-onChange={(newTasks) => setTasks(newTasks)}
-// This may overwrite a concurrent drag because `newTasks` closes over a stale `tasks` reference.
+<GanttChart tasks={tasks} onTasksChange={handleTasksChange} />
 ```
 
-**Rule:** Never read `tasks` directly inside the `onChange` callback. Always use the functional updater pattern so React can provide the current state.
+**What onTasksChange receives per operation:**
+
+| Operation | Array Contents |
+|-----------|----------------|
+| Edit task name | `[task]` |
+| Edit task progress | `[task]` or `[child, parent]` (if parent exists) |
+| Drag/resize (no cascade) | `[task]` |
+| Cascade | `[task1, task2, ...]` (chain + parent updates) |
+| Reorder | full `reorderedTasks` array |
+| Delete | tasks with cleaned dependencies |
+
+**For REST API:**
+```tsx
+onTasksChange={(tasks) => {
+  tasks.forEach(t => patch(`/api/tasks/${t.id}`, t))
+}}
+```
+
+**For batch REST API:**
+```tsx
+onTasksChange={(tasks) => patch('/api/tasks', { tasks })}
+```
 
 ---
 
@@ -667,18 +695,18 @@ Three distinct operating modes depending on prop combinations:
 
 | `enableAutoSchedule` | `onCascade` provided | Mode | Behavior |
 |---|---|---|---|
-| `false` (default) | any | **Soft / visual only** | Tasks move independently. Dependency lines are visual only — no constraints enforced on drag. `onChange` fires on each drag. |
-| `true` | no | **Soft cascade** | Predecessors drag successors. On drag end, updated tasks with recalculated lag values are returned via `onChange`. |
-| `true` | yes | **Hard cascade** | Predecessors drag successors with real-time preview. On drag end, `onCascade` fires with all shifted tasks. `onChange` does NOT fire for cascaded drags. |
+| `false` (default) | any | **Soft / visual only** | Tasks move independently. Dependency lines are visual only — no constraints enforced on drag. `onTasksChange` fires on each drag. |
+| `true` | no | **Soft cascade** | Predecessors drag successors. On drag end, updated tasks with recalculated lag values are returned via `onTasksChange`. |
+| `true` | yes | **Hard cascade** | Predecessors drag successors with real-time preview. On drag end, `onCascade` fires with all shifted tasks. `onTasksChange` does NOT fire for cascaded drags. |
 
 **State update rule for hard cascade:**
 ```tsx
-// Update tasks from onCascade, not from onChange, in hard mode
+// Update tasks from onCascade, not from onTasksChange, in hard mode
 <GanttChart
   tasks={tasks}
   enableAutoSchedule={true}
-  onChange={setTasks}          // fires for non-cascade drags (resize of leaf task, etc.)
-  onCascade={(shifted) => {    // fires for cascade drags — takes precedence
+  onTasksChange={handleTasksChange}  // fires for non-cascade drags (resize of leaf task, etc.)
+  onCascade={(shifted) => {          // fires for cascade drags — takes precedence
     setTasks(prev => {
       const map = new Map(shifted.map(t => [t.id, t]));
       return prev.map(t => map.get(t.id) ?? t);
@@ -722,8 +750,8 @@ const tasks: Task[] = [
 - Do not calculate or set `lag` manually after drag events — the library recalculates it on every drag completion.
 - When constructing initial tasks, `lag: 0` is the standard neutral value. Omitting `lag` is equivalent (defaults to 0).
 
-**onChange vs onCascade**
-- When `enableAutoSchedule={true}` and `onCascade` is provided, update your state from `onCascade`, not from `onChange`. They are mutually exclusive per drag event.
+**onTasksChange vs onCascade**
+- When `enableAutoSchedule={true}` and `onCascade` is provided, update your state from `onCascade`, not from `onTasksChange`. They are mutually exclusive per drag event.
 
 **Locked tasks**
 - Use `locked: true` to prevent drag, resize, and editing of a task. This is independent from progress and accepted properties.
@@ -811,7 +839,7 @@ import 'gantt-lib/styles.css';
 
 ## 16. Performance Notes
 
-- `onChange` fires once on mouseup — not on every drag frame. Safe with 100+ tasks.
+- `onTasksChange` fires once on mouseup — not on every drag frame. Safe with 100+ tasks.
 - `TaskRow` uses `React.memo` with a custom comparator. Only the dragged row re-renders during drag.
 - During cascade drag, chain member rows re-render from CSS transform overrides, not React state updates.
 - For very large task lists (500+), consider virtualizing the row container — the library does not virtualize internally.
