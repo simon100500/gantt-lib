@@ -695,7 +695,7 @@ None yet.
 | 92 | Change task grouping behavior for smart hierarchy inference | 2026-03-11 | fd28870 | [092-change-task-grouping](./quick/092-change-task-grouping/) |
 | 93 | Change hierarchy button to single arrow icon (SVG, no lucide) | 2026-03-11 | ec9b5f4 | [093-promote-demote-to-arrows](./quick/093-promote-demote-to-arrows/) |
 | 94 | Virtual dependency links for collapsed parent tasks (partial - internal deps filtered, cascade investigation pending) | 2026-03-11 | d4a8db5 | [094-virtual-dependency-links](./quick/094-virtual-dependency-links/) |
-| 97 | Fix parent task drag restriction (single-level nesting) | 2026-03-14 | 0522516 | [097-fix-parent-drag-restriction](./quick/097-fix-parent-drag-restriction/) |
+| 97 | Fix parent task drag restriction (single-level nesting) | 2026-03-14 | 8d28960 | [097-fix-parent-drag-restriction](./quick/097-fix-parent-drag-restriction/) |
 
 ## Session Continuity
 

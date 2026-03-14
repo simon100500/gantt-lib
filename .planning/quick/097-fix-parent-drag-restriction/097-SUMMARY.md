@@ -16,8 +16,8 @@ key_files:
     - packages/gantt-lib/src/components/TaskList/TaskList.tsx
 decisions: []
 metrics:
-  duration_seconds: 120
-  completed_date: "2026-03-14T11:51:28Z"
+  duration_seconds: 180
+  completed_date: "2026-03-14T11:54:23Z"
 ---
 
 # Phase Quick Plan 097: Fix Parent Task Drag Restriction Summary
@@ -26,14 +26,14 @@ Prevent parent tasks from being dropped in invalid positions to enforce single-l
 
 ## One-Liner
 
-Parent tasks CAN be dragged (drag handle visible), but invalid drop targets show NO indication and are REJECTED silently.
+Parent tasks CAN be dragged (drag handle visible), but invalid drop targets (children) show NO indication and are REJECTED silently. Parent CAN be dropped on another parent (both stay at root level).
 
 ## Tasks Completed
 
 ### Task 1: Add isValidParentDrop validation helper
 
 **Status:** Completed
-**Commit:** 0522516
+**Commit:** 8d28960
 
 Added `isValidParentDrop` helper function that validates if a parent task can be dropped at a specific position:
 
@@ -57,19 +57,17 @@ const isValidParentDrop = useCallback((draggedTaskId: string, dropIndex: number)
     return false;
   }
 
-  // Scenario 3: Dropping directly on another parent task
-  if (isTaskParent(dropTarget.id, tasks)) {
-    return false;
-  }
-
+  // Allow dropping on other root tasks (parents or non-parents)
   return true;
 }, [tasks, visibleTasks]);
 ```
 
+**Key decision:** Parent CAN be dropped on another parent (both stay root). Only dropping on children is blocked.
+
 ### Task 2: Update handleDragOver to hide indication for invalid drops
 
 **Status:** Completed
-**Commit:** 0522516
+**Commit:** 0522516 → 8d28960
 
 Modified `handleDragOver` to check drop validity before showing drag-over indication:
 
@@ -95,12 +93,12 @@ const handleDragOver = useCallback((index: number, e: React.DragEvent) => {
 ### Task 3: Update handleDrop to reject invalid drops
 
 **Status:** Completed
-**Commit:** 0522516
+**Commit:** 0522516 → 8d28960
 
 Added validation check at the start of `handleDrop` to silently reject invalid parent drops:
 
 ```typescript
-// Reject invalid parent drops (parent being dragged into children or another parent)
+// Reject invalid parent drops (parent being dragged into children)
 if (!isValidParentDrop(movedTaskId, dropIndex)) {
   setDraggingIndex(null);
   setDragOverIndex(null);
@@ -114,8 +112,9 @@ if (!isValidParentDrop(movedTaskId, dropIndex)) {
 
 **Major correction:** Initial implementation incorrectly hid drag handles for parent tasks. The correct behavior is:
 - Parent tasks SHOW drag handles (can be dragged)
-- But invalid drop targets show NO indication
+- Invalid drop targets (children) show NO indication
 - Invalid drops are silently rejected
+- Parent CAN be dropped on another parent (both remain root-level)
 
 ## Verification
 
@@ -125,20 +124,22 @@ Build completed successfully with no TypeScript errors.
 
 1. Start the dev server: `npm run dev`
 2. Open the browser and navigate to the demo page
-3. Create a parent task "Parent A" with at least 2 children
-4. **Verify:** Parent task SHOWS a drag handle
-5. **Verify:** Child tasks SHOW drag handles
-6. **Test:** Try to drag Parent A between its own children → NO drag-over indication, drop is rejected
-7. **Test:** Create another parent "Parent B" with children
-8. **Test:** Try to drag Parent A between Parent B's children → NO drag-over indication, drop is rejected
-9. **Test:** Try to drag Parent A directly on Parent B → NO drag-over indication, drop is rejected
-10. **Test:** Drag a child from Parent A to between Parent B's children → Should work (normal indication)
+3. Create:
+   - [просто задача] (root)
+   - [родитель1] with children
+   - [Родитель2] with children
+4. **Verify:** All tasks SHOW drag handles
+5. **Test:** Drag [Родитель2] between [просто задача] and [родитель1] → Should work (indication shown)
+6. **Test:** Drag [Родитель2] between [родитель1]'s children → NO indication, rejected
+7. **Test:** Drag [Родитель2] on [родитель1] → Should work (indication shown, both stay root)
+8. **Test:** Drag child from [родитель1] to [Родитель2]'s children → Should work
 
 ## Success Criteria Met
 
 - [x] Parent tasks show drag handles (can attempt to drag)
-- [x] No drag-over indication when parent is dragged over invalid targets
-- [x] Invalid drops are silently rejected (no error, no action)
+- [x] No drag-over indication when parent is dragged over children
+- [x] Invalid drops (on children) are silently rejected
+- [x] Parent CAN be dropped on another parent (both stay root)
 - [x] Child tasks can still be dragged normally
 - [x] No TypeScript errors
 - [x] Build completes successfully
