@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: "Completed quick-094: Virtual dependency links (partial - cascade investigation pending)"
+stopped_at: "Completed quick-097: Fix parent task drag restriction (single-level nesting)"
 last_updated: "2026-03-11T14:36:55.452Z"
-last_activity: "2026-03-11 - Completed quick task 94: Virtual dependency links for collapsed parent tasks (partial - cascade investigation pending)"
+last_activity: "2026-03-14 - Completed quick task 97: Fix parent task drag restriction (single-level nesting)"
 progress:
   total_phases: 19
   completed_phases: 18
@@ -695,6 +695,7 @@ None yet.
 | 92 | Change task grouping behavior for smart hierarchy inference | 2026-03-11 | fd28870 | [092-change-task-grouping](./quick/092-change-task-grouping/) |
 | 93 | Change hierarchy button to single arrow icon (SVG, no lucide) | 2026-03-11 | ec9b5f4 | [093-promote-demote-to-arrows](./quick/093-promote-demote-to-arrows/) |
 | 94 | Virtual dependency links for collapsed parent tasks (partial - internal deps filtered, cascade investigation pending) | 2026-03-11 | d4a8db5 | [094-virtual-dependency-links](./quick/094-virtual-dependency-links/) |
+| 97 | Fix parent task drag restriction (single-level nesting) | 2026-03-14 | 04c5130 | [097-fix-parent-drag-restriction](./quick/097-fix-parent-drag-restriction/) |
 
 ## Session Continuity
 
