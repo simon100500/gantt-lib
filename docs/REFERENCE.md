@@ -316,8 +316,8 @@ export default function FullExample() {
 - **Child tasks:** Indented in task list with "⬆" button to promote (remove parentId)
 - **Root tasks:** Show "⬇" button to demote (become child of previous task)
 - **Drag-and-drop:** Dragging a task between child tasks automatically assigns it the same parent
-- **Promote:** Clicking "⬆" moves task after last sibling and removes parentId
-- **Demote:** Clicking "⬇" makes task a child of the previous task (or sibling if previous task is a child)
+- **Promote:** Clicking "⬆" moves task after last sibling and removes parentId. The `onPromoteTask` callback is optional — if not provided, the library uses internal default logic.
+- **Demote:** Clicking "⬇" makes task a child of the previous task (or sibling if previous task is a child). The `onDemoteTask` callback is optional — if not provided, the library uses internal default logic.
 
 ---
 
@@ -485,8 +485,8 @@ interface GanttChartProps {
 | `onDelete` | `(taskId: string) => void` | `undefined` | Called when user clicks the trash icon in the task list action panel. Receives the `taskId` of the task to delete. The library automatically cleans up dependencies pointing to this task. |
 | `onInsertAfter` | `(taskId: string, newTask: Task) => void` | `undefined` | Called when user clicks the "+" insert button in the action panel. Receives the `taskId` to insert after and the `newTask` object. After insertion, the new task automatically enters edit mode (managed internally by the component). |
 | `onReorder` | `(tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void` | `undefined` | Called when tasks are reordered via drag-and-drop in the task list. `movedTaskId` is the ID of the dragged task. `inferredParentId` is the parent ID inferred from the drop position (undefined if dropped at root level). **Implementation:** update `parentId` of `movedTaskId` to `inferredParentId` (or remove `parentId` if `inferredParentId` is undefined). |
-| `onPromoteTask` | `(taskId: string) => void` | `undefined` | Called when user clicks the "⬆" button to promote a child task to root level. Task is moved after the last sibling and `parentId` is removed. |
-| `onDemoteTask` | `(taskId: string, newParentId: string) => void` | `undefined` | Called when user clicks the "⬇" button to make a task a child of the previous task. `newParentId` is the ID of the parent task. |
+| `onPromoteTask` | `(taskId: string) => void` | `undefined` | Called when user clicks the "⬆" button to promote a child task to root level. **Optional** — if not provided, the library uses internal default logic (calls `onTasksChange` with the promoted task and reorders the task array). |
+| `onDemoteTask` | `(taskId: string, newParentId: string) => void` | `undefined` | Called when user clicks the "⬇" button to make a task a child of the previous task. `newParentId` is the ID of the parent task. **Optional** — if not provided, the library uses internal default logic (calls `onTasksChange` with the demoted task and updated parent, removes dependencies between tasks to prevent circular references). |
 | `onValidateDependencies` | `(result: ValidationResult) => void` | `undefined` | Called every time the tasks array changes. Receives a `ValidationResult` with all dependency errors (cycles, constraint violations, missing task references). |
 | `enableAutoSchedule` | `boolean` | `false` | When `true` (hard mode): dragging a predecessor cascades all successor tasks to maintain their constraints. Dependency lines redraw in real-time during drag. |
 | `disableConstraints` | `boolean` | `false` | When `true`: all drag constraint checks are skipped. Tasks can be placed freely, ignoring all dependency rules. Useful for debugging layouts or building unconstrained editors. |
@@ -809,8 +809,8 @@ const tasks: Task[] = [
 - **Promote behavior:** Clicking "⬆" moves the task after the last sibling of its current parent and removes `parentId`.
 - **Demote behavior:** Clicking "⬇" makes the task a child of the previous task. If the previous task is already a child, the task becomes a sibling (same parent).
 - **Implement `onReorder`:** The callback receives `(reorderedTasks, movedTaskId, inferredParentId)`. Update `parentId` of `movedTaskId` to `inferredParentId` (or remove `parentId` if `inferredParentId` is undefined).
-- **Implement `onPromoteTask`:** Remove `parentId` and optionally reposition the task after its last sibling.
-- **Implement `onDemoteTask`:** Set `parentId` to the specified parent task ID. The library automatically removes dependencies between the two tasks to prevent circular references.
+- **Implement `onPromoteTask` (optional):** If provided, this callback is called when the user clicks the "⬆" button. Remove `parentId` and optionally reposition the task after its last sibling. If not provided, the library uses internal default logic (calls `onTasksChange` with the updated task).
+- **Implement `onDemoteTask` (optional):** If provided, this callback is called when the user clicks the "⬇" button. Set `parentId` to the specified parent task ID. The library automatically removes dependencies between the two tasks to prevent circular references. If not provided, the library uses internal default logic (calls `onTasksChange` with the updated task and parent).
 - **Parent date computation:** Parent task dates are automatically computed as the min/max of all child dates. When children are added/removed/moved, parent dates update automatically.
 - **Parent progress calculation:** Computed as a weighted average based on child task durations (longer children have more influence on parent progress).
 - **Cascade delete:** Deleting a parent task also deletes all its descendants (children and their children). The library also cleans up dependencies pointing to any deleted tasks.

@@ -118,6 +118,10 @@ export interface GanttChartProps {
   onInsertAfter?: (taskId: string, newTask: Task) => void;
   /** Callback when tasks are reordered via drag in the task list */
   onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
+  /** Callback when a task is promoted (parentId removed). If not provided, default internal logic is used. */
+  onPromoteTask?: (taskId: string) => void;
+  /** Callback when a task is demoted (parentId set). If not provided, default internal logic is used. */
+  onDemoteTask?: (taskId: string, newParentId: string) => void;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
 }
@@ -174,6 +178,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   onDelete,
   onInsertAfter,
   onReorder,
+  onPromoteTask,
+  onDemoteTask,
   enableAddTask = true,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -645,6 +651,13 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   }, []);
 
   const handlePromoteTask = useCallback((taskId: string) => {
+    // If consumer provided custom callback, use it
+    if (onPromoteTask) {
+      onPromoteTask(taskId);
+      return;
+    }
+
+    // Default internal logic
     const taskToPromote = tasks.find(t => t.id === taskId);
     if (!taskToPromote || !(taskToPromote as any).parentId) {
       return;
@@ -678,9 +691,16 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     ]);
 
     onTasksChange?.(reorderedTasks);
-  }, [tasks, onTasksChange]);
+  }, [tasks, onTasksChange, onPromoteTask]);
 
   const handleDemoteTask = useCallback((taskId: string, newParentId: string) => {
+    // If consumer provided custom callback, use it
+    if (onDemoteTask) {
+      onDemoteTask(taskId, newParentId);
+      return;
+    }
+
+    // Default internal logic
     const wouldCreateCircular = (targetId: string, parentId: string, tasks: Task[]): boolean => {
       if (targetId === parentId) return true;
 
@@ -721,7 +741,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     };
 
     onTasksChange?.([updatedDemotedTask, updatedParentTask]);
-  }, [tasks, onTasksChange]);
+  }, [tasks, onTasksChange, onDemoteTask]);
 
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
@@ -811,8 +831,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             enableAddTask={enableAddTask}
             collapsedParentIds={collapsedParentIds}
             onToggleCollapse={handleToggleCollapse}
-            onPromoteTask={handlePromoteTask}
-            onDemoteTask={handleDemoteTask}
+            onPromoteTask={onPromoteTask ?? handlePromoteTask}
+            onDemoteTask={onDemoteTask ?? handleDemoteTask}
           />
 
           {/* Chart area */}
