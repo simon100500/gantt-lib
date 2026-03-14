@@ -284,9 +284,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   const dragTaskIdRef = useRef<string | null>(null);
 
   // Helper: check if a parent task can be dropped at a specific position
-  // Parent tasks cannot be dropped:
-  // 1. Between their own children (would make parent nested in its own children)
-  // 2. Between another parent's children (would make this parent a child of another parent)
+  // Parent tasks cannot be dropped between children (own or another parent's)
   const isValidParentDrop = useCallback((draggedTaskId: string, dropIndex: number): boolean => {
     // If not a parent, allow all drops
     if (!isTaskParent(draggedTaskId, tasks)) {
@@ -302,17 +300,12 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     // Scenario 2: Dropping parent between another parent's children
-    // (dropTarget has a parentId and is not this parent's child)
+    // (dropTarget has a parentId - dropping here would make draggedTask a child too)
     if (dropTarget.parentId) {
       return false;
     }
 
-    // Scenario 3: Dropping directly on another parent task
-    // (would make draggedTask a child of dropTarget)
-    if (isTaskParent(dropTarget.id, tasks)) {
-      return false;
-    }
-
+    // Allow dropping on other root tasks (parents or non-parents)
     return true;
   }, [tasks, visibleTasks]);
 
