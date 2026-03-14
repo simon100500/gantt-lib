@@ -6,6 +6,7 @@ import type { LinkType } from '../../types';
 import { validateDependencies, calculateSuccessorDate, isTaskParent } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import { getVisibleReorderPosition } from '../../utils/taskListReorder';
+import { getChildren } from '../../utils/dependencyUtils';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
@@ -16,6 +17,33 @@ export { LINK_TYPE_ICONS };
 
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
 const MIN_TASK_LIST_WIDTH = 640;
+
+/**
+ * Get all descendant tasks of a parent task (recursively).
+ * Returns an array of all tasks where task.parentId is in the parent chain.
+ *
+ * @param parentId - ID of the parent task
+ * @param tasks - All tasks array
+ * @returns Array of descendant tasks (not including the parent itself)
+ */
+function getAllDescendants(parentId: string, tasks: Task[]): Task[] {
+  const descendants: Task[] = [];
+  const visited = new Set<string>();
+
+  function collectChildren(taskId: string) {
+    if (visited.has(taskId)) return;
+    visited.add(taskId);
+
+    const children = getChildren(taskId, tasks);
+    for (const child of children) {
+      descendants.push(child);
+      collectChildren(child.id);
+    }
+  }
+
+  collectChildren(parentId);
+  return descendants;
+}
 
 export interface TaskListProps {
   /** Array of tasks to display */
@@ -116,7 +144,23 @@ export const TaskList: React.FC<TaskListProps> = ({
     });
   }, []);
 
-  const orderedTasks = useMemo(() => normalizeHierarchyTasks(tasks), [tasks]);
+  const orderedTasks = useMemo(() => {
+    console.log('=== TASKLIST orderedTasks useMemo START ===');
+    console.log('[INPUT TASKS]', {
+      count: tasks.length,
+      tasks: tasks.map((t, i) => ({ id: t.id, name: t.name, parentId: t.parentId, index: i }))
+    });
+
+    const result = normalizeHierarchyTasks(tasks);
+
+    console.log('[OUTPUT orderedTasks]', {
+      count: result.length,
+      tasks: result.map((t, i) => ({ id: t.id, name: t.name, parentId: t.parentId, index: i }))
+    });
+    console.log('=== TASKLIST orderedTasks useMemo END ===\n');
+
+    return result;
+  }, [tasks]);
 
   // Filter tasks to hide children of collapsed parents
   const visibleTasks = useMemo(() => {
@@ -284,7 +328,10 @@ export const TaskList: React.FC<TaskListProps> = ({
   const dragTaskIdRef = useRef<string | null>(null);
 
   // Helper: check if a parent task can be dropped at a specific position
-  // Parent tasks cannot be dropped between children (own or another parent's)
+  // Parent tasks cannot be dropped:
+  // 1. Between their own children
+  // 2. Between another parent's children (would make them a child)
+  // 3. Under their own descendants (would create a cycle)
   const isValidParentDrop = useCallback((draggedTaskId: string, dropIndex: number): boolean => {
     // If not a parent, allow all drops
     if (!isTaskParent(draggedTaskId, tasks)) {
@@ -305,9 +352,27 @@ export const TaskList: React.FC<TaskListProps> = ({
       return false;
     }
 
+    // Scenario 3: Dropping parent under one of its own descendants
+    // This would create a cycle (parent becomes child of its descendant)
+    // Check if dropTarget is a descendant of draggedTaskId
+    const draggedTask = orderedTasks.find(t => t.id === draggedTaskId);
+    if (!draggedTask) return true;
+
+    const descendants = getAllDescendants(draggedTaskId, orderedTasks);
+    const descendantIds = new Set(descendants.map(d => d.id));
+
+    if (descendantIds.has(dropTarget.id)) {
+      console.log('[INVALID DROP] Parent cannot be dropped under its own descendant', {
+        parentId: draggedTaskId,
+        descendantId: dropTarget.id,
+        descendantName: dropTarget.name
+      });
+      return false;
+    }
+
     // Allow dropping on other root tasks (parents or non-parents)
     return true;
-  }, [tasks, visibleTasks]);
+  }, [tasks, visibleTasks, orderedTasks]);
 
   const handleDragStart = useCallback((index: number, e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'move';
@@ -356,6 +421,15 @@ export const TaskList: React.FC<TaskListProps> = ({
       return;
     }
 
+    console.log('=== BEFORE getVisibleReorderPosition ===');
+    console.log('[INPUT]', {
+      movedTaskId,
+      originVisibleIndex,
+      dropIndex,
+      orderedTasksCount: orderedTasks.length,
+      visibleTasksCount: visibleTasks.length
+    });
+
     const reorderPosition = getVisibleReorderPosition(
       orderedTasks,
       visibleTasks,
@@ -373,28 +447,92 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     const { originOrderedIndex, insertIndex } = reorderPosition;
+    const moved = orderedTasks[originOrderedIndex];
+
+    console.log('=== AFTER getVisibleReorderPosition ===');
+    console.log('[REORDER POSITION]', {
+      originOrderedIndex,
+      insertIndex,
+      movedTask: { id: moved.id, name: moved.name, parentId: moved.parentId }
+    });
+
+    // Check if this is a parent task with children
+    const hasChildren = isTaskParent(moved.id, orderedTasks);
+
+    // Extract the subtree to move (parent + all descendants, if any)
+    let subtree: Task[];
+    let subtreeCount: number;
+
+    if (hasChildren) {
+      // Get all descendants of the parent
+      const descendants = getAllDescendants(moved.id, orderedTasks);
+      subtree = [moved, ...descendants];
+      subtreeCount = subtree.length;
+
+      console.log('[PARENT TASK DROP]', {
+        parentId: moved.id,
+        parentName: moved.name,
+        descendantCount: descendants.length,
+        descendantIds: descendants.map(d => d.id),
+        subtreeSize: subtreeCount,
+        originOrderedIndex
+      });
+    } else {
+      // Single task (not a parent)
+      subtree = [moved];
+      subtreeCount = 1;
+    }
+
     const reordered = [...orderedTasks];
-    const [moved] = reordered.splice(originOrderedIndex, 1);
+
+    console.log('[BEFORE FIRST SPLICE]', {
+      reorderedLength: reordered.length,
+      removingAt: originOrderedIndex,
+      removingCount: subtreeCount
+    });
+
+    // Remove the entire subtree from its original position
+    reordered.splice(originOrderedIndex, subtreeCount);
+
+    console.log('[AFTER FIRST SPLICE]', {
+      reorderedLength: reordered.length,
+      reorderedIds: reordered.map(t => t.id)
+    });
+
+    // CRITICAL: insertIndex is already relative to reorderedWithoutMoved
+    // After the splice, reordered === reorderedWithoutMoved (same array, same order)
+    // So we should use insertIndex directly, NOT insertIndex - subtreeCount
+    // The old code was subtracting subtreeCount again, which was incorrect
+    const adjustedInsertIndex = insertIndex;
+
+    console.log('[INSERT INDEX CALCULATION]', {
+      originalInsertIndex: insertIndex,
+      subtreeCount,
+      originOrderedIndex,
+      adjustedInsertIndex,
+      note: 'insertIndex is already relative to reorderedWithoutMoved, so we use it directly'
+    });
 
     // ============================================
     // COMPREHENSIVE LOGGING - START
     // ============================================
     const isChild = !!moved.parentId;
-    const isParent = tasks.some(t => t.parentId === moved.id);
-    const taskType = isParent ? 'PARENT' : (isChild ? 'CHILD' : 'ROOT');
+    const isParent = hasChildren;
+    const taskType = isParent ? `PARENT (${subtreeCount} tasks)` : (isChild ? 'CHILD' : 'ROOT');
 
     console.log('=== DRAG & DROP START ===');
     console.log('[MOVED TASK]', {
       id: moved.id,
-        name: moved.name,
-        type: taskType,
-        parentId: moved.parentId,
-        originIndex: originOrderedIndex,
-        originVisibleIndex,
-        dropIndex: dropIndex,
-        insertIndex: insertIndex,
-        direction: originVisibleIndex < dropIndex ? 'DOWN' : 'UP'
-      });
+      name: moved.name,
+      type: taskType,
+      parentId: moved.parentId,
+      originIndex: originOrderedIndex,
+      originVisibleIndex,
+      dropIndex: dropIndex,
+      insertIndex: adjustedInsertIndex,
+      subtreeSize: subtreeCount,
+      direction: originVisibleIndex < dropIndex ? 'DOWN' : 'UP'
+    });
     console.log('[TASKS ARRAY LENGTH]', orderedTasks.length);
     // ============================================
 
@@ -429,17 +567,17 @@ export const TaskList: React.FC<TaskListProps> = ({
           numSiblings: numSiblings,
           groupEnd: groupEnd,
           groupRange: `[${parentIndex}, ${groupEnd}]`,
-          insertIndex: insertIndex,
-          condition1_atOrAboveParent: insertIndex <= parentIndex,
-          condition2_belowAllSiblings: insertIndex > groupEnd
+          insertIndex: adjustedInsertIndex,
+          condition1_atOrAboveParent: adjustedInsertIndex <= parentIndex,
+          condition2_belowAllSiblings: adjustedInsertIndex > groupEnd
         });
 
-        // If insertIndex is <= parent (at or above parent position) or > groupEnd (below all siblings)
-        // Note: insertIndex == parentIndex means child will be inserted at parent's position,
+        // If adjustedInsertIndex is <= parent (at or above parent position) or > groupEnd (below all siblings)
+        // Note: adjustedInsertIndex == parentIndex means child will be inserted at parent's position,
         // which after splicing puts child above parent (parent shifts down by 1)
-        if (insertIndex <= parentIndex || insertIndex > groupEnd) {
+        if (adjustedInsertIndex <= parentIndex || adjustedInsertIndex > groupEnd) {
           console.log('[DECISION] EXIT GROUP - insertIndex is outside group range');
-          console.log('  -> Reason:', insertIndex <= parentIndex ? 'At or above parent position' : 'Below all siblings');
+          console.log('  -> Reason:', adjustedInsertIndex <= parentIndex ? 'At or above parent position' : 'Below all siblings');
           console.log('  -> Setting inferredParentId = undefined');
           inferredParentId = undefined; // Exit group - become root
         } else {
@@ -455,39 +593,41 @@ export const TaskList: React.FC<TaskListProps> = ({
       // This needs to be calculated AFTER splicing, so we do it below
     }
 
-    // Now splice the moved task into its final position
-    reordered.splice(insertIndex, 0, moved);
+    // Now splice the entire subtree into its final position
+    reordered.splice(adjustedInsertIndex, 0, ...subtree);
 
     console.log('[AFTER SPLICE]', {
-      movedTaskFinalPosition: insertIndex,
-      totalTasks: reordered.length
+      subtreeFinalPosition: adjustedInsertIndex,
+      subtreeSize: subtreeCount,
+      totalTasks: reordered.length,
+      reorderedIds: reordered.map((t, i) => ({ index: i, id: t.id, name: t.name, parentId: t.parentId }))
     });
 
     // For root tasks, check if they should join a group (need reordered for this)
     if (!moved.parentId) {
       // Prefer taskAbove if it has a parent (joining that group)
-      if (insertIndex > 0) {
-        const taskAbove = reordered[insertIndex - 1];
+      if (adjustedInsertIndex > 0) {
+        const taskAbove = reordered[adjustedInsertIndex - 1];
         console.log('[ROOT TASK - CHECK TASK ABOVE]', {
           taskAboveId: taskAbove.id,
           taskAboveName: taskAbove.name,
           taskAboveParentId: taskAbove.parentId
         });
-        if (taskAbove.parentId) {
+        if (taskAbove.parentId && taskAbove.parentId !== moved.id) {
           console.log('  -> Joining group from taskAbove:', taskAbove.parentId);
           inferredParentId = taskAbove.parentId;
         }
       }
 
       // Otherwise check taskBelow
-      if (inferredParentId === undefined && insertIndex < reordered.length - 1) {
-        const taskBelow = reordered[insertIndex + 1];
+      if (inferredParentId === undefined && adjustedInsertIndex < reordered.length - 1) {
+        const taskBelow = reordered[adjustedInsertIndex + 1];
         console.log('[ROOT TASK - CHECK TASK BELOW]', {
           taskBelowId: taskBelow.id,
           taskBelowName: taskBelow.name,
           taskBelowParentId: taskBelow.parentId
         });
-        if (taskBelow.parentId) {
+        if (taskBelow.parentId && taskBelow.parentId !== moved.id) {
           console.log('  -> Joining group from taskBelow:', taskBelow.parentId);
           inferredParentId = taskBelow.parentId;
         }
