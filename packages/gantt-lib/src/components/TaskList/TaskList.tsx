@@ -283,6 +283,39 @@ export const TaskList: React.FC<TaskListProps> = ({
   const dragOriginIndexRef = useRef<number | null>(null);
   const dragTaskIdRef = useRef<string | null>(null);
 
+  // Helper: check if a parent task can be dropped at a specific position
+  // Parent tasks cannot be dropped:
+  // 1. Between their own children (would make parent nested in its own children)
+  // 2. Between another parent's children (would make this parent a child of another parent)
+  const isValidParentDrop = useCallback((draggedTaskId: string, dropIndex: number): boolean => {
+    // If not a parent, allow all drops
+    if (!isTaskParent(draggedTaskId, tasks)) {
+      return true;
+    }
+
+    const dropTarget = visibleTasks[dropIndex];
+    if (!dropTarget) return true;
+
+    // Scenario 1: Dropping parent between its own children
+    if (dropTarget.parentId === draggedTaskId) {
+      return false;
+    }
+
+    // Scenario 2: Dropping parent between another parent's children
+    // (dropTarget has a parentId and is not this parent's child)
+    if (dropTarget.parentId) {
+      return false;
+    }
+
+    // Scenario 3: Dropping directly on another parent task
+    // (would make draggedTask a child of dropTarget)
+    if (isTaskParent(dropTarget.id, tasks)) {
+      return false;
+    }
+
+    return true;
+  }, [tasks, visibleTasks]);
+
   const handleDragStart = useCallback((index: number, e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'move';
     setDraggingIndex(index);
@@ -292,16 +325,37 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   const handleDragOver = useCallback((index: number, e: React.DragEvent) => {
     e.preventDefault();
+
+    const draggedTaskId = dragTaskIdRef.current;
+    if (!draggedTaskId) return;
+
+    // Don't show drop indication if this is an invalid parent drop
+    if (!isValidParentDrop(draggedTaskId, index)) {
+      setDragOverIndex(null);
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+
     e.dataTransfer.dropEffect = 'move';
     setDragOverIndex(index);
-  }, []);
+  }, [isValidParentDrop]);
 
   const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
     e.preventDefault();
     const originVisibleIndex = dragOriginIndexRef.current;
     const movedTaskId = dragTaskIdRef.current;
+
     // No-op: same position (line is already where the row is)
     if (originVisibleIndex === null || movedTaskId === null || originVisibleIndex === dropIndex) {
+      setDraggingIndex(null);
+      setDragOverIndex(null);
+      dragOriginIndexRef.current = null;
+      dragTaskIdRef.current = null;
+      return;
+    }
+
+    // Reject invalid parent drops (parent being dragged into children or another parent)
+    if (!isValidParentDrop(movedTaskId, dropIndex)) {
       setDraggingIndex(null);
       setDragOverIndex(null);
       dragOriginIndexRef.current = null;
@@ -496,13 +550,6 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [onAdd]);
 
   const handleCancelNewTask = useCallback(() => setIsCreating(false), []);
-
-  // Parent tasks cannot be dragged
-  // This prevents them from becoming nested (either as their own child or another parent's child)
-  const canDragTask = useCallback((taskId: string): boolean => {
-    return !isTaskParent(taskId, tasks);
-  }, [tasks]);
-
   const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH);
 
   return (
@@ -589,7 +636,6 @@ export const TaskList: React.FC<TaskListProps> = ({
               onToggleCollapse={handleToggleCollapse}
               onPromoteTask={onPromoteTask}
               onDemoteTask={onDemoteTask}
-              isDraggable={canDragTask(task.id)}
             />
           ))}
         </div>

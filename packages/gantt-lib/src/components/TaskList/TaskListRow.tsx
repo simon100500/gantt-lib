@@ -302,8 +302,6 @@ export interface TaskListRowProps {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when task is demoted (parentId set to previous task) */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
-  /** Whether this task can be dragged (parent tasks cannot) */
-  isDraggable?: boolean;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -346,7 +344,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onToggleCollapse,
     onPromoteTask,
     onDemoteTask,
-    isDraggable = true,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -743,20 +740,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-number"
           onClick={handleNumberClick}
         >
-          {isDraggable && (
-            <span
-              className="gantt-tl-drag-handle"
-              draggable={true}
-              onDragStart={(e) => {
-                e.stopPropagation();
-                onDragStart?.(rowIndex, e);
-              }}
-              onDragEnd={(e) => onDragEnd?.(e)}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <DragHandleIcon />
-            </span>
-          )}
+          <span
+            className="gantt-tl-drag-handle"
+            draggable={true}
+            onDragStart={(e) => {
+              e.stopPropagation();
+              onDragStart?.(rowIndex, e);
+            }}
+            onDragEnd={(e) => onDragEnd?.(e)}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DragHandleIcon />
+          </span>
           <span className="gantt-tl-num-label">{rowIndex + 1}</span>
         </div>
 
