@@ -589,6 +589,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onToggleCollapse={handleToggleCollapse}
               onPromoteTask={onPromoteTask}
               onDemoteTask={onDemoteTask}
+              isDraggable={canDragTask(task.id)}
             />
           ))}
         </div>
