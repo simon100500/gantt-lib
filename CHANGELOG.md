@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2026-03-14
+
+### Features
+- Add `onPromoteTask` callback prop to GanttChart for custom promote behavior
+- Add `onDemoteTask` callback prop to GanttChart for custom demote behavior
+- Both callbacks are optional - internal default logic is used when not provided
+
+### Documentation
+- Updated REFERENCE.md with onPromoteTask/onDemoteTask optional prop documentation
+
 ## [0.8.0] - 2026-03-14
 
 ### Breaking Changes
