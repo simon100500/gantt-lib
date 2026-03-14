@@ -416,33 +416,36 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
       const additionalParentUpdates: Task[] = [];
       parentIdsToUpdate.forEach(parentId => {
+        const parentTask = tasks.find(t => t.id === parentId);
+        if (!parentTask) return;
+
+        // If the moved task IS the parent, update its progress in cascadedTasks
+        // (don't add to additionalParentUpdates to avoid duplicate with old dates)
         if (parentId === updatedTask.id) {
-          const parentTask = tasks.find(t => t.id === parentId);
-          if (parentTask) {
-            const newProgress = computeParentProgress(parentId, tasks.map(t => changedTasks.get(t.id) ?? t));
-            additionalParentUpdates.push({ ...parentTask, progress: newProgress });
+          const newProgress = computeParentProgress(parentId, tasks.map(t => changedTasks.get(t.id) ?? t));
+          // Update the parent's progress in cascadedTasks (it's already there with new dates)
+          const parentInCascaded = cascadedTasks.find(t => t.id === parentId);
+          if (parentInCascaded) {
+            (parentInCascaded as any).progress = newProgress;
           }
           return;
         }
 
-        const parentTask = tasks.find(t => t.id === parentId);
-        if (parentTask) {
-          const tempTasks = tasks.map(t => changedTasks.get(t.id) ?? t);
-          const newDates = computeParentDates(parentId, tempTasks);
-          const newProgress = computeParentProgress(parentId, tempTasks);
-          additionalParentUpdates.push({
-            ...parentTask,
-            startDate: newDates.startDate.toISOString().split('T')[0],
-            endDate: newDates.endDate.toISOString().split('T')[0],
-            progress: newProgress
-          });
-        }
+        // For other parents, recalc dates and progress from children
+        const tempTasks = tasks.map(t => changedTasks.get(t.id) ?? t);
+        const newDates = computeParentDates(parentId, tempTasks);
+        const newProgress = computeParentProgress(parentId, tempTasks);
+        additionalParentUpdates.push({
+          ...parentTask,
+          startDate: newDates.startDate.toISOString().split('T')[0],
+          endDate: newDates.endDate.toISOString().split('T')[0],
+          progress: newProgress
+        });
       });
 
       onTasksChange?.([...cascadedTasks, ...additionalParentUpdates]);
-      onCascade?.(cascadedTasks);
     }
-  }, [tasks, onTasksChange, disableConstraints, onCascade, editingTaskId]);
+  }, [tasks, onTasksChange, disableConstraints, editingTaskId]);
 
   /**
    * Handle task deletion: collect all changed tasks (with cleaned dependencies),
@@ -610,9 +613,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
       const tempTasks = tasks.map(t => cascadeMap.get(t.id) ?? t);
 
+      // If the dragged task IS the parent, update its progress in cascadedTasks
+      // (don't add to additionalParentUpdates to avoid duplicate with old dates)
       if (parentId === draggedTaskId) {
         const newProgress = computeParentProgress(parentId, tempTasks);
-        additionalParentUpdates.push({ ...parentTask, progress: newProgress });
+        const parentInCascaded = cascadedTasks.find(t => t.id === parentId);
+        if (parentInCascaded) {
+          (parentInCascaded as any).progress = newProgress;
+        }
         return;
       }
 
@@ -627,8 +635,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     });
 
     onTasksChange?.([...cascadedTasks, ...additionalParentUpdates]);
-    onCascade?.(cascadedTasks);
-  }, [tasks, onTasksChange, onCascade]);
+  }, [tasks, onTasksChange]);
 
   /**
    * Handle task selection from TaskList or TaskRow
