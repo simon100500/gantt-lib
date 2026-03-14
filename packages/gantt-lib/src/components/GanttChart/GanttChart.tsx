@@ -443,7 +443,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         });
       });
 
-      onTasksChange?.([...cascadedTasks, ...additionalParentUpdates]);
+      // Parents before children - important for batch APIs with foreign key constraints
+      onTasksChange?.([...additionalParentUpdates, ...cascadedTasks]);
     }
   }, [tasks, onTasksChange, disableConstraints, editingTaskId]);
 
@@ -634,7 +635,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       });
     });
 
-    onTasksChange?.([...cascadedTasks, ...additionalParentUpdates]);
+    // Parents before children - important for batch APIs with foreign key constraints
+    onTasksChange?.([...additionalParentUpdates, ...cascadedTasks]);
   }, [tasks, onTasksChange]);
 
   /**
