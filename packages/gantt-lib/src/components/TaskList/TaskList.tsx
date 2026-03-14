@@ -496,6 +496,13 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [onAdd]);
 
   const handleCancelNewTask = useCallback(() => setIsCreating(false), []);
+
+  // Parent tasks cannot be dragged
+  // This prevents them from becoming nested (either as their own child or another parent's child)
+  const canDragTask = useCallback((taskId: string): boolean => {
+    return !isTaskParent(taskId, tasks);
+  }, [tasks]);
+
   const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH);
 
   return (
