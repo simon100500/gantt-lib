@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { computeParentDates } from '../utils/dependencyUtils';
 
-describe('Child move - parent before child in batch', () => {
-  it('should ensure parent comes before child when child is moved', () => {
+describe('Child move - parent NOT sent in batch', () => {
+  it('should NOT send parent when child is moved (parent is computed from children)', () => {
     // Setup: parent with 2 children
     const tasks = [
       { id: 'parent', name: 'Parent', startDate: '2026-01-01', endDate: '2026-01-10' },
@@ -14,43 +14,26 @@ describe('Child move - parent before child in batch', () => {
     const movedChild = { ...tasks[2], startDate: '2026-01-07', endDate: '2026-01-10' };
     const cascadedTasks = [movedChild]; // Only the moved child
 
-    // Simulate parent update logic from handleTaskChange
-    const changedTasks = new Map(cascadedTasks.map(t => [t.id, t]));
-    const parentIdsToUpdate = new Set<string>();
-    cascadedTasks.forEach(task => {
-      if ((task as any).parentId) {
-        parentIdsToUpdate.add((task as any).parentId);
-      }
-    });
-
-    const additionalParentUpdates: any[] = [];
-    parentIdsToUpdate.forEach(parentId => {
-      const parentTask = tasks.find(t => t.id === parentId);
-      if (!parentTask) return;
-
-      // This is NOT the moved task, so recalc dates from children
-      const tempTasks = tasks.map(t => changedTasks.get(t.id) ?? t);
-      const newDates = computeParentDates(parentId, tempTasks);
-      additionalParentUpdates.push({
-        ...parentTask,
-        startDate: newDates.startDate.toISOString().split('T')[0],
-        endDate: newDates.endDate.toISOString().split('T')[0],
-      });
-    });
-
     // The final batch sent to onTasksChange
-    const finalBatch = [...additionalParentUpdates, ...cascadedTasks];
+    // NEW BEHAVIOR: Only children are sent, parent is NOT sent (computed by backend)
+    const finalBatch = cascadedTasks;
 
-    console.log('Final batch order:', finalBatch.map(t => ({ id: t.id, parentId: (t as any).parentId })));
+    console.log('Final batch:', finalBatch.map(t => ({ id: t.id, parentId: (t as any).parentId })));
 
-    // CRITICAL: Parent must come before children for foreign key constraints
-    expect(finalBatch[0].id).toBe('parent');
-    expect((finalBatch[0] as any).parentId).toBeUndefined(); // No parentId = it's a parent
-    expect(finalBatch[1].id).toBe('child2');
-    expect((finalBatch[1] as any).parentId).toBe('parent'); // Has parentId = it's a child
+    // CRITICAL: Only the child is sent, NOT the parent
+    expect(finalBatch.length).toBe(1);
+    expect(finalBatch[0].id).toBe('child2');
+    expect((finalBatch[0] as any).parentId).toBe('parent');
 
-    // Verify dates were recalculated correctly
-    expect(finalBatch[0].startDate).toBe('2026-01-02'); // min(child1.start, child2.newStart)
-    expect(finalBatch[0].endDate).toBe('2026-01-10');  // max(child1.end, child2.newEnd)
+    // Parent dates would be computed by backend as:
+    // startDate: min(child1.start, child2.newStart) = 2026-01-02
+    // endDate: max(child1.end, child2.newEnd) = 2026-01-10
+    const expectedParentDates = computeParentDates('parent', [
+      tasks[0], // parent (not used in computeParentDates, but needed for context)
+      tasks[1], // child1 (unchanged)
+      movedChild // child2 (moved)
+    ]);
+    expect(expectedParentDates.startDate.toISOString().split('T')[0]).toBe('2026-01-02');
+    expect(expectedParentDates.endDate.toISOString().split('T')[0]).toBe('2026-01-10');
   });
 });

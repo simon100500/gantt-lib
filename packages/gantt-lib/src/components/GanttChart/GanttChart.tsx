@@ -403,49 +403,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       ? [updatedTask]
       : [updatedTask, ...cascadeByLinks(updatedTask.id, newStart, newEnd, tasks)];
 
-    if (disableConstraints) {
-      onTasksChange?.(cascadedTasks);
-    } else {
-      const changedTasks = new Map(cascadedTasks.map(t => [t.id, t]));
-      const parentIdsToUpdate = new Set<string>();
-      cascadedTasks.forEach(task => {
-        if ((task as any).parentId) {
-          parentIdsToUpdate.add((task as any).parentId);
-        }
-      });
-
-      const additionalParentUpdates: Task[] = [];
-      parentIdsToUpdate.forEach(parentId => {
-        const parentTask = tasks.find(t => t.id === parentId);
-        if (!parentTask) return;
-
-        // If the moved task IS the parent, update its progress in cascadedTasks
-        // (don't add to additionalParentUpdates to avoid duplicate with old dates)
-        if (parentId === updatedTask.id) {
-          const newProgress = computeParentProgress(parentId, tasks.map(t => changedTasks.get(t.id) ?? t));
-          // Update the parent's progress in cascadedTasks (it's already there with new dates)
-          const parentInCascaded = cascadedTasks.find(t => t.id === parentId);
-          if (parentInCascaded) {
-            (parentInCascaded as any).progress = newProgress;
-          }
-          return;
-        }
-
-        // For other parents, recalc dates and progress from children
-        const tempTasks = tasks.map(t => changedTasks.get(t.id) ?? t);
-        const newDates = computeParentDates(parentId, tempTasks);
-        const newProgress = computeParentProgress(parentId, tempTasks);
-        additionalParentUpdates.push({
-          ...parentTask,
-          startDate: newDates.startDate.toISOString().split('T')[0],
-          endDate: newDates.endDate.toISOString().split('T')[0],
-          progress: newProgress
-        });
-      });
-
-      // Parents before children - important for batch APIs with foreign key constraints
-      onTasksChange?.([...additionalParentUpdates, ...cascadedTasks]);
-    }
+    // Parent tasks are computed from children - don't send them in batch
+    // Backend should compute parent dates from children
+    onTasksChange?.(cascadedTasks);
   }, [tasks, onTasksChange, disableConstraints, editingTaskId]);
 
   /**
@@ -594,49 +554,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   }, []);
 
   /**
-   * Handle cascade completion — emit all changed tasks (cascaded + parent updates).
+   * Handle cascade completion — emit all changed tasks.
+   * Parent tasks are computed from children - don't send them in batch.
    */
   const handleCascade = useCallback((cascadedTasks: Task[]) => {
-    const draggedTaskId = cascadedTasks[0]?.id;
-    const cascadeMap = new Map(cascadedTasks.map(t => [t.id, t]));
-
-    const parentIdsToUpdate = new Set<string>();
-    cascadedTasks.forEach(task => {
-      if ((task as any).parentId) {
-        parentIdsToUpdate.add((task as any).parentId);
-      }
-    });
-
-    const additionalParentUpdates: Task[] = [];
-    parentIdsToUpdate.forEach(parentId => {
-      const parentTask = tasks.find(t => t.id === parentId);
-      if (!parentTask) return;
-
-      const tempTasks = tasks.map(t => cascadeMap.get(t.id) ?? t);
-
-      // If the dragged task IS the parent, update its progress in cascadedTasks
-      // (don't add to additionalParentUpdates to avoid duplicate with old dates)
-      if (parentId === draggedTaskId) {
-        const newProgress = computeParentProgress(parentId, tempTasks);
-        const parentInCascaded = cascadedTasks.find(t => t.id === parentId);
-        if (parentInCascaded) {
-          (parentInCascaded as any).progress = newProgress;
-        }
-        return;
-      }
-
-      const newDates = computeParentDates(parentId, tempTasks);
-      const newProgress = computeParentProgress(parentId, tempTasks);
-      additionalParentUpdates.push({
-        ...parentTask,
-        startDate: newDates.startDate.toISOString().split('T')[0],
-        endDate: newDates.endDate.toISOString().split('T')[0],
-        progress: newProgress
-      });
-    });
-
-    // Parents before children - important for batch APIs with foreign key constraints
-    onTasksChange?.([...additionalParentUpdates, ...cascadedTasks]);
+    // Backend should compute parent dates from children
+    onTasksChange?.(cascadedTasks);
   }, [tasks, onTasksChange]);
 
   /**
@@ -732,24 +655,30 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     let updatedTasks = removeDependenciesBetweenTasks(taskId, newParentId, tasks);
 
     const demotedTask = updatedTasks.find(t => t.id === taskId);
-    const parentTask = updatedTasks.find(t => t.id === newParentId);
+    if (!demotedTask) return;
 
-    if (!demotedTask || !parentTask) return;
+    // If task was a parent (had children), save computed dates as its own dates
+    // These become the task's "own" dates after demotion
+    const wasParent = getChildren(taskId, tasks).length > 0;
+    let taskDates = { startDate: demotedTask.startDate, endDate: demotedTask.endDate };
 
-    const updatedDemotedTask = { ...demotedTask, parentId: newParentId };
+    if (wasParent) {
+      const computedDates = computeParentDates(taskId, tasks);
+      taskDates = {
+        startDate: computedDates.startDate.toISOString().split('T')[0],
+        endDate: computedDates.endDate.toISOString().split('T')[0]
+      };
+    }
 
-    const tempTasks = updatedTasks.map(t => t.id === taskId ? updatedDemotedTask : t);
-    const parentDates = computeParentDates(newParentId, tempTasks);
-    const parentProgress = computeParentProgress(newParentId, tempTasks);
-
-    const updatedParentTask = {
-      ...parentTask,
-      startDate: parentDates.startDate.toISOString().split('T')[0],
-      endDate: parentDates.endDate.toISOString().split('T')[0],
-      progress: parentProgress
+    const updatedDemotedTask = {
+      ...demotedTask,
+      parentId: newParentId,
+      startDate: taskDates.startDate,
+      endDate: taskDates.endDate
     };
 
-    onTasksChange?.([updatedDemotedTask, updatedParentTask]);
+    // Only send the demoted task - parent dates are computed from children
+    onTasksChange?.([updatedDemotedTask]);
   }, [tasks, onTasksChange, onDemoteTask]);
 
   // Pan (grab-scroll) on empty grid area
