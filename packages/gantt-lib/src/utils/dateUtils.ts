@@ -238,6 +238,65 @@ export const getWeekStartDays = (days: Date[]): Date[] => {
 };
 
 /**
+ * Represents a month span in week-view header row 1.
+ * weeks = number of week-columns (7-day blocks) this month occupies.
+ */
+export interface WeekSpan {
+  /** First day of the calendar month (UTC) */
+  month: Date;
+  /** Number of week-columns this month occupies in the visible range */
+  weeks: number;
+  /** Start index in the week-columns array */
+  startIndex: number;
+}
+
+/**
+ * Group the days array into 7-day blocks and calculate month spans over those blocks.
+ * Used by TimeScaleHeader row 1 in week-view.
+ *
+ * Blocks start at days[0], days[7], days[14]... (NOT Monday-aligned).
+ * Each block's month is determined by its start day (days[i]).
+ * Partial last block is included.
+ */
+export const getWeekSpans = (days: Date[]): WeekSpan[] => {
+  const weekStarts = getWeekStartDays(days);
+  if (weekStarts.length === 0) return [];
+
+  const spans: WeekSpan[] = [];
+  let currentMonthYear = `${weekStarts[0].getUTCFullYear()}-${weekStarts[0].getUTCMonth()}`;
+  let startIndex = 0;
+
+  for (let i = 0; i < weekStarts.length; i++) {
+    const ws = weekStarts[i];
+    const monthYear = `${ws.getUTCFullYear()}-${ws.getUTCMonth()}`;
+
+    if (monthYear !== currentMonthYear) {
+      spans.push({
+        month: new Date(Date.UTC(
+          weekStarts[startIndex].getUTCFullYear(),
+          weekStarts[startIndex].getUTCMonth(),
+          1
+        )),
+        weeks: i - startIndex,
+        startIndex,
+      });
+      currentMonthYear = monthYear;
+      startIndex = i;
+    }
+
+    if (i === weekStarts.length - 1) {
+      spans.push({
+        month: new Date(Date.UTC(ws.getUTCFullYear(), ws.getUTCMonth(), 1)),
+        weeks: weekStarts.length - startIndex,
+        startIndex,
+      });
+    }
+  }
+
+  return spans;
+};
+
+/**
  * Normalize task dates to ensure startDate is always before or equal to endDate.
  * If dates are swapped (endDate < startDate), they are automatically swapped.
  * @param startDate - Task start date (string or Date)

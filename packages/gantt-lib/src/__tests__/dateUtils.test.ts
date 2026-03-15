@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseUTCDate, getMonthDays, getDayOffset, isToday, isWeekend, getMultiMonthDays, getMonthSpans, normalizeTaskDates, getWeekStartDays } from '../utils/dateUtils';
+import { parseUTCDate, getMonthDays, getDayOffset, isToday, isWeekend, getMultiMonthDays, getMonthSpans, normalizeTaskDates, getWeekStartDays, getWeekSpans } from '../utils/dateUtils';
 
 describe('parseUTCDate', () => {
   it('should parse ISO date string as UTC', () => {
@@ -408,5 +408,63 @@ describe('getWeekStartDays', () => {
     expect(result[2].getUTCDate()).toBe(15);
     expect(result[3].getUTCDate()).toBe(22);
     expect(result[4].getUTCDate()).toBe(29);
+  });
+});
+
+describe('getWeekSpans', () => {
+  it('should return empty array for empty input', () => {
+    expect(getWeekSpans([])).toEqual([]);
+  });
+
+  it('should return single span for 31-day March', () => {
+    const days = Array.from({ length: 31 }, (_, i) =>
+      new Date(Date.UTC(2026, 2, 1 + i))
+    );
+    const result = getWeekSpans(days);
+    expect(result).toHaveLength(1);
+    expect(result[0].month.getUTCMonth()).toBe(2); // March
+    expect(result[0].month.getUTCDate()).toBe(1);
+    expect(result[0].weeks).toBe(5); // days[0,7,14,21,28]
+    expect(result[0].startIndex).toBe(0);
+  });
+
+  it('should return two spans for March+April (61 days)', () => {
+    const march = Array.from({ length: 31 }, (_, i) => new Date(Date.UTC(2026, 2, 1 + i)));
+    const april = Array.from({ length: 30 }, (_, i) => new Date(Date.UTC(2026, 3, 1 + i)));
+    const days = [...march, ...april];
+    const result = getWeekSpans(days);
+    expect(result).toHaveLength(2);
+    // March span: week columns 0-4 (days[0,7,14,21,28] all start in March)
+    expect(result[0].month.getUTCMonth()).toBe(2);
+    expect(result[0].weeks).toBe(5);
+    expect(result[0].startIndex).toBe(0);
+    // April span: week columns 5-8 (days[35,42,49,56] all start in April)
+    expect(result[1].month.getUTCMonth()).toBe(3);
+    expect(result[1].weeks).toBe(4);
+    expect(result[1].startIndex).toBe(5);
+  });
+
+  it('should handle year boundary (December+January)', () => {
+    const dec = Array.from({ length: 31 }, (_, i) => new Date(Date.UTC(2026, 11, 1 + i)));
+    const jan = Array.from({ length: 31 }, (_, i) => new Date(Date.UTC(2027, 0, 1 + i)));
+    const days = [...dec, ...jan];
+    const result = getWeekSpans(days);
+    expect(result).toHaveLength(2);
+    expect(result[0].month.getUTCFullYear()).toBe(2026);
+    expect(result[0].month.getUTCMonth()).toBe(11); // December
+    expect(result[0].weeks).toBe(5);
+    expect(result[1].month.getUTCFullYear()).toBe(2027);
+    expect(result[1].month.getUTCMonth()).toBe(0); // January
+    expect(result[1].weeks).toBe(4);
+  });
+
+  it('should handle partial first block (less than 7 days)', () => {
+    const days = Array.from({ length: 5 }, (_, i) =>
+      new Date(Date.UTC(2026, 2, 1 + i))
+    );
+    const result = getWeekSpans(days);
+    expect(result).toHaveLength(1);
+    expect(result[0].weeks).toBe(1);
+    expect(result[0].startIndex).toBe(0);
   });
 });
