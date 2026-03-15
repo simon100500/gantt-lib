@@ -108,6 +108,7 @@
   background: currentColor;
   border-radius: 1px;
 }
+
 .gantt-tl-hierarchy-connector--last .gantt-tl-hc-vline {
   bottom: 50%;
 }
@@ -631,7 +632,7 @@
   align-items: center;
   gap: 1px;
   background-color: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  /* border: 1px solid rgba(59, 130, 246, 0.3); */
   border-radius: 6px;
   padding: 4px 4px;
   font-size: 0.7rem;
@@ -709,7 +710,7 @@
   display: inline-flex;
   align-items: center;
   background-color: rgba(107, 114, 128, 0.12);
-  border: 1px solid rgba(107, 114, 128, 0.3);
+  border: 0px solid rgba(107, 114, 128, 0.3);
   border-radius: 6px;
   padding: 4px 4px;
   font-size: 0.7rem;
@@ -769,7 +770,8 @@
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid rgba(59, 130, 246, 0.4);
+  border: 0px solid rgba(59, 130, 246, 0.4);
+  background-color: rgba(59, 130, 246, 0.12);
   border-radius: 4px;
   width: 23px;
   height: 23px;
