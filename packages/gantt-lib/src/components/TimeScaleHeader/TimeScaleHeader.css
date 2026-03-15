@@ -73,3 +73,11 @@
 .gantt-tsh-today .gantt-tsh-dayLabel {
   color: #ffffff;
 }
+
+/* Week-view cell in day row (wider 7-day column) */
+.gantt-tsh-weekCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}

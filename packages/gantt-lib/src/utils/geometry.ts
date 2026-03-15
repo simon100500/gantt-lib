@@ -293,6 +293,55 @@ export const calculateDependencyPath = (
 };
 
 /**
+ * Calculate grid line positions for week-view mode.
+ * Lines appear at every 7-day boundary (each week column edge).
+ * Month boundaries get isMonthStart=true for stronger styling.
+ * No day-level lines; no weekend blocks.
+ *
+ * @param dateRange - Array of Date objects (from getMultiMonthDays, day-based)
+ * @param dayWidth - Width of each day in pixels
+ * @returns Array of grid line objects at week-column boundaries
+ */
+export const calculateWeekGridLines = (
+  dateRange: Date[],
+  dayWidth: number
+): Array<{ x: number; isMonthStart: boolean }> => {
+  const lines: Array<{ x: number; isMonthStart: boolean }> = [];
+  const weekColumnWidth = dayWidth * 7;
+
+  // Number of week columns (ceil to include partial last week)
+  const weekCount = Math.ceil(dateRange.length / 7);
+
+  for (let w = 0; w < weekCount; w++) {
+    const dayIndex = w * 7;
+    const x = Math.round(dayIndex * dayWidth);
+    // Skip the first line at x=0 (left border)
+    if (w === 0) continue;
+
+    // Determine if this week boundary is also a month boundary
+    // A month boundary = the week-start day (dateRange[dayIndex]) is the 1st of a month,
+    // OR the previous day (dateRange[dayIndex-1]) is the last day of its month.
+    const weekStartDay = dateRange[dayIndex];
+    const isMonthStart = weekStartDay
+      ? weekStartDay.getUTCDate() === 1 ||
+        (dayIndex > 0 && dateRange[dayIndex - 1].getUTCMonth() !== weekStartDay.getUTCMonth())
+      : false;
+
+    lines.push({ x, isMonthStart });
+  }
+
+  // Add final line at the right edge of the last week column
+  if (weekCount > 0) {
+    lines.push({ x: Math.round(dateRange.length * dayWidth), isMonthStart: false });
+  }
+
+  // Suppress unused variable warning for weekColumnWidth
+  void weekColumnWidth;
+
+  return lines;
+};
+
+/**
  * Calculate SVG Г-shaped (L-shaped) path for FS dependency lines.
  * Goes vertically from the right edge of the predecessor bar, then horizontally
  * to the left edge of the successor bar. Supports negative lag (overlap).
