@@ -424,7 +424,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-15 - Completed quick task 99: снятие выделенной строки по esc или клику снаружи таск лист
+Last activity: 2026-03-15 - Completed quick task 100: убрать черную рамку выделения focus outline глобально и запретить выделение текста курсором
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -743,6 +743,7 @@ None yet.
 | 97 | Fix parent task drag restriction (single-level nesting) | 2026-03-14 | 8d28960 | [097-fix-parent-drag-restriction](./quick/097-fix-parent-drag-restriction/) |
 | 98 | добавь перед отступом для детей визуально ещё типа знак иерархии как L. (уголок с точкой) | 2026-03-15 | a90166d | [98-l](./quick/98-l/) |
 | 99 | снятие выделенной строки по esc или клику снаружи таск лист | 2026-03-15 | fc4a451 | [99-esc](./quick/99-esc/) |
+| 100 | убрать черную рамку выделения focus outline глобально и запретить выделение текста курсором | 2026-03-15 | ffb7244 | [100-focus-outline](./quick/100-focus-outline/) |
 
 ## Session Continuity
 
