@@ -471,80 +471,17 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
    * Reordering changes all tasks positions, so we emit the full reordered array.
    */
   const handleReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
-    console.log('=== GANTT CHART handleReorder START ===');
-    console.log('[INPUTS]', {
-      movedTaskId,
-      inferredParentId,
-      inferredParentIdType: typeof inferredParentId,
-      reorderedTasksCount: reorderedTasks.length
-    });
-
-    const movedTaskInReordered = reorderedTasks.find(t => t.id === movedTaskId);
-    if (movedTaskInReordered) {
-      console.log('[MOVED TASK IN REORDERED]', {
-        id: movedTaskInReordered.id,
-        name: movedTaskInReordered.name,
-        currentParentId: movedTaskInReordered.parentId
-      });
-    } else {
-      console.log('[MOVED TASK NOT FOUND IN REORDERED]');
-    }
-
     let updated = reorderedTasks;
     if (movedTaskId) {
-      console.log('[CONDITION CHECK]', {
-        condition: 'if (movedTaskId)',
-        movedTaskId,
-        isTrue: !!movedTaskId,
-        willUpdateParentId: true
-      });
       updated = updated.map(t => {
         if (t.id === movedTaskId) {
-          const newParentId = inferredParentId || undefined;
-          console.log('[UPDATING TASK]', {
-            taskId: t.id,
-            taskName: t.name,
-            oldParentId: t.parentId,
-            newParentId: newParentId,
-            inferredParentId: inferredParentId,
-            finalValue: newParentId
-          });
-          return { ...t, parentId: newParentId };
+          return { ...t, parentId: inferredParentId || undefined };
         }
         return t;
       });
-    } else {
-      console.log('[CONDITION CHECK]', {
-        condition: 'if (movedTaskId)',
-        movedTaskId,
-        isTrue: false,
-        willUpdateParentId: false
-      });
     }
-
-    const updatedTask = updated.find(t => t.id === movedTaskId);
-    if (updatedTask) {
-      console.log('[UPDATED TASK VERIFICATION]', {
-        id: updatedTask.id,
-        name: updatedTask.name,
-        finalParentId: updatedTask.parentId
-      });
-    }
-
-    console.log('[ONCHANGE END]', {
-      updatedCount: updated.length
-    });
-    console.log('=== GANTT CHART handleReorder END ===\n');
 
     const normalized = normalizeHierarchyTasks(updated);
-
-    console.log('=== AFTER NORMALIZE HIERARCHY ===');
-    console.log('[NORMALIZED TASKS]', {
-      count: normalized.length,
-      tasks: normalized.map((t, i) => ({ id: t.id, name: t.name, parentId: t.parentId, index: i }))
-    });
-    console.log('=== GANTT CHART handleReorder COMPLETE ===\n');
-
     onTasksChange?.(normalized);
     onReorder?.(normalized, movedTaskId, inferredParentId);
   }, [onTasksChange, onReorder]);
