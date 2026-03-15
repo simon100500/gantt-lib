@@ -767,6 +767,7 @@ export default function Home() {
   const [cascadeTasks, setCascadeTasks] = useState<Task[]>(createCascadeTasks);
   const [chain100Tasks, setChain100Tasks] = useState<Task[]>(createChain100Tasks);
   const [expiredTasks, setExpiredTasks] = useState<Task[]>(createExpiredTasks);
+  const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [blockConstraints, setBlockConstraints] = useState(true);
   const [showTaskList, setShowTaskList] = useState(true);
   const [showDependencyTaskList, setShowDependencyTaskList] = useState(false);
@@ -1051,11 +1052,44 @@ export default function Home() {
               {highlightExpired ? "Disable Expired Highlight" : "Enable Expired Highlight"}
             </button>
           </div>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Масштаб:</span>
+            <button
+              onClick={() => setViewMode('day')}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid',
+                cursor: 'pointer',
+                backgroundColor: viewMode === 'day' ? '#1f2937' : 'transparent',
+                color: viewMode === 'day' ? '#ffffff' : '#374151',
+                borderColor: viewMode === 'day' ? '#1f2937' : '#d1d5db',
+              }}
+            >
+              По дням
+            </button>
+            <button
+              onClick={() => setViewMode('week')}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid',
+                cursor: 'pointer',
+                backgroundColor: viewMode === 'week' ? '#1f2937' : 'transparent',
+                color: viewMode === 'week' ? '#ffffff' : '#374151',
+                borderColor: viewMode === 'week' ? '#1f2937' : '#d1d5db',
+              }}
+            >
+              По неделям
+            </button>
+          </div>
           <div className="demo-chart-card">
             <GanttChart
               ref={ganttChartRef}
               tasks={tasks}
-              dayWidth={24}
+              dayWidth={viewMode === 'week' ? 8 : 24}
               rowHeight={36}
               onTasksChange={handleChange}
               onAdd={handleAdd}
@@ -1067,6 +1101,7 @@ export default function Home() {
               taskListWidth={500}
               disableTaskNameEditing={disableTaskNameEditing}
               highlightExpiredTasks={highlightExpired}
+              viewMode={viewMode}
             />
           </div>
         </section>
