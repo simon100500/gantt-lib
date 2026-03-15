@@ -82,9 +82,9 @@ const HierarchyConnectorIcon = () => (
     aria-hidden="true"
   >
     {/* Vertical line going down from top to mid, then horizontal to right */}
-    <path d="M5 0 L5 10 L14 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 0 L5 10 L11 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     {/* Dot at the end of the connector */}
-    <circle cx="14" cy="10" r="1.5" fill="currentColor"/>
+    <circle cx="11" cy="10" r="2.5" fill="currentColor"/>
   </svg>
 );
 
