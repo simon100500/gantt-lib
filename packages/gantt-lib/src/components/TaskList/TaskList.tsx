@@ -226,14 +226,15 @@ export const TaskList: React.FC<TaskListProps> = ({
     onSelectedChipChange?.(chip);
   }, [onSelectedChipChange]);
 
-  // Escape / outside-click cancel for picker mode and chip selection
+  // Escape / outside-click cancel for picker mode, chip selection, and task row selection
   useEffect(() => {
-    if (!selectingPredecessorFor && !selectedChip) return;
+    if (!selectingPredecessorFor && !selectedChip && !selectedTaskId) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSelectingPredecessorFor(null);
         setSelectedChip(null);
         onSelectedChipChange?.(null);
+        onTaskSelect?.(null);
       }
     };
     const handleMouseDown = (e: MouseEvent) => {
@@ -244,6 +245,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       setSelectingPredecessorFor(null);
       setSelectedChip(null);
       onSelectedChipChange?.(null);
+      onTaskSelect?.(null);
     };
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('mousedown', handleMouseDown, true);
@@ -251,7 +253,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handleMouseDown, true);
     };
-  }, [selectingPredecessorFor, selectedChip, onSelectedChipChange]);
+  }, [selectingPredecessorFor, selectedChip, selectedTaskId, onTaskSelect, onSelectedChipChange]);
 
   const handleAddDependency = useCallback((
     successorTaskId: string,
