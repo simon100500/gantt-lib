@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: "Completed 20-01-PLAN.md: getWeekStartDays and getWeekSpans"
-last_updated: "2026-03-15T22:07:36.124Z"
+stopped_at: "Completed 20-02-PLAN.md: TimeScaleHeader and GridBackground week-view"
+last_updated: "2026-03-15T22:12:08.347Z"
 last_activity: "2026-03-15 - Completed quick task 102: крась название работы (подпись справа от полосы) для родителя в тот же цвет что и полоса"
 progress:
   total_phases: 20
   completed_phases: 18
   total_plans: 51
-  completed_plans: 48
+  completed_plans: 49
 ---
 
 ## Accumulated Context
@@ -563,6 +563,7 @@ Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 | Phase quick P092 | 3 minutes | 3 tasks | 5 files |
 | Phase quick P094 | 45 | 2 tasks | 1 files |
 | Phase 20-month-view P01 | 3 | 2 tasks | 2 files |
+| Phase 20-month-view P02 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -697,6 +698,9 @@ Recent decisions affecting current work:
 - [Phase quick-092]: Extended onReorder callback signature for parent inference instead of creating new callback
 - [Phase 20-month-view]: getWeekStartDays uses days[0]-based blocks (not Monday-aligned) to match the existing day-view grid column pattern
 - [Phase 20-month-view]: WeekSpan interface placed in dateUtils.ts alongside getWeekSpans (not in types/index.ts)
+- [Phase 20-month-view]: calculateWeekGridLines skips x=0 and adds final right-edge line for correct week-view rendering
+- [Phase 20-month-view]: arePropsEqual in GridBackground extended with viewMode comparison to prevent stale renders on mode switch
+- [Phase 20-month-view]: viewMode defaults to 'day' in both TimeScaleHeader and GridBackground — fully backward compatible
 
 ### Pending Todos
 
@@ -802,8 +806,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T22:07:36.121Z
-Stopped at: Completed 20-01-PLAN.md: getWeekStartDays and getWeekSpans
+Last session: 2026-03-15T22:12:08.343Z
+Stopped at: Completed 20-02-PLAN.md: TimeScaleHeader and GridBackground week-view
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
