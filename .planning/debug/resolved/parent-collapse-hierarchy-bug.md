@@ -1,8 +1,8 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "After dragging родитель1 (with children) to a position under родитель2, collapsing/expanding родитель2 also collapses/expands родитель1 with its children"
 created: 2026-03-15T00:00:00.000Z
-updated: 2026-03-15T01:00:00.000Z
+updated: 2026-03-15T13:40:00.000Z
 ---
 
 ## Current Focus

@@ -1,8 +1,8 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "Investigate issue: parent-drop-order-bug - When dragging a parent task to another root-level position, the parent moves to the end of the list with children appearing above it (wrong hierarchy)"
 created: 2026-03-14T00:00:00.000Z
-updated: 2026-03-15T13:10:00.000Z
+updated: 2026-03-15T13:40:00.000Z
 ---
 
 ## Current Focus
