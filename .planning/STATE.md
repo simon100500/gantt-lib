@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 20 context gathered
-last_updated: "2026-03-15T20:55:22.133Z"
+stopped_at: "Completed 20-01-PLAN.md: getWeekStartDays and getWeekSpans"
+last_updated: "2026-03-15T22:07:36.124Z"
 last_activity: "2026-03-15 - Completed quick task 102: крась название работы (подпись справа от полосы) для родителя в тот же цвет что и полоса"
 progress:
   total_phases: 20
   completed_phases: 18
-  total_plans: 48
-  completed_plans: 47
+  total_plans: 51
+  completed_plans: 48
 ---
 
 ## Accumulated Context
@@ -562,6 +562,7 @@ Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 | Phase quick-091 P01 | 84 | 3 tasks | 2 files |
 | Phase quick P092 | 3 minutes | 3 tasks | 5 files |
 | Phase quick P094 | 45 | 2 tasks | 1 files |
+| Phase 20-month-view P01 | 3 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -694,6 +695,8 @@ Recent decisions affecting current work:
 - [Phase 19]: Hierarchy cascade reuses Phase 7 cascade engine (getTransitiveCascadeChain pattern)
 - [Phase quick-091]: CSS-only approach for parent bar height (simpler than TypeScript conditional)
 - [Phase quick-092]: Extended onReorder callback signature for parent inference instead of creating new callback
+- [Phase 20-month-view]: getWeekStartDays uses days[0]-based blocks (not Monday-aligned) to match the existing day-view grid column pattern
+- [Phase 20-month-view]: WeekSpan interface placed in dateUtils.ts alongside getWeekSpans (not in types/index.ts)
 
 ### Pending Todos
 
@@ -799,8 +802,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T20:55:22.127Z
-Stopped at: Phase 20 context gathered
+Last session: 2026-03-15T22:07:36.121Z
+Stopped at: Completed 20-01-PLAN.md: getWeekStartDays and getWeekSpans
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)

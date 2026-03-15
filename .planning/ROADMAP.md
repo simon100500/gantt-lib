@@ -238,7 +238,7 @@ Plans:
 **Goal:** Альтернативный режим просмотра week-view с prop `viewMode?: 'day' | 'week'` — каждый столбец = 1 неделя (dayWidth × 7), 2-строчный заголовок (месяц+год / дата начала недели), недельная сетка без подсветки выходных
 **Requirements**: none (rendering enhancement)
 **Depends on:** Phase 19
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] 20-01-PLAN.md — Утилиты getWeekStartDays и getWeekSpans в dateUtils.ts (TDD)
