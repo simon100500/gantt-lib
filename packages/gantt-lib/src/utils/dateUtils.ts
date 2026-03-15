@@ -224,70 +224,119 @@ export const formatDateLabel = (date: Date | string): string => {
 };
 
 /**
- * Return the first day of each 7-day block in the days array.
- * Used by TimeScaleHeader row 2 in week-view.
- * Blocks start at days[0], days[7], days[14], ... (NOT aligned to Monday).
- * Partial last block is included.
+ * Return block boundaries for week-view, splitting on month boundaries.
+ * Each block represents a column in the week-view header.
+ * Blocks are typically 7 days, but split on month boundaries so
+ * the first/last block of a month may be smaller.
+ *
+ * @param days - Array of dates from getMultiMonthDays
+ * @returns Array of start dates for each block, with actual block sizes
  */
-export const getWeekStartDays = (days: Date[]): Date[] => {
-  const result: Date[] = [];
-  for (let i = 0; i < days.length; i += 7) {
-    result.push(days[i]);
+export interface WeekBlock {
+  /** Start date of this block */
+  startDate: Date;
+  /** Number of days in this block (≤7, splits on month boundaries) */
+  days: number;
+}
+
+/**
+ * Split the date range into blocks, primarily 7-day weeks,
+ * but splitting blocks on month boundaries for accurate month spans.
+ */
+export const getWeekBlocks = (days: Date[]): WeekBlock[] => {
+  if (days.length === 0) return [];
+
+  const blocks: WeekBlock[] = [];
+  let blockStart = 0;
+
+  while (blockStart < days.length) {
+    // Target: 7-day block, but check for month boundary within
+    const maxBlockEnd = Math.min(blockStart + 7, days.length);
+    const startMonthYear = `${days[blockStart].getUTCFullYear()}-${days[blockStart].getUTCMonth()}`;
+
+    let actualBlockEnd = blockStart + 7; // Default to full week
+    if (actualBlockEnd > days.length) {
+      actualBlockEnd = days.length;
+    }
+
+    // Check if month boundary falls within the 7-day window
+    for (let i = blockStart + 1; i < maxBlockEnd; i++) {
+      const monthYear = `${days[i].getUTCFullYear()}-${days[i].getUTCMonth()}`;
+      if (monthYear !== startMonthYear) {
+        // Split at month boundary
+        actualBlockEnd = i;
+        break;
+      }
+    }
+
+    blocks.push({
+      startDate: days[blockStart],
+      days: actualBlockEnd - blockStart,
+    });
+
+    blockStart = actualBlockEnd;
   }
-  return result;
+
+  return blocks;
 };
 
 /**
  * Represents a month span in week-view header row 1.
- * weeks = number of week-columns (7-day blocks) this month occupies.
+ * In week-view, the width is calculated from actual day counts,
+ * not from a fixed column count.
  */
 export interface WeekSpan {
   /** First day of the calendar month (UTC) */
   month: Date;
-  /** Number of week-columns this month occupies in the visible range */
-  weeks: number;
-  /** Start index in the week-columns array */
+  /** Total number of days this month occupies across all blocks */
+  days: number;
+  /** Start index in the blocks array */
   startIndex: number;
 }
 
 /**
- * Group the days array into 7-day blocks and calculate month spans over those blocks.
- * Used by TimeScaleHeader row 1 in week-view.
- *
- * Blocks start at days[0], days[7], days[14]... (NOT Monday-aligned).
- * Each block's month is determined by its start day (days[i]).
- * Partial last block is included.
+ * Calculate month spans based on week-block boundaries.
+ * Groups consecutive blocks that belong to the same month.
  */
 export const getWeekSpans = (days: Date[]): WeekSpan[] => {
-  const weekStarts = getWeekStartDays(days);
-  if (weekStarts.length === 0) return [];
+  const blocks = getWeekBlocks(days);
+  if (blocks.length === 0) return [];
 
   const spans: WeekSpan[] = [];
-  let currentMonthYear = `${weekStarts[0].getUTCFullYear()}-${weekStarts[0].getUTCMonth()}`;
+  let currentMonthYear = `${blocks[0].startDate.getUTCFullYear()}-${blocks[0].startDate.getUTCMonth()}`;
   let startIndex = 0;
+  let totalDays = 0;
 
-  for (let i = 0; i < weekStarts.length; i++) {
-    const ws = weekStarts[i];
-    const monthYear = `${ws.getUTCFullYear()}-${ws.getUTCMonth()}`;
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const monthYear = `${block.startDate.getUTCFullYear()}-${block.startDate.getUTCMonth()}`;
 
     if (monthYear !== currentMonthYear) {
+      // Finalize previous month span
       spans.push({
         month: new Date(Date.UTC(
-          weekStarts[startIndex].getUTCFullYear(),
-          weekStarts[startIndex].getUTCMonth(),
+          blocks[startIndex].startDate.getUTCFullYear(),
+          blocks[startIndex].startDate.getUTCMonth(),
           1
         )),
-        weeks: i - startIndex,
+        days: totalDays,
         startIndex,
       });
       currentMonthYear = monthYear;
       startIndex = i;
+      totalDays = 0;
     }
 
-    if (i === weekStarts.length - 1) {
+    totalDays += block.days;
+
+    if (i === blocks.length - 1) {
       spans.push({
-        month: new Date(Date.UTC(ws.getUTCFullYear(), ws.getUTCMonth(), 1)),
-        weeks: weekStarts.length - startIndex,
+        month: new Date(Date.UTC(
+          block.startDate.getUTCFullYear(),
+          block.startDate.getUTCMonth(),
+          1
+        )),
+        days: totalDays,
         startIndex,
       });
     }

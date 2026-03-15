@@ -78,6 +78,17 @@
 .gantt-tsh-weekCell {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-left: 0.5rem;
   box-sizing: border-box;
+  border-left: 1px solid #e5e7eb;
+}
+
+.gantt-tsh-weekCell:first-child {
+  border-left: none;
+}
+
+/* Month boundary overrides week separator with thicker line */
+.gantt-tsh-weekCell.gantt-tsh-monthBoundary {
+  border-left: var(--gantt-month-separator-width, 2px) solid var(--gantt-month-separator-color, #a1a1a1) !important;
 }

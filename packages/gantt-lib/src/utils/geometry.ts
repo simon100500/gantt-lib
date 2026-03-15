@@ -307,42 +307,36 @@ export const calculateWeekGridLines = (
   dateRange: Date[],
   dayWidth: number
 ): Array<{ x: number; isMonthStart: boolean }> => {
-  // Track positions already occupied so we don't draw two lines at the same x
-  const usedPositions = new Set<number>();
+  // Import getWeekBlocks locally to avoid circular dependency
+  const { getWeekBlocks } = require('./dateUtils');
+  const blocks = getWeekBlocks(dateRange);
+
   const lines: Array<{ x: number; isMonthStart: boolean }> = [];
+  let currentDayIndex = 0;
 
-  // Pass 1: month boundary lines at exact day-1 positions (highest priority)
-  // Skip i=0 (left border of the grid)
-  for (let i = 1; i < dateRange.length; i++) {
-    const day = dateRange[i];
-    if (day.getUTCDate() === 1) {
-      const x = Math.round(i * dayWidth);
-      lines.push({ x, isMonthStart: true });
-      usedPositions.add(x);
-    }
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    currentDayIndex += block.days;
+
+    // Check if this block boundary is also a month boundary
+    const blockEndMonth = dateRange[currentDayIndex - 1];
+    const nextBlockMonth = currentDayIndex < dateRange.length
+      ? dateRange[currentDayIndex]
+      : null;
+
+    const isMonthBoundary = nextBlockMonth &&
+      blockEndMonth.getUTCMonth() !== nextBlockMonth.getUTCMonth();
+
+    lines.push({
+      x: Math.round(currentDayIndex * dayWidth),
+      isMonthStart: isMonthBoundary || false,
+    });
   }
 
-  // Pass 2: week separator lines at every 7-day boundary (skip positions taken by month lines)
-  const weekCount = Math.ceil(dateRange.length / 7);
-  for (let w = 1; w < weekCount; w++) {
-    const dayIndex = w * 7;
-    const x = Math.round(dayIndex * dayWidth);
-    if (!usedPositions.has(x)) {
-      lines.push({ x, isMonthStart: false });
-      usedPositions.add(x);
-    }
+  // Remove the last line if it's at the right edge (duplicates grid border)
+  if (lines.length > 0 && lines[lines.length - 1].x === Math.round(dateRange.length * dayWidth)) {
+    lines.pop();
   }
-
-  // Add final line at the right edge of the last week column
-  if (weekCount > 0) {
-    const finalX = Math.round(dateRange.length * dayWidth);
-    if (!usedPositions.has(finalX)) {
-      lines.push({ x: finalX, isMonthStart: false });
-    }
-  }
-
-  // Sort by x position for correct rendering order
-  lines.sort((a, b) => a.x - b.x);
 
   return lines;
 };

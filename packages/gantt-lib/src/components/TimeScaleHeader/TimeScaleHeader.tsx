@@ -3,9 +3,8 @@
 import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { getMonthSpans, getWeekSpans, getWeekStartDays } from '../../utils/dateUtils';
+import { getMonthSpans, getWeekSpans, getWeekBlocks, type WeekBlock, type WeekSpan } from '../../utils/dateUtils';
 import type { MonthSpan } from '../../types';
-import type { WeekSpan } from '../../utils/dateUtils';
 import './TimeScaleHeader.css';
 
 export interface TimeScaleHeaderProps {
@@ -47,19 +46,28 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
     [days.length, dayWidth]
   );
 
-  // Week-view: column width = 7 days
-  const weekColumnWidth = dayWidth * 7;
-
-  // Week-view: first day of each 7-day block (row 2 labels)
-  const weekStartDays = useMemo(
-    () => (viewMode === 'week' ? getWeekStartDays(days) : []),
+  // Week-view: blocks with variable width (split on month boundaries)
+  const weekBlocks = useMemo(
+    () => (viewMode === 'week' ? getWeekBlocks(days) : []),
     [days, viewMode]
   );
 
-  // Week-view: month spans grouped over 7-day blocks (row 1 labels)
+  // Week-view: month spans grouped over week-blocks (row 1 labels)
   const weekSpans = useMemo(
     () => (viewMode === 'week' ? getWeekSpans(days) : []),
     [days, viewMode]
+  );
+
+  // Calculate column widths for each block (for grid template)
+  const weekColumnWidths = useMemo(
+    () => weekBlocks.map(b => b.days * dayWidth),
+    [weekBlocks, dayWidth]
+  );
+
+  // Calculate total width for grid template
+  const weekGridTemplate = useMemo(
+    () => weekColumnWidths.map(w => `${w}px`).join(' '),
+    [weekColumnWidths]
   );
 
   return (
@@ -73,12 +81,12 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
         style={{ height: `${rowHeight}px` }}
       >
         {viewMode === 'week' ? (
-          // Week-view row 1: month names spanning week columns
+          // Week-view row 1: month names spanning week blocks
           weekSpans.map((span: WeekSpan, index: number) => (
             <div
               key={`wmonth-${index}`}
               className="gantt-tsh-monthCell"
-              style={{ width: `${span.weeks * weekColumnWidth}px` }}
+              style={{ width: `${span.days * dayWidth}px` }}
             >
               {format(span.month, 'LLLL yyyy', { locale: ru }).replace(/^./, (c) => c.toUpperCase())}
             </div>
@@ -103,24 +111,26 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
         style={{
           height: `${rowHeight}px`,
           gridTemplateColumns: viewMode === 'week'
-            ? `repeat(${weekStartDays.length}, ${weekColumnWidth}px)`
+            ? weekGridTemplate
             : dayGridTemplate,
         }}
       >
         {viewMode === 'week' ? (
-          // Week-view row 2: week start day numbers
-          weekStartDays.map((day, index) => {
-            const prevWeekStart = weekStartDays[index - 1];
+          // Week-view row 2: week block start day numbers (variable width)
+          weekBlocks.map((block, index) => {
+            const prevBlock = weekBlocks[index - 1];
             const isMonthBoundary =
-              index > 0 && prevWeekStart &&
-              prevWeekStart.getUTCMonth() !== day.getUTCMonth();
+              index > 0 && prevBlock &&
+              prevBlock.startDate.getUTCMonth() !== block.startDate.getUTCMonth();
+            // Show date only for full weeks (7 days)
+            const showDate = block.days === 7;
             return (
               <div
                 key={`week-${index}`}
                 className={`gantt-tsh-dayCell gantt-tsh-weekCell${isMonthBoundary ? ' gantt-tsh-monthBoundary' : ''}`}
               >
                 <span className="gantt-tsh-dayLabel">
-                  {String(day.getUTCDate()).padStart(2, '0')}
+                  {showDate ? String(block.startDate.getUTCDate()).padStart(2, '0') : ''}
                 </span>
               </div>
             );
