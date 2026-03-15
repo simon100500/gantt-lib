@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: "Completed quick-100: Remove focus outline and disable text selection in gantt container"
+last_updated: "2026-03-15T15:36:37.722Z"
+last_activity: "2026-03-15 - Completed quick task 99: снятие выделенной строки по esc или клику снаружи таск лист"
+progress:
+  total_phases: 19
+  completed_phases: 18
+  total_plans: 48
+  completed_plans: 47
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: "Completed quick-099: Escape/outside-click task row deselection in TaskList"
 last_updated: "2026-03-15T15:33:33.130Z"
 last_activity: "2026-03-15 - Completed quick task 98: добавь перед отступом для детей визуально ещё типа знак иерархии как L. (уголок с точкой)"
@@ -731,8 +746,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T15:33:33.127Z
-Stopped at: Completed quick-099: Escape/outside-click task row deselection in TaskList
+Last session: 2026-03-15T15:36:37.719Z
+Stopped at: Completed quick-100: Remove focus outline and disable text selection in gantt container
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
