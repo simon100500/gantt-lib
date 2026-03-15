@@ -46,17 +46,8 @@ export function getVisibleReorderPosition(
   originVisibleIndex: number,
   dropVisibleIndex: number,
 ): VisibleReorderPosition | null {
-  console.log('=== getVisibleReorderPosition START ===');
-  console.log('[INPUT]', {
-    movedTaskId,
-    originVisibleIndex,
-    dropVisibleIndex,
-    direction: originVisibleIndex < dropVisibleIndex ? 'DOWN' : 'UP'
-  });
-
   const originOrderedIndex = orderedTasks.findIndex((task) => task.id === movedTaskId);
   if (originOrderedIndex === -1) {
-    console.log('[ERROR] Moved task not found in orderedTasks');
     return null;
   }
 
@@ -64,32 +55,11 @@ export function getVisibleReorderPosition(
   const descendantIds = getDescendantIds(movedTaskId, orderedTasks);
   const allMovedIds = new Set([movedTaskId, ...descendantIds]);
 
-  console.log('[MOVED SUBTREE]', {
-    subtreeSize: allMovedIds.size,
-    descendantIds,
-    allMovedIds: Array.from(allMovedIds)
-  });
-
   // Filter out ALL tasks that will move (parent + descendants)
   const reorderedWithoutMoved = orderedTasks.filter((task) => !allMovedIds.has(task.id));
   const visibleWithoutMoved = visibleTasks.filter((task) => !allMovedIds.has(task.id));
 
-  console.log('[FILTERED ARRAYS]', {
-    reorderedWithoutMovedLength: reorderedWithoutMoved.length,
-    visibleWithoutMovedLength: visibleWithoutMoved.length,
-    reorderedWithoutMovedIds: reorderedWithoutMoved.map(t => t.id),
-    visibleWithoutMovedIds: visibleWithoutMoved.map(t => t.id)
-  });
-
-  console.log('[DIRECTION]', {
-    originVisibleIndex,
-    dropVisibleIndex,
-    isMovingDown: originVisibleIndex < dropVisibleIndex
-  });
-
   if (visibleWithoutMoved.length === 0) {
-    console.log('[EDGE CASE] No visible tasks after filtering, insertIndex=0');
-    console.log('=== getVisibleReorderPosition END ===\n');
     return { originOrderedIndex, insertIndex: 0 };
   }
 
@@ -103,8 +73,6 @@ export function getVisibleReorderPosition(
 
   if (!dropTargetTask) {
     // dropVisibleIndex is beyond the end of the original list - append at end
-    console.log('[EDGE CASE] dropVisibleIndex beyond list, appending at end');
-    console.log('=== getVisibleReorderPosition END ===\n');
     return {
       originOrderedIndex,
       insertIndex: reorderedWithoutMoved.length,
@@ -117,8 +85,6 @@ export function getVisibleReorderPosition(
   if (filteredDropIndex === -1) {
     // Drop target was part of the moved subtree - should not happen after isValidParentDrop check
     // Append at end as fallback
-    console.log('[EDGE CASE] Drop target is part of moved subtree (unexpected), appending at end');
-    console.log('=== getVisibleReorderPosition END ===\n');
     return {
       originOrderedIndex,
       insertIndex: reorderedWithoutMoved.length,
@@ -126,12 +92,6 @@ export function getVisibleReorderPosition(
   }
 
   const targetVisibleTask = visibleWithoutMoved[filteredDropIndex];
-
-  console.log('[TARGET VISIBLE TASK]', {
-    dropVisibleIndex,
-    filteredDropIndex,
-    targetVisibleTaskId: targetVisibleTask.id
-  });
 
   // Find the target in reorderedWithoutMoved.
   // The drop indicator semantics: indicator at position N shows the TOP border of row N,
@@ -141,12 +101,6 @@ export function getVisibleReorderPosition(
   // To move a parent PAST родитель2's entire group, the user must drag to the end of the list
   // (past all of родитель2's children), which triggers the "append at end" path above.
   const insertIndex = reorderedWithoutMoved.findIndex((task) => task.id === targetVisibleTask.id);
-
-  console.log('[FINAL RESULT]', {
-    originOrderedIndex,
-    insertIndex
-  });
-  console.log('=== getVisibleReorderPosition END ===\n');
 
   return {
     originOrderedIndex,
