@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.9.0
+**Version:** 0.14.0
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
@@ -10,7 +10,7 @@
 | Property | Value |
 |---|---|
 | Package name | `gantt-lib` |
-| Version | `0.9.0` |
+| Version | `0.14.0` |
 | NPM install | `npm install gantt-lib` |
 | Peer dependencies | `react >= 18`, `react-dom >= 18` |
 | CSS import (REQUIRED) | `import 'gantt-lib/styles.css'` |
@@ -451,6 +451,7 @@ interface GanttChartProps {
   rowHeight?: number;
   headerHeight?: number;
   containerHeight?: number | string;
+  viewMode?: 'day' | 'week';
   onTasksChange?: (tasks: Task[]) => void;
   onAdd?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
@@ -476,7 +477,8 @@ interface GanttChartProps {
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `tasks` | `Task[]` | required | Array of tasks to display. Row order in the chart matches array order (index 0 is the top row). |
-| `dayWidth` | `number` | `40` | Width of each day column in pixels. Minimum effective value is approximately 20px — below that, day labels become illegible. |
+| `dayWidth` | `number` | `40` | Width of each day column in pixels. In `'week'` view mode, this represents the width of a week column. Minimum effective value is approximately 20px — below that, day labels become illegible. |
+| `viewMode` | `'day' \| 'week'` | `'day'` | View mode for the time scale. `'day'` = daily columns (default), `'week'` = weekly columns with weekends skipped. Week mode shows month separators at week boundaries. |
 | `rowHeight` | `number` | `40` | Height of each task row in pixels. Also controls the task bar vertical position within the row. |
 | `headerHeight` | `number` | `40` | Height of the time-scale header (month + day rows) in pixels. |
 | `containerHeight` | `number \| string` | `undefined` | Container height. Can be pixels (`600`), string (`"90vh"`, `"100%"`, `"500px"`), or `undefined` for auto height (adapts to content). |
@@ -512,6 +514,8 @@ The `GanttChart` component supports an imperative handle via `ref` for programma
 interface GanttChartRef {
   scrollToToday: () => void;
   scrollToTask: (taskId: string) => void;
+  collapseAll: () => void;
+  expandAll: () => void;
 }
 ```
 
@@ -522,7 +526,7 @@ import { useRef } from 'react';
 import { GanttChart } from 'gantt-lib';
 
 function App() {
-  const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void }>(null);
+  const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void; collapseAll: () => void; expandAll: () => void }>(null);
 
   const handleTodayClick = () => {
     ganttRef.current?.scrollToToday();
@@ -532,9 +536,19 @@ function App() {
     ganttRef.current?.scrollToTask(taskId);
   };
 
+  const handleCollapseAll = () => {
+    ganttRef.current?.collapseAll();
+  };
+
+  const handleExpandAll = () => {
+    ganttRef.current?.expandAll();
+  };
+
   return (
     <>
       <button onClick={handleTodayClick}>Today</button>
+      <button onClick={handleCollapseAll}>Collapse All</button>
+      <button onClick={handleExpandAll}>Expand All</button>
       <GanttChart ref={ganttRef} tasks={tasks} />
     </>
   );
@@ -545,6 +559,8 @@ function App() {
 |---|---|---|
 | `scrollToToday()` | `void` | Scrolls the chart horizontally so that today's date is centered in the viewport. If today is not within the visible date range, no action is taken. |
 | `scrollToTask(taskId)` | `void` | Scrolls the chart horizontally and vertically so that the task with the given `taskId` is visible and centered. The corresponding row is also highlighted. If the task ID is not found, no action is taken. |
+| `collapseAll()` | `void` | Collapses all parent tasks in the chart. Hides all child tasks from both the task list and the chart. |
+| `expandAll()` | `void` | Expands all parent tasks in the chart. Shows all child tasks in both the task list and the chart. |
 
 ---
 
@@ -781,6 +797,18 @@ const tasks: Task[] = [
 - `scrollToTask(taskId)` scrolls to and highlights the specified task.
 - Example: `ganttRef.current?.scrollToToday()` or `ganttRef.current?.scrollToTask('task-1')`
 - **Calendar Navigation Buttons:** The task list header includes quick-jump buttons (-7, -1, Today, +1, +7) for fast navigation. Click to shift the chart view by the specified number of days.
+
+**Collapse/Expand All**
+- Use `ref` to access `collapseAll()` and `expandAll()` methods for bulk hierarchy operations.
+- `collapseAll()` collapses all parent tasks, hiding their children.
+- `expandAll()` expands all parent tasks, showing their children.
+- Example: `ganttRef.current?.collapseAll()` or `ganttRef.current?.expandAll()`
+
+**View Mode (Day/Week)**
+- Use `viewMode` prop to switch between day and week display modes.
+- `viewMode='day'` (default): Shows daily columns with weekend highlighting.
+- `viewMode='week'`: Shows weekly columns with weekends skipped. Month separators render at week boundaries for visual clarity.
+- Week mode is useful for long-term project views where daily granularity is not required.
 
 **Expired tasks highlight**
 - Enable with `highlightExpiredTasks={true}` prop.
