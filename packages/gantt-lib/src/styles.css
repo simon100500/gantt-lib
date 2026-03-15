@@ -60,3 +60,14 @@
   --gantt-parent-ear-width: 8px;
   --gantt-parent-row-bg: rgb(120 47 196 / 0.15);
 }
+
+/* Remove browser default focus outlines for all gantt elements */
+.gantt-container *:focus,
+.gantt-container *:focus-visible {
+  outline: none;
+}
+
+/* Prevent text selection by cursor inside the gantt chart */
+.gantt-container * {
+  user-select: none;
+}
