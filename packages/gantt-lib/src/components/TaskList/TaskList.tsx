@@ -162,15 +162,21 @@ export const TaskList: React.FC<TaskListProps> = ({
     return result;
   }, [tasks]);
 
-  // Filter tasks to hide children of collapsed parents
+  // Filter tasks to hide children of collapsed parents.
+  // Checks the full ancestor chain so grandchildren are hidden when any ancestor is collapsed.
   const visibleTasks = useMemo(() => {
-    return orderedTasks.filter(task => {
-      // Root-level tasks (no parentId) are always visible
-      if (!task.parentId) return true;
-      // Child tasks are visible only if their parent is not collapsed
-      const parentCollapsed = collapsedParentIds.has(task.parentId);
-      return !parentCollapsed;
-    });
+    const parentMap = new Map(orderedTasks.map(t => [t.id, (t as any).parentId as string | undefined]));
+
+    function isAnyAncestorCollapsed(parentId: string | undefined): boolean {
+      let current = parentId;
+      while (current) {
+        if (collapsedParentIds.has(current)) return true;
+        current = parentMap.get(current);
+      }
+      return false;
+    }
+
+    return orderedTasks.filter(task => !isAnyAncestorCollapsed((task as any).parentId));
   }, [orderedTasks, collapsedParentIds]);
 
   const totalHeight = useMemo(

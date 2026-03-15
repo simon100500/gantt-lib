@@ -214,15 +214,21 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     [dateRange.length, dayWidth]
   );
 
-  // Filter tasks to hide children of collapsed parents (for chart rendering)
+  // Filter tasks to hide children of collapsed parents (for chart rendering).
+  // Checks the full ancestor chain so grandchildren are hidden when any ancestor is collapsed.
   const filteredTasks = useMemo(() => {
-    return normalizedTasks.filter(task => {
-      // Root-level tasks (no parentId) are always visible
-      if (!task.parentId) return true;
-      // Child tasks are visible only if their parent is not collapsed
-      const parentCollapsed = collapsedParentIds.has(task.parentId);
-      return !parentCollapsed;
-    });
+    const parentMap = new Map(normalizedTasks.map(t => [t.id, t.parentId]));
+
+    function isAnyAncestorCollapsed(parentId: string | undefined): boolean {
+      let current = parentId;
+      while (current) {
+        if (collapsedParentIds.has(current)) return true;
+        current = parentMap.get(current);
+      }
+      return false;
+    }
+
+    return normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
   }, [normalizedTasks, collapsedParentIds]);
 
   // Calculate total grid height (based on filtered tasks)
@@ -410,7 +416,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
   /**
    * Handle task deletion: collect all changed tasks (with cleaned dependencies),
-   * emit onTasksChange with them, then emit onDelete with the taskId.
+   * emit onTasksChange with them, then emit onDelete for each deleted task ID
+   * (original + all descendants) so the consumer can remove all of them.
    * For parent tasks, cascade delete to all children.
    */
   const handleDelete = useCallback((taskId: string) => {
@@ -442,7 +449,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       onTasksChange?.(changedTasks);
     }
 
-    onDelete?.(taskId);
+    // Call onDelete for each task in the cascade set (original + all descendants)
+    // so the consumer removes all of them, not just the root.
+    toDelete.forEach(id => onDelete?.(id));
   }, [tasks, onTasksChange, onDelete]);
 
   /**
