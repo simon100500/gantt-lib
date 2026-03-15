@@ -454,7 +454,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-15 - Completed quick task 101: создай на главной странице в первом графике более осознанную структуру - со вложенностью, связями и т.п. на 50 работ.
+Last activity: 2026-03-15 - Completed quick task 102: крась название работы (подпись справа от полосы) для родителя в тот же цвет что и полоса
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -775,6 +775,7 @@ None yet.
 | 99 | снятие выделенной строки по esc или клику снаружи таск лист | 2026-03-15 | fc4a451 | [99-esc](./quick/99-esc/) |
 | 100 | убрать черную рамку выделения focus outline глобально и запретить выделение текста курсором | 2026-03-15 | ffb7244 | [100-focus-outline](./quick/100-focus-outline/) |
 | 101 | создай на главной странице в первом графике более осознанную структуру - со вложенностью, связями и т.п. на 50 работ. | 2026-03-15 | 9474c8e | [101-50](./quick/101-50/) |
+| 102 | крась название работы (подпись справа от полосы) для родителя в тот же цвет что и полоса | 2026-03-15 | ff4e769 | [102-color-parent-task-name-as-bar](./quick/102-color-parent-task-name-as-bar/) |
 
 ## Session Continuity
 
