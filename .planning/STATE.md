@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: "Completed quick-099: Escape/outside-click task row deselection in TaskList"
+last_updated: "2026-03-15T15:33:33.130Z"
+last_activity: "2026-03-15 - Completed quick task 98: добавь перед отступом для детей визуально ещё типа знак иерархии как L. (уголок с точкой)"
+progress:
+  total_phases: 19
+  completed_phases: 18
+  total_plans: 48
+  completed_plans: 47
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: "Completed quick-098: Add visual hierarchy connector L-icon for child task rows"
 last_updated: "2026-03-15T14:24:56.465Z"
 last_activity: "2026-03-11 - Completed quick task 91: создай стиль для родиельской задачи как в d:\Projects\gantt-lib\.planning\parent-prototype.html"
@@ -715,8 +730,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T14:24:56.461Z
-Stopped at: Completed quick-098: Add visual hierarchy connector L-icon for child task rows
+Last session: 2026-03-15T15:33:33.127Z
+Stopped at: Completed quick-099: Escape/outside-click task row deselection in TaskList
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
