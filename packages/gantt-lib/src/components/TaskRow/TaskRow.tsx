@@ -157,6 +157,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       ? 'var(--gantt-expired-color)'
       : (task.color || 'var(--gantt-task-bar-default-color)');
 
+    // Color for the external task name label — parent tasks match their bar color
+    const nameColor = isParent
+      ? (task.color || 'var(--gantt-parent-bar-color, #333333)')
+      : undefined; // regular tasks use CSS class color (#2563eb)
+
     // Calculate clamped and rounded progress width
     const progressWidth = useMemo(() => {
       if (task.progress === undefined || task.progress <= 0) return 0;
@@ -353,7 +358,10 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 {progressWidth}%
               </span>
             )}
-            <span className="gantt-tr-externalTaskName">
+            <span
+              className="gantt-tr-externalTaskName"
+              style={nameColor ? { color: nameColor } : undefined}
+            >
               {task.name}
             </span>
           </div>
