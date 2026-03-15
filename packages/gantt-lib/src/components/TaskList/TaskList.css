@@ -226,6 +226,7 @@
 
 .gantt-tl-num-label {
   font-size: 0.75rem;
+  opacity: 0.45;
 }
 
 .gantt-tl-drag-handle:active {
