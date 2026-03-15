@@ -134,6 +134,8 @@ export interface GanttChartProps {
 export interface GanttChartHandle {
   scrollToToday: () => void;
   scrollToTask: (taskId: string) => void;
+  collapseAll: () => void;
+  expandAll: () => void;
 }
 
 /**
@@ -335,18 +337,6 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
   }, [tasks, dateRange, dayWidth]);
 
-  /**
-   * Expose scrollToToday and scrollToTask methods to parent component via ref
-   */
-  useImperativeHandle(
-    ref,
-    () => ({
-      scrollToToday,
-      scrollToTask,
-    }),
-    [scrollToToday, scrollToTask]
-  );
-
   // Track drag state for guide lines
   const [dragGuideLines, setDragGuideLines] = useState<{
     isDragging: boolean;
@@ -538,6 +528,31 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       return next;
     });
   }, []);
+
+  // Get all parent task IDs
+  const allParentIds = useMemo(() => {
+    return new Set(normalizedTasks.filter(t => t.parentId).map(t => t.parentId!).filter(id => id));
+  }, [normalizedTasks]);
+
+  const handleCollapseAll = useCallback(() => {
+    setCollapsedParentIds(allParentIds);
+  }, [allParentIds]);
+
+  const handleExpandAll = useCallback(() => {
+    setCollapsedParentIds(new Set());
+  }, []);
+
+  // Expose collapse/expand methods via ref (must be after handlers are defined)
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToToday,
+      scrollToTask,
+      collapseAll: handleCollapseAll,
+      expandAll: handleExpandAll,
+    }),
+    [scrollToToday, scrollToTask, handleCollapseAll, handleExpandAll]
+  );
 
   const handlePromoteTask = useCallback((taskId: string) => {
     // If consumer provided custom callback, use it

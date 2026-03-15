@@ -1040,6 +1040,18 @@ export default function Home() {
               Today
             </button>
             <button
+              className="demo-btn demo-btn-secondary"
+              onClick={() => ganttChartRef.current?.collapseAll()}
+            >
+              ▲ Collapse All
+            </button>
+            <button
+              className="demo-btn demo-btn-secondary"
+              onClick={() => ganttChartRef.current?.expandAll()}
+            >
+              ▼ Expand All
+            </button>
+            <button
               className={`demo-btn ${disableTaskNameEditing ? "demo-btn-muted" : "demo-btn-active"}`}
               onClick={() => setDisableTaskNameEditing(!disableTaskNameEditing)}
             >
