@@ -232,3 +232,15 @@ Plans:
 - [ ] 19-02-PLAN.md — Task type extension + TaskList hierarchy UI: parentId field, indentation, collapse button, parent row styling
 - [ ] 19-03-PLAN.md — TaskRow parent bar rendering + cascade drag integration: parent bar visual style, reuse cascade engine
 - [ ] 19-04-PLAN.md — Promote/demote buttons + cascade delete + demo page: level change buttons, delete parent cascades to children, human verification
+
+### Phase 20: month-view
+
+**Goal:** Альтернативный режим просмотра week-view с prop `viewMode?: 'day' | 'week'` — каждый столбец = 1 неделя (dayWidth × 7), 2-строчный заголовок (месяц+год / дата начала недели), недельная сетка без подсветки выходных
+**Requirements**: none (rendering enhancement)
+**Depends on:** Phase 19
+**Plans:** 3 plans
+
+Plans:
+- [ ] 20-01-PLAN.md — Утилиты getWeekStartDays и getWeekSpans в dateUtils.ts (TDD)
+- [ ] 20-02-PLAN.md — TimeScaleHeader и GridBackground week-view branches + calculateWeekGridLines
+- [ ] 20-03-PLAN.md — GanttChart viewMode prop + демо-страница + human verification
