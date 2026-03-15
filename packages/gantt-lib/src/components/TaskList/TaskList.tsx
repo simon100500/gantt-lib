@@ -616,7 +616,10 @@ export const TaskList: React.FC<TaskListProps> = ({
     });
 
     // For root tasks, check if they should join a group (need reordered for this)
-    if (!moved.parentId) {
+    // IMPORTANT: Parent tasks (hasChildren === true) must NEVER be reparented during drag-drop.
+    // They always stay at root level regardless of where they are dropped.
+    // Only leaf/child tasks (non-parents) can be adopted into a group by neighboring tasks.
+    if (!moved.parentId && !hasChildren) {
       // Prefer taskAbove if it has a parent (joining that group)
       if (adjustedInsertIndex > 0) {
         const taskAbove = reordered[adjustedInsertIndex - 1];
@@ -648,6 +651,8 @@ export const TaskList: React.FC<TaskListProps> = ({
       if (!inferredParentId) {
         console.log('[ROOT TASK] - Staying as root (no group to join)');
       }
+    } else if (!moved.parentId && hasChildren) {
+      console.log('[PARENT TASK] - Staying as root (parent tasks cannot be reparented)');
     }
 
     console.log('[FINAL RESULT]', {
