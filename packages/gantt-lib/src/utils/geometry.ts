@@ -295,48 +295,54 @@ export const calculateDependencyPath = (
 /**
  * Calculate grid line positions for week-view mode.
  * Lines appear at every 7-day boundary (each week column edge).
- * Month boundaries get isMonthStart=true for stronger styling.
+ * Month boundaries are always rendered at the exact day position (day 1 of a new month),
+ * even when the boundary falls in the middle of a week column.
  * No day-level lines; no weekend blocks.
  *
  * @param dateRange - Array of Date objects (from getMultiMonthDays, day-based)
  * @param dayWidth - Width of each day in pixels
- * @returns Array of grid line objects at week-column boundaries
+ * @returns Array of grid line objects sorted by x position
  */
 export const calculateWeekGridLines = (
   dateRange: Date[],
   dayWidth: number
 ): Array<{ x: number; isMonthStart: boolean }> => {
+  // Track positions already occupied so we don't draw two lines at the same x
+  const usedPositions = new Set<number>();
   const lines: Array<{ x: number; isMonthStart: boolean }> = [];
-  const weekColumnWidth = dayWidth * 7;
 
-  // Number of week columns (ceil to include partial last week)
+  // Pass 1: month boundary lines at exact day-1 positions (highest priority)
+  // Skip i=0 (left border of the grid)
+  for (let i = 1; i < dateRange.length; i++) {
+    const day = dateRange[i];
+    if (day.getUTCDate() === 1) {
+      const x = Math.round(i * dayWidth);
+      lines.push({ x, isMonthStart: true });
+      usedPositions.add(x);
+    }
+  }
+
+  // Pass 2: week separator lines at every 7-day boundary (skip positions taken by month lines)
   const weekCount = Math.ceil(dateRange.length / 7);
-
-  for (let w = 0; w < weekCount; w++) {
+  for (let w = 1; w < weekCount; w++) {
     const dayIndex = w * 7;
     const x = Math.round(dayIndex * dayWidth);
-    // Skip the first line at x=0 (left border)
-    if (w === 0) continue;
-
-    // Determine if this week boundary is also a month boundary
-    // A month boundary = the week-start day (dateRange[dayIndex]) is the 1st of a month,
-    // OR the previous day (dateRange[dayIndex-1]) is the last day of its month.
-    const weekStartDay = dateRange[dayIndex];
-    const isMonthStart = weekStartDay
-      ? weekStartDay.getUTCDate() === 1 ||
-        (dayIndex > 0 && dateRange[dayIndex - 1].getUTCMonth() !== weekStartDay.getUTCMonth())
-      : false;
-
-    lines.push({ x, isMonthStart });
+    if (!usedPositions.has(x)) {
+      lines.push({ x, isMonthStart: false });
+      usedPositions.add(x);
+    }
   }
 
   // Add final line at the right edge of the last week column
   if (weekCount > 0) {
-    lines.push({ x: Math.round(dateRange.length * dayWidth), isMonthStart: false });
+    const finalX = Math.round(dateRange.length * dayWidth);
+    if (!usedPositions.has(finalX)) {
+      lines.push({ x: finalX, isMonthStart: false });
+    }
   }
 
-  // Suppress unused variable warning for weekColumnWidth
-  void weekColumnWidth;
+  // Sort by x position for correct rendering order
+  lines.sort((a, b) => a.x - b.x);
 
   return lines;
 };
