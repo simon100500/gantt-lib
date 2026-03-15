@@ -4,350 +4,532 @@ import { useState, useCallback, useRef } from "react";
 import { GanttChart, type Task, type GanttChartHandle } from "gantt-lib";
 
 const createSampleTasks = (): Task[] => {
-  const now = new Date();
-  const y = now.getUTCFullYear();
-  const m = now.getUTCMonth();
-  const pad = (n: number) => String(n + 1).padStart(2, "0");
-  const addDays = (date: string, days: number) => {
-    const d = new Date(date);
-    d.setDate(d.getDate() + days);
-    return d.toISOString().split("T")[0];
-  };
-  const baseDate = `${y}-${pad(m)}-01`;
-
   return [
+    // GROUP 1 — Подготовительные работы
     {
-      "id": "1",
-      "name": "Геодезическая разбивка площадки",
-      "startDate": "2026-02-12T00:00:00.000Z",
-      "endDate": "2026-02-20T00:00:00.000Z",
-      "progress": 100,
-      "accepted": true,
-      "locked": true,
-      "dependencies": []
+      id: 'g1',
+      name: 'Подготовительные работы',
+      startDate: '2026-02-01',
+      endDate: '2026-02-15',
+      progress: 100,
+      accepted: true,
+      locked: true,
+      dependencies: [],
     },
     {
-      "id": "2",
-      "name": "Ограждение и временные дороги",
-      "startDate": "2026-02-14T00:00:00.000Z",
-      "endDate": "2026-02-21T00:00:00.000Z",
-      "progress": 100,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "1",
-          "type": "SS",
-          "lag": 2
-        }
-      ]
+      id: 'g1-1',
+      name: 'Геодезическая разбивка',
+      startDate: '2026-02-01',
+      endDate: '2026-02-03',
+      progress: 100,
+      accepted: true,
+      parentId: 'g1',
+      dependencies: [],
     },
     {
-      "id": "3",
-      "name": "Подключение временных коммуникаций",
-      "startDate": "2026-02-04T00:00:00.000Z",
-      "endDate": "2026-02-13T00:00:00.000Z",
-      "progress": 90,
-      "accepted": false,
-      "color": "#f43",
-      "dependencies": [
-        {
-          "taskId": "2",
-          "type": "SF",
-          "lag": 0
-        }
-      ]
+      id: 'g1-2',
+      name: 'Ограждение площадки',
+      startDate: '2026-02-03',
+      endDate: '2026-02-07',
+      progress: 100,
+      accepted: true,
+      parentId: 'g1',
+      dependencies: [{ taskId: 'g1-1', type: 'FS' as const, lag: 0 }],
     },
     {
-      "id": "4",
-      "name": "Разработка котлована",
-      "startDate": "2026-02-19T00:00:00.000Z",
-      "endDate": "2026-02-24T00:00:00.000Z",
-      "progress": 100,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "2",
-          "type": "FS",
-          "lag": -2
-        }
-      ]
+      id: 'g1-3',
+      name: 'Временные дороги',
+      startDate: '2026-02-05',
+      endDate: '2026-02-10',
+      progress: 100,
+      accepted: true,
+      parentId: 'g1',
+      dependencies: [{ taskId: 'g1-1', type: 'SS' as const, lag: 2 }],
     },
     {
-      "id": "5",
-      "name": "Песчаная подушка",
-      "startDate": "2026-02-23T00:00:00.000Z",
-      "endDate": "2026-03-02T00:00:00.000Z",
-      "progress": 95,
-      "accepted": false,
-      "color": "#4f3",
-      "dependencies": [
-        {
-          "taskId": "4",
-          "type": "FS",
-          "lag": -1
-        }
-      ]
+      id: 'g1-4',
+      name: 'Подключение временных коммуникаций',
+      startDate: '2026-02-08',
+      endDate: '2026-02-12',
+      progress: 100,
+      accepted: false,
+      parentId: 'g1',
+      dependencies: [{ taskId: 'g1-2', type: 'FS' as const, lag: 1 }],
     },
     {
-      "id": "6",
-      "name": "Бетонная подготовка",
-      "startDate": "2026-02-28T00:00:00.000Z",
-      "endDate": "2026-03-07T00:00:00.000Z",
-      "progress": 90,
-      "accepted": false,
-      "divider": "top",
-      "dependencies": [
-        {
-          "taskId": "5",
-          "type": "FS",
-          "lag": -2
-        }
-      ]
+      id: 'g1-5',
+      name: 'Установка строительного городка',
+      startDate: '2026-02-10',
+      endDate: '2026-02-15',
+      progress: 100,
+      accepted: true,
+      parentId: 'g1',
+      dependencies: [{ taskId: 'g1-3', type: 'FS' as const, lag: 0 }],
+    },
+
+    // GROUP 2 — Земляные работы
+    {
+      id: 'g2',
+      name: 'Земляные работы',
+      startDate: '2026-02-16',
+      endDate: '2026-03-01',
+      progress: 100,
+      accepted: true,
+      divider: 'top' as const,
+      dependencies: [],
     },
     {
-      "id": "7",
-      "name": "Армирование фундамента",
-      "startDate": "2026-03-05T00:00:00.000Z",
-      "endDate": "2026-03-13T00:00:00.000Z",
-      "progress": 80,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "6",
-          "type": "FS",
-          "lag": -2
-        }
-      ]
+      id: 'g2-1',
+      name: 'Разработка котлована',
+      startDate: '2026-02-16',
+      endDate: '2026-02-22',
+      progress: 100,
+      accepted: true,
+      parentId: 'g2',
+      dependencies: [{ taskId: 'g1', type: 'FS' as const, lag: 1 }],
     },
     {
-      "id": "8",
-      "name": "Бетонирование фундамента",
-      "startDate": "2026-03-10T00:00:00.000Z",
-      "endDate": "2026-03-15T00:00:00.000Z",
-      "progress": 75,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "7",
-          "type": "FF",
-          "lag": 2
-        }
-      ]
+      id: 'g2-2',
+      name: 'Вывоз грунта',
+      startDate: '2026-02-17',
+      endDate: '2026-02-23',
+      progress: 100,
+      accepted: true,
+      parentId: 'g2',
+      dependencies: [{ taskId: 'g2-1', type: 'SS' as const, lag: 1 }],
     },
     {
-      "id": "9",
-      "name": "Уход за бетоном (7 дней)",
-      "startDate": "2026-03-14T00:00:00.000Z",
-      "endDate": "2026-03-21T00:00:00.000Z",
-      "progress": 70,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "8",
-          "type": "FS",
-          "lag": -1
-        }
-      ]
+      id: 'g2-3',
+      name: 'Зачистка дна котлована',
+      startDate: '2026-02-23',
+      endDate: '2026-02-25',
+      progress: 100,
+      accepted: true,
+      parentId: 'g2',
+      dependencies: [{ taskId: 'g2-1', type: 'FS' as const, lag: 0 }],
     },
     {
-      "id": "10",
-      "name": "Гидроизоляция фундамента",
-      "startDate": "2026-03-22T00:00:00.000Z",
-      "endDate": "2026-03-30T00:00:00.000Z",
-      "progress": 65,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "9",
-          "type": "FS",
-          "lag": 1
-        }
-      ]
+      id: 'g2-4',
+      name: 'Песчаная подушка',
+      startDate: '2026-02-25',
+      endDate: '2026-02-27',
+      progress: 100,
+      accepted: true,
+      color: '#4ade80',
+      parentId: 'g2',
+      dependencies: [{ taskId: 'g2-3', type: 'FS' as const, lag: 0 }],
     },
     {
-      "id": "11",
-      "name": "Возведение стен 1-2 этажа",
-      "startDate": "2026-03-30T00:00:00.000Z",
-      "endDate": "2026-04-29T00:00:00.000Z",
-      "progress": 50,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "10",
-          "type": "FS",
-          "lag": 0
-        }
-      ]
+      id: 'g2-5',
+      name: 'Уплотнение основания',
+      startDate: '2026-02-27',
+      endDate: '2026-03-01',
+      progress: 100,
+      accepted: true,
+      parentId: 'g2',
+      dependencies: [{ taskId: 'g2-4', type: 'FS' as const, lag: 0 }],
+    },
+
+    // GROUP 3 — Фундамент
+    {
+      id: 'g3',
+      name: 'Фундамент',
+      startDate: '2026-03-02',
+      endDate: '2026-03-28',
+      progress: 85,
+      accepted: false,
+      divider: 'top' as const,
+      dependencies: [],
     },
     {
-      "id": "12",
-      "name": "Монтаж плит перекрытия",
-      "startDate": "2026-03-30T00:00:00.000Z",
-      "endDate": "2026-04-14T00:00:00.000Z",
-      "progress": 45,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "11",
-          "type": "SS",
-          "lag": 0
-        }
-      ]
+      id: 'g3-1',
+      name: 'Опалубка фундамента',
+      startDate: '2026-03-02',
+      endDate: '2026-03-06',
+      progress: 100,
+      accepted: true,
+      parentId: 'g3',
+      dependencies: [{ taskId: 'g2', type: 'FS' as const, lag: 1 }],
     },
     {
-      "id": "13",
-      "name": "Устройство стропильной системы",
-      "startDate": "2026-04-14T00:00:00.000Z",
-      "endDate": "2026-04-29T00:00:00.000Z",
-      "progress": 40,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "12",
-          "type": "FS",
-          "lag": 0
-        }
-      ]
+      id: 'g3-2',
+      name: 'Армирование подошвы',
+      startDate: '2026-03-04',
+      endDate: '2026-03-09',
+      progress: 100,
+      accepted: true,
+      parentId: 'g3',
+      dependencies: [{ taskId: 'g3-1', type: 'SS' as const, lag: 2 }],
     },
     {
-      "id": "14",
-      "name": "Монтаж кровельного покрытия",
-      "startDate": "2026-04-29T00:00:00.000Z",
-      "endDate": "2026-05-19T00:00:00.000Z",
-      "progress": 30,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "13",
-          "type": "FS",
-          "lag": 0
-        }
-      ]
+      id: 'g3-3',
+      name: 'Бетонная подготовка',
+      startDate: '2026-03-07',
+      endDate: '2026-03-10',
+      progress: 100,
+      accepted: true,
+      color: '#60a5fa',
+      parentId: 'g3',
+      dependencies: [{ taskId: 'g3-1', type: 'FS' as const, lag: 1 }],
     },
     {
-      "id": "15",
-      "name": "Монтаж оконных блоков",
-      "startDate": "2026-05-22T00:00:00.000Z",
-      "endDate": "2026-06-08T00:00:00.000Z",
-      "progress": 25,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "14",
-          "type": "FS",
-          "lag": 3
-        }
-      ]
+      id: 'g3-4',
+      name: 'Бетонирование фундамента',
+      startDate: '2026-03-10',
+      endDate: '2026-03-16',
+      progress: 100,
+      accepted: false,
+      parentId: 'g3',
+      dependencies: [{ taskId: 'g3-2', type: 'FF' as const, lag: 0 }],
     },
     {
-      "id": "16",
-      "name": "Устройство фасада",
-      "startDate": "2026-05-22T00:00:00.000Z",
-      "endDate": "2026-06-23T00:00:00.000Z",
-      "progress": 20,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "15",
-          "type": "SS",
-          "lag": 0
-        }
-      ]
+      id: 'g3-5',
+      name: 'Уход за бетоном',
+      startDate: '2026-03-15',
+      endDate: '2026-03-22',
+      progress: 80,
+      accepted: false,
+      parentId: 'g3',
+      dependencies: [{ taskId: 'g3-4', type: 'FS' as const, lag: -1 }],
     },
     {
-      "id": "17",
-      "name": "Разводка инженерных сетей",
-      "startDate": "2026-04-29T00:00:00.000Z",
-      "endDate": "2026-05-29T00:00:00.000Z",
-      "progress": 35,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "11",
-          "type": "FS",
-          "lag": 0
-        }
-      ]
+      id: 'g3-6',
+      name: 'Гидроизоляция',
+      startDate: '2026-03-22',
+      endDate: '2026-03-26',
+      progress: 60,
+      accepted: false,
+      color: '#f59e0b',
+      parentId: 'g3',
+      dependencies: [{ taskId: 'g3-5', type: 'FS' as const, lag: 0 }],
     },
     {
-      "id": "18",
-      "name": "Штукатурка и стяжка",
-      "startDate": "2026-05-29T00:00:00.000Z",
-      "endDate": "2026-06-28T00:00:00.000Z",
-      "progress": 15,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "17",
-          "type": "FS",
-          "lag": 0
-        }
-      ]
+      id: 'g3-7',
+      name: 'Обратная засыпка',
+      startDate: '2026-03-26',
+      endDate: '2026-03-28',
+      progress: 40,
+      accepted: false,
+      parentId: 'g3',
+      dependencies: [{ taskId: 'g3-6', type: 'FS' as const, lag: 0 }],
+    },
+
+    // GROUP 4 — Каркас здания
+    {
+      id: 'g4',
+      name: 'Каркас здания',
+      startDate: '2026-03-29',
+      endDate: '2026-05-10',
+      progress: 45,
+      accepted: false,
+      divider: 'top' as const,
+      dependencies: [],
     },
     {
-      "id": "19",
-      "name": "Чистовая отделка",
-      "startDate": "2026-06-25T00:00:00.000Z",
-      "endDate": "2026-07-23T00:00:00.000Z",
-      "progress": 5,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "18",
-          "type": "FS",
-          "lag": -3
-        }
-      ]
+      id: 'g4-1',
+      name: 'Монтаж колонн 1 этажа',
+      startDate: '2026-03-29',
+      endDate: '2026-04-05',
+      progress: 80,
+      accepted: false,
+      parentId: 'g4',
+      dependencies: [{ taskId: 'g3', type: 'FS' as const, lag: 1 }],
     },
     {
-      "id": "20",
-      "name": "Сдача объекта",
-      "startDate": "2026-07-23T00:00:00.000Z",
-      "endDate": "2026-07-28T00:00:00.000Z",
-      "progress": 0,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "19",
-          "type": "FS",
-          "lag": 0
-        }
-      ]
+      id: 'g4-2',
+      name: 'Монтаж балок перекрытия',
+      startDate: '2026-04-03',
+      endDate: '2026-04-12',
+      progress: 70,
+      accepted: false,
+      parentId: 'g4',
+      dependencies: [{ taskId: 'g4-1', type: 'SS' as const, lag: 5 }],
     },
     {
-      "id": "sf-1",
-      "name": "Установка лифта (SF predecessor)",
-      "startDate": "2026-07-01",
-      "endDate": "2026-07-16",
-      "progress": 0,
-      "accepted": false,
-      "dependencies": []
+      id: 'g4-3',
+      name: 'Монтаж плит перекрытия',
+      startDate: '2026-04-10',
+      endDate: '2026-04-18',
+      progress: 55,
+      accepted: false,
+      parentId: 'g4',
+      dependencies: [{ taskId: 'g4-2', type: 'FF' as const, lag: -2 }],
     },
     {
-      "id": "sf-2",
-      "name": "Поставка лифтового оборудования (SF successor)",
-      "startDate": "2026-05-17",
-      "endDate": "2026-07-01",
-      "progress": 0,
-      "accepted": false,
-      "dependencies": [
-        {
-          "taskId": "sf-1",
-          "type": "SF",
-          "lag": 0
-        }
-      ]
+      id: 'g4-4',
+      name: 'Монтаж колонн 2 этажа',
+      startDate: '2026-04-15',
+      endDate: '2026-04-24',
+      progress: 35,
+      accepted: false,
+      parentId: 'g4',
+      dependencies: [{ taskId: 'g4-3', type: 'SS' as const, lag: 5 }],
     },
     {
-      "id": "swapped-test",
-      "name": "🧪 TEST: Swapped Dates (start > end)",
-      "startDate": "2026-08-15",
-      "endDate": "2026-07-20",
-      "progress": 0,
-      "accepted": false,
-      "dependencies": []
-    }
-  ]
+      id: 'g4-5',
+      name: 'Перекрытие 2 этажа',
+      startDate: '2026-04-22',
+      endDate: '2026-05-01',
+      progress: 20,
+      accepted: false,
+      parentId: 'g4',
+      dependencies: [{ taskId: 'g4-4', type: 'SS' as const, lag: 5 }],
+    },
+    {
+      id: 'g4-6',
+      name: 'Монтаж стропил',
+      startDate: '2026-05-01',
+      endDate: '2026-05-10',
+      progress: 10,
+      accepted: false,
+      parentId: 'g4',
+      dependencies: [{ taskId: 'g4-5', type: 'FS' as const, lag: 0 }],
+    },
+
+    // GROUP 5 — Кровля
+    {
+      id: 'g5',
+      name: 'Кровля',
+      startDate: '2026-05-10',
+      endDate: '2026-05-30',
+      progress: 5,
+      accepted: false,
+      divider: 'top' as const,
+      dependencies: [],
+    },
+    {
+      id: 'g5-1',
+      name: 'Монтаж обрешётки',
+      startDate: '2026-05-10',
+      endDate: '2026-05-15',
+      progress: 15,
+      accepted: false,
+      parentId: 'g5',
+      dependencies: [{ taskId: 'g4', type: 'FS' as const, lag: 0 }],
+    },
+    {
+      id: 'g5-2',
+      name: 'Укладка утеплителя',
+      startDate: '2026-05-13',
+      endDate: '2026-05-20',
+      progress: 5,
+      accepted: false,
+      parentId: 'g5',
+      dependencies: [{ taskId: 'g5-1', type: 'SS' as const, lag: 3 }],
+    },
+    {
+      id: 'g5-3',
+      name: 'Монтаж кровельного покрытия',
+      startDate: '2026-05-18',
+      endDate: '2026-05-27',
+      progress: 0,
+      accepted: false,
+      parentId: 'g5',
+      dependencies: [{ taskId: 'g5-1', type: 'FS' as const, lag: 3 }],
+    },
+    {
+      id: 'g5-4',
+      name: 'Водосточная система',
+      startDate: '2026-05-25',
+      endDate: '2026-05-30',
+      progress: 0,
+      accepted: false,
+      parentId: 'g5',
+      dependencies: [{ taskId: 'g5-3', type: 'FF' as const, lag: 3 }],
+    },
+
+    // GROUP 6 — Наружные стены и фасад
+    {
+      id: 'g6',
+      name: 'Наружные стены и фасад',
+      startDate: '2026-05-01',
+      endDate: '2026-06-20',
+      progress: 10,
+      accepted: false,
+      divider: 'top' as const,
+      dependencies: [],
+    },
+    {
+      id: 'g6-1',
+      name: 'Кладка наружных стен 1 эт.',
+      startDate: '2026-05-01',
+      endDate: '2026-05-18',
+      progress: 20,
+      accepted: false,
+      parentId: 'g6',
+      dependencies: [{ taskId: 'g4-3', type: 'FS' as const, lag: 13 }],
+    },
+    {
+      id: 'g6-2',
+      name: 'Кладка наружных стен 2 эт.',
+      startDate: '2026-05-15',
+      endDate: '2026-06-01',
+      progress: 5,
+      accepted: false,
+      parentId: 'g6',
+      dependencies: [{ taskId: 'g6-1', type: 'SS' as const, lag: 14 }],
+    },
+    {
+      id: 'g6-3',
+      name: 'Монтаж оконных блоков',
+      startDate: '2026-06-01',
+      endDate: '2026-06-10',
+      progress: 0,
+      accepted: false,
+      parentId: 'g6',
+      dependencies: [{ taskId: 'g6-2', type: 'FS' as const, lag: 0 }],
+    },
+    {
+      id: 'g6-4',
+      name: 'Утепление фасада',
+      startDate: '2026-06-05',
+      endDate: '2026-06-15',
+      progress: 0,
+      accepted: false,
+      parentId: 'g6',
+      dependencies: [{ taskId: 'g6-3', type: 'SS' as const, lag: 4 }],
+    },
+    {
+      id: 'g6-5',
+      name: 'Финишная отделка фасада',
+      startDate: '2026-06-12',
+      endDate: '2026-06-20',
+      progress: 0,
+      accepted: false,
+      color: '#a78bfa',
+      parentId: 'g6',
+      dependencies: [{ taskId: 'g6-4', type: 'FF' as const, lag: 5 }],
+    },
+
+    // GROUP 7 — Инженерные сети
+    {
+      id: 'g7',
+      name: 'Инженерные сети',
+      startDate: '2026-05-15',
+      endDate: '2026-07-01',
+      progress: 5,
+      accepted: false,
+      divider: 'top' as const,
+      dependencies: [],
+    },
+    {
+      id: 'g7-1',
+      name: 'Разводка электросетей',
+      startDate: '2026-05-15',
+      endDate: '2026-06-01',
+      progress: 10,
+      accepted: false,
+      parentId: 'g7',
+      dependencies: [{ taskId: 'g4-3', type: 'FS' as const, lag: 27 }],
+    },
+    {
+      id: 'g7-2',
+      name: 'Сантехнические работы',
+      startDate: '2026-05-20',
+      endDate: '2026-06-10',
+      progress: 5,
+      accepted: false,
+      parentId: 'g7',
+      dependencies: [{ taskId: 'g7-1', type: 'SS' as const, lag: 5 }],
+    },
+    {
+      id: 'g7-3',
+      name: 'Вентиляция и кондиционирование',
+      startDate: '2026-06-01',
+      endDate: '2026-06-20',
+      progress: 0,
+      accepted: false,
+      parentId: 'g7',
+      dependencies: [{ taskId: 'g7-1', type: 'FS' as const, lag: 0 }],
+    },
+    {
+      id: 'g7-4',
+      name: 'Слаботочные системы (охрана/связь)',
+      startDate: '2026-06-10',
+      endDate: '2026-06-25',
+      progress: 0,
+      accepted: false,
+      color: '#38bdf8',
+      parentId: 'g7',
+      dependencies: [{ taskId: 'g7-3', type: 'SS' as const, lag: 9 }],
+    },
+    {
+      id: 'g7-5',
+      name: 'Испытание и сдача сетей',
+      startDate: '2026-06-25',
+      endDate: '2026-07-01',
+      progress: 0,
+      accepted: false,
+      parentId: 'g7',
+      dependencies: [
+        { taskId: 'g7-2', type: 'FS' as const, lag: 15 },
+        { taskId: 'g7-4', type: 'SF' as const, lag: 0 },
+      ],
+    },
+
+    // GROUP 8 — Внутренняя отделка и сдача
+    {
+      id: 'g8',
+      name: 'Внутренняя отделка и сдача',
+      startDate: '2026-07-01',
+      endDate: '2026-08-15',
+      progress: 0,
+      accepted: false,
+      divider: 'top' as const,
+      dependencies: [],
+    },
+    {
+      id: 'g8-1',
+      name: 'Штукатурка стен',
+      startDate: '2026-07-01',
+      endDate: '2026-07-18',
+      progress: 0,
+      accepted: false,
+      parentId: 'g8',
+      dependencies: [{ taskId: 'g7', type: 'FS' as const, lag: 0 }],
+    },
+    {
+      id: 'g8-2',
+      name: 'Стяжка пола',
+      startDate: '2026-07-05',
+      endDate: '2026-07-20',
+      progress: 0,
+      accepted: false,
+      parentId: 'g8',
+      dependencies: [{ taskId: 'g8-1', type: 'SS' as const, lag: 4 }],
+    },
+    {
+      id: 'g8-3',
+      name: 'Чистовая отделка',
+      startDate: '2026-07-20',
+      endDate: '2026-08-05',
+      progress: 0,
+      accepted: false,
+      parentId: 'g8',
+      dependencies: [{ taskId: 'g8-1', type: 'FS' as const, lag: 2 }],
+    },
+    {
+      id: 'g8-4',
+      name: 'Установка дверей и фурнитуры',
+      startDate: '2026-07-28',
+      endDate: '2026-08-08',
+      progress: 0,
+      accepted: false,
+      parentId: 'g8',
+      dependencies: [{ taskId: 'g8-3', type: 'SS' as const, lag: 8 }],
+    },
+    {
+      id: 'g8-5',
+      name: 'Сдача объекта',
+      startDate: '2026-08-10',
+      endDate: '2026-08-15',
+      progress: 0,
+      accepted: false,
+      locked: false,
+      parentId: 'g8',
+      dependencies: [{ taskId: 'g8-3', type: 'FF' as const, lag: 10 }],
+    },
+  ];
 };
 
 // Sample tasks with dependencies demonstrating all link types
