@@ -2,6 +2,9 @@
 @import './components/ui/ui.css';
 
 :root {
+  /* Font */
+  --gantt-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
   /* Grid Colors */
   --gantt-grid-line-color: #e0e0e0;
   --gantt-cell-background: #ffffff;

@@ -1,6 +1,6 @@
 .gantt-container {
   width: 100%;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--gantt-font-family, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   background-color: var(--gantt-cell-background, #ffffff);
   border-radius: var(--gantt-container-border-radius, 10px);

@@ -14,6 +14,9 @@ body {
   --demo-section-gap: 3rem;
   --demo-text-muted: #6b7280;
   --demo-border: #e5e7eb;
+
+  /* Override gantt chart font */
+  --gantt-font-family: var(--font-roboto);
 }
 
 .demo-page {
