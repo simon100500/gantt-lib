@@ -15,8 +15,8 @@ body {
   --demo-text-muted: #6b7280;
   --demo-border: #e5e7eb;
 
-  /* Override gantt chart font */
-  --gantt-font-family: var(--font-roboto);
+  /* Override gantt chart font - Roboto is loaded via next/font/google in layout.tsx */
+  --gantt-font-family: 'Roboto', sans-serif;
 }
 
 .demo-page {
