@@ -528,6 +528,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     console.log('=== GANTT CHART handleReorder END ===\n');
 
     const normalized = normalizeHierarchyTasks(updated);
+
+    console.log('=== AFTER NORMALIZE HIERARCHY ===');
+    console.log('[NORMALIZED TASKS]', {
+      count: normalized.length,
+      tasks: normalized.map((t, i) => ({ id: t.id, name: t.name, parentId: t.parentId, index: i }))
+    });
+    console.log('=== GANTT CHART handleReorder COMPLETE ===\n');
+
     onTasksChange?.(normalized);
     onReorder?.(normalized, movedTaskId, inferredParentId);
   }, [onTasksChange, onReorder]);

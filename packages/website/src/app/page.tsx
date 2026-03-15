@@ -627,18 +627,19 @@ export default function Home() {
   }, []);
 
   const handleReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
-    if (movedTaskId) {
-      // Update the moved task's parentId
-      // CRITICAL: Allow undefined values to clear parentId (exit group)
-      // The old condition `inferredParentId !== undefined` prevented this!
-      setTasks(reorderedTasks.map(t =>
-        t.id === movedTaskId
-          ? { ...t, parentId: inferredParentId || undefined }
-          : t
-      ));
-    } else {
-      setTasks(reorderedTasks);
-    }
+    console.log('=== PAGE handleReorder START ===');
+    console.log('[INPUTS]', {
+      movedTaskId,
+      inferredParentId,
+      reorderedTasksCount: reorderedTasks.length,
+      reorderedTasks: reorderedTasks.map((t, i) => ({ id: t.id, name: t.name, parentId: t.parentId, index: i }))
+    });
+
+    // Use the full reorderedTasks array as-is (already normalized by GanttChart.handleReorder)
+    // The reorderedTasks array has the correct order and parentId updates applied
+    setTasks(reorderedTasks);
+
+    console.log('=== PAGE handleReorder END ===\n');
   }, []);
 
   const exportTasksAsJson = useCallback((taskList: Task[]) => {
@@ -825,18 +826,9 @@ export default function Home() {
   }, []);
 
   const handleHierarchyReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
-    if (movedTaskId) {
-      // Update the moved task's parentId
-      // CRITICAL: Allow undefined values to clear parentId (exit group)
-      // The old condition `inferredParentId !== undefined` prevented this!
-      setHierarchyTasks(reorderedTasks.map(t =>
-        t.id === movedTaskId
-          ? { ...t, parentId: inferredParentId || undefined }
-          : t
-      ));
-    } else {
-      setHierarchyTasks(reorderedTasks);
-    }
+    // Use the full reorderedTasks array as-is (already normalized by GanttChart.handleReorder)
+    // The reorderedTasks array has the correct order and parentId updates applied
+    setHierarchyTasks(reorderedTasks);
   }, []);
 
   return (

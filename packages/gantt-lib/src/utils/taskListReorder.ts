@@ -1,3 +1,5 @@
+import type { Task } from '../components/GanttChart';
+
 type TaskLike = { id: string };
 
 export interface VisibleReorderPosition {
@@ -6,8 +8,36 @@ export interface VisibleReorderPosition {
 }
 
 /**
+ * Get all descendant IDs of a task (recursively).
+ * Used to identify the entire subtree that must move together when dragging a parent.
+ */
+function getDescendantIds(taskId: string, tasks: TaskLike[]): string[] {
+  const descendants: string[] = [];
+  const visited = new Set<string>();
+
+  function collect(id: string) {
+    if (visited.has(id)) return;
+    visited.add(id);
+
+    // Find all direct children of this task
+    for (const task of tasks) {
+      if ((task as any).parentId === id && !visited.has(task.id)) {
+        descendants.push(task.id);
+        collect(task.id);
+      }
+    }
+  }
+
+  collect(taskId);
+  return descendants;
+}
+
+/**
  * Map visible drag/drop positions to indices in the full ordered task list.
  * This keeps collapsed descendants attached to their parent row.
+ *
+ * When dragging a parent task, all its descendants are included in the move,
+ * so they are all filtered out before calculating the insert position.
  */
 export function getVisibleReorderPosition(
   orderedTasks: TaskLike[],
@@ -16,37 +46,135 @@ export function getVisibleReorderPosition(
   originVisibleIndex: number,
   dropVisibleIndex: number,
 ): VisibleReorderPosition | null {
+  console.log('=== getVisibleReorderPosition START ===');
+  console.log('[INPUT]', {
+    movedTaskId,
+    originVisibleIndex,
+    dropVisibleIndex,
+    direction: originVisibleIndex < dropVisibleIndex ? 'DOWN' : 'UP'
+  });
+
   const originOrderedIndex = orderedTasks.findIndex((task) => task.id === movedTaskId);
   if (originOrderedIndex === -1) {
+    console.log('[ERROR] Moved task not found in orderedTasks');
     return null;
   }
 
-  const reorderedWithoutMoved = orderedTasks.filter((task) => task.id !== movedTaskId);
-  const visibleWithoutMoved = visibleTasks.filter((task) => task.id !== movedTaskId);
-  const visibleInsertIndex = originVisibleIndex < dropVisibleIndex
-    ? dropVisibleIndex - 1
-    : dropVisibleIndex;
+  // Get all descendant IDs if this is a parent task
+  const descendantIds = getDescendantIds(movedTaskId, orderedTasks);
+  const allMovedIds = new Set([movedTaskId, ...descendantIds]);
+
+  console.log('[MOVED SUBTREE]', {
+    subtreeSize: allMovedIds.size,
+    descendantIds,
+    allMovedIds: Array.from(allMovedIds)
+  });
+
+  // Filter out ALL tasks that will move (parent + descendants)
+  const reorderedWithoutMoved = orderedTasks.filter((task) => !allMovedIds.has(task.id));
+  const visibleWithoutMoved = visibleTasks.filter((task) => !allMovedIds.has(task.id));
+
+  console.log('[FILTERED ARRAYS]', {
+    reorderedWithoutMovedLength: reorderedWithoutMoved.length,
+    visibleWithoutMovedLength: visibleWithoutMoved.length,
+    reorderedWithoutMovedIds: reorderedWithoutMoved.map(t => t.id),
+    visibleWithoutMovedIds: visibleWithoutMoved.map(t => t.id)
+  });
+
+  const isMovingDown = originVisibleIndex < dropVisibleIndex;
+
+  console.log('[DIRECTION]', {
+    originVisibleIndex,
+    dropVisibleIndex,
+    isMovingDown
+  });
 
   if (visibleWithoutMoved.length === 0) {
+    console.log('[EDGE CASE] No visible tasks after filtering, insertIndex=0');
+    console.log('=== getVisibleReorderPosition END ===\n');
     return { originOrderedIndex, insertIndex: 0 };
   }
 
-  if (visibleInsertIndex <= 0) {
-    return {
-      originOrderedIndex,
-      insertIndex: reorderedWithoutMoved.findIndex((task) => task.id === visibleWithoutMoved[0].id),
-    };
-  }
+  // When moving DOWN, we want to insert AFTER the drop target's entire group.
+  // When moving UP, we want to insert BEFORE the drop target.
+  //
+  // CRITICAL: dropVisibleIndex is an index into the ORIGINAL visibleTasks, NOT into
+  // visibleWithoutMoved (which has fewer items after removing the moved subtree).
+  // We must look up the actual drop target task by its ID from the original list,
+  // then find it in visibleWithoutMoved.
 
-  if (visibleInsertIndex >= visibleWithoutMoved.length) {
+  // Look up the actual task at the drop position in the ORIGINAL visible list
+  const dropTargetTask = visibleTasks[dropVisibleIndex];
+
+  if (!dropTargetTask) {
+    // dropVisibleIndex is beyond the end of the original list - append at end
+    console.log('[EDGE CASE] dropVisibleIndex beyond list, appending at end');
+    console.log('=== getVisibleReorderPosition END ===\n');
     return {
       originOrderedIndex,
       insertIndex: reorderedWithoutMoved.length,
     };
   }
 
+  // Find the drop target in the filtered array (visibleWithoutMoved has the moved subtree removed)
+  const filteredDropIndex = visibleWithoutMoved.findIndex((t) => t.id === dropTargetTask.id);
+
+  if (filteredDropIndex === -1) {
+    // Drop target was part of the moved subtree - should not happen after isValidParentDrop check
+    // Append at end as fallback
+    console.log('[EDGE CASE] Drop target is part of moved subtree (unexpected), appending at end');
+    console.log('=== getVisibleReorderPosition END ===\n');
+    return {
+      originOrderedIndex,
+      insertIndex: reorderedWithoutMoved.length,
+    };
+  }
+
+  const targetVisibleTask = visibleWithoutMoved[filteredDropIndex];
+
+  console.log('[TARGET VISIBLE TASK]', {
+    dropVisibleIndex,
+    filteredDropIndex,
+    targetVisibleTaskId: targetVisibleTask.id
+  });
+
+  // Find the target in reorderedWithoutMoved
+  let insertIndex = reorderedWithoutMoved.findIndex((task) => task.id === targetVisibleTask.id);
+
+  // CRITICAL: When moving DOWN, we want to insert AFTER the target's entire group
+  // (including any collapsed descendants)
+  if (isMovingDown) {
+    // Check if target is a parent
+    const targetDescendants = getDescendantIds(targetVisibleTask.id, reorderedWithoutMoved);
+    if (targetDescendants.length > 0) {
+      // Find the position after the last descendant
+      const lastDescendantId = targetDescendants[targetDescendants.length - 1];
+      const lastDescendantIndex = reorderedWithoutMoved.findIndex((task) => task.id === lastDescendantId);
+      insertIndex = lastDescendantIndex + 1;
+      console.log('[MOVING DOWN] Target is a parent, inserting after group', {
+        targetId: targetVisibleTask.id,
+        descendantCount: targetDescendants.length,
+        insertIndex
+      });
+    } else {
+      // Target is not a parent, insert after it
+      insertIndex += 1;
+      console.log('[MOVING DOWN] Target is not a parent, inserting after it', {
+        targetId: targetVisibleTask.id,
+        insertIndex
+      });
+    }
+  }
+
+  console.log('[FINAL RESULT]', {
+    originOrderedIndex,
+    insertIndex,
+    isMovingDown
+  });
+  console.log('=== getVisibleReorderPosition END ===\n');
+
   return {
     originOrderedIndex,
-    insertIndex: reorderedWithoutMoved.findIndex((task) => task.id === visibleWithoutMoved[visibleInsertIndex].id),
+    insertIndex,
   };
 }
