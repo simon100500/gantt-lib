@@ -163,17 +163,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       return Math.min(100, Math.max(0, Math.round(task.progress)));
     }, [task.progress]);
 
-    // Parent bar: at 100% tint the whole bar (no fill overlay rendered at 100%).
-    // At partial %, bar stays normal — progress overlay is rendered instead.
-    const parentBarStyle = useMemo(() => {
-      if (!isParent) return { backgroundColor: barColor };
-      if (progressWidth >= 100) {
-        const c = 'color-mix(in srgb, var(--gantt-task-bar-default-color) 40%, black)';
-        return { backgroundColor: c, '--gantt-parent-bar-color': c } as React.CSSProperties;
-      }
-      return {};
-    }, [isParent, progressWidth, barColor]);
-
     // Determine progress color based on completion status
     const progressColor = useMemo(() => {
       if (isExpired) {
@@ -189,6 +178,21 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       const baseColor = task.color || 'var(--gantt-task-bar-default-color)';
       return `color-mix(in srgb, ${baseColor} 40%, black)`;
     }, [isExpired, progressWidth, task.accepted, task.color]);
+
+    // At 100% progress, tint the bar itself instead of rendering a fill overlay.
+    const barStyle = useMemo(() => {
+      if (isParent) {
+        if (progressWidth >= 100) {
+          const c = 'color-mix(in srgb, var(--gantt-task-bar-default-color) 40%, black)';
+          return { backgroundColor: c, '--gantt-parent-bar-color': c } as React.CSSProperties;
+        }
+        return {};
+      }
+      if (progressWidth >= 100) {
+        return { backgroundColor: progressColor };
+      }
+      return { backgroundColor: barColor };
+    }, [isParent, progressWidth, barColor, progressColor]);
 
     // Handle drag end - call onTasksChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
@@ -277,14 +281,14 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             style={{
               left: `${displayLeft}px`,
               width: `${displayWidth}px`,
-              ...parentBarStyle,
+              ...barStyle,
               height: isParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
               cursor: dragHandleProps.style.cursor,
               userSelect: dragHandleProps.style.userSelect,
             }}
             onMouseDown={dragHandleProps.onMouseDown}
           >
-            {progressWidth > 0 && !(isParent && progressWidth >= 100) && (
+            {progressWidth > 0 && progressWidth < 100 && (
               <div
                 className="gantt-tr-progressBar"
                 style={{
