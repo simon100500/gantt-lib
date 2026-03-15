@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: "Completed 20-02-PLAN.md: TimeScaleHeader and GridBackground week-view"
-last_updated: "2026-03-15T22:12:08.347Z"
+stopped_at: "Completed 20-03-PLAN.md: GanttChart viewMode integration + demo switcher; awaiting Task 3 human-verify checkpoint"
+last_updated: "2026-03-15T22:17:20.482Z"
 last_activity: "2026-03-15 - Completed quick task 102: крась название работы (подпись справа от полосы) для родителя в тот же цвет что и полоса"
 progress:
   total_phases: 20
-  completed_phases: 18
+  completed_phases: 19
   total_plans: 51
-  completed_plans: 49
+  completed_plans: 50
 ---
 
 ## Accumulated Context
@@ -564,6 +564,7 @@ Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 | Phase quick P094 | 45 | 2 tasks | 1 files |
 | Phase 20-month-view P01 | 3 | 2 tasks | 2 files |
 | Phase 20-month-view P02 | 2 | 2 tasks | 4 files |
+| Phase 20-month-view P03 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -701,6 +702,8 @@ Recent decisions affecting current work:
 - [Phase 20-month-view]: calculateWeekGridLines skips x=0 and adds final right-edge line for correct week-view rendering
 - [Phase 20-month-view]: arePropsEqual in GridBackground extended with viewMode comparison to prevent stale renders on mode switch
 - [Phase 20-month-view]: viewMode defaults to 'day' in both TimeScaleHeader and GridBackground — fully backward compatible
+- [Phase 20-month-view]: viewMode defaults to 'day' at GanttChart boundary — single source of truth, fully backward-compatible
+- [Phase 20-month-view]: dayWidth=8px/day in week-view demo (56px/week), 24 in day-view — preserves visual proportions
 
 ### Pending Todos
 
@@ -806,8 +809,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T22:12:08.343Z
-Stopped at: Completed 20-02-PLAN.md: TimeScaleHeader and GridBackground week-view
+Last session: 2026-03-15T22:17:20.478Z
+Stopped at: Completed 20-03-PLAN.md: GanttChart viewMode integration + demo switcher; awaiting Task 3 human-verify checkpoint
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
