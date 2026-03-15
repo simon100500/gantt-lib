@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.13.0] - 2026-03-15
+
+### Features
+- Color parent task name label to match the bar color
+- Enhance parent task bar styling with dynamic background color
+- Add border radius to parent task progress bars
+- Improve progress bar styling clarity in TaskRow
+
+### Refactor
+- Remove debug console.log statements from GanttChart and TaskList
+
+### Style
+- Update parent task row background color for visual consistency
+
 ## [0.11.1] - 2026-03-15
 
 ### Fixes
