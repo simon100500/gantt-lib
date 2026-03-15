@@ -1,15 +1,15 @@
 ---
-status: verifying
+status: awaiting_human_verify
 trigger: "Investigate issue: parent-drop-order-bug - When dragging a parent task to another root-level position, the parent moves to the end of the list with children appearing above it (wrong hierarchy)"
 created: 2026-03-14T00:00:00.000Z
-updated: 2026-03-15T09:45:00.000Z
+updated: 2026-03-15T13:10:00.000Z
 ---
 
 ## Current Focus
-hypothesis: CONFIRMED AND FIXED - getVisibleReorderPosition was using dropVisibleIndex as an index into visibleWithoutMoved, causing wrong results when visibleWithoutMoved has fewer items (subtree removed).
-test: All 8 unit tests pass (parentDropSelf: 4, parentDropOrder: 4). New regression test added covering exact bug scenario.
-expecting: Dropping parent ON next root task correctly inserts it after the target's full group. No-op scenarios still work.
-next_action: Human verification in browser - confirm the drag behavior works correctly
+hypothesis: CONFIRMED AND FIXED - The isMovingDown group-skipping block was removed from getVisibleReorderPosition. Drop indicator semantics (TOP border = insert above) are now correctly honored without jumping past the drop target's group.
+test: All 8 unit tests pass. Tests updated to reflect correct expected behavior (no-op when dropping at top of next parent, actual move requires dragging to end of list).
+expecting: Human verification that dropping родитель1 at the seam between деть2/родитель2 is a no-op, and that actual group reorder works by dragging past children to end.
+next_action: Human verification in browser
 
 ## User Feedback (Latest)
 "Parent group moves N tasks BELOW where it should be! Also, if you try to move the moved group again, you can't move it between groups (as if the moved group doesn't update index and doesn't allow moving). Check what IDs you're updating."
@@ -233,34 +233,21 @@ started: Started recently - this is a new issue distinct from the resolved paren
   files_changed: [packages/gantt-lib/src/__tests__/parentDropSelf.test.ts (new file)]
 
 ## Resolution
-root_cause: In getVisibleReorderPosition, the code used `dropVisibleIndex` (an index into the ORIGINAL visibleTasks array) directly as an index into `visibleWithoutMoved` (a FILTERED array with the moved subtree removed, so smaller).
+root_cause: Two bugs existed:
+1. (Previously fixed) getVisibleReorderPosition used dropVisibleIndex as a direct index into visibleWithoutMoved (a FILTERED array), causing off-by-N errors.
+2. (Now fixed) The isMovingDown group-skipping logic in getVisibleReorderPosition was wrong: when moving DOWN and dropping ON a root parent, it jumped insertIndex past the entire target group's children, causing the dragged parent to land BELOW the target group instead of ABOVE it. The drop indicator shows the TOP border of the row — semantically "insert above that row" — so the insertIndex should be the target's position in reorderedWithoutMoved, without skipping past descendants.
 
-The old condition was:
-  ```js
-  if (dropVisibleIndex >= visibleWithoutMoved.length - 1) {
-    return { insertIndex: reorderedWithoutMoved.length }; // append at end
-  }
-  targetVisibleIndex = dropVisibleIndex; // WRONG: uses original index in filtered array
-  ```
+Additionally, a no-op early exit was added to handleDrop: if insertIndex === originOrderedIndex, the subtree would land at the same position anyway, so onReorder is not called.
 
-Concrete example: tasks=[H1(0), H1-1(1), H1-2(2), H2(3), H2-1(4), H2-2(5), H3(6)]
-- Drag H1 (originIdx=0) to H2 (dropVisibleIndex=3)
-- visibleWithoutMoved = [H2, H2-1, H2-2, H3] (length=4 after removing H1 subtree)
-- OLD check: 3 >= 4-1 (3) → TRUE → append at END (insertIndex=4)
-- Result: H1 group moves PAST H3, ending at very bottom
-- User expected: H1 group to appear AFTER H2 group (before H3)
-
-fix: Rewrote the index lookup logic to use ID-based task lookup instead of direct index comparison.
-  New logic:
-  1. Look up the drop target task by its position in the ORIGINAL visibleTasks (by ID)
-  2. Find that same task in visibleWithoutMoved using findIndex (ID-based)
-  3. Use the FILTERED index as targetVisibleIndex for all subsequent calculations
-  4. Special case: if dropTargetTask not in list (beyond end) → append at end
-  5. Special case: if dropTargetTask was part of moved subtree → append at end (defensive)
+fix:
+  1. Removed the isMovingDown block from getVisibleReorderPosition entirely. The target's position in reorderedWithoutMoved is now used directly, preserving "insert above drop target" semantics.
+  2. Added early exit in handleDrop when insertIndex === originOrderedIndex (true no-op).
+  3. Updated tests to reflect correct expected behavior: dropping at top of родитель2 is a no-op; moving past родитель2's group requires dragging to end of list.
 
 files_changed:
-  - packages/gantt-lib/src/utils/taskListReorder.ts (fix - rewritten index lookup logic)
-  - packages/gantt-lib/src/__tests__/parentDropOrder.test.ts (updated 2 tests to use full subtree move + valid drop positions)
-  - packages/gantt-lib/src/__tests__/parentDropSelf.test.ts (added regression test for the exact bug scenario)
+  - packages/gantt-lib/src/utils/taskListReorder.ts (removed isMovingDown group-skipping logic)
+  - packages/gantt-lib/src/components/TaskList/TaskList.tsx (added no-op early exit)
+  - packages/gantt-lib/src/__tests__/parentDropSelf.test.ts (updated regression test - now verifies no-op at dropIndex=3)
+  - packages/gantt-lib/src/__tests__/parentDropOrder.test.ts (updated 2 tests to use correct expected behavior)
 
-verification: 8 tests pass (4 parentDropSelf, 4 parentDropOrder). New regression test explicitly verifies that dropping H1 ON H2 gives insertIndex=3 (correct) not insertIndex=4 (wrong end of list).
+verification: All 8 tests pass (4 parentDropSelf, 4 parentDropOrder). Awaiting human verification in browser.

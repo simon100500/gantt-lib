@@ -81,12 +81,10 @@ export function getVisibleReorderPosition(
     visibleWithoutMovedIds: visibleWithoutMoved.map(t => t.id)
   });
 
-  const isMovingDown = originVisibleIndex < dropVisibleIndex;
-
   console.log('[DIRECTION]', {
     originVisibleIndex,
     dropVisibleIndex,
-    isMovingDown
+    isMovingDown: originVisibleIndex < dropVisibleIndex
   });
 
   if (visibleWithoutMoved.length === 0) {
@@ -95,9 +93,6 @@ export function getVisibleReorderPosition(
     return { originOrderedIndex, insertIndex: 0 };
   }
 
-  // When moving DOWN, we want to insert AFTER the drop target's entire group.
-  // When moving UP, we want to insert BEFORE the drop target.
-  //
   // CRITICAL: dropVisibleIndex is an index into the ORIGINAL visibleTasks, NOT into
   // visibleWithoutMoved (which has fewer items after removing the moved subtree).
   // We must look up the actual drop target task by its ID from the original list,
@@ -138,38 +133,18 @@ export function getVisibleReorderPosition(
     targetVisibleTaskId: targetVisibleTask.id
   });
 
-  // Find the target in reorderedWithoutMoved
-  let insertIndex = reorderedWithoutMoved.findIndex((task) => task.id === targetVisibleTask.id);
-
-  // CRITICAL: When moving DOWN, we want to insert AFTER the target's entire group
-  // (including any collapsed descendants)
-  if (isMovingDown) {
-    // Check if target is a parent
-    const targetDescendants = getDescendantIds(targetVisibleTask.id, reorderedWithoutMoved);
-    if (targetDescendants.length > 0) {
-      // Find the position after the last descendant
-      const lastDescendantId = targetDescendants[targetDescendants.length - 1];
-      const lastDescendantIndex = reorderedWithoutMoved.findIndex((task) => task.id === lastDescendantId);
-      insertIndex = lastDescendantIndex + 1;
-      console.log('[MOVING DOWN] Target is a parent, inserting after group', {
-        targetId: targetVisibleTask.id,
-        descendantCount: targetDescendants.length,
-        insertIndex
-      });
-    } else {
-      // Target is not a parent, insert after it
-      insertIndex += 1;
-      console.log('[MOVING DOWN] Target is not a parent, inserting after it', {
-        targetId: targetVisibleTask.id,
-        insertIndex
-      });
-    }
-  }
+  // Find the target in reorderedWithoutMoved.
+  // The drop indicator semantics: indicator at position N shows the TOP border of row N,
+  // meaning the task will be inserted ABOVE row N.
+  // We use the drop target's position directly without skipping past its group.
+  // This preserves "drop at top of родитель2 = insert before родитель2" semantics.
+  // To move a parent PAST родитель2's entire group, the user must drag to the end of the list
+  // (past all of родитель2's children), which triggers the "append at end" path above.
+  const insertIndex = reorderedWithoutMoved.findIndex((task) => task.id === targetVisibleTask.id);
 
   console.log('[FINAL RESULT]', {
     originOrderedIndex,
-    insertIndex,
-    isMovingDown
+    insertIndex
   });
   console.log('=== getVisibleReorderPosition END ===\n');
 

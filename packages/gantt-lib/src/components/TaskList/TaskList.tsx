@@ -447,6 +447,18 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     const { originOrderedIndex, insertIndex } = reorderPosition;
+
+    // Early exit: if insertIndex equals originOrderedIndex, the subtree would be removed
+    // and re-inserted at the exact same position - a true no-op. Skip the callback.
+    if (insertIndex === originOrderedIndex) {
+      console.log('[NO-OP] insertIndex === originOrderedIndex, task stays at same position');
+      setDraggingIndex(null);
+      setDragOverIndex(null);
+      dragOriginIndexRef.current = null;
+      dragTaskIdRef.current = null;
+      return;
+    }
+
     const moved = orderedTasks[originOrderedIndex];
 
     console.log('=== AFTER getVisibleReorderPosition ===');

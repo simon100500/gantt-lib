@@ -252,20 +252,19 @@ describe('Parent dropped on itself (below position)', () => {
     ]);
   });
 
-  it('should correctly move родитель1 after родитель2 when dropping ON родитель2', () => {
-    // Regression test for the bug where dropVisibleIndex was used as an index into
-    // visibleWithoutMoved (the filtered array), causing wrong results.
+  it('should be a no-op when dropping родитель1 at top border of родитель2 (drop indicator above родитель2)', () => {
+    // Regression test for the drop indicator semantics:
+    // The drag indicator visualizes the TOP BORDER of the drop position.
+    // Dropping at index 3 (top of родитель2) means "insert ABOVE родитель2".
+    // Since родитель1 is already above родитель2 (its group occupies 0,1,2),
+    // dropping at 3 must be a NO-OP.
     //
-    // Scenario: user drags родитель1 (index 0) and drops ON родитель2 (index 3).
-    // isValidParentDrop ALLOWS this (родитель2 is a root task, not a child of родитель1).
+    // The previous isMovingDown group-skipping logic was inserting родитель1 AFTER
+    // родитель2's entire group (insertIndex=3 in reorderedWithoutMoved=[p2,c2.1,c2.2]),
+    // which caused родитель1 to move below родитель2 instead of staying in place.
     //
-    // Before the fix, this caused родитель1 to move to the END of the entire list
-    // (past even ребёнок2.2 and any subsequent tasks), because the OLD code compared
-    // dropVisibleIndex(3) against visibleWithoutMoved.length - 1 (3) and wrongly
-    // concluded it should append at the end.
-    //
-    // After the fix, the code looks up the drop target by ID in visibleWithoutMoved,
-    // finds родитель2 at index 0, and inserts after its full group = CORRECT position.
+    // To actually move родитель1 AFTER родитель2's group, the user must drag past
+    // родитель2's children to the end of the list (dropVisibleIndex >= 6).
     const tasks: Task[] = [
       createTask('родитель1', 'Parent 1', '2026-01-01', '2026-01-10'),
       createTask('ребёнок1.1', 'Child 1.1', '2026-01-02', '2026-01-03', 'родитель1'),
@@ -278,11 +277,12 @@ describe('Parent dropped on itself (below position)', () => {
     const orderedTasks = normalizeHierarchyTasks(tasks);
     const visibleTasks = orderedTasks;
 
-    // Drag родитель1 (index 0) DOWN and drop ON родитель2 (index 3)
+    // Drag родитель1 (index 0) DOWN and drop at the top border of родитель2 (index 3)
+    // The drop indicator appears at top of родитель2 = "insert ABOVE родитель2"
     const originVisibleIndex = 0;
-    const dropVisibleIndex = 3; // ON родитель2 - the slot just after родитель1's children
+    const dropVisibleIndex = 3; // top border of родитель2
 
-    console.log('\n=== Test: Drop родитель1 ON родитель2 (index 3) ===');
+    console.log('\n=== Test: Drop родитель1 at top border of родитель2 (index 3) ===');
 
     const reorderPosition = getVisibleReorderPosition(
       orderedTasks,
@@ -299,30 +299,28 @@ describe('Parent dropped on itself (below position)', () => {
     const { originOrderedIndex, insertIndex } = reorderPosition;
     console.log('originOrderedIndex:', originOrderedIndex, 'insertIndex:', insertIndex);
 
-    // Expected: insertIndex = 3 (after all of родитель2's group in reorderedWithoutMoved)
-    // reorderedWithoutMoved = [родитель2, ребёнок2.1, ребёнок2.2] (length=3)
-    // родитель2 has descendants [ребёнок2.1, ребёнок2.2], last at index 2
-    // insertIndex should be 3 (= lastDescendantIndex + 1)
-    expect(insertIndex).toBe(3);
+    // Expected: insertIndex = 0 (before родитель2 in reorderedWithoutMoved=[p2,c2.1,c2.2])
+    // This is a NO-OP: inserting p1 subtree before p2 restores the original order.
+    expect(insertIndex).toBe(0);
 
     // Apply full subtree move (as handleDrop does)
     const reordered = [...orderedTasks];
     const subtree = reordered.splice(originOrderedIndex, 3); // remove родитель1 + 2 children
-    reordered.splice(insertIndex, 0, ...subtree); // insert at correct position
+    reordered.splice(insertIndex, 0, ...subtree); // insert at position 0 = before p2
 
     console.log('After subtree move:', reordered.map(t => t.id));
 
     const normalized = normalizeHierarchyTasks(reordered);
     console.log('Normalized:', normalized.map(t => t.id));
 
-    // Expected: родитель2 group, then родитель1 group (NOT родитель1 moved past родитель2's children)
+    // Expected: same as original order - родитель1 group, then родитель2 group (NO-OP)
     expect(normalized.map(t => t.id)).toEqual([
-      'родитель2',
-      'ребёнок2.1',
-      'ребёнок2.2',
       'родитель1',
       'ребёнок1.1',
       'ребёнок1.2',
+      'родитель2',
+      'ребёнок2.1',
+      'ребёнок2.2',
     ]);
   });
 });

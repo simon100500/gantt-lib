@@ -84,13 +84,13 @@ describe('Parent drop order bug', () => {
     expect(true).toBe(true);
   });
 
-  it('should maintain correct order when using page.tsx-style handleReorder', () => {
-    // This test mimics the actual fixed handleReorder behavior.
-    // Dropping родитель1 ON родитель2 (dropVisibleIndex=3) should move родитель1's
-    // entire group after родитель2's entire group.
+  it('should be a no-op when dropping родитель1 at top border of родитель2', () => {
+    // Drop indicator semantics: indicator at position N = top border of row N = insert ABOVE row N.
+    // Dropping родитель1 at index 3 (top of родитель2) means "insert above родитель2".
+    // Since родитель1 is already above родитель2, this must be a NO-OP.
     //
-    // Note: dropVisibleIndex=4 (ребёнок2.1) is INVALID - isValidParentDrop rejects it.
-    // The correct valid drop to move родитель1 past родитель2 is dropVisibleIndex=3 (ON родитель2).
+    // To actually move родитель1 after родитель2's group, the user must drag past
+    // all of родитель2's children to the end of the list (dropVisibleIndex=6 or beyond).
     const tasks: Task[] = [
       createTask('родитель1', 'Parent 1', '2026-01-01', '2026-01-10'),
       createTask('ребёнок1.1', 'Child 1.1', '2026-01-02', '2026-01-03', 'родитель1'),
@@ -100,11 +100,9 @@ describe('Parent drop order bug', () => {
       createTask('ребёнок2.2', 'Child 2.2', '2026-01-09', '2026-01-10', 'родитель2'),
     ];
 
-    // Simulate drag-drop: dropping родитель1 ON родитель2 (the first valid target after own group)
-    // isValidParentDrop allows this: родитель2 is a root task, not a descendant of родитель1
     const orderedTasks = normalizeHierarchyTasks(tasks);
     const originVisibleIndex = 0;
-    const dropVisibleIndex = 3; // ON родитель2 (valid: root task, not a child of anyone)
+    const dropVisibleIndex = 3; // top border of родитель2 = insert above родитель2 = no-op
 
     const reorderPosition = getVisibleReorderPosition(
       orderedTasks,
@@ -122,7 +120,6 @@ describe('Parent drop order bug', () => {
     console.log('reorderPosition:', reorderPosition);
 
     // Simulate the full subtree move (as handleDrop does it)
-    // The entire subtree [родитель1, ребёнок1.1, ребёнок1.2] moves together
     const subtreeCount = 3; // parent + 2 children
     const reordered = [...orderedTasks];
     const subtree = reordered.splice(originOrderedIndex, subtreeCount);
@@ -134,21 +131,21 @@ describe('Parent drop order bug', () => {
     const normalized = normalizeHierarchyTasks(reordered);
     console.log('Normalized:', normalized.map(t => t.id));
 
-    // The fixed version should produce correct order: родитель2 group, then родитель1 group
+    // No-op: order is unchanged
     expect(normalized.map(t => t.id)).toEqual([
-      'родитель2',
-      'ребёнок2.1',
-      'ребёнок2.2',
       'родитель1',
       'ребёнок1.1',
       'ребёнок1.2',
+      'родитель2',
+      'ребёнок2.1',
+      'ребёнок2.2',
     ]);
   });
 
-  it('should maintain parent before children after reorder (full subtree move)', () => {
-    // Setup: Two parent tasks, each with 2 children
-    // Initial order (from normalizeHierarchyTasks):
-    // [0] родитель1, [1] ребёнок1.1, [2] ребёнок1.2, [3] родитель2, [4] ребёнок2.1, [5] ребёнок2.2
+  it('should move родитель1 after родитель2 when dragging to end of list', () => {
+    // To move родитель1 after родитель2's group, the user must drag past ALL of
+    // родитель2's children to the end of the list (dropVisibleIndex=6, beyond the last task).
+    // Dropping ON родитель2 (dropVisibleIndex=3) is now a no-op per drop indicator semantics.
     const tasks: Task[] = [
       createTask('родитель1', 'Parent 1', '2026-01-01', '2026-01-10'),
       createTask('ребёнок1.1', 'Child 1.1', '2026-01-02', '2026-01-03', 'родитель1'),
@@ -161,15 +158,10 @@ describe('Parent drop order bug', () => {
     const orderedTasks = normalizeHierarchyTasks(tasks);
     console.log('Initial orderedTasks:', orderedTasks.map(t => t.id));
 
-    // Simulate dragging родитель1 (index 0) ON родитель2 (index 3).
-    // This is the valid way to move родитель1 after родитель2:
-    //   - dropVisibleIndex=3 = dropping ON родитель2 (a root task → valid per isValidParentDrop)
-    //   - dropVisibleIndex=4 = ребёнок2.1 (a child of родитель2 → REJECTED by isValidParentDrop)
-    // The handler moves the ENTIRE subtree (родитель1 + its children) together.
+    // Drag родитель1 (index 0) past all tasks to the end (dropVisibleIndex=6)
     const originVisibleIndex = 0;
-    const dropVisibleIndex = 3; // ON родитель2 (valid drop)
+    const dropVisibleIndex = 6; // beyond end of list - "append at end"
 
-    // All tasks are visible (no collapsed parents)
     const visibleTasks = orderedTasks;
 
     const reorderPosition = getVisibleReorderPosition(
