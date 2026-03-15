@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseUTCDate, getMonthDays, getDayOffset, isToday, isWeekend, getMultiMonthDays, getMonthSpans, normalizeTaskDates } from '../utils/dateUtils';
+import { parseUTCDate, getMonthDays, getDayOffset, isToday, isWeekend, getMultiMonthDays, getMonthSpans, normalizeTaskDates, getWeekStartDays } from '../utils/dateUtils';
 
 describe('parseUTCDate', () => {
   it('should parse ISO date string as UTC', () => {
@@ -361,5 +361,52 @@ describe('normalizeTaskDates', () => {
     const result = normalizeTaskDates('2024-04-01', '2024-03-31');
     expect(result.startDate).toBe('2024-03-31');
     expect(result.endDate).toBe('2024-04-01');
+  });
+});
+
+describe('getWeekStartDays', () => {
+  it('should return empty array for empty input', () => {
+    expect(getWeekStartDays([])).toEqual([]);
+  });
+
+  it('should return first day for 7-day range', () => {
+    const days = Array.from({ length: 7 }, (_, i) =>
+      new Date(Date.UTC(2026, 2, 1 + i))
+    );
+    const result = getWeekStartDays(days);
+    expect(result).toHaveLength(1);
+    expect(result[0].getUTCDate()).toBe(1);
+  });
+
+  it('should return two week starts for 14-day range', () => {
+    const days = Array.from({ length: 14 }, (_, i) =>
+      new Date(Date.UTC(2026, 2, 1 + i))
+    );
+    const result = getWeekStartDays(days);
+    expect(result).toHaveLength(2);
+    expect(result[0].getUTCDate()).toBe(1);
+    expect(result[1].getUTCDate()).toBe(8);
+  });
+
+  it('should include partial last week', () => {
+    const days = Array.from({ length: 10 }, (_, i) =>
+      new Date(Date.UTC(2026, 2, 1 + i))
+    );
+    const result = getWeekStartDays(days);
+    expect(result).toHaveLength(2);
+    expect(result[1].getUTCDate()).toBe(8);
+  });
+
+  it('should return 5 week starts for 31-day March', () => {
+    const days = Array.from({ length: 31 }, (_, i) =>
+      new Date(Date.UTC(2026, 2, 1 + i))
+    );
+    const result = getWeekStartDays(days);
+    expect(result).toHaveLength(5);
+    expect(result[0].getUTCDate()).toBe(1);
+    expect(result[1].getUTCDate()).toBe(8);
+    expect(result[2].getUTCDate()).toBe(15);
+    expect(result[3].getUTCDate()).toBe(22);
+    expect(result[4].getUTCDate()).toBe(29);
   });
 });

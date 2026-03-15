@@ -224,6 +224,20 @@ export const formatDateLabel = (date: Date | string): string => {
 };
 
 /**
+ * Return the first day of each 7-day block in the days array.
+ * Used by TimeScaleHeader row 2 in week-view.
+ * Blocks start at days[0], days[7], days[14], ... (NOT aligned to Monday).
+ * Partial last block is included.
+ */
+export const getWeekStartDays = (days: Date[]): Date[] => {
+  const result: Date[] = [];
+  for (let i = 0; i < days.length; i += 7) {
+    result.push(days[i]);
+  }
+  return result;
+};
+
+/**
  * Normalize task dates to ensure startDate is always before or equal to endDate.
  * If dates are swapped (endDate < startDate), they are automatically swapped.
  * @param startDate - Task start date (string or Date)
