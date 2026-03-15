@@ -94,7 +94,7 @@
   top: 0;
   width: 16px;
   height: 100%;
-  color: var(--gantt-grid-line-color, #d1d5db);
+  color: #d4bceb;
   pointer-events: none;
 }
 
