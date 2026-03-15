@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.0] - 2026-03-15
+
+### Features
+- Add L-shaped hierarchy connector icon (├/└) for child task rows with continuous vertical tree lines
+- Enforce single-level nesting rules for parent task drag-and-drop
+
+### Fixes
+- Cascade delete children when parent task is deleted
+- Fix multi-level collapse visibility for nested tasks
+- Resolve parent drop order bug with improved logic
+- Prevent parent task from joining its own group (cycle prevention)
+- Fix parent task drag restrictions to prevent invalid hierarchy states
+
 ## [0.9.0] - 2026-03-14
 
 ### Features
