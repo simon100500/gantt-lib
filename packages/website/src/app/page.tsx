@@ -810,19 +810,9 @@ export default function Home() {
   }, []);
 
   const handleReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
-    console.log('=== PAGE handleReorder START ===');
-    console.log('[INPUTS]', {
-      movedTaskId,
-      inferredParentId,
-      reorderedTasksCount: reorderedTasks.length,
-      reorderedTasks: reorderedTasks.map((t, i) => ({ id: t.id, name: t.name, parentId: t.parentId, index: i }))
-    });
-
     // Use the full reorderedTasks array as-is (already normalized by GanttChart.handleReorder)
     // The reorderedTasks array has the correct order and parentId updates applied
     setTasks(reorderedTasks);
-
-    console.log('=== PAGE handleReorder END ===\n');
   }, []);
 
   const exportTasksAsJson = useCallback((taskList: Task[]) => {
@@ -1152,9 +1142,7 @@ export default function Home() {
               disableConstraints={!blockConstraints}
               showTaskList={showDependencyTaskList}
               onValidateDependencies={(result) => {
-                if (!result.isValid) {
-                  console.log('Dependency validation:', result.errors);
-                }
+                // Validation errors are displayed in the UI
               }}
             />
           </div>
@@ -1180,7 +1168,9 @@ export default function Home() {
               tasks={cascadeTasks}
               onTasksChange={handleCascadeChange}
               onAdd={handleCascadeAdd}
-              onCascade={(shifted) => console.log('Cascade:', shifted.map(t => `${t.name}: ${t.startDate}`))}
+              onCascade={(shifted) => {
+                // Cascade happens silently
+              }}
               dayWidth={40}
               rowHeight={40}
               containerHeight={250}
@@ -1209,7 +1199,9 @@ export default function Home() {
               tasks={chain100Tasks}
               onTasksChange={handleChain100Change}
               onAdd={handleChain100Add}
-              onCascade={(shifted) => console.log(`Cascade: ${shifted.length} tasks shifted`)}
+              onCascade={(shifted) => {
+                // Cascade happens silently
+              }}
               dayWidth={24}
               rowHeight={36}
               containerHeight={600}
