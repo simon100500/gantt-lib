@@ -71,21 +71,12 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
-const HierarchyConnectorIcon = () => (
-  <svg
-    className="gantt-tl-hierarchy-connector"
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    {/* Vertical line going down from top to mid, then horizontal to right */}
-    <path d="M5 0 L5 10 L11 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    {/* Dot at the end of the connector */}
-    <circle cx="11" cy="10" r="2.5" fill="currentColor"/>
-  </svg>
+const HierarchyConnectorIcon = ({ isLastChild }: { isLastChild: boolean }) => (
+  <span className={`gantt-tl-hierarchy-connector${isLastChild ? ' gantt-tl-hierarchy-connector--last' : ''}`} aria-hidden="true">
+    <span className="gantt-tl-hc-vline" />
+    <span className="gantt-tl-hc-hline" />
+    <span className="gantt-tl-hc-dot" />
+  </span>
 );
 
 // ---------------------------------------------------------------------------
@@ -319,6 +310,8 @@ export interface TaskListRowProps {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when task is demoted (parentId set to previous task) */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
+  /** Whether this child is the last sibling (affects connector icon shape) */
+  isLastChild?: boolean;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -361,6 +354,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onToggleCollapse,
     onPromoteTask,
     onDemoteTask,
+    isLastChild = true,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -774,7 +768,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
         {/* Name column — styled Input overlay on edit */}
         <div className="gantt-tl-cell gantt-tl-cell-name">
-          {isChild && !editingName && <HierarchyConnectorIcon />}
+          {isChild && !editingName && <HierarchyConnectorIcon isLastChild={isLastChild} />}
           {isParent && !editingName && (
             <button
               type="button"

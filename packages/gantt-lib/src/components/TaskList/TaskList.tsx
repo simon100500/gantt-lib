@@ -184,6 +184,20 @@ export const TaskList: React.FC<TaskListProps> = ({
     [visibleTasks.length, rowHeight]
   );
 
+  // For each child task, determine if it's the last visible child of its parent
+  const lastChildIds = useMemo(() => {
+    const last = new Set<string>();
+    const seenParents = new Set<string>();
+    for (let i = visibleTasks.length - 1; i >= 0; i--) {
+      const t = visibleTasks[i] as Task;
+      if (t.parentId && !seenParents.has(t.parentId)) {
+        last.add(t.id);
+        seenParents.add(t.parentId);
+      }
+    }
+    return last;
+  }, [visibleTasks]);
+
   const handleRowClick = useCallback((taskId: string) => {
     onTaskSelect?.(taskId);
   }, [onTaskSelect]);
@@ -792,6 +806,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onToggleCollapse={handleToggleCollapse}
               onPromoteTask={onPromoteTask}
               onDemoteTask={onDemoteTask}
+              isLastChild={lastChildIds.has(task.id)}
             />
           ))}
         </div>
