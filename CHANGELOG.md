@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.1] - 2026-03-15
+
+### Fixes
+- Fix drag & drop hierarchy: dropping a task below a collapsed group no longer incorrectly nests it inside the group; tasks now join a group only when dropped between a parent and its first child or between two siblings
+
+### Style
+- Adjust opacity of task number labels for improved readability
+
 ## [0.11.0] - 2026-03-15
 
 ### Features
