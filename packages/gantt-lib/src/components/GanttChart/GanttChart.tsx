@@ -124,6 +124,8 @@ export interface GanttChartProps {
   onDemoteTask?: (taskId: string, newParentId: string) => void;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
+  /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days (default: 'day') */
+  viewMode?: 'day' | 'week';
 }
 
 /**
@@ -181,6 +183,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   onPromoteTask,
   onDemoteTask,
   enableAddTask = true,
+  viewMode = 'day',
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -735,6 +738,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
                 days={dateRange}
                 dayWidth={dayWidth}
                 headerHeight={headerHeight}
+                viewMode={viewMode}
               />
             </div>
 
@@ -750,6 +754,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             dateRange={dateRange}
             dayWidth={dayWidth}
             totalHeight={totalGridHeight}
+            viewMode={viewMode}
           />
 
           {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
