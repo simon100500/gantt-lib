@@ -87,6 +87,19 @@
   padding-left: 0;
 }
 
+/* Hierarchy connector icon — shown in child rows before task name */
+.gantt-tl-hierarchy-connector {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--gantt-grid-line-color, #d1d5db);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
 .gantt-tl-row-parent {
   font-weight: 600;
   background-color: var(--gantt-parent-row-bg, rgb(120 47 196 / 0.15));

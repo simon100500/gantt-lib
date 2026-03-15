@@ -71,6 +71,23 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
+const HierarchyConnectorIcon = () => (
+  <svg
+    className="gantt-tl-hierarchy-connector"
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    {/* Vertical line going down from top to mid, then horizontal to right */}
+    <path d="M5 0 L5 10 L14 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    {/* Dot at the end of the connector */}
+    <circle cx="14" cy="10" r="1.5" fill="currentColor"/>
+  </svg>
+);
+
 // ---------------------------------------------------------------------------
 // HierarchyButton — Single button with left/right arrows for hierarchy navigation
 // ---------------------------------------------------------------------------
@@ -757,6 +774,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
         {/* Name column — styled Input overlay on edit */}
         <div className="gantt-tl-cell gantt-tl-cell-name">
+          {isChild && !editingName && <HierarchyConnectorIcon />}
           {isParent && !editingName && (
             <button
               type="button"
