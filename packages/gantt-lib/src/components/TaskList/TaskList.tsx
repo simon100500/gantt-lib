@@ -640,35 +640,32 @@ export const TaskList: React.FC<TaskListProps> = ({
     // They always stay at root level regardless of where they are dropped.
     // Only leaf/child tasks (non-parents) can be adopted into a group by neighboring tasks.
     if (!moved.parentId && !hasChildren) {
-      // Prefer taskAbove if it has a parent (joining that group)
-      if (adjustedInsertIndex > 0) {
-        const taskAbove = reordered[adjustedInsertIndex - 1];
-        console.log('[ROOT TASK - CHECK TASK ABOVE]', {
-          taskAboveId: taskAbove.id,
-          taskAboveName: taskAbove.name,
-          taskAboveParentId: taskAbove.parentId
-        });
-        if (taskAbove.parentId && taskAbove.parentId !== moved.id) {
-          console.log('  -> Joining group from taskAbove:', taskAbove.parentId);
-          inferredParentId = taskAbove.parentId;
-        }
-      }
+      const taskAbove = adjustedInsertIndex > 0 ? reordered[adjustedInsertIndex - 1] : null;
+      const taskBelow = adjustedInsertIndex < reordered.length - 1 ? reordered[adjustedInsertIndex + 1] : null;
 
-      // Otherwise check taskBelow
-      if (inferredParentId === undefined && adjustedInsertIndex < reordered.length - 1) {
-        const taskBelow = reordered[adjustedInsertIndex + 1];
-        console.log('[ROOT TASK - CHECK TASK BELOW]', {
-          taskBelowId: taskBelow.id,
-          taskBelowName: taskBelow.name,
-          taskBelowParentId: taskBelow.parentId
-        });
-        if (taskBelow.parentId && taskBelow.parentId !== moved.id) {
-          console.log('  -> Joining group from taskBelow:', taskBelow.parentId);
-          inferredParentId = taskBelow.parentId;
-        }
-      }
+      console.log('[ROOT TASK - CHECK NEIGHBORS]', {
+        taskAboveId: taskAbove?.id,
+        taskAboveParentId: taskAbove?.parentId,
+        taskBelowId: taskBelow?.id,
+        taskBelowParentId: taskBelow?.parentId,
+      });
 
-      if (!inferredParentId) {
+      // Join a group ONLY if placed between parent and its first child,
+      // or between two children of the same parent.
+      // Dropping after the last child of a group keeps the task at root level.
+      if (taskAbove && taskBelow && taskBelow.parentId === taskAbove.id) {
+        // Placed between a parent and its first child
+        inferredParentId = taskAbove.id;
+        console.log('  -> Joining group: between parent and first child:', inferredParentId);
+      } else if (taskAbove && taskBelow && taskAbove.parentId && taskAbove.parentId === taskBelow.parentId) {
+        // Placed between two children of the same parent
+        inferredParentId = taskAbove.parentId;
+        console.log('  -> Joining group: between two siblings:', inferredParentId);
+      } else if (!taskAbove && taskBelow && taskBelow.parentId) {
+        // Placed at the very top, above a child — join that group
+        inferredParentId = taskBelow.parentId;
+        console.log('  -> Joining group: at top above child:', inferredParentId);
+      } else {
         console.log('[ROOT TASK] - Staying as root (no group to join)');
       }
     } else if (!moved.parentId && hasChildren) {
