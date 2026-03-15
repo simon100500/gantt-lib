@@ -282,6 +282,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 style={{
                   width: `${progressWidth}%`,
                   backgroundColor: progressColor,
+                  ...(isParent && {
+                    borderRadius: progressWidth === 100
+                      ? 'var(--gantt-parent-bar-radius, 8px) var(--gantt-parent-bar-radius, 8px) 0 0'
+                      : 'var(--gantt-parent-bar-radius, 8px) 0 0 0',
+                  }),
                 }}
               />
             )}
