@@ -157,14 +157,22 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       ? 'var(--gantt-expired-color)'
       : (task.color || 'var(--gantt-task-bar-default-color)');
 
-    // Parent bar uses gradient background (handled in CSS), override color here
-    const parentBarStyle = isParent ? {} : { backgroundColor: barColor };
-
     // Calculate clamped and rounded progress width
     const progressWidth = useMemo(() => {
       if (task.progress === undefined || task.progress <= 0) return 0;
       return Math.min(100, Math.max(0, Math.round(task.progress)));
     }, [task.progress]);
+
+    // Parent bar: at 100% tint the whole bar (no fill overlay rendered at 100%).
+    // At partial %, bar stays normal — progress overlay is rendered instead.
+    const parentBarStyle = useMemo(() => {
+      if (!isParent) return { backgroundColor: barColor };
+      if (progressWidth >= 100) {
+        const c = 'color-mix(in srgb, var(--gantt-task-bar-default-color) 40%, black)';
+        return { backgroundColor: c, '--gantt-parent-bar-color': c } as React.CSSProperties;
+      }
+      return {};
+    }, [isParent, progressWidth, barColor]);
 
     // Determine progress color based on completion status
     const progressColor = useMemo(() => {
@@ -276,16 +284,14 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
             onMouseDown={dragHandleProps.onMouseDown}
           >
-            {progressWidth > 0 && (
+            {progressWidth > 0 && !(isParent && progressWidth >= 100) && (
               <div
                 className="gantt-tr-progressBar"
                 style={{
                   width: `${progressWidth}%`,
                   backgroundColor: progressColor,
                   ...(isParent && {
-                    borderRadius: progressWidth === 100
-                      ? 'var(--gantt-parent-bar-radius, 8px) var(--gantt-parent-bar-radius, 8px) 0 0'
-                      : 'var(--gantt-parent-bar-radius, 8px) 0 0 0',
+                    borderRadius: 'var(--gantt-parent-bar-radius, 8px) 0 0 0',
                   }),
                 }}
               />
