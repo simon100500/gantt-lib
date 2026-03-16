@@ -314,7 +314,7 @@
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   background: transparent;
-  border: 1px solid transparent;
+  border: 1px solid var(--gantt-input-border);
   border-radius: 4px;
   outline: none;
   color: var(--gantt-input-text);
