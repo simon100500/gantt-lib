@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: "Completed quick-260316-wzp: calendar font inherit for Roboto"
-last_updated: "2026-03-16T20:46:03.924Z"
-last_activity: "2026-03-16 - Completed quick task 260316-wzp: передай в компонент календаря тоже глобальный шрифт (у нас Roboto)"
+stopped_at: "Completed quick-260317-21g: hierarchical task numbering with left alignment"
+last_updated: "2026-03-16T22:30:00.000Z"
+last_activity: "2026-03-16 - Completed quick task 260317-21g: Номера задач выравнивание по левому краю и по иерархии: 1, 1.1, 1.2 и т.п."
 progress:
   total_phases: 20
   completed_phases: 19
@@ -875,6 +875,7 @@ None yet.
 | 260316-n70 | tooltip на чипе связи - cherry pick из ветки tooltips | 2026-03-16 | e132d75 | [260316-n70-tooltip-cherry-pick-tooltips](./quick/260316-n70-tooltip-cherry-pick-tooltips/) |
 | 260316-oa5 | исправить баг: при изменении детей родительской задачи последователи, привязанные к родителю, не обновляются корректно | 2026-03-16 | f1e346e | [260316-oa5-исправить-баг-родительские-последователи](./quick/260316-oa5-исправить-баг-родительские-последователи/) |
 | 260316-wu6 | редактирование прогресса для родительской задачи может быть только 100% (все дети помечаются сделанными) | 2026-03-16 | 05987bc | [260316-wu6-100](./quick/260316-wu6-100/) |
+| 260317-21g | Номера задач выравнивание по левому краю и по иерархии: 1, 1.1, 1.2 и т.п. | 2026-03-16 | 18ff27d | [260317-21g-1-1-1-1-2](./quick/260317-21g-1-1-1-1-2/) |
 
 ## Session Continuity
 
