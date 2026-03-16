@@ -3,9 +3,24 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: "Completed quick-260316-j1w: DatePicker keyboard input + TaskListRow key capture fix"
+last_updated: "2026-03-16T10:48:23.824Z"
+last_activity: "2026-03-15 - Completed quick task 102: крась название работы (подпись справа от полосы) для родителя в тот же цвет что и полоса"
+progress:
+  total_phases: 20
+  completed_phases: 19
+  total_plans: 51
+  completed_plans: 50
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: "Completed 20-03-PLAN.md: GanttChart viewMode integration + demo switcher; awaiting Task 3 human-verify checkpoint"
 last_updated: "2026-03-15T22:17:20.482Z"
-last_activity: "2026-03-15 - Completed quick task 260316-31a: убрать лишние логи website:dev из консоли"
+last_activity: "2026-03-16 - Completed quick task 260316-j1w: дополни компонент календаря полем ввода даты + исправить перехват клавиш в TaskListRow"
 progress:
   total_phases: 20
   completed_phases: 19
@@ -807,11 +822,12 @@ None yet.
 | 101 | создай на главной странице в первом графике более осознанную структуру - со вложенностью, связями и т.п. на 50 работ. | 2026-03-15 | 9474c8e | [101-50](./quick/101-50/) |
 | 102 | крась название работы (подпись справа от полосы) для родителя в тот же цвет что и полоса | 2026-03-15 | ff4e769 | [102-color-parent-task-name-as-bar](./quick/102-color-parent-task-name-as-bar/) |
 | 260316-31a | убрать лишние логи website:dev из консоли | 2026-03-15 | 4759946 | [260316-31a-website-dev](./quick/260316-31a-website-dev/) |
+| 260316-j1w | дополни компонент календаря полем ввода даты + исправить перехват клавиш в TaskListRow | 2026-03-16 | a3c0660 | [260316-j1w-input-d-projects-gantt-lib-planning-exam](./quick/260316-j1w-input-d-projects-gantt-lib-planning-exam/) |
 
 ## Session Continuity
 
-Last session: 2026-03-15T22:17:20.478Z
-Stopped at: Completed 20-03-PLAN.md: GanttChart viewMode integration + demo switcher; awaiting Task 3 human-verify checkpoint
+Last session: 2026-03-16T10:48:23.821Z
+Stopped at: Completed quick-260316-j1w: DatePicker keyboard input + TaskListRow key capture fix
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
