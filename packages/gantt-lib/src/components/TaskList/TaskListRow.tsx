@@ -384,6 +384,8 @@ export interface TaskListRowProps {
   task: Task;
   /** Index of the task row (for display in № column) */
   rowIndex: number;
+  /** Hierarchical task number (e.g., "1.2.3") */
+  taskNumber?: string;
   /** Height of the task row in pixels */
   rowHeight: number;
   /** Callback when task is modified via inline edit. Receives array of changed tasks. */
@@ -457,6 +459,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
   ({
     task,
     rowIndex,
+    taskNumber,
     rowHeight,
     onTasksChange,
     selectedTaskId,
@@ -908,7 +911,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           >
             <DragHandleIcon />
           </span>
-          <span className="gantt-tl-num-label">{rowIndex + 1}</span>
+          <span className="gantt-tl-num-label">{taskNumber || rowIndex + 1}</span>
         </div>
 
         {/* Name column — styled Input overlay on edit */}
