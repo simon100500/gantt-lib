@@ -767,7 +767,7 @@ export default function Home() {
   const [cascadeTasks, setCascadeTasks] = useState<Task[]>(createCascadeTasks);
   const [chain100Tasks, setChain100Tasks] = useState<Task[]>(createChain100Tasks);
   const [expiredTasks, setExpiredTasks] = useState<Task[]>(createExpiredTasks);
-  const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
   const [blockConstraints, setBlockConstraints] = useState(true);
   const [showTaskList, setShowTaskList] = useState(true);
   const [showDependencyTaskList, setShowDependencyTaskList] = useState(false);
@@ -1086,12 +1086,27 @@ export default function Home() {
             >
               По неделям
             </button>
+            <button
+              onClick={() => setViewMode('month')}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid',
+                cursor: 'pointer',
+                backgroundColor: viewMode === 'month' ? '#1f2937' : 'transparent',
+                color: viewMode === 'month' ? '#ffffff' : '#374151',
+                borderColor: viewMode === 'month' ? '#1f2937' : '#d1d5db',
+              }}
+            >
+              По месяцам
+            </button>
           </div>
           <div className="demo-chart-card">
             <GanttChart
               ref={ganttChartRef}
               tasks={tasks}
-              dayWidth={viewMode === 'week' ? 8 : 24}
+              dayWidth={viewMode === 'month' ? 4 : viewMode === 'week' ? 8 : 24}
               rowHeight={36}
               onTasksChange={handleChange}
               onAdd={handleAdd}
