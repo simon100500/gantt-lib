@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: "Completed quick-260316-wu6: редактирование прогресса для родительской задачи может быть только 100% (все дети помечаются сделанными)"
-last_updated: "2026-03-16T20:38:36.642Z"
-last_activity: "2026-03-16 - Completed quick task 260316-wu6: редактирование прогресса для родительской задачи может быть только 100% (все дети помечаются сделанными)"
+stopped_at: "Fixed parent progress cascade - added 0% cascade + batch update support"
+last_updated: "2026-03-16T21:00:00.000Z"
+last_activity: "2026-03-16 - Fixed quick-260316-wu6: batch task updates + 0%/100% cascade to children"
 progress:
   total_phases: 20
   completed_phases: 19
@@ -856,7 +856,7 @@ None yet.
 | 260316-m0r | Добавить представление "месяц" (viewMode='month', шапка год/месяц, линии года/месяца) | 2026-03-16 | 04c58bc | [260316-m0r-month-view-mode](./quick/260316-m0r-month-view-mode/) |
 | 260316-n70 | tooltip на чипе связи - cherry pick из ветки tooltips | 2026-03-16 | e132d75 | [260316-n70-tooltip-cherry-pick-tooltips](./quick/260316-n70-tooltip-cherry-pick-tooltips/) |
 | 260316-oa5 | исправить баг: при изменении детей родительской задачи последователи, привязанные к родителю, не обновляются корректно | 2026-03-16 | f1e346e | [260316-oa5-исправить-баг-родительские-последователи](./quick/260316-oa5-исправить-баг-родительские-последователи/) |
-| 260316-wu6 | редактирование прогресса для родительской задачи может быть только 100% (все дети помечаются сделанными) | 2026-03-16 | 54b0bad | [260316-wu6-100](./quick/260316-wu6-100/) |
+| 260316-wu6 | редактирование прогресса для родительской задачи может быть только 100% (все дети помечаются сделанными) | 2026-03-16 | 05987bc | [260316-wu6-100](./quick/260316-wu6-100/) |
 
 ## Session Continuity
 
