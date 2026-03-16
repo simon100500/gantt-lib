@@ -305,7 +305,7 @@ const DepChip: React.FC<DepChipProps> = ({
     if (effectiveLag > 0) preWord = 'через';
     else if (effectiveLag < 0) preWord = 'за';
   } else if (dep.type === 'SS') {
-    afterWhat = effectiveLag < 0 ? 'до начала' : 'после начала';
+    afterWhat = effectiveLag < 0 ? 'до начала' : effectiveLag === 0 ? 'с началом' : 'после начала';
     if (effectiveLag > 0) preWord = 'через';
     else if (effectiveLag < 0) preWord = 'за';
   } else { // FS, FF
