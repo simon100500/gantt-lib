@@ -778,6 +778,17 @@
   font-style: italic;
 }
 
+.gantt-tl-dep-edit-task {
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
 .gantt-tl-dep-edit-pred {
   font-weight: 500;
   color: #111827;
