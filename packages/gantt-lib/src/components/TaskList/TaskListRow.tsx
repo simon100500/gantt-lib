@@ -200,8 +200,12 @@ const DepChip: React.FC<DepChipProps> = ({
   onTasksChange,
 }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [inputAbs, setInputAbs] = useState(Math.abs(lag ?? 0).toString());
-  useEffect(() => { setInputAbs(Math.abs(lag ?? 0).toString()); }, [lag]);
+  const lagAbs = Math.abs(lag ?? 0);
+  const [inputAbs, setInputAbs] = useState(lagAbs === 0 ? '' : String(lagAbs));
+  useEffect(() => {
+    const abs = Math.abs(lag ?? 0);
+    setInputAbs(abs === 0 ? '' : String(abs));
+  }, [lag]);
 
   const isSelected =
     selectedChip?.successorId === taskId &&
@@ -267,12 +271,14 @@ const DepChip: React.FC<DepChipProps> = ({
   }, [dep, task, allTasks, onTasksChange]);
 
   const handleInputCommit = useCallback((raw: string) => {
+    if (raw === '') { handleLagChange(0); return; }
     const parsed = parseInt(raw, 10);
+    const effectiveLag = lag ?? 0;
     if (isNaN(parsed) || parsed < 0) {
-      setInputAbs(Math.abs(lag ?? 0).toString());
+      const abs = Math.abs(effectiveLag);
+      setInputAbs(abs === 0 ? '' : String(abs));
       return;
     }
-    const effectiveLag = lag ?? 0;
     let newLag: number;
     if (parsed === 0) {
       newLag = 0;
@@ -290,6 +296,7 @@ const DepChip: React.FC<DepChipProps> = ({
 
   // Derive action verb, preWord and afterWhat (sign-dependent for FS/FF/SS)
   const actionVerb = (dep.type === 'FS' || dep.type === 'SS') ? 'Начать' : 'Завершить';
+  const zeroPlaceholder = dep.type === 'SF' ? 'чётко' : dep.type === 'FF' ? 'вместе' : dep.type === 'SS' ? 'вместе' : 'сразу';
   let afterWhat: string;
   let preWord: string | null = null;
   if (dep.type === 'SF') {
@@ -326,8 +333,10 @@ const DepChip: React.FC<DepChipProps> = ({
               type="number"
               className="gantt-tl-dep-edit-input"
               value={inputAbs}
+              placeholder={zeroPlaceholder}
               min="0"
               onChange={(e) => setInputAbs(e.target.value)}
+              onFocus={(e) => e.target.select()}
               onBlur={(e) => handleInputCommit(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleInputCommit(inputAbs); }}
             />
