@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { getMonthSpans, getWeekSpans, getWeekBlocks, type WeekBlock, type WeekSpan } from '../../utils/dateUtils';
+import { getMonthSpans, getWeekSpans, getWeekBlocks, getMonthBlocks, getYearSpans, type WeekBlock, type WeekSpan, type MonthBlock, type YearSpan } from '../../utils/dateUtils';
 import type { MonthSpan } from '../../types';
 import './TimeScaleHeader.css';
 
@@ -14,8 +14,8 @@ export interface TimeScaleHeaderProps {
   dayWidth: number;
   /** Height of the header row in pixels */
   headerHeight: number;
-  /** View mode: 'day' renders individual day columns, 'week' renders 7-day week columns */
-  viewMode?: 'day' | 'week';
+  /** View mode: 'day' renders individual day columns, 'week' renders 7-day week columns, 'month' renders one column per month */
+  viewMode?: 'day' | 'week' | 'month';
 }
 
 /**
@@ -70,6 +70,24 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
     [weekColumnWidths]
   );
 
+  // Month-view: one block per calendar month (row 2 columns)
+  const monthBlocks = useMemo(
+    () => (viewMode === 'month' ? getMonthBlocks(days) : []),
+    [days, viewMode]
+  );
+
+  // Month-view: year spans over month blocks (row 1 labels)
+  const yearSpans = useMemo(
+    () => (viewMode === 'month' ? getYearSpans(days) : []),
+    [days, viewMode]
+  );
+
+  // Month-view: grid template for row 2 (variable column widths = days * dayWidth)
+  const monthGridTemplate = useMemo(
+    () => monthBlocks.map(b => `${b.days * dayWidth}px`).join(' '),
+    [monthBlocks, dayWidth]
+  );
+
   return (
     <div
       className="gantt-tsh-header"
@@ -89,6 +107,17 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
               style={{ width: `${span.days * dayWidth}px` }}
             >
               {format(span.month, 'LLLL yyyy', { locale: ru }).replace(/^./, (c) => c.toUpperCase())}
+            </div>
+          ))
+        ) : viewMode === 'month' ? (
+          // Month-view row 1: year labels spanning all months of that year
+          yearSpans.map((span: YearSpan, index: number) => (
+            <div
+              key={`year-${index}`}
+              className="gantt-tsh-monthCell"
+              style={{ width: `${span.days * dayWidth}px` }}
+            >
+              {span.year.getUTCFullYear().toString()}
             </div>
           ))
         ) : (
@@ -112,7 +141,9 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
           height: `${rowHeight}px`,
           gridTemplateColumns: viewMode === 'week'
             ? weekGridTemplate
-            : dayGridTemplate,
+            : viewMode === 'month'
+              ? monthGridTemplate
+              : dayGridTemplate,
         }}
       >
         {viewMode === 'week' ? (
@@ -131,6 +162,24 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
               >
                 <span className="gantt-tsh-dayLabel">
                   {showDate ? String(block.startDate.getUTCDate()).padStart(2, '0') : ''}
+                </span>
+              </div>
+            );
+          })
+        ) : viewMode === 'month' ? (
+          // Month-view row 2: one column per month, shows abbreviated month name
+          monthBlocks.map((block: MonthBlock, index: number) => {
+            const MIN_DAYS_TO_SHOW_LABEL = 15;
+            const showLabel = block.days >= MIN_DAYS_TO_SHOW_LABEL;
+            return (
+              <div
+                key={`mblock-${index}`}
+                className="gantt-tsh-dayCell gantt-tsh-weekCell"
+              >
+                <span className="gantt-tsh-dayLabel">
+                  {showLabel
+                    ? block.startDate.toLocaleString('en', { month: 'short' })
+                    : ''}
                 </span>
               </div>
             );

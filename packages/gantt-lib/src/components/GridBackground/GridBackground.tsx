@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { calculateGridLines, calculateWeekendBlocks, calculateWeekGridLines } from '../../utils/geometry';
+import { calculateGridLines, calculateWeekendBlocks, calculateWeekGridLines, calculateMonthGridLines } from '../../utils/geometry';
 import type { GridLine } from '../../types';
 import './GridBackground.css';
 
@@ -12,8 +12,8 @@ export interface GridBackgroundProps {
   dayWidth: number;
   /** Total height of the grid area in pixels */
   totalHeight: number;
-  /** View mode: 'day' renders per-day lines with weekend blocks, 'week' renders per-week lines only */
-  viewMode?: 'day' | 'week';
+  /** View mode: 'day' renders per-day lines with weekend blocks, 'week' renders per-week lines only, 'month' renders per-month lines only */
+  viewMode?: 'day' | 'week' | 'month';
 }
 
 /**
@@ -57,13 +57,19 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
 
     // Day-view: grid line positions per day (existing logic)
     const gridLines = useMemo<GridLine[]>(() => {
-      if (viewMode === 'week') return [];
+      if (viewMode === 'week' || viewMode === 'month') return [];
       return calculateGridLines(dateRange, dayWidth);
+    }, [dateRange, dayWidth, viewMode]);
+
+    // Month-view: grid lines at each month/year boundary
+    const monthGridLines = useMemo(() => {
+      if (viewMode !== 'month') return [];
+      return calculateMonthGridLines(dateRange, dayWidth);
     }, [dateRange, dayWidth, viewMode]);
 
     // Weekend background blocks: only in day-view (locked decision from RESEARCH.md)
     const weekendBlocks = useMemo(() => {
-      if (viewMode === 'week') return []; // No weekend highlighting in week-view
+      if (viewMode === 'week' || viewMode === 'month') return []; // No weekend highlighting in week/month-view
       return calculateWeekendBlocks(dateRange, dayWidth);
     }, [dateRange, dayWidth, viewMode]);
 
@@ -102,6 +108,20 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
             return (
               <div
                 key={`wgridline-${index}`}
+                className={`gantt-gb-gridLine ${lineClass}`}
+                style={{ left: `${line.x}px` }}
+              />
+            );
+          })
+        ) : viewMode === 'month' ? (
+          // Month-view: thin line at each month boundary, thick at year boundary
+          monthGridLines.map((line, index) => {
+            const lineClass = line.isMonthStart
+              ? 'gantt-gb-monthSeparator'
+              : 'gantt-gb-weekSeparator';
+            return (
+              <div
+                key={`mgridline-${index}`}
                 className={`gantt-gb-gridLine ${lineClass}`}
                 style={{ left: `${line.x}px` }}
               />

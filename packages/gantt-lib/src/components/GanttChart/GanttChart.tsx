@@ -124,8 +124,8 @@ export interface GanttChartProps {
   onDemoteTask?: (taskId: string, newParentId: string) => void;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
-  /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days (default: 'day') */
-  viewMode?: 'day' | 'week';
+  /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days, 'month' renders one column per month (default: 'day') */
+  viewMode?: 'day' | 'week' | 'month';
 }
 
 /**
