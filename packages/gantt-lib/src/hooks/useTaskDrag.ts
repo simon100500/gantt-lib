@@ -352,6 +352,53 @@ function handleGlobalMouseMove(e: MouseEvent) {
           });
         }
 
+        // Sync cascade parents: if a cascaded task is a child, update its parent's position
+        const cascadeParentIds = new Set<string>();
+        for (const chainTask of cascadedPreviewTasks) {
+          const pid = (chainTask as any).parentId as string | undefined;
+          if (pid && !overrides.has(pid)) {
+            cascadeParentIds.add(pid);
+          }
+        }
+        for (const pid of cascadeParentIds) {
+          const parentTask = allTasks.find(t => t.id === pid);
+          if (!parentTask || parentTask.locked) continue;
+          const children = getChildren(pid, allTasks);
+          if (children.length === 0) continue;
+          let minChildStart = Infinity;
+          let maxChildEnd = -Infinity;
+          for (const child of children) {
+            if (overrides.has(child.id)) {
+              const ov = overrides.get(child.id)!;
+              const childStartDay = Math.round(ov.left / activeDrag.dayWidth);
+              const childEndDay = Math.round((ov.left + ov.width) / activeDrag.dayWidth) - 1;
+              minChildStart = Math.min(minChildStart, childStartDay);
+              maxChildEnd = Math.max(maxChildEnd, childEndDay);
+            } else {
+              const childStart = new Date(child.startDate as string);
+              const childEnd = new Date(child.endDate as string);
+              const childStartOffset = Math.round(
+                (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
+                  Date.UTC(activeDrag.monthStart.getUTCFullYear(), activeDrag.monthStart.getUTCMonth(), activeDrag.monthStart.getUTCDate()))
+                / (24 * 60 * 60 * 1000)
+              );
+              const childEndOffset = Math.round(
+                (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
+                  Date.UTC(activeDrag.monthStart.getUTCFullYear(), activeDrag.monthStart.getUTCMonth(), activeDrag.monthStart.getUTCDate()))
+                / (24 * 60 * 60 * 1000)
+              );
+              minChildStart = Math.min(minChildStart, childStartOffset);
+              maxChildEnd = Math.max(maxChildEnd, childEndOffset);
+            }
+          }
+          if (minChildStart !== Infinity) {
+            overrides.set(pid, {
+              left: Math.round(minChildStart * activeDrag.dayWidth),
+              width: Math.round((maxChildEnd - minChildStart + 1) * activeDrag.dayWidth),
+            });
+          }
+        }
+
         activeDrag.onCascadeProgress(overrides);
       }
     // Hard mode cascade: emit position overrides for successor chain members
