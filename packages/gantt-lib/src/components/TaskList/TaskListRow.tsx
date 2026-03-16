@@ -230,6 +230,7 @@ const DepChip: React.FC<DepChipProps> = ({
       <span
         className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
         onClick={handleClick}
+        title={depPrefix ? `${depName} — ${depPrefix}` : depName}
       >
         <><Icon />{lag != null && lag !== 0 ? (lag > 0 ? `+${lag}` : `${lag}`) : ''}</>
       </span>
