@@ -770,6 +770,15 @@
   background: rgba(59, 130, 246, 0.2);
 }
 
+.gantt-tl-dep-edit-zero {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  padding: 2px 8px;
+  color: #1d4ed8;
+  font-size: 0.8rem;
+}
+
 .gantt-tl-dep-edit-pred {
   font-weight: 500;
   color: #111827;

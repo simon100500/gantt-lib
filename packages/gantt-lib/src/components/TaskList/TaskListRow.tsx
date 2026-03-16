@@ -270,7 +270,11 @@ const DepChip: React.FC<DepChipProps> = ({
 
   // Derive action verb and "after what" phrase from link type
   const actionVerb = (dep.type === 'FS' || dep.type === 'SS') ? 'Начать' : 'Завершить';
-  const afterWhat = (dep.type === 'FS' || dep.type === 'FF') ? 'после окончания' : 'после начала';
+  const afterWhat = dep.type === 'SF' ? 'до начала'
+    : (dep.type === 'FS' || dep.type === 'FF') ? 'после окончания'
+    : 'после начала';
+  const isSS = dep.type === 'SS';
+  const zeroLabel = dep.type === 'SF' ? 'чётко' : 'сразу';
 
   return (
     <Popover open={popoverOpen} onOpenChange={handleOpenChange}>
@@ -286,17 +290,38 @@ const DepChip: React.FC<DepChipProps> = ({
         <div onClick={(e) => e.stopPropagation()}>
           <div className="gantt-tl-dep-edit-row">
             <span className="gantt-tl-dep-edit-label">{actionVerb}</span>
-            {effectiveLag === 0 ? (
-              <button
-                type="button"
-                className="gantt-tl-dep-edit-instant"
-                onClick={() => handleLagChange(1)}
-              >
-                сразу
-              </button>
+            {isSS ? (
+              effectiveLag === 0 ? (
+                <button
+                  type="button"
+                  className="gantt-tl-dep-edit-instant"
+                  onClick={() => handleLagChange(1)}
+                >
+                  сразу
+                </button>
+              ) : (
+                <>
+                  <span>через</span>
+                  <button
+                    type="button"
+                    className="gantt-tl-dep-edit-btn"
+                    onClick={() => handleLagChange(effectiveLag - 1)}
+                  >
+                    -
+                  </button>
+                  <span className="gantt-tl-dep-edit-value">{Math.abs(effectiveLag)}</span>
+                  <button
+                    type="button"
+                    className="gantt-tl-dep-edit-btn"
+                    onClick={() => handleLagChange(effectiveLag + 1)}
+                  >
+                    +
+                  </button>
+                  <span>дн.</span>
+                </>
+              )
             ) : (
               <>
-                <span>через</span>
                 <button
                   type="button"
                   className="gantt-tl-dep-edit-btn"
@@ -304,7 +329,14 @@ const DepChip: React.FC<DepChipProps> = ({
                 >
                   -
                 </button>
-                <span className="gantt-tl-dep-edit-value">{Math.abs(effectiveLag)}</span>
+                {effectiveLag === 0 ? (
+                  <span className="gantt-tl-dep-edit-zero">{zeroLabel}</span>
+                ) : (
+                  <>
+                    <span className="gantt-tl-dep-edit-value">{Math.abs(effectiveLag)}</span>
+                    <span>дн.</span>
+                  </>
+                )}
                 <button
                   type="button"
                   className="gantt-tl-dep-edit-btn"
@@ -312,7 +344,6 @@ const DepChip: React.FC<DepChipProps> = ({
                 >
                   +
                 </button>
-                <span>дн.</span>
               </>
             )}
             <span>{afterWhat}</span>
