@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: "Completed quick-260316-n70: cherry-pick tooltip коммитов из ветки tooltips"
+last_updated: "2026-03-16T13:44:43.928Z"
+last_activity: "2026-03-16 - Completed quick task 260316-m0r: Добавить представление "месяц" (viewMode='month')"
+progress:
+  total_phases: 20
+  completed_phases: 19
+  total_plans: 51
+  completed_plans: 50
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: "Completed quick-260316-j1w: DatePicker keyboard input + TaskListRow key capture fix"
 last_updated: "2026-03-16T10:48:23.824Z"
 last_activity: "2026-03-15 - Completed quick task 102: крась название работы (подпись справа от полосы) для родителя в тот же цвет что и полоса"
@@ -489,7 +504,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-16 - Completed quick task 260316-m0r: Добавить представление "месяц" (viewMode='month')
+Last activity: 2026-03-16 - Completed quick task 260316-n70: tooltip на чипе связи - cherry pick из ветки tooltips
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -824,11 +839,12 @@ None yet.
 | 260316-31a | убрать лишние логи website:dev из консоли | 2026-03-15 | 4759946 | [260316-31a-website-dev](./quick/260316-31a-website-dev/) |
 | 260316-j1w | дополни компонент календаря полем ввода даты + исправить перехват клавиш в TaskListRow | 2026-03-16 | a3c0660 | [260316-j1w-input-d-projects-gantt-lib-planning-exam](./quick/260316-j1w-input-d-projects-gantt-lib-planning-exam/) |
 | 260316-m0r | Добавить представление "месяц" (viewMode='month', шапка год/месяц, линии года/месяца) | 2026-03-16 | 04c58bc | [260316-m0r-month-view-mode](./quick/260316-m0r-month-view-mode/) |
+| 260316-n70 | tooltip на чипе связи - cherry pick из ветки tooltips | 2026-03-16 | e132d75 | [260316-n70-tooltip-cherry-pick-tooltips](./quick/260316-n70-tooltip-cherry-pick-tooltips/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T10:48:23.821Z
-Stopped at: Completed quick-260316-j1w: DatePicker keyboard input + TaskListRow key capture fix
+Last session: 2026-03-16T13:44:43.924Z
+Stopped at: Completed quick-260316-n70: cherry-pick tooltip коммитов из ветки tooltips
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
