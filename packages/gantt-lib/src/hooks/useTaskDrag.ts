@@ -360,6 +360,11 @@ function handleGlobalMouseMove(e: MouseEvent) {
             cascadeParentIds.add(pid);
           }
         }
+        // Also add the dragged task itself if it's a parent - we need to cascade its successors
+        // after its position is updated by cascade parent sync
+        if (isTaskParent(activeDrag.taskId, allTasks)) {
+          cascadeParentIds.add(activeDrag.taskId);
+        }
         for (const pid of cascadeParentIds) {
           const parentTask = allTasks.find(t => t.id === pid);
           if (!parentTask || parentTask.locked) continue;
@@ -367,6 +372,14 @@ function handleGlobalMouseMove(e: MouseEvent) {
           if (children.length === 0) continue;
           let minChildStart = Infinity;
           let maxChildEnd = -Infinity;
+
+          // For the dragged parent, children move by delta (drag amount)
+          // For other parents, use their cascade-computed positions
+          const isDraggedParent = pid === activeDrag.taskId;
+          const deltaDays = isDraggedParent
+            ? Math.round((newLeft - activeDrag.initialLeft) / activeDrag.dayWidth)
+            : 0;
+
           for (const child of children) {
             if (overrides.has(child.id)) {
               const ov = overrides.get(child.id)!;
@@ -377,16 +390,23 @@ function handleGlobalMouseMove(e: MouseEvent) {
             } else {
               const childStart = new Date(child.startDate as string);
               const childEnd = new Date(child.endDate as string);
-              const childStartOffset = Math.round(
+              let childStartOffset = Math.round(
                 (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
                   Date.UTC(activeDrag.monthStart.getUTCFullYear(), activeDrag.monthStart.getUTCMonth(), activeDrag.monthStart.getUTCDate()))
                 / (24 * 60 * 60 * 1000)
               );
-              const childEndOffset = Math.round(
+              let childEndOffset = Math.round(
                 (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
                   Date.UTC(activeDrag.monthStart.getUTCFullYear(), activeDrag.monthStart.getUTCMonth(), activeDrag.monthStart.getUTCDate()))
                 / (24 * 60 * 60 * 1000)
               );
+
+              // For dragged parent's children, apply delta to get NEW positions
+              if (isDraggedParent && deltaDays !== 0) {
+                childStartOffset += deltaDays;
+                childEndOffset += deltaDays;
+              }
+
               minChildStart = Math.min(minChildStart, childStartOffset);
               maxChildEnd = Math.max(maxChildEnd, childEndOffset);
             }
