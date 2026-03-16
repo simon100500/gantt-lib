@@ -558,16 +558,20 @@ function handleGlobalMouseMove(e: MouseEvent) {
               const depOnCurrent = task.dependencies?.find(d => d.taskId === currentId);
               if (!depOnCurrent) continue;
 
-              // Calculate new position
+              // Calculate new position using effective lag from dates
+              const origStart = new Date(task.startDate as string);
+              const origEnd = new Date(task.endDate as string);
+              const predOrigTask = allTasks.find(t => t.id === currentId);
+              const predOrigS = predOrigTask ? new Date(predOrigTask.startDate as string) : currentStart;
+              const predOrigE = predOrigTask ? new Date(predOrigTask.endDate   as string) : currentEnd;
+              const effLag = computeLagFromDates(depOnCurrent.type, predOrigS, predOrigE, origStart, origEnd);
+
               const constraintDate = calculateSuccessorDate(
                 currentStart,
                 currentEnd,
                 depOnCurrent.type,
-                depOnCurrent.lag ?? 0
+                effLag
               );
-
-              const origStart = new Date(task.startDate as string);
-              const origEnd = new Date(task.endDate as string);
               const durationMs = origEnd.getTime() - origStart.getTime();
 
               let newStart: Date;
