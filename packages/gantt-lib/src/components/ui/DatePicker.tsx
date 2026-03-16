@@ -126,7 +126,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!dateInputRef.current) return;
-    const { selectionStart, value: inputVal } = dateInputRef.current;
+    const { selectionStart, selectionEnd, value: inputVal } = dateInputRef.current;
     const pos = selectionStart ?? 0;
     const segmentIndex = segments.findIndex(s => pos >= s.start && pos <= s.end);
     const currentSegment = segments[segmentIndex] ?? segments[0];
@@ -160,7 +160,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         newDate = e.key === 'ArrowUp' ? addYears(baseDate, 1) : subYears(baseDate, 1);
       }
       updateFromDate(newDate);
-      setTimeout(() => selectSegment(currentSegment.start), 0);
+      requestAnimationFrame(() => selectSegment(currentSegment.start));
       return;
     }
 
@@ -172,7 +172,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         newValue[i] = '0';
       }
       setInputValue(newValue.join(''));
-      setTimeout(() => selectSegment(currentSegment.start), 0);
+      requestAnimationFrame(() => selectSegment(currentSegment.start));
       return;
     }
 
@@ -195,11 +195,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     if (/^\d$/.test(e.key)) {
       e.preventDefault();
       e.stopPropagation();
-      const selEnd = dateInputRef.current.selectionEnd ?? 0;
-      const isFullSelected = (selEnd - pos) >= (currentSegment.end - currentSegment.start);
-      let charIndex = isFullSelected ? currentSegment.start : pos;
+      const newValue = inputVal.split('');
+      let charIndex = pos;
 
-      const tempValue = inputVal.split('');
+      const isFullSelected = ((selectionEnd ?? 0) - pos) >= (currentSegment.end - currentSegment.start);
+      if (isFullSelected || charIndex === currentSegment.start) {
+        charIndex = currentSegment.start;
+        for (let i = currentSegment.start + 1; i < currentSegment.end; i++) {
+          newValue[i] = '0';
+        }
+      }
+
+      const tempValue = [...newValue];
       tempValue[charIndex] = e.key;
       const segmentString = tempValue.slice(currentSegment.start, currentSegment.end).join('');
       const segmentValue = parseInt(segmentString, 10);
@@ -211,13 +218,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       const updatedValue = tempValue.join('');
       setInputValue(updatedValue);
 
-      const nextPos = charIndex + 1;
-      if (nextPos >= currentSegment.end) {
-        const nextSegment = segments[segmentIndex + 1];
-        if (nextSegment) setTimeout(() => selectSegment(nextSegment.start), 0);
-        else setTimeout(() => selectSegment(currentSegment.start), 0);
+      const nextCharInSegment = charIndex + 1;
+      if (nextCharInSegment < currentSegment.end) {
+        requestAnimationFrame(() => {
+          dateInputRef.current?.setSelectionRange(nextCharInSegment, currentSegment.end);
+        });
       } else {
-        setTimeout(() => dateInputRef.current?.setSelectionRange(nextPos, currentSegment.end), 0);
+        const nextSegment = segments[segmentIndex + 1];
+        if (nextSegment) requestAnimationFrame(() => selectSegment(nextSegment.start));
+        else requestAnimationFrame(() => selectSegment(currentSegment.start));
       }
 
       const parsedDate = parse(updatedValue, 'dd.MM.yy', new Date());
