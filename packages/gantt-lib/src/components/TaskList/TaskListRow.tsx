@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { Task } from '../GanttChart';
 import type { LinkType } from '../../types';
 import { parseUTCDate, normalizeTaskDates } from '../../utils/dateUtils';
-import { computeLagFromDates, isTaskParent, findParentId, getChildren } from '../../utils/dependencyUtils';
+import { computeLagFromDates, calculateSuccessorDate, isTaskParent, findParentId, getChildren } from '../../utils/dependencyUtils';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
@@ -38,6 +38,12 @@ interface DepChipProps {
   onScrollToTask: TaskListRowProps['onScrollToTask'];
   onRemoveDependency: TaskListRowProps['onRemoveDependency'];
   onChipSelectClear: () => void;
+  /** The successor task (needed for lag date computation) */
+  task: Task;
+  /** All tasks (needed to find predecessor dates) */
+  allTasks: Task[];
+  /** Callback to save date changes after lag modification */
+  onTasksChange?: TaskListRowProps['onTasksChange'];
 }
 
 const TrashIcon = () => (
@@ -189,7 +195,12 @@ const DepChip: React.FC<DepChipProps> = ({
   onScrollToTask,
   onRemoveDependency,
   onChipSelectClear,
+  task,
+  allTasks,
+  onTasksChange,
 }) => {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
   const isSelected =
     selectedChip?.successorId === taskId &&
     selectedChip?.predecessorId === dep.taskId &&
@@ -198,17 +209,19 @@ const DepChip: React.FC<DepChipProps> = ({
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (disableDependencyEditing) return;
-    // When clicking on an already selected chip, prevent the PopoverTrigger from toggling
-    if (isSelected) {
-      e.preventDefault();
+    // Toggle popover and chip selection together
+    const nextOpen = !popoverOpen;
+    setPopoverOpen(nextOpen);
+    if (nextOpen) {
+      onChipSelect?.({ successorId: taskId, predecessorId: dep.taskId, linkType: dep.type });
+      onScrollToTask?.(dep.taskId);
+    } else {
       onChipSelect?.(null);
-      return;
     }
-    onChipSelect?.({ successorId: taskId, predecessorId: dep.taskId, linkType: dep.type });
-    onScrollToTask?.(dep.taskId);
   };
 
   const handleOpenChange = useCallback((open: boolean) => {
+    setPopoverOpen(open);
     if (!open) {
       onChipSelect?.(null);
     }
@@ -218,33 +231,108 @@ const DepChip: React.FC<DepChipProps> = ({
     e.stopPropagation();
     onRemoveDependency?.(taskId, dep.taskId, dep.type);
     onChipSelectClear();
+    setPopoverOpen(false);
   };
 
-  const Icon = LINK_TYPE_ICONS[dep.type];
-  const depPrefix = formatDepDescription(dep.type, lag);
-  const depName = predecessorName ?? dep.taskId;
+  const handleLagChange = useCallback((newLag: number) => {
+    if (!onTasksChange || !allTasks) return;
+    const taskById = new Map(allTasks.map(t => [t.id, t]));
+    const predecessor = taskById.get(dep.taskId);
+    if (!predecessor) return;
 
-  // TEMP: render without Popover to test click handler
+    const predStart = parseUTCDate(predecessor.startDate);
+    const predEnd = parseUTCDate(predecessor.endDate);
+    const origStart = parseUTCDate(task.startDate);
+    const origEnd = parseUTCDate(task.endDate);
+    const durationMs = origEnd.getTime() - origStart.getTime();
+
+    const constraintDate = calculateSuccessorDate(predStart, predEnd, dep.type, newLag);
+
+    let newStart: Date, newEnd: Date;
+    if (dep.type === 'FS' || dep.type === 'SS') {
+      newStart = constraintDate;
+      newEnd = new Date(constraintDate.getTime() + durationMs);
+    } else {
+      newEnd = constraintDate;
+      newStart = new Date(constraintDate.getTime() - durationMs);
+    }
+
+    onTasksChange([{
+      ...task,
+      startDate: newStart.toISOString().split('T')[0],
+      endDate: newEnd.toISOString().split('T')[0],
+    }]);
+  }, [dep, task, allTasks, onTasksChange]);
+
+  const Icon = LINK_TYPE_ICONS[dep.type];
+  const depName = predecessorName ?? dep.taskId;
+  const effectiveLag = lag ?? 0;
+
+  // Derive action verb and "after what" phrase from link type
+  const actionVerb = (dep.type === 'FS' || dep.type === 'SS') ? 'Начать' : 'Завершить';
+  const afterWhat = (dep.type === 'FS' || dep.type === 'FF') ? 'после окончания' : 'после начала';
+
   return (
-    <span className="gantt-tl-dep-chip-wrapper">
-      <span
-        className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
-        onClick={handleClick}
-        title={depPrefix ? `${depPrefix} — ${depName}` : depName}
-      >
-        <><Icon />{lag != null && lag !== 0 ? (lag > 0 ? `+${lag}` : `${lag}`) : ''}</>
-      </span>
-      {!disableDependencyEditing && (
-        <button
-          type="button"
-          className="gantt-tl-dep-chip-trash"
-          aria-label="Удалить связь"
-          onClick={handleTrashClick}
+    <Popover open={popoverOpen} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <span
+          className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+          onClick={handleClick}
         >
-          <TrashIcon />
-        </button>
-      )}
-    </span>
+          <><Icon />{effectiveLag !== 0 ? (effectiveLag > 0 ? `+${effectiveLag}` : `${effectiveLag}`) : ''}</>
+        </span>
+      </PopoverTrigger>
+      <PopoverContent className="gantt-tl-dep-edit-popover" portal={true} align="start">
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="gantt-tl-dep-edit-row">
+            <span className="gantt-tl-dep-edit-label">{actionVerb}</span>
+            {effectiveLag === 0 ? (
+              <button
+                type="button"
+                className="gantt-tl-dep-edit-instant"
+                onClick={() => handleLagChange(1)}
+              >
+                сразу
+              </button>
+            ) : (
+              <>
+                <span>через</span>
+                <button
+                  type="button"
+                  className="gantt-tl-dep-edit-btn"
+                  onClick={() => handleLagChange(effectiveLag - 1)}
+                >
+                  -
+                </button>
+                <span className="gantt-tl-dep-edit-value">{Math.abs(effectiveLag)}</span>
+                <button
+                  type="button"
+                  className="gantt-tl-dep-edit-btn"
+                  onClick={() => handleLagChange(effectiveLag + 1)}
+                >
+                  +
+                </button>
+                <span>дн.</span>
+              </>
+            )}
+            <span>{afterWhat}</span>
+          </div>
+          <div className="gantt-tl-dep-edit-pred">{depName}</div>
+          {!disableDependencyEditing && (
+            <>
+              <hr className="gantt-tl-dep-edit-divider" />
+              <button
+                type="button"
+                className="gantt-tl-dep-edit-delete"
+                onClick={handleTrashClick}
+              >
+                <TrashIcon /> Удалить связь
+              </button>
+            </>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 
@@ -1041,6 +1129,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                           onScrollToTask={onScrollToTask}
                           onRemoveDependency={onRemoveDependency}
                           onChipSelectClear={() => onChipSelect?.(null)}
+                          task={task}
+                          allTasks={allTasks}
+                          onTasksChange={onTasksChange}
                         />
                       ))}
                     </div>
@@ -1060,6 +1151,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   onScrollToTask={onScrollToTask}
                   onRemoveDependency={onRemoveDependency}
                   onChipSelectClear={() => onChipSelect?.(null)}
+                  task={task}
+                  allTasks={allTasks}
+                  onTasksChange={onTasksChange}
                 />
               ) : null}
 
