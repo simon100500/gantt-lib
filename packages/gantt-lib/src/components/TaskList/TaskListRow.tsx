@@ -302,7 +302,12 @@ const DepChip: React.FC<DepChipProps> = ({
         <div onClick={(e) => e.stopPropagation()}>
           <div className="gantt-tl-dep-edit-row">
             {isSS && effectiveLag === 0 ? (
-              <span className="gantt-tl-dep-edit-zero">Вместе с началом</span>
+              <>
+                <span className="gantt-tl-dep-edit-label">{actionVerb}</span>
+                <span className="gantt-tl-dep-edit-zero">вместе</span>
+                <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(1)}>+</button>
+                <span>с началом</span>
+              </>
             ) : (
               <>
                 <span className="gantt-tl-dep-edit-label">{actionVerb}</span>
