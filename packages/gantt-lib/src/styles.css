@@ -61,7 +61,9 @@
   --gantt-parent-bar-radius: 8px;
   --gantt-parent-ear-depth: 6px;
   --gantt-parent-ear-width: 8px;
-  --gantt-parent-row-bg: #f2ebf9;
+  --gantt-parent-row-bg: #eeedfb;
+  --gantt-divider-grid-color: #d4bceb;
+  /* --gantt-parent-row-bg: #f2ebf9; */
 }
 
 /* Remove browser default focus outlines for all gantt elements */
