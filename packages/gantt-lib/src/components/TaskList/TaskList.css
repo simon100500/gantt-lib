@@ -707,7 +707,7 @@
 
 /* Dep edit popover — interactive lag counter and delete button */
 .gantt-tl-dep-edit-popover {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #374151;
   padding: 10px 12px;
   display: flex;
@@ -737,7 +737,6 @@
   border-radius: 4px;
   background: #f9fafb;
   cursor: pointer;
-  font-size: 0.85rem;
   color: #374151;
   padding: 0;
   line-height: 1;
@@ -756,7 +755,6 @@
   border-radius: 4px;
   padding: 2px 4px;
   color: #1d4ed8;
-  font-size: 0.8rem;
   -moz-appearance: textfield;
 }
 
@@ -785,7 +783,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 300px;
-  font-size: 0.85rem;
   margin-bottom: 6px;
 }
 
@@ -796,7 +793,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 300px;
-  font-size: 0.85rem;
   margin-top: 8px;
   margin-bottom: 10px;
 }
