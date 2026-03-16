@@ -200,7 +200,7 @@
  * ========================================================= */
 
 .gantt-cal-container {
-  max-height: 400px;
+  max-height: 280px;
   overflow-y: auto;
   user-select: none;
   padding: 8px;
