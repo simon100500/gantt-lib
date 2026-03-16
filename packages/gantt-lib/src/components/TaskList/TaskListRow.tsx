@@ -576,12 +576,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       }
       const clampedValue = Math.max(0, Math.min(100, progressValue));
 
-      // Cascade 100% progress to all children when parent is marked complete
-      if (clampedValue === 100 && isTaskParent(task.id, allTasks)) {
+      // Cascade 100% or 0% progress to all children when parent is marked complete/reset
+      if ((clampedValue === 100 || clampedValue === 0) && isTaskParent(task.id, allTasks)) {
         const children = getChildren(task.id, allTasks);
         const updatedTasks = [
-          { ...task, progress: 100 },
-          ...children.map(child => ({ ...child, progress: 100 }))
+          { ...task, progress: clampedValue },
+          ...children.map(child => ({ ...child, progress: clampedValue }))
         ];
         onTasksChange?.(updatedTasks);
       } else {
@@ -604,12 +604,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         progressConfirmedRef.current = true;
         const clampedValue = Math.max(0, Math.min(100, progressValue));
 
-        // Cascade 100% progress to all children when parent is marked complete
-        if (clampedValue === 100 && isTaskParent(task.id, allTasks)) {
+        // Cascade 100% or 0% progress to all children when parent is marked complete/reset
+        if ((clampedValue === 100 || clampedValue === 0) && isTaskParent(task.id, allTasks)) {
           const children = getChildren(task.id, allTasks);
           const updatedTasks = [
-            { ...task, progress: 100 },
-            ...children.map(child => ({ ...child, progress: 100 }))
+            { ...task, progress: clampedValue },
+            ...children.map(child => ({ ...child, progress: clampedValue }))
           ];
           onTasksChange?.(updatedTasks);
         } else {

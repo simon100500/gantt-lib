@@ -361,11 +361,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
    * Single task = array of 1 element (batch of size 1).
    */
   const handleTaskChange = useCallback((updatedTasks: Task[]) => {
-    const updatedTask = updatedTasks[0]; // TODO: handle batch properly
+    const updatedTask = updatedTasks[0];
     if (!updatedTask) return;
     const originalTask = tasks.find(t => t.id === updatedTask.id);
     if (!originalTask) {
-      onTasksChange?.([updatedTask]);
+      // New task or task not found - pass all tasks as-is
+      onTasksChange?.(updatedTasks);
       if (editingTaskId === updatedTask.id) {
         setEditingTaskId(null);
       }
@@ -379,6 +380,16 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
 
     if (!datesChanged) {
+      // Special case: parent progress cascade (multiple tasks, no date changes)
+      if (updatedTasks.length > 1) {
+        onTasksChange?.(updatedTasks);
+        if (editingTaskId === updatedTask.id) {
+          setEditingTaskId(null);
+        }
+        return;
+      }
+
+      // Single task without date changes - compute parent progress if needed
       const taskParentId = (updatedTask as any).parentId;
       if (taskParentId) {
         const parentProgress = computeParentProgress(taskParentId, tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
