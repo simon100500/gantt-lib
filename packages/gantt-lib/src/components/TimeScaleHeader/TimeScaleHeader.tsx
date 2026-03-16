@@ -171,10 +171,11 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
           monthBlocks.map((block: MonthBlock, index: number) => {
             const MIN_DAYS_TO_SHOW_LABEL = 15;
             const showLabel = block.days >= MIN_DAYS_TO_SHOW_LABEL;
+            const isYearBoundary = index > 0 && block.startDate.getUTCMonth() === 0;
             return (
               <div
                 key={`mblock-${index}`}
-                className="gantt-tsh-dayCell gantt-tsh-weekCell"
+                className={`gantt-tsh-dayCell gantt-tsh-weekCell${isYearBoundary ? ' gantt-tsh-monthBoundary' : ''}`}
               >
                 <span className="gantt-tsh-dayLabel">
                   {showLabel

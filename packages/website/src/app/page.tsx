@@ -1106,7 +1106,7 @@ export default function Home() {
             <GanttChart
               ref={ganttChartRef}
               tasks={tasks}
-              dayWidth={viewMode === 'month' ? 3 : viewMode === 'week' ? 8 : 24}
+              dayWidth={viewMode === 'month' ? 2 : viewMode === 'week' ? 8 : 24}
               rowHeight={36}
               onTasksChange={handleChange}
               onAdd={handleAdd}
