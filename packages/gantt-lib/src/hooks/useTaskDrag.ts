@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { calculateSuccessorDate, getSuccessorChain, getTransitiveCascadeChain, recalculateIncomingLags, getChildren, isTaskParent, cascadeByLinks } from '../utils/dependencyUtils';
+import { calculateSuccessorDate, getTransitiveCascadeChain, recalculateIncomingLags, getChildren, isTaskParent, universalCascade } from '../utils/dependencyUtils';
 
 /**
  * Get transitive closure of successors for cascading.
@@ -270,717 +270,55 @@ function handleGlobalMouseMove(e: MouseEvent) {
     }
 
     const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
-    const isParentDrag = draggedTask ? isTaskParent(draggedTask.id, allTasks) : false;
 
-    // Phase 9: select chain based on drag mode
-    // move: all FS+SS+FF+SF successors follow
-    // resize-right: FS+FF successors (endA changes, SS/SF unaffected)
-    // resize-left: SS+SF successors only (startA changes, FS/FF unaffected)
-    // Phase 10: added SF
-    // Phase 19: merge hierarchy chain with dependency chain
-    let activeChain =
-      mode === 'resize-right' ? activeDrag.cascadeChainEnd :    // FS + FF
-      mode === 'resize-left'  ? activeDrag.cascadeChainStart :  // SS + SF
-      /* move */                activeDrag.cascadeChain;         // FS + SS + FF + SF
+    // ── Universal preview cascade ──────────────────────────────────────────
+    // Same algorithm as handleComplete — converts pixels→dates, runs
+    // universalCascade, converts dates→pixels for overrides.
 
-    // Phase 19: Merge hierarchy chain with dependency chain
-    // Both systems work together: unique task IDs to prevent duplicates
-    if (activeDrag.hierarchyChain.length > 0) {
-      const chainIds = new Set(activeChain.map(t => t.id));
-      const hierarchyTasks = activeDrag.hierarchyChain.filter(t => !chainIds.has(t.id));
-      activeChain = [...activeChain, ...hierarchyTasks];
-    }
-
-    // Track which tasks are parents in the hierarchy chain (for special positioning)
-    const hierarchyParents = new Set<string>();
-    activeDrag.hierarchyChain.forEach(t => {
-      if (isTaskParent(t.id, allTasks)) {
-        hierarchyParents.add(t.id);
-      }
-    });
-
-    // Parent drags need full constraint-based propagation via descendants, not
-    // just direct successors of the parent task itself.
-    if (isParentDrag &&
-        !activeDrag.disableConstraints &&
-        activeDrag.onCascadeProgress) {
+    // Universal preview: convert pixels → dates → universalCascade → pixels
+    if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress) {
+      const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;
+      const previewStartDay = Math.round(newLeft / dayWidth);
+      const previewEndDay = previewStartDay + Math.round(newWidth / dayWidth) - 1;
       const previewStartDate = new Date(Date.UTC(
-        activeDrag.monthStart.getUTCFullYear(),
-        activeDrag.monthStart.getUTCMonth(),
-        activeDrag.monthStart.getUTCDate() + Math.round(newLeft / activeDrag.dayWidth)
+        mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate() + previewStartDay
       ));
-      const previewDurationDays = Math.round(newWidth / activeDrag.dayWidth) - 1;
       const previewEndDate = new Date(Date.UTC(
-        activeDrag.monthStart.getUTCFullYear(),
-        activeDrag.monthStart.getUTCMonth(),
-        activeDrag.monthStart.getUTCDate() + Math.round(newLeft / activeDrag.dayWidth) + previewDurationDays
+        mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate() + previewEndDay
       ));
 
-      const cascadedPreviewTasks = cascadeByLinks(
-        activeDrag.taskId,
+      const movedTaskData = draggedTask ?? { id: dragId, name: '', startDate: '', endDate: '' };
+      const cascadeResult = universalCascade(
+        { ...movedTaskData, startDate: previewStartDate.toISOString(), endDate: previewEndDate.toISOString() },
         previewStartDate,
         previewEndDate,
         allTasks
       );
 
-      // DEBUG: Initial drag info
-      const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`🎬 [DRAG START] Task: ${activeDrag.taskId} (${draggedTask?.name})`);
-      console.log(`   isParentDrag: ${isParentDrag}`);
-      console.log(`   Preview: ${previewStartDate.toISOString().slice(0,10)} - ${previewEndDate.toISOString().slice(0,10)}`);
-      console.log(`   newLeft: ${newLeft}, newWidth: ${newWidth}`);
-      console.log(`   cascadedPreviewTasks: ${cascadedPreviewTasks.map(t => `${t.id}(${t.name})`).join(', ')}`);
-
-      if (cascadedPreviewTasks.length > 0) {
-        const overrides = new Map<string, { left: number; width: number }>();
-
-        for (const chainTask of cascadedPreviewTasks) {
-          const chainStart = new Date(chainTask.startDate as string);
-          const chainEnd = new Date(chainTask.endDate as string);
-          const chainStartOffset = Math.round(
-            (Date.UTC(chainStart.getUTCFullYear(), chainStart.getUTCMonth(), chainStart.getUTCDate()) -
-              Date.UTC(
-                activeDrag.monthStart.getUTCFullYear(),
-                activeDrag.monthStart.getUTCMonth(),
-                activeDrag.monthStart.getUTCDate()
-              )) / (24 * 60 * 60 * 1000)
-          );
-          const chainEndOffset = Math.round(
-            (Date.UTC(chainEnd.getUTCFullYear(), chainEnd.getUTCMonth(), chainEnd.getUTCDate()) -
-              Date.UTC(
-                activeDrag.monthStart.getUTCFullYear(),
-                activeDrag.monthStart.getUTCMonth(),
-                activeDrag.monthStart.getUTCDate()
-              )) / (24 * 60 * 60 * 1000)
-          );
-
-          overrides.set(chainTask.id, {
-            left: Math.round(chainStartOffset * activeDrag.dayWidth),
-            width: Math.round((chainEndOffset - chainStartOffset + 1) * activeDrag.dayWidth),
-          });
-        }
-
-        // Sync cascade parents: if a cascaded task is a child, update its parent's position
-        const cascadeParentIds = new Set<string>();
-        for (const chainTask of cascadedPreviewTasks) {
-          const pid = (chainTask as any).parentId as string | undefined;
-          if (pid && !overrides.has(pid)) {
-            cascadeParentIds.add(pid);
-          }
-        }
-        // Also add the dragged task itself if it's a parent - we need to cascade its successors
-        // after its position is updated by cascade parent sync
-        if (isTaskParent(activeDrag.taskId, allTasks)) {
-          cascadeParentIds.add(activeDrag.taskId);
-        }
-        for (const pid of cascadeParentIds) {
-          const parentTask = allTasks.find(t => t.id === pid);
-          if (!parentTask || parentTask.locked) continue;
-          const children = getChildren(pid, allTasks);
-          if (children.length === 0) continue;
-          let minChildStart = Infinity;
-          let maxChildEnd = -Infinity;
-
-          // For the dragged parent, children move by delta (drag amount)
-          // For other parents, use their cascade-computed positions
-          const isDraggedParent = pid === activeDrag.taskId;
-          const deltaDays = isDraggedParent
-            ? Math.round((newLeft - activeDrag.initialLeft) / activeDrag.dayWidth)
-            : 0;
-
-          for (const child of children) {
-            if (overrides.has(child.id)) {
-              const ov = overrides.get(child.id)!;
-              const childStartDay = Math.round(ov.left / activeDrag.dayWidth);
-              const childEndDay = Math.round((ov.left + ov.width) / activeDrag.dayWidth) - 1;
-              minChildStart = Math.min(minChildStart, childStartDay);
-              maxChildEnd = Math.max(maxChildEnd, childEndDay);
-            } else {
-              const childStart = new Date(child.startDate as string);
-              const childEnd = new Date(child.endDate as string);
-              let childStartOffset = Math.round(
-                (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
-                  Date.UTC(activeDrag.monthStart.getUTCFullYear(), activeDrag.monthStart.getUTCMonth(), activeDrag.monthStart.getUTCDate()))
-                / (24 * 60 * 60 * 1000)
-              );
-              let childEndOffset = Math.round(
-                (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
-                  Date.UTC(activeDrag.monthStart.getUTCFullYear(), activeDrag.monthStart.getUTCMonth(), activeDrag.monthStart.getUTCDate()))
-                / (24 * 60 * 60 * 1000)
-              );
-
-              // For dragged parent's children, apply delta to get NEW positions
-              if (isDraggedParent && deltaDays !== 0) {
-                childStartOffset += deltaDays;
-                childEndOffset += deltaDays;
-              }
-
-              minChildStart = Math.min(minChildStart, childStartOffset);
-              maxChildEnd = Math.max(maxChildEnd, childEndOffset);
-            }
-          }
-          if (minChildStart !== Infinity) {
-            const newParentLeft = Math.round(minChildStart * activeDrag.dayWidth);
-            const newParentWidth = Math.round((maxChildEnd - minChildStart + 1) * activeDrag.dayWidth);
-            overrides.set(pid, {
-              left: newParentLeft,
-              width: newParentWidth,
-            });
-
-            // DEBUG: Log parent sync for g2 (Земляные работы) and g3 (Фундамент)
-            if (pid === 'g2' || pid === 'g3') {
-              const newParentStartDay = minChildStart;
-              const newParentEndDay = maxChildEnd;
-              const parentTask = allTasks.find(t => t.id === pid);
-              console.log(`📊 [PARENT SYNC] ${pid} (${parentTask?.name})`);
-              console.log(`   isDraggedParent: ${isDraggedParent}, deltaDays: ${deltaDays}`);
-              console.log(`   Children processed: ${children.length}`);
-              children.forEach(c => {
-                const inOverrides = overrides.has(c.id);
-                console.log(`   - ${c.id} (${c.name}): inOverrides=${inOverrides}`);
-              });
-              console.log(`   NEW position: day ${newParentStartDay} to ${newParentEndDay} (left=${newParentLeft}, width=${newParentWidth})`);
-            }
-          }
-        }
-
-        // Cascade successors of the updated parents
-        // After a parent's position is synced with its children, we need to
-        // update any tasks that depend on this parent (the parent's successors)
-        const cascadeSuccessorsOfParent = (
-          parentId: string,
-          parentStart: Date,
-          parentEnd: Date,
-          allTasks: Task[],
-          dayWidth: number,
-          monthStart: Date
-        ): Map<string, { left: number; width: number }> => {
-          const overrides = new Map<string, { left: number; width: number }>();
-          const visited = new Set<string>();
-          const queue: string[] = [];
-
-          // Find direct successors of parentId
-          for (const task of allTasks) {
-            if (task.locked) continue;
-            if (visited.has(task.id)) continue;
-
-            const depOnParent = task.dependencies?.find(d => d.taskId === parentId);
-            if (!depOnParent) continue;
-
-            // Calculate new position for successor
-            const constraintDate = calculateSuccessorDate(
-              parentStart,
-              parentEnd,
-              depOnParent.type,
-              depOnParent.lag ?? 0
-            );
-
-            const origStart = new Date(task.startDate as string);
-            const origEnd = new Date(task.endDate as string);
-            const durationMs = origEnd.getTime() - origStart.getTime();
-
-            let newStart: Date;
-            let newEnd: Date;
-
-            if (depOnParent.type === 'FS' || depOnParent.type === 'SS') {
-              newStart = constraintDate;
-              newEnd = new Date(constraintDate.getTime() + durationMs);
-            } else {
-              // FF or SF
-              newEnd = constraintDate;
-              newStart = new Date(constraintDate.getTime() - durationMs);
-            }
-
-            // Convert to pixels
-            const startOffset = Math.round(
-              (Date.UTC(newStart.getUTCFullYear(), newStart.getUTCMonth(), newStart.getUTCDate()) -
-                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                / (24 * 60 * 60 * 1000)
-            );
-            const endOffset = Math.round(
-              (Date.UTC(newEnd.getUTCFullYear(), newEnd.getUTCMonth(), newEnd.getUTCDate()) -
-                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                / (24 * 60 * 60 * 1000)
-            );
-
-            overrides.set(task.id, {
-              left: Math.round(startOffset * dayWidth),
-              width: Math.round((endOffset - startOffset + 1) * dayWidth)
-            });
-
-            // DEBUG: Log successor calculation
-            if (parentId === 'g2' || parentId === 'g3') {
-              console.log(`🔗 [SUCCESSOR] ${task.id} (${task.name}) depends on ${parentId}`);
-              console.log(`   Dependency: ${depOnParent.type} lag=${depOnParent.lag ?? 0}`);
-              console.log(`   Parent: ${parentStart.toISOString().slice(0,10)} - ${parentEnd.toISOString().slice(0,10)}`);
-              console.log(`   Constraint date: ${constraintDate.toISOString().slice(0,10)}`);
-              console.log(`   NEW position: day ${startOffset} to ${endOffset} (left=${Math.round(startOffset * dayWidth)}, width=${Math.round((endOffset - startOffset + 1) * dayWidth)})`);
-            }
-
-            visited.add(task.id);
-            queue.push(task.id);
-          }
-
-          // Transitive closure: successors of successors
-          while (queue.length > 0) {
-            const currentId = queue.shift()!;
-            const currentTask = allTasks.find(t => t.id === currentId);
-            if (!currentTask || currentTask.locked) continue;
-
-            const currentStart = new Date(
-              overrides.has(currentId)
-                ? new Date(Date.UTC(
-                    monthStart.getUTCFullYear(),
-                    monthStart.getUTCMonth(),
-                    monthStart.getUTCDate() + Math.round(overrides.get(currentId)!.left / dayWidth)
-                  ))
-                : currentTask.startDate
-            );
-            const currentEnd = new Date(
-              overrides.has(currentId)
-                ? new Date(Date.UTC(
-                    monthStart.getUTCFullYear(),
-                    monthStart.getUTCMonth(),
-                    monthStart.getUTCDate() + Math.round((overrides.get(currentId)!.left + overrides.get(currentId)!.width) / dayWidth) - 1
-                  ))
-                : currentTask.endDate
-            );
-
-            // Find successors of currentId
-            for (const task of allTasks) {
-              if (task.locked || visited.has(task.id)) continue;
-
-              const depOnCurrent = task.dependencies?.find(d => d.taskId === currentId);
-              if (!depOnCurrent) continue;
-
-              // Calculate new position
-              const constraintDate = calculateSuccessorDate(
-                currentStart,
-                currentEnd,
-                depOnCurrent.type,
-                depOnCurrent.lag ?? 0
-              );
-
-              const origStart = new Date(task.startDate as string);
-              const origEnd = new Date(task.endDate as string);
-              const durationMs = origEnd.getTime() - origStart.getTime();
-
-              let newStart: Date;
-              let newEnd: Date;
-
-              if (depOnCurrent.type === 'FS' || depOnCurrent.type === 'SS') {
-                newStart = constraintDate;
-                newEnd = new Date(constraintDate.getTime() + durationMs);
-              } else {
-                newEnd = constraintDate;
-                newStart = new Date(constraintDate.getTime() - durationMs);
-              }
-
-              // Convert to pixels
-              const startOffset = Math.round(
-                (Date.UTC(newStart.getUTCFullYear(), newStart.getUTCMonth(), newStart.getUTCDate()) -
-                  Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                  / (24 * 60 * 60 * 1000)
-              );
-              const endOffset = Math.round(
-                (Date.UTC(newEnd.getUTCFullYear(), newEnd.getUTCMonth(), newEnd.getUTCDate()) -
-                  Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                  / (24 * 60 * 60 * 1000)
-              );
-
-              overrides.set(task.id, {
-                left: Math.round(startOffset * dayWidth),
-                width: Math.round((endOffset - startOffset + 1) * dayWidth)
-              });
-
-              visited.add(task.id);
-              queue.push(task.id);
-            }
-          }
-
-          return overrides;
-        };
-
-        // Apply successor cascading for each updated parent
-        console.log('🚀 [CASCADE SUCCESSORS] Starting...');
-        console.log(`   cascadeParentIds: ${Array.from(cascadeParentIds).join(', ')}`);
-        console.log(`   overrides before: ${Array.from(overrides.keys()).join(', ')}`);
-
-        for (const [pid, parentOverride] of overrides) {
-          if (cascadeParentIds.has(pid)) {
-            const parentStartDay = Math.round(parentOverride.left / activeDrag.dayWidth);
-            const parentEndDay = Math.round((parentOverride.left + parentOverride.width) / activeDrag.dayWidth) - 1;
-            const parentStart = new Date(Date.UTC(
-              activeDrag.monthStart.getUTCFullYear(),
-              activeDrag.monthStart.getUTCMonth(),
-              activeDrag.monthStart.getUTCDate() + parentStartDay
-            ));
-            const parentEnd = new Date(Date.UTC(
-              activeDrag.monthStart.getUTCFullYear(),
-              activeDrag.monthStart.getUTCMonth(),
-              activeDrag.monthStart.getUTCDate() + parentEndDay
-            ));
-
-            // DEBUG: Log before cascadeSuccessorsOfParent
-            if (pid === 'g2' || pid === 'g3') {
-              const parentTask = allTasks.find(t => t.id === pid);
-              console.log(`🎯 [CASCADE PARENT] ${pid} (${parentTask?.name})`);
-              console.log(`   Position from overrides: left=${parentOverride.left}, width=${parentOverride.width}`);
-              console.log(`   Date range: ${parentStart.toISOString().slice(0,10)} - ${parentEnd.toISOString().slice(0,10)}`);
-            }
-
-            const successorOverrides = cascadeSuccessorsOfParent(
-              pid,
-              parentStart,
-              parentEnd,
-              allTasks,
-              activeDrag.dayWidth,
-              activeDrag.monthStart
-            );
-
-            // DEBUG: Log after cascadeSuccessorsOfParent
-            if (pid === 'g2' || pid === 'g3') {
-              console.log(`   Successors found: ${Array.from(successorOverrides.keys()).join(', ')}`);
-            }
-
-            successorOverrides.forEach((v, k) => overrides.set(k, v));
-          }
-        }
-
-        console.log(`   overrides after: ${Array.from(overrides.keys()).join(', ')}`);
-
-        // DEBUG: Final overrides snapshot
-        console.log('📸 [FINAL SNAPSHOT] All overrides:');
-        overrides.forEach((v, k) => {
-          const task = allTasks.find(t => t.id === k);
-          const startDay = Math.round(v.left / activeDrag.dayWidth);
-          const endDay = Math.round((v.left + v.width) / activeDrag.dayWidth) - 1;
-          console.log(`   ${k} (${task?.name || 'unknown'}): day ${startDay}-${endDay} (left=${v.left}, width=${v.width})`);
-        });
-
-        activeDrag.onCascadeProgress(overrides);
-      }
-    // Hard mode cascade: emit position overrides for successor chain members
-    } else if ((mode === 'move' || mode === 'resize-right' ||
-                (mode === 'resize-left' && activeDrag.cascadeChainStart.length > 0)) &&
-               !activeDrag.disableConstraints &&
-               activeChain.length > 0 &&
-               activeDrag.onCascadeProgress) {
-      // For move/resize-left: delta from left (startA shift)
-      // For resize-right: delta from width (endA shift, startA fixed)
-      const deltaDays = mode === 'resize-right'
-        ? Math.round((newWidth - activeDrag.initialWidth) / activeDrag.dayWidth)
-        : Math.round((newLeft - activeDrag.initialLeft) / activeDrag.dayWidth);
+      // Convert cascaded tasks → pixel overrides
       const overrides = new Map<string, { left: number; width: number }>();
-      const draggedTaskId = activeDrag.taskId;
-      const dayWidth = activeDrag.dayWidth;
-      const monthStart = activeDrag.monthStart;
+      // Always include the dragged task itself
+      overrides.set(dragId, { left: newLeft, width: newWidth });
 
-      for (const chainTask of activeChain) {
-        // Phase 11: locked tasks cannot be moved by cascade
-        if (chainTask.locked) continue;
-
-        const chainStart = new Date(chainTask.startDate as string);
-        const chainEnd = new Date(chainTask.endDate as string);
-        const chainStartOffset = Math.round(
-          (Date.UTC(chainStart.getUTCFullYear(), chainStart.getUTCMonth(), chainStart.getUTCDate()) -
-            Date.UTC(
-              monthStart.getUTCFullYear(),
-              monthStart.getUTCMonth(),
-              monthStart.getUTCDate()
-            )) / (24 * 60 * 60 * 1000)
+      for (const task of cascadeResult) {
+        if (task.id === dragId) continue;
+        const taskStart = new Date(task.startDate as string);
+        const taskEnd = new Date(task.endDate as string);
+        const startOff = Math.round(
+          (Date.UTC(taskStart.getUTCFullYear(), taskStart.getUTCMonth(), taskStart.getUTCDate()) -
+            Date.UTC(mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate()))
+          / (24 * 60 * 60 * 1000)
         );
-        const chainEndOffset = Math.round(
-          (Date.UTC(chainEnd.getUTCFullYear(), chainEnd.getUTCMonth(), chainEnd.getUTCDate()) -
-            Date.UTC(
-              monthStart.getUTCFullYear(),
-              monthStart.getUTCMonth(),
-              monthStart.getUTCDate()
-            )) / (24 * 60 * 60 * 1000)
+        const endOff = Math.round(
+          (Date.UTC(taskEnd.getUTCFullYear(), taskEnd.getUTCMonth(), taskEnd.getUTCDate()) -
+            Date.UTC(mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate()))
+          / (24 * 60 * 60 * 1000)
         );
-        const chainDuration = Math.round(
-          (Date.UTC(chainEnd.getUTCFullYear(), chainEnd.getUTCMonth(), chainEnd.getUTCDate()) -
-            Date.UTC(chainStart.getUTCFullYear(), chainStart.getUTCMonth(), chainStart.getUTCDate())
-          ) / (24 * 60 * 60 * 1000)
-        );
-
-        // Phase 9: Check if this chainTask has FF dependency on dragged task
-        // For FF tasks, calculate position from end offset (not start offset)
-        // This fixes negative lag preview where child starts before parent
-        // Phase 10: SF tasks also position from end offset (endB constrained to startA)
-        const hasFFDepOnDragged = chainTask.dependencies?.some(
-          dep => dep.taskId === draggedTaskId && dep.type === 'FF'
-        );
-        const hasSFDepOnDragged = chainTask.dependencies?.some(
-          dep => dep.taskId === draggedTaskId && dep.type === 'SF'
-        );
-
-        let chainLeft;
-        let chainWidth;
-        if (hierarchyParents.has(chainTask.id)) {
-          // Phase 19 fix: Parent task in hierarchy chain - compute from all children
-          // Parent position = min(children.start) to max(children.end)
-          const children = getChildren(chainTask.id, allTasks);
-          if (children.length > 0) {
-            let minChildStart = Infinity;
-            let maxChildEnd = -Infinity;
-
-            children.forEach(child => {
-              let childStartOffset: number;
-              let childEndOffset: number;
-
-              // If this child is the dragged task, use current drag position (newLeft)
-              if (child.id === draggedTaskId) {
-                const currentLeftInDays = Math.round(newLeft / dayWidth);
-                const currentWidthInDays = Math.round(newWidth / dayWidth) - 1; // -1 for inclusive
-                childStartOffset = currentLeftInDays;
-                childEndOffset = currentLeftInDays + currentWidthInDays;
-              } else if (activeChain.some(c => c.id === child.id)) {
-                // Child is being cascaded (moved by same delta)
-                const childStart = new Date(child.startDate as string);
-                const childEnd = new Date(child.endDate as string);
-                const origStartOffset = Math.round(
-                  (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
-                    Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                    / (24 * 60 * 60 * 1000)
-                );
-                const origEndOffset = Math.round(
-                  (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
-                    Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                    / (24 * 60 * 60 * 1000)
-                );
-                childStartOffset = origStartOffset + deltaDays;
-                childEndOffset = origEndOffset + deltaDays;
-              } else {
-                // Child not being moved - use original position
-                const childStart = new Date(child.startDate as string);
-                const childEnd = new Date(child.endDate as string);
-                childStartOffset = Math.round(
-                  (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
-                    Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                    / (24 * 60 * 60 * 1000)
-                );
-                childEndOffset = Math.round(
-                  (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
-                    Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                    / (24 * 60 * 60 * 1000)
-                );
-              }
-
-              minChildStart = Math.min(minChildStart, childStartOffset);
-              maxChildEnd = Math.max(maxChildEnd, childEndOffset);
-            });
-
-            chainLeft = Math.round(minChildStart * dayWidth);
-            chainWidth = Math.round((maxChildEnd - minChildStart + 1) * dayWidth);
-          } else {
-            // No children - use original position
-            chainLeft = Math.round(chainStartOffset * dayWidth);
-            chainWidth = Math.round((chainDuration + 1) * dayWidth);
-          }
-        } else if (hasFFDepOnDragged || hasSFDepOnDragged) {
-          // FF/SF: position based on end date shift, then back up by duration
-          // This works correctly even when child starts before parent (negative lag)
-          // For SF: endB shifts with startA, then back up by duration
-          chainLeft = Math.round((chainEndOffset + deltaDays - chainDuration) * dayWidth);
-          chainWidth = Math.round((chainDuration + 1) * dayWidth);
-        } else if (activeDrag.hierarchyChain.some(h => h.id === chainTask.id)) {
-          // Phase 19: Hierarchy chain - children move with parent by same delta
-          // Position based on start date shift (same as FS/SS move mode)
-          chainLeft = Math.round((chainStartOffset + deltaDays) * dayWidth);
-          chainWidth = Math.round((chainDuration + 1) * dayWidth);
-        } else {
-          // FS/SS: position based on start date shift
-          chainLeft = Math.round((chainStartOffset + deltaDays) * dayWidth);
-          chainWidth = Math.round((chainDuration + 1) * dayWidth);
-        }
-
-        // SS lag floor: when A moves left, B follows but chainLeft cannot go below A's new position
-        // This keeps lag >= 0 (startB >= startA) during live drag preview
-        // Phase 9: Only apply floor to SS tasks, not FF (FF allows negative lag)
-        // Phase 10: SF uses end-based positioning, no floor needed
-        const hasSSDepOnDragged = chainTask.dependencies?.some(
-          dep => dep.taskId === draggedTaskId && dep.type === 'SS'
-        );
-        if (hasSSDepOnDragged && (mode === 'move' || mode === 'resize-left')) {
-          chainLeft = Math.max(chainLeft, newLeft);
-        }
-
-        overrides.set(chainTask.id, { left: chainLeft, width: chainWidth });
+        overrides.set(task.id, {
+          left: Math.round(startOff * dayWidth),
+          width: Math.round((endOff - startOff + 1) * dayWidth),
+        });
       }
-
-      // DEBUG: Log for child drag
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`🎬 [CHILD DRAG] Task: ${activeDrag.taskId}`);
-      console.log(`   deltaDays: ${deltaDays}`);
-      console.log(`   hierarchyChain: ${activeDrag.hierarchyChain.map(t => `${t.id}(${t.name})`).join(', ')}`);
-
-      // Cascade parent sync for hierarchy chain
-      // When a child task moves, its parent position may need to update
-      // Then successors of that parent need to update too
-      const cascadeParentIds = new Set<string>();
-
-      // Find parents of all tasks in overrides (includes dragged child and hierarchy chain)
-      for (const [taskId, override] of overrides) {
-        const task = allTasks.find(t => t.id === taskId);
-        if (!task) continue;
-        const pid = (task as any).parentId as string | undefined;
-        if (pid && !cascadeParentIds.has(pid) && !overrides.has(pid)) {
-          cascadeParentIds.add(pid);
-        }
-      }
-
-      // Also check hierarchy chain for parents
-      for (const hTask of activeDrag.hierarchyChain) {
-        const pid = (hTask as any).parentId as string | undefined;
-        if (pid && !cascadeParentIds.has(pid) && !overrides.has(pid)) {
-          cascadeParentIds.add(pid);
-        }
-        // IMPORTANT: Also add the hierarchy chain task itself if it's a parent!
-        // When dragging g2-5, g2 (the parent) is in hierarchyChain but NOT in overrides
-        // We need to add g2 to cascadeParentIds so its successors update
-        if (isTaskParent(hTask.id, allTasks) && !cascadeParentIds.has(hTask.id) && !overrides.has(hTask.id)) {
-          cascadeParentIds.add(hTask.id);
-        }
-      }
-
-      console.log(`   cascadeParentIds: ${Array.from(cascadeParentIds).join(', ')}`);
-
-      // Sync parent positions based on their children
-      for (const pid of cascadeParentIds) {
-        const parentTask = allTasks.find(t => t.id === pid);
-        if (!parentTask || parentTask.locked) continue;
-        const children = getChildren(pid, allTasks);
-        if (children.length === 0) continue;
-        let minChildStart = Infinity;
-        let maxChildEnd = -Infinity;
-
-        for (const child of children) {
-          if (overrides.has(child.id)) {
-            const ov = overrides.get(child.id)!;
-            const childStartDay = Math.round(ov.left / dayWidth);
-            const childEndDay = Math.round((ov.left + ov.width) / dayWidth) - 1;
-            minChildStart = Math.min(minChildStart, childStartDay);
-            maxChildEnd = Math.max(maxChildEnd, childEndDay);
-          } else {
-            const childStart = new Date(child.startDate as string);
-            const childEnd = new Date(child.endDate as string);
-            const childStartOffset = Math.round(
-              (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
-                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-              / (24 * 60 * 60 * 1000)
-            );
-            const childEndOffset = Math.round(
-              (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
-                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-              / (24 * 60 * 60 * 1000)
-            );
-            minChildStart = Math.min(minChildStart, childStartOffset);
-            maxChildEnd = Math.max(maxChildEnd, childEndOffset);
-          }
-        }
-        if (minChildStart !== Infinity) {
-          const newParentLeft = Math.round(minChildStart * dayWidth);
-          const newParentWidth = Math.round((maxChildEnd - minChildStart + 1) * dayWidth);
-          overrides.set(pid, { left: newParentLeft, width: newParentWidth });
-
-          // DEBUG: Log parent sync
-          if (pid === 'g2' || pid === 'g3') {
-            console.log(`📊 [PARENT SYNC CHILD DRAG] ${pid} (${parentTask?.name})`);
-            console.log(`   Children: ${children.map(c => `${c.id}`).join(', ')}`);
-            console.log(`   NEW position: day ${minChildStart} to ${maxChildEnd} (left=${newParentLeft}, width=${newParentWidth})`);
-          }
-        }
-      }
-
-      // Cascade successors of updated parents
-      console.log('🚀 [CASCADE SUCCESSORS CHILD DRAG] Starting...');
-      for (const [pid, parentOverride] of overrides) {
-        if (cascadeParentIds.has(pid)) {
-          const parentStartDay = Math.round(parentOverride.left / dayWidth);
-          const parentEndDay = Math.round((parentOverride.left + parentOverride.width) / dayWidth) - 1;
-          const parentStart = new Date(Date.UTC(
-            monthStart.getUTCFullYear(),
-            monthStart.getUTCMonth(),
-            monthStart.getUTCDate() + parentStartDay
-          ));
-          const parentEnd = new Date(Date.UTC(
-            monthStart.getUTCFullYear(),
-            monthStart.getUTCMonth(),
-            monthStart.getUTCDate() + parentEndDay
-          ));
-
-          // DEBUG: Log before cascade
-          if (pid === 'g2' || pid === 'g3') {
-            const parentTask = allTasks.find(t => t.id === pid);
-            console.log(`🎯 [CASCADE PARENT CHILD DRAG] ${pid} (${parentTask?.name})`);
-            console.log(`   Date range: ${parentStart.toISOString().slice(0,10)} - ${parentEnd.toISOString().slice(0,10)}`);
-          }
-
-          // Find and update successors
-          for (const task of allTasks) {
-            if (task.locked || overrides.has(task.id)) continue;
-            const depOnParent = task.dependencies?.find(d => d.taskId === pid);
-            if (!depOnParent) continue;
-
-            const constraintDate = calculateSuccessorDate(
-              parentStart,
-              parentEnd,
-              depOnParent.type,
-              depOnParent.lag ?? 0
-            );
-
-            const origStart = new Date(task.startDate as string);
-            const origEnd = new Date(task.endDate as string);
-            const durationMs = origEnd.getTime() - origStart.getTime();
-
-            let newStart: Date;
-            let newEnd: Date;
-
-            if (depOnParent.type === 'FS' || depOnParent.type === 'SS') {
-              newStart = constraintDate;
-              newEnd = new Date(constraintDate.getTime() + durationMs);
-            } else {
-              newEnd = constraintDate;
-              newStart = new Date(constraintDate.getTime() - durationMs);
-            }
-
-            const startOffset = Math.round(
-              (Date.UTC(newStart.getUTCFullYear(), newStart.getUTCMonth(), newStart.getUTCDate()) -
-                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                / (24 * 60 * 60 * 1000)
-            );
-            const endOffset = Math.round(
-              (Date.UTC(newEnd.getUTCFullYear(), newEnd.getUTCMonth(), newEnd.getUTCDate()) -
-                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
-                / (24 * 60 * 60 * 1000)
-            );
-
-            overrides.set(task.id, {
-              left: Math.round(startOffset * dayWidth),
-              width: Math.round((endOffset - startOffset + 1) * dayWidth)
-            });
-
-            // DEBUG: Log successor
-            if (pid === 'g2' || pid === 'g3') {
-              console.log(`🔗 [SUCCESSOR CHILD DRAG] ${task.id} (${task.name}) depends on ${pid}`);
-              console.log(`   Dependency: ${depOnParent.type} lag=${depOnParent.lag ?? 0}`);
-              console.log(`   Constraint: ${constraintDate.toISOString().slice(0,10)}`);
-              console.log(`   NEW position: day ${startOffset} to ${endOffset}`);
-            }
-          }
-        }
-      }
-
-      // DEBUG: Final snapshot
-      console.log('📸 [FINAL SNAPSHOT CHILD DRAG]');
-      overrides.forEach((v, k) => {
-        const task = allTasks.find(t => t.id === k);
-        const startDay = Math.round(v.left / dayWidth);
-        const endDay = Math.round((v.left + v.width) / dayWidth) - 1;
-        console.log(`   ${k} (${task?.name || 'unknown'}): day ${startDay}-${endDay}`);
-      });
 
       activeDrag.onCascadeProgress(overrides);
     }
@@ -1238,118 +576,30 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
     if (wasOwner) {
       if (!disableConstraints && onCascade && allTasks.length > 0) {
-        // Hard mode with onCascade: compute cascade and call onCascade
+        // Hard mode with onCascade: use universalCascade for all cases
+        // (parent drag, child drag, root task drag — all handled uniformly)
         const draggedTaskData = allTasks.find(t => t.id === taskId);
-        const parentDragCascade = draggedTaskData && isTaskParent(taskId, allTasks)
-          ? cascadeByLinks(taskId, newStartDate, newEndDate, allTasks)
-          : null;
 
-        if (parentDragCascade && parentDragCascade.length > 0) {
-          onCascade([
-            {
-              ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }),
-              startDate: newStartDate.toISOString(),
-              endDate: newEndDate.toISOString(),
-              ...(draggedTaskData?.dependencies && {
-                dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks),
-              }),
-            },
-            ...parentDragCascade,
-          ]);
+        const movedTask: Task = {
+          ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }),
+          startDate: newStartDate.toISOString(),
+          endDate: newEndDate.toISOString(),
+          ...(draggedTaskData?.dependencies && {
+            dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks),
+          }),
+        };
+
+        const cascadeResult = universalCascade(movedTask, newStartDate, newEndDate, allTasks);
+
+        if (cascadeResult.length > 0) {
+          onCascade([movedTask, ...cascadeResult]);
           return; // Don't call onDragEnd — cascade covers the dragged task too
         }
 
-        // CHANGE C: Dual-delta logic — compute from both start and end date changes
-        // Compute delta from startDate change (correct for move and resize-left)
-        const origStartMs = Date.UTC(
-          initialStartDate.getUTCFullYear(),
-          initialStartDate.getUTCMonth(),
-          initialStartDate.getUTCDate()
-        );
-        const newStartMs = Date.UTC(
-          newStartDate.getUTCFullYear(),
-          newStartDate.getUTCMonth(),
-          newStartDate.getUTCDate()
-        );
-        const deltaFromStart = Math.round((newStartMs - origStartMs) / (24 * 60 * 60 * 1000));
-
-        // Compute delta from endDate change (correct for resize-right)
-        const origEndMs = Date.UTC(
-          initialEndDate.getUTCFullYear(),
-          initialEndDate.getUTCMonth(),
-          initialEndDate.getUTCDate()
-        );
-        const newEndMs = Date.UTC(
-          newEndDate.getUTCFullYear(),
-          newEndDate.getUTCMonth(),
-          newEndDate.getUTCDate()
-        );
-        const deltaFromEnd = Math.round((newEndMs - origEndMs) / (24 * 60 * 60 * 1000));
-
-        // For resize-right: startDate unchanged, use endDate delta (FS successors follow end)
-        // For move and resize-left: use startDate delta (SS and FS-move successors follow start)
-        // Detect resize-right: startDate didn't change
-        const deltaDays = deltaFromStart === 0 ? deltaFromEnd : deltaFromStart;
-
-        // CHANGE D: Phase 8: get correct chain for completion based on what changed
-        // - resize-right (deltaFromStart === 0): only endDate changed → FS successors follow end
-        // - resize-left  (deltaFromStart !== 0, deltaFromEnd === 0): only startDate changed →
-        //     SS successors follow start; FS successors are anchored to predecessor's END which
-        //     is unchanged, so FS successors must NOT cascade on resize-left
-        // - move (deltaFromStart !== 0, deltaFromEnd !== 0): both dates shift equally →
-        //     both FS and SS successors follow
-        //
-        // FIX: For proper transitive closure in mixed link type chains (e.g., A--FS-->B--SS-->C),
-        // we use getTransitiveCascadeChain which includes cascaded tasks' successors regardless of link type.
-        // Phase 9: FF included in resize-right and move chains
-        const isResizeLeft = deltaFromStart !== 0 && deltaFromEnd === 0;
-        let chainForCompletion = deltaFromStart === 0
-          ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])               // resize-right: FS + FF
-          : isResizeLeft
-            ? getTransitiveCascadeChain(taskId, allTasks, ['SS', 'SF'])             // resize-left: SS + SF
-            : getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS', 'FF', 'SF']); // move: all types
-
-        // Phase 19: Merge hierarchy chain with dependency chain
-        const currentTask = allTasks.find(t => t.id === taskId);
-        if (currentTask && (currentTask as any).parentId) {
-          // This is a child task - check if parent is being dragged
-          // (Hierarchy chain is built when dragging starts, in handleMouseDown)
-        }
-        // Add hierarchy chain if this is a parent drag
-        const hierarchyChildren = currentTask ? getChildren(taskId, allTasks) : [];
-        if (hierarchyChildren.length > 0) {
-          const chainIds = new Set(chainForCompletion.map(t => t.id));
-          const uniqueHierarchyChildren = hierarchyChildren.filter(t => !chainIds.has(t.id));
-          chainForCompletion = [...chainForCompletion, ...uniqueHierarchyChildren];
-        }
-
-        if (chainForCompletion.length > 0) {
-          const cascadedTasks: Task[] = [
-            {
-              ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }),
-              startDate: newStartDate.toISOString(),
-              endDate: newEndDate.toISOString(),
-              ...(draggedTaskData?.dependencies && {
-                dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks),
-              }),
-            },
-            ...chainForCompletion
-              .filter(chainTask => !chainTask.locked) // Phase 11: skip locked tasks in cascade
-              .map(chainTask => {
-              const origStart = new Date(chainTask.startDate as string);
-              const origEnd = new Date(chainTask.endDate as string);
-              const newStart = new Date(Date.UTC(
-                origStart.getUTCFullYear(), origStart.getUTCMonth(), origStart.getUTCDate() + deltaDays
-              ));
-              const newEnd = new Date(Date.UTC(
-                origEnd.getUTCFullYear(), origEnd.getUTCMonth(), origEnd.getUTCDate() + deltaDays
-              ));
-              return { ...chainTask, startDate: newStart.toISOString(), endDate: newEnd.toISOString() };
-            }),
-          ];
-          onCascade(cascadedTasks);
-          return; // Don't call onDragEnd — cascade covers the dragged task too
-        }
+        // No dependent tasks to cascade — still call onCascade with just the moved task
+        // so the state update is consistent
+        onCascade([movedTask]);
+        return;
       }
 
       // Soft mode OR hard mode with no FS successors: call onDragEnd
