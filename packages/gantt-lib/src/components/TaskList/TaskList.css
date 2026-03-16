@@ -747,36 +747,29 @@
   background: #e5e7eb;
 }
 
-.gantt-tl-dep-edit-value {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  font-weight: 600;
+
+.gantt-tl-dep-edit-input {
+  width: 36px;
   text-align: center;
-}
-
-.gantt-tl-dep-edit-instant {
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 4px;
-  padding: 2px 8px;
-  color: #1d4ed8;
-  cursor: pointer;
-  font-size: 0.8rem;
-}
-
-.gantt-tl-dep-edit-instant:hover {
-  background: rgba(59, 130, 246, 0.2);
-}
-
-.gantt-tl-dep-edit-zero {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 4px;
-  padding: 2px 8px;
+  padding: 2px 4px;
   color: #1d4ed8;
   font-size: 0.8rem;
+  -moz-appearance: textfield;
+}
+
+.gantt-tl-dep-edit-input::-webkit-outer-spin-button,
+.gantt-tl-dep-edit-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.gantt-tl-dep-edit-input:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.6);
+  background: rgba(59, 130, 246, 0.15);
 }
 
 .gantt-tl-dep-edit-pred {

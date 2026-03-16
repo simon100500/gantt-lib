@@ -200,6 +200,8 @@ const DepChip: React.FC<DepChipProps> = ({
   onTasksChange,
 }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [inputAbs, setInputAbs] = useState(Math.abs(lag ?? 0).toString());
+  useEffect(() => { setInputAbs(Math.abs(lag ?? 0).toString()); }, [lag]);
 
   const isSelected =
     selectedChip?.successorId === taskId &&
@@ -264,28 +266,44 @@ const DepChip: React.FC<DepChipProps> = ({
     }]);
   }, [dep, task, allTasks, onTasksChange]);
 
+  const handleInputCommit = useCallback((raw: string) => {
+    const parsed = parseInt(raw, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      setInputAbs(Math.abs(lag ?? 0).toString());
+      return;
+    }
+    const effectiveLag = lag ?? 0;
+    let newLag: number;
+    if (parsed === 0) {
+      newLag = 0;
+    } else if (dep.type === 'SF') {
+      newLag = -parsed;
+    } else {
+      newLag = parsed * (effectiveLag < 0 ? -1 : 1);
+    }
+    if (newLag !== effectiveLag) handleLagChange(newLag);
+  }, [lag, dep.type, handleLagChange]);
+
   const Icon = LINK_TYPE_ICONS[dep.type];
   const depName = predecessorName ?? dep.taskId;
   const effectiveLag = lag ?? 0;
 
-  // Derive action verb and "after what" phrase from link type
+  // Derive action verb, preWord and afterWhat (sign-dependent for FS/FF/SS)
   const actionVerb = (dep.type === 'FS' || dep.type === 'SS') ? 'Начать' : 'Завершить';
-  const isSS = dep.type === 'SS';
-  const zeroLabel = dep.type === 'SF' ? 'чётко' : dep.type === 'FF' ? 'вместе' : 'сразу';
-
-  // afterWhat and preWord are sign-dependent for FS/FF
   let afterWhat: string;
   let preWord: string | null = null;
-  if (dep.type === 'SS') {
-    afterWhat = 'после начала';
-  } else if (dep.type === 'SF') {
+  if (dep.type === 'SF') {
     afterWhat = 'до начала';
-  } else if (effectiveLag > 0) {
-    preWord = 'через'; afterWhat = 'после окончания';
-  } else if (effectiveLag < 0) {
-    preWord = 'за'; afterWhat = 'до окончания';
-  } else {
-    afterWhat = dep.type === 'FF' ? 'с' : 'после окончания';
+    if (effectiveLag > 0) preWord = 'через';
+    else if (effectiveLag < 0) preWord = 'за';
+  } else if (dep.type === 'SS') {
+    afterWhat = effectiveLag < 0 ? 'до начала' : 'после начала';
+    if (effectiveLag > 0) preWord = 'через';
+    else if (effectiveLag < 0) preWord = 'за';
+  } else { // FS, FF
+    if (effectiveLag > 0) { preWord = 'через'; afterWhat = 'после окончания'; }
+    else if (effectiveLag < 0) { preWord = 'за'; afterWhat = 'до окончания'; }
+    else { afterWhat = 'после окончания'; }
   }
 
   return (
@@ -301,40 +319,23 @@ const DepChip: React.FC<DepChipProps> = ({
       <PopoverContent className="gantt-tl-dep-edit-popover" portal={true} align="start">
         <div onClick={(e) => e.stopPropagation()}>
           <div className="gantt-tl-dep-edit-row">
-            {isSS && effectiveLag === 0 ? (
-              <>
-                <span className="gantt-tl-dep-edit-label">{actionVerb}</span>
-                <span className="gantt-tl-dep-edit-zero">вместе</span>
-                <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(1)}>+</button>
-                <span>с началом</span>
-              </>
-            ) : (
-              <>
-                <span className="gantt-tl-dep-edit-label">{actionVerb}</span>
-                {isSS ? (
-                  <>
-                    <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag - 1)}>-</button>
-                    <span className="gantt-tl-dep-edit-zero">через {Math.abs(effectiveLag)} дн.</span>
-                    <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag + 1)}>+</button>
-                  </>
-                ) : (
-                  <>
-                    <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag - 1)}>-</button>
-                    {effectiveLag === 0 ? (
-                      <span className="gantt-tl-dep-edit-zero">{zeroLabel}</span>
-                    ) : (
-                      <span className="gantt-tl-dep-edit-zero">
-                        {preWord ? `${preWord} ${Math.abs(effectiveLag)} дн.` : `${Math.abs(effectiveLag)} дн.`}
-                      </span>
-                    )}
-                    {!(dep.type === 'SF' && effectiveLag === 0) && (
-                      <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag + 1)}>+</button>
-                    )}
-                  </>
-                )}
-                <span>{afterWhat}</span>
-              </>
+            <span className="gantt-tl-dep-edit-label">{actionVerb}</span>
+            {preWord && <span>{preWord}</span>}
+            <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag - 1)}>−</button>
+            <input
+              type="number"
+              className="gantt-tl-dep-edit-input"
+              value={inputAbs}
+              min="0"
+              onChange={(e) => setInputAbs(e.target.value)}
+              onBlur={(e) => handleInputCommit(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleInputCommit(inputAbs); }}
+            />
+            {!(dep.type === 'SF' && effectiveLag === 0) && (
+              <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag + 1)}>+</button>
             )}
+            <span>д.</span>
+            <span>{afterWhat}</span>
           </div>
           <div className="gantt-tl-dep-edit-pred">{depName}</div>
           {!disableDependencyEditing && (
