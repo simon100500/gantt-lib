@@ -345,6 +345,74 @@ export const getWeekSpans = (days: Date[]): WeekSpan[] => {
   return spans;
 };
 
+export interface MonthBlock {
+  /** Первый день месяца (UTC) */
+  startDate: Date;
+  /** Количество дней в этом месяце внутри dateRange (может быть меньше при обрезке) */
+  days: number;
+}
+
+/**
+ * Разбивает dateRange на блоки по месяцам.
+ * Каждый блок = один месяц (колонка в строке 2 month-view шапки).
+ * Блок на краях может быть неполным если dateRange начинается/заканчивается не с 1-го числа.
+ */
+export const getMonthBlocks = (days: Date[]): MonthBlock[] => {
+  if (days.length === 0) return [];
+  // Переиспользуем getMonthSpans — его структура совпадает с MonthBlock
+  return getMonthSpans(days).map(span => ({
+    startDate: span.month,
+    days: span.days,
+  }));
+};
+
+export interface YearSpan {
+  /** 1 января года (UTC) */
+  year: Date;
+  /** Суммарное кол-во дней этого года внутри dateRange */
+  days: number;
+  /** Начальный индекс в массиве monthBlocks */
+  startIndex: number;
+}
+
+/**
+ * Группирует month-блоки по годам.
+ * Используется в строке 1 month-view шапки (year label).
+ */
+export const getYearSpans = (days: Date[]): YearSpan[] => {
+  const blocks = getMonthBlocks(days);
+  if (blocks.length === 0) return [];
+
+  const spans: YearSpan[] = [];
+  let currentYear = blocks[0].startDate.getUTCFullYear();
+  let startIndex = 0;
+  let totalDays = 0;
+
+  for (let i = 0; i < blocks.length; i++) {
+    const blockYear = blocks[i].startDate.getUTCFullYear();
+    if (blockYear !== currentYear) {
+      spans.push({
+        year: new Date(Date.UTC(currentYear, 0, 1)),
+        days: totalDays,
+        startIndex,
+      });
+      currentYear = blockYear;
+      startIndex = i;
+      totalDays = 0;
+    }
+    totalDays += blocks[i].days;
+    if (i === blocks.length - 1) {
+      spans.push({
+        year: new Date(Date.UTC(currentYear, 0, 1)),
+        days: totalDays,
+        startIndex,
+      });
+    }
+  }
+
+  return spans;
+};
+
 /**
  * Normalize task dates to ensure startDate is always before or equal to endDate.
  * If dates are swapped (endDate < startDate), they are automatically swapped.

@@ -342,6 +342,36 @@ export const calculateWeekGridLines = (
 };
 
 /**
+ * Calculate grid line positions for month-view mode.
+ * Thin line (isMonthStart=false) at each month boundary (1st of every month).
+ * Thick line (isMonthStart=true) at each year boundary (1st of January).
+ * No day-level or week-level lines.
+ *
+ * @param dateRange - Array of Date objects (from getMultiMonthDays)
+ * @param dayWidth - Width of each day in pixels
+ * @returns Array of grid line objects sorted by x position
+ */
+export const calculateMonthGridLines = (
+  dateRange: Date[],
+  dayWidth: number
+): Array<{ x: number; isMonthStart: boolean }> => {
+  const lines: Array<{ x: number; isMonthStart: boolean }> = [];
+
+  for (let i = 1; i < dateRange.length; i++) {
+    const date = dateRange[i];
+    // Линия только на 1-м числе месяца
+    if (date.getUTCDate() === 1) {
+      const x = Math.round(i * dayWidth);
+      // Толстая линия на 1 января (граница года)
+      const isYearBoundary = date.getUTCMonth() === 0;
+      lines.push({ x, isMonthStart: isYearBoundary });
+    }
+  }
+
+  return lines;
+};
+
+/**
  * Calculate SVG Г-shaped (L-shaped) path for FS dependency lines.
  * Goes vertically from the right edge of the predecessor bar, then horizontally
  * to the left edge of the successor bar. Supports negative lag (overlap).
