@@ -88,13 +88,15 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
     [monthBlocks, dayWidth]
   );
 
-  // Separator positions — same Math.round formula as GridBackground to guarantee pixel alignment
+  // Separator positions — same Math.round formula as GridBackground to guarantee pixel alignment.
+  // fullHeight=true → spans both header rows (thick boundary between spans in row 1).
+  // fullHeight=false → spans row 2 only (thin sub-column divider, doesn't cut through row 1 spans).
   const separators = useMemo(() => {
-    const result: Array<{ x: number; isThick: boolean }> = [];
+    const result: Array<{ x: number; isThick: boolean; fullHeight: boolean }> = [];
     if (viewMode === 'day') {
       for (let i = 1; i < days.length; i++) {
         if (days[i].getUTCDate() === 1) {
-          result.push({ x: Math.round(i * dayWidth), isThick: true });
+          result.push({ x: Math.round(i * dayWidth), isThick: true, fullHeight: true });
         }
       }
     } else if (viewMode === 'week') {
@@ -102,7 +104,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
       for (let i = 0; i < weekBlocks.length; i++) {
         if (i > 0) {
           const isMonth = weekBlocks[i - 1].startDate.getUTCMonth() !== weekBlocks[i].startDate.getUTCMonth();
-          result.push({ x: Math.round(dayIndex * dayWidth), isThick: isMonth });
+          result.push({ x: Math.round(dayIndex * dayWidth), isThick: isMonth, fullHeight: isMonth });
         }
         dayIndex += weekBlocks[i].days;
       }
@@ -110,7 +112,8 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
       let dayIndex = 0;
       for (let i = 0; i < monthBlocks.length; i++) {
         if (i > 0) {
-          result.push({ x: Math.round(dayIndex * dayWidth), isThick: monthBlocks[i].startDate.getUTCMonth() === 0 });
+          const isYear = monthBlocks[i].startDate.getUTCMonth() === 0;
+          result.push({ x: Math.round(dayIndex * dayWidth), isThick: isYear, fullHeight: isYear });
         }
         dayIndex += monthBlocks[i].days;
       }
@@ -128,7 +131,9 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
         <div
           key={`sep-${i}`}
           className={`gantt-tsh-separator${sep.isThick ? ' gantt-tsh-separator--thick' : ''}`}
-          style={{ left: `${sep.x}px` }}
+          style={sep.fullHeight
+            ? { left: `${sep.x}px`, top: 0, bottom: 0 }
+            : { left: `${sep.x}px`, top: rowHeight, height: rowHeight }}
         />
       ))}
 

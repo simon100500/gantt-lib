@@ -42,11 +42,10 @@
   box-sizing: border-box;
 }
 
-/* Separator divs — absolutely positioned, pixel-aligned with GridBackground */
+/* Separator divs — absolutely positioned, pixel-aligned with GridBackground.
+   top/bottom/height set via inline style per separator (fullHeight vs row-2-only). */
 .gantt-tsh-separator {
   position: absolute;
-  top: 0;
-  bottom: 0;
   width: 1px;
   background-color: var(--gantt-week-separator-color, #e5e7eb);
   pointer-events: none;
