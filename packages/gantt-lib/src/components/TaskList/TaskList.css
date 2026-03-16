@@ -777,8 +777,6 @@
 }
 
 .gantt-tl-dep-edit-task {
-  font-weight: 400;
-  color: #111827;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
