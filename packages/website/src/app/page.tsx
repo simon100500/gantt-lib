@@ -1106,7 +1106,7 @@ export default function Home() {
             <GanttChart
               ref={ganttChartRef}
               tasks={tasks}
-              dayWidth={viewMode === 'month' ? 2 : viewMode === 'week' ? 8 : 24}
+              dayWidth={viewMode === 'month' ? 2.5 : viewMode === 'week' ? 8 : 24}
               rowHeight={36}
               onTasksChange={handleChange}
               onAdd={handleAdd}
@@ -1229,8 +1229,8 @@ export default function Home() {
         <section className="demo-section">
           <h2 className="demo-section-title">Подсветка просроченных задач (Phase 15)</h2>
           <p className="demo-section-desc">
-            <strong>Логика просрочки по времени:</strong> ожидаемый прогресс = (прошедшие дни / длительность) × 100.<br/>
-            Задача красная, если: endDate &lt; today AND (progress &lt; expectedProgress OR not accepted).<br/>
+            <strong>Логика просрочки по времени:</strong> ожидаемый прогресс = (прошедшие дни / длительность) × 100.<br />
+            Задача красная, если: endDate &lt; today AND (progress &lt; expectedProgress OR not accepted).<br />
             Выполненные и принятые задачи (progress = 100 AND accepted = true) не красные.
           </p>
           <div className="demo-controls">
@@ -1259,10 +1259,10 @@ export default function Home() {
         <section className="demo-section">
           <h2 className="demo-section-title">Иерархия задач (Phase 19)</h2>
           <p className="demo-section-desc">
-            <strong>Родительские задачи:</strong> отображаются жирным шрифтом с кнопкой сворачивания (-/+).<br/>
-            <strong>Дочерние задачи:</strong> имеют отступ и кнопку «⬆ Повысить» для удаления parentId.<br/>
-            <strong>Кнопка «⬇ Понизить»:</strong> появляется для корневых задач (не родителей) для создания иерархии.<br/>
-            <strong>Каскадное удаление:</strong> удаление родителя удаляет всех детей.<br/>
+            <strong>Родительские задачи:</strong> отображаются жирным шрифтом с кнопкой сворачивания (-/+).<br />
+            <strong>Дочерние задачи:</strong> имеют отступ и кнопку «⬆ Повысить» для удаления parentId.<br />
+            <strong>Кнопка «⬇ Понизить»:</strong> появляется для корневых задач (не родителей) для создания иерархии.<br />
+            <strong>Каскадное удаление:</strong> удаление родителя удаляет всех детей.<br />
             <strong>Обновление прогресса родителя:</strong> рассчитывается как взвешенное среднее по длительности детей.
           </p>
           <div className="demo-controls">
