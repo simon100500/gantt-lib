@@ -222,6 +222,7 @@ const DepChip: React.FC<DepChipProps> = ({
       onChipSelect?.({ successorId: taskId, predecessorId: dep.taskId, linkType: dep.type });
       onScrollToTask?.(dep.taskId);
     } else {
+      // Only clear selection when explicitly closing via chip click
       onChipSelect?.(null);
     }
   };
@@ -321,7 +322,7 @@ const DepChip: React.FC<DepChipProps> = ({
           className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
           onClick={handleClick}
         >
-          <><Icon />{effectiveLag !== 0 ? (effectiveLag > 0 ? `+${effectiveLag}` : `${effectiveLag}`) : ''}</>
+          <Icon />{effectiveLag !== 0 ? (effectiveLag > 0 ? `+${effectiveLag}` : `${effectiveLag}`) : ''}
         </span>
       </PopoverTrigger>
       <PopoverContent className="gantt-tl-dep-edit-popover" portal={true} align="start">
@@ -351,13 +352,25 @@ const DepChip: React.FC<DepChipProps> = ({
           {!disableDependencyEditing && (
             <>
               <hr className="gantt-tl-dep-edit-divider" />
-              <button
-                type="button"
-                className="gantt-tl-dep-edit-delete"
-                onClick={handleTrashClick}
-              >
-                <TrashIcon /> Удалить связь
-              </button>
+              <div className="gantt-tl-dep-edit-actions">
+                <button
+                  type="button"
+                  className="gantt-tl-dep-edit-close"
+                  onClick={() => {
+                    setPopoverOpen(false);
+                    onChipSelectClear();
+                  }}
+                >
+                  Закрыть
+                </button>
+                <button
+                  type="button"
+                  className="gantt-tl-dep-edit-delete"
+                  onClick={handleTrashClick}
+                >
+                  Удалить связь
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -1127,7 +1140,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               aria-label="Удалить связь"
             >
               <span className="gantt-tl-dep-delete-label-default">Связано с</span>
-              <span className="gantt-tl-dep-delete-label-hover">Удалить связь</span>
+              <span className="gantt-tl-dep-delete-label-hover">× удалить</span>
             </button>
           ) : (
             <>
