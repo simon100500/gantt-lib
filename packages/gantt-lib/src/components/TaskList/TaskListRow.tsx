@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { Task } from '../GanttChart';
 import type { LinkType } from '../../types';
 import { parseUTCDate, normalizeTaskDates } from '../../utils/dateUtils';
-import { computeLagFromDates, isTaskParent, findParentId } from '../../utils/dependencyUtils';
+import { computeLagFromDates, isTaskParent, findParentId, getChildren } from '../../utils/dependencyUtils';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
@@ -575,9 +575,20 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         return;
       }
       const clampedValue = Math.max(0, Math.min(100, progressValue));
-      onTasksChange?.([{ ...task, progress: clampedValue }]);
+
+      // Cascade 100% progress to all children when parent is marked complete
+      if (clampedValue === 100 && isTaskParent(task.id, allTasks)) {
+        const children = getChildren(task.id, allTasks);
+        const updatedTasks = [
+          { ...task, progress: 100 },
+          ...children.map(child => ({ ...child, progress: 100 }))
+        ];
+        onTasksChange?.(updatedTasks);
+      } else {
+        onTasksChange?.([{ ...task, progress: clampedValue }]);
+      }
       setEditingProgress(false);
-    }, [progressValue, task, onTasksChange]);
+    }, [progressValue, task, onTasksChange, allTasks]);
 
     const handleProgressCancel = useCallback(() => {
       setEditingProgress(false);
@@ -592,12 +603,23 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       if (e.key === 'Enter') {
         progressConfirmedRef.current = true;
         const clampedValue = Math.max(0, Math.min(100, progressValue));
-        onTasksChange?.([{ ...task, progress: clampedValue }]);
+
+        // Cascade 100% progress to all children when parent is marked complete
+        if (clampedValue === 100 && isTaskParent(task.id, allTasks)) {
+          const children = getChildren(task.id, allTasks);
+          const updatedTasks = [
+            { ...task, progress: 100 },
+            ...children.map(child => ({ ...child, progress: 100 }))
+          ];
+          onTasksChange?.(updatedTasks);
+        } else {
+          onTasksChange?.([{ ...task, progress: clampedValue }]);
+        }
         setEditingProgress(false);
       } else if (e.key === 'Escape') {
         handleProgressCancel();
       }
-    }, [progressValue, task, onTasksChange, handleProgressCancel]);
+    }, [progressValue, task, onTasksChange, handleProgressCancel, allTasks]);
 
     useEffect(() => {
       if (editingProgress && progressInputRef.current) {
