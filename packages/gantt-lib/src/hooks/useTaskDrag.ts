@@ -399,6 +399,181 @@ function handleGlobalMouseMove(e: MouseEvent) {
           }
         }
 
+        // Cascade successors of the updated parents
+        // After a parent's position is synced with its children, we need to
+        // update any tasks that depend on this parent (the parent's successors)
+        const cascadeSuccessorsOfParent = (
+          parentId: string,
+          parentStart: Date,
+          parentEnd: Date,
+          allTasks: Task[],
+          dayWidth: number,
+          monthStart: Date
+        ): Map<string, { left: number; width: number }> => {
+          const overrides = new Map<string, { left: number; width: number }>();
+          const visited = new Set<string>();
+          const queue: string[] = [];
+
+          // Find direct successors of parentId
+          for (const task of allTasks) {
+            if (task.locked) continue;
+            if (visited.has(task.id)) continue;
+
+            const depOnParent = task.dependencies?.find(d => d.taskId === parentId);
+            if (!depOnParent) continue;
+
+            // Calculate new position for successor
+            const constraintDate = calculateSuccessorDate(
+              parentStart,
+              parentEnd,
+              depOnParent.type,
+              depOnParent.lag ?? 0
+            );
+
+            const origStart = new Date(task.startDate as string);
+            const origEnd = new Date(task.endDate as string);
+            const durationMs = origEnd.getTime() - origStart.getTime();
+
+            let newStart: Date;
+            let newEnd: Date;
+
+            if (depOnParent.type === 'FS' || depOnParent.type === 'SS') {
+              newStart = constraintDate;
+              newEnd = new Date(constraintDate.getTime() + durationMs);
+            } else {
+              // FF or SF
+              newEnd = constraintDate;
+              newStart = new Date(constraintDate.getTime() - durationMs);
+            }
+
+            // Convert to pixels
+            const startOffset = Math.round(
+              (Date.UTC(newStart.getUTCFullYear(), newStart.getUTCMonth(), newStart.getUTCDate()) -
+                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                / (24 * 60 * 60 * 1000)
+            );
+            const endOffset = Math.round(
+              (Date.UTC(newEnd.getUTCFullYear(), newEnd.getUTCMonth(), newEnd.getUTCDate()) -
+                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                / (24 * 60 * 60 * 1000)
+            );
+
+            overrides.set(task.id, {
+              left: Math.round(startOffset * dayWidth),
+              width: Math.round((endOffset - startOffset + 1) * dayWidth)
+            });
+
+            visited.add(task.id);
+            queue.push(task.id);
+          }
+
+          // Transitive closure: successors of successors
+          while (queue.length > 0) {
+            const currentId = queue.shift()!;
+            const currentTask = allTasks.find(t => t.id === currentId);
+            if (!currentTask || currentTask.locked) continue;
+
+            const currentStart = new Date(
+              overrides.has(currentId)
+                ? new Date(Date.UTC(
+                    monthStart.getUTCFullYear(),
+                    monthStart.getUTCMonth(),
+                    monthStart.getUTCDate() + Math.round(overrides.get(currentId)!.left / dayWidth)
+                  ))
+                : currentTask.startDate
+            );
+            const currentEnd = new Date(
+              overrides.has(currentId)
+                ? new Date(Date.UTC(
+                    monthStart.getUTCFullYear(),
+                    monthStart.getUTCMonth(),
+                    monthStart.getUTCDate() + Math.round((overrides.get(currentId)!.left + overrides.get(currentId)!.width) / dayWidth) - 1
+                  ))
+                : currentTask.endDate
+            );
+
+            // Find successors of currentId
+            for (const task of allTasks) {
+              if (task.locked || visited.has(task.id)) continue;
+
+              const depOnCurrent = task.dependencies?.find(d => d.taskId === currentId);
+              if (!depOnCurrent) continue;
+
+              // Calculate new position
+              const constraintDate = calculateSuccessorDate(
+                currentStart,
+                currentEnd,
+                depOnCurrent.type,
+                depOnCurrent.lag ?? 0
+              );
+
+              const origStart = new Date(task.startDate as string);
+              const origEnd = new Date(task.endDate as string);
+              const durationMs = origEnd.getTime() - origStart.getTime();
+
+              let newStart: Date;
+              let newEnd: Date;
+
+              if (depOnCurrent.type === 'FS' || depOnCurrent.type === 'SS') {
+                newStart = constraintDate;
+                newEnd = new Date(constraintDate.getTime() + durationMs);
+              } else {
+                newEnd = constraintDate;
+                newStart = new Date(constraintDate.getTime() - durationMs);
+              }
+
+              // Convert to pixels
+              const startOffset = Math.round(
+                (Date.UTC(newStart.getUTCFullYear(), newStart.getUTCMonth(), newStart.getUTCDate()) -
+                  Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                  / (24 * 60 * 60 * 1000)
+              );
+              const endOffset = Math.round(
+                (Date.UTC(newEnd.getUTCFullYear(), newEnd.getUTCMonth(), newEnd.getUTCDate()) -
+                  Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                  / (24 * 60 * 60 * 1000)
+              );
+
+              overrides.set(task.id, {
+                left: Math.round(startOffset * dayWidth),
+                width: Math.round((endOffset - startOffset + 1) * dayWidth)
+              });
+
+              visited.add(task.id);
+              queue.push(task.id);
+            }
+          }
+
+          return overrides;
+        };
+
+        // Apply successor cascading for each updated parent
+        for (const [pid, parentOverride] of overrides) {
+          if (cascadeParentIds.has(pid)) {
+            const parentStart = new Date(Date.UTC(
+              activeDrag.monthStart.getUTCFullYear(),
+              activeDrag.monthStart.getUTCMonth(),
+              activeDrag.monthStart.getUTCDate() + Math.round(parentOverride.left / activeDrag.dayWidth)
+            ));
+            const parentEnd = new Date(Date.UTC(
+              activeDrag.monthStart.getUTCFullYear(),
+              activeDrag.monthStart.getUTCMonth(),
+              activeDrag.monthStart.getUTCDate() + Math.round((parentOverride.left + parentOverride.width) / activeDrag.dayWidth) - 1
+            ));
+
+            const successorOverrides = cascadeSuccessorsOfParent(
+              pid,
+              parentStart,
+              parentEnd,
+              allTasks,
+              activeDrag.dayWidth,
+              activeDrag.monthStart
+            );
+
+            successorOverrides.forEach((v, k) => overrides.set(k, v));
+          }
+        }
+
         activeDrag.onCascadeProgress(overrides);
       }
     // Hard mode cascade: emit position overrides for successor chain members
