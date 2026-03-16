@@ -609,28 +609,24 @@ type ArrivalMode = 'direct' | 'child-delta' | 'parent-recalc' | 'dependency';
 
 /**
  * Universal cascade engine that propagates a moved task's new position through
- * the entire dependency+hierarchy graph using BFS.
+ * the entire dependency+hierarchy graph using BFS with change detection.
  *
  * Three rules applied in BFS order:
  *
  *   RULE 1 — Hierarchy children of a parent task shift by the parent's delta.
- *            Applied only when the parent arrived as 'direct', 'child-delta', or 'dependency'
- *            (i.e. the parent moved as a whole unit, so children follow it).
- *            Skipped when the parent arrived as 'parent-recalc' because in that case
- *            the parent's new span was computed *from* the children — we must not
- *            re-shift them.
+ *            Applied only when the parent arrived as 'direct', 'child-delta', or 'dependency'.
+ *            Skipped for 'parent-recalc' (parent was computed FROM children).
  *
- *   RULE 2 — Parent task of a moved child is recomputed as min(children.start)..max(children.end).
- *            Applied when the current task has a parentId and the parent hasn't been visited yet.
- *            The parent enters the queue tagged as 'parent-recalc'.
+ *   RULE 2 — Parent task is recomputed as min(children.start)..max(children.end).
+ *            Re-queued every time a child changes (no visited guard — uses change detection).
+ *            This ensures the parent reflects ALL cascaded children, not just the first one.
  *
- *   RULE 3 — Dependency successors are repositioned via calculateSuccessorDate (preserves lag).
- *            Applied for every task that lists currentId as a predecessor.
+ *   RULE 3 — Dependency successors are repositioned via calculateSuccessorDate.
+ *            Effective lag is computed from original dates (not stored dep.lag).
+ *            Re-queued if predecessor's dates changed (change detection).
  *
- * Returns an array of all tasks that need updating (NOT including movedTask itself).
- * Each task in the result carries its new startDate/endDate as ISO strings.
- *
- * Locked tasks break the chain — they are skipped and their successors are not cascaded.
+ * Change detection prevents infinite loops: a task is only re-queued if its
+ * computed dates differ from what's already in updatedDates.
  *
  * @param movedTask  - The task that was directly moved/resized (already has new dates).
  * @param newStart   - New start date of the moved task.
@@ -645,27 +641,34 @@ export function universalCascade(
 ): Task[] {
   const taskById = new Map(allTasks.map(t => [t.id, t]));
 
-  // updatedDates holds the authoritative new position for every visited task
+  // updatedDates: authoritative new position for every affected task
   const updatedDates = new Map<string, { start: Date; end: Date }>();
   updatedDates.set(movedTask.id, { start: newStart, end: newEnd });
 
-  const result: Task[] = [];
+  // resultMap: deduplicated results keyed by task ID (updated in place on re-visits)
+  const resultMap = new Map<string, Task>();
+
   // Queue entries: [taskId, arrivalMode]
   const queue: Array<[string, ArrivalMode]> = [[movedTask.id, 'direct']];
-  const visited = new Set<string>([movedTask.id]);
 
-  while (queue.length > 0) {
+  // Guard: track which children have been shifted by RULE 1 to prevent double-shift
+  const childShifted = new Set<string>();
+
+  // Safety: max iterations to prevent runaway loops
+  let iterations = 0;
+  const MAX_ITERATIONS = allTasks.length * 3;
+
+  while (queue.length > 0 && iterations < MAX_ITERATIONS) {
+    iterations++;
     const [currentId, arrivalMode] = queue.shift()!;
     const { start: currStart, end: currEnd } = updatedDates.get(currentId)!;
     const currentOriginal = taskById.get(currentId)!;
 
     // ── RULE 1: Hierarchy children follow their parent ──────────────────────
-    // Only when the current task moved as a unit (not when it was recomputed
-    // from its children, which would cause a double-shift).
     if (arrivalMode !== 'parent-recalc') {
       const children = getChildren(currentId, allTasks);
       for (const child of children) {
-        if (visited.has(child.id) || child.locked) continue;
+        if (childShifted.has(child.id) || child.locked) continue;
 
         const parentOrigStart = new Date(currentOriginal.startDate as string);
         const parentOrigEnd   = new Date(currentOriginal.endDate   as string);
@@ -673,17 +676,22 @@ export function universalCascade(
         const childOrigStart = new Date(child.startDate as string);
         const childOrigEnd   = new Date(child.endDate   as string);
 
-        // The child inherits the same start-delta and end-delta as the parent.
         const startDeltaMs = currStart.getTime() - parentOrigStart.getTime();
         const endDeltaMs   = currEnd.getTime()   - parentOrigEnd.getTime();
 
         const childNewStart = new Date(childOrigStart.getTime() + startDeltaMs);
         const childNewEnd   = new Date(childOrigEnd.getTime()   + endDeltaMs);
 
+        // Change detection: skip if already at this position
+        const prev = updatedDates.get(child.id);
+        if (prev && prev.start.getTime() === childNewStart.getTime() && prev.end.getTime() === childNewEnd.getTime()) {
+          continue;
+        }
+
         updatedDates.set(child.id, { start: childNewStart, end: childNewEnd });
-        visited.add(child.id);
+        childShifted.add(child.id);
         queue.push([child.id, 'child-delta']);
-        result.push({
+        resultMap.set(child.id, {
           ...child,
           startDate: childNewStart.toISOString().split('T')[0],
           endDate:   childNewEnd.toISOString().split('T')[0],
@@ -692,16 +700,14 @@ export function universalCascade(
     }
 
     // ── RULE 2: Parent task is recomputed from its children ─────────────────
-    // When a child moves (for any reason), recompute the parent's span.
-    // Only done once per parent (visited guard) and only when the current task
-    // actually has a parent (i.e. it is a child itself).
+    // No visited guard — always recalculate, re-queue only if dates changed.
+    // This ensures parent reflects ALL cascaded children (not just the first).
     const parentId = (currentOriginal as any).parentId as string | undefined;
     if (parentId) {
       const parent = taskById.get(parentId);
-      if (parent && !visited.has(parentId) && !parent.locked) {
+      if (parent && !parent.locked) {
         const siblings = getChildren(parentId, allTasks);
 
-        // Collect the up-to-date position of each sibling
         const siblingPositions = siblings.map(sib => {
           if (updatedDates.has(sib.id)) return updatedDates.get(sib.id)!;
           return { start: new Date(sib.startDate as string), end: new Date(sib.endDate as string) };
@@ -710,23 +716,25 @@ export function universalCascade(
         const minStart = new Date(Math.min(...siblingPositions.map(p => p.start.getTime())));
         const maxEnd   = new Date(Math.max(...siblingPositions.map(p => p.end.getTime())));
 
-        updatedDates.set(parentId, { start: minStart, end: maxEnd });
-        visited.add(parentId);
-        // Tag as 'parent-recalc' so RULE 1 is skipped when processing the parent
-        queue.push([parentId, 'parent-recalc']);
-        result.push({
-          ...parent,
-          startDate: minStart.toISOString().split('T')[0],
-          endDate:   maxEnd.toISOString().split('T')[0],
-        });
+        // Change detection: only re-queue if parent dates actually changed
+        const prev = updatedDates.get(parentId);
+        if (!prev || prev.start.getTime() !== minStart.getTime() || prev.end.getTime() !== maxEnd.getTime()) {
+          updatedDates.set(parentId, { start: minStart, end: maxEnd });
+          queue.push([parentId, 'parent-recalc']);
+          resultMap.set(parentId, {
+            ...parent,
+            startDate: minStart.toISOString().split('T')[0],
+            endDate:   maxEnd.toISOString().split('T')[0],
+          });
+        }
       }
     }
 
     // ── RULE 3: Dependency successors are repositioned ──────────────────────
-    // Each task that lists currentId as a predecessor is repositioned using
-    // calculateSuccessorDate with the predecessor's NEW dates and the stored lag.
+    // No visited guard — uses change detection to allow re-cascading when
+    // predecessor dates change (e.g., parent recalculated after more children cascade).
     for (const task of allTasks) {
-      if (visited.has(task.id) || task.locked || !task.dependencies) continue;
+      if (task.locked || !task.dependencies) continue;
 
       const dep = task.dependencies.find(d => d.taskId === currentId);
       if (!dep) continue;
@@ -735,8 +743,7 @@ export function universalCascade(
       const origEnd    = new Date(task.endDate   as string);
       const durationMs = origEnd.getTime() - origStart.getTime();
 
-      // Use effective lag computed from actual dates, not stored dep.lag
-      // (stored lag may be stale/incorrect — dates are the source of truth)
+      // Effective lag from original dates (source of truth)
       const predOrigStart = new Date(currentOriginal.startDate as string);
       const predOrigEnd   = new Date(currentOriginal.endDate   as string);
       const effectiveLag  = computeLagFromDates(dep.type, predOrigStart, predOrigEnd, origStart, origEnd);
@@ -750,15 +757,19 @@ export function universalCascade(
         succNewStart = constraintDate;
         succNewEnd   = new Date(constraintDate.getTime() + durationMs);
       } else {
-        // FF or SF: constraintDate is the successor's end date
         succNewEnd   = constraintDate;
         succNewStart = new Date(constraintDate.getTime() - durationMs);
       }
 
+      // Change detection: skip if already at this position
+      const prev = updatedDates.get(task.id);
+      if (prev && prev.start.getTime() === succNewStart.getTime() && prev.end.getTime() === succNewEnd.getTime()) {
+        continue;
+      }
+
       updatedDates.set(task.id, { start: succNewStart, end: succNewEnd });
-      visited.add(task.id);
       queue.push([task.id, 'dependency']);
-      result.push({
+      resultMap.set(task.id, {
         ...task,
         startDate: succNewStart.toISOString().split('T')[0],
         endDate:   succNewEnd.toISOString().split('T')[0],
@@ -766,5 +777,5 @@ export function universalCascade(
     }
   }
 
-  return result;
+  return Array.from(resultMap.values());
 }
