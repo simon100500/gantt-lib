@@ -486,15 +486,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         setEditingName(true);
         return;
       }
-      // If not editing and a printable key is pressed, start editing
-      if (!editingName && !disableTaskNameEditing && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault();
-        nameConfirmedRef.current = false;  // Reset stale flag from any previous Enter-key save
-        editTriggerRef.current = 'keypress';
-        setNameValue(e.key);
-        setEditingName(true);
-        // Input will be focused by existing useEffect; cursor placed at end (not select-all)
-      }
     }, [editingName, disableTaskNameEditing, task.name]);
 
     const handleNameSave = useCallback(() => {
