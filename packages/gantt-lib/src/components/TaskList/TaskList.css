@@ -188,12 +188,12 @@
 }
 
 .gantt-tl-cell-number {
-  width: 48px;
+  width: 32px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 0;
-  padding: 0 4px;
+  padding: 0 2px;
   flex-shrink: 0;
   cursor: pointer;
   position: relative;
@@ -208,7 +208,7 @@
   bottom: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   cursor: grab;
   color: #9ca3af;
   visibility: hidden;
