@@ -270,11 +270,23 @@ const DepChip: React.FC<DepChipProps> = ({
 
   // Derive action verb and "after what" phrase from link type
   const actionVerb = (dep.type === 'FS' || dep.type === 'SS') ? 'Начать' : 'Завершить';
-  const afterWhat = dep.type === 'SF' ? 'до начала'
-    : (dep.type === 'FS' || dep.type === 'FF') ? 'после окончания'
-    : 'после начала';
   const isSS = dep.type === 'SS';
-  const zeroLabel = dep.type === 'SF' ? 'чётко' : 'сразу';
+  const zeroLabel = dep.type === 'SF' ? 'чётко' : dep.type === 'FF' ? 'вместе' : 'сразу';
+
+  // afterWhat and preWord are sign-dependent for FS/FF
+  let afterWhat: string;
+  let preWord: string | null = null;
+  if (dep.type === 'SS') {
+    afterWhat = 'после начала';
+  } else if (dep.type === 'SF') {
+    afterWhat = 'до начала';
+  } else if (effectiveLag > 0) {
+    preWord = 'через'; afterWhat = 'после окончания';
+  } else if (effectiveLag < 0) {
+    preWord = 'за'; afterWhat = 'до окончания';
+  } else {
+    afterWhat = dep.type === 'FF' ? 'с' : 'после окончания';
+  }
 
   return (
     <Popover open={popoverOpen} onOpenChange={handleOpenChange}>
@@ -333,6 +345,7 @@ const DepChip: React.FC<DepChipProps> = ({
                   <span className="gantt-tl-dep-edit-zero">{zeroLabel}</span>
                 ) : (
                   <>
+                    {preWord && <span>{preWord}</span>}
                     <span className="gantt-tl-dep-edit-value">{Math.abs(effectiveLag)}</span>
                     <span>дн.</span>
                   </>
