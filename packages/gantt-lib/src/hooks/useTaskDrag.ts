@@ -837,6 +837,12 @@ function handleGlobalMouseMove(e: MouseEvent) {
         if (pid && !cascadeParentIds.has(pid) && !overrides.has(pid)) {
           cascadeParentIds.add(pid);
         }
+        // IMPORTANT: Also add the hierarchy chain task itself if it's a parent!
+        // When dragging g2-5, g2 (the parent) is in hierarchyChain but NOT in overrides
+        // We need to add g2 to cascadeParentIds so its successors update
+        if (isTaskParent(hTask.id, allTasks) && !cascadeParentIds.has(hTask.id) && !overrides.has(hTask.id)) {
+          cascadeParentIds.add(hTask.id);
+        }
       }
 
       console.log(`   cascadeParentIds: ${Array.from(cascadeParentIds).join(', ')}`);
