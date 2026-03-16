@@ -274,7 +274,7 @@ const DepChip: React.FC<DepChipProps> = ({
     if (raw === '') { handleLagChange(0); return; }
     const parsed = parseInt(raw, 10);
     const effectiveLag = lag ?? 0;
-    if (isNaN(parsed) || parsed < 0) {
+    if (isNaN(parsed)) {
       const abs = Math.abs(effectiveLag);
       setInputAbs(abs === 0 ? '' : String(abs));
       return;
@@ -283,9 +283,10 @@ const DepChip: React.FC<DepChipProps> = ({
     if (parsed === 0) {
       newLag = 0;
     } else if (dep.type === 'SF') {
-      newLag = -parsed;
+      newLag = -Math.abs(parsed);
     } else {
-      newLag = parsed * (effectiveLag < 0 ? -1 : 1);
+      // sign comes from what the user typed: "-4" → negative, "4" → positive
+      newLag = parsed; // parseInt preserves the sign from input
     }
     if (newLag !== effectiveLag) handleLagChange(newLag);
   }, [lag, dep.type, handleLagChange]);
