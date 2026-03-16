@@ -193,7 +193,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 0;
-  padding: 0 2px;
+  padding: 0 2px 0 4px;
   flex-shrink: 0;
   cursor: pointer;
   position: relative;
@@ -209,6 +209,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  padding-left: 4px;
   cursor: grab;
   color: #9ca3af;
   visibility: hidden;
