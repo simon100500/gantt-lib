@@ -323,6 +323,15 @@ function handleGlobalMouseMove(e: MouseEvent) {
         allTasks
       );
 
+      // DEBUG: Initial drag info
+      const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(`🎬 [DRAG START] Task: ${activeDrag.taskId} (${draggedTask?.name})`);
+      console.log(`   isParentDrag: ${isParentDrag}`);
+      console.log(`   Preview: ${previewStartDate.toISOString().slice(0,10)} - ${previewEndDate.toISOString().slice(0,10)}`);
+      console.log(`   newLeft: ${newLeft}, newWidth: ${newWidth}`);
+      console.log(`   cascadedPreviewTasks: ${cascadedPreviewTasks.map(t => `${t.id}(${t.name})`).join(', ')}`);
+
       if (cascadedPreviewTasks.length > 0) {
         const overrides = new Map<string, { left: number; width: number }>();
 
@@ -412,10 +421,27 @@ function handleGlobalMouseMove(e: MouseEvent) {
             }
           }
           if (minChildStart !== Infinity) {
+            const newParentLeft = Math.round(minChildStart * activeDrag.dayWidth);
+            const newParentWidth = Math.round((maxChildEnd - minChildStart + 1) * activeDrag.dayWidth);
             overrides.set(pid, {
-              left: Math.round(minChildStart * activeDrag.dayWidth),
-              width: Math.round((maxChildEnd - minChildStart + 1) * activeDrag.dayWidth),
+              left: newParentLeft,
+              width: newParentWidth,
             });
+
+            // DEBUG: Log parent sync for g2 (Земляные работы) and g3 (Фундамент)
+            if (pid === 'g2' || pid === 'g3') {
+              const newParentStartDay = minChildStart;
+              const newParentEndDay = maxChildEnd;
+              const parentTask = allTasks.find(t => t.id === pid);
+              console.log(`📊 [PARENT SYNC] ${pid} (${parentTask?.name})`);
+              console.log(`   isDraggedParent: ${isDraggedParent}, deltaDays: ${deltaDays}`);
+              console.log(`   Children processed: ${children.length}`);
+              children.forEach(c => {
+                const inOverrides = overrides.has(c.id);
+                console.log(`   - ${c.id} (${c.name}): inOverrides=${inOverrides}`);
+              });
+              console.log(`   NEW position: day ${newParentStartDay} to ${newParentEndDay} (left=${newParentLeft}, width=${newParentWidth})`);
+            }
           }
         }
 
@@ -482,6 +508,15 @@ function handleGlobalMouseMove(e: MouseEvent) {
               left: Math.round(startOffset * dayWidth),
               width: Math.round((endOffset - startOffset + 1) * dayWidth)
             });
+
+            // DEBUG: Log successor calculation
+            if (parentId === 'g2' || parentId === 'g3') {
+              console.log(`🔗 [SUCCESSOR] ${task.id} (${task.name}) depends on ${parentId}`);
+              console.log(`   Dependency: ${depOnParent.type} lag=${depOnParent.lag ?? 0}`);
+              console.log(`   Parent: ${parentStart.toISOString().slice(0,10)} - ${parentEnd.toISOString().slice(0,10)}`);
+              console.log(`   Constraint date: ${constraintDate.toISOString().slice(0,10)}`);
+              console.log(`   NEW position: day ${startOffset} to ${endOffset} (left=${Math.round(startOffset * dayWidth)}, width=${Math.round((endOffset - startOffset + 1) * dayWidth)})`);
+            }
 
             visited.add(task.id);
             queue.push(task.id);
@@ -568,18 +603,32 @@ function handleGlobalMouseMove(e: MouseEvent) {
         };
 
         // Apply successor cascading for each updated parent
+        console.log('🚀 [CASCADE SUCCESSORS] Starting...');
+        console.log(`   cascadeParentIds: ${Array.from(cascadeParentIds).join(', ')}`);
+        console.log(`   overrides before: ${Array.from(overrides.keys()).join(', ')}`);
+
         for (const [pid, parentOverride] of overrides) {
           if (cascadeParentIds.has(pid)) {
+            const parentStartDay = Math.round(parentOverride.left / activeDrag.dayWidth);
+            const parentEndDay = Math.round((parentOverride.left + parentOverride.width) / activeDrag.dayWidth) - 1;
             const parentStart = new Date(Date.UTC(
               activeDrag.monthStart.getUTCFullYear(),
               activeDrag.monthStart.getUTCMonth(),
-              activeDrag.monthStart.getUTCDate() + Math.round(parentOverride.left / activeDrag.dayWidth)
+              activeDrag.monthStart.getUTCDate() + parentStartDay
             ));
             const parentEnd = new Date(Date.UTC(
               activeDrag.monthStart.getUTCFullYear(),
               activeDrag.monthStart.getUTCMonth(),
-              activeDrag.monthStart.getUTCDate() + Math.round((parentOverride.left + parentOverride.width) / activeDrag.dayWidth) - 1
+              activeDrag.monthStart.getUTCDate() + parentEndDay
             ));
+
+            // DEBUG: Log before cascadeSuccessorsOfParent
+            if (pid === 'g2' || pid === 'g3') {
+              const parentTask = allTasks.find(t => t.id === pid);
+              console.log(`🎯 [CASCADE PARENT] ${pid} (${parentTask?.name})`);
+              console.log(`   Position from overrides: left=${parentOverride.left}, width=${parentOverride.width}`);
+              console.log(`   Date range: ${parentStart.toISOString().slice(0,10)} - ${parentEnd.toISOString().slice(0,10)}`);
+            }
 
             const successorOverrides = cascadeSuccessorsOfParent(
               pid,
@@ -590,9 +639,25 @@ function handleGlobalMouseMove(e: MouseEvent) {
               activeDrag.monthStart
             );
 
+            // DEBUG: Log after cascadeSuccessorsOfParent
+            if (pid === 'g2' || pid === 'g3') {
+              console.log(`   Successors found: ${Array.from(successorOverrides.keys()).join(', ')}`);
+            }
+
             successorOverrides.forEach((v, k) => overrides.set(k, v));
           }
         }
+
+        console.log(`   overrides after: ${Array.from(overrides.keys()).join(', ')}`);
+
+        // DEBUG: Final overrides snapshot
+        console.log('📸 [FINAL SNAPSHOT] All overrides:');
+        overrides.forEach((v, k) => {
+          const task = allTasks.find(t => t.id === k);
+          const startDay = Math.round(v.left / activeDrag.dayWidth);
+          const endDay = Math.round((v.left + v.width) / activeDrag.dayWidth) - 1;
+          console.log(`   ${k} (${task?.name || 'unknown'}): day ${startDay}-${endDay} (left=${v.left}, width=${v.width})`);
+        });
 
         activeDrag.onCascadeProgress(overrides);
       }
@@ -744,6 +809,173 @@ function handleGlobalMouseMove(e: MouseEvent) {
 
         overrides.set(chainTask.id, { left: chainLeft, width: chainWidth });
       }
+
+      // DEBUG: Log for child drag
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(`🎬 [CHILD DRAG] Task: ${activeDrag.taskId}`);
+      console.log(`   deltaDays: ${deltaDays}`);
+      console.log(`   hierarchyChain: ${activeDrag.hierarchyChain.map(t => `${t.id}(${t.name})`).join(', ')}`);
+
+      // Cascade parent sync for hierarchy chain
+      // When a child task moves, its parent position may need to update
+      // Then successors of that parent need to update too
+      const cascadeParentIds = new Set<string>();
+
+      // Find parents of all tasks in overrides (includes dragged child and hierarchy chain)
+      for (const [taskId, override] of overrides) {
+        const task = allTasks.find(t => t.id === taskId);
+        if (!task) continue;
+        const pid = (task as any).parentId as string | undefined;
+        if (pid && !cascadeParentIds.has(pid) && !overrides.has(pid)) {
+          cascadeParentIds.add(pid);
+        }
+      }
+
+      // Also check hierarchy chain for parents
+      for (const hTask of activeDrag.hierarchyChain) {
+        const pid = (hTask as any).parentId as string | undefined;
+        if (pid && !cascadeParentIds.has(pid) && !overrides.has(pid)) {
+          cascadeParentIds.add(pid);
+        }
+      }
+
+      console.log(`   cascadeParentIds: ${Array.from(cascadeParentIds).join(', ')}`);
+
+      // Sync parent positions based on their children
+      for (const pid of cascadeParentIds) {
+        const parentTask = allTasks.find(t => t.id === pid);
+        if (!parentTask || parentTask.locked) continue;
+        const children = getChildren(pid, allTasks);
+        if (children.length === 0) continue;
+        let minChildStart = Infinity;
+        let maxChildEnd = -Infinity;
+
+        for (const child of children) {
+          if (overrides.has(child.id)) {
+            const ov = overrides.get(child.id)!;
+            const childStartDay = Math.round(ov.left / dayWidth);
+            const childEndDay = Math.round((ov.left + ov.width) / dayWidth) - 1;
+            minChildStart = Math.min(minChildStart, childStartDay);
+            maxChildEnd = Math.max(maxChildEnd, childEndDay);
+          } else {
+            const childStart = new Date(child.startDate as string);
+            const childEnd = new Date(child.endDate as string);
+            const childStartOffset = Math.round(
+              (Date.UTC(childStart.getUTCFullYear(), childStart.getUTCMonth(), childStart.getUTCDate()) -
+                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+              / (24 * 60 * 60 * 1000)
+            );
+            const childEndOffset = Math.round(
+              (Date.UTC(childEnd.getUTCFullYear(), childEnd.getUTCMonth(), childEnd.getUTCDate()) -
+                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+              / (24 * 60 * 60 * 1000)
+            );
+            minChildStart = Math.min(minChildStart, childStartOffset);
+            maxChildEnd = Math.max(maxChildEnd, childEndOffset);
+          }
+        }
+        if (minChildStart !== Infinity) {
+          const newParentLeft = Math.round(minChildStart * dayWidth);
+          const newParentWidth = Math.round((maxChildEnd - minChildStart + 1) * dayWidth);
+          overrides.set(pid, { left: newParentLeft, width: newParentWidth });
+
+          // DEBUG: Log parent sync
+          if (pid === 'g2' || pid === 'g3') {
+            console.log(`📊 [PARENT SYNC CHILD DRAG] ${pid} (${parentTask?.name})`);
+            console.log(`   Children: ${children.map(c => `${c.id}`).join(', ')}`);
+            console.log(`   NEW position: day ${minChildStart} to ${maxChildEnd} (left=${newParentLeft}, width=${newParentWidth})`);
+          }
+        }
+      }
+
+      // Cascade successors of updated parents
+      console.log('🚀 [CASCADE SUCCESSORS CHILD DRAG] Starting...');
+      for (const [pid, parentOverride] of overrides) {
+        if (cascadeParentIds.has(pid)) {
+          const parentStartDay = Math.round(parentOverride.left / dayWidth);
+          const parentEndDay = Math.round((parentOverride.left + parentOverride.width) / dayWidth) - 1;
+          const parentStart = new Date(Date.UTC(
+            monthStart.getUTCFullYear(),
+            monthStart.getUTCMonth(),
+            monthStart.getUTCDate() + parentStartDay
+          ));
+          const parentEnd = new Date(Date.UTC(
+            monthStart.getUTCFullYear(),
+            monthStart.getUTCMonth(),
+            monthStart.getUTCDate() + parentEndDay
+          ));
+
+          // DEBUG: Log before cascade
+          if (pid === 'g2' || pid === 'g3') {
+            const parentTask = allTasks.find(t => t.id === pid);
+            console.log(`🎯 [CASCADE PARENT CHILD DRAG] ${pid} (${parentTask?.name})`);
+            console.log(`   Date range: ${parentStart.toISOString().slice(0,10)} - ${parentEnd.toISOString().slice(0,10)}`);
+          }
+
+          // Find and update successors
+          for (const task of allTasks) {
+            if (task.locked || overrides.has(task.id)) continue;
+            const depOnParent = task.dependencies?.find(d => d.taskId === pid);
+            if (!depOnParent) continue;
+
+            const constraintDate = calculateSuccessorDate(
+              parentStart,
+              parentEnd,
+              depOnParent.type,
+              depOnParent.lag ?? 0
+            );
+
+            const origStart = new Date(task.startDate as string);
+            const origEnd = new Date(task.endDate as string);
+            const durationMs = origEnd.getTime() - origStart.getTime();
+
+            let newStart: Date;
+            let newEnd: Date;
+
+            if (depOnParent.type === 'FS' || depOnParent.type === 'SS') {
+              newStart = constraintDate;
+              newEnd = new Date(constraintDate.getTime() + durationMs);
+            } else {
+              newEnd = constraintDate;
+              newStart = new Date(constraintDate.getTime() - durationMs);
+            }
+
+            const startOffset = Math.round(
+              (Date.UTC(newStart.getUTCFullYear(), newStart.getUTCMonth(), newStart.getUTCDate()) -
+                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                / (24 * 60 * 60 * 1000)
+            );
+            const endOffset = Math.round(
+              (Date.UTC(newEnd.getUTCFullYear(), newEnd.getUTCMonth(), newEnd.getUTCDate()) -
+                Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                / (24 * 60 * 60 * 1000)
+            );
+
+            overrides.set(task.id, {
+              left: Math.round(startOffset * dayWidth),
+              width: Math.round((endOffset - startOffset + 1) * dayWidth)
+            });
+
+            // DEBUG: Log successor
+            if (pid === 'g2' || pid === 'g3') {
+              console.log(`🔗 [SUCCESSOR CHILD DRAG] ${task.id} (${task.name}) depends on ${pid}`);
+              console.log(`   Dependency: ${depOnParent.type} lag=${depOnParent.lag ?? 0}`);
+              console.log(`   Constraint: ${constraintDate.toISOString().slice(0,10)}`);
+              console.log(`   NEW position: day ${startOffset} to ${endOffset}`);
+            }
+          }
+        }
+      }
+
+      // DEBUG: Final snapshot
+      console.log('📸 [FINAL SNAPSHOT CHILD DRAG]');
+      overrides.forEach((v, k) => {
+        const task = allTasks.find(t => t.id === k);
+        const startDay = Math.round(v.left / dayWidth);
+        const endDay = Math.round((v.left + v.width) / dayWidth) - 1;
+        console.log(`   ${k} (${task?.name || 'unknown'}): day ${startDay}-${endDay}`);
+      });
+
       activeDrag.onCascadeProgress(overrides);
     }
 
