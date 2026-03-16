@@ -296,6 +296,32 @@
 }
 
 /* =========================================================
+ * DatePicker inline date input
+ * ========================================================= */
+
+.gantt-datepicker-input-row {
+  padding: 6px 8px 4px;
+  border-bottom: 1px solid var(--gantt-input-border);
+}
+
+.gantt-datepicker-date-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--gantt-input-text);
+  cursor: default;
+  letter-spacing: 0.05em;
+}
+
+.gantt-datepicker-date-input::selection {
+  background: rgba(59, 130, 246, 0.25);
+}
+
+/* =========================================================
  * Calendar navigation buttons
  * ========================================================= */
 
