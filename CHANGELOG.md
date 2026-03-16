@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.1] - 2026-03-17
+
+### Features
+- Add hierarchical task numbering in TaskList (1, 1.1, 1.2, etc.) with getTaskNumber function
+- Task numbers now reflect parent-child relationships with proper indentation
+
+### Fixes
+- Revert ID column width to 32px and left-align drag handle for consistency
+
+### Style
+- Add left padding to task numbers and drag handle for better visual spacing
+
 ## [0.17.0] - 2026-03-17
 
 ### Features
