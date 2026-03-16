@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.16.0] - 2026-03-16
+
+### Features
+- Add keyboard date input to DatePicker popup with segment navigation (dd.MM.yy)
+- Auto-focus date input field when calendar popup opens
+- Add day-shift buttons (-7, -1, +1, +7) flanking the date input field
+
+### Fixes
+- Fix fast-typing digit jump to year segment — segment position now tracked in refs, independent of DOM/rAF timing
+- Remove printable key capture from TaskListRow — task name edit now only on F2 or double-click on name cell
+
+### Style
+- Reduce calendar max-height from 400px to 280px
+- Stretch shift buttons to full calendar width with equal flex sizing
+- Show date input border always; blue focus ring when active
+
 ## [0.13.0] - 2026-03-15
 
 ### Features
