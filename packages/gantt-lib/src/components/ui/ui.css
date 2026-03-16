@@ -322,7 +322,8 @@
   cursor: default;
   letter-spacing: 0.05em;
   text-align: center;
-  padding: 3px 4px;
+  height: 28px;
+  padding: 0 4px;
 }
 
 .gantt-datepicker-date-input::selection {
@@ -331,16 +332,19 @@
 
 .gantt-datepicker-shift-btn {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: inherit;
   font-size: 0.75rem;
   font-weight: 500;
-  padding: 3px 6px;
+  padding: 0 7px;
+  height: 28px;
   border: none;
   border-radius: 4px;
   background: var(--gantt-calendar-day-hover, rgba(0,0,0,0.07));
   color: var(--gantt-calendar-text);
   cursor: pointer;
-  line-height: 1;
 }
 
 .gantt-datepicker-shift-btn:hover {
