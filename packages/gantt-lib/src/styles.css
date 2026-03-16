@@ -8,7 +8,7 @@
   /* Grid Colors */
   --gantt-grid-line-color: #e0e0e0;
   --gantt-cell-background: #ffffff;
-  --gantt-row-hover-background: #f8f9fa;
+  --gantt-row-hover-background: #f6f6f7;
 
   /* Dimensions */
   --gantt-row-height: 30px;
