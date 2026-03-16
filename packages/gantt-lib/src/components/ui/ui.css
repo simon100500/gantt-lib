@@ -302,16 +302,17 @@
 .gantt-datepicker-input-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 6px 8px 6px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--gantt-input-border);
 }
 
 .gantt-datepicker-date-input {
-  flex: 1;
-  min-width: 0;
+  width: 74px;
+  flex-shrink: 0;
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   background: var(--gantt-input-bg, transparent);
   border: 1px solid var(--gantt-input-border);
@@ -321,7 +322,7 @@
   cursor: default;
   letter-spacing: 0.05em;
   text-align: center;
-  padding: 3px 6px;
+  padding: 3px 4px;
 }
 
 .gantt-datepicker-date-input::selection {
@@ -334,15 +335,15 @@
   font-size: 0.75rem;
   font-weight: 500;
   padding: 3px 6px;
-  border: 1px solid var(--gantt-input-border);
+  border: none;
   border-radius: 4px;
-  background: transparent;
+  background: var(--gantt-calendar-day-hover, rgba(0,0,0,0.07));
   color: var(--gantt-calendar-text);
   cursor: pointer;
   line-height: 1;
 }
 
 .gantt-datepicker-shift-btn:hover {
-  background: var(--gantt-calendar-day-hover);
+  background: var(--gantt-input-border, rgba(0,0,0,0.15));
 }
 
