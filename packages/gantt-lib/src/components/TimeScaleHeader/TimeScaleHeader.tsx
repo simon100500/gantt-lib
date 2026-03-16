@@ -88,11 +88,50 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
     [monthBlocks, dayWidth]
   );
 
+  // Separator positions — same Math.round formula as GridBackground to guarantee pixel alignment
+  const separators = useMemo(() => {
+    const result: Array<{ x: number; isThick: boolean }> = [];
+    if (viewMode === 'day') {
+      for (let i = 1; i < days.length; i++) {
+        if (days[i].getUTCDate() === 1) {
+          result.push({ x: Math.round(i * dayWidth), isThick: true });
+        }
+      }
+    } else if (viewMode === 'week') {
+      let dayIndex = 0;
+      for (let i = 0; i < weekBlocks.length; i++) {
+        if (i > 0) {
+          const isMonth = weekBlocks[i - 1].startDate.getUTCMonth() !== weekBlocks[i].startDate.getUTCMonth();
+          result.push({ x: Math.round(dayIndex * dayWidth), isThick: isMonth });
+        }
+        dayIndex += weekBlocks[i].days;
+      }
+    } else if (viewMode === 'month') {
+      let dayIndex = 0;
+      for (let i = 0; i < monthBlocks.length; i++) {
+        if (i > 0) {
+          result.push({ x: Math.round(dayIndex * dayWidth), isThick: monthBlocks[i].startDate.getUTCMonth() === 0 });
+        }
+        dayIndex += monthBlocks[i].days;
+      }
+    }
+    return result;
+  }, [days, weekBlocks, monthBlocks, dayWidth, viewMode]);
+
   return (
     <div
       className="gantt-tsh-header"
-      style={{ height: `${headerHeight}px` }}
+      style={{ height: `${headerHeight}px`, position: 'relative' }}
     >
+      {/* Separator lines — pixel-aligned with GridBackground */}
+      {separators.map((sep, i) => (
+        <div
+          key={`sep-${i}`}
+          className={`gantt-tsh-separator${sep.isThick ? ' gantt-tsh-separator--thick' : ''}`}
+          style={{ left: `${sep.x}px` }}
+        />
+      ))}
+
       {/* Month row - top */}
       <div
         className="gantt-tsh-monthRow"
@@ -158,7 +197,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
             return (
               <div
                 key={`week-${index}`}
-                className={`gantt-tsh-dayCell gantt-tsh-weekCell${isMonthBoundary ? ' gantt-tsh-monthBoundary' : ''}`}
+                className="gantt-tsh-dayCell gantt-tsh-weekCell"
               >
                 <span className="gantt-tsh-dayLabel">
                   {showDate ? String(block.startDate.getUTCDate()).padStart(2, '0') : ''}
@@ -175,7 +214,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
             return (
               <div
                 key={`mblock-${index}`}
-                className={`gantt-tsh-dayCell gantt-tsh-weekCell${isYearBoundary ? ' gantt-tsh-monthBoundary' : ''}`}
+                className="gantt-tsh-dayCell gantt-tsh-weekCell"
               >
                 <span className="gantt-tsh-dayLabel">
                   {showLabel
@@ -198,7 +237,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
               day.getUTCMonth() === now.getMonth() &&
               day.getUTCDate() === now.getDate();
             return (
-              <div key={`day-${index}`} className={`gantt-tsh-dayCell ${isWeekend ? 'gantt-tsh-weekendDay' : ''} ${isMonthBoundary ? 'gantt-tsh-monthBoundary' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''}`}>
+              <div key={`day-${index}`} className={`gantt-tsh-dayCell ${isWeekend ? 'gantt-tsh-weekendDay' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''}`}>
                 <span className="gantt-tsh-dayLabel">{format(day, 'd')}</span>
               </div>
             );

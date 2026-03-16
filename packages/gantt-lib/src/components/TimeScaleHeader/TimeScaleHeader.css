@@ -24,14 +24,9 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: #1f2937;
-  border-left: var(--gantt-month-separator-width, 2px) solid var(--gantt-month-separator-color, #a1a1a1);
   text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-}
-
-.gantt-tsh-monthCell:first-child {
-  border-left: none;
 }
 
 /* Day row (bottom row) */
@@ -47,8 +42,19 @@
   box-sizing: border-box;
 }
 
-.gantt-tsh-monthBoundary {
-  border-left: var(--gantt-month-separator-width, 2px) solid var(--gantt-month-separator-color, #a1a1a1);
+/* Separator divs — absolutely positioned, pixel-aligned with GridBackground */
+.gantt-tsh-separator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--gantt-week-separator-color, #e5e7eb);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gantt-tsh-separator--thick {
+  background-color: var(--gantt-month-separator-color, #a1a1a1);
 }
 
 .gantt-tsh-dayLabel {
@@ -81,14 +87,4 @@
   justify-content: flex-start;
   padding-left: 0.5rem;
   box-sizing: border-box;
-  border-left: 1px solid #e5e7eb;
-}
-
-.gantt-tsh-weekCell:first-child {
-  border-left: none;
-}
-
-/* Month boundary overrides week separator with thicker line */
-.gantt-tsh-weekCell.gantt-tsh-monthBoundary {
-  border-left: var(--gantt-month-separator-width, 2px) solid var(--gantt-month-separator-color, #a1a1a1) !important;
 }
