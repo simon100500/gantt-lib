@@ -308,13 +308,13 @@
 }
 
 .gantt-datepicker-date-input {
-  flex: 1;
-  min-width: 0;
+  width: 74px;
+  flex-shrink: 0;
   font-family: inherit;
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
-  background: var(--gantt-input-bg, transparent);
-  border: 1px solid var(--gantt-input-border);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 4px;
   outline: none;
   color: var(--gantt-input-text);
@@ -325,12 +325,16 @@
   padding: 0 4px;
 }
 
+.gantt-datepicker-date-input:focus {
+  border-color: var(--gantt-input-border);
+}
+
 .gantt-datepicker-date-input::selection {
   background: rgba(59, 130, 246, 0.25);
 }
 
 .gantt-datepicker-shift-btn {
-  flex-shrink: 0;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
