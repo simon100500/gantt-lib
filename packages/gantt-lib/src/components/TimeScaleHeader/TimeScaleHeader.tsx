@@ -178,7 +178,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
               >
                 <span className="gantt-tsh-dayLabel">
                   {showLabel
-                    ? block.startDate.toLocaleString('en', { month: 'short' })
+                    ? (() => { const s = block.startDate.toLocaleString('ru-RU', { month: 'long', timeZone: 'UTC' }); return s.charAt(0).toUpperCase() + s.slice(1); })()
                     : ''}
                 </span>
               </div>
