@@ -489,7 +489,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-15 - Completed quick task 102: крась название работы (подпись справа от полосы) для родителя в тот же цвет что и полоса
+Last activity: 2026-03-16 - Completed quick task 260316-m0r: Добавить представление "месяц" (viewMode='month')
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -823,6 +823,7 @@ None yet.
 | 102 | крась название работы (подпись справа от полосы) для родителя в тот же цвет что и полоса | 2026-03-15 | ff4e769 | [102-color-parent-task-name-as-bar](./quick/102-color-parent-task-name-as-bar/) |
 | 260316-31a | убрать лишние логи website:dev из консоли | 2026-03-15 | 4759946 | [260316-31a-website-dev](./quick/260316-31a-website-dev/) |
 | 260316-j1w | дополни компонент календаря полем ввода даты + исправить перехват клавиш в TaskListRow | 2026-03-16 | a3c0660 | [260316-j1w-input-d-projects-gantt-lib-planning-exam](./quick/260316-j1w-input-d-projects-gantt-lib-planning-exam/) |
+| 260316-m0r | Добавить представление "месяц" (viewMode='month', шапка год/месяц, линии года/месяца) | 2026-03-16 | 04c58bc | [260316-m0r-month-view-mode](./quick/260316-m0r-month-view-mode/) |
 
 ## Session Continuity
 
