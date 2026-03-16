@@ -656,16 +656,57 @@ function handleGlobalMouseMove(e: MouseEvent) {
           }
         }
 
-        console.log(`   overrides after: ${Array.from(overrides.keys()).join(', ')}`);
+        // Final pass: sync parents of ALL cascaded tasks in overrides
+        let pSyncChanged = true;
+        let pSyncIter = 0;
+        while (pSyncChanged && pSyncIter < 10) {
+          pSyncChanged = false;
+          pSyncIter++;
+          for (const [taskId] of overrides) {
+            const task = allTasks.find(t => t.id === taskId);
+            const pid = task ? (task as any).parentId as string | undefined : undefined;
+            if (!pid) continue;
+            const parentTask = allTasks.find(t => t.id === pid);
+            if (!parentTask || parentTask.locked) continue;
+            const children = getChildren(pid, allTasks);
+            if (children.length === 0) continue;
 
-        // DEBUG: Final overrides snapshot
-        console.log('📸 [FINAL SNAPSHOT] All overrides:');
-        overrides.forEach((v, k) => {
-          const task = allTasks.find(t => t.id === k);
-          const startDay = Math.round(v.left / activeDrag.dayWidth);
-          const endDay = Math.round((v.left + v.width) / activeDrag.dayWidth) - 1;
-          console.log(`   ${k} (${task?.name || 'unknown'}): day ${startDay}-${endDay} (left=${v.left}, width=${v.width})`);
-        });
+            let minS = Infinity;
+            let maxE = -Infinity;
+            for (const child of children) {
+              if (overrides.has(child.id)) {
+                const ov = overrides.get(child.id)!;
+                minS = Math.min(minS, Math.round(ov.left / activeDrag.dayWidth));
+                maxE = Math.max(maxE, Math.round((ov.left + ov.width) / activeDrag.dayWidth) - 1);
+              } else {
+                const cs = new Date(child.startDate as string);
+                const ce = new Date(child.endDate as string);
+                const cso = Math.round(
+                  (Date.UTC(cs.getUTCFullYear(), cs.getUTCMonth(), cs.getUTCDate()) -
+                    Date.UTC(activeDrag.monthStart.getUTCFullYear(), activeDrag.monthStart.getUTCMonth(), activeDrag.monthStart.getUTCDate()))
+                  / (24 * 60 * 60 * 1000)
+                );
+                const ceo = Math.round(
+                  (Date.UTC(ce.getUTCFullYear(), ce.getUTCMonth(), ce.getUTCDate()) -
+                    Date.UTC(activeDrag.monthStart.getUTCFullYear(), activeDrag.monthStart.getUTCMonth(), activeDrag.monthStart.getUTCDate()))
+                  / (24 * 60 * 60 * 1000)
+                );
+                minS = Math.min(minS, cso);
+                maxE = Math.max(maxE, ceo);
+              }
+            }
+
+            if (minS !== Infinity) {
+              const npl = Math.round(minS * activeDrag.dayWidth);
+              const npw = Math.round((maxE - minS + 1) * activeDrag.dayWidth);
+              const prev = overrides.get(pid);
+              if (!prev || prev.left !== npl || prev.width !== npw) {
+                overrides.set(pid, { left: npl, width: npw });
+                pSyncChanged = true;
+              }
+            }
+          }
+        }
 
         activeDrag.onCascadeProgress(overrides);
       }
@@ -1002,14 +1043,59 @@ function handleGlobalMouseMove(e: MouseEvent) {
         }
       }
 
-      // DEBUG: Final snapshot
-      console.log('📸 [FINAL SNAPSHOT CHILD DRAG]');
-      overrides.forEach((v, k) => {
-        const task = allTasks.find(t => t.id === k);
-        const startDay = Math.round(v.left / dayWidth);
-        const endDay = Math.round((v.left + v.width) / dayWidth) - 1;
-        console.log(`   ${k} (${task?.name || 'unknown'}): day ${startDay}-${endDay}`);
-      });
+      // Final pass: sync parents of ALL tasks in overrides
+      // Cascaded tasks (e.g. g3-1 shifted as successor of g2) may have parents
+      // (e.g. g3) that need to update their bounds in real-time.
+      let parentSyncChanged = true;
+      let parentSyncIterations = 0;
+      while (parentSyncChanged && parentSyncIterations < 10) {
+        parentSyncChanged = false;
+        parentSyncIterations++;
+        for (const [taskId] of overrides) {
+          const task = allTasks.find(t => t.id === taskId);
+          const pid = task ? (task as any).parentId as string | undefined : undefined;
+          if (!pid) continue;
+          const parentTask = allTasks.find(t => t.id === pid);
+          if (!parentTask || parentTask.locked) continue;
+          const children = getChildren(pid, allTasks);
+          if (children.length === 0) continue;
+
+          let minStart = Infinity;
+          let maxEnd = -Infinity;
+          for (const child of children) {
+            if (overrides.has(child.id)) {
+              const ov = overrides.get(child.id)!;
+              minStart = Math.min(minStart, Math.round(ov.left / dayWidth));
+              maxEnd = Math.max(maxEnd, Math.round((ov.left + ov.width) / dayWidth) - 1);
+            } else {
+              const cs = new Date(child.startDate as string);
+              const ce = new Date(child.endDate as string);
+              const cso = Math.round(
+                (Date.UTC(cs.getUTCFullYear(), cs.getUTCMonth(), cs.getUTCDate()) -
+                  Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                / (24 * 60 * 60 * 1000)
+              );
+              const ceo = Math.round(
+                (Date.UTC(ce.getUTCFullYear(), ce.getUTCMonth(), ce.getUTCDate()) -
+                  Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate()))
+                / (24 * 60 * 60 * 1000)
+              );
+              minStart = Math.min(minStart, cso);
+              maxEnd = Math.max(maxEnd, ceo);
+            }
+          }
+
+          if (minStart !== Infinity) {
+            const newPLeft = Math.round(minStart * dayWidth);
+            const newPWidth = Math.round((maxEnd - minStart + 1) * dayWidth);
+            const prev = overrides.get(pid);
+            if (!prev || prev.left !== newPLeft || prev.width !== newPWidth) {
+              overrides.set(pid, { left: newPLeft, width: newPWidth });
+              parentSyncChanged = true;
+            }
+          }
+        }
+      }
 
       activeDrag.onCascadeProgress(overrides);
     }
