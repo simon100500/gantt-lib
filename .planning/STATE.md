@@ -5,7 +5,7 @@ milestone_name: milestone
 status: in_progress
 stopped_at: "Completed quick-260316-wzp: calendar font inherit for Roboto"
 last_updated: "2026-03-16T20:46:03.924Z"
-last_activity: "2026-03-16 - Completed quick task 260316-n70: tooltip на чипе связи - cherry pick из ветки tooltips"
+last_activity: "2026-03-16 - Completed quick task 260316-wzp: передай в компонент календаря тоже глобальный шрифт (у нас Roboto)"
 progress:
   total_phases: 20
   completed_phases: 19
@@ -822,6 +822,7 @@ None yet.
 | 48 | Unified DepChip component: same click-to-select + hover-to-show-trash behavior in cell and popover | 2026-03-03 | acb0533 | [48-unified-dep-chip](./quick/48-unified-dep-chip/) |
 | 49 | Replace dep type labels with SVG icons in chips and header type-switcher | 2026-03-03 | d4dd82e | [49-replace-dep-type-labels-with-svg-icons](./quick/49-replace-dep-type-labels-with-svg-icons/) |
 | 50 | Dep chips show lag (+N/-N) instead of task index; icon-only when lag=0 | 2026-03-03 | 32a817e | [50-dep-chips-show-lag-instead-of-task-id-hi](./quick/50-dep-chips-show-lag-instead-of-task-id-hi/) |
+| 260316-wzp | передай в компонент календаря тоже глобальный шрифт (у нас Roboto) | 2026-03-16 | cebec72 | [260316-wzp-roboto](./quick/260316-wzp-roboto/) |
 | 51 | Fix FS lag off-by-one: ends today + starts tomorrow = lag 0 (was +1) | 2026-03-03 | 6aaf1ba | [51-fix-fs-lag-off-by-one-stored-lag-and-cal](./quick/51-fix-fs-lag-off-by-one-stored-lag-and-cal/) |
 | 52 | consolidate dep icon definitions into single shared location | 2026-03-03 | 7ad62a3 | [52-consolidate-dep-icon-definitions-into-si](./quick/52-consolidate-dep-icon-definitions-into-si/) |
 | 53 | add link type labels to dep type menu in table header | 2026-03-03 | e2b3eda | [53-add-link-type-labels-to-dep-type-menu-in](./quick/53-add-link-type-labels-to-dep-type-menu-in/) |
