@@ -296,7 +296,7 @@ const DepChip: React.FC<DepChipProps> = ({
   const effectiveLag = lag ?? 0;
 
   // Derive action verb, preWord and afterWhat (sign-dependent for FS/FF/SS)
-  const actionVerb = (dep.type === 'FS' || dep.type === 'SS') ? 'Начать' : 'Завершить';
+  const actionVerb = (dep.type === 'FS' || dep.type === 'SS') ? 'начать' : 'завершить';
   const zeroPlaceholder = dep.type === 'SF' ? 'чётко' : dep.type === 'FF' ? 'вместе' : dep.type === 'SS' ? 'вместе' : 'сразу';
   let afterWhat: string;
   let preWord: string | null = null;
