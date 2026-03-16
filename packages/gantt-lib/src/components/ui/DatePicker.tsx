@@ -45,6 +45,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const dateInputRef = useRef<HTMLInputElement>(null);
+  // Refs для синхронного отслеживания позиции — не зависят от DOM/rAF
+  const segIdxRef = useRef(0);   // текущий сегмент (0=day, 1=month, 2=year)
+  const charPosRef = useRef(0);  // позиция внутри сегмента (0 или 1)
 
   // Parse ISO string to Date for calendar
   const selectedDate: Date | undefined = (() => {
@@ -68,32 +71,42 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     }
   }, [value]);
 
+  // Выделить сегмент по индексу (визуально)
+  const selectSegByIdx = useCallback((idx: number) => {
+    if (!dateInputRef.current) return;
+    const seg = segments[idx] ?? segments[0];
+    dateInputRef.current.setSelectionRange(seg.start, seg.end);
+  }, []);
+
   // Auto-focus input when popup opens
   useEffect(() => {
     if (open) {
       setTimeout(() => {
         if (dateInputRef.current) {
+          segIdxRef.current = 0;
+          charPosRef.current = 0;
           dateInputRef.current.focus();
-          selectSegment(0);
+          selectSegByIdx(0);
         }
       }, 50);
     }
-  }, [open]);
-
-  const selectSegment = (pos: number) => {
-    if (!dateInputRef.current) return;
-    const segment = segments.find(s => pos >= s.start && pos <= s.end) || segments[0];
-    dateInputRef.current.setSelectionRange(segment.start, segment.end);
-  };
+  }, [open, selectSegByIdx]);
 
   const handleFocus = () => {
-    setTimeout(() => selectSegment(0), 0);
+    setTimeout(() => {
+      segIdxRef.current = 0;
+      charPosRef.current = 0;
+      selectSegByIdx(0);
+    }, 0);
   };
 
   const handleMouseDown = () => {
     setTimeout(() => {
-      const pos = dateInputRef.current?.selectionStart || 0;
-      selectSegment(pos);
+      const pos = dateInputRef.current?.selectionStart ?? 0;
+      const idx = segments.findIndex(s => pos >= s.start && pos <= s.end);
+      segIdxRef.current = idx >= 0 ? idx : 0;
+      charPosRef.current = 0;
+      selectSegByIdx(segIdxRef.current);
     }, 0);
   };
 
@@ -126,115 +139,110 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!dateInputRef.current) return;
-    const { selectionStart, selectionEnd, value: inputVal } = dateInputRef.current;
-    const pos = selectionStart ?? 0;
-    const segmentIndex = segments.findIndex(s => pos >= s.start && pos <= s.end);
-    const currentSegment = segments[segmentIndex] ?? segments[0];
+    const { value: inputVal } = dateInputRef.current;
+
+    // Читаем сегмент из рефа — всегда актуально, даже при быстром вводе
+    const segIdx = segIdxRef.current;
+    const seg = segments[segIdx] ?? segments[0];
 
     if (e.key === 'Tab') return;
 
     if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       setOpen(false);
       return;
     }
 
     if (e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       setOpen(false);
       return;
     }
 
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      e.stopPropagation();
-      const baseDate = selectedDate ?? new Date();
-      let newDate = baseDate;
-      if (currentSegment.label === 'day') {
-        newDate = e.key === 'ArrowUp' ? addDays(baseDate, 1) : subDays(baseDate, 1);
-      } else if (currentSegment.label === 'month') {
-        newDate = e.key === 'ArrowUp' ? addMonths(baseDate, 1) : subMonths(baseDate, 1);
-      } else if (currentSegment.label === 'year') {
-        newDate = e.key === 'ArrowUp' ? addYears(baseDate, 1) : subYears(baseDate, 1);
-      }
+      e.preventDefault(); e.stopPropagation();
+      const base = selectedDate ?? new Date();
+      let newDate = base;
+      if (seg.label === 'day')   newDate = e.key === 'ArrowUp' ? addDays(base, 1)   : subDays(base, 1);
+      if (seg.label === 'month') newDate = e.key === 'ArrowUp' ? addMonths(base, 1) : subMonths(base, 1);
+      if (seg.label === 'year')  newDate = e.key === 'ArrowUp' ? addYears(base, 1)  : subYears(base, 1);
+      charPosRef.current = 0;
       updateFromDate(newDate);
-      requestAnimationFrame(() => selectSegment(currentSegment.start));
+      requestAnimationFrame(() => selectSegByIdx(segIdx));
       return;
     }
 
     if (e.key === 'Backspace' || e.key === 'Delete') {
-      e.preventDefault();
-      e.stopPropagation();
-      const newValue = inputVal.split('');
-      for (let i = currentSegment.start; i < currentSegment.end; i++) {
-        newValue[i] = '0';
-      }
-      setInputValue(newValue.join(''));
-      requestAnimationFrame(() => selectSegment(currentSegment.start));
+      e.preventDefault(); e.stopPropagation();
+      const chars = inputVal.split('');
+      for (let i = seg.start; i < seg.end; i++) chars[i] = '0';
+      charPosRef.current = 0;
+      setInputValue(chars.join(''));
+      requestAnimationFrame(() => selectSegByIdx(segIdx));
       return;
     }
 
     if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      e.stopPropagation();
-      const next = segments[segmentIndex + 1] || segments[0];
-      selectSegment(next.start);
+      e.preventDefault(); e.stopPropagation();
+      const next = segIdx + 1 < segments.length ? segIdx + 1 : 0;
+      segIdxRef.current = next;
+      charPosRef.current = 0;
+      selectSegByIdx(next);
       return;
     }
 
     if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      e.stopPropagation();
-      const prev = segments[segmentIndex - 1] || segments[segments.length - 1];
-      selectSegment(prev.start);
+      e.preventDefault(); e.stopPropagation();
+      const prev = segIdx - 1 >= 0 ? segIdx - 1 : segments.length - 1;
+      segIdxRef.current = prev;
+      charPosRef.current = 0;
+      selectSegByIdx(prev);
       return;
     }
 
     if (/^\d$/.test(e.key)) {
-      e.preventDefault();
-      e.stopPropagation();
-      const newValue = inputVal.split('');
-      let charIndex = pos;
+      e.preventDefault(); e.stopPropagation();
+      const charPos = charPosRef.current;
+      const charIndex = seg.start + charPos;
+      const chars = inputVal.split('');
 
-      const isFullSelected = ((selectionEnd ?? 0) - pos) >= (currentSegment.end - currentSegment.start);
-      if (isFullSelected || charIndex === currentSegment.start) {
-        charIndex = currentSegment.start;
-        for (let i = currentSegment.start + 1; i < currentSegment.end; i++) {
-          newValue[i] = '0';
-        }
+      // На первой позиции сегмента — сбрасываем вторую цифру
+      if (charPos === 0) {
+        for (let i = seg.start + 1; i < seg.end; i++) chars[i] = '0';
       }
+      chars[charIndex] = e.key;
 
-      const tempValue = [...newValue];
-      tempValue[charIndex] = e.key;
-      const segmentString = tempValue.slice(currentSegment.start, currentSegment.end).join('');
-      const segmentValue = parseInt(segmentString, 10);
+      const segStr = chars.slice(seg.start, seg.end).join('');
+      const segVal = parseInt(segStr, 10);
 
-      if (currentSegment.label === 'month' && charIndex === currentSegment.start && parseInt(e.key) > 1) return;
-      if (currentSegment.label === 'day' && charIndex === currentSegment.start && parseInt(e.key) > 3) return;
-      if (segmentValue > currentSegment.max) return;
+      if (seg.label === 'month' && charPos === 0 && parseInt(e.key) > 1) return;
+      if (seg.label === 'day'   && charPos === 0 && parseInt(e.key) > 3) return;
+      if (segVal > seg.max) return;
 
-      const updatedValue = tempValue.join('');
-      setInputValue(updatedValue);
+      const updated = chars.join('');
+      setInputValue(updated);
 
-      const nextCharInSegment = charIndex + 1;
-      if (nextCharInSegment < currentSegment.end) {
+      const segLen = seg.end - seg.start;
+      if (charPos + 1 < segLen) {
+        // Ещё не заполнили сегмент — двигаемся внутри
+        charPosRef.current = charPos + 1;
         requestAnimationFrame(() => {
-          dateInputRef.current?.setSelectionRange(nextCharInSegment, currentSegment.end);
+          dateInputRef.current?.setSelectionRange(charIndex + 1, seg.end);
         });
       } else {
-        const nextSegment = segments[segmentIndex + 1];
-        if (nextSegment) requestAnimationFrame(() => selectSegment(nextSegment.start));
-        else requestAnimationFrame(() => selectSegment(currentSegment.start));
+        // Сегмент заполнен — переходим к следующему
+        const nextIdx = segIdx + 1 < segments.length ? segIdx + 1 : segIdx;
+        segIdxRef.current = nextIdx;
+        charPosRef.current = 0;
+        requestAnimationFrame(() => selectSegByIdx(nextIdx));
       }
 
-      const parsedDate = parse(updatedValue, 'dd.MM.yy', new Date());
-      if (isValid(parsedDate) && !updatedValue.includes('00.00')) {
-        updateFromDate(parsedDate);
+      const parsed = parse(updated, 'dd.MM.yy', new Date());
+      if (isValid(parsed) && !updated.includes('00.00')) {
+        updateFromDate(parsed);
       }
     }
-  }, [selectedDate, updateFromDate]);
+  }, [selectedDate, updateFromDate, selectSegByIdx]);
 
   return (
     <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
