@@ -810,11 +810,20 @@ function handleGlobalMouseMove(e: MouseEvent) {
         overrides.set(chainTask.id, { left: chainLeft, width: chainWidth });
       }
 
+      // CRITICAL FIX: Add dragged child to overrides BEFORE parent sync
+      // When dragging a child, the draggedChild itself is NOT in activeChain
+      // (activeChain = cascadeChain (successors) + hierarchyChain (parent))
+      // Without this, parent sync uses the child's original position instead of newLeft/newWidth
+      if (!overrides.has(draggedTaskId)) {
+        overrides.set(draggedTaskId, { left: newLeft, width: newWidth });
+      }
+
       // DEBUG: Log for child drag
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log(`🎬 [CHILD DRAG] Task: ${activeDrag.taskId}`);
       console.log(`   deltaDays: ${deltaDays}`);
       console.log(`   hierarchyChain: ${activeDrag.hierarchyChain.map(t => `${t.id}(${t.name})`).join(', ')}`);
+      console.log(`   draggedChild added to overrides: ${draggedTaskId} (left=${newLeft}, width=${newWidth})`);
 
       // Cascade parent sync for hierarchy chain
       // When a child task moves, its parent position may need to update
@@ -832,16 +841,22 @@ function handleGlobalMouseMove(e: MouseEvent) {
       }
 
       // Also check hierarchy chain for parents
+      console.log(`   Checking hierarchyChain (${activeDrag.hierarchyChain.length} tasks):`);
       for (const hTask of activeDrag.hierarchyChain) {
         const pid = (hTask as any).parentId as string | undefined;
+        const isParent = isTaskParent(hTask.id, allTasks);
+        const inOverrides = overrides.has(hTask.id);
+        console.log(`   - ${hTask.id} (${hTask.name}): parentId=${pid}, isParent=${isParent}, inOverrides=${inOverrides}`);
+
         if (pid && !cascadeParentIds.has(pid) && !overrides.has(pid)) {
           cascadeParentIds.add(pid);
+          console.log(`     Added parent ${pid} to cascadeParentIds`);
         }
-        // IMPORTANT: Also add the hierarchy chain task itself if it's a parent!
-        // When dragging g2-5, g2 (the parent) is in hierarchyChain but NOT in overrides
-        // We need to add g2 to cascadeParentIds so its successors update
-        if (isTaskParent(hTask.id, allTasks) && !cascadeParentIds.has(hTask.id) && !overrides.has(hTask.id)) {
+        // IMPORTANT: Add hierarchy chain parent tasks to cascadeParentIds
+        // even if they're already in overrides - we need to cascade their successors!
+        if (isParent && !cascadeParentIds.has(hTask.id)) {
           cascadeParentIds.add(hTask.id);
+          console.log(`     Added hTask itself ${hTask.id} to cascadeParentIds (is parent, inOverrides=${inOverrides})`);
         }
       }
 
@@ -1311,10 +1326,103 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
         // Phase 19: Merge hierarchy chain with dependency chain
         const currentTask = allTasks.find(t => t.id === taskId);
+
+        // CRITICAL FIX: Child drag - include parent and parent's successors in cascade
+        // When dragging a child, the parent's dates must update to reflect the child's new position
+        // AND the parent's successors must cascade along with the parent
+        let hierarchyCascadeTasks: Task[] = []; // Tasks that are already pre-calculated (don't apply deltaDays)
+
         if (currentTask && (currentTask as any).parentId) {
-          // This is a child task - check if parent is being dragged
-          // (Hierarchy chain is built when dragging starts, in handleMouseDown)
+          const parentId = (currentTask as any).parentId;
+          const parentTask = allTasks.find(t => t.id === parentId);
+
+          if (parentTask) {
+            // DEBUG: Log parent original dates
+            console.log(`🔧 [PARENT ORIGINAL] ${parentId}: ${parentTask.startDate} - ${parentTask.endDate}`);
+            console.log(`   newStartDate: ${newStartDate.toISOString()}`);
+            console.log(`   newEndDate: ${newEndDate.toISOString()}`);
+
+            // Build temporary children array with dragged child's NEW position
+            const siblings = getChildren(parentId, allTasks);
+            console.log(`   siblings (${siblings.length}): ${siblings.map(s => `${s.id}(${s.startDate})`).join(', ')}`);
+
+            const childrenWithNewPos = siblings.map(child => {
+              if (child.id === taskId) {
+                // Use NEW position for dragged child
+                console.log(`   ✏️  UPDATING ${child.id}: ${child.startDate} -> ${newStartDate.toISOString()}`);
+                return { ...child, startDate: newStartDate.toISOString(), endDate: newEndDate.toISOString() };
+              }
+              return child;
+            });
+
+            // Compute parent's NEW dates from children (including dragged child's new position)
+            const startDates = childrenWithNewPos.map(c => new Date(c.startDate));
+            const endDates = childrenWithNewPos.map(c => new Date(c.endDate));
+            const minTime = Math.min(...startDates.map(d => d.getTime()));
+            const maxTime = Math.max(...endDates.map(d => d.getTime()));
+
+            const parentNewStart = new Date(minTime);
+            const parentNewEnd = new Date(maxTime);
+
+            console.log(`   📊 PARENT COMPUTED: ${parentNewStart.toISOString()} - ${parentNewEnd.toISOString()}`);
+
+            // Calculate parent delta (how many days parent moved)
+            // Use endDelta since successors are constrained by parent's END date (FS dependency)
+            const origParentStart = new Date(parentTask.startDate as string);
+            const origParentEnd = new Date(parentTask.endDate as string);
+            const startDelta = Math.round((parentNewStart.getTime() - origParentStart.getTime()) / (24 * 60 * 60 * 1000));
+            const endDelta = Math.round((parentNewEnd.getTime() - origParentEnd.getTime()) / (24 * 60 * 60 * 1000));
+            const parentDeltaDays = endDelta; // FS successors follow parent's END
+
+            // Create updated parent task
+            const updatedParent = {
+              ...parentTask,
+              startDate: parentNewStart.toISOString(),
+              endDate: parentNewEnd.toISOString(),
+            };
+
+            console.log(`   ✅ UPDATED PARENT: ${updatedParent.id} (${updatedParent.startDate} - ${updatedParent.endDate})`);
+            hierarchyCascadeTasks.push(updatedParent);
+
+            // CRITICAL: Include parent's successors in cascade
+            // When parent moves, all its successors must move too
+            const parentSuccessors = getTransitiveCascadeChain(parentId, allTasks, ['FS', 'SS', 'FF', 'SF']);
+            const chainIds = new Set(chainForCompletion.map(t => t.id));
+
+            // CRITICAL FIX: Exclude parent's own children from parentSuccessors!
+            // getTransitiveCascadeChain includes children, but we already handle parent's date separately
+            // Including children with their original dates would overwrite the parent's computed date
+            const parentChildrenIds = new Set(siblings.map(c => c.id));
+
+            for (const parentSuccessor of parentSuccessors) {
+              // Skip parent's own children (they're already covered by parent's date update)
+              if (parentChildrenIds.has(parentSuccessor.id)) continue;
+              if (!chainIds.has(parentSuccessor.id) && !parentSuccessor.locked) {
+                // Apply parentDeltaDays to parent's successors
+                const pOrigStart = new Date(parentSuccessor.startDate as string);
+                const pOrigEnd = new Date(parentSuccessor.endDate as string);
+                const pNewStart = new Date(Date.UTC(
+                  pOrigStart.getUTCFullYear(),
+                  pOrigStart.getUTCMonth(),
+                  pOrigStart.getUTCDate() + parentDeltaDays
+                ));
+                const pNewEnd = new Date(Date.UTC(
+                  pOrigEnd.getUTCFullYear(),
+                  pOrigEnd.getUTCMonth(),
+                  pOrigEnd.getUTCDate() + parentDeltaDays
+                ));
+
+                hierarchyCascadeTasks.push({
+                  ...parentSuccessor,
+                  startDate: pNewStart.toISOString(),
+                  endDate: pNewEnd.toISOString(),
+                });
+                chainIds.add(parentSuccessor.id); // Mark as processed to avoid duplication
+              }
+            }
+          }
         }
+
         // Add hierarchy chain if this is a parent drag
         const hierarchyChildren = currentTask ? getChildren(taskId, allTasks) : [];
         if (hierarchyChildren.length > 0) {
@@ -1323,7 +1431,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
           chainForCompletion = [...chainForCompletion, ...uniqueHierarchyChildren];
         }
 
-        if (chainForCompletion.length > 0) {
+        if (chainForCompletion.length > 0 || hierarchyCascadeTasks.length > 0) {
           const cascadedTasks: Task[] = [
             {
               ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }),
@@ -1333,6 +1441,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
                 dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks),
               }),
             },
+            // Phase 19: Add hierarchy cascade tasks (parent + parent's successors) with pre-calculated dates
+            ...hierarchyCascadeTasks,
             ...chainForCompletion
               .filter(chainTask => !chainTask.locked) // Phase 11: skip locked tasks in cascade
               .map(chainTask => {
@@ -1347,6 +1457,14 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
               return { ...chainTask, startDate: newStart.toISOString(), endDate: newEnd.toISOString() };
             }),
           ];
+
+          // DEBUG: Cascade hierarchy completion log
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log(`🎯 [CASCADE COMPLETE] Task: ${taskId}`);
+          console.log(`   hierarchyCascadeTasks: ${hierarchyCascadeTasks.map(t => `${t.id} (${t.startDate} - ${t.endDate})`).join(', ')}`);
+          console.log(`   chainForCompletion: ${chainForCompletion.map(t => t.id).join(', ')}`);
+          console.log(`   Total cascadedTasks: ${cascadedTasks.length}`);
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
           onCascade(cascadedTasks);
           return; // Don't call onDragEnd — cascade covers the dragged task too
         }
