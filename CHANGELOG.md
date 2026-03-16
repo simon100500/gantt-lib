@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.0] - 2026-03-17
+
+### Features
+- Interactive dependency edit popover with keyboard lag input and ± buttons
+- Month view mode with "По месяцам" button on timeline
+- Cascading parent position updates during task drag operations
+- Cascade 100% progress to children when parent marked complete
+- Native tooltip on dependency chips showing dependency details
+- Task numbering by hierarchy level in task list
+- Close button in dependency edit popover
+- Fixed min-width for dependency chips to prevent layout shift
+
+### Fixes
+- Fix popover 3-line layout: task name / lag input / predecessor name
+- Fix lag calculation display for SS/SF link types at zero lag
+- Fix popover styling: unified font-size, color inheritance, proper spacing
+- Fix cascade parent sync during child drag operations
+- Fix month view styling: day width, year boundary lines, Russian month names
+- Fix header separator lines: thin in row 2 only, thick separators full-height
+- Fix dependency chip hover state and delete button positioning
+- Fix predecessor-side delete button label ("× удалить")
+
+### Style
+- Update popover colors and font weights for better visual hierarchy
+- Adjust chip min-width and center alignment
+- Improve grid border colors and separator visibility
+- Enhance task row hover state consistency
+
 ## [0.16.0] - 2026-03-16
 
 ### Features
