@@ -308,7 +308,7 @@
 }
 
 .gantt-datepicker-date-input {
-  width: 74px;
+  width: 90px;
   flex-shrink: 0;
   font-family: inherit;
   font-size: 0.875rem;
@@ -326,7 +326,8 @@
 }
 
 .gantt-datepicker-date-input:focus {
-  border-color: var(--gantt-input-border);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .gantt-datepicker-date-input::selection {
