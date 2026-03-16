@@ -301,67 +301,35 @@ const DepChip: React.FC<DepChipProps> = ({
       <PopoverContent className="gantt-tl-dep-edit-popover" portal={true} align="start">
         <div onClick={(e) => e.stopPropagation()}>
           <div className="gantt-tl-dep-edit-row">
-            <span className="gantt-tl-dep-edit-label">{actionVerb}</span>
-            {isSS ? (
-              effectiveLag === 0 ? (
-                <button
-                  type="button"
-                  className="gantt-tl-dep-edit-instant"
-                  onClick={() => handleLagChange(1)}
-                >
-                  сразу
-                </button>
-              ) : (
-                <>
-                  <span>через</span>
-                  <button
-                    type="button"
-                    className="gantt-tl-dep-edit-btn"
-                    onClick={() => handleLagChange(effectiveLag - 1)}
-                  >
-                    -
-                  </button>
-                  <span className="gantt-tl-dep-edit-value">{Math.abs(effectiveLag)}</span>
-                  <button
-                    type="button"
-                    className="gantt-tl-dep-edit-btn"
-                    onClick={() => handleLagChange(effectiveLag + 1)}
-                  >
-                    +
-                  </button>
-                  <span>дн.</span>
-                </>
-              )
+            {isSS && effectiveLag === 0 ? (
+              <span className="gantt-tl-dep-edit-zero">Вместе с началом</span>
             ) : (
               <>
-                <button
-                  type="button"
-                  className="gantt-tl-dep-edit-btn"
-                  onClick={() => handleLagChange(effectiveLag - 1)}
-                >
-                  -
-                </button>
-                {effectiveLag === 0 ? (
-                  <span className="gantt-tl-dep-edit-zero">{zeroLabel}</span>
+                <span className="gantt-tl-dep-edit-label">{actionVerb}</span>
+                {isSS ? (
+                  <>
+                    <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag - 1)}>-</button>
+                    <span className="gantt-tl-dep-edit-zero">через {Math.abs(effectiveLag)} дн.</span>
+                    <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag + 1)}>+</button>
+                  </>
                 ) : (
                   <>
-                    {preWord && <span>{preWord}</span>}
-                    <span className="gantt-tl-dep-edit-value">{Math.abs(effectiveLag)}</span>
-                    <span>дн.</span>
+                    <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag - 1)}>-</button>
+                    {effectiveLag === 0 ? (
+                      <span className="gantt-tl-dep-edit-zero">{zeroLabel}</span>
+                    ) : (
+                      <span className="gantt-tl-dep-edit-zero">
+                        {preWord ? `${preWord} ${Math.abs(effectiveLag)} дн.` : `${Math.abs(effectiveLag)} дн.`}
+                      </span>
+                    )}
+                    {!(dep.type === 'SF' && effectiveLag === 0) && (
+                      <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag + 1)}>+</button>
+                    )}
                   </>
                 )}
-                {!(dep.type === 'SF' && effectiveLag === 0) && (
-                  <button
-                    type="button"
-                    className="gantt-tl-dep-edit-btn"
-                    onClick={() => handleLagChange(effectiveLag + 1)}
-                  >
-                    +
-                  </button>
-                )}
+                <span>{afterWhat}</span>
               </>
             )}
-            <span>{afterWhat}</span>
           </div>
           <div className="gantt-tl-dep-edit-pred">{depName}</div>
           {!disableDependencyEditing && (
