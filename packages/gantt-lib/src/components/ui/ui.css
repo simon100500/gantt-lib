@@ -137,6 +137,7 @@
  * ========================================================= */
 
 .gantt-popover {
+  font-family: var(--gantt-font-family);
   background: var(--gantt-popover-bg);
   border: 1px solid var(--gantt-popover-border);
   border-radius: 8px;
