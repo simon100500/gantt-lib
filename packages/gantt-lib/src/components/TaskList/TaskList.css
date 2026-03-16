@@ -779,13 +779,15 @@
 }
 
 .gantt-tl-dep-edit-pred {
-  font-weight: 600;
+  font-weight: 500;
   color: #111827;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 160px;
+  max-width: 300px;
   font-size: 0.85rem;
+  margin-top: 8px;
+  margin-bottom: 10px;
 }
 
 .gantt-tl-dep-edit-divider {

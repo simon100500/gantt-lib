@@ -345,8 +345,8 @@ const DepChip: React.FC<DepChipProps> = ({
             )}
             {effectiveLag !== 0 && <span>д.</span>}
             <span>{afterWhat}</span>
-            <span className="gantt-tl-dep-edit-pred">{depName}</span>
           </div>
+          <div className="gantt-tl-dep-edit-pred">{depName}</div>
           {!disableDependencyEditing && (
             <>
               <hr className="gantt-tl-dep-edit-divider" />
