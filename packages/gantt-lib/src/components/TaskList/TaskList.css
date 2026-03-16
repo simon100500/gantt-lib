@@ -724,7 +724,7 @@
 }
 
 .gantt-tl-dep-edit-label {
-  /* action verb (Начать / Завершить) */
+  min-width: 8em;
 }
 
 .gantt-tl-dep-edit-btn {

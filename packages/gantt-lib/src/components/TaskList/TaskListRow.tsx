@@ -327,8 +327,7 @@ const DepChip: React.FC<DepChipProps> = ({
       <PopoverContent className="gantt-tl-dep-edit-popover" portal={true} align="start">
         <div onClick={(e) => e.stopPropagation()}>
           <div className="gantt-tl-dep-edit-row">
-            <span className="gantt-tl-dep-edit-label">{actionVerb}</span>
-            {preWord && <span>{preWord}</span>}
+            <span className="gantt-tl-dep-edit-label">{actionVerb}{preWord ? ` ${preWord}` : ''}</span>
             <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag - 1)}>−</button>
             <input
               type="number"
