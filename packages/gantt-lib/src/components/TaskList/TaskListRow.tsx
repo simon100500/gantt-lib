@@ -343,7 +343,7 @@ const DepChip: React.FC<DepChipProps> = ({
             {!(dep.type === 'SF' && effectiveLag === 0) && (
               <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag + 1)}>+</button>
             )}
-            <span>д.</span>
+            {effectiveLag !== 0 && <span>д.</span>}
             <span>{afterWhat}</span>
           </div>
           <div className="gantt-tl-dep-edit-pred">{depName}</div>
