@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { calculateSuccessorDate, getSuccessorChain, getTransitiveCascadeChain, recalculateIncomingLags, getChildren, isTaskParent, cascadeByLinks } from '../utils/dependencyUtils';
+import { calculateSuccessorDate, getSuccessorChain, getTransitiveCascadeChain, recalculateIncomingLags, getChildren, isTaskParent, cascadeByLinks, universalCascade, computeLagFromDates } from '../utils/dependencyUtils';
 
 /**
  * Get transitive closure of successors for cascading.
@@ -468,16 +468,20 @@ function handleGlobalMouseMove(e: MouseEvent) {
             const depOnParent = task.dependencies?.find(d => d.taskId === parentId);
             if (!depOnParent) continue;
 
-            // Calculate new position for successor
+            // Calculate new position for successor using effective lag from dates
+            const origStart = new Date(task.startDate as string);
+            const origEnd = new Date(task.endDate as string);
+            const parentOrigTask = allTasks.find(t => t.id === parentId);
+            const predOrigStart = parentOrigTask ? new Date(parentOrigTask.startDate as string) : parentStart;
+            const predOrigEnd   = parentOrigTask ? new Date(parentOrigTask.endDate   as string) : parentEnd;
+            const effectiveLag  = computeLagFromDates(depOnParent.type, predOrigStart, predOrigEnd, origStart, origEnd);
+
             const constraintDate = calculateSuccessorDate(
               parentStart,
               parentEnd,
               depOnParent.type,
-              depOnParent.lag ?? 0
+              effectiveLag
             );
-
-            const origStart = new Date(task.startDate as string);
-            const origEnd = new Date(task.endDate as string);
             const durationMs = origEnd.getTime() - origStart.getTime();
 
             let newStart: Date;
@@ -939,15 +943,21 @@ function handleGlobalMouseMove(e: MouseEvent) {
             const depOnParent = task.dependencies?.find(d => d.taskId === pid);
             if (!depOnParent) continue;
 
+            const origStart = new Date(task.startDate as string);
+            const origEnd = new Date(task.endDate as string);
+
+            // Use effective lag from dates, not stored dep.lag
+            const parentOrigTask = allTasks.find(t => t.id === pid);
+            const predOrigStart = parentOrigTask ? new Date(parentOrigTask.startDate as string) : parentStart;
+            const predOrigEnd   = parentOrigTask ? new Date(parentOrigTask.endDate   as string) : parentEnd;
+            const effectiveLag  = computeLagFromDates(depOnParent.type, predOrigStart, predOrigEnd, origStart, origEnd);
+
             const constraintDate = calculateSuccessorDate(
               parentStart,
               parentEnd,
               depOnParent.type,
-              depOnParent.lag ?? 0
+              effectiveLag
             );
-
-            const origStart = new Date(task.startDate as string);
-            const origEnd = new Date(task.endDate as string);
             const durationMs = origEnd.getTime() - origStart.getTime();
 
             let newStart: Date;
@@ -1253,221 +1263,30 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
     if (wasOwner) {
       if (!disableConstraints && onCascade && allTasks.length > 0) {
-        // Hard mode with onCascade: compute cascade and call onCascade
+        // Hard mode with onCascade: use universalCascade for all cases
+        // (parent drag, child drag, root task drag — all handled uniformly)
         const draggedTaskData = allTasks.find(t => t.id === taskId);
-        const parentDragCascade = draggedTaskData && isTaskParent(taskId, allTasks)
-          ? cascadeByLinks(taskId, newStartDate, newEndDate, allTasks)
-          : null;
 
-        if (parentDragCascade && parentDragCascade.length > 0) {
-          onCascade([
-            {
-              ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }),
-              startDate: newStartDate.toISOString(),
-              endDate: newEndDate.toISOString(),
-              ...(draggedTaskData?.dependencies && {
-                dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks),
-              }),
-            },
-            ...parentDragCascade,
-          ]);
+        const movedTask: Task = {
+          ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }),
+          startDate: newStartDate.toISOString(),
+          endDate: newEndDate.toISOString(),
+          ...(draggedTaskData?.dependencies && {
+            dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks),
+          }),
+        };
+
+        const cascadeResult = universalCascade(movedTask, newStartDate, newEndDate, allTasks);
+
+        if (cascadeResult.length > 0) {
+          onCascade([movedTask, ...cascadeResult]);
           return; // Don't call onDragEnd — cascade covers the dragged task too
         }
 
-        // CHANGE C: Dual-delta logic — compute from both start and end date changes
-        // Compute delta from startDate change (correct for move and resize-left)
-        const origStartMs = Date.UTC(
-          initialStartDate.getUTCFullYear(),
-          initialStartDate.getUTCMonth(),
-          initialStartDate.getUTCDate()
-        );
-        const newStartMs = Date.UTC(
-          newStartDate.getUTCFullYear(),
-          newStartDate.getUTCMonth(),
-          newStartDate.getUTCDate()
-        );
-        const deltaFromStart = Math.round((newStartMs - origStartMs) / (24 * 60 * 60 * 1000));
-
-        // Compute delta from endDate change (correct for resize-right)
-        const origEndMs = Date.UTC(
-          initialEndDate.getUTCFullYear(),
-          initialEndDate.getUTCMonth(),
-          initialEndDate.getUTCDate()
-        );
-        const newEndMs = Date.UTC(
-          newEndDate.getUTCFullYear(),
-          newEndDate.getUTCMonth(),
-          newEndDate.getUTCDate()
-        );
-        const deltaFromEnd = Math.round((newEndMs - origEndMs) / (24 * 60 * 60 * 1000));
-
-        // For resize-right: startDate unchanged, use endDate delta (FS successors follow end)
-        // For move and resize-left: use startDate delta (SS and FS-move successors follow start)
-        // Detect resize-right: startDate didn't change
-        const deltaDays = deltaFromStart === 0 ? deltaFromEnd : deltaFromStart;
-
-        // CHANGE D: Phase 8: get correct chain for completion based on what changed
-        // - resize-right (deltaFromStart === 0): only endDate changed → FS successors follow end
-        // - resize-left  (deltaFromStart !== 0, deltaFromEnd === 0): only startDate changed →
-        //     SS successors follow start; FS successors are anchored to predecessor's END which
-        //     is unchanged, so FS successors must NOT cascade on resize-left
-        // - move (deltaFromStart !== 0, deltaFromEnd !== 0): both dates shift equally →
-        //     both FS and SS successors follow
-        //
-        // FIX: For proper transitive closure in mixed link type chains (e.g., A--FS-->B--SS-->C),
-        // we use getTransitiveCascadeChain which includes cascaded tasks' successors regardless of link type.
-        // Phase 9: FF included in resize-right and move chains
-        const isResizeLeft = deltaFromStart !== 0 && deltaFromEnd === 0;
-        let chainForCompletion = deltaFromStart === 0
-          ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])               // resize-right: FS + FF
-          : isResizeLeft
-            ? getTransitiveCascadeChain(taskId, allTasks, ['SS', 'SF'])             // resize-left: SS + SF
-            : getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS', 'FF', 'SF']); // move: all types
-
-        // Phase 19: Merge hierarchy chain with dependency chain
-        const currentTask = allTasks.find(t => t.id === taskId);
-
-        // CRITICAL FIX: Child drag - include parent and parent's successors in cascade
-        // When dragging a child, the parent's dates must update to reflect the child's new position
-        // AND the parent's successors must cascade along with the parent
-        let hierarchyCascadeTasks: Task[] = []; // Tasks that are already pre-calculated (don't apply deltaDays)
-
-        if (currentTask && (currentTask as any).parentId) {
-          const parentId = (currentTask as any).parentId;
-          const parentTask = allTasks.find(t => t.id === parentId);
-
-          if (parentTask) {
-            // DEBUG: Log parent original dates
-            console.log(`🔧 [PARENT ORIGINAL] ${parentId}: ${parentTask.startDate} - ${parentTask.endDate}`);
-            console.log(`   newStartDate: ${newStartDate.toISOString()}`);
-            console.log(`   newEndDate: ${newEndDate.toISOString()}`);
-
-            // Build temporary children array with dragged child's NEW position
-            const siblings = getChildren(parentId, allTasks);
-            console.log(`   siblings (${siblings.length}): ${siblings.map(s => `${s.id}(${s.startDate})`).join(', ')}`);
-
-            const childrenWithNewPos = siblings.map(child => {
-              if (child.id === taskId) {
-                // Use NEW position for dragged child
-                console.log(`   ✏️  UPDATING ${child.id}: ${child.startDate} -> ${newStartDate.toISOString()}`);
-                return { ...child, startDate: newStartDate.toISOString(), endDate: newEndDate.toISOString() };
-              }
-              return child;
-            });
-
-            // Compute parent's NEW dates from children (including dragged child's new position)
-            const startDates = childrenWithNewPos.map(c => new Date(c.startDate));
-            const endDates = childrenWithNewPos.map(c => new Date(c.endDate));
-            const minTime = Math.min(...startDates.map(d => d.getTime()));
-            const maxTime = Math.max(...endDates.map(d => d.getTime()));
-
-            const parentNewStart = new Date(minTime);
-            const parentNewEnd = new Date(maxTime);
-
-            console.log(`   📊 PARENT COMPUTED: ${parentNewStart.toISOString()} - ${parentNewEnd.toISOString()}`);
-
-            // Calculate parent delta (how many days parent moved)
-            // Use endDelta since successors are constrained by parent's END date (FS dependency)
-            const origParentStart = new Date(parentTask.startDate as string);
-            const origParentEnd = new Date(parentTask.endDate as string);
-            const startDelta = Math.round((parentNewStart.getTime() - origParentStart.getTime()) / (24 * 60 * 60 * 1000));
-            const endDelta = Math.round((parentNewEnd.getTime() - origParentEnd.getTime()) / (24 * 60 * 60 * 1000));
-            const parentDeltaDays = endDelta; // FS successors follow parent's END
-
-            // Create updated parent task
-            const updatedParent = {
-              ...parentTask,
-              startDate: parentNewStart.toISOString(),
-              endDate: parentNewEnd.toISOString(),
-            };
-
-            console.log(`   ✅ UPDATED PARENT: ${updatedParent.id} (${updatedParent.startDate} - ${updatedParent.endDate})`);
-            hierarchyCascadeTasks.push(updatedParent);
-
-            // CRITICAL: Include parent's successors in cascade
-            // When parent moves, all its successors must move too
-            const parentSuccessors = getTransitiveCascadeChain(parentId, allTasks, ['FS', 'SS', 'FF', 'SF']);
-            const chainIds = new Set(chainForCompletion.map(t => t.id));
-
-            // CRITICAL FIX: Exclude parent's own children from parentSuccessors!
-            // getTransitiveCascadeChain includes children, but we already handle parent's date separately
-            // Including children with their original dates would overwrite the parent's computed date
-            const parentChildrenIds = new Set(siblings.map(c => c.id));
-
-            for (const parentSuccessor of parentSuccessors) {
-              // Skip parent's own children (they're already covered by parent's date update)
-              if (parentChildrenIds.has(parentSuccessor.id)) continue;
-              if (!chainIds.has(parentSuccessor.id) && !parentSuccessor.locked) {
-                // Apply parentDeltaDays to parent's successors
-                const pOrigStart = new Date(parentSuccessor.startDate as string);
-                const pOrigEnd = new Date(parentSuccessor.endDate as string);
-                const pNewStart = new Date(Date.UTC(
-                  pOrigStart.getUTCFullYear(),
-                  pOrigStart.getUTCMonth(),
-                  pOrigStart.getUTCDate() + parentDeltaDays
-                ));
-                const pNewEnd = new Date(Date.UTC(
-                  pOrigEnd.getUTCFullYear(),
-                  pOrigEnd.getUTCMonth(),
-                  pOrigEnd.getUTCDate() + parentDeltaDays
-                ));
-
-                hierarchyCascadeTasks.push({
-                  ...parentSuccessor,
-                  startDate: pNewStart.toISOString(),
-                  endDate: pNewEnd.toISOString(),
-                });
-                chainIds.add(parentSuccessor.id); // Mark as processed to avoid duplication
-              }
-            }
-          }
-        }
-
-        // Add hierarchy chain if this is a parent drag
-        const hierarchyChildren = currentTask ? getChildren(taskId, allTasks) : [];
-        if (hierarchyChildren.length > 0) {
-          const chainIds = new Set(chainForCompletion.map(t => t.id));
-          const uniqueHierarchyChildren = hierarchyChildren.filter(t => !chainIds.has(t.id));
-          chainForCompletion = [...chainForCompletion, ...uniqueHierarchyChildren];
-        }
-
-        if (chainForCompletion.length > 0 || hierarchyCascadeTasks.length > 0) {
-          const cascadedTasks: Task[] = [
-            {
-              ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }),
-              startDate: newStartDate.toISOString(),
-              endDate: newEndDate.toISOString(),
-              ...(draggedTaskData?.dependencies && {
-                dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks),
-              }),
-            },
-            // Phase 19: Add hierarchy cascade tasks (parent + parent's successors) with pre-calculated dates
-            ...hierarchyCascadeTasks,
-            ...chainForCompletion
-              .filter(chainTask => !chainTask.locked) // Phase 11: skip locked tasks in cascade
-              .map(chainTask => {
-              const origStart = new Date(chainTask.startDate as string);
-              const origEnd = new Date(chainTask.endDate as string);
-              const newStart = new Date(Date.UTC(
-                origStart.getUTCFullYear(), origStart.getUTCMonth(), origStart.getUTCDate() + deltaDays
-              ));
-              const newEnd = new Date(Date.UTC(
-                origEnd.getUTCFullYear(), origEnd.getUTCMonth(), origEnd.getUTCDate() + deltaDays
-              ));
-              return { ...chainTask, startDate: newStart.toISOString(), endDate: newEnd.toISOString() };
-            }),
-          ];
-
-          // DEBUG: Cascade hierarchy completion log
-          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          console.log(`🎯 [CASCADE COMPLETE] Task: ${taskId}`);
-          console.log(`   hierarchyCascadeTasks: ${hierarchyCascadeTasks.map(t => `${t.id} (${t.startDate} - ${t.endDate})`).join(', ')}`);
-          console.log(`   chainForCompletion: ${chainForCompletion.map(t => t.id).join(', ')}`);
-          console.log(`   Total cascadedTasks: ${cascadedTasks.length}`);
-          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          onCascade(cascadedTasks);
-          return; // Don't call onDragEnd — cascade covers the dragged task too
-        }
+        // No dependent tasks to cascade — still call onCascade with just the moved task
+        // so the state update is consistent
+        onCascade([movedTask]);
+        return;
       }
 
       // Soft mode OR hard mode with no FS successors: call onDragEnd
