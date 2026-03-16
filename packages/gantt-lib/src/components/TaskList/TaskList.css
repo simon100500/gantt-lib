@@ -786,6 +786,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 220px;
+  font-size: 0.95rem;
 }
 
 .gantt-tl-dep-edit-divider {

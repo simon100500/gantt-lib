@@ -337,13 +337,15 @@ const DepChip: React.FC<DepChipProps> = ({
                     <span>дн.</span>
                   </>
                 )}
-                <button
-                  type="button"
-                  className="gantt-tl-dep-edit-btn"
-                  onClick={() => handleLagChange(effectiveLag + 1)}
-                >
-                  +
-                </button>
+                {!(dep.type === 'SF' && effectiveLag === 0) && (
+                  <button
+                    type="button"
+                    className="gantt-tl-dep-edit-btn"
+                    onClick={() => handleLagChange(effectiveLag + 1)}
+                  >
+                    +
+                  </button>
+                )}
               </>
             )}
             <span>{afterWhat}</span>
