@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { format, isValid, parse, addDays, addMonths, addYears, subDays, subMonths, subYears } from 'date-fns';
+import { format, isValid, parse, addDays, addMonths, addYears, subMonths, subYears, subDays } from 'date-fns';
 import { Calendar } from './Calendar';
 import { Popover, PopoverTrigger, PopoverContent } from './Popover';
 
@@ -114,6 +114,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       setOpen(false);
     },
     [updateFromDate]
+  );
+
+  const handleDayShift = useCallback(
+    (delta: number) => {
+      const base = selectedDate ?? new Date();
+      updateFromDate(addDays(base, delta));
+    },
+    [selectedDate, updateFromDate]
   );
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -239,6 +247,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         side="bottom"
       >
         <div className="gantt-datepicker-input-row">
+          <button type="button" className="gantt-datepicker-shift-btn" onClick={() => handleDayShift(-7)} tabIndex={-1}>-7</button>
+          <button type="button" className="gantt-datepicker-shift-btn" onClick={() => handleDayShift(-1)} tabIndex={-1}>-1</button>
           <input
             ref={dateInputRef}
             type="text"
@@ -251,6 +261,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             spellCheck={false}
             autoComplete="off"
           />
+          <button type="button" className="gantt-datepicker-shift-btn" onClick={() => handleDayShift(1)} tabIndex={-1}>+1</button>
+          <button type="button" className="gantt-datepicker-shift-btn" onClick={() => handleDayShift(7)} tabIndex={-1}>+7</button>
         </div>
         <Calendar
           mode="single"
