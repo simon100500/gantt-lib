@@ -45,6 +45,51 @@ function getAllDescendants(parentId: string, tasks: Task[]): Task[] {
   return descendants;
 }
 
+/**
+ * Вычисляет иерархический номер задачи на основе позиции в списке visibleTasks.
+ * Корневые задачи: 1, 2, 3...
+ * Дочерние задачи: 1.1, 1.2, 2.1, 2.1.1 и т.д.
+ *
+ * @param tasks - Массив видимых задач (уже отсортированных в иерархическом порядке)
+ * @param taskIndex - Индекс задачи в массиве visibleTasks
+ * @returns Иерархический номер в виде строки
+ */
+function getTaskNumber(tasks: Task[], taskIndex: number): string {
+  const task = tasks[taskIndex];
+  if (!task) return '';
+
+  // Если это корневая задача (нет parentId)
+  if (!task.parentId) {
+    // Найти порядковый номер среди корневых задач
+    let rootIndex = 0;
+    for (let i = 0; i < taskIndex; i++) {
+      if (!tasks[i].parentId) {
+        rootIndex++;
+      }
+    }
+    return String(rootIndex + 1);
+  }
+
+  // Для дочерней задачи - найти родительский номер
+  const parentIndex = tasks.findIndex(t => t.id === task.parentId);
+  if (parentIndex === -1) {
+    // Родитель не найден - fallback на плоский номер
+    return String(taskIndex + 1);
+  }
+
+  const parentNumber = getTaskNumber(tasks, parentIndex);
+
+  // Найти порядковый номер среди детей этого родителя
+  let siblingIndex = 0;
+  for (let i = 0; i < taskIndex; i++) {
+    if (tasks[i].parentId === task.parentId) {
+      siblingIndex++;
+    }
+  }
+
+  return `${parentNumber}.${siblingIndex + 1}`;
+}
+
 export interface TaskListProps {
   /** Array of tasks to display */
   tasks: Task[];
@@ -635,6 +680,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               key={task.id}
               task={task}
               rowIndex={index}
+              taskNumber={getTaskNumber(visibleTasks, index)}
               rowHeight={rowHeight}
               onTasksChange={onTasksChange}
               selectedTaskId={selectedTaskId}
