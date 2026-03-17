@@ -157,11 +157,24 @@ export const calculateGridLines = (
  * Calculate weekend background blocks for a date range
  * @param dateRange - Array of Date objects representing the visible range
  * @param dayWidth - Width of each day column in pixels
+ * @param isCustomWeekend - Optional predicate for custom weekend logic (e.g., holidays, shift patterns)
  * @returns Array of weekend block objects with left position and width
+ *
+ * Example:
+ * // Default behavior (Saturday/Sunday)
+ * calculateWeekendBlocks(dateRange, dayWidth)
+ *
+ * // Custom weekends (holidays, shifted workdays)
+ * const isCustomWeekend = createIsWeekendPredicate({
+ *   weekends: [new Date(Date.UTC(2026, 2, 8))], // March 8 holiday
+ *   workdays: [new Date(Date.UTC(2026, 2, 15))] // March 15 workday
+ * });
+ * calculateWeekendBlocks(dateRange, dayWidth, isCustomWeekend)
  */
 export const calculateWeekendBlocks = (
   dateRange: Date[],
-  dayWidth: number
+  dayWidth: number,
+  isCustomWeekend?: (date: Date) => boolean
 ): Array<{ left: number; width: number }> => {
   const blocks: Array<{ left: number; width: number }> = [];
   let inWeekend = false;
@@ -169,8 +182,10 @@ export const calculateWeekendBlocks = (
 
   for (let i = 0; i < dateRange.length; i++) {
     const date = dateRange[i];
-    const dayOfWeek = date.getUTCDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+    // Use custom predicate if provided, otherwise default Saturday/Sunday
+    const isWeekend = isCustomWeekend
+      ? isCustomWeekend(date)
+      : date.getUTCDay() === 0 || date.getUTCDay() === 6;
 
     if (isWeekend && !inWeekend) {
       // Start of a weekend block
