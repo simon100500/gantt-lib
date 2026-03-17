@@ -1558,7 +1558,14 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             style={
               editingProgress
                 ? { visibility: "hidden", pointerEvents: "none" }
-                : undefined
+                : task.progress === 100
+                  ? {
+                      backgroundColor: "#e5fced",
+                      borderRadius: "4px",
+                      padding: "2px 4px",
+                      color: "#13a050",
+                    }
+                  : undefined
             }
           >
             {task.progress ? `${Math.round(task.progress)}%` : "0%"}
