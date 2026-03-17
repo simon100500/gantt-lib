@@ -1286,6 +1286,123 @@ export default function Home() {
             />
           </div>
         </section>
+
+        {/* Custom Weekends Demo (Phase 21) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Custom Weekends (Holidays) - Phase 21</h2>
+          <p className="demo-section-desc">
+            <strong>Праздники (weekends prop):</strong> March 8 (International Women's Day) and March 10 are added as weekends (highlighted in red).<br />
+            Default Saturday/Sunday weekends still apply.
+          </p>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={[
+                { id: 'cw-1', name: 'Task 1', startDate: '2026-03-05', endDate: '2026-03-12' },
+                { id: 'cw-2', name: 'Task 2', startDate: '2026-03-11', endDate: '2026-03-18' },
+              ]}
+              weekends={[
+                new Date(Date.UTC(2026, 2, 8)),  // March 8 (Saturday) - holiday
+                new Date(Date.UTC(2026, 2, 10)), // March 10 (Monday) - holiday
+              ]}
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={150}
+            />
+          </div>
+        </section>
+
+        {/* Workdays Demo (Phase 21) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Workdays (Exclude Weekends) - Phase 21</h2>
+          <p className="demo-section-desc">
+            <strong>Исключение выходных (workdays prop):</strong> March 15 (Saturday) and March 16 (Sunday) are workdays (not highlighted).<br />
+            Used for shifted workdays when weekends are moved to other dates.
+          </p>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={[
+                { id: 'wd-1', name: 'Task 1', startDate: '2026-03-10', endDate: '2026-03-20' },
+                { id: 'wd-2', name: 'Task 2', startDate: '2026-03-14', endDate: '2026-03-22' },
+              ]}
+              workdays={[
+                new Date(Date.UTC(2026, 2, 15)), // March 15 (Saturday) - workday
+                new Date(Date.UTC(2026, 2, 16)), // March 16 (Sunday) - workday
+              ]}
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={150}
+            />
+          </div>
+        </section>
+
+        {/* Precedence Demo (Phase 21) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Precedence: Workdays &gt; Weekends - Phase 21</h2>
+          <p className="demo-section-desc">
+            <strong>Приоритет workdays над weekends:</strong> March 22 (Saturday) is in both arrays. workdays takes precedence,<br />
+            so it's NOT highlighted as a weekend.
+          </p>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={[
+                { id: 'prec-1', name: 'Task 1', startDate: '2026-03-17', endDate: '2026-03-28' },
+              ]}
+              weekends={[
+                new Date(Date.UTC(2026, 2, 22)), // March 22 (Saturday) - in both arrays
+              ]}
+              workdays={[
+                new Date(Date.UTC(2026, 2, 22)), // March 22 (Saturday) - in both arrays
+              ]}
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={100}
+            />
+          </div>
+        </section>
+
+        {/* Custom Predicate Demo (Phase 21) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Custom Predicate (Sunday-Only Weekends) - Phase 21</h2>
+          <p className="demo-section-desc">
+            <strong>Кастомный предикат (isWeekend prop):</strong> Using a custom predicate for Sunday-only weekends (6-day work week).<br />
+            Saturdays are workdays (not highlighted).
+          </p>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={[
+                { id: 'pred-1', name: 'Task 1', startDate: '2026-03-03', endDate: '2026-03-16' },
+              ]}
+              isWeekend={(date: Date) => date.getUTCDay() === 0} // Sunday only
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={100}
+            />
+          </div>
+        </section>
+
+        {/* Multi-Month Custom Weekends Demo (Phase 21) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Multi-Month View with Custom Weekends - Phase 21</h2>
+          <p className="demo-section-desc">
+            <strong>Multi-month view с кастомными выходными:</strong> Custom weekends highlighted correctly across month boundaries.<br />
+            March 8 and April 10 are holidays (added to weekends).
+          </p>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={[
+                { id: 'mm-1', name: 'Task 1', startDate: '2026-03-01', endDate: '2026-04-15' },
+                { id: 'mm-2', name: 'Task 2', startDate: '2026-03-20', endDate: '2026-04-25' },
+              ]}
+              weekends={[
+                new Date(Date.UTC(2026, 2, 8)),  // March 8 (holiday)
+                new Date(Date.UTC(2026, 3, 10)), // April 10 (holiday)
+              ]}
+              dayWidth={24}
+              rowHeight={40}
+              containerHeight={150}
+            />
+          </div>
+        </section>
       </div>
     </main>
   );
