@@ -1560,15 +1560,19 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 ? { visibility: "hidden", pointerEvents: "none" }
                 : task.progress === 100
                   ? {
-                      backgroundColor: "#e5fced",
+                      backgroundColor: "#17c864",
                       borderRadius: "4px",
                       padding: "2px 4px",
-                      color: "#13a050",
+                      color: "#ffffff",
                     }
                   : undefined
             }
           >
-            {task.progress ? `${Math.round(task.progress)}%` : "0%"}
+            {task.progress
+              ? Math.round(task.progress) === 100
+                ? "100"
+                : `${Math.round(task.progress)}%`
+              : "0%"}
           </span>
         </div>
 
