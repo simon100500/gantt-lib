@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: "Completed quick-260317-ij3: unlimited task nesting depth"
+last_updated: "2026-03-17T10:33:43.717Z"
+last_activity: "2026-03-16 - Completed quick task 260316-n70: tooltip на чипе связи - cherry pick из ветки tooltips"
+progress:
+  total_phases: 20
+  completed_phases: 19
+  total_plans: 51
+  completed_plans: 50
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: "Completed quick-260317-21g: hierarchical task numbering with left alignment"
 last_updated: "2026-03-16T22:30:00.000Z"
 last_activity: "2026-03-16 - Completed quick task 260317-21g: Номера задач выравнивание по левому краю и по иерархии: 1, 1.1, 1.2 и т.п."
@@ -766,6 +781,7 @@ Recent decisions affecting current work:
 - [Phase 20-month-view]: viewMode defaults to 'day' in both TimeScaleHeader and GridBackground — fully backward compatible
 - [Phase 20-month-view]: viewMode defaults to 'day' at GanttChart boundary — single source of truth, fully backward-compatible
 - [Phase 20-month-view]: dayWidth=8px/day in week-view demo (56px/week), 24 in day-view — preserves visual proportions
+- [Phase quick-260317-ij3]: Removed !isParent guard from canDemote; promote moves to grandparent not root; drag-drop allows parent into nested positions; 20px/level inline indentation via nestingDepthMap
 
 ### Pending Todos
 
@@ -879,8 +895,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T20:46:03.921Z
-Stopped at: Completed quick-260316-wzp: calendar font inherit for Roboto
+Last session: 2026-03-17T10:33:38.534Z
+Stopped at: Completed quick-260317-ij3: unlimited task nesting depth
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
