@@ -3,21 +3,21 @@ gsd_state_version: 1.0
 milestone: v0.18
 milestone_name: milestone
 status: executing
-last_updated: "2026-03-17T21:54:38.608Z"
-last_activity: 2026-03-17 — Created failing tests for createDateKey and createIsWeekendPredicate utilities
+last_updated: "2026-03-17T21:58:27.000Z"
+last_activity: 2026-03-17 — Integrated custom weekend props into GanttChart, GridBackground, TimeScaleHeader, and Calendar
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 ## Current Position
 
 **Phase:** 21 (Custom Weekend Calendar)
-**Plan:** 21-02 (TDD GREEN phase)
+**Plan:** 21-03 (Integration phase)
 **Status:** In progress
-**Last activity:** 2026-03-17 — Created failing tests for createDateKey and createIsWeekendPredicate utilities
+**Last activity:** 2026-03-17 — Integrated custom weekend props into GanttChart, GridBackground, TimeScaleHeader, and Calendar
 
 ## Project Reference
 
@@ -73,17 +73,16 @@ None yet — no external users (library in active development)
 
 **Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
 
-**Current focus:** Phase 21 Plan 21-02 (TDD GREEN phase)
-- ✓ RED phase complete: 11 failing tests created
-- Next: Implement createDateKey utility (4 tests to pass)
-- Next: Implement createIsWeekendPredicate utility (7 tests to pass)
-- Ensure all tests pass before moving to Plan 21-03
+**Current focus:** Phase 21 Plan 21-04 (Demo page with examples)
+- ✓ 21-01: TDD RED phase — 11 failing tests created
+- ✓ 21-02: TDD GREEN phase — utilities implemented (createDateKey, createIsWeekendPredicate)
+- ✓ 21-03: Integration phase — props added to GanttChart, GridBackground, TimeScaleHeader, Calendar
+- Next: 21-04: Demo page — examples of custom weekend usage
 
-**Next:** Phase 21 Plan 21-03 (Integration)
-- Implement weekends/workdays props in GanttChart
-- Update GridBackground to use custom weekend predicate
-- Update TimeScaleHeader to highlight custom weekends
-- Update Calendar component to support custom weekends
+**Next:** Phase 21 Plan 21-04 (Demo page)
+- Create demo page with custom weekend examples
+- Show holidays, shifted workdays, custom predicates
+- Visual verification of weekend highlighting and day number coloring
 
 **Later:** Phase 22 (Additional TaskList Columns)
 - Implement `additionalColumns?: Column[]` prop
@@ -91,7 +90,7 @@ None yet — no external users (library in active development)
 - Position columns after specified base column
 - Ensure scrolling works correctly
 
-**Upcoming:** Plan 21-02 (Implement utilities - GREEN phase)
+**Upcoming:** Plan 21-04 (Demo page with custom weekend examples)
 
 ---
 
