@@ -233,6 +233,18 @@
   height: 32px;
 }
 
+.gantt-cal-weekday {
+  width: 32px;
+  height: 24px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gantt-calendar-text-muted);
+}
+
 .gantt-day-btn {
   width: 32px;
   height: 32px;

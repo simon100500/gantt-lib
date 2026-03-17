@@ -147,6 +147,14 @@ export const Calendar: React.FC<CalendarProps> = ({
       const monthKey = format(month, 'yyyy-MM');
       const monthLabel = format(month, 'LLLL yyyy', { locale: ru });
 
+      // Day of week headers (Monday-first)
+      const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      const weekdayHeaders = weekdayLabels.map((label, i) => (
+        <div key={`wd-${i}`} className="gantt-cal-weekday">
+          {label}
+        </div>
+      ));
+
       const emptyCells = Array.from({ length: emptyDays }, (_, i) => (
         <div key={`e-${i}`} className="gantt-cal-empty-day" />
       ));
@@ -176,6 +184,7 @@ export const Calendar: React.FC<CalendarProps> = ({
         <div key={monthKey} className="gantt-cal-month" data-month={monthKey}>
           <div className="gantt-cal-month-header">{monthLabel}</div>
           <div className="gantt-cal-month-days">
+            {weekdayHeaders}
             {emptyCells}
             {dayCells}
           </div>
