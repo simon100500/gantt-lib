@@ -572,10 +572,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   function getTaskDepth(taskId: string, tasks: Task[]): number {
     let depth = 0;
     let current = tasks.find(t => t.id === taskId);
-    while (current?.parentId) {
+    while (current && current.parentId) {
       depth++;
       current = tasks.find(t => t.id === current.parentId);
-      if (!current) break;
     }
     return depth;
   }
