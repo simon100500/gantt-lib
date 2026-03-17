@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { getMultiMonthDays } from '../../utils/dateUtils';
+import { getMultiMonthDays, createIsWeekendPredicate, type WeekendConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
@@ -126,6 +126,12 @@ export interface GanttChartProps {
   enableAddTask?: boolean;
   /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days, 'month' renders one column per month (default: 'day') */
   viewMode?: 'day' | 'week' | 'month';
+  /** Custom weekend dates to ADD to default weekends (e.g., holidays) */
+  weekends?: Date[];
+  /** Custom workday dates to EXCLUDE from default weekends (e.g., shifted workdays) */
+  workdays?: Date[];
+  /** Flexible weekend logic predicate (overrides arrays) */
+  isWeekend?: (date: Date) => boolean;
 }
 
 /**
@@ -186,6 +192,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   onDemoteTask,
   enableAddTask = true,
   viewMode = 'day',
+  weekends,
+  workdays,
+  isWeekend,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -203,6 +212,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   const normalizedTasks = useMemo(() => normalizeHierarchyTasks(tasks), [tasks]);
+
+  // Create custom weekend predicate from props (memoized for performance)
+  const isCustomWeekend = useMemo(
+    () => createIsWeekendPredicate({ weekends, workdays, isWeekend }),
+    [weekends, workdays, isWeekend]
+  );
 
   // Calculate multi-month date range from normalized tasks
   const dateRange = useMemo(() => getMultiMonthDays(normalizedTasks), [normalizedTasks]);
