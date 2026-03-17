@@ -115,12 +115,15 @@ const ArrowRight = () => (
 
 const HierarchyButton: React.FC<HierarchyButtonProps> = ({
   isChild,
-  rowIndex,
+  rowIndex: _rowIndex,
   onPromote,
   onDemote,
 }) => {
   const canPromote = isChild && onPromote;
-  const canDemote = onDemote && rowIndex > 0;
+  // Demote is always allowed when the callback is provided.
+  // rowIndex === 0 is handled upstream: clicking Demote on the first task
+  // triggers "Новый раздел" parent creation (not blocked here).
+  const canDemote = !!onDemote;
 
   if (!canPromote && !canDemote) return null;
 
@@ -824,16 +827,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const handleDemote = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
-      // Find previous task in allTasks
-      const currentIndex = allTasks.findIndex(t => t.id === task.id);
-      if (currentIndex > 0) {
-        const previousTask = allTasks[currentIndex - 1];
-        // Smart demote: if previous task has a parent, use that parent (sibling behavior)
-        // Otherwise, use previous task as parent (child behavior)
-        const targetParentId = previousTask.parentId || previousTask.id;
-        onDemoteTask?.(task.id, targetParentId);
-      }
-    }, [task.id, allTasks, onDemoteTask]);
+      // The parent calculation is done in TaskList.tsx's handleDemoteWrapper,
+      // which has access to the ordered visible task list and implements the
+      // "previous visible task becomes parent" principle.
+      // Pass empty string as placeholder — the wrapper ignores this value.
+      onDemoteTask?.(task.id, '');
+    }, [task.id, onDemoteTask]);
 
     // Dependency handlers
     const handleAddClick = useCallback((e: React.MouseEvent) => {

@@ -665,6 +665,54 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [onAdd]);
 
   const handleCancelNewTask = useCallback(() => setIsCreating(false), []);
+
+  /**
+   * Demote wrapper — implements the "previous visible task becomes parent" principle.
+   *
+   * Rules:
+   * 1. The task directly above the current task in the visible list becomes its parent.
+   *    This naturally prevents hierarchy gaps: the new parent is exactly one level above.
+   * 2. If the task is the first visible task (no task above), a new root task "Новый раздел"
+   *    is created and inserted before the current task, which becomes its first child.
+   *
+   * The `_newParentId` argument from TaskListRow is ignored — it was computed with wrong
+   * logic (sibling instead of child placement). The correct parent is derived here using
+   * the ordered visible task list.
+   */
+  const handleDemoteWrapper = useCallback((taskId: string, _newParentId: string) => {
+    const taskIndex = visibleTasks.findIndex(t => t.id === taskId);
+
+    if (taskIndex > 0) {
+      // Normal case: previous visible task becomes parent
+      const previousTask = visibleTasks[taskIndex - 1];
+      onDemoteTask?.(taskId, previousTask.id);
+      return;
+    }
+
+    // First-task case: create "Новый раздел" as a new root parent
+    // Build the new task using the demoted task's dates so the parent spans it correctly
+    const demotedTask = orderedTasks.find(t => t.id === taskId);
+    if (!demotedTask) return;
+
+    const newSectionTask: Task = {
+      id: crypto.randomUUID(),
+      name: 'Новый раздел',
+      startDate: demotedTask.startDate,
+      endDate: demotedTask.endDate,
+    };
+
+    // Build a new full ordered list: [newSection, ...all existing tasks with demotedTask reparented]
+    const updatedTasks: Task[] = [
+      newSectionTask,
+      ...orderedTasks.map(t =>
+        t.id === taskId ? { ...t, parentId: newSectionTask.id } : t
+      ),
+    ];
+
+    // onReorder sends the full task list atomically (GanttChart calls onTasksChange with it)
+    onReorder?.(updatedTasks, taskId, newSectionTask.id);
+  }, [visibleTasks, orderedTasks, onDemoteTask, onReorder]);
+
   const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH);
 
   return (
@@ -751,7 +799,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               collapsedParentIds={collapsedParentIds}
               onToggleCollapse={handleToggleCollapse}
               onPromoteTask={onPromoteTask}
-              onDemoteTask={onDemoteTask}
+              onDemoteTask={onDemoteTask ? handleDemoteWrapper : undefined}
               isLastChild={lastChildIds.has(task.id)}
               nestingDepth={nestingDepthMap.get(task.id) ?? 0}
               ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
