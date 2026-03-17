@@ -8,7 +8,7 @@
 
 ## Current Status
 
-🎯 **Planning v0.50.0** — Custom weekend calendar and additional TaskList columns
+🎯 **Planning Phase 21** — Custom weekend calendar with flexible holiday and workday support
 
 ## Phases
 
@@ -26,11 +26,16 @@
 **Success Criteria** (what must be TRUE):
 1. User can pass custom weekend dates via `weekends?: Date[]` prop and see them highlighted in red on the grid
 2. User can pass `isWeekend?: (date: Date) => boolean` predicate for flexible weekend logic (e.g., Sunday-only, shift patterns)
-3. When both props provided, `isWeekend` takes precedence over `weekends` array
+3. When both props provided, `workdays` takes precedence over `weekends` array (date in both = workday)
 4. Default Saturday/Sunday behavior remains unchanged when no props passed
 5. Custom weekend highlighting works correctly across month boundaries in multi-month views
 
-**Plans:** TBD
+**Plans:** 4 plans
+
+- [ ] 21-01-PLAN.md — Create test stubs for custom weekend utilities (TDD RED phase)
+- [ ] 21-02-PLAN.md — Implement createDateKey, createIsWeekendPredicate, and modify calculateWeekendBlocks (TDD GREEN phase)
+- [ ] 21-03-PLAN.md — Integrate custom weekends into GanttChart, GridBackground, TimeScaleHeader, and Calendar
+- [ ] 21-04-PLAN.md — Create demo page with visual verification examples
 
 ### Phase 22: Additional TaskList Columns
 
@@ -56,10 +61,10 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1-20 | v0.18.0 | 50/51 | Complete | 2026-03-17 |
-| 21 | v0.50.0 | 0/2 | Not started | - |
+| 21 | v0.50.0 | 0/4 | Not started | - |
 | 22 | v0.50.0 | 0/2 | Not started | - |
 
-**Overall:** 50/55 plans complete (91%)
+**Overall:** 50/57 plans complete (88%)
 
 <details>
 <summary>✅ v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -101,4 +106,4 @@ Build a lightweight React/Next.js library for interactive Gantt charts. Starting
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-**Roadmap updated:** 2026-03-17
+**Roadmap updated:** 2026-03-18
