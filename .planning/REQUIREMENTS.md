@@ -1,115 +1,79 @@
 # Requirements: Gantt Chart Library for Next.js
 
-**Defined:** 2026-02-18
+**Defined:** 2026-03-17
 **Core Value:** Drag-and-drop task scheduling with Excel-like visual simplicity
 
-## v1 Requirements
+## v0.50.0 Requirements
 
-Requirements for initial release. Each maps to roadmap phases.
+Requirements for adding extensibility features — custom weekend calendar and additional TaskList columns.
 
-### Core Rendering
+### Custom Weekend Calendar
 
-- [ ] **REND-01**: Display monthly calendar grid with date headers
-- [ ] **REND-02**: Render task bars positioned by start/end dates on timeline
-- [ ] **REND-03**: Show task names on or within task bars
-- [ ] **REND-04**: Display vertical indicator line for current date (today)
-- [ ] **REND-05**: Excel-like table styling with grid lines and cell-based appearance
+- [ ] **CAL-01**: User can pass `weekends?: Date[]` prop to GanttChart for custom weekend dates
+- [ ] **CAL-02**: User can pass `isWeekend?: (date: Date) => boolean` prop to GanttChart for flexible weekend logic
+- [ ] **CAL-03**: Component highlights custom weekend dates with red background in GridBackground
+- [ ] **CAL-04**: Both props work together — isWeekend takes precedence if both provided
+- [ ] **CAL-05**: Default behavior (Saturday/Sunday) remains if no props passed
 
-### Interactions
+### Additional TaskList Columns
 
-- [x] **INT-01**: User can drag task bars horizontally to change start/end dates (move)
-- [x] **INT-02**: User can drag task bar edges to change duration (resize)
-- [x] **INT-03**: Component maintains 60fps performance during drag operations (~100 tasks)
-- [x] **INT-04**: Parent component receives callback with updated task data after drag operation
+- [ ] **COL-01**: User can pass `additionalColumns?: Column[]` prop to TaskList
+- [ ] **COL-02**: Column interface includes `id`, `header`, `renderCell`, optional `editor`, `width`, `after`
+- [ ] **COL-03**: `renderCell: (row: GanttRow) => ReactNode` renders cell content for each row
+- [ ] **COL-04**: `editor?: (row: GanttRow) => ReactNode` provides inline editor component
+- [ ] **COL-05**: `after?: string` positions column after specified base column (default: after 'Name')
+- [ ] **COL-06**: Base columns remain: №, Name, Dates, Dependencies, Actions
+- [ ] **COL-07**: Additional columns render inline, scroll with TaskList
+- [ ] **COL-08**: Column width is customizable via `width?: string | number`
 
-### Data & API
+## Future Requirements
 
-- [ ] **API-01**: Component accepts simple array: `{ id, name, startDate, endDate, color? }`
-- [x] **API-02**: Component provides `onChange` callback returning modified tasks array
-- [x] **API-03**: Simple API surface: `<Gantt tasks={tasks} onChange={handleTasksChange} />`
-- [ ] **API-04**: All dates handled as UTC internally to prevent DST bugs
+Deferred to future release.
 
-### Developer Experience
+### Multiple Zoom Levels
+- **ZOOM-01**: Day view (each column = 1 day)
+- **ZOOM-02**: Week view (each column = 1 week)
+- **ZOOM-03**: Year view (each column = 1 month)
 
-- [x] **DX-01**: Full TypeScript support with exported types
-- [x] **DX-02**: Minimal dependencies (prefer zero deps, or lightweight libs)
-- [x] **DX-03**: Bundle size < 15KB gzipped
-- [x] **DX-04**: Compatible with Next.js App Router (client component)
-- [x] **DX-05**: CSS variables for theming (users can customize colors)
-
-### Quality
-
-- [x] **QL-01**: React.memo on task components to prevent re-render storms
-- [ ] **QL-02**: Proper cleanup of event listeners to prevent memory leaks
-- [x] **QL-03**: Unit tests for core date utilities and geometry calculations
-
-## v2 Requirements
-
-Deferred to future release. Tracked but not in current roadmap.
-
-### Enhanced Features
-
-- **INT-05**: Task selection state (click to select, visual feedback)
-- **REND-06**: Task list sidebar with synchronized scrolling
-- **REND-07**: Multiple task color themes/presets
-- **DX-06**: Virtualization for 1000+ tasks
-
-### Accessibility
-
-- **A11Y-01**: Keyboard navigation (arrow keys to move tasks)
-- **A11Y-02**: ARIA labels for screen readers
-- **A11Y-03**: Focus indicators for interactive elements
+### Advanced Editing
+- **EDIT-01**: Inline task editing directly on timeline
+- **EDIT-02**: Multi-select tasks for bulk operations
+- **EDIT-03**: Copy/paste tasks
+- **EDIT-04**: Undo/redo support
 
 ## Out of Scope
 
-Explicitly excluded. Documented to prevent scope creep.
-
 | Feature | Reason |
 |---------|--------|
-| Task dependencies | Adds massive complexity, conflicts with lightweight goal |
-| Auto-scheduling | Requires constraint solver, unpredictable behavior |
-| Multiple zoom levels | Month-only is requirement AND simplification advantage |
-| Resource management | Separate concern, doubles complexity |
-| Critical path calculation | External tools for PM pros, not this library |
-| Export to PDF/PNG | Browser print sufficient, adds heavy deps |
-| Progress tracking | Can add later, not core to scheduling |
-| Inline editing | Modal/app layer simpler, focus on drag-drop |
-| Undo/redo | Browser undo or app-level implementation |
+| Critical path calculation | Complex algorithms, not core to scheduling visualization |
+| Resource management | Separate concern, requires resource allocation logic |
+| Export to PDF/PNG | Browser print sufficient, adds heavy dependencies |
+| Built-in state management | Controlled component pattern preferred |
 | Real-time collaboration | App layer concern, requires WebSocket/CRDT |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REND-01 | Phase 1 | Pending |
-| REND-02 | Phase 1 | Pending |
-| REND-03 | Phase 1 | Pending |
-| REND-04 | Phase 1 | Pending |
-| REND-05 | Phase 1 | Pending |
-| INT-01 | Phase 2 | Complete |
-| INT-02 | Phase 2 | Complete |
-| INT-03 | Phase 2 | Complete |
-| INT-04 | Phase 2 | Complete |
-| API-01 | Phase 1 | Pending |
-| API-02 | Phase 2 | Complete |
-| API-03 | Phase 3 | Complete |
-| API-04 | Phase 1 | Pending |
-| DX-01 | Phase 4 | Complete |
-| DX-02 | Phase 4 | Complete |
-| DX-03 | Phase 4 | Complete |
-| DX-04 | Phase 4 | Complete |
-| DX-05 | Phase 4 | Complete |
-| QL-01 | Phase 2 | Complete |
-| QL-02 | Phase 2 | Pending |
-| QL-03 | Phase 1 | Completed |
+| CAL-01 | Phase 21 | Pending |
+| CAL-02 | Phase 21 | Pending |
+| CAL-03 | Phase 21 | Pending |
+| CAL-04 | Phase 21 | Pending |
+| CAL-05 | Phase 21 | Pending |
+| COL-01 | Phase 22 | Pending |
+| COL-02 | Phase 22 | Pending |
+| COL-03 | Phase 22 | Pending |
+| COL-04 | Phase 22 | Pending |
+| COL-05 | Phase 22 | Pending |
+| COL-06 | Phase 22 | Pending |
+| COL-07 | Phase 22 | Pending |
+| COL-08 | Phase 22 | Pending |
 
 **Coverage:**
-- v1 requirements: 21 total
-- Mapped to phases: 21
+- v0.50.0 requirements: 13 total
+- Mapped to phases: 13
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-02-18*
-*Last updated: 2026-02-18 after roadmap creation*
+*Requirements defined: 2026-03-17*
+*Last updated: 2026-03-17 after initial definition*
