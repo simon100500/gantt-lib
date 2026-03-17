@@ -96,6 +96,21 @@ export const isWeekend = (date: Date): boolean => {
 };
 
 /**
+ * Create a UTC-safe key for Set-based date lookup
+ * @param date - Date object to create key from
+ * @returns String key in "YYYY-M-D" format using UTC date components
+ *
+ * Example:
+ * createDateKey(new Date(Date.UTC(2026, 2, 15))) // "2026-2-15"
+ *
+ * Note: Uses UTC methods to prevent DST and timezone issues.
+ * Month is 0-indexed (0=January, 11=December) per JavaScript Date convention.
+ */
+export const createDateKey = (date: Date): string => {
+  return `${date.getUTCFullYear()}-${date.getUTCMonth()}-${date.getUTCDate()}`;
+};
+
+/**
  * Calculate multi-month date range from task dates
  * Expands range to include full months with padding on both ends for drag flexibility
  * Adds 1 month before and 2 months after the task range
