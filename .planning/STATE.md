@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: "Completed quick-260317-lge: fix hierarchy vertical continuation lines at all depths"
-last_updated: "2026-03-17T12:32:52.765Z"
-last_activity: "2026-03-17 - Completed quick task 260317-ij3: сделай вложенность задач без ограничений."
+stopped_at: "Completed quick-260317-mrj: single-level hierarchy promotion/demotion"
+last_updated: "2026-03-17T13:23:27.113Z"
+last_activity: "2026-03-17 - Completed quick task 260317-mrj: изменить логику повышения/понижения иерархии - кнопки всегда изменяют уровень на 1"
 progress:
   total_phases: 20
   completed_phases: 19
@@ -909,11 +909,12 @@ None yet.
 | 260317-21g | Номера задач выравнивание по левому краю и по иерархии: 1, 1.1, 1.2 и т.п. | 2026-03-16 | 18ff27d | [260317-21g-1-1-1-1-2](./quick/260317-21g-1-1-1-1-2/) |
 | 260317-ij3 | сделай вложенность задач без ограничений. | 2026-03-17 | de2a20b | [260317-ij3-task-nesting-unlimited](./quick/260317-ij3-task-nesting-unlimited/) |
 | 260317-lge | поправь теперь элементы индикации иерархии. чтобы было у каждого уровня. и не забудь вертикальные полосы. а то они сейчас только у 1 уровня и то уродские | 2026-03-17 | 601eb9e | [260317-lge-1](./quick/260317-lge-1/) |
+| 260317-mrj | изменить логику повышения/понижения иерархии - кнопки всегда изменяют уровень на 1 | 2026-03-17 | eb7f6e8 | [260317-mrj-1](./quick/260317-mrj-1/) |
 
 ## Session Continuity
 
-Last session: 2026-03-17T12:32:52.757Z
-Stopped at: Completed quick-260317-lge: fix hierarchy vertical continuation lines at all depths
+Last session: 2026-03-17T13:23:27.113Z
+Stopped at: Completed quick-260317-mrj: single-level hierarchy promotion/demotion
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)
