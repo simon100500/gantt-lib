@@ -686,55 +686,54 @@ export const TaskList: React.FC<TaskListProps> = ({
   }
 
   /**
-   * Demote wrapper — implements the "previous visible task becomes parent" principle.
+   * Demote wrapper — move task down one level in hierarchy.
    *
    * Rules:
-   * 1. The task directly above the current task in the visible list becomes its parent.
-   *    This naturally prevents hierarchy gaps: the new parent is exactly one level above.
-   * 2. If the task is the first visible task (no task above), a new root task "Новый раздел"
-   *    is created and inserted before the current task, which becomes its first child.
+   * 1. Find the PREVIOUS task at the SAME depth level (same hierarchy level)
+   * 2. Make that task the parent of the current task
+   * 3. If no previous task at same level exists (first task), create "Новый раздел"
    *
-   * The `_newParentId` argument from TaskListRow is ignored — it was computed with wrong
-   * logic (sibling instead of child placement). The correct parent is derived here using
-   * the ordered visible task list.
+   * Example:
+   * - Task 1.1 (depth 1)
+   * - Task 1.2 (depth 1)
+   * - [Task to demote] (depth 1) → becomes child of Task 1.2
+   *
+   * Result:
+   * - Task 1.1 (depth 1)
+   * - Task 1.2 (depth 1)
+   *   - Task to demote (depth 2, child of 1.2)
+   *
+   * The `_newParentId` argument from TaskListRow is ignored — we compute the correct parent here.
    */
   const handleDemoteWrapper = useCallback((taskId: string, _newParentId: string) => {
     const taskIndex = visibleTasks.findIndex(t => t.id === taskId);
+    const currentTask = visibleTasks[taskIndex];
+    const currentDepth = getTaskDepth(currentTask, orderedTasks);
 
     if (taskIndex > 0) {
-      // Normal case: previous visible task becomes parent
-      // Validate that this creates a single-level depth change (no hierarchy gaps)
-      const currentTask = visibleTasks[taskIndex];
-      const previousTask = visibleTasks[taskIndex - 1];
-      const currentDepth = getTaskDepth(currentTask, orderedTasks);
-      const previousDepth = getTaskDepth(previousTask, orderedTasks);
+      // Search backwards for the previous task at the same depth level
+      for (let i = taskIndex - 1; i >= 0; i--) {
+        const previousTask = visibleTasks[i];
+        const previousDepth = getTaskDepth(previousTask, orderedTasks);
 
-      // Only use previous task as parent if it creates single-level change
-      if (previousDepth === currentDepth - 1) {
-        onDemoteTask?.(taskId, previousTask.id);
-        return;
-      }
-
-      // Previous task is not at correct level - find valid parent
-      // Walk up from current task to find parent at depth - 1
-      const currentTaskFull = orderedTasks.find(t => t.id === taskId);
-      if (currentTaskFull?.parentId) {
-        const currentParent = orderedTasks.find(t => t.id === currentTaskFull.parentId);
-        if (currentParent && getTaskDepth(currentParent, orderedTasks) === currentDepth - 1) {
-          // Current parent is already at correct level - task cannot be demoted further
-          // (would create duplicate parent-child relationship)
+        // Found a task at the same level - use it as parent
+        if (previousDepth === currentDepth) {
+          onDemoteTask?.(taskId, previousTask.id);
           return;
+        }
+
+        // If we encounter a task at a shallower depth, stop searching
+        // (no same-level task exists before this point)
+        if (previousDepth < currentDepth) {
+          break;
         }
       }
 
-      // Use previous task anyway (fallback to current behavior)
-      // This case should be rare with proper UI state
-      onDemoteTask?.(taskId, previousTask.id);
+      // No same-level task found - cannot demote
       return;
     }
 
     // First-task case: create "Новый раздел" as a new root parent
-    // Build the new task using the demoted task's dates so the parent spans it correctly
     const demotedTask = orderedTasks.find(t => t.id === taskId);
     if (!demotedTask) return;
 
@@ -745,7 +744,6 @@ export const TaskList: React.FC<TaskListProps> = ({
       endDate: demotedTask.endDate,
     };
 
-    // Build a new full ordered list: [newSection, ...all existing tasks with demotedTask reparented]
     const updatedTasks: Task[] = [
       newSectionTask,
       ...orderedTasks.map(t =>
@@ -753,7 +751,6 @@ export const TaskList: React.FC<TaskListProps> = ({
       ),
     ];
 
-    // onReorder sends the full task list atomically (GanttChart calls onTasksChange with it)
     onReorder?.(updatedTasks, taskId, newSectionTask.id);
   }, [visibleTasks, orderedTasks, onDemoteTask, onReorder]);
 
