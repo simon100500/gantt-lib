@@ -252,6 +252,27 @@ export const TaskList: React.FC<TaskListProps> = ({
     return last;
   }, [visibleTasks]);
 
+  // For each task, track whether each ancestor level "continues" (has siblings below).
+  // ancestorContinuesMap[taskId][i] = true means the ancestor at depth (i+1) is NOT the last child,
+  // so a vertical continuation line should be drawn at horizontal position i.
+  const ancestorContinuesMap = useMemo(() => {
+    const taskById = new Map(tasks.map(t => [t.id, t]));
+    const map = new Map<string, boolean[]>();
+    for (const task of visibleTasks) {
+      const continues: boolean[] = [];
+      let current: any = taskById.get(task.id);
+      while (current?.parentId && taskById.has(current.parentId)) {
+        continues.unshift(!lastChildIds.has(current.parentId));
+        current = taskById.get(current.parentId);
+      }
+      // continues[0] = does depth-1 ancestor continue, continues[1] = depth-2, etc.
+      // For a depth-D task this has D entries; last entry is the direct parent.
+      // We only need entries for ancestors above the direct parent (slice off last).
+      map.set(task.id, continues.slice(0, -1));
+    }
+    return map;
+  }, [tasks, visibleTasks, lastChildIds]);
+
   const handleRowClick = useCallback((taskId: string) => {
     onTaskSelect?.(taskId);
   }, [onTaskSelect]);
@@ -733,6 +754,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onDemoteTask={onDemoteTask}
               isLastChild={lastChildIds.has(task.id)}
               nestingDepth={nestingDepthMap.get(task.id) ?? 0}
+              ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
             />
           ))}
         </div>

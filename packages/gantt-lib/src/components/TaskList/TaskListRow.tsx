@@ -91,8 +91,6 @@ const HierarchyConnectorIcon = ({ isLastChild }: { isLastChild: boolean }) => (
 interface HierarchyButtonProps {
   /** Whether the task is a child (can be promoted) */
   isChild: boolean;
-  /** Whether the task is a parent (has children) */
-  isParent: boolean;
   /** Row index - first row cannot demote */
   rowIndex: number;
   /** Callback when promote is clicked (left arrow) */
@@ -101,59 +99,54 @@ interface HierarchyButtonProps {
   onDemote?: (e: React.MouseEvent) => void;
 }
 
+const ArrowLeft = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m12 19-7-7 7-7"/>
+    <path d="M19 12H5"/>
+  </svg>
+);
+
+const ArrowRight = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12h14"/>
+    <path d="m12 5 7 7-7 7"/>
+  </svg>
+);
+
 const HierarchyButton: React.FC<HierarchyButtonProps> = ({
   isChild,
-  isParent,
   rowIndex,
   onPromote,
   onDemote,
 }) => {
-  // Can promote if task is a child
   const canPromote = isChild && onPromote;
-  // Can demote if not first row (parent tasks can also be demoted for unlimited nesting)
   const canDemote = onDemote && rowIndex > 0;
 
-  // If neither action available, don't render
-  if (!canPromote && !canDemote) {
-    return null;
-  }
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (canPromote) {
-      onPromote!(e);
-    } else if (canDemote) {
-      onDemote!(e);
-    }
-  };
-
-  const title = canPromote
-    ? 'Повысить уровень'
-    : 'Понизить (сделать подчиненной)';
-
-  const ArrowLeft = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m12 19-7-7 7-7"/>
-      <path d="M19 12H5"/>
-    </svg>
-  );
-
-  const ArrowRight = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14"/>
-      <path d="m12 5 7 7-7 7"/>
-    </svg>
-  );
+  if (!canPromote && !canDemote) return null;
 
   return (
-    <button
-      type="button"
-      className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
-      onClick={handleClick}
-      title={title}
-    >
-      {canPromote ? <ArrowLeft /> : <ArrowRight />}
-    </button>
+    <>
+      {canPromote && (
+        <button
+          type="button"
+          className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
+          onClick={(e) => { e.stopPropagation(); onPromote!(e); }}
+          title="Повысить уровень"
+        >
+          <ArrowLeft />
+        </button>
+      )}
+      {canDemote && (
+        <button
+          type="button"
+          className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
+          onClick={(e) => { e.stopPropagation(); onDemote!(e); }}
+          title="Понизить уровень"
+        >
+          <ArrowRight />
+        </button>
+      )}
+    </>
   );
 };
 
@@ -448,6 +441,8 @@ export interface TaskListRowProps {
   isLastChild?: boolean;
   /** Nesting depth (0 = root, 1 = child, 2 = grandchild, etc.) */
   nestingDepth?: number;
+  /** For each ancestor above the direct parent: true if that ancestor has more siblings below */
+  ancestorContinues?: boolean[];
 }
 
 const toISODate = (value: string | Date): string => {
@@ -493,6 +488,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onDemoteTask,
     isLastChild = true,
     nestingDepth = 0,
+    ancestorContinues = [],
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -920,9 +916,28 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         {/* Name column — styled Input overlay on edit */}
         <div className="gantt-tl-cell gantt-tl-cell-name">
           {isChild && !editingName && (
-            <span style={{ position: 'absolute', left: `${(nestingDepth - 1) * 20 + 4}px` }}>
-              <HierarchyConnectorIcon isLastChild={isLastChild} />
-            </span>
+            <>
+              {ancestorContinues.map((continues, idx) =>
+                continues ? (
+                  <span
+                    key={idx}
+                    style={{
+                      position: 'absolute',
+                      left: `${idx * 20 + 9}px`,
+                      top: 0,
+                      bottom: 0,
+                      width: '1.5px',
+                      background: '#d4bceb',
+                      borderRadius: '1px',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                ) : null
+              )}
+              <span style={{ position: 'absolute', left: `${(nestingDepth - 1) * 20 + 4}px` }}>
+                <HierarchyConnectorIcon isLastChild={isLastChild} />
+              </span>
+            </>
           )}
           {isParent && !editingName && (
             <button
@@ -1015,7 +1030,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               )}
               <HierarchyButton
                 isChild={isChild}
-                isParent={isParent}
                 rowIndex={rowIndex}
                 onPromote={onPromoteTask ? handlePromote : undefined}
                 onDemote={onDemoteTask ? handleDemote : undefined}
