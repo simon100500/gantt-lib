@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.0] - 2026-03-17
+
+### Features
+- Remove nesting depth restrictions - tasks can now be nested at unlimited levels
+- Add depth-based visual indentation for better hierarchy visualization
+
+### Fixes
+- Fix hierarchy vertical lines rendering at all nesting levels
+- Fix demote logic to find previous task at same level
+- Fix ancestorContinuesMap to check current.id instead of current.parentId
+- Add explicit type annotations for TypeScript strict null checks
+
+### Refactor
+- Improve TaskListRow code structure and formatting
+
+### Style
+- Refine task progress display with conditional styling
+- Comment out background color for parent rows
+
 ## [0.17.2] - 2026-03-17
 
 ### Style
