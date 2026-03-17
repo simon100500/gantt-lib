@@ -446,6 +446,8 @@ export interface TaskListRowProps {
   onDemoteTask?: (taskId: string, newParentId: string) => void;
   /** Whether this child is the last sibling (affects connector icon shape) */
   isLastChild?: boolean;
+  /** Nesting depth (0 = root, 1 = child, 2 = grandchild, etc.) */
+  nestingDepth?: number;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -490,6 +492,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onPromoteTask,
     onDemoteTask,
     isLastChild = true,
+    nestingDepth = 0,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
@@ -916,12 +919,17 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
         {/* Name column — styled Input overlay on edit */}
         <div className="gantt-tl-cell gantt-tl-cell-name">
-          {isChild && !editingName && <HierarchyConnectorIcon isLastChild={isLastChild} />}
+          {isChild && !editingName && (
+            <span style={{ position: 'absolute', left: `${(nestingDepth - 1) * 20 + 4}px` }}>
+              <HierarchyConnectorIcon isLastChild={isLastChild} />
+            </span>
+          )}
           {isParent && !editingName && (
             <button
               type="button"
               className={`gantt-tl-collapse-btn ${isCollapsed ? 'gantt-tl-collapse-btn-collapsed' : ''}`}
               onClick={handleToggleCollapse}
+              style={{ left: `${nestingDepth * 20 + 4}px` }}
               aria-label={isCollapsed ? 'Expand children' : 'Collapse children'}
             >
               <ChevronRightIcon />
@@ -935,7 +943,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onChange={(e) => setNameValue(e.target.value)}
               onBlur={handleNameSave}
               onKeyDown={handleNameKeyDown}
-              className={['gantt-tl-name-input', isChild ? 'gantt-tl-name-input-child' : ''].filter(Boolean).join(' ')}
+              className="gantt-tl-name-input"
+              style={{ paddingLeft: nestingDepth > 0 ? `${nestingDepth * 20 + 24}px` : undefined }}
               onClick={(e) => e.stopPropagation()}
             />
           )}
@@ -944,13 +953,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             className={[
               'gantt-tl-name-trigger',
               disableTaskNameEditing ? 'gantt-tl-name-locked' : '',
-              isParent ? 'gantt-tl-name-trigger-parent' : '',
-              isChild ? 'gantt-tl-name-trigger-child' : '',
             ].filter(Boolean).join(' ')}
             title={task.name}
             onClick={handleNameClick}
             onDoubleClick={handleNameDoubleClick}
-            style={editingName ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}
+            style={{
+              paddingLeft: nestingDepth > 0
+                ? `${nestingDepth * 20 + (isParent ? 26 : 24)}px`
+                : isParent ? '26px' : undefined,
+              ...(editingName ? { visibility: 'hidden', pointerEvents: 'none' } : undefined)
+            }}
           >
             {task.name}
           </button>

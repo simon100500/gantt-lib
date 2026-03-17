@@ -215,6 +215,29 @@ export const TaskList: React.FC<TaskListProps> = ({
     [visibleTasks.length, rowHeight]
   );
 
+  // Compute nesting depth for each task (0 = root, 1 = child, 2 = grandchild, etc.)
+  const nestingDepthMap = useMemo(() => {
+    const depthMap = new Map<string, number>();
+    const taskById = new Map(tasks.map(t => [t.id, t]));
+
+    function getDepth(taskId: string): number {
+      if (depthMap.has(taskId)) return depthMap.get(taskId)!;
+      const task = taskById.get(taskId);
+      if (!task || !(task as any).parentId || !taskById.has((task as any).parentId)) {
+        depthMap.set(taskId, 0);
+        return 0;
+      }
+      const depth = getDepth((task as any).parentId) + 1;
+      depthMap.set(taskId, depth);
+      return depth;
+    }
+
+    for (const task of tasks) {
+      getDepth(task.id);
+    }
+    return depthMap;
+  }, [tasks]);
+
   // For each child task, determine if it's the last visible child of its parent
   const lastChildIds = useMemo(() => {
     const last = new Set<string>();
@@ -709,6 +732,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onPromoteTask={onPromoteTask}
               onDemoteTask={onDemoteTask}
               isLastChild={lastChildIds.has(task.id)}
+              nestingDepth={nestingDepthMap.get(task.id) ?? 0}
             />
           ))}
         </div>
