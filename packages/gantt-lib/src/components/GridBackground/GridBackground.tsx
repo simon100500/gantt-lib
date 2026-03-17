@@ -14,6 +14,8 @@ export interface GridBackgroundProps {
   totalHeight: number;
   /** View mode: 'day' renders per-day lines with weekend blocks, 'week' renders per-week lines only, 'month' renders per-month lines only */
   viewMode?: 'day' | 'week' | 'month';
+  /** Optional predicate for custom weekend logic (e.g., holidays, shift patterns) */
+  isCustomWeekend?: (date: Date) => boolean;
 }
 
 /**
@@ -27,7 +29,8 @@ const arePropsEqual = (prevProps: GridBackgroundProps, nextProps: GridBackground
     prevProps.dayWidth === nextProps.dayWidth &&
     prevProps.dateRange.length === nextProps.dateRange.length &&
     prevProps.totalHeight === nextProps.totalHeight && // skip re-render only when totalHeight unchanged
-    prevProps.viewMode === nextProps.viewMode
+    prevProps.viewMode === nextProps.viewMode &&
+    prevProps.isCustomWeekend === nextProps.isCustomWeekend
   );
 };
 
@@ -48,7 +51,7 @@ const arePropsEqual = (prevProps: GridBackgroundProps, nextProps: GridBackground
  * - week: per-week grid lines only (no weekend blocks, lines every 7 days)
  */
 const GridBackground: React.FC<GridBackgroundProps> = React.memo(
-  ({ dateRange, dayWidth, totalHeight, viewMode = 'day' }) => {
+  ({ dateRange, dayWidth, totalHeight, viewMode = 'day', isCustomWeekend }) => {
     // Week-view: grid lines at each 7-day boundary
     const weekGridLines = useMemo(() => {
       if (viewMode !== 'week') return [];
@@ -70,8 +73,8 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
     // Weekend background blocks: only in day-view (locked decision from RESEARCH.md)
     const weekendBlocks = useMemo(() => {
       if (viewMode === 'week' || viewMode === 'month') return []; // No weekend highlighting in week/month-view
-      return calculateWeekendBlocks(dateRange, dayWidth);
-    }, [dateRange, dayWidth, viewMode]);
+      return calculateWeekendBlocks(dateRange, dayWidth, isCustomWeekend);
+    }, [dateRange, dayWidth, viewMode, isCustomWeekend]);
 
     // Calculate total grid width (formula must not change — Pitfall 3)
     const gridWidth = useMemo(() => {
