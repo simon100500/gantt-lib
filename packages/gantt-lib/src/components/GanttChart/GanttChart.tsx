@@ -791,6 +791,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onToggleCollapse={handleToggleCollapse}
             onPromoteTask={onPromoteTask ?? handlePromoteTask}
             onDemoteTask={onDemoteTask ?? handleDemoteTask}
+            weekends={weekends}
+            workdays={workdays}
+            isWeekend={isWeekend}
           />
 
           {/* Chart area */}

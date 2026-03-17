@@ -20,6 +20,12 @@ export interface DatePickerProps {
   className?: string;
   /** Whether the picker is disabled */
   disabled?: boolean;
+  /** Optional custom weekend dates (holidays) */
+  weekends?: Date[];
+  /** Optional custom workday dates - overrides weekends */
+  workdays?: Date[];
+  /** Optional predicate for custom weekend logic */
+  isWeekend?: (date: Date) => boolean;
 }
 
 const segments = [
@@ -41,6 +47,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   portal = true,
   className,
   disabled = false,
+  weekends,
+  workdays,
+  isWeekend,
 }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -286,6 +295,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           selected={selectedDate}
           onSelect={handleCalendarSelect}
           initialDate={selectedDate}
+          weekends={weekends}
+          workdays={workdays}
+          isWeekend={isWeekend}
         />
       </PopoverContent>
     </Popover>

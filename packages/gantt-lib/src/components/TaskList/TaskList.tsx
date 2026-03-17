@@ -137,6 +137,12 @@ export interface TaskListProps {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when task is demoted (parentId set to previous task) */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
+  /** Optional custom weekend dates (holidays) for date picker */
+  weekends?: Date[];
+  /** Optional custom workday dates - overrides weekends */
+  workdays?: Date[];
+  /** Optional predicate for custom weekend logic in date picker */
+  isWeekend?: (date: Date) => boolean;
 }
 
 /**
@@ -169,6 +175,9 @@ export const TaskList: React.FC<TaskListProps> = ({
   onToggleCollapse: externalOnToggleCollapse,
   onPromoteTask,
   onDemoteTask,
+  weekends,
+  workdays,
+  isWeekend,
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
@@ -844,6 +853,9 @@ export const TaskList: React.FC<TaskListProps> = ({
               isLastChild={lastChildIds.has(task.id)}
               nestingDepth={nestingDepthMap.get(task.id) ?? 0}
               ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
+              weekends={weekends}
+              workdays={workdays}
+              isWeekend={isWeekend}
             />
           ))}
         </div>

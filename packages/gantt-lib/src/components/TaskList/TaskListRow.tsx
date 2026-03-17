@@ -612,6 +612,12 @@ export interface TaskListRowProps {
   nestingDepth?: number;
   /** For each ancestor above the direct parent: true if that ancestor has more siblings below */
   ancestorContinues?: boolean[];
+  /** Optional custom weekend dates (holidays) for date picker */
+  weekends?: Date[];
+  /** Optional custom workday dates - overrides weekends */
+  workdays?: Date[];
+  /** Optional predicate for custom weekend logic in date picker */
+  isWeekend?: (date: Date) => boolean;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -659,6 +665,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     isLastChild = true,
     nestingDepth = 0,
     ancestorContinues = [],
+    weekends,
+    workdays,
+    isWeekend,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState("");
@@ -1387,6 +1396,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             format="dd.MM.yy"
             portal={true}
             disabled={task.locked}
+            weekends={weekends}
+            workdays={workdays}
+            isWeekend={isWeekend}
           />
         </div>
 
@@ -1401,6 +1413,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             format="dd.MM.yy"
             portal={true}
             disabled={task.locked}
+            weekends={weekends}
+            workdays={workdays}
+            isWeekend={isWeekend}
           />
         </div>
 
