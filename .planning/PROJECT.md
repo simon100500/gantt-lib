@@ -8,6 +8,14 @@ A lightweight React/Next.js library for displaying Gantt charts with interactive
 
 Drag-and-drop task scheduling with Excel-like visual simplicity.
 
+## Current Milestone: v0.50.0 Adding Tools
+
+**Goal:** Add extensibility features — custom weekend calendar and additional TaskList columns
+
+**Target features:**
+- Custom weekend calendar (Date[] array + isWeekend predicate)
+- Additional TaskList columns with renderCell/editor, positioned after Name column
+
 ## Current State (v0.18.0)
 
 **Shipped:** 2026-03-17
@@ -45,7 +53,9 @@ The library is published as `gantt-lib` v0.18.0 on npm with the following featur
 
 ### Active
 
-(None — all v1 requirements shipped in v0.18.0)
+**v0.50.0 Goals:**
+- [ ] Custom weekend calendar — pass Date[] array or isWeekend function
+- [ ] Additional TaskList columns — add custom columns after Name with renderCell/editor
 
 ### Out of Scope
 
@@ -88,4 +98,4 @@ The library is published as `gantt-lib` v0.18.0 on npm with the following featur
 - **Browser**: Modern browsers — No IE11 requirement
 
 ---
-*Last updated: 2026-03-17 after v0.18.0 milestone*
+*Last updated: 2026-03-17 after v0.50.0 milestone started*
