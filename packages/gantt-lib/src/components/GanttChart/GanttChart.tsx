@@ -802,6 +802,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
                 dayWidth={dayWidth}
                 headerHeight={headerHeight}
                 viewMode={viewMode}
+                isCustomWeekend={isCustomWeekend}
               />
             </div>
 
@@ -818,6 +819,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             dayWidth={dayWidth}
             totalHeight={totalGridHeight}
             viewMode={viewMode}
+            isCustomWeekend={isCustomWeekend}
           />
 
           {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
