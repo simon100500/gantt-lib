@@ -565,6 +565,20 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     [scrollToToday, scrollToTask, handleCollapseAll, handleExpandAll]
   );
 
+  /**
+   * Calculate the depth of a task in the hierarchy.
+   * Root tasks have depth 0, their children have depth 1, etc.
+   */
+  function getTaskDepth(taskId: string, tasks: Task[]): number {
+    let depth = 0;
+    let current = tasks.find(t => t.id === taskId);
+    while (current?.parentId) {
+      depth++;
+      current = tasks.find(t => t.id === current.parentId);
+    }
+    return depth;
+  }
+
   const handlePromoteTask = useCallback((taskId: string) => {
     // If consumer provided custom callback, use it
     if (onPromoteTask) {
@@ -574,16 +588,18 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
     // Default internal logic
     const taskToPromote = tasks.find(t => t.id === taskId);
-    if (!taskToPromote || !(taskToPromote as any).parentId) {
+    if (!taskToPromote || !taskToPromote.parentId) {
       return;
     }
 
-    const currentParentId = (taskToPromote as any).parentId;
-    const currentParent = tasks.find(t => t.id === currentParentId);
-    // Promote one level: set parentId to grandparent (undefined if parent is root)
-    const grandparentId = currentParent ? (currentParent as any).parentId : undefined;
+    // Calculate current depth and determine new parent for single-level promotion
+    const depth = getTaskDepth(taskId, tasks);
+    const grandparentId = depth > 1
+      ? tasks.find(t => t.id === taskToPromote.parentId)?.parentId
+      : undefined;
 
-    const siblings = tasks.filter(t => (t as any).parentId === currentParentId);
+    const currentParentId = taskToPromote.parentId;
+    const siblings = tasks.filter(t => t.parentId === currentParentId);
 
     const promotedTask = { ...taskToPromote, parentId: grandparentId };
 
@@ -595,7 +611,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     // Reorder: place after last sibling of the old parent group
     const lastSiblingIndex = tasks
       .map((t, i) => ({ task: t, index: i }))
-      .filter(({ task }) => (task as any).parentId === currentParentId)
+      .filter(({ task }) => task.parentId === currentParentId)
       .sort((a, b) => b.index - a.index)[0];
 
     if (!lastSiblingIndex) {
