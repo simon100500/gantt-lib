@@ -3,45 +3,92 @@ gsd_state_version: 1.0
 milestone: v0.50.0
 milestone_name: Adding Tools
 status: in_progress
-stopped_at: Defining requirements
-last_updated: "2026-03-17T21:00:00.000Z"
-last_activity: "2026-03-17 - Milestone v0.50.0 started"
+stopped_at: Phase 21 planning
+last_updated: "2026-03-17T21:30:00.000Z"
+last_activity: "2026-03-17 - Roadmap created"
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 4
   completed_plans: 0
 ---
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-17 — Milestone v0.50.0 started
+**Phase:** 21 (Custom Weekend Calendar)
+**Plan:** TBD
+**Status:** Not started
+**Last activity:** 2026-03-17 — Roadmap created, ready for planning
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
-**Current focus:** Defining requirements for v0.50.0
+**Current milestone:** v0.50.0 Adding Tools
+**Milestone goal:** Add extensibility features — custom weekend calendar and additional TaskList columns
+
+**Milestone features:**
+- Custom weekend calendar (Date[] array + isWeekend predicate)
+- Additional TaskList columns with renderCell/editor, positioned after Name column
 
 ## Accumulated Context
 
-### Decisions Summary
+### Key Decisions
 
-(See PROJECT.md Key Decisions table for full log)
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| Month-only view | Simplicity, covers "small projects" use case | ✓ Good — keeps library focused |
+| Controlled component pattern | Fits React/Next.js patterns, user owns state | ✓ Good — flexible integration |
+| UTC date handling | Prevents DST bugs | ✓ Good — proven correct |
+| parentId-based hierarchy | Flat array structure, simpler than nested | ✓ Good — works well with drag-drop |
+| shadcn/ui components | Modern, accessible, customizable | ✓ Good — DatePicker, Input integrated |
+| Coarse granularity for v0.50.0 | 2 phases cover independent feature sets | ✓ Good — Custom Weekend Calendar + Additional Columns |
 
-- Month-only view for simplicity
-- Controlled component pattern
-- UTC date handling to prevent DST bugs
-- parentId-based hierarchy
+### Technical Constraints
 
-### Resolved Blockers
+- **Tech Stack:** React/Next.js, TypeScript
+- **Bundle Size:** Lightweight — minimal dependencies, tree-shakeable
+- **Styling:** CSS with CSS variables — users can customize
+- **Performance:** 60fps drag interactions on target scale
+- **Browser:** Modern browsers — no IE11 requirement
 
-(None in current milestone)
+### Known Issues
 
-### Open Blockers
+- Phase 16 plan 16-03 (demo page wiring) incomplete — minor gap
 
-(None)
+### User Feedback
+
+None yet — no external users (library in active development)
+
+### Roadmap Structure
+
+**v0.50.0 phases (2 phases, 4 estimated plans):**
+- Phase 21: Custom Weekend Calendar (CAL-01 to CAL-05)
+- Phase 22: Additional TaskList Columns (COL-01 to COL-08)
+
+**Coverage:** 13/13 requirements mapped ✓
+
+## Session Continuity
+
+**Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
+
+**Current focus:** Phase 21 (Custom Weekend Calendar)
+- Implement `weekends?: Date[]` prop
+- Implement `isWeekend?: (date: Date) => boolean` prop
+- Update GridBackground to highlight custom weekends
+- Ensure precedence: isWeekend > weekends > default
+- Test with multi-month views
+
+**Next:** Phase 22 (Additional TaskList Columns)
+- Implement `additionalColumns?: Column[]` prop
+- Column interface: id, header, renderCell, editor?, width?, after?
+- Position columns after specified base column
+- Ensure scrolling works correctly
+
+**Upcoming:** Plan Phase 21
+
+---
+
+**State updated:** 2026-03-17
+**Milestone:** v0.50.0 Adding Tools

@@ -1,17 +1,65 @@
-# Roadmap: Gantt Chart Library for Next.js
+# Roadmap: Gantt Chart Library
 
 ## Milestones
 
 - ✅ **v0.18.0 Gantt Library MVP** — Phases 1-20 (shipped 2026-03-17)
   — See `.planning/milestones/v0.18.0-ROADMAP.md`
+- 🔄 **v0.50.0 Adding Tools** — Phases 21-22 (in progress)
 
 ## Current Status
 
-🎉 **v0.18.0 shipped!** All 20 phases complete (50/51 plans, 98%).
-
-Ready for next milestone planning.
+🎯 **Planning v0.50.0** — Custom weekend calendar and additional TaskList columns
 
 ## Phases
+
+- [ ] **Phase 21: Custom Weekend Calendar** - User-defined weekend dates and flexible weekend logic
+- [ ] **Phase 22: Additional TaskList Columns** - Custom columns with renderers and editors
+
+### Phase 21: Custom Weekend Calendar
+
+**Goal:** Users can define custom weekend dates and flexible weekend logic for non-standard work calendars
+
+**Depends on:** Nothing (standalone feature)
+
+**Requirements:** CAL-01, CAL-02, CAL-03, CAL-04, CAL-05
+
+**Success Criteria** (what must be TRUE):
+1. User can pass custom weekend dates via `weekends?: Date[]` prop and see them highlighted in red on the grid
+2. User can pass `isWeekend?: (date: Date) => boolean` predicate for flexible weekend logic (e.g., Sunday-only, shift patterns)
+3. When both props provided, `isWeekend` takes precedence over `weekends` array
+4. Default Saturday/Sunday behavior remains unchanged when no props passed
+5. Custom weekend highlighting works correctly across month boundaries in multi-month views
+
+**Plans:** TBD
+
+### Phase 22: Additional TaskList Columns
+
+**Goal:** Users can extend TaskList with custom columns for project-specific data (assignee, status, priority, etc.)
+
+**Depends on:** Phase 21 (no technical dependency, but keeps calendar work focused first)
+
+**Requirements:** COL-01, COL-02, COL-03, COL-04, COL-05, COL-06, COL-07, COL-08
+
+**Success Criteria** (what must be TRUE):
+1. User can pass `additionalColumns?: Column[]` prop to TaskList and see new columns render in the table
+2. Custom columns render after specified base column (via `after?: string` prop, defaults to after 'Name')
+3. Cell content renders correctly via `renderCell: (row: GanttRow) => ReactNode` for each row
+4. Inline editor appears via `editor?: (row: GanttRow) => ReactNode` when user clicks editable cells
+5. Column width is customizable via `width?: string | number` prop
+6. Additional columns scroll horizontally with TaskList panel
+7. Base columns (№, Name, Dates, Dependencies, Actions) remain unchanged and functional
+
+**Plans:** TBD
+
+## Progress
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1-20 | v0.18.0 | 50/51 | Complete | 2026-03-17 |
+| 21 | v0.50.0 | 0/2 | Not started | - |
+| 22 | v0.50.0 | 0/2 | Not started | - |
+
+**Overall:** 50/55 plans complete (91%)
 
 <details>
 <summary>✅ v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -47,14 +95,10 @@ Build a lightweight React/Next.js library for interactive Gantt charts. Starting
 
 </details>
 
-## Progress
-
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 1-20 | v0.18.0 | 50/51 | Complete | 2026-03-17 |
-
 ---
 
 **Phase Numbering:**
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+**Roadmap updated:** 2026-03-17
