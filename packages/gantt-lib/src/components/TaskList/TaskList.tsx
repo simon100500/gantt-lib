@@ -669,6 +669,21 @@ export const TaskList: React.FC<TaskListProps> = ({
   const handleCancelNewTask = useCallback(() => setIsCreating(false), []);
 
   /**
+   * Calculate the depth of a task in the hierarchy.
+   * Root tasks have depth 0, their children have depth 1, etc.
+   */
+  function getTaskDepth(task: Task | undefined, tasks: Task[]): number {
+    if (!task) return 0;
+    let depth = 0;
+    let current: Task | undefined = task;
+    while (current?.parentId) {
+      depth++;
+      current = tasks.find(t => t.id === current.parentId);
+    }
+    return depth;
+  }
+
+  /**
    * Demote wrapper — implements the "previous visible task becomes parent" principle.
    *
    * Rules:
@@ -686,7 +701,32 @@ export const TaskList: React.FC<TaskListProps> = ({
 
     if (taskIndex > 0) {
       // Normal case: previous visible task becomes parent
+      // Validate that this creates a single-level depth change (no hierarchy gaps)
+      const currentTask = visibleTasks[taskIndex];
       const previousTask = visibleTasks[taskIndex - 1];
+      const currentDepth = getTaskDepth(currentTask, orderedTasks);
+      const previousDepth = getTaskDepth(previousTask, orderedTasks);
+
+      // Only use previous task as parent if it creates single-level change
+      if (previousDepth === currentDepth - 1) {
+        onDemoteTask?.(taskId, previousTask.id);
+        return;
+      }
+
+      // Previous task is not at correct level - find valid parent
+      // Walk up from current task to find parent at depth - 1
+      const currentTaskFull = orderedTasks.find(t => t.id === taskId);
+      if (currentTaskFull?.parentId) {
+        const currentParent = orderedTasks.find(t => t.id === currentTaskFull.parentId);
+        if (currentParent && getTaskDepth(currentParent, orderedTasks) === currentDepth - 1) {
+          // Current parent is already at correct level - task cannot be demoted further
+          // (would create duplicate parent-child relationship)
+          return;
+        }
+      }
+
+      // Use previous task anyway (fallback to current behavior)
+      // This case should be rare with proper UI state
       onDemoteTask?.(taskId, previousTask.id);
       return;
     }
