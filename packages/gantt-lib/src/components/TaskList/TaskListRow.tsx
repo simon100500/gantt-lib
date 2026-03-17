@@ -110,8 +110,8 @@ const HierarchyButton: React.FC<HierarchyButtonProps> = ({
 }) => {
   // Can promote if task is a child
   const canPromote = isChild && onPromote;
-  // Can demote if not a parent and not first row
-  const canDemote = !isParent && onDemote && rowIndex > 0;
+  // Can demote if not first row (parent tasks can also be demoted for unlimited nesting)
+  const canDemote = onDemote && rowIndex > 0;
 
   // If neither action available, don't render
   if (!canPromote && !canDemote) {
@@ -128,7 +128,7 @@ const HierarchyButton: React.FC<HierarchyButtonProps> = ({
   };
 
   const title = canPromote
-    ? 'Повысить (сделать корневой)'
+    ? 'Повысить уровень'
     : 'Понизить (сделать подчиненной)';
 
   const ArrowLeft = () => (

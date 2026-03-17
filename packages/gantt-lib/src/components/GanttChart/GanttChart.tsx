@@ -578,27 +578,31 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       return;
     }
 
-    const parentId = (taskToPromote as any).parentId;
-    const siblings = tasks.filter(t => (t as any).parentId === parentId);
+    const currentParentId = (taskToPromote as any).parentId;
+    const currentParent = tasks.find(t => t.id === currentParentId);
+    // Promote one level: set parentId to grandparent (undefined if parent is root)
+    const grandparentId = currentParent ? (currentParent as any).parentId : undefined;
+
+    const siblings = tasks.filter(t => (t as any).parentId === currentParentId);
+
+    const promotedTask = { ...taskToPromote, parentId: grandparentId };
 
     if (siblings.length <= 1) {
-      const promotedTask = { ...taskToPromote, parentId: undefined };
       onTasksChange?.([promotedTask]);
       return;
     }
 
+    // Reorder: place after last sibling of the old parent group
     const lastSiblingIndex = tasks
       .map((t, i) => ({ task: t, index: i }))
-      .filter(({ task }) => (task as any).parentId === parentId)
+      .filter(({ task }) => (task as any).parentId === currentParentId)
       .sort((a, b) => b.index - a.index)[0];
 
     if (!lastSiblingIndex) {
-      const promotedTask = { ...taskToPromote, parentId: undefined };
       onTasksChange?.([promotedTask]);
       return;
     }
 
-    const promotedTask = { ...taskToPromote, parentId: undefined };
     const reorderedTasks = normalizeHierarchyTasks([
       ...tasks.filter(t => t.id !== taskId).slice(0, lastSiblingIndex.index + 1),
       promotedTask,

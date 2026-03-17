@@ -400,10 +400,8 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     // Scenario 2: Dropping parent between another parent's children
-    // (dropTarget has a parentId - dropping here would make draggedTask a child too)
-    if (dropTarget.parentId) {
-      return false;
-    }
+    // Allow this for unlimited nesting — parent can become nested under another task.
+    // Scenarios 1 and 3 still protect against circular references and self-nesting.
 
     // Scenario 3: Dropping parent under one of its own descendants
     // This would create a cycle (parent becomes child of its descendant)
