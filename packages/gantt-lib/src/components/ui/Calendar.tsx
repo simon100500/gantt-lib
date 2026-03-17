@@ -28,15 +28,22 @@ export interface CalendarProps {
   initialDate?: Date;
   mode?: 'single' | 'range';
   disabled?: boolean;
+  /** Optional predicate for custom weekend logic (e.g., holidays, shift patterns) */
+  isWeekend?: (date: Date) => boolean;
 }
 
 
-function getDayClassName(day: Date, selected: Date | undefined): string {
+function getDayClassName(
+  day: Date,
+  selected: Date | undefined,
+  isWeekendProp?: (date: Date) => boolean
+): string {
   const classes: string[] = ['gantt-day-btn'];
 
   if (selected && isSameDay(day, selected)) classes.push('selected');
   if (isToday(day)) classes.push('today');
-  if (isWeekend(day)) classes.push('weekend');
+  // Use custom predicate if provided, otherwise default
+  if (isWeekendProp ? isWeekendProp(day) : isWeekend(day)) classes.push('weekend');
   if (isBefore(day, startOfDay(new Date())) && !isToday(day)) classes.push('past');
 
   return classes.join(' ');
@@ -48,6 +55,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   initialDate,
   mode = 'single',
   disabled = false,
+  isWeekend: isWeekendProp,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -127,7 +135,7 @@ export const Calendar: React.FC<CalendarProps> = ({
       const dayCells = Array.from({ length: totalDays }, (_, i) => {
         const dayNum = i + 1;
         const day = new Date(month.getFullYear(), month.getMonth(), dayNum);
-        const className = getDayClassName(day, selected);
+        const className = getDayClassName(day, selected, isWeekendProp);
         return (
           <button
             key={dayNum}
@@ -155,7 +163,7 @@ export const Calendar: React.FC<CalendarProps> = ({
         </div>
       );
     },
-    [selected, onSelect, disabled]
+    [selected, onSelect, disabled, isWeekendProp]
   );
 
   const renderedMonths = useMemo(
