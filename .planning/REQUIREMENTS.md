@@ -9,11 +9,11 @@ Requirements for adding extensibility features — custom weekend calendar and a
 
 ### Custom Weekend Calendar
 
-- [ ] **CAL-01**: User can pass `weekends?: Date[]` prop to GanttChart for custom weekend dates
-- [ ] **CAL-02**: User can pass `isWeekend?: (date: Date) => boolean` prop to GanttChart for flexible weekend logic
+- [x] **CAL-01**: User can pass `weekends?: Date[]` prop to GanttChart for custom weekend dates
+- [x] **CAL-02**: User can pass `isWeekend?: (date: Date) => boolean` prop to GanttChart for flexible weekend logic
 - [ ] **CAL-03**: Component highlights custom weekend dates with red background in GridBackground
-- [ ] **CAL-04**: Both props work together — isWeekend takes precedence if both provided
-- [ ] **CAL-05**: Default behavior (Saturday/Sunday) remains if no props passed
+- [x] **CAL-04**: Both props work together — isWeekend takes precedence if both provided
+- [x] **CAL-05**: Default behavior (Saturday/Sunday) remains if no props passed
 
 ### Additional TaskList Columns
 
@@ -55,11 +55,11 @@ Deferred to future release.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CAL-01 | Phase 21 | Pending |
-| CAL-02 | Phase 21 | Pending |
+| CAL-01 | Phase 21 | Complete |
+| CAL-02 | Phase 21 | Complete |
 | CAL-03 | Phase 21 | Pending |
-| CAL-04 | Phase 21 | Pending |
-| CAL-05 | Phase 21 | Pending |
+| CAL-04 | Phase 21 | Complete |
+| CAL-05 | Phase 21 | Complete |
 | COL-01 | Phase 22 | Pending |
 | COL-02 | Phase 22 | Pending |
 | COL-03 | Phase 22 | Pending |
