@@ -474,14 +474,14 @@
   position: relative;
 }
 
-/* Insert button styling (green) */
+/* Insert button styling (blue) */
 .gantt-tl-action-insert {
-  background-color: #22c55e;
+  background-color: #3b82f6;
   color: white;
 }
 
 .gantt-tl-action-insert:hover {
-  background-color: #16a34a;
+  background-color: #2563eb;
 }
 
 /* Delete button styling (red) */
@@ -514,12 +514,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: #3b82f6;
+  background-color: #4b5563;
   color: white;
 }
 
 .gantt-tl-action-hierarchy:hover {
-  background-color: #2563eb;
+  background-color: #374151;
 }
 
 /* Type switcher button in header */

@@ -35,7 +35,7 @@ milestone_name: milestone
 status: in_progress
 stopped_at: "Completed quick-260317-21g: hierarchical task numbering with left alignment"
 last_updated: "2026-03-16T22:30:00.000Z"
-last_activity: "2026-03-16 - Completed quick task 260317-21g: Номера задач выравнивание по левому краю и по иерархии: 1, 1.1, 1.2 и т.п."
+last_activity: "2026-03-17 - Completed quick task 260317-vkp: измени цвета кнопок действий на tasklist: новая задача - синяя. удалить так же красная. изменение иерархии - тёмно-серые"
 progress:
   total_phases: 20
   completed_phases: 19
