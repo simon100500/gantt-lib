@@ -262,12 +262,14 @@ export const TaskList: React.FC<TaskListProps> = ({
       const continues: boolean[] = [];
       let current: any = taskById.get(task.id);
       while (current?.parentId && taskById.has(current.parentId)) {
-        continues.unshift(!lastChildIds.has(current.parentId));
+        continues.unshift(!lastChildIds.has(current.id));
         current = taskById.get(current.parentId);
       }
-      // continues[0] = does depth-1 ancestor continue, continues[1] = depth-2, etc.
-      // For a depth-D task this has D entries; last entry is the direct parent.
-      // We only need entries for ancestors above the direct parent (slice off last).
+      // Walk builds: [!isLastChild(depth-1 ancestor), ..., !isLastChild(parent), !isLastChild(task)]
+      // We slice off the last entry (task's own "continues" status) because the task's
+      // own connector is rendered by HierarchyConnectorIcon (isLastChild prop).
+      // Remaining entries: one per ancestor level, outermost first.
+      // ancestorContinues[i] = true → draw vertical continuation line at position i * 20 + 9 px.
       map.set(task.id, continues.slice(0, -1));
     }
     return map;
