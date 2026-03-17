@@ -4,6 +4,21 @@ milestone: v1.0
 milestone_name: milestone
 status: in_progress
 stopped_at: "Completed quick-260317-mrj: single-level hierarchy promotion/demotion"
+last_updated: "2026-03-17T20:08:57.786Z"
+last_activity: "2026-03-17 - Completed quick task 260317-lge: поправь теперь элементы индикации иерархии. чтобы было у каждого уровня. и не забудь вертикальные полосы. а то они сейчас только у 1 уровня и то уродские"
+progress:
+  total_phases: 20
+  completed_phases: 19
+  total_plans: 51
+  completed_plans: 50
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
+stopped_at: "Completed quick-260317-mrj: single-level hierarchy promotion/demotion"
 last_updated: "2026-03-17T13:23:27.113Z"
 last_activity: "2026-03-17 - Completed quick task 260317-mrj: изменить логику повышения/понижения иерархии - кнопки всегда изменяют уровень на 1"
 progress:

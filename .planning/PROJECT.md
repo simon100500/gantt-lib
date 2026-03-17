@@ -2,62 +2,90 @@
 
 ## What This Is
 
-A lightweight React/Next.js library for displaying Gantt charts with minimal features and Excel-like table styling. Users can drag and drop task bars to reschedule and resize them directly on the timeline.
+A lightweight React/Next.js library for displaying Gantt charts with interactive drag-and-drop, task dependencies, hierarchy, and Excel-like table styling. Users can drag and drop task bars to reschedule and resize them directly on the timeline.
 
 ## Core Value
 
 Drag-and-drop task scheduling with Excel-like visual simplicity.
 
+## Current State (v0.18.0)
+
+**Shipped:** 2026-03-17
+
+The library is published as `gantt-lib` v0.18.0 on npm with the following features:
+- Monthly calendar grid with task bars
+- Drag-and-drop task manipulation (move and resize)
+- Task dependencies with FS/SS/FF/SF link types
+- Task hierarchy (parent-child relationships)
+- Task list panel with inline editing
+- Dependency editing via TaskList
+- Row reordering via drag-and-drop
+- Expired task highlighting
+- Action buttons panel
+- shadcn/ui components (DatePicker, Input)
+
+**Tech stack:** React 18+, TypeScript, date-fns, @radix-ui
+**Bundle:** ~15KB gzipped
+**LOC:** ~15,335 (TypeScript/TSX/CSS)
+
 ## Requirements
 
 ### Validated
 
-(None yet — ship to validate)
+- ✅ Display monthly calendar grid with task bars — v0.18.0
+- ✅ Drag tasks horizontally to change dates (move) — v0.18.0
+- ✅ Drag task edges to change duration (resize) — v0.18.0
+- ✅ Excel-like table styling (grid lines, cell-based appearance) — v0.18.0
+- ✅ Task names panel on the left — v0.18.0
+- ✅ Accept simple array of task data — v0.18.0
+- ✅ Support ~100 tasks with good performance — v0.18.0
+- ✅ Notify parent component of changes via callback — v0.18.0
+- ✅ Customizable task colors — v0.18.0
+- ✅ TypeScript support — v0.18.0
 
 ### Active
 
-- [ ] Display monthly calendar grid with task bars
-- [ ] Drag tasks horizontally to change dates (move)
-- [ ] Drag task edges to change duration (resize)
-- [ ] Excel-like table styling (grid lines, cell-based appearance)
-- [ ] Task names panel on the left
-- [ ] Accept simple array of task data
-- [ ] Support ~100 tasks with good performance
-- [ ] Notify parent component of changes via callback
-- [ ] Customizable task colors
-- [ ] TypeScript support
+(None — all v1 requirements shipped in v0.18.0)
 
 ### Out of Scope
 
-- Task dependencies/links — keep it simple for v1
 - Multiple zoom levels (day/week/year) — month only
-- Task grouping or hierarchy
 - Built-in state management — controlled component pattern
 - Critical path calculations
 - Resource management
+- Export to PDF/PNG — browser print sufficient
 
 ## Context
 
-- Target framework: Next.js (React)
-- Style preference: Minimal, table-like, similar to Excel cell highlighting
-- Performance target: ~100 tasks on one month timeline
-- Use case: Project planning visualization in Next.js applications
+**Codebase state:**
+- Monorepo: `packages/gantt-lib` (library) + `packages/website` (demo)
+- React 19 compatible, TypeScript 5.7
+- Vitest for testing
+- tsup for bundling (ESM + CJS)
 
-## Constraints
+**Known issues:**
+- Phase 16 plan 16-03 (demo page wiring) incomplete — minor gap
 
-- **Tech Stack**: React/Next.js, TypeScript — Must work seamlessly in Next.js projects
-- **Bundle Size**: Lightweight — Minimal dependencies, tree-shakeable
-- **Styling**: CSS modules or tailwind-compatible — Users should be able to customize
-- **Performance**: 60fps drag interactions on target scale
-- **Browser**: Modern browsers — No IE11 requirement
+**User feedback themes:**
+(None yet — no external users)
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Month-only view | Simplicity, covers "small projects" use case | — Pending |
-| No task dependencies | Reduces complexity, focus on drag-and-drop UX | — Pending |
-| Controlled component pattern | Fits React/Next.js patterns, user owns state | — Pending |
+| Month-only view | Simplicity, covers "small projects" use case | ✓ Good — keeps library focused |
+| No task dependencies (initial) | Reduces complexity, focus on drag-and-drop UX | ⚠️ Revisit — added in Phase 6+ due to user need |
+| Controlled component pattern | Fits React/Next.js patterns, user owns state | ✓ Good — flexible integration |
+| UTC date handling | Prevents DST bugs | ✓ Good — proven correct |
+| parentId-based hierarchy | Flat array structure, simpler than nested | ✓ Good — works well with drag-drop |
+
+## Constraints
+
+- **Tech Stack**: React/Next.js, TypeScript — Must work seamlessly in Next.js projects
+- **Bundle Size**: Lightweight — Minimal dependencies, tree-shakeable
+- **Styling**: CSS with CSS variables — Users can customize
+- **Performance**: 60fps drag interactions on target scale
+- **Browser**: Modern browsers — No IE11 requirement
 
 ---
-*Last updated: 2025-02-18 after initialization*
+*Last updated: 2026-03-17 after v0.18.0 milestone*
