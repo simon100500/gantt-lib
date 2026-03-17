@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.2] - 2026-03-17
+
+### Style
+- Adjust TaskList padding for improved layout
+
 ## [0.17.1] - 2026-03-17
 
 ### Features

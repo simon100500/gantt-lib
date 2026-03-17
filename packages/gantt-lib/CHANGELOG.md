@@ -1,322 +1,286 @@
 # Changelog
 
-Все заметные изменения этого проекта будут задокументированы в этом файле.
+All notable changes to this project will be documented in this file.
 
-Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
-и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
+## [0.17.2] - 2026-03-17
 
-## [0.15.0] - 2026-03-16
+### Style
+- Adjust TaskList padding for improved layout
 
-### Добавлено
-- **Кастомизация шрифта** — добавлена CSS-переменная `--gantt-font-family` для настройки шрифта диаграммы
-- Шрифт по умолчанию теперь использует системный стек с Roboto как fallback
+## [0.17.1] - 2026-03-17
 
-## [0.14.0] - 2026-03-16
+### Features
+- Add hierarchical task numbering in TaskList (1, 1.1, 1.2, etc.) with getTaskNumber function
+- Task numbers now reflect parent-child relationships with proper indentation
 
-### Добавлено
-- **Режим просмотра по неделям (week-view)** — новый режим отображения с недельными колонками
-- Проп `viewMode` в GanttChart для переключения между режимами день/неделя
-- Компонент переключателя day/week на демо-странице
-- Методы `collapseAll()` и `expandAll()` в GanttChartHandle для управления сворачиванием всех родительских задач
-- Утилиты `getWeekStartDays()` и `getWeekSpans()` для работы с недельными диапазонами
-- Интерфейс `WeekSpan` для представления недельного периода
+### Fixes
+- Revert ID column width to 32px and left-align drag handle for consistency
 
-### Исправлено
-- Корректная отрисовка разделителей месяцев в режиме week-view
-- Разделение недельных блоков на границах месяцев
-- Удалены отладочные console.log из hierarchyOrder, taskListReorder и website
+### Style
+- Add left padding to task numbers and drag handle for better visual spacing
 
-### Документация
-- Обновлён REFERENCE.md с новым API week-view и методами collapse/expand
+## [0.17.0] - 2026-03-17
 
-## [0.10.0] - 2026-03-14
+### Features
+- Interactive dependency edit popover with keyboard lag input and ± buttons
+- Month view mode with "По месяцам" button on timeline
+- Cascading parent position updates during task drag operations
+- Cascade 100% progress to children when parent marked complete
+- Native tooltip on dependency chips showing dependency details
+- Task numbering by hierarchy level in task list
+- Close button in dependency edit popover
+- Fixed min-width for dependency chips to prevent layout shift
 
-### Критические изменения
-- **Родительские задачи больше не отправляются при изменении детей** — родительские даты теперь вычисляются на бэкенде (computed value)
-- **При движении ребёнка:** отправляется только ребёнок, родитель НЕ отправляется
-- **При движении родителя:** отправляются только дети с новым delta, родитель НЕ отправляется
-- **При демоции родителя в обычную задачу:** даты вычисляются из детей и сохраняются как "собственные" даты задачи
-- Backend ДОЛЖЕН быть обновлён для вычисления родительских дат из детей (`min(children.startDate)`, `max(children.endDate)`)
+### Fixes
+- Fix popover 3-line layout: task name / lag input / predecessor name
+- Fix lag calculation display for SS/SF link types at zero lag
+- Fix popover styling: unified font-size, color inheritance, proper spacing
+- Fix cascade parent sync during child drag operations
+- Fix month view styling: day width, year boundary lines, Russian month names
+- Fix header separator lines: thin in row 2 only, thick separators full-height
+- Fix dependency chip hover state and delete button positioning
+- Fix predecessor-side delete button label ("× удалить")
 
-### Изменения
-- Упрощена модель данных: родительские даты больше не дублируются, всегда вычисляются из детей
-- Удалена сложная логика пересчёта родительских дат при движении детей
-- onTasksChange получает меньше данных (только изменившиеся задачи, без родительских)
+### Style
+- Update popover colors and font weights for better visual hierarchy
+- Adjust chip min-width and center alignment
+- Improve grid border colors and separator visibility
+- Enhance task row hover state consistency
 
-## [0.9.1] - 2026-03-14
+## [0.16.0] - 2026-03-16
 
-### Исправлено
-- Дублирование записи родительской задачи при перетаскивании (один с новыми датами, один со старыми датами)
-- Вызов обоих колбэков (onTasksChange и onCascade) при перетаскивании родителя, что приводило к race condition
-- Теперь при перетаскивании родителя вызывается только onTasksChange с корректными данными (родитель + дети, без дублей)
-- Проп `onCascade` объявлен deprecated; onTasksChange является единственным источником истины
+### Features
+- Add keyboard date input to DatePicker popup with segment navigation (dd.MM.yy)
+- Auto-focus date input field when calendar popup opens
+- Add day-shift buttons (-7, -1, +1, +7) flanking the date input field
+
+### Fixes
+- Fix fast-typing digit jump to year segment — segment position now tracked in refs, independent of DOM/rAF timing
+- Remove printable key capture from TaskListRow — task name edit now only on F2 or double-click on name cell
+
+### Style
+- Reduce calendar max-height from 400px to 280px
+- Stretch shift buttons to full calendar width with equal flex sizing
+- Show date input border always; blue focus ring when active
+
+## [0.13.0] - 2026-03-15
+
+### Features
+- Color parent task name label to match the bar color
+- Enhance parent task bar styling with dynamic background color
+- Add border radius to parent task progress bars
+- Improve progress bar styling clarity in TaskRow
+
+### Refactor
+- Remove debug console.log statements from GanttChart and TaskList
+
+### Style
+- Update parent task row background color for visual consistency
+
+## [0.11.1] - 2026-03-15
+
+### Fixes
+- Fix drag & drop hierarchy: dropping a task below a collapsed group no longer incorrectly nests it inside the group; tasks now join a group only when dropped between a parent and its first child or between two siblings
+
+### Style
+- Adjust opacity of task number labels for improved readability
+
+## [0.11.0] - 2026-03-15
+
+### Features
+- Add L-shaped hierarchy connector icon (├/└) for child task rows with continuous vertical tree lines
+- Enforce single-level nesting rules for parent task drag-and-drop
+
+### Fixes
+- Cascade delete children when parent task is deleted
+- Fix multi-level collapse visibility for nested tasks
+- Resolve parent drop order bug with improved logic
+- Prevent parent task from joining its own group (cycle prevention)
+- Fix parent task drag restrictions to prevent invalid hierarchy states
+
+## [0.9.0] - 2026-03-14
+
+### Features
+- Add `onPromoteTask` callback prop to GanttChart for custom promote behavior
+- Add `onDemoteTask` callback prop to GanttChart for custom demote behavior
+- Both callbacks are optional - internal default logic is used when not provided
+
+### Documentation
+- Updated REFERENCE.md with onPromoteTask/onDemoteTask optional prop documentation
+
+## [0.8.0] - 2026-03-14
+
+### Breaking Changes
+- **Removed:** `onChange` prop - replaced with `onTasksChange`
+- **Removed:** `onTaskChange` prop - merged into `onTasksChange`
+- `onTasksChange` now receives only the changed tasks (never the full array)
+- Single task changes are delivered as a single-element array
+- Consumer must merge changed tasks into state using the pattern documented in REFERENCE.md
+
+### Features
+- `onTasksChange` API enables efficient REST API integration
+  - Individual updates: `PATCH /api/tasks/:id`
+  - Batch updates: `PATCH /api/tasks` with array
+- All Task objects in callbacks include full properties (nested structures, dependencies, etc.)
+
+### Documentation
+- Updated REFERENCE.md to v0.8.0 with onTasksChange pattern examples
+
+## [0.7.1] - 2026-03-13
+
+### Fixes
+- Automatically swap task dates when endDate < startDate (normalizeTaskDates)
+- Dates are validated on initial data load and during editing
 
 ## [0.7.0] - 2026-03-11
 
-### Добавлено
-- Добавлена интерактивная колонка длительности `Дн.` в списке задач для компактного редактирования даты окончания
+### Features
+- Add an inline `Дн.` duration column to the task list so end dates can be adjusted from a compact numeric editor
 
-### Исправлено
-- Дата окончания теперь пересчитывается сразу во время редактирования длительности и сохраняется после подтверждения
-- Отображение длительности в inline-редакторе теперь остаётся точным во время ввода
-- Перетаскивание задач сохраняет стабильный порядок при свернутых родительских группах
+### Fixes
+- Preview the recalculated end date immediately while editing duration and save the final value on confirm
+- Keep duration display accurate during inline editing
+- Keep task reordering stable when parent groups are collapsed
 
-### Стили
-- Компактирован редактор прогресса и увеличены элементы управления для более удобного ввода
-- Уточнены размеры ячеек списка задач, отступы дочерних элементов и поведение tooltip для названий задач
-- Добавлена тень справа от списка задач при горизонтальной прокрутке сетки дат
-- Сбалансированы минимальные ширины списка задач, чтобы колонки названия и связей оставались удобными одновременно
+### Styling
+- Compact the progress editor and enlarge its controls for easier interaction
+- Refine task list cell sizing, child padding, and task name tooltip behavior
+- Add a right-side shadow to the task list when the date grid is horizontally scrolled
+- Rebalance task list minimum widths so name and dependency columns stay usable together
+
+## [0.6.2] - 2026-03-11
+
+### Fixes
+- Derive parent task dates from children (auto-stretch parent to encompass all children)
+
+## [0.6.1] - 2026-03-11
+
+### Fixes
+- Keep children next to parent when dragging tasks
+
+### Documentation
+- Update API reference with hierarchy features and new CSS variables
 
 ## [0.6.0] - 2026-03-11
 
-### Добавлено
+### Features
 
-#### Система иерархии (Фаза 19)
-- Добавлена поддержка родительско-дочерней иерархии задач с полем `parentId`
-- Реализованы утилиты иерархии (getChildren, isParent, isDescendant, getAncestors)
-- Добавлен UI иерархии с отступами, кнопками сворачивания и стилизацией родительских строк
-- Панель родительской задачи в стиле MS Project с трапецеидальными «ушками»
-- Функциональность повышения/понижения с одной кнопкой направленного действия
-- Умный вывод parentId при перетаскивании для изменения порядка
-- Виртуальные связи зависимостей для свернутых родительских задач
-- Родительские задачи автоматически растягиваются при перетаскивании дочерних
-- Каскадное удаление при удалении родителя
-- Прогресс родителя автоматически обновляется на основе прогресса дочерних задач
+#### Hierarchy System (Phase 19)
+- Add parent-child task hierarchy support with `parentId` field
+- Implement hierarchy utilities (getChildren, isParent, isDescendant, getAncestors)
+- Add hierarchy UI with indentation, collapse buttons, and parent row styling
+- Parent task bar with MS Project bracket styling (trapezoid ears)
+- Promote/demote functionality with single directional button
+- Smart parentId inference in drag-drop reordering
+- Virtual dependency links for collapsed parent tasks
+- Parent tasks automatically stretch when children are dragged
+- Cascade delete for parent removal
+- Parent progress auto-updates based on children progress
 
-#### Улучшения списка задач
-- Добавлена интерактивная колонка прогресса в списке задач
-- Добавлены кнопки переключения видимости списка задач
-- Добавлен prop `enableAddTask` для управления созданием задач
+#### Task List Improvements
+- Add clickable progress column in task list
+- Add show/hide task list toggle buttons
+- Add `enableAddTask` prop for task creation control
 
-#### Стили
-- Добавлены CSS-переменные для необязательных вертикальных разделителей между колонками
+#### Styling
+- Add CSS variables for optional vertical separators between columns
 
-### Исправлено
-- Дочерние задачи следуют за родительской при перемещении через связь зависимости
-- Дочерние задачи могут выходить из группы при перемещении выше родительской
-- Каскадное перемещение последователей при перемещении свернутых родителей
-- Исправлены границы изменения размера родительской задачи
-- Включена панель прогресса для родительских задач
-- Исправлено центрирование и позиционирование панели родителя
-- Предотвращена интерференция keydown строки с вводом прогресса
-- Убраны вертикальные разделительные линии между колонками списка задач
+### Fixes
+- Children follow parent when moved by dependency link
+- Child tasks can exit group when moved above parent
+- Cascade successors when moving collapsed parents
+- Fix parent task resize boundaries
+- Enable progress bar for parent tasks
+- Fix parent bar centering and positioning
+- Prevent row keydown from interfering with progress input
+- Remove vertical separator lines between task list columns
 
-### Документация
-- Добавлен REFERENCE.md с примерами иерархии и полным справочником API
+### Documentation
+- Add REFERENCE.md with hierarchy examples and full API reference
 
-## [0.3.4] - 2026-03-08
+## [0.5.1] - 2026-03-09
 
-### Добавлено
-- **Плавная прокрутка** — `scrollToToday()` и `scrollToTask()` теперь используют анимированный скролл (`behavior: 'smooth'`)
-- **Ручки ресайза по hover** — визуальные ручки появляются только при наведении на задачу; зона активации для растягивания остаётся полной ширины
-- **Визуальное смещение ручек ресайза** — ручки имеют закруглённую форму и небольшое смещение внутрь для лучшей эстетики
+### Fixes
+- Fix drag-and-drop to allow moving tasks to the very end of the list
+- The "+ Добавить задачу" button now serves as a drop target for placing tasks at the end
 
-### Исправлено
-- **GridBackground.arePropsEqual** — инвертированное условие `totalHeight` исправлено (`!==` → `===`); добавление/удаление строк теперь корректно обновляет фоновую сетку
-- **Логика isExpired** — устранены крайние случаи расчёта просрочки
+## [0.5.0] - 2026-03-09
 
-### Производительность
-- Удалён отладочный `console.log` из `handleTaskChange` — снижает нагрузку в dev-режиме при перетаскивании задач
+### Features
 
-### Рефакторинг
-- Устранено дублирование CSS-стилей в `styles.css`
+#### Task Drag-to-Reorder (Phase 18)
+- Add drag handle overlay on task number cell hover
+- Implement drag-and-drop task reordering with visual feedback
+- Add `onReorder` callback to GanttChart for external state sync
+- Add blue text highlighting for dragging row visibility
+- Use transparent background for dragging row to maintain readability
+- Implement proper drop index calculation for drag-down scenarios
+- Add no-op checks for adjacent position drags
 
-## [0.3.3] - 2026-03-05
+#### Delete Confirmation
+- Add two-click delete confirmation to prevent accidental deletions
+- Delete button shows "Удалить?" on first click, deletes on second
+- Reset confirmation state when clicking outside button or hovering to different row
 
-### Исправлено
-- **Расчёт просрочки** — упрощена формула `isExpired`: исправлено несоответствие elapsed/duration, задачи прошедшей даты теперь правильно помечаются как просроченные
+### Fixes
+- Fix drop index calculation when dragging down (subtract 1 from dropIndex)
+- Add no-op checks for adjacent position drags
+- Simplify drop logic to only no-op for same position
+- Use ::before for drag indicator to prevent layout shift
 
-## [0.3.0] - 2026-03-04
+### Style
+- Remove transition on drag handle for instant feedback
+- Keep drag handle visible during dragging
+- Use visibility instead of pointer-events for drag handle
 
-### Добавлено
-- **Подсветка просроченных задач** — визуальная индикация задач, отстающих от графика
-  - Prop `highlightExpiredTasks?: boolean` на компоненте GanttChart для включения подсветки
-  - CSS-переменная `--gantt-expired-color: #ef4444` для красного цвета просрочки
-  - Логика определения просрочки: позиция «сегодня» внутри задачи в процентах; если прогресс меньше — задача красная
-  - Прогресс-бар для просроченных задач отображается тёмно-красным
-  - Демо-страница с примерами просроченных задач
+## [0.4.1] - 2026-03-09
 
-### Исправлено
-- **Индикатор «сегодня»** — исправлен рендер вертикальной линии за пределами видимой области экрана
+### Fixes
+- Remove first month separator line at the left edge of calendar grid
 
-## [0.2.1] - 2026-03-03
+### Refactor
+- Move `editingTaskId` from prop to internal state for better encapsulation
 
-### Исправлено
-- **Удаление зависимостей** — исправлена работа кнопок удаления (на чипе и «Удалить связь» на задаче-родителе)
-- Добавлено свойство `onInteractOutside` в компонент Popover для корректной обработки кликов вне popover
+### Documentation
+- Add detailed installation guide emphasizing CSS import requirement
+- Fix `onAdd` and `onInsertAfter` callback signatures in API reference
+- Add troubleshooting note for missing hover buttons (CSS import issue)
 
-## [0.2.0] - 2026-03-03
+## [0.4.0] - 2026-03-09
 
-### Добавлено
-- **Колонка «Связи» в списке задач** — полный интерфейс редактирования зависимостей прямо в таблице
-  - Чипы зависимостей с SVG-иконкой типа связи и числом дней лага
-  - Режим выбора предшественника с плейсхолдером «Выберите задачу»
-  - Сводный чип «N-связей» с попапом при трёх и более зависимостях
-  - Встроенная кнопка удаления связи при клике на чип
-  - Выделенный чип подсвечивает SVG-стрелку на диаграмме красным
-- **Попап с деталями зависимости** — показывает глагол (Начать/Завершить), тип связи и название задачи-предшественника
-- **Prop `disableDependencyEditing`** — отключение редактирования зависимостей в списке задач
-- **Автоснап дат** при добавлении зависимости — даты последующей задачи автоматически смещаются к предшественнику
-- **Метод `scrollToTask()`** через ref — программная прокрутка диаграммы к заданной задаче
-- **SVG-иконки типов связей** вместо текстовых меток (FS/SS/FF/SF)
-- Русские метки в меню выбора типа связи
-- Клик по номеру задачи прокручивает диаграмму и выделяет строку
+### Features
 
-### Исправлено
-- **Лаг FS**: lag=0 теперь означает естественный смежный зазор (исправлен off-by-one)
-- **Снапинг**: FS сдвигает на +1 день, SF на −1 день для точного примыкания задач
-- Правильное направление зависимости (исправлены аргументы `onAddDependency`)
-- Высота чипа зависимости фиксирована вне зависимости от текста лага
-- Попап: убран нативный `title`-tooltip, исправлено расположение (снизу) и разбивка текста
-- FS0 отображает «Начать сразу после окончания» вместо числового значения
-- Иконка прокрутки к задаче заменена на `arrow-right-to-line`
-- Выравнивание задачи по левому краю при прокрутке с отступом 2 дня
+#### Task Add/Delete (Phase 16-17)
+- Add `onAdd` and `onDelete` callbacks to GanttChart for external task control
+- Implement `handleDelete` with automatic dependency cleanup
+- Create NewTaskRow component with ghost row for inline task creation
+- Add action panel (48px) with insert/delete buttons in task list
+- Use hover-reveal pattern for action buttons to keep UI clean
 
-## [0.1.1] - 2026-02-28
+#### Calendar & Navigation
+- Add calendar navigation button bar with quick-jump buttons (-7, -1, Today, +1, +7)
+- Add F2 keyboard shortcut to enter task name edit mode
 
-### Добавлено
-- **Кнопка "Сегодня"** — кнопка для быстрого возврата к текущей дате на временной шкале
-  - Расположена в одной строке с кнопкой "Show Task List"
-  - При клике диаграмма прокручивается так, чтобы сегодняшний день оказался по центру экрана
-  - Метод `scrollToToday()` доступен через ref для внешнего использования
+#### Dependency Chip UX Improvements
+- Toggle off dependency chip view on second click
+- Scroll to predecessor task when clicking dependency chip
+- Hide "add link" button when a dependency chip is selected
+- Allow cancelling link creation mode by clicking the source cell
+- Remove action column from TaskList header for cleaner layout
 
-### Изменено
-- **GanttChart** — компонент теперь обёрнут в `forwardRef` для поддержки imperative handle API
+#### CSS & Styling
+- Expose `--gantt-container-border-radius` CSS variable for customization
+- Move action buttons into task name cell with hover-reveal
+- Constrain dependencies column width to 90px
+- Add text wrapping for source hint placeholder
+- Update dependency button styling and column widths
 
-## [0.1.0] - 2026-02-28
+#### Quick Fixes
+- Prevent popover from re-opening on chip click
+- Fix dependency add button display issues
+- Fix task list row hover behavior for action buttons
 
-### 🎉 Первая стабильная версия
+### [0.3.4] - 2026-02-28
 
-Этот крупный релиз объединяет работу 13 основных фаз разработки и 34 быстрых улучшений. Библиотека теперь включает полнофункциональную диаграмму Ганта с интерактивными задачами, зависимостями, списком задач и стилизацией в стиле shadcn/ui.
-
-### Добавлено
-
-#### Основные возможности
-- **Диаграмма Ганта** — отображение задач на временной шкале с месячным календарём
-- **Drag-and-Drop** — перетаскивание задач для изменения дат (перемещение и изменение длительности)
-- **Многомесячный календарь** — двухуровневый заголовок (год/месяц + день) с синхронизированной прокруткой
-- **Вертикальные линии сетки** — разделители месяцев и недель
-- **Выделение выходных** — бледно-розовый фон для субботы и воскресенья
-- **Индикатор сегодняшнего дня** — вертикальная красная линия
-- **Прогресс задач** — визуальное отображение прогресса (0-100%) с цветовой индикацией
-- **Зависимости между задачами** — четыре типа связей (FS, SS, FF, SF) с поддержкой лага
-- **Каскадное планирование** — автоматическое перемещение зависимых задач
-- **Блокировка задач** — свойство `locked` блокирует перетаскивание и редактирование
-- **Список задач** — таблица слева от диаграммы с редактированием имени и дат
-- **UI-компоненты** — styled Input и DatePicker на базе Radix UI и react-day-picker
-
-#### Зависимости (Dependencies)
-- **FS (Finish-to-Start)** — задача B начинается после завершения задачи A
-- **SS (Start-to-Start)** — задача B начинается одновременно с задачей A
-- **FF (Finish-to-Finish)** — задача B завершается одновременно с задачей A
-- **SF (Start-to-Finish)** — задача B завершается после начала задачи A
-- **Лаг (lag)** — задержка в днях, положительная или отрицательная
-- **Обнаружение циклов** — визуальная подсветка циклических зависимостей
-
-#### Ограничения зависимостей
-- **Hard mode** — каскадное перемещение цепочки задач как монолита
-- **Soft mode** — свободное перемещение с пересчётом лага
-- **onCascade callback** — уведомление о каскадных изменениях
-
-#### Список задач (Task List)
-- **4 колонки** — №, Имя, Начало, Окончание
-- **Inline-редактирование** — Enter сохраняет, Esc отменяет
-- **Синхронизированная прокрутка** — sticky-позиционирование
-- **Выбор задачи** — подсветка выбранной строки
-
-#### UI-компоненты
-- **Input** — стилизованный текстовый input с синей рамкой
-- **DatePicker** — календарь с popup на базе Radix Popover
-- **Calendar** — обёртка над react-day-picker v9
-- **Button** — кнопка с вариантами (default/ghost/outline)
-- **Popover** — обёртка над Radix Popover с поддержкой portal
-
-#### Управление редактированием
-- **disableTaskNameEditing** — отключение редактирования имён задач
-- **disabled DatePicker** — календарь отключён для заблокированных задач
-
-#### Разработчику
-- **TypeScript** — полная поддержка типов
-- **Next.js 15 / React 19** — совместимость с App Router
-- **CSS-переменные** — темизация через `--gantt-*` переменные
-- **Минимальный размер** — ~7KB gzipped для JS, ~23KB для CSS
-
-#### Демо-сайт
-- **Toggle-кнопка** — показ/скрытие списка задач
-- **JSON-экспорт/импорт** — сохранение и загрузка задач
-- **Примеры проектов** — строительный проект, задачи с зависимостями
-
-### Изменено
-
-#### Каленадарь
-- **Русская локаль** — названия месяцев на русском (Январь, Февраль, ...)
-- **Умные границы** — сетка расширяется на целые месяцы
-- **Прошлые даты** — приглушённые цвета для прошедших дней
-- **Красный текст выходных** — улучшенная читаемость
-
-#### Список задач
-- **Ширина колонки имени** — увеличена до 520px
-- **Двухстрочное ограничение** — clamp(2) для длинных имён
-- **Центрирование дат** — текст по центру ячейки
-- **Full-cell click target** — вся ячейка — кликабельная область
-- **Сохранение при blur** — автоматическое сохранение при клике на сетку
-- **Скрытие input-ов при pan** — пропуск элементов в обработчике панорамирования
-
-#### Стили
-- **CSS-агрегация** — все стили собраны в `styles.css`
-- **Префиксы** — `gantt-` для основного, `gantt-t-` для task-list, `gantt-calendar-*` для UI
-
-### Убрано
-- **react-day-picker как прямая зависимость** — заменён на v9 в ui-компонентах
-- **DragTooltip** — всплывающая подсказка при перетаскивании (было в quick-1)
-
-### Исправлено
-- **Resize для задач 1 день** — корректное растягивание при перетаскивании за правый край
-- **Лаг для SF-зависимостей** — корректный расчёт задержки
-- **Смещение месяца влево** — исправлен баг с позиционированием сетки
-- **Несовпадение сетки заголовка** — синхронизация прокрутки header/body
-- **Стрелки зависимостей** — исправлен размер стрелок на линиях связей
-- **Повторная отрисовка линий** — обновление при перетаскивании задач
-
-### Документация
-- README.md с примерами использования
-- Документация по типам зависимостей (FS, SS, FF, SF)
-- JSDoc-комментарии для всех public props
-
----
-
-## [0.0.10] - 2026-02-27
-
-### Исправлено
-- **Исправлено перетаскивание за правый край задач длительностью 1 день** — теперь задачи корректно растягиваются при перетаскивании за правый край, а не сдвигаются. Проблема была вызвана перекрытием зон краёв в функции `detectEdgeZone` (geometry.ts).
-
-### Тесты
-- Добавлено 9 регрессионных тестов для обнаружения зон краёв задач
-
-## [0.0.9] - 2026-02-23
-
-### Добавлено
-- **Свойство `divider`** — опциональная горизонтальная линия для визуальной группировки задач
-- **Улучшены цвета** — обновлено смешивание цветов для лучшей видимости прогресса задач
-
-### Изменено
-- Оптимизированы стили линии разделителя и z-index
-
-## [0.0.8] - 2025-02-20
-
-### Добавлено
-- README.md теперь включён в пакет
-
-## [0.0.7] - 2025-02-19
-
-### Исправлено
-- Исправлен расчёт и отображение lag для зависимостей типа SF (Start-to-Finish)
-
-### Добавлено
-- **Документация по зависимостям** — примеры использования всех типов зависимостей (FS, SS, FF, SF)
-- **Cascade scheduling** — каскадное планирование при перемещении задач
-- **Constraint props** — новые свойства для ограничений зависимостей
-
-## [0.0.6] и ранее
-
-- Начальная версия библиотеки
+### Features
+- Initial release foundation
