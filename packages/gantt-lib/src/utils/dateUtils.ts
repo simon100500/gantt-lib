@@ -111,6 +111,89 @@ export const createDateKey = (date: Date): string => {
 };
 
 /**
+ * Configuration for custom weekend calendar
+ */
+export interface WeekendConfig {
+  /** Array of dates to ADD to default weekends (e.g., holidays) */
+  weekends?: Date[];
+  /** Array of dates to EXCLUDE from default weekends (e.g., shifted workdays) */
+  workdays?: Date[];
+  /** Custom predicate for flexible weekend logic (overrides arrays) */
+  isWeekend?: (date: Date) => boolean;
+}
+
+/**
+ * Create a weekend predicate with custom calendar support
+ *
+ * Precedence order (highest to lowest):
+ * 1. isWeekend (custom predicate) - use directly, ignore arrays
+ * 2. workdays - exclude these dates from default weekends
+ * 3. weekends - add these dates to default weekends
+ * 4. default - Saturday (6) and Sunday (0)
+ *
+ * @param config - Weekend configuration with optional arrays and predicate
+ * @returns Predicate function (date: Date) => boolean
+ *
+ * Example:
+ * // Add March 8 as holiday (Monday becomes weekend)
+ * const predicate = createIsWeekendPredicate({
+ *   weekends: [new Date(Date.UTC(2026, 2, 8))]
+ * });
+ *
+ * // Make March 15 a workday (Saturday becomes workday)
+ * const predicate2 = createIsWeekendPredicate({
+ *   workdays: [new Date(Date.UTC(2026, 2, 15))]
+ * });
+ *
+ * // Custom shift pattern (Sunday-only weekends)
+ * const predicate3 = createIsWeekendPredicate({
+ *   isWeekend: (date) => date.getUTCDay() === 0
+ * });
+ */
+export const createIsWeekendPredicate = (
+  config: WeekendConfig
+): ((date: Date) => boolean) => {
+  const { weekends, workdays, isWeekend: customPredicate } = config;
+
+  // Priority 1: Custom predicate (highest) - use directly
+  if (customPredicate) {
+    return customPredicate;
+  }
+
+  // Priority 2: Workdays - exclude these from default weekends
+  if (workdays && workdays.length > 0) {
+    const workdaySet = new Set(workdays.map(createDateKey));
+    return (date: Date) => {
+      const key = createDateKey(date);
+      if (workdaySet.has(key)) {
+        return false; // Workday takes precedence
+      }
+      const dayOfWeek = date.getUTCDay();
+      return dayOfWeek === 0 || dayOfWeek === 6; // Default Sat/Sun
+    };
+  }
+
+  // Priority 3: Weekends - add these to default weekends
+  if (weekends && weekends.length > 0) {
+    const weekendSet = new Set(weekends.map(createDateKey));
+    return (date: Date) => {
+      const key = createDateKey(date);
+      if (weekendSet.has(key)) {
+        return true; // Custom weekend
+      }
+      const dayOfWeek = date.getUTCDay();
+      return dayOfWeek === 0 || dayOfWeek === 6; // Default Sat/Sun
+    };
+  }
+
+  // Priority 4: Default - Saturday/Sunday only
+  return (date: Date) => {
+    const dayOfWeek = date.getUTCDay();
+    return dayOfWeek === 0 || dayOfWeek === 6;
+  };
+};
+
+/**
  * Calculate multi-month date range from task dates
  * Expands range to include full months with padding on both ends for drag flexibility
  * Adds 1 month before and 2 months after the task range
