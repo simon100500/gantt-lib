@@ -1,26 +1,49 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import type { Task } from '../GanttChart';
-import type { LinkType } from '../../types';
-import { parseUTCDate, normalizeTaskDates } from '../../utils/dateUtils';
-import { computeLagFromDates, calculateSuccessorDate, isTaskParent, findParentId, getChildren } from '../../utils/dependencyUtils';
-import { Input } from '../ui/Input';
-import { DatePicker } from '../ui/DatePicker';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
-import { LINK_TYPE_ICONS } from './DepIcons';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import type { Task } from "../GanttChart";
+import type { LinkType } from "../../types";
+import { parseUTCDate, normalizeTaskDates } from "../../utils/dateUtils";
+import {
+  computeLagFromDates,
+  calculateSuccessorDate,
+  isTaskParent,
+  findParentId,
+  getChildren,
+} from "../../utils/dependencyUtils";
+import { Input } from "../ui/Input";
+import { DatePicker } from "../ui/DatePicker";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
+import { LINK_TYPE_ICONS } from "./DepIcons";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const getInclusiveDurationDays = (startDate: string | Date, endDate: string | Date): number => {
+const getInclusiveDurationDays = (
+  startDate: string | Date,
+  endDate: string | Date,
+): number => {
   const start = parseUTCDate(startDate);
   const end = parseUTCDate(endDate);
-  return Math.max(1, Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1);
+  return Math.max(
+    1,
+    Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1,
+  );
 };
 
-const getEndDateFromDuration = (startDate: string | Date, durationDays: number): string => {
+const getEndDateFromDuration = (
+  startDate: string | Date,
+  durationDays: number,
+): string => {
   const start = parseUTCDate(startDate);
-  return new Date(start.getTime() + (durationDays - 1) * DAY_MS).toISOString().split('T')[0];
+  return new Date(start.getTime() + (durationDays - 1) * DAY_MS)
+    .toISOString()
+    .split("T")[0];
 };
 
 // ---------------------------------------------------------------------------
@@ -31,23 +54,33 @@ interface DepChipProps {
   dep: { taskId: string; type: LinkType };
   taskId: string;
   predecessorName?: string;
-  selectedChip: TaskListRowProps['selectedChip'];
+  selectedChip: TaskListRowProps["selectedChip"];
   disableDependencyEditing: boolean;
-  onChipSelect: TaskListRowProps['onChipSelect'];
-  onRowClick: TaskListRowProps['onRowClick'];
-  onScrollToTask: TaskListRowProps['onScrollToTask'];
-  onRemoveDependency: TaskListRowProps['onRemoveDependency'];
+  onChipSelect: TaskListRowProps["onChipSelect"];
+  onRowClick: TaskListRowProps["onRowClick"];
+  onScrollToTask: TaskListRowProps["onScrollToTask"];
+  onRemoveDependency: TaskListRowProps["onRemoveDependency"];
   onChipSelectClear: () => void;
   /** The successor task (needed for lag date computation) */
   task: Task;
   /** All tasks (needed to find predecessor dates) */
   allTasks: Task[];
   /** Callback to save date changes after lag modification */
-  onTasksChange?: TaskListRowProps['onTasksChange'];
+  onTasksChange?: TaskListRowProps["onTasksChange"];
 }
 
 const TrashIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
     <path d="M3 6h18" />
     <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -55,7 +88,17 @@ const TrashIcon = () => (
 );
 
 const PlusIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M12 5v14M5 12h14" />
   </svg>
 );
@@ -72,7 +115,17 @@ const DragHandleIcon = () => (
 );
 
 const ChevronRightIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="m9 18 6-6-6-6" />
   </svg>
 );
@@ -92,16 +145,36 @@ interface HierarchyButtonProps {
 }
 
 const ArrowLeft = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m12 19-7-7 7-7"/>
-    <path d="M19 12H5"/>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="m12 19-7-7 7-7" />
+    <path d="M19 12H5" />
   </svg>
 );
 
 const ArrowRight = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12h14"/>
-    <path d="m12 5 7 7-7 7"/>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
   </svg>
 );
 
@@ -125,7 +198,10 @@ const HierarchyButton: React.FC<HierarchyButtonProps> = ({
         <button
           type="button"
           className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
-          onClick={(e) => { e.stopPropagation(); onPromote!(e); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPromote!(e);
+          }}
           title="Повысить уровень"
         >
           <ArrowLeft />
@@ -135,7 +211,10 @@ const HierarchyButton: React.FC<HierarchyButtonProps> = ({
         <button
           type="button"
           className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
-          onClick={(e) => { e.stopPropagation(); onDemote!(e); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDemote!(e);
+          }}
           title="Понизить уровень"
         >
           <ArrowRight />
@@ -148,27 +227,35 @@ const HierarchyButton: React.FC<HierarchyButtonProps> = ({
 function formatDepDescription(type: LinkType, lag: number | undefined): string {
   const effectiveLag = lag ?? 0;
 
-  if (type === 'FS') {
-    if (effectiveLag > 0) return `Начать через ${effectiveLag} дн. после окончания`;
-    if (effectiveLag < 0) return `Начать за ${Math.abs(effectiveLag)} дн. до окончания`;
+  if (type === "FS") {
+    if (effectiveLag > 0)
+      return `Начать через ${effectiveLag} дн. после окончания`;
+    if (effectiveLag < 0)
+      return `Начать за ${Math.abs(effectiveLag)} дн. до окончания`;
     return `Начать сразу после окончания`;
   }
-  if (type === 'FF') {
-    if (effectiveLag > 0) return `Завершить через ${effectiveLag} дн. после окончания`;
-    if (effectiveLag < 0) return `Завершить за ${Math.abs(effectiveLag)} дн. до окончания`;
+  if (type === "FF") {
+    if (effectiveLag > 0)
+      return `Завершить через ${effectiveLag} дн. после окончания`;
+    if (effectiveLag < 0)
+      return `Завершить за ${Math.abs(effectiveLag)} дн. до окончания`;
     return `Завершить после окончания`;
   }
-  if (type === 'SS') {
-    if (effectiveLag > 0) return `Начать через ${effectiveLag} дн. после начала`;
-    if (effectiveLag < 0) return `Начать за ${Math.abs(effectiveLag)} дн. до начала`;
+  if (type === "SS") {
+    if (effectiveLag > 0)
+      return `Начать через ${effectiveLag} дн. после начала`;
+    if (effectiveLag < 0)
+      return `Начать за ${Math.abs(effectiveLag)} дн. до начала`;
     return `Начать вместе с началом`;
   }
-  if (type === 'SF') {
-    if (effectiveLag > 0) return `Завершить через ${effectiveLag} дн. после начала`;
-    if (effectiveLag < 0) return `Завершить за ${Math.abs(effectiveLag)} дн. до начала`;
+  if (type === "SF") {
+    if (effectiveLag > 0)
+      return `Завершить через ${effectiveLag} дн. после начала`;
+    if (effectiveLag < 0)
+      return `Завершить за ${Math.abs(effectiveLag)} дн. до начала`;
     return `Завершить до начала`;
   }
-  return '';
+  return "";
 }
 
 const DepChip: React.FC<DepChipProps> = ({
@@ -189,10 +276,10 @@ const DepChip: React.FC<DepChipProps> = ({
 }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const lagAbs = Math.abs(lag ?? 0);
-  const [inputAbs, setInputAbs] = useState(lagAbs === 0 ? '' : String(lagAbs));
+  const [inputAbs, setInputAbs] = useState(lagAbs === 0 ? "" : String(lagAbs));
   useEffect(() => {
     const abs = Math.abs(lag ?? 0);
-    setInputAbs(abs === 0 ? '' : String(abs));
+    setInputAbs(abs === 0 ? "" : String(abs));
   }, [lag]);
 
   const isSelected =
@@ -207,7 +294,11 @@ const DepChip: React.FC<DepChipProps> = ({
     const nextOpen = !popoverOpen;
     setPopoverOpen(nextOpen);
     if (nextOpen) {
-      onChipSelect?.({ successorId: taskId, predecessorId: dep.taskId, linkType: dep.type });
+      onChipSelect?.({
+        successorId: taskId,
+        predecessorId: dep.taskId,
+        linkType: dep.type,
+      });
       onScrollToTask?.(dep.taskId);
     } else {
       // Only clear selection when explicitly closing via chip click
@@ -215,12 +306,15 @@ const DepChip: React.FC<DepChipProps> = ({
     }
   };
 
-  const handleOpenChange = useCallback((open: boolean) => {
-    setPopoverOpen(open);
-    if (!open) {
-      onChipSelect?.(null);
-    }
-  }, [onChipSelect]);
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      setPopoverOpen(open);
+      if (!open) {
+        onChipSelect?.(null);
+      }
+    },
+    [onChipSelect],
+  );
 
   const handleTrashClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -229,96 +323,150 @@ const DepChip: React.FC<DepChipProps> = ({
     setPopoverOpen(false);
   };
 
-  const handleLagChange = useCallback((newLag: number) => {
-    if (!onTasksChange || !allTasks) return;
-    const taskById = new Map(allTasks.map(t => [t.id, t]));
-    const predecessor = taskById.get(dep.taskId);
-    if (!predecessor) return;
+  const handleLagChange = useCallback(
+    (newLag: number) => {
+      if (!onTasksChange || !allTasks) return;
+      const taskById = new Map(allTasks.map((t) => [t.id, t]));
+      const predecessor = taskById.get(dep.taskId);
+      if (!predecessor) return;
 
-    const predStart = parseUTCDate(predecessor.startDate);
-    const predEnd = parseUTCDate(predecessor.endDate);
-    const origStart = parseUTCDate(task.startDate);
-    const origEnd = parseUTCDate(task.endDate);
-    const durationMs = origEnd.getTime() - origStart.getTime();
+      const predStart = parseUTCDate(predecessor.startDate);
+      const predEnd = parseUTCDate(predecessor.endDate);
+      const origStart = parseUTCDate(task.startDate);
+      const origEnd = parseUTCDate(task.endDate);
+      const durationMs = origEnd.getTime() - origStart.getTime();
 
-    const constraintDate = calculateSuccessorDate(predStart, predEnd, dep.type, newLag);
+      const constraintDate = calculateSuccessorDate(
+        predStart,
+        predEnd,
+        dep.type,
+        newLag,
+      );
 
-    let newStart: Date, newEnd: Date;
-    if (dep.type === 'FS' || dep.type === 'SS') {
-      newStart = constraintDate;
-      newEnd = new Date(constraintDate.getTime() + durationMs);
-    } else {
-      newEnd = constraintDate;
-      newStart = new Date(constraintDate.getTime() - durationMs);
-    }
+      let newStart: Date, newEnd: Date;
+      if (dep.type === "FS" || dep.type === "SS") {
+        newStart = constraintDate;
+        newEnd = new Date(constraintDate.getTime() + durationMs);
+      } else {
+        newEnd = constraintDate;
+        newStart = new Date(constraintDate.getTime() - durationMs);
+      }
 
-    onTasksChange([{
-      ...task,
-      startDate: newStart.toISOString().split('T')[0],
-      endDate: newEnd.toISOString().split('T')[0],
-    }]);
-  }, [dep, task, allTasks, onTasksChange]);
+      onTasksChange([
+        {
+          ...task,
+          startDate: newStart.toISOString().split("T")[0],
+          endDate: newEnd.toISOString().split("T")[0],
+        },
+      ]);
+    },
+    [dep, task, allTasks, onTasksChange],
+  );
 
-  const handleInputCommit = useCallback((raw: string) => {
-    if (raw === '') { handleLagChange(0); return; }
-    const parsed = parseInt(raw, 10);
-    const effectiveLag = lag ?? 0;
-    if (isNaN(parsed)) {
-      const abs = Math.abs(effectiveLag);
-      setInputAbs(abs === 0 ? '' : String(abs));
-      return;
-    }
-    let newLag: number;
-    if (parsed === 0) {
-      newLag = 0;
-    } else if (dep.type === 'SF') {
-      newLag = -Math.abs(parsed);
-    } else {
-      // sign comes from what the user typed: "-4" → negative, "4" → positive
-      newLag = parsed; // parseInt preserves the sign from input
-    }
-    if (newLag !== effectiveLag) handleLagChange(newLag);
-  }, [lag, dep.type, handleLagChange]);
+  const handleInputCommit = useCallback(
+    (raw: string) => {
+      if (raw === "") {
+        handleLagChange(0);
+        return;
+      }
+      const parsed = parseInt(raw, 10);
+      const effectiveLag = lag ?? 0;
+      if (isNaN(parsed)) {
+        const abs = Math.abs(effectiveLag);
+        setInputAbs(abs === 0 ? "" : String(abs));
+        return;
+      }
+      let newLag: number;
+      if (parsed === 0) {
+        newLag = 0;
+      } else if (dep.type === "SF") {
+        newLag = -Math.abs(parsed);
+      } else {
+        // sign comes from what the user typed: "-4" → negative, "4" → positive
+        newLag = parsed; // parseInt preserves the sign from input
+      }
+      if (newLag !== effectiveLag) handleLagChange(newLag);
+    },
+    [lag, dep.type, handleLagChange],
+  );
 
   const Icon = LINK_TYPE_ICONS[dep.type];
   const depName = predecessorName ?? dep.taskId;
   const effectiveLag = lag ?? 0;
 
   // Derive action verb, preWord and afterWhat (sign-dependent for FS/FF/SS)
-  const actionVerb = (dep.type === 'FS' || dep.type === 'SS') ? 'начать' : 'завершить';
-  const zeroPlaceholder = dep.type === 'SF' ? 'чётко' : dep.type === 'FF' ? 'вместе' : dep.type === 'SS' ? 'вместе' : 'сразу';
+  const actionVerb =
+    dep.type === "FS" || dep.type === "SS" ? "начать" : "завершить";
+  const zeroPlaceholder =
+    dep.type === "SF"
+      ? "чётко"
+      : dep.type === "FF"
+        ? "вместе"
+        : dep.type === "SS"
+          ? "вместе"
+          : "сразу";
   let afterWhat: string;
   let preWord: string | null = null;
-  if (dep.type === 'SF') {
-    afterWhat = 'до начала';
-    if (effectiveLag > 0) preWord = 'через';
-    else if (effectiveLag < 0) preWord = 'за';
-  } else if (dep.type === 'SS') {
-    afterWhat = effectiveLag < 0 ? 'до начала' : effectiveLag === 0 ? 'с началом' : 'после начала';
-    if (effectiveLag > 0) preWord = 'через';
-    else if (effectiveLag < 0) preWord = 'за';
-  } else { // FS, FF
-    if (effectiveLag > 0) { preWord = 'через'; afterWhat = 'после окончания'; }
-    else if (effectiveLag < 0) { preWord = 'за'; afterWhat = 'до окончания'; }
-    else { afterWhat = 'после окончания'; }
+  if (dep.type === "SF") {
+    afterWhat = "до начала";
+    if (effectiveLag > 0) preWord = "через";
+    else if (effectiveLag < 0) preWord = "за";
+  } else if (dep.type === "SS") {
+    afterWhat =
+      effectiveLag < 0
+        ? "до начала"
+        : effectiveLag === 0
+          ? "с началом"
+          : "после начала";
+    if (effectiveLag > 0) preWord = "через";
+    else if (effectiveLag < 0) preWord = "за";
+  } else {
+    // FS, FF
+    if (effectiveLag > 0) {
+      preWord = "через";
+      afterWhat = "после окончания";
+    } else if (effectiveLag < 0) {
+      preWord = "за";
+      afterWhat = "до окончания";
+    } else {
+      afterWhat = "после окончания";
+    }
   }
 
   return (
     <Popover open={popoverOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <span
-          className={`gantt-tl-dep-chip${isSelected ? ' gantt-tl-dep-chip-selected' : ''}`}
+          className={`gantt-tl-dep-chip${isSelected ? " gantt-tl-dep-chip-selected" : ""}`}
           onClick={handleClick}
         >
-          <Icon />{effectiveLag !== 0 ? (effectiveLag > 0 ? `+${effectiveLag}` : `${effectiveLag}`) : ''}
+          <Icon />
+          {effectiveLag !== 0
+            ? effectiveLag > 0
+              ? `+${effectiveLag}`
+              : `${effectiveLag}`
+            : ""}
         </span>
       </PopoverTrigger>
-      <PopoverContent className="gantt-tl-dep-edit-popover" portal={true} align="start">
+      <PopoverContent
+        className="gantt-tl-dep-edit-popover"
+        portal={true}
+        align="start"
+      >
         <div onClick={(e) => e.stopPropagation()}>
           <div className="gantt-tl-dep-edit-task">{task.name}</div>
           <div className="gantt-tl-dep-edit-row">
-            <span className="gantt-tl-dep-edit-label">{actionVerb}{preWord ? ` ${preWord}` : ''}</span>
-            <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag - 1)}>−</button>
+            <span className="gantt-tl-dep-edit-label">
+              {actionVerb}
+              {preWord ? ` ${preWord}` : ""}
+            </span>
+            <button
+              type="button"
+              className="gantt-tl-dep-edit-btn"
+              onClick={() => handleLagChange(effectiveLag - 1)}
+            >
+              −
+            </button>
             <input
               type="number"
               className="gantt-tl-dep-edit-input"
@@ -328,10 +476,18 @@ const DepChip: React.FC<DepChipProps> = ({
               onChange={(e) => setInputAbs(e.target.value)}
               onFocus={(e) => e.target.select()}
               onBlur={(e) => handleInputCommit(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleInputCommit(inputAbs); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleInputCommit(inputAbs);
+              }}
             />
-            {!(dep.type === 'SF' && effectiveLag === 0) && (
-              <button type="button" className="gantt-tl-dep-edit-btn" onClick={() => handleLagChange(effectiveLag + 1)}>+</button>
+            {!(dep.type === "SF" && effectiveLag === 0) && (
+              <button
+                type="button"
+                className="gantt-tl-dep-edit-btn"
+                onClick={() => handleLagChange(effectiveLag + 1)}
+              >
+                +
+              </button>
             )}
             {effectiveLag !== 0 && <span>д.</span>}
             <span>{afterWhat}</span>
@@ -395,13 +551,31 @@ export interface TaskListRowProps {
   /** Callback to set the task currently in predecessor-picking mode */
   onSetSelectingPredecessorFor?: (taskId: string | null) => void;
   /** Callback to add a dependency link */
-  onAddDependency?: (successorTaskId: string, predecessorTaskId: string, linkType: LinkType) => void;
+  onAddDependency?: (
+    successorTaskId: string,
+    predecessorTaskId: string,
+    linkType: LinkType,
+  ) => void;
   /** Callback to remove a dependency link */
-  onRemoveDependency?: (taskId: string, predecessorTaskId: string, linkType: LinkType) => void;
+  onRemoveDependency?: (
+    taskId: string,
+    predecessorTaskId: string,
+    linkType: LinkType,
+  ) => void;
   /** Currently selected chip (for predecessor-side delete) */
-  selectedChip?: { successorId: string; predecessorId: string; linkType: string } | null;
+  selectedChip?: {
+    successorId: string;
+    predecessorId: string;
+    linkType: string;
+  } | null;
   /** Callback when a chip is clicked (selects it) */
-  onChipSelect?: (chip: { successorId: string; predecessorId: string; linkType: LinkType } | null) => void;
+  onChipSelect?: (
+    chip: {
+      successorId: string;
+      predecessorId: string;
+      linkType: LinkType;
+    } | null,
+  ) => void;
   /** Callback to scroll the chart grid to center this task (called when task name is clicked) */
   onScrollToTask?: (taskId: string) => void;
   /** Callback when task is deleted */
@@ -441,9 +615,10 @@ export interface TaskListRowProps {
 }
 
 const toISODate = (value: string | Date): string => {
-  if (value instanceof Date) return value.toISOString().split('T')[0];
+  if (value instanceof Date) return value.toISOString().split("T")[0];
   // Handle full ISO strings like "2026-02-12T00:00:00.000Z"
-  if (typeof value === 'string' && value.includes('T')) return value.split('T')[0];
+  if (typeof value === "string" && value.includes("T"))
+    return value.split("T")[0];
   return value as string;
 };
 
@@ -486,27 +661,34 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     ancestorContinues = [],
   }) => {
     const [editingName, setEditingName] = useState(false);
-    const [nameValue, setNameValue] = useState('');
+    const [nameValue, setNameValue] = useState("");
     const nameInputRef = useRef<HTMLInputElement>(null);
     const [editingDuration, setEditingDuration] = useState(false);
-    const [durationValue, setDurationValue] = useState(getInclusiveDurationDays(task.startDate, task.endDate));
+    const [durationValue, setDurationValue] = useState(
+      getInclusiveDurationDays(task.startDate, task.endDate),
+    );
     const durationInputRef = useRef<HTMLInputElement>(null);
     const [editingProgress, setEditingProgress] = useState(false);
     const [progressValue, setProgressValue] = useState(0);
     const progressInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
-    const nameConfirmedRef = useRef(false);  // Prevent double-save on Enter + blur
-    const durationConfirmedRef = useRef(false);  // Prevent double-save on Enter + blur
-    const progressConfirmedRef = useRef(false);  // Prevent double-save on Enter + blur
-    const autoEditedForRef = useRef<string | null>(null);  // Track which editingTaskId we already auto-entered for
-    const editTriggerRef = useRef<'keypress' | 'doubleclick' | 'autoedit'>('doubleclick');  // How editing was started
+    const nameConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
+    const durationConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
+    const progressConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
+    const autoEditedForRef = useRef<string | null>(null); // Track which editingTaskId we already auto-entered for
+    const editTriggerRef = useRef<"keypress" | "doubleclick" | "autoedit">(
+      "doubleclick",
+    ); // How editing was started
     const [deletePending, setDeletePending] = useState(false);
     const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
     const isSelected = selectedTaskId === task.id;
 
     // Hierarchy computed values
-    const isParent = useMemo(() => isTaskParent(task.id, allTasks), [task.id, allTasks]);
+    const isParent = useMemo(
+      () => isTaskParent(task.id, allTasks),
+      [task.id, allTasks],
+    );
     const isChild = task.parentId !== undefined;
     const isCollapsed = collapsedParentIds.has(task.id);
 
@@ -518,28 +700,28 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const chips = useMemo(() => {
       const succStart = new Date(task.startDate as string);
       const succEnd = new Date(task.endDate as string);
-      const taskById = new Map((allTasks ?? []).map(t => [t.id, t]));
-      return (task.dependencies ?? []).map(dep => {
+      const taskById = new Map((allTasks ?? []).map((t) => [t.id, t]));
+      return (task.dependencies ?? []).map((dep) => {
         const pred = taskById.get(dep.taskId);
         const lag = pred
           ? computeLagFromDates(
-            dep.type,
-            new Date(pred.startDate as string),
-            new Date(pred.endDate as string),
-            succStart,
-            succEnd
-          )
+              dep.type,
+              new Date(pred.startDate as string),
+              new Date(pred.endDate as string),
+              succStart,
+              succEnd,
+            )
           : (dep.lag ?? 0);
         return { dep, lag, predecessorName: pred?.name ?? dep.taskId };
       });
     }, [task.dependencies, task.startDate, task.endDate, allTasks]);
 
-    const linkWord = chips.length <= 4 ? 'связи' : 'связей';
+    const linkWord = chips.length <= 4 ? "связи" : "связей";
 
     useEffect(() => {
       if (editingName && nameInputRef.current) {
         nameInputRef.current.focus();
-        if (editTriggerRef.current === 'keypress') {
+        if (editTriggerRef.current === "keypress") {
           // Cursor to end — the typed char is already in the input, don't select it
           const len = nameInputRef.current.value.length;
           nameInputRef.current.setSelectionRange(len, len);
@@ -553,17 +735,21 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     // Reset delete confirmation when clicking elsewhere
     useEffect(() => {
       const handleMouseDownOutside = (event: MouseEvent) => {
-        if (deletePending && deleteButtonRef.current && !deleteButtonRef.current.contains(event.target as Node)) {
+        if (
+          deletePending &&
+          deleteButtonRef.current &&
+          !deleteButtonRef.current.contains(event.target as Node)
+        ) {
           setDeletePending(false);
         }
       };
 
       if (deletePending) {
-        document.addEventListener('mousedown', handleMouseDownOutside);
+        document.addEventListener("mousedown", handleMouseDownOutside);
       }
 
       return () => {
-        document.removeEventListener('mousedown', handleMouseDownOutside);
+        document.removeEventListener("mousedown", handleMouseDownOutside);
       };
     }, [deletePending]);
 
@@ -579,43 +765,52 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         autoEditedForRef.current !== editingTaskId
       ) {
         autoEditedForRef.current = editingTaskId;
-        nameConfirmedRef.current = false;  // Reset stale flag from any previous Enter-key save
-        editTriggerRef.current = 'autoedit';
+        nameConfirmedRef.current = false; // Reset stale flag from any previous Enter-key save
+        editTriggerRef.current = "autoedit";
         setNameValue(task.name);
         setEditingName(true);
       }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editingTaskId, task.id, disableTaskNameEditing]);
 
-    const handleNameClick = useCallback((e: React.MouseEvent) => {
-      if (disableTaskNameEditing) return;
-      e.stopPropagation();
-      onRowClick?.(task.id);
-      onScrollToTask?.(task.id);
-    }, [task.id, disableTaskNameEditing, onRowClick, onScrollToTask]);
+    const handleNameClick = useCallback(
+      (e: React.MouseEvent) => {
+        if (disableTaskNameEditing) return;
+        e.stopPropagation();
+        onRowClick?.(task.id);
+        onScrollToTask?.(task.id);
+      },
+      [task.id, disableTaskNameEditing, onRowClick, onScrollToTask],
+    );
 
-    const handleNameDoubleClick = useCallback((e: React.MouseEvent) => {
-      if (disableTaskNameEditing) return;
-      e.stopPropagation();
-      nameConfirmedRef.current = false;  // Reset stale flag from any previous Enter-key save
-      editTriggerRef.current = 'doubleclick';
-      setNameValue(task.name);
-      setEditingName(true);
-    }, [task.name, disableTaskNameEditing]);
-
-    const handleRowKeyDown = useCallback((e: React.KeyboardEvent) => {
-      // Don't handle row keyboard events when editing progress
-      if (editingProgress) return;
-      // F2: enter edit mode with cursor at end of existing name
-      if (!editingName && !disableTaskNameEditing && e.key === 'F2') {
-        e.preventDefault();
-        nameConfirmedRef.current = false;  // Reset stale flag from any previous Enter-key save
-        editTriggerRef.current = 'keypress';  // 'keypress' trigger = cursor at end (not select-all)
+    const handleNameDoubleClick = useCallback(
+      (e: React.MouseEvent) => {
+        if (disableTaskNameEditing) return;
+        e.stopPropagation();
+        nameConfirmedRef.current = false; // Reset stale flag from any previous Enter-key save
+        editTriggerRef.current = "doubleclick";
         setNameValue(task.name);
         setEditingName(true);
-        return;
-      }
-    }, [editingName, disableTaskNameEditing, task.name]);
+      },
+      [task.name, disableTaskNameEditing],
+    );
+
+    const handleRowKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        // Don't handle row keyboard events when editing progress
+        if (editingProgress) return;
+        // F2: enter edit mode with cursor at end of existing name
+        if (!editingName && !disableTaskNameEditing && e.key === "F2") {
+          e.preventDefault();
+          nameConfirmedRef.current = false; // Reset stale flag from any previous Enter-key save
+          editTriggerRef.current = "keypress"; // 'keypress' trigger = cursor at end (not select-all)
+          setNameValue(task.name);
+          setEditingName(true);
+          return;
+        }
+      },
+      [editingName, disableTaskNameEditing, task.name],
+    );
 
     const handleNameSave = useCallback(() => {
       if (nameConfirmedRef.current) {
@@ -633,25 +828,33 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       setEditingName(false);
     }, []);
 
-    const handleNameKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') {
-        nameConfirmedRef.current = true;  // Mark as saved to prevent blur from triggering again
-        if (nameValue.trim()) {
-          onTasksChange?.([{ ...task, name: nameValue.trim() }]);
+    const handleNameKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+          nameConfirmedRef.current = true; // Mark as saved to prevent blur from triggering again
+          if (nameValue.trim()) {
+            onTasksChange?.([{ ...task, name: nameValue.trim() }]);
+          }
+          setEditingName(false);
+        } else if (e.key === "Escape") {
+          handleNameCancel();
         }
-        setEditingName(false);
-      } else if (e.key === 'Escape') {
-        handleNameCancel();
-      }
-    }, [nameValue, task, onTasksChange, handleNameCancel]);
+      },
+      [nameValue, task, onTasksChange, handleNameCancel],
+    );
 
-    const handleDurationClick = useCallback((e: React.MouseEvent) => {
-      if (task.locked) return;
-      e.stopPropagation();
-      durationConfirmedRef.current = false;
-      setDurationValue(getInclusiveDurationDays(task.startDate, task.endDate));
-      setEditingDuration(true);
-    }, [task.locked, task.startDate, task.endDate]);
+    const handleDurationClick = useCallback(
+      (e: React.MouseEvent) => {
+        if (task.locked) return;
+        e.stopPropagation();
+        durationConfirmedRef.current = false;
+        setDurationValue(
+          getInclusiveDurationDays(task.startDate, task.endDate),
+        );
+        setEditingDuration(true);
+      },
+      [task.locked, task.startDate, task.endDate],
+    );
 
     const applyDurationChange = useCallback((nextDuration: number) => {
       const normalizedDuration = Math.max(1, Math.round(nextDuration) || 1);
@@ -664,7 +867,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         return;
       }
       const normalizedDuration = Math.max(1, Math.round(durationValue) || 1);
-      onTasksChange?.([{ ...task, endDate: getEndDateFromDuration(task.startDate, normalizedDuration) }]);
+      onTasksChange?.([
+        {
+          ...task,
+          endDate: getEndDateFromDuration(task.startDate, normalizedDuration),
+        },
+      ]);
       setEditingDuration(false);
     }, [durationValue, task, onTasksChange]);
 
@@ -673,29 +881,49 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       setEditingDuration(false);
     }, [task.startDate, task.endDate]);
 
-    const handleDurationAdjust = useCallback((delta: number) => {
-      applyDurationChange(durationValue + delta);
-    }, [applyDurationChange, durationValue]);
+    const handleDurationAdjust = useCallback(
+      (delta: number) => {
+        applyDurationChange(durationValue + delta);
+      },
+      [applyDurationChange, durationValue],
+    );
 
-    const handleDurationKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-      e.stopPropagation();
-      if (e.key === 'Enter') {
-        durationConfirmedRef.current = true;
-        const normalizedDuration = Math.max(1, Math.round(durationValue) || 1);
-        onTasksChange?.([{ ...task, endDate: getEndDateFromDuration(task.startDate, normalizedDuration) }]);
-        setEditingDuration(false);
-      } else if (e.key === 'Escape') {
-        handleDurationCancel();
-      }
-    }, [durationValue, task, onTasksChange, handleDurationCancel]);
+    const handleDurationKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+        if (e.key === "Enter") {
+          durationConfirmedRef.current = true;
+          const normalizedDuration = Math.max(
+            1,
+            Math.round(durationValue) || 1,
+          );
+          onTasksChange?.([
+            {
+              ...task,
+              endDate: getEndDateFromDuration(
+                task.startDate,
+                normalizedDuration,
+              ),
+            },
+          ]);
+          setEditingDuration(false);
+        } else if (e.key === "Escape") {
+          handleDurationCancel();
+        }
+      },
+      [durationValue, task, onTasksChange, handleDurationCancel],
+    );
 
-    const handleProgressClick = useCallback((e: React.MouseEvent) => {
-      if (task.locked) return;
-      e.stopPropagation();
-      progressConfirmedRef.current = false;
-      setProgressValue(task.progress ?? 0);
-      setEditingProgress(true);
-    }, [task.progress, task.locked]);
+    const handleProgressClick = useCallback(
+      (e: React.MouseEvent) => {
+        if (task.locked) return;
+        e.stopPropagation();
+        progressConfirmedRef.current = false;
+        setProgressValue(task.progress ?? 0);
+        setEditingProgress(true);
+      },
+      [task.progress, task.locked],
+    );
 
     const handleProgressSave = useCallback(() => {
       if (progressConfirmedRef.current) {
@@ -705,11 +933,14 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       const clampedValue = Math.max(0, Math.min(100, progressValue));
 
       // Cascade 100% or 0% progress to all children when parent is marked complete/reset
-      if ((clampedValue === 100 || clampedValue === 0) && isTaskParent(task.id, allTasks)) {
+      if (
+        (clampedValue === 100 || clampedValue === 0) &&
+        isTaskParent(task.id, allTasks)
+      ) {
         const children = getChildren(task.id, allTasks);
         const updatedTasks = [
           { ...task, progress: clampedValue },
-          ...children.map(child => ({ ...child, progress: clampedValue }))
+          ...children.map((child) => ({ ...child, progress: clampedValue })),
         ];
         onTasksChange?.(updatedTasks);
       } else {
@@ -723,31 +954,42 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, []);
 
     const handleProgressAdjust = useCallback((delta: number) => {
-      setProgressValue((current) => Math.max(0, Math.min(100, current + delta)));
+      setProgressValue((current) =>
+        Math.max(0, Math.min(100, current + delta)),
+      );
     }, []);
 
-    const handleProgressKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-      e.stopPropagation(); // Prevent row-level keyboard handler from interfering
-      if (e.key === 'Enter') {
-        progressConfirmedRef.current = true;
-        const clampedValue = Math.max(0, Math.min(100, progressValue));
+    const handleProgressKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLInputElement>) => {
+        e.stopPropagation(); // Prevent row-level keyboard handler from interfering
+        if (e.key === "Enter") {
+          progressConfirmedRef.current = true;
+          const clampedValue = Math.max(0, Math.min(100, progressValue));
 
-        // Cascade 100% or 0% progress to all children when parent is marked complete/reset
-        if ((clampedValue === 100 || clampedValue === 0) && isTaskParent(task.id, allTasks)) {
-          const children = getChildren(task.id, allTasks);
-          const updatedTasks = [
-            { ...task, progress: clampedValue },
-            ...children.map(child => ({ ...child, progress: clampedValue }))
-          ];
-          onTasksChange?.(updatedTasks);
-        } else {
-          onTasksChange?.([{ ...task, progress: clampedValue }]);
+          // Cascade 100% or 0% progress to all children when parent is marked complete/reset
+          if (
+            (clampedValue === 100 || clampedValue === 0) &&
+            isTaskParent(task.id, allTasks)
+          ) {
+            const children = getChildren(task.id, allTasks);
+            const updatedTasks = [
+              { ...task, progress: clampedValue },
+              ...children.map((child) => ({
+                ...child,
+                progress: clampedValue,
+              })),
+            ];
+            onTasksChange?.(updatedTasks);
+          } else {
+            onTasksChange?.([{ ...task, progress: clampedValue }]);
+          }
+          setEditingProgress(false);
+        } else if (e.key === "Escape") {
+          handleProgressCancel();
         }
-        setEditingProgress(false);
-      } else if (e.key === 'Escape') {
-        handleProgressCancel();
-      }
-    }, [progressValue, task, onTasksChange, handleProgressCancel, allTasks]);
+      },
+      [progressValue, task, onTasksChange, handleProgressCancel, allTasks],
+    );
 
     useEffect(() => {
       if (editingProgress && progressInputRef.current) {
@@ -769,91 +1011,133 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     // Both date pickers shift the whole task (preserving duration), same as drag-move
     // Also normalizes dates to ensure startDate is always before or equal to endDate
-    const handleStartDateChange = useCallback((newDateISO: string) => {
-      if (!newDateISO) return;
-      const origStart = parseUTCDate(task.startDate);
-      const origEnd = parseUTCDate(task.endDate);
-      const durationMs = origEnd.getTime() - origStart.getTime();
-      const newStart = new Date(newDateISO + 'T00:00:00Z');
-      const newEnd = new Date(newStart.getTime() + durationMs);
-      const { startDate: normalizedStart, endDate: normalizedEnd } = normalizeTaskDates(
-        newDateISO,
-        newEnd.toISOString().split('T')[0]
-      );
-      onTasksChange?.([{ ...task, startDate: normalizedStart, endDate: normalizedEnd }]);
-    }, [task, onTasksChange]);
+    const handleStartDateChange = useCallback(
+      (newDateISO: string) => {
+        if (!newDateISO) return;
+        const origStart = parseUTCDate(task.startDate);
+        const origEnd = parseUTCDate(task.endDate);
+        const durationMs = origEnd.getTime() - origStart.getTime();
+        const newStart = new Date(newDateISO + "T00:00:00Z");
+        const newEnd = new Date(newStart.getTime() + durationMs);
+        const { startDate: normalizedStart, endDate: normalizedEnd } =
+          normalizeTaskDates(newDateISO, newEnd.toISOString().split("T")[0]);
+        onTasksChange?.([
+          { ...task, startDate: normalizedStart, endDate: normalizedEnd },
+        ]);
+      },
+      [task, onTasksChange],
+    );
 
-    const handleEndDateChange = useCallback((newDateISO: string) => {
-      if (!newDateISO) return;
-      const origStart = parseUTCDate(task.startDate);
-      const origEnd = parseUTCDate(task.endDate);
-      const durationMs = origEnd.getTime() - origStart.getTime();
-      const newEnd = new Date(newDateISO + 'T00:00:00Z');
-      const newStart = new Date(newEnd.getTime() - durationMs);
-      const { startDate: normalizedStart, endDate: normalizedEnd } = normalizeTaskDates(
-        newStart.toISOString().split('T')[0],
-        newDateISO
-      );
-      onTasksChange?.([{ ...task, startDate: normalizedStart, endDate: normalizedEnd }]);
-    }, [task, onTasksChange]);
+    const handleEndDateChange = useCallback(
+      (newDateISO: string) => {
+        if (!newDateISO) return;
+        const origStart = parseUTCDate(task.startDate);
+        const origEnd = parseUTCDate(task.endDate);
+        const durationMs = origEnd.getTime() - origStart.getTime();
+        const newEnd = new Date(newDateISO + "T00:00:00Z");
+        const newStart = new Date(newEnd.getTime() - durationMs);
+        const { startDate: normalizedStart, endDate: normalizedEnd } =
+          normalizeTaskDates(newStart.toISOString().split("T")[0], newDateISO);
+        onTasksChange?.([
+          { ...task, startDate: normalizedStart, endDate: normalizedEnd },
+        ]);
+      },
+      [task, onTasksChange],
+    );
 
     const handleRowClickInternal = useCallback(() => {
       onRowClick?.(task.id);
     }, [task.id, onRowClick]);
 
-    const handleNumberClick = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      onRowClick?.(task.id);
-    }, [task.id, onRowClick]);
+    const handleNumberClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onRowClick?.(task.id);
+      },
+      [task.id, onRowClick],
+    );
 
-    const handleToggleCollapse = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      onToggleCollapse?.(task.id);
-    }, [task.id, onToggleCollapse]);
+    const handleToggleCollapse = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onToggleCollapse?.(task.id);
+      },
+      [task.id, onToggleCollapse],
+    );
 
     // Hierarchy handlers - promote/demote
-    const handlePromote = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      onPromoteTask?.(task.id);
-    }, [task.id, onPromoteTask]);
+    const handlePromote = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onPromoteTask?.(task.id);
+      },
+      [task.id, onPromoteTask],
+    );
 
-    const handleDemote = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      // The parent calculation is done in TaskList.tsx's handleDemoteWrapper,
-      // which has access to the ordered visible task list and implements the
-      // "previous visible task becomes parent" principle.
-      // Pass empty string as placeholder — the wrapper ignores this value.
-      onDemoteTask?.(task.id, '');
-    }, [task.id, onDemoteTask]);
+    const handleDemote = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        // The parent calculation is done in TaskList.tsx's handleDemoteWrapper,
+        // which has access to the ordered visible task list and implements the
+        // "previous visible task becomes parent" principle.
+        // Pass empty string as placeholder — the wrapper ignores this value.
+        onDemoteTask?.(task.id, "");
+      },
+      [task.id, onDemoteTask],
+    );
 
     // Dependency handlers
-    const handleAddClick = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      onSetSelectingPredecessorFor?.(task.id);
-    }, [task.id, onSetSelectingPredecessorFor]);
+    const handleAddClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSetSelectingPredecessorFor?.(task.id);
+      },
+      [task.id, onSetSelectingPredecessorFor],
+    );
 
-    const handlePredecessorPick = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!isPicking || isSourceRow) return;
-      if (!selectingPredecessorFor || !activeLinkType) return;
-      onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
-    }, [isPicking, isSourceRow, selectingPredecessorFor, task.id, activeLinkType, onAddDependency]);
+    const handlePredecessorPick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!isPicking || isSourceRow) return;
+        if (!selectingPredecessorFor || !activeLinkType) return;
+        onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
+      },
+      [
+        isPicking,
+        isSourceRow,
+        selectingPredecessorFor,
+        task.id,
+        activeLinkType,
+        onAddDependency,
+      ],
+    );
 
-    const handleCancelPicking = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      onSetSelectingPredecessorFor?.(null);
-    }, [onSetSelectingPredecessorFor]);
+    const handleCancelPicking = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSetSelectingPredecessorFor?.(null);
+      },
+      [onSetSelectingPredecessorFor],
+    );
 
     // True when this row is the predecessor for the currently selected chip
-    const isSelectedPredecessor = selectedChip != null && selectedChip.predecessorId === task.id;
+    const isSelectedPredecessor =
+      selectedChip != null && selectedChip.predecessorId === task.id;
 
     // Delete the selected dependency from the predecessor row's "Удалить" button
-    const handleDeleteSelected = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!selectedChip) return;
-      onRemoveDependency?.(selectedChip.successorId, selectedChip.predecessorId, selectedChip.linkType as LinkType);
-      onChipSelect?.(null);
-    }, [selectedChip, onRemoveDependency, onChipSelect]);
+    const handleDeleteSelected = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!selectedChip) return;
+        onRemoveDependency?.(
+          selectedChip.successorId,
+          selectedChip.predecessorId,
+          selectedChip.linkType as LinkType,
+        );
+        onChipSelect?.(null);
+      },
+      [selectedChip, onRemoveDependency, onChipSelect],
+    );
 
     const startDateISO = toISODate(task.startDate);
     const endDateISO = editingDuration
@@ -863,16 +1147,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     return (
       <div
         className={[
-          'gantt-tl-row',
-          isSelected ? 'gantt-tl-row-selected' : '',
-          isPicking && !isSourceRow ? 'gantt-tl-row-picking' : '',
-          isSourceRow ? 'gantt-tl-row-picking-self' : '',
-          isDragging ? 'gantt-tl-row-dragging' : '',
-          isDragOver ? 'gantt-tl-row-drag-over' : '',
-          isChild ? 'gantt-tl-row-child' : '',
-          isParent ? 'gantt-tl-row-parent' : '',
-        ].filter(Boolean).join(' ')}
-        style={{ minHeight: `${rowHeight}px`, position: 'relative' }}
+          "gantt-tl-row",
+          isSelected ? "gantt-tl-row-selected" : "",
+          isPicking && !isSourceRow ? "gantt-tl-row-picking" : "",
+          isSourceRow ? "gantt-tl-row-picking-self" : "",
+          isDragging ? "gantt-tl-row-dragging" : "",
+          isDragOver ? "gantt-tl-row-drag-over" : "",
+          isChild ? "gantt-tl-row-child" : "",
+          isParent ? "gantt-tl-row-parent" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        style={{ minHeight: `${rowHeight}px`, position: "relative" }}
         onClick={handleRowClickInternal}
         onKeyDown={handleRowKeyDown}
         onDragOver={(e) => onDragOver?.(rowIndex, e)}
@@ -901,7 +1187,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           >
             <DragHandleIcon />
           </span>
-          <span className="gantt-tl-num-label">{taskNumber || rowIndex + 1}</span>
+          <span className="gantt-tl-num-label">
+            {taskNumber || rowIndex + 1}
+          </span>
         </div>
 
         {/* Name column — styled Input overlay on edit */}
@@ -914,55 +1202,55 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   <span
                     key={idx}
                     style={{
-                      position: 'absolute',
+                      position: "absolute",
                       left: `${idx * 20 + 9}px`,
                       top: 0,
                       height: `${rowHeight}px`,
-                      width: '1.5px',
-                      background: '#d4bceb',
-                      borderRadius: '1px',
-                      pointerEvents: 'none',
+                      width: "1.5px",
+                      background: "#d4bceb",
+                      borderRadius: "1px",
+                      pointerEvents: "none",
                     }}
                   />
-                ) : null
+                ) : null,
               )}
               {/* Own vline — full height if not last child, half if last (L-shape) */}
               <span
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   left: `${(nestingDepth - 1) * 20 + 9}px`,
                   top: 0,
                   height: isLastChild ? `${rowHeight / 2}px` : `${rowHeight}px`,
-                  width: '1.5px',
-                  background: '#d4bceb',
-                  borderRadius: '1px',
-                  pointerEvents: 'none',
+                  width: "1.5px",
+                  background: "#d4bceb",
+                  borderRadius: "1px",
+                  pointerEvents: "none",
                 }}
               />
               {/* Horizontal branch */}
               <span
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   left: `${(nestingDepth - 1) * 20 + 9}px`,
                   top: `${rowHeight / 2 - 0.75}px`,
-                  width: '8px',
-                  height: '1.5px',
-                  background: '#d4bceb',
-                  borderRadius: '1px',
-                  pointerEvents: 'none',
+                  width: "8px",
+                  height: "1.5px",
+                  background: "#d4bceb",
+                  borderRadius: "1px",
+                  pointerEvents: "none",
                 }}
               />
               {/* End dot */}
               <span
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   left: `${(nestingDepth - 1) * 20 + 15}px`,
                   top: `${rowHeight / 2 - 2}px`,
-                  width: '4px',
-                  height: '4px',
-                  borderRadius: '50%',
-                  background: '#d4bceb',
-                  pointerEvents: 'none',
+                  width: "4px",
+                  height: "4px",
+                  borderRadius: "50%",
+                  background: "#d4bceb",
+                  pointerEvents: "none",
                 }}
               />
             </>
@@ -970,10 +1258,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           {isParent && !editingName && (
             <button
               type="button"
-              className={`gantt-tl-collapse-btn ${isCollapsed ? 'gantt-tl-collapse-btn-collapsed' : ''}`}
+              className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
               onClick={handleToggleCollapse}
               style={{ left: `${nestingDepth * 20 + 4}px` }}
-              aria-label={isCollapsed ? 'Expand children' : 'Collapse children'}
+              aria-label={isCollapsed ? "Expand children" : "Collapse children"}
             >
               <ChevronRightIcon />
             </button>
@@ -987,24 +1275,34 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onBlur={handleNameSave}
               onKeyDown={handleNameKeyDown}
               className="gantt-tl-name-input"
-              style={{ paddingLeft: nestingDepth > 0 ? `${nestingDepth * 20 + 24}px` : undefined }}
+              style={{
+                paddingLeft:
+                  nestingDepth > 0 ? `${nestingDepth * 20 + 24}px` : undefined,
+              }}
               onClick={(e) => e.stopPropagation()}
             />
           )}
           <button
             type="button"
             className={[
-              'gantt-tl-name-trigger',
-              disableTaskNameEditing ? 'gantt-tl-name-locked' : '',
-            ].filter(Boolean).join(' ')}
+              "gantt-tl-name-trigger",
+              disableTaskNameEditing ? "gantt-tl-name-locked" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             title={task.name}
             onClick={handleNameClick}
             onDoubleClick={handleNameDoubleClick}
             style={{
-              paddingLeft: nestingDepth > 0
-                ? `${nestingDepth * 20 + (isParent ? 26 : 24)}px`
-                : isParent ? '26px' : undefined,
-              ...(editingName ? { visibility: 'hidden', pointerEvents: 'none' } : undefined)
+              paddingLeft:
+                nestingDepth > 0
+                  ? `${nestingDepth * 20 + (isParent ? 26 : 8)}px`
+                  : isParent
+                    ? "26px"
+                    : undefined,
+              ...(editingName
+                ? { visibility: "hidden", pointerEvents: "none" }
+                : undefined),
             }}
           >
             {task.name}
@@ -1018,15 +1316,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   onClick={(e) => {
                     e.stopPropagation();
                     const now = new Date();
-                    const todayISO = new Date(Date.UTC(
-                      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
-                    )).toISOString().split('T')[0];
-                    const endISO = new Date(Date.UTC(
-                      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7
-                    )).toISOString().split('T')[0];
+                    const todayISO = new Date(
+                      Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth(),
+                        now.getUTCDate(),
+                      ),
+                    )
+                      .toISOString()
+                      .split("T")[0];
+                    const endISO = new Date(
+                      Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth(),
+                        now.getUTCDate() + 7,
+                      ),
+                    )
+                      .toISOString()
+                      .split("T")[0];
                     const newTask: Task = {
                       id: crypto.randomUUID(),
-                      name: 'Новая задача',
+                      name: "Новая задача",
                       startDate: todayISO,
                       endDate: endISO,
                     };
@@ -1041,7 +1351,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 <button
                   type="button"
                   ref={deleteButtonRef}
-                  className={`gantt-tl-name-action-btn gantt-tl-action-delete${deletePending ? ' gantt-tl-action-delete-confirm' : ''}`}
+                  className={`gantt-tl-name-action-btn gantt-tl-action-delete${deletePending ? " gantt-tl-action-delete-confirm" : ""}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!deletePending) {
@@ -1053,7 +1363,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   }}
                   aria-label="Удалить задачу"
                 >
-                  {deletePending ? 'Удалить?' : <TrashIcon />}
+                  {deletePending ? "Удалить?" : <TrashIcon />}
                 </button>
               )}
               <HierarchyButton
@@ -1067,7 +1377,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         </div>
 
         {/* Start Date — DatePicker component */}
-        <div className="gantt-tl-cell gantt-tl-cell-date" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="gantt-tl-cell gantt-tl-cell-date"
+          onClick={(e) => e.stopPropagation()}
+        >
           <DatePicker
             value={startDateISO}
             onChange={handleStartDateChange}
@@ -1078,7 +1391,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         </div>
 
         {/* End Date — DatePicker component */}
-        <div className="gantt-tl-cell gantt-tl-cell-date" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="gantt-tl-cell gantt-tl-cell-date"
+          onClick={(e) => e.stopPropagation()}
+        >
           <DatePicker
             value={endDateISO}
             onChange={handleEndDateChange}
@@ -1089,16 +1405,24 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         </div>
 
         {/* Duration column */}
-        <div className="gantt-tl-cell gantt-tl-cell-duration" onClick={handleDurationClick}>
+        <div
+          className="gantt-tl-cell gantt-tl-cell-duration"
+          onClick={handleDurationClick}
+        >
           {editingDuration && (
-            <div className="gantt-tl-number-editor" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="gantt-tl-number-editor"
+              onClick={(e) => e.stopPropagation()}
+            >
               <Input
                 ref={durationInputRef}
                 type="number"
                 min={1}
                 step={1}
                 value={durationValue}
-                onChange={(e) => applyDurationChange(parseInt(e.target.value, 10) || 1)}
+                onChange={(e) =>
+                  applyDurationChange(parseInt(e.target.value, 10) || 1)
+                }
                 onBlur={handleDurationSave}
                 onKeyDown={handleDurationKeyDown}
                 className="gantt-tl-number-input"
@@ -1111,7 +1435,17 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleDurationAdjust(1)}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="m18 15-6-6-6 6" />
                   </svg>
                 </button>
@@ -1122,22 +1456,44 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleDurationAdjust(-1)}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="m6 9 6 6 6-6" />
                   </svg>
                 </button>
               </div>
             </div>
           )}
-          <span style={editingDuration ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
+          <span
+            style={
+              editingDuration
+                ? { visibility: "hidden", pointerEvents: "none" }
+                : undefined
+            }
+          >
             {getInclusiveDurationDays(task.startDate, task.endDate)}
           </span>
         </div>
 
         {/* Progress column */}
-        <div className="gantt-tl-cell gantt-tl-cell-progress" onClick={handleProgressClick}>
+        <div
+          className="gantt-tl-cell gantt-tl-cell-progress"
+          onClick={handleProgressClick}
+        >
           {editingProgress && (
-            <div className="gantt-tl-number-editor" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="gantt-tl-number-editor"
+              onClick={(e) => e.stopPropagation()}
+            >
               <Input
                 ref={progressInputRef}
                 type="number"
@@ -1145,7 +1501,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 max={100}
                 step={1}
                 value={progressValue}
-                onChange={(e) => setProgressValue(parseInt(e.target.value, 10) || 0)}
+                onChange={(e) =>
+                  setProgressValue(parseInt(e.target.value, 10) || 0)
+                }
                 onBlur={handleProgressSave}
                 onKeyDown={handleProgressKeyDown}
                 className="gantt-tl-number-input"
@@ -1158,7 +1516,17 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleProgressAdjust(1)}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="m18 15-6-6-6 6" />
                   </svg>
                 </button>
@@ -1169,22 +1537,44 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleProgressAdjust(-1)}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="m6 9 6 6 6-6" />
                   </svg>
                 </button>
               </div>
             </div>
           )}
-          <span style={editingProgress ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
-            {task.progress ? `${Math.round(task.progress)}%` : '0%'}
+          <span
+            style={
+              editingProgress
+                ? { visibility: "hidden", pointerEvents: "none" }
+                : undefined
+            }
+          >
+            {task.progress ? `${Math.round(task.progress)}%` : "0%"}
           </span>
         </div>
 
         {/* Dependencies column */}
         <div
           className="gantt-tl-cell gantt-tl-cell-deps"
-          onClick={isSourceRow ? handleCancelPicking : (isPicking ? handlePredecessorPick : undefined)}
+          onClick={
+            isSourceRow
+              ? handleCancelPicking
+              : isPicking
+                ? handlePredecessorPick
+                : undefined
+          }
         >
           {isSourceRow ? (
             <span className="gantt-tl-dep-source-hint">Выберите задачу</span>
@@ -1196,7 +1586,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onClick={handleDeleteSelected}
               aria-label="Удалить связь"
             >
-              <span className="gantt-tl-dep-delete-label-default">Связано с</span>
+              <span className="gantt-tl-dep-delete-label-default">
+                Связано с
+              </span>
               <span className="gantt-tl-dep-delete-label-hover">× удалить</span>
             </button>
           ) : (
@@ -1208,13 +1600,19 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                     <button
                       type="button"
                       className="gantt-tl-dep-summary-chip"
-                      onClick={(e) => { e.stopPropagation(); setOverflowOpen(v => !v); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOverflowOpen((v) => !v);
+                      }}
                     >
                       {chips.length} {linkWord}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent portal={true} align="start">
-                    <div className="gantt-tl-dep-overflow-list" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="gantt-tl-dep-overflow-list"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {chips.map(({ dep, lag, predecessorName }) => (
                         <DepChip
                           key={`${dep.taskId}-${dep.type}`}
@@ -1261,7 +1659,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               {!disableDependencyEditing && !isPicking && (
                 <button
                   type="button"
-                  className={`gantt-tl-dep-add gantt-tl-dep-add-hover${selectedChip ? ' gantt-tl-dep-add-hidden' : ''}`}
+                  className={`gantt-tl-dep-add gantt-tl-dep-add-hover${selectedChip ? " gantt-tl-dep-add-hidden" : ""}`}
                   onClick={handleAddClick}
                   aria-label="Добавить связь"
                 >
@@ -1273,8 +1671,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
-TaskListRow.displayName = 'TaskListRow';
+TaskListRow.displayName = "TaskListRow";
 export default TaskListRow;
