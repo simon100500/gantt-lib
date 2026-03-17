@@ -16,6 +16,8 @@ export interface TimeScaleHeaderProps {
   headerHeight: number;
   /** View mode: 'day' renders individual day columns, 'week' renders 7-day week columns, 'month' renders one column per month */
   viewMode?: 'day' | 'week' | 'month';
+  /** Optional predicate for custom weekend logic (e.g., holidays, shift patterns) */
+  isCustomWeekend?: (date: Date) => boolean;
 }
 
 /**
@@ -33,6 +35,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
   dayWidth,
   headerHeight,
   viewMode = 'day',
+  isCustomWeekend,
 }) => {
   // Calculate month spans using the utility from dateUtils
   const monthSpans = useMemo(() => getMonthSpans(days), [days]);
@@ -232,9 +235,11 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
         ) : (
           // Day-view row 2: individual day numbers (existing code)
           days.map((day, index) => {
-            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+            const isWeekendDay = isCustomWeekend
+              ? isCustomWeekend(day)
+              : day.getUTCDay() === 0 || day.getUTCDay() === 6;
             const prevDay = days[index - 1];
-            const isMonthBoundary = index > 0 && prevDay && prevDay.getMonth() !== day.getMonth();
+            const isMonthBoundary = index > 0 && prevDay && prevDay.getUTCMonth() !== day.getUTCMonth();
             // Use local date comparison for "today" (user's current date)
             const now = new Date();
             const isTodayDate =
@@ -242,7 +247,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
               day.getUTCMonth() === now.getMonth() &&
               day.getUTCDate() === now.getDate();
             return (
-              <div key={`day-${index}`} className={`gantt-tsh-dayCell ${isWeekend ? 'gantt-tsh-weekendDay' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''}`}>
+              <div key={`day-${index}`} className={`gantt-tsh-dayCell ${isWeekendDay ? 'gantt-tsh-weekendDay' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''}`}>
                 <span className="gantt-tsh-dayLabel">{format(day, 'd')}</span>
               </div>
             );
