@@ -550,7 +550,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-16 - Completed quick task 260316-n70: tooltip на чипе связи - cherry pick из ветки tooltips
+Last activity: 2026-03-17 - Completed quick task 260317-ij3: сделай вложенность задач без ограничений.
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -892,6 +892,7 @@ None yet.
 | 260316-oa5 | исправить баг: при изменении детей родительской задачи последователи, привязанные к родителю, не обновляются корректно | 2026-03-16 | f1e346e | [260316-oa5-исправить-баг-родительские-последователи](./quick/260316-oa5-исправить-баг-родительские-последователи/) |
 | 260316-wu6 | редактирование прогресса для родительской задачи может быть только 100% (все дети помечаются сделанными) | 2026-03-16 | 05987bc | [260316-wu6-100](./quick/260316-wu6-100/) |
 | 260317-21g | Номера задач выравнивание по левому краю и по иерархии: 1, 1.1, 1.2 и т.п. | 2026-03-16 | 18ff27d | [260317-21g-1-1-1-1-2](./quick/260317-21g-1-1-1-1-2/) |
+| 260317-ij3 | сделай вложенность задач без ограничений. | 2026-03-17 | de2a20b | [260317-ij3-task-nesting-unlimited](./quick/260317-ij3-task-nesting-unlimited/) |
 
 ## Session Continuity
 
