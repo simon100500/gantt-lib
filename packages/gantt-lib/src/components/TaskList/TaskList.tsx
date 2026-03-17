@@ -679,6 +679,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     while (current?.parentId) {
       depth++;
       current = tasks.find(t => t.id === current.parentId);
+      if (!current) break;
     }
     return depth;
   }

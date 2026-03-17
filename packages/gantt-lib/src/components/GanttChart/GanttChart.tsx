@@ -575,6 +575,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     while (current?.parentId) {
       depth++;
       current = tasks.find(t => t.id === current.parentId);
+      if (!current) break;
     }
     return depth;
   }
