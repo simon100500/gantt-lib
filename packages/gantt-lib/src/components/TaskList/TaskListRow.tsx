@@ -77,14 +77,6 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
-const HierarchyConnectorIcon = ({ isLastChild }: { isLastChild: boolean }) => (
-  <span className={`gantt-tl-hierarchy-connector${isLastChild ? ' gantt-tl-hierarchy-connector--last' : ''}`} aria-hidden="true">
-    <span className="gantt-tl-hc-vline" />
-    <span className="gantt-tl-hc-hline" />
-    <span className="gantt-tl-hc-dot" />
-  </span>
-);
-
 // ---------------------------------------------------------------------------
 // HierarchyButton — Single button with left/right arrows for hierarchy navigation
 // ---------------------------------------------------------------------------
@@ -916,6 +908,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         <div className="gantt-tl-cell gantt-tl-cell-name">
           {isChild && !editingName && (
             <>
+              {/* Ancestor continuation lines — full-height vertical bars for each ongoing ancestor level */}
               {ancestorContinues.map((continues, idx) =>
                 continues ? (
                   <span
@@ -924,7 +917,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                       position: 'absolute',
                       left: `${idx * 20 + 9}px`,
                       top: 0,
-                      bottom: 0,
+                      height: `${rowHeight}px`,
                       width: '1.5px',
                       background: '#d4bceb',
                       borderRadius: '1px',
@@ -933,9 +926,45 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   />
                 ) : null
               )}
-              <span style={{ position: 'absolute', left: `${(nestingDepth - 1) * 20 + 4}px` }}>
-                <HierarchyConnectorIcon isLastChild={isLastChild} />
-              </span>
+              {/* Own vline — full height if not last child, half if last (L-shape) */}
+              <span
+                style={{
+                  position: 'absolute',
+                  left: `${(nestingDepth - 1) * 20 + 9}px`,
+                  top: 0,
+                  height: isLastChild ? `${rowHeight / 2}px` : `${rowHeight}px`,
+                  width: '1.5px',
+                  background: '#d4bceb',
+                  borderRadius: '1px',
+                  pointerEvents: 'none',
+                }}
+              />
+              {/* Horizontal branch */}
+              <span
+                style={{
+                  position: 'absolute',
+                  left: `${(nestingDepth - 1) * 20 + 9}px`,
+                  top: `${rowHeight / 2 - 0.75}px`,
+                  width: '8px',
+                  height: '1.5px',
+                  background: '#d4bceb',
+                  borderRadius: '1px',
+                  pointerEvents: 'none',
+                }}
+              />
+              {/* End dot */}
+              <span
+                style={{
+                  position: 'absolute',
+                  left: `${(nestingDepth - 1) * 20 + 15}px`,
+                  top: `${rowHeight / 2 - 2}px`,
+                  width: '4px',
+                  height: '4px',
+                  borderRadius: '50%',
+                  background: '#d4bceb',
+                  pointerEvents: 'none',
+                }}
+              />
             </>
           )}
           {isParent && !editingName && (

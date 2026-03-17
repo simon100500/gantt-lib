@@ -265,9 +265,9 @@ export const TaskList: React.FC<TaskListProps> = ({
         continues.unshift(!lastChildIds.has(current.id));
         current = taskById.get(current.parentId);
       }
-      // Walk builds: [!isLastChild(depth-1 ancestor), ..., !isLastChild(parent), !isLastChild(task)]
-      // We slice off the last entry (task's own "continues" status) because the task's
-      // own connector is rendered by HierarchyConnectorIcon (isLastChild prop).
+      // Walk builds: [!isLastChild(outermost ancestor), ..., !isLastChild(parent), !isLastChild(task)]
+      // We slice off the last entry (the task's own "continues" status) — the task's own vline
+      // is rendered separately in TaskListRow using isLastChild.
       // Remaining entries: one per ancestor level, outermost first.
       // ancestorContinues[i] = true → draw vertical continuation line at position i * 20 + 9 px.
       map.set(task.id, continues.slice(0, -1));

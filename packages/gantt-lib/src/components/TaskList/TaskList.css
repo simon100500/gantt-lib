@@ -87,53 +87,6 @@
   padding-left: 0;
 }
 
-/* Hierarchy connector — shown in child rows before task name */
-.gantt-tl-hierarchy-connector {
-  position: absolute;
-  left: 4px;
-  top: 0;
-  width: 16px;
-  height: 100%;
-  color: #d4bceb;
-  pointer-events: none;
-}
-
-/* Vertical line: full height for non-last child, half height for last */
-.gantt-tl-hc-vline {
-  position: absolute;
-  left: 5px;
-  top: 0;
-  bottom: 0;
-  width: 1.5px;
-  background: currentColor;
-  border-radius: 1px;
-}
-
-.gantt-tl-hierarchy-connector--last .gantt-tl-hc-vline {
-  bottom: 50%;
-}
-
-/* Horizontal branch at vertical center */
-.gantt-tl-hc-hline {
-  position: absolute;
-  left: 5px;
-  top: calc(50% - 0.75px);
-  width: 6px;
-  height: 1.5px;
-  background: currentColor;
-  border-radius: 1px;
-}
-
-/* Dot at end of horizontal branch */
-.gantt-tl-hc-dot {
-  position: absolute;
-  left: 9px;
-  top: calc(50% - 2.5px);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-}
 
 .gantt-tl-row-parent {
   font-weight: 600;
