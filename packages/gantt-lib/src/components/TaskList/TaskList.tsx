@@ -215,6 +215,29 @@ export const TaskList: React.FC<TaskListProps> = ({
     [visibleTasks.length, rowHeight]
   );
 
+  // Compute nesting depth for each task (0 = root, 1 = child, 2 = grandchild, etc.)
+  const nestingDepthMap = useMemo(() => {
+    const depthMap = new Map<string, number>();
+    const taskById = new Map(tasks.map(t => [t.id, t]));
+
+    function getDepth(taskId: string): number {
+      if (depthMap.has(taskId)) return depthMap.get(taskId)!;
+      const task = taskById.get(taskId);
+      if (!task || !(task as any).parentId || !taskById.has((task as any).parentId)) {
+        depthMap.set(taskId, 0);
+        return 0;
+      }
+      const depth = getDepth((task as any).parentId) + 1;
+      depthMap.set(taskId, depth);
+      return depth;
+    }
+
+    for (const task of tasks) {
+      getDepth(task.id);
+    }
+    return depthMap;
+  }, [tasks]);
+
   // For each child task, determine if it's the last visible child of its parent
   const lastChildIds = useMemo(() => {
     const last = new Set<string>();
@@ -228,6 +251,29 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
     return last;
   }, [visibleTasks]);
+
+  // For each task, track whether each ancestor level "continues" (has siblings below).
+  // ancestorContinuesMap[taskId][i] = true means the ancestor at depth (i+1) is NOT the last child,
+  // so a vertical continuation line should be drawn at horizontal position i.
+  const ancestorContinuesMap = useMemo(() => {
+    const taskById = new Map(tasks.map(t => [t.id, t]));
+    const map = new Map<string, boolean[]>();
+    for (const task of visibleTasks) {
+      const continues: boolean[] = [];
+      let current: any = taskById.get(task.id);
+      while (current?.parentId && taskById.has(current.parentId)) {
+        continues.unshift(!lastChildIds.has(current.id));
+        current = taskById.get(current.parentId);
+      }
+      // Walk builds: [!isLastChild(outermost ancestor), ..., !isLastChild(parent), !isLastChild(task)]
+      // We slice off the last entry (the task's own "continues" status) — the task's own vline
+      // is rendered separately in TaskListRow using isLastChild.
+      // Remaining entries: one per ancestor level, outermost first.
+      // ancestorContinues[i] = true → draw vertical continuation line at position i * 20 + 9 px.
+      map.set(task.id, continues.slice(0, -1));
+    }
+    return map;
+  }, [tasks, visibleTasks, lastChildIds]);
 
   const handleRowClick = useCallback((taskId: string) => {
     onTaskSelect?.(taskId);
@@ -400,10 +446,8 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     // Scenario 2: Dropping parent between another parent's children
-    // (dropTarget has a parentId - dropping here would make draggedTask a child too)
-    if (dropTarget.parentId) {
-      return false;
-    }
+    // Allow this for unlimited nesting — parent can become nested under another task.
+    // Scenarios 1 and 3 still protect against circular references and self-nesting.
 
     // Scenario 3: Dropping parent under one of its own descendants
     // This would create a cycle (parent becomes child of its descendant)
@@ -623,6 +667,93 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [onAdd]);
 
   const handleCancelNewTask = useCallback(() => setIsCreating(false), []);
+
+  /**
+   * Calculate the depth of a task in the hierarchy.
+   * Root tasks have depth 0, their children have depth 1, etc.
+   */
+  function getTaskDepth(task: Task | undefined, tasks: Task[]): number {
+    if (!task) return 0;
+    let depth = 0;
+    let current: Task | undefined = task;
+    while (current) {
+      if (!current.parentId) break;
+      depth++;
+      const parentId: string = current.parentId;
+      current = tasks.find(t => t.id === parentId);
+    }
+    return depth;
+  }
+
+  /**
+   * Demote wrapper — move task down one level in hierarchy.
+   *
+   * Rules:
+   * 1. Find the PREVIOUS task at the SAME depth level (same hierarchy level)
+   * 2. Make that task the parent of the current task
+   * 3. If no previous task at same level exists (first task), create "Новый раздел"
+   *
+   * Example:
+   * - Task 1.1 (depth 1)
+   * - Task 1.2 (depth 1)
+   * - [Task to demote] (depth 1) → becomes child of Task 1.2
+   *
+   * Result:
+   * - Task 1.1 (depth 1)
+   * - Task 1.2 (depth 1)
+   *   - Task to demote (depth 2, child of 1.2)
+   *
+   * The `_newParentId` argument from TaskListRow is ignored — we compute the correct parent here.
+   */
+  const handleDemoteWrapper = useCallback((taskId: string, _newParentId: string) => {
+    const taskIndex = visibleTasks.findIndex(t => t.id === taskId);
+    const currentTask = visibleTasks[taskIndex];
+    const currentDepth = getTaskDepth(currentTask, orderedTasks);
+
+    if (taskIndex > 0) {
+      // Search backwards for the previous task at the same depth level
+      for (let i = taskIndex - 1; i >= 0; i--) {
+        const previousTask = visibleTasks[i];
+        const previousDepth = getTaskDepth(previousTask, orderedTasks);
+
+        // Found a task at the same level - use it as parent
+        if (previousDepth === currentDepth) {
+          onDemoteTask?.(taskId, previousTask.id);
+          return;
+        }
+
+        // If we encounter a task at a shallower depth, stop searching
+        // (no same-level task exists before this point)
+        if (previousDepth < currentDepth) {
+          break;
+        }
+      }
+
+      // No same-level task found - cannot demote
+      return;
+    }
+
+    // First-task case: create "Новый раздел" as a new root parent
+    const demotedTask = orderedTasks.find(t => t.id === taskId);
+    if (!demotedTask) return;
+
+    const newSectionTask: Task = {
+      id: crypto.randomUUID(),
+      name: 'Новый раздел',
+      startDate: demotedTask.startDate,
+      endDate: demotedTask.endDate,
+    };
+
+    const updatedTasks: Task[] = [
+      newSectionTask,
+      ...orderedTasks.map(t =>
+        t.id === taskId ? { ...t, parentId: newSectionTask.id } : t
+      ),
+    ];
+
+    onReorder?.(updatedTasks, taskId, newSectionTask.id);
+  }, [visibleTasks, orderedTasks, onDemoteTask, onReorder]);
+
   const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH);
 
   return (
@@ -709,8 +840,10 @@ export const TaskList: React.FC<TaskListProps> = ({
               collapsedParentIds={collapsedParentIds}
               onToggleCollapse={handleToggleCollapse}
               onPromoteTask={onPromoteTask}
-              onDemoteTask={onDemoteTask}
+              onDemoteTask={onDemoteTask ? handleDemoteWrapper : undefined}
               isLastChild={lastChildIds.has(task.id)}
+              nestingDepth={nestingDepthMap.get(task.id) ?? 0}
+              ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
             />
           ))}
         </div>

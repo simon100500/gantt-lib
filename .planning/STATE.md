@@ -3,6 +3,36 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: "Completed quick-260317-mrj: single-level hierarchy promotion/demotion"
+last_updated: "2026-03-17T13:23:27.113Z"
+last_activity: "2026-03-17 - Completed quick task 260317-mrj: изменить логику повышения/понижения иерархии - кнопки всегда изменяют уровень на 1"
+progress:
+  total_phases: 20
+  completed_phases: 19
+  total_plans: 51
+  completed_plans: 50
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
+stopped_at: "Completed quick-260317-ij3: unlimited task nesting depth"
+last_updated: "2026-03-17T10:33:43.717Z"
+last_activity: "2026-03-16 - Completed quick task 260316-n70: tooltip на чипе связи - cherry pick из ветки tooltips"
+progress:
+  total_phases: 20
+  completed_phases: 19
+  total_plans: 51
+  completed_plans: 50
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: "Completed quick-260317-21g: hierarchical task numbering with left alignment"
 last_updated: "2026-03-16T22:30:00.000Z"
 last_activity: "2026-03-16 - Completed quick task 260317-21g: Номера задач выравнивание по левому краю и по иерархии: 1, 1.1, 1.2 и т.п."
@@ -535,7 +565,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Phase: 16 of 16 (16-adding-tasks)
 Plan: 1 of 3 in current phase (1 complete, 2 pending)
 Status: IN_PROGRESS - Plan 16-01 complete: onAdd/onDelete callbacks, handleDelete with dependency cleanup
-Last activity: 2026-03-16 - Completed quick task 260316-n70: tooltip на чипе связи - cherry pick из ветки tooltips
+Last activity: 2026-03-17 - Completed quick task 260317-lge: поправь теперь элементы индикации иерархии. чтобы было у каждого уровня. и не забудь вертикальные полосы. а то они сейчас только у 1 уровня и то уродские
 
 Progress: [█░░░░░░░░] Phase 16: 1 of 3 plans complete
 
@@ -766,6 +796,7 @@ Recent decisions affecting current work:
 - [Phase 20-month-view]: viewMode defaults to 'day' in both TimeScaleHeader and GridBackground — fully backward compatible
 - [Phase 20-month-view]: viewMode defaults to 'day' at GanttChart boundary — single source of truth, fully backward-compatible
 - [Phase 20-month-view]: dayWidth=8px/day in week-view demo (56px/week), 24 in day-view — preserves visual proportions
+- [Phase quick-260317-ij3]: Removed !isParent guard from canDemote; promote moves to grandparent not root; drag-drop allows parent into nested positions; 20px/level inline indentation via nestingDepthMap
 
 ### Pending Todos
 
@@ -876,11 +907,14 @@ None yet.
 | 260316-oa5 | исправить баг: при изменении детей родительской задачи последователи, привязанные к родителю, не обновляются корректно | 2026-03-16 | f1e346e | [260316-oa5-исправить-баг-родительские-последователи](./quick/260316-oa5-исправить-баг-родительские-последователи/) |
 | 260316-wu6 | редактирование прогресса для родительской задачи может быть только 100% (все дети помечаются сделанными) | 2026-03-16 | 05987bc | [260316-wu6-100](./quick/260316-wu6-100/) |
 | 260317-21g | Номера задач выравнивание по левому краю и по иерархии: 1, 1.1, 1.2 и т.п. | 2026-03-16 | 18ff27d | [260317-21g-1-1-1-1-2](./quick/260317-21g-1-1-1-1-2/) |
+| 260317-ij3 | сделай вложенность задач без ограничений. | 2026-03-17 | de2a20b | [260317-ij3-task-nesting-unlimited](./quick/260317-ij3-task-nesting-unlimited/) |
+| 260317-lge | поправь теперь элементы индикации иерархии. чтобы было у каждого уровня. и не забудь вертикальные полосы. а то они сейчас только у 1 уровня и то уродские | 2026-03-17 | 601eb9e | [260317-lge-1](./quick/260317-lge-1/) |
+| 260317-mrj | изменить логику повышения/понижения иерархии - кнопки всегда изменяют уровень на 1 | 2026-03-17 | eb7f6e8 | [260317-mrj-1](./quick/260317-mrj-1/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T20:46:03.921Z
-Stopped at: Completed quick-260316-wzp: calendar font inherit for Roboto
+Last session: 2026-03-17T13:23:27.113Z
+Stopped at: Completed quick-260317-mrj: single-level hierarchy promotion/demotion
 
 **Phase 3 Status:** COMPLETE
 - 03-01: COMPLETE - Multi-month date utilities and calendar type definitions (4 min)

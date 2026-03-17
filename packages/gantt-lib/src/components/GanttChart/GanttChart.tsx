@@ -565,6 +565,22 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     [scrollToToday, scrollToTask, handleCollapseAll, handleExpandAll]
   );
 
+  /**
+   * Calculate the depth of a task in the hierarchy.
+   * Root tasks have depth 0, their children have depth 1, etc.
+   */
+  function getTaskDepth(taskId: string, tasks: Task[]): number {
+    let depth = 0;
+    let current: Task | undefined = tasks.find(t => t.id === taskId);
+    while (current) {
+      if (!current.parentId) break;
+      depth++;
+      const parentId: string = current.parentId;
+      current = tasks.find(t => t.id === parentId);
+    }
+    return depth;
+  }
+
   const handlePromoteTask = useCallback((taskId: string) => {
     // If consumer provided custom callback, use it
     if (onPromoteTask) {
@@ -574,31 +590,37 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
     // Default internal logic
     const taskToPromote = tasks.find(t => t.id === taskId);
-    if (!taskToPromote || !(taskToPromote as any).parentId) {
+    if (!taskToPromote || !taskToPromote.parentId) {
       return;
     }
 
-    const parentId = (taskToPromote as any).parentId;
-    const siblings = tasks.filter(t => (t as any).parentId === parentId);
+    // Calculate current depth and determine new parent for single-level promotion
+    const depth = getTaskDepth(taskId, tasks);
+    const grandparentId = depth > 1
+      ? tasks.find(t => t.id === taskToPromote.parentId)?.parentId
+      : undefined;
+
+    const currentParentId = taskToPromote.parentId;
+    const siblings = tasks.filter(t => t.parentId === currentParentId);
+
+    const promotedTask = { ...taskToPromote, parentId: grandparentId };
 
     if (siblings.length <= 1) {
-      const promotedTask = { ...taskToPromote, parentId: undefined };
       onTasksChange?.([promotedTask]);
       return;
     }
 
+    // Reorder: place after last sibling of the old parent group
     const lastSiblingIndex = tasks
       .map((t, i) => ({ task: t, index: i }))
-      .filter(({ task }) => (task as any).parentId === parentId)
+      .filter(({ task }) => task.parentId === currentParentId)
       .sort((a, b) => b.index - a.index)[0];
 
     if (!lastSiblingIndex) {
-      const promotedTask = { ...taskToPromote, parentId: undefined };
       onTasksChange?.([promotedTask]);
       return;
     }
 
-    const promotedTask = { ...taskToPromote, parentId: undefined };
     const reorderedTasks = normalizeHierarchyTasks([
       ...tasks.filter(t => t.id !== taskId).slice(0, lastSiblingIndex.index + 1),
       promotedTask,
