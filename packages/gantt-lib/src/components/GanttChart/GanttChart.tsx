@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { getMultiMonthDays, createIsWeekendPredicate, type WeekendConfig } from '../../utils/dateUtils';
+import { getMultiMonthDays, createCustomDayPredicate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
@@ -126,11 +126,9 @@ export interface GanttChartProps {
   enableAddTask?: boolean;
   /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days, 'month' renders one column per month (default: 'day') */
   viewMode?: 'day' | 'week' | 'month';
-  /** Custom weekend dates to ADD to default weekends (e.g., holidays) */
-  weekends?: Date[];
-  /** Custom workday dates to EXCLUDE from default weekends (e.g., shifted workdays) */
-  workdays?: Date[];
-  /** Flexible weekend logic predicate (overrides arrays) */
+  /** Custom day configurations with explicit type (weekend or workday) */
+  customDays?: CustomDayConfig[];
+  /** Optional base weekend predicate (checked before customDays overrides) */
   isWeekend?: (date: Date) => boolean;
 }
 
@@ -192,8 +190,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   onDemoteTask,
   enableAddTask = true,
   viewMode = 'day',
-  weekends,
-  workdays,
+  customDays,
   isWeekend,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -215,8 +212,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
   // Create custom weekend predicate from props (memoized for performance)
   const isCustomWeekend = useMemo(
-    () => createIsWeekendPredicate({ weekends, workdays, isWeekend }),
-    [weekends, workdays, isWeekend]
+    () => createCustomDayPredicate({ customDays, isWeekend }),
+    [customDays, isWeekend]
   );
 
   // Calculate multi-month date range from normalized tasks
@@ -791,8 +788,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onToggleCollapse={handleToggleCollapse}
             onPromoteTask={onPromoteTask ?? handlePromoteTask}
             onDemoteTask={onDemoteTask ?? handleDemoteTask}
-            weekends={weekends}
-            workdays={workdays}
+            customDays={customDays}
             isWeekend={isWeekend}
           />
 

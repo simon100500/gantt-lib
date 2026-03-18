@@ -21,7 +21,7 @@ import {
   startOfDay,
 } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { createIsWeekendPredicate } from '../../utils/dateUtils';
+import { createCustomDayPredicate } from '../../utils/dateUtils';
 
 export interface CalendarProps {
   selected?: Date;
@@ -31,10 +31,6 @@ export interface CalendarProps {
   disabled?: boolean;
   /** Optional predicate for custom weekend logic (e.g., holidays, shift patterns) */
   isWeekend?: (date: Date) => boolean;
-  /** Optional custom weekend dates (holidays) - takes precedence over default weekends */
-  weekends?: Date[];
-  /** Optional custom workday dates - overrides both default and custom weekends */
-  workdays?: Date[];
 }
 
 
@@ -61,22 +57,8 @@ export const Calendar: React.FC<CalendarProps> = ({
   mode = 'single',
   disabled = false,
   isWeekend: isWeekendProp,
-  weekends,
-  workdays,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Create weekend predicate from weekends/workdays arrays if provided
-  const derivedWeekendPredicate = useMemo(() => {
-    if (isWeekendProp) return isWeekendProp;
-    if (weekends || workdays) {
-      return createIsWeekendPredicate({
-        weekends: weekends ?? [],
-        workdays: workdays ?? [],
-      });
-    }
-    return undefined;
-  }, [isWeekendProp, weekends, workdays]);
 
   const initialMonth = useMemo(
     () => startOfMonth(initialDate ?? selected ?? new Date()),
@@ -162,7 +144,7 @@ export const Calendar: React.FC<CalendarProps> = ({
       const dayCells = Array.from({ length: totalDays }, (_, i) => {
         const dayNum = i + 1;
         const day = new Date(Date.UTC(month.getFullYear(), month.getMonth(), dayNum));
-        const className = getDayClassName(day, selected, derivedWeekendPredicate);
+        const className = getDayClassName(day, selected, isWeekendProp);
         return (
           <button
             key={dayNum}
@@ -191,7 +173,7 @@ export const Calendar: React.FC<CalendarProps> = ({
         </div>
       );
     },
-    [selected, onSelect, disabled, derivedWeekendPredicate]
+    [selected, onSelect, disabled, isWeekendProp]
   );
 
   const renderedMonths = useMemo(

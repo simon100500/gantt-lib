@@ -9,7 +9,8 @@ import React, {
 } from "react";
 import type { Task } from "../GanttChart";
 import type { LinkType } from "../../types";
-import { parseUTCDate, normalizeTaskDates } from "../../utils/dateUtils";
+import type { CustomDayConfig } from "../../utils/dateUtils";
+import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate } from "../../utils/dateUtils";
 import {
   computeLagFromDates,
   calculateSuccessorDate,
@@ -612,11 +613,9 @@ export interface TaskListRowProps {
   nestingDepth?: number;
   /** For each ancestor above the direct parent: true if that ancestor has more siblings below */
   ancestorContinues?: boolean[];
-  /** Optional custom weekend dates (holidays) for date picker */
-  weekends?: Date[];
-  /** Optional custom workday dates - overrides weekends */
-  workdays?: Date[];
-  /** Optional predicate for custom weekend logic in date picker */
+  /** Custom day configurations for date picker */
+  customDays?: CustomDayConfig[];
+  /** Optional base weekend predicate for date picker */
   isWeekend?: (date: Date) => boolean;
 }
 
@@ -665,8 +664,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     isLastChild = true,
     nestingDepth = 0,
     ancestorContinues = [],
-    weekends,
-    workdays,
+    customDays,
     isWeekend,
   }) => {
     const [editingName, setEditingName] = useState(false);
@@ -699,6 +697,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [task.id, allTasks],
     );
     const isChild = task.parentId !== undefined;
+
+    // Create custom weekend predicate from props (memoized for performance)
+    const weekendPredicate = useMemo(
+      () => createCustomDayPredicate({ customDays, isWeekend }),
+      [customDays, isWeekend]
+    );
     const isCollapsed = collapsedParentIds.has(task.id);
 
     // Picker mode flags for this row
@@ -1396,9 +1400,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             format="dd.MM.yy"
             portal={true}
             disabled={task.locked}
-            weekends={weekends}
-            workdays={workdays}
-            isWeekend={isWeekend}
+            isWeekend={weekendPredicate}
           />
         </div>
 
@@ -1413,9 +1415,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             format="dd.MM.yy"
             portal={true}
             disabled={task.locked}
-            weekends={weekends}
-            workdays={workdays}
-            isWeekend={isWeekend}
+            isWeekend={weekendPredicate}
           />
         </div>
 

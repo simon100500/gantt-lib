@@ -3,6 +3,7 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
+import type { CustomDayConfig } from '../../utils/dateUtils';
 import { validateDependencies, calculateSuccessorDate, isTaskParent } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import { getVisibleReorderPosition } from '../../utils/taskListReorder';
@@ -137,11 +138,9 @@ export interface TaskListProps {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when task is demoted (parentId set to previous task) */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
-  /** Optional custom weekend dates (holidays) for date picker */
-  weekends?: Date[];
-  /** Optional custom workday dates - overrides weekends */
-  workdays?: Date[];
-  /** Optional predicate for custom weekend logic in date picker */
+  /** Custom day configurations for date picker */
+  customDays?: CustomDayConfig[];
+  /** Optional base weekend predicate for date picker */
   isWeekend?: (date: Date) => boolean;
 }
 
@@ -175,8 +174,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onToggleCollapse: externalOnToggleCollapse,
   onPromoteTask,
   onDemoteTask,
-  weekends,
-  workdays,
+  customDays,
   isWeekend,
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
@@ -853,8 +851,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               isLastChild={lastChildIds.has(task.id)}
               nestingDepth={nestingDepthMap.get(task.id) ?? 0}
               ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
-              weekends={weekends}
-              workdays={workdays}
+              customDays={customDays}
               isWeekend={isWeekend}
             />
           ))}

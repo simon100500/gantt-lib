@@ -111,83 +111,96 @@ export const createDateKey = (date: Date): string => {
 };
 
 /**
- * Configuration for custom weekend calendar
+ * Configuration for a single custom day
  */
-export interface WeekendConfig {
-  /** Array of dates to ADD to default weekends (e.g., holidays) */
-  weekends?: Date[];
-  /** Array of dates to EXCLUDE from default weekends (e.g., shifted workdays) */
-  workdays?: Date[];
-  /** Custom predicate for flexible weekend logic (overrides arrays) */
+export interface CustomDayConfig {
+  /** The date to customize */
+  date: Date;
+  /** Type of day: 'weekend' marks as weekend, 'workday' marks as workday */
+  type: 'weekend' | 'workday';
+}
+
+/**
+ * Configuration for custom day predicate
+ */
+export interface CustomDayPredicateConfig {
+  /** Array of custom day configurations with explicit types */
+  customDays?: CustomDayConfig[];
+  /** Optional base weekend predicate (checked before customDays overrides) */
   isWeekend?: (date: Date) => boolean;
 }
 
 /**
- * Create a weekend predicate with custom calendar support
+ * Create a weekend predicate with unified custom day support
  *
  * Precedence order (highest to lowest):
- * 1. isWeekend (custom predicate) - use directly, ignore arrays
- * 2. workdays - exclude these dates from default weekends
- * 3. weekends - add these dates to default weekends
+ * 1. customDays.type='workday' - explicit workday (highest override)
+ * 2. customDays.type='weekend' - explicit weekend (override)
+ * 3. isWeekend (base predicate) - custom base logic
  * 4. default - Saturday (6) and Sunday (0)
  *
- * @param config - Weekend configuration with optional arrays and predicate
+ * @param config - Custom day configuration with array and optional predicate
  * @returns Predicate function (date: Date) => boolean
  *
  * Example:
- * // Add March 8 as holiday (Monday becomes weekend)
- * const predicate = createIsWeekendPredicate({
- *   weekends: [new Date(Date.UTC(2026, 2, 8))]
+ * // Simple holidays + working Saturdays
+ * const predicate = createCustomDayPredicate({
+ *   customDays: [
+ *     { date: new Date(Date.UTC(2026, 2, 15)), type: 'workday' }, // working Saturday
+ *     { date: new Date(Date.UTC(2026, 0, 1)), type: 'weekend' }  // holiday Tuesday
+ *   ]
  * });
  *
- * // Make March 15 a workday (Saturday becomes workday)
- * const predicate2 = createIsWeekendPredicate({
- *   workdays: [new Date(Date.UTC(2026, 2, 15))]
- * });
- *
- * // Custom shift pattern (Sunday-only weekends)
- * const predicate3 = createIsWeekendPredicate({
- *   isWeekend: (date) => date.getUTCDay() === 0
+ * // 4-day work week + occasional overrides
+ * const predicate2 = createCustomDayPredicate({
+ *   isWeekend: (date) => {
+ *     const day = date.getUTCDay();
+ *     return day === 0 || day === 6 || day === 5; // Sun+Sat+Fri
+ *   },
+ *   customDays: [
+ *     { date: new Date(Date.UTC(2026, 2, 10)), type: 'workday' } // working Friday
+ *   ]
  * });
  */
-export const createIsWeekendPredicate = (
-  config: WeekendConfig
+export const createCustomDayPredicate = (
+  config: CustomDayPredicateConfig
 ): ((date: Date) => boolean) => {
-  const { weekends, workdays, isWeekend: customPredicate } = config;
+  const { customDays, isWeekend: basePredicate } = config;
 
-  // Priority 1: Custom predicate (highest) - use directly
-  if (customPredicate) {
-    return customPredicate;
-  }
+  // Build Set-based lookups for O(1) performance
+  const workdaySet = new Set<string>();
+  const weekendSet = new Set<string>();
 
-  // Priority 2: Workdays - exclude these from default weekends
-  if (workdays && workdays.length > 0) {
-    const workdaySet = new Set(workdays.map(createDateKey));
-    return (date: Date) => {
-      const key = createDateKey(date);
-      if (workdaySet.has(key)) {
-        return false; // Workday takes precedence
+  if (customDays && customDays.length > 0) {
+    for (const item of customDays) {
+      const key = createDateKey(item.date);
+      if (item.type === 'workday') {
+        workdaySet.add(key);
+      } else { // weekend
+        weekendSet.add(key);
       }
-      const dayOfWeek = date.getUTCDay();
-      return dayOfWeek === 0 || dayOfWeek === 6; // Default Sat/Sun
-    };
+    }
   }
 
-  // Priority 3: Weekends - add these to default weekends
-  if (weekends && weekends.length > 0) {
-    const weekendSet = new Set(weekends.map(createDateKey));
-    return (date: Date) => {
-      const key = createDateKey(date);
-      if (weekendSet.has(key)) {
-        return true; // Custom weekend
-      }
-      const dayOfWeek = date.getUTCDay();
-      return dayOfWeek === 0 || dayOfWeek === 6; // Default Sat/Sun
-    };
-  }
+  return (date: Date): boolean => {
+    const key = createDateKey(date);
 
-  // Priority 4: Default - Saturday/Sunday only
-  return (date: Date) => {
+    // Priority 1: customDays workdays (highest override)
+    if (workdaySet.has(key)) {
+      return false; // Explicitly a workday
+    }
+
+    // Priority 2: customDays weekends (override)
+    if (weekendSet.has(key)) {
+      return true; // Explicitly a weekend
+    }
+
+    // Priority 3: base predicate (if provided)
+    if (basePredicate) {
+      return basePredicate(date);
+    }
+
+    // Priority 4: default Saturday/Sunday
     const dayOfWeek = date.getUTCDay();
     return dayOfWeek === 0 || dayOfWeek === 6;
   };
