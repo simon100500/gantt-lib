@@ -63,9 +63,14 @@ None yet — no external users (library in active development)
 
 ### Roadmap Structure
 
-**v0.50.0 phases (2 phases, 4 estimated plans):**
+**v0.50.0 phases (3 phases, 4 estimated plans):**
 - Phase 21: Custom Weekend Calendar (CAL-01 to CAL-05)
+- Phase 21.1: custom-weekend-refactoring [INSERTED]
 - Phase 22: Additional TaskList Columns (COL-01 to COL-08)
+
+### Roadmap Evolution
+
+- Phase 21.1 added: custom-weekend-refactoring
 
 **Coverage:** 13/13 requirements mapped ✓
 
