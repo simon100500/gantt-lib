@@ -1495,7 +1495,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 : undefined
             }
           >
-            {getInclusiveDurationDays(task.startDate, task.endDate)}
+            {getInclusiveDurationDays(task.startDate, task.endDate)}д
           </span>
         </div>
 
@@ -1587,7 +1587,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               ? Math.round(task.progress) === 100
                 ? "100"
                 : `${Math.round(task.progress)}%`
-              : "0%"}
+              : "-"}
           </span>
         </div>
 

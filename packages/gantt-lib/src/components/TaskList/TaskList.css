@@ -93,6 +93,11 @@
   /* background-color: var(--gantt-parent-row-bg, #f2ebf9); */
 }
 
+/* Bold dates in parent rows */
+.gantt-tl-row-parent .gantt-datepicker-trigger {
+  font-weight: 600;
+}
+
 .gantt-tl-collapse-btn {
   position: absolute;
   left: 4px;

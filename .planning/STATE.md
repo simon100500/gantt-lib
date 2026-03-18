@@ -4,7 +4,7 @@ milestone: v0.18
 milestone_name: milestone
 status: planning
 last_updated: "2026-03-18T10:29:54.717Z"
-last_activity: 2026-03-17 — Integrated custom weekend props into GanttChart, GridBackground, TimeScaleHeader, and Calendar
+last_activity: 2026-03-18 — Quick task 260318-mso: UI improvements (progress "-", duration "д" suffix)
 progress:
   total_phases: 3
   completed_phases: 1
@@ -56,6 +56,12 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ### Known Issues
 
 - Phase 16 plan 16-03 (demo page wiring) incomplete — minor gap
+
+### Quick Tasks Completed
+
+| # | Description | Date | Directory |
+|---|-------------|------|-----------|
+| 260318-mso | 0% в прогрессе → "-", суффикс "д" для длительности | 2026-03-18 | [260318-mso-0](./quick/260318-mso-0/) |
 
 ### User Feedback
 
