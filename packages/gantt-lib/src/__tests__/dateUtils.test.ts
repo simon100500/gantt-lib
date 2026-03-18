@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseUTCDate, getMonthDays, getDayOffset, isToday, isWeekend, getMultiMonthDays, getMonthSpans, normalizeTaskDates, getWeekStartDays, getWeekSpans } from '../utils/dateUtils';
+import { parseUTCDate, getMonthDays, getDayOffset, isToday, isWeekend, getMultiMonthDays, getMonthSpans, normalizeTaskDates, getWeekStartDays, getWeekSpans, createCustomDayPredicate, type CustomDayConfig } from '../utils/dateUtils';
 
 describe('parseUTCDate', () => {
   it('should parse ISO date string as UTC', () => {
@@ -466,5 +466,106 @@ describe('getWeekSpans', () => {
     expect(result).toHaveLength(1);
     expect(result[0].weeks).toBe(1);
     expect(result[0].startIndex).toBe(0);
+  });
+});
+
+describe('createCustomDayPredicate', () => {
+  it('should return default weekends (Sat/Sun) when no config provided', () => {
+    const predicate = createCustomDayPredicate({});
+    const sunday = new Date(Date.UTC(2026, 2, 1));    // Sun (day 0)
+    const saturday = new Date(Date.UTC(2026, 2, 7));  // Sat (day 6)
+    const monday = new Date(Date.UTC(2026, 2, 2));    // Mon (day 1)
+
+    expect(predicate(sunday)).toBe(true);
+    expect(predicate(saturday)).toBe(true);
+    expect(predicate(monday)).toBe(false);
+  });
+
+  it('should mark customDays.type=weekend as weekend', () => {
+    const predicate = createCustomDayPredicate({
+      customDays: [
+        { date: new Date(Date.UTC(2026, 2, 2)), type: 'weekend' } // Monday
+      ]
+    });
+    const monday = new Date(Date.UTC(2026, 2, 2));
+
+    expect(predicate(monday)).toBe(true);
+  });
+
+  it('should mark customDays.type=workday as workday', () => {
+    const predicate = createCustomDayPredicate({
+      customDays: [
+        { date: new Date(Date.UTC(2026, 2, 7)), type: 'workday' } // Saturday
+      ]
+    });
+    const saturday = new Date(Date.UTC(2026, 2, 7));
+
+    expect(predicate(saturday)).toBe(false);
+  });
+
+  it('should prioritize customDays.workdays over customDays.weekends', () => {
+    const predicate = createCustomDayPredicate({
+      customDays: [
+        { date: new Date(Date.UTC(2026, 2, 7)), type: 'weekend' },
+        { date: new Date(Date.UTC(2026, 2, 7)), type: 'workday' } // Same date, workday wins
+      ]
+    });
+    const saturday = new Date(Date.UTC(2026, 2, 7));
+
+    // workdaySet has priority over weekendSet in implementation
+    expect(predicate(saturday)).toBe(false);
+  });
+
+  it('should use base isWeekend predicate before default', () => {
+    const predicate = createCustomDayPredicate({
+      isWeekend: (date: Date) => date.getUTCDay() === 0 // Sunday-only
+    });
+    const saturday = new Date(Date.UTC(2026, 2, 7)); // Sat
+    const sunday = new Date(Date.UTC(2026, 2, 1));   // Sun
+
+    expect(predicate(saturday)).toBe(false);
+    expect(predicate(sunday)).toBe(true);
+  });
+
+  it('should prioritize customDays over base isWeekend predicate', () => {
+    const predicate = createCustomDayPredicate({
+      isWeekend: (date: Date) => date.getUTCDay() === 0, // Sunday-only
+      customDays: [
+        { date: new Date(Date.UTC(2026, 2, 7)), type: 'weekend' } // Saturday
+      ]
+    });
+    const saturday = new Date(Date.UTC(2026, 2, 7));
+
+    expect(predicate(saturday)).toBe(true); // customDays wins
+  });
+
+  it('should handle empty customDays array', () => {
+    const predicate = createCustomDayPredicate({
+      customDays: []
+    });
+    const saturday = new Date(Date.UTC(2026, 2, 7));
+
+    expect(predicate(saturday)).toBe(true); // Default behavior
+  });
+
+  it('should work with multiple custom days', () => {
+    const predicate = createCustomDayPredicate({
+      customDays: [
+        { date: new Date(Date.UTC(2026, 2, 7)), type: 'workday' },  // Sat -> workday
+        { date: new Date(Date.UTC(2026, 2, 2)), type: 'weekend' },  // Mon -> weekend
+        { date: new Date(Date.UTC(2026, 2, 3)), type: 'workday' }   // Tue -> workday
+      ]
+    });
+    const saturday = new Date(Date.UTC(2026, 2, 7)); // Mar 7, Sat
+    const sunday = new Date(Date.UTC(2026, 2, 1));   // Mar 1, Sun
+    const monday = new Date(Date.UTC(2026, 2, 2));   // Mar 2, Mon
+    const tuesday = new Date(Date.UTC(2026, 2, 3));  // Mar 3, Tue
+    const wednesday = new Date(Date.UTC(2026, 2, 4)); // Mar 4, Wed
+
+    expect(predicate(saturday)).toBe(false);   // Custom workday
+    expect(predicate(sunday)).toBe(true);      // Default Sunday
+    expect(predicate(monday)).toBe(true);      // Custom weekend
+    expect(predicate(tuesday)).toBe(false);    // Custom workday
+    expect(predicate(wednesday)).toBe(false);  // Default workday
   });
 });
