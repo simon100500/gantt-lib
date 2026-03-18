@@ -9,7 +9,7 @@
 4. Фильтр по прогрессу
 5. Фильтр по названию
 
-**Ключевое требование:** фильтрация должна быть визуальной — при сдвижке задачи библиотека должна пересчитывать зависимости ВСЕХ задач, включая скрытые.
+**Ключевое требование:** фильтрация должна быть визуальной — совпавшие задачи остаются видимыми и подсвечиваются, а библиотека пересчитывает зависимости ВСЕХ задач.
 
 ## Архитектурное решение
 
@@ -29,7 +29,7 @@ import { and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameC
 1. **Расширяемость** — пользователь может написать свой предикат без ожидания релиза
 2. **Композиция** — комбинации через `and`, `or`, `not`
 3. **Чистота** — логика фильтрации изолирована от рендеринга
-4. **Аналогия** — уже есть `filteredTasks` для collapsed parent IDs
+4. **Аналогия** — уже есть `visibleTasks` / collapsed parent logic для управления видимостью строк
 
 ## План реализации
 
@@ -60,14 +60,14 @@ export const nameContains = (substring: string, caseSensitive?: boolean): TaskPr
 ```ts
 export interface GanttChartProps {
   // ... существующие пропсы
-  /** Optional predicate to filter tasks for display. Dependencies are still computed on ALL tasks. */
+  /** Optional predicate to highlight matching tasks in the current view. Dependencies are still computed on ALL tasks. */
   taskFilter?: TaskPredicate;
 }
 ```
 
-Обновить `filteredTasks` useMemo:
+Обновить расчёт совпадений для taskFilter:
 ```ts
-const filteredTasks = useMemo(() => {
+const visibleTasks = useMemo(() => {
   const parentMap = new Map(normalizedTasks.map(t => [t.id, t.parentId]));
 
   function isAnyAncestorCollapsed(parentId: string | undefined): boolean {
@@ -79,16 +79,13 @@ const filteredTasks = useMemo(() => {
     return false;
   }
 
-  // Сначала фильтруем по collapsed parent
-  let result = normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
+  return normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
+}, [normalizedTasks, collapsedParentIds]);
 
-  // Затем применяем taskFilter если есть
-  if (taskFilter) {
-    result = result.filter(taskFilter);
-  }
-
-  return result;
-}, [normalizedTasks, collapsedParentIds, taskFilter]);
+const matchedTaskIds = useMemo(() => {
+  if (!taskFilter) return new Set<string>();
+  return new Set(visibleTasks.filter(taskFilter).map(task => task!.id));
+}, [visibleTasks, taskFilter]);
 ```
 
 ### 3. Обновить `packages/gantt-lib/src/index.ts`

@@ -9,9 +9,9 @@ requires:
   - phase: 22-01
     provides: filters module (TaskPredicate, and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains)
 provides:
-  - GanttChart.taskFilter prop for task filtering
+  - GanttChart.taskFilter prop for task highlighting
   - Public API export of filters from 'gantt-lib' package
-  - Two-stage filtering (collapsed parent → taskFilter)
+  - Visible rows from collapsed parent logic + highlight matches from taskFilter
   - Dependencies computed on all tasks regardless of filter
 affects: []
 
@@ -19,9 +19,9 @@ affects: []
 tech-stack:
   added: []
   patterns:
-    - Predicate-based task filtering
-    - Two-stage filtering pipeline
-    - Dependencies on normalizedTasks (not filteredTasks)
+    - Predicate-based task highlighting
+    - Visible rows + matched highlight pipeline
+    - Dependencies on normalizedTasks
 
 key-files:
   created: []
@@ -31,7 +31,7 @@ key-files:
 
 key-decisions:
   - "taskFilter prop positioned after isWeekend in GanttChartProps"
-  - "Filter applied AFTER collapsed parent filtering (correct order)"
+  - "Collapsed parent logic controls visibility; taskFilter controls highlight only"
   - "Dependencies remain on normalizedTasks for correctness"
 
 patterns-established:
@@ -48,7 +48,7 @@ completed: 2026-03-18
 
 # Phase 22 Plan 02: Task Filter Integration Summary
 
-**GanttChart taskFilter prop with two-stage filtering, dependencies on all tasks, and public filters API export**
+**GanttChart taskFilter prop for highlighting matching rows, dependencies on all tasks, and public filters API export**
 
 ## Performance
 
@@ -60,7 +60,7 @@ completed: 2026-03-18
 
 ## Accomplishments
 - Added taskFilter prop to GanttChart component with JSDoc documentation
-- Integrated two-stage filtering (collapsed parent → taskFilter)
+- Integrated highlight-only taskFilter on top of collapsed parent visibility
 - Exported all filters from public 'gantt-lib' package API
 - Verified dependencies still compute on all tasks (normalizedTasks)
 
@@ -81,10 +81,9 @@ Each task was committed atomically:
   - Added TaskPredicate import from '../../filters'
   - Added taskFilter?: TaskPredicate to GanttChartProps interface with JSDoc
   - Added taskFilter to props destructuring
-  - Updated filteredTasks useMemo with two-stage filtering:
-    - Stage 1: Filter by collapsed parent
-    - Stage 2: Apply taskFilter if provided
-  - Added taskFilter to useMemo dependency array
+  - Added visibleTasks for collapsed parent visibility
+  - Added matchedTaskIds for taskFilter-based row highlighting
+  - Added taskFilter to matchedTaskIds useMemo dependency array
 
 - `packages/gantt-lib/src/index.ts`
   - Added "// Filters" section comment
@@ -100,7 +99,7 @@ Users can now pass a filter predicate to GanttChart:
 ```typescript
 import { GanttChart, withoutDeps, expired, and } from 'gantt-lib';
 
-// Show only tasks without dependencies
+// Highlight tasks without dependencies
 <GanttChart
   tasks={tasks}
   taskFilter={withoutDeps()}
@@ -115,9 +114,10 @@ import { GanttChart, withoutDeps, expired, and } from 'gantt-lib';
 
 ### Filter Behavior
 
-- **Two-stage filtering:** Collapsed parent logic runs first, then taskFilter
-- **Dependencies still work:** Dependencies cascade on ALL tasks (normalizedTasks), not just filtered
-- **Reactive:** Filter updates trigger re-render with new filtered view
+- **Visibility:** Collapsed parent logic controls which rows are shown
+- **Highlighting:** taskFilter marks matching visible rows without hiding non-matching ones
+- **Dependencies still work:** Dependencies cascade on ALL tasks (normalizedTasks)
+- **Reactive:** Filter updates trigger re-render with new highlighted view
 
 ### Public API
 

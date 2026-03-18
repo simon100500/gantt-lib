@@ -261,7 +261,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     return new Set(visibleTasks.filter(taskFilter).map(task => task!.id));
   }, [visibleTasks, taskFilter]);
 
-  // Calculate total grid height (based on filtered tasks)
+  // Calculate total grid height from currently visible rows.
   const totalGridHeight = useMemo(
     () => visibleTasks.length * rowHeight,
     [visibleTasks.length, rowHeight]

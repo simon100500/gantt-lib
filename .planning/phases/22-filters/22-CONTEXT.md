@@ -34,8 +34,8 @@ import { and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameC
 
 ### Изменения в GanttChart
 - Добавить проп `taskFilter?: TaskPredicate`
-- Обновить `filteredTasks` useMemo: применить фильтр после фильтрации по collapsed parent
-- Зависимости пересчитываются на `normalizedTasks` (все задачи), а не на `filteredTasks`
+- Добавить расчёт `matchedTaskIds` поверх `visibleTasks`, чтобы taskFilter подсвечивал совпавшие строки
+- Зависимости пересчитываются на `normalizedTasks` (все задачи), а не на highlight-набор
 
 ### Готовые фильтры
 1. `withoutDeps()` — задачи без dependencies
@@ -69,7 +69,7 @@ import { and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameC
 - `.planning/filters-add.md` — Полная спецификация фильтрации, архитектурное решение, примеры использования
 
 ### Связанные компоненты
-- `packages/gantt-lib/src/components/GanttChart/GanttChart.tsx` — Существующая логика filteredTasks
+- `packages/gantt-lib/src/components/GanttChart/GanttChart.tsx` — логика visibleTasks и taskFilter highlight
 - `packages/gantt-lib/src/types/index.ts` — Тип Task для понимания структуры
 - `packages/gantt-lib/src/index.ts` — Публичные экспорты библиотеки
 
@@ -97,11 +97,11 @@ import { and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameC
 ## Existing Code Insights
 
 ### Reusable Assets
-- `GanttChart.filteredTasks` useMemo — паттерн мемоизации фильтрованных задач
+- `GanttChart.visibleTasks` и `matchedTaskIds` useMemo — паттерн мемоизации видимых и подсвеченных задач
 - `collapsedParentIds` Set — существующий паттерн фильтрации по ancestors
 
 ### Established Patterns
-- Двухэтапная фильтрация: сначала по collapsed, затем можно добавить taskFilter
+- Разделение ответственности: collapsed parent управляет видимостью, taskFilter управляет подсветкой
 - Зависимости работают с `normalizedTasks` (полный список)
 
 ### Integration Points
