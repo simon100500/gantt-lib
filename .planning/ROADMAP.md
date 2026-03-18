@@ -8,11 +8,12 @@
 
 ## Current Status
 
-🎯 **Planning Phase 21** — Custom weekend calendar with flexible holiday and workday support
+🎯 **Planning Phase 21.1** — Refactor custom weekend API to unified customDays array
 
 ## Phases
 
 - [ ] **Phase 21: Custom Weekend Calendar** - User-defined weekend dates and flexible weekend logic
+- [ ] **Phase 21.1: custom-weekend-refactoring [INSERTED]** - Refactor three props (weekends, workdays, isWeekend) to unified customDays array
 - [ ] **Phase 22: Additional TaskList Columns** - Custom columns with renderers and editors
 
 ### Phase 21: Custom Weekend Calendar
@@ -36,6 +37,26 @@
 - [ ] 21-02-PLAN.md — Implement createDateKey, createIsWeekendPredicate, and modify calculateWeekendBlocks (TDD GREEN phase)
 - [ ] 21-03-PLAN.md — Integrate custom weekends into GanttChart, GridBackground, TimeScaleHeader, and Calendar
 - [ ] 21-04-PLAN.md — Create demo page with visual verification examples
+
+### Phase 21.1: custom-weekend-refactoring [INSERTED]
+
+**Goal:** Refactor custom weekend API from three props (weekends, workdays, isWeekend) to unified customDays array with explicit type annotations
+
+**Depends on:** Phase 21
+
+**Requirements:** None (internal refactoring, no new user-facing requirements)
+
+**Success Criteria** (what must be TRUE):
+1. GanttChart accepts `customDays?: Array<{date: Date; type: 'weekend' | 'workday'}>` prop instead of separate weekends/workdays arrays
+2. Optional `isWeekend?: (date: Date) => boolean` prop retained for base weekend logic
+3. customDays entries override isWeekend predicate when both specify the same date
+4. Old three-prop API (weekends, workdays) removed from GanttChartProps
+5. All existing functionality preserved with new API (holidays, shifted workdays, custom predicates)
+6. Set-based lookup performance maintained (O(1) date checks)
+
+**Plans:** 1 plan
+
+- [ ] 21.1-01-PLAN.md — Refactor API: replace weekends/workdays props with customDays array, update utilities, migrate tests
 
 ### Phase 22: Additional TaskList Columns
 
@@ -62,9 +83,10 @@
 |-------|-----------|----------------|--------|-----------|
 | 1-20 | v0.18.0 | 50/51 | Complete | 2026-03-17 |
 | 21 | v0.50.0 | 0/4 | Not started | - |
+| 21.1 | v0.50.0 | 0/1 | Planning complete | - |
 | 22 | v0.50.0 | 0/2 | Not started | - |
 
-**Overall:** 50/57 plans complete (88%)
+**Overall:** 50/58 plans complete (86%)
 
 <details>
 <summary>✅ v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -86,7 +108,7 @@ Build a lightweight React/Next.js library for interactive Gantt charts. Starting
 - [x] **Phase 9: FF-dependency** (3/3 plans) — Finish-to-Finish constraint enforcement
 - [x] **Phase 10: SF dependency** (1/1 plans) — Start-to-Finish constraint enforcement
 - [x] **Phase 11: lock-task** (2/2 plans) — Per-task locked prop with padlock icon
-- [x] **Phase 12: task-list** (2/2 plans) — Task list overlay panel with inline editing
+- [x] **Phase 12: task list** (2/2 plans) — Task list overlay panel with inline editing
 - [x] **Phase 13: ui-components** (1/1 plans) — shadcn/ui DatePicker and Input components
 - [x] **Phase 14: dependencies-edit** (2/2 plans) — Dependency creation via TaskList column
 - [x] **Phase 15: expired-coloring** (1/1 plans) — Red highlighting for overdue tasks
