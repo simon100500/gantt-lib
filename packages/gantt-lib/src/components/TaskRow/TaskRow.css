@@ -71,6 +71,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  margin-left: 8px;
   pointer-events: none;
 }
 
@@ -85,7 +86,6 @@
   color: #2563eb;
   white-space: nowrap;
   user-select: none;
-  margin-left: 4px;
 }
 
 .gantt-tr-resizeHandle {
@@ -196,8 +196,6 @@
   font-weight: 500;
   color: #6b7280;
   white-space: nowrap;
-  margin-right: 4px;
-  margin-left: 4px;
 }
 
 /* Duration text outside task bar (before progress and task name) */
@@ -206,7 +204,6 @@
   font-weight: 500;
   color: #374151;
   white-space: nowrap;
-  margin-right: 4px;
 }
 
 /* Locked task bar state — consumer CSS override point */
