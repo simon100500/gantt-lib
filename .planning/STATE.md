@@ -4,7 +4,7 @@ milestone: v0.18
 milestone_name: milestone
 status: planning
 last_updated: "2026-03-18T13:40:10.351Z"
-last_activity: 2026-03-17 — Integrated custom weekend props into GanttChart, GridBackground, TimeScaleHeader, and Calendar
+last_activity: 2026-03-18 — Completed quick task 260318-n0f: вынос длительности за пределы узких полос
 progress:
   total_phases: 3
   completed_phases: 2
@@ -62,6 +62,8 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | # | Description | Date | Directory |
 |---|-------------|------|-----------|
 | 260318-mso | 0% в прогрессе → "-", суффикс "д" для длительности | 2026-03-18 | [260318-mso-0](./quick/260318-mso-0/) |
+| 260318-n0f | Вынос длительности за пределы узких полос (≤40px) | 2026-03-18 | [260318-n0f-1-1-5-100](./quick/260318-n0f-1-1-5-100/) |
+| 260318-nji | Фикс отступов внешних меток rightLabels (gap вместо margin) | 2026-03-18 | [260318-nji-taskrow](./quick/260318-nji-taskrow/) |
 
 ### User Feedback
 
