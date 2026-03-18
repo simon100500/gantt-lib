@@ -770,7 +770,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     <div
       ref={overlayRef}
       className={`gantt-tl-overlay${show ? '' : ' gantt-tl-hidden'}${hasRightShadow ? ' gantt-tl-overlay-shadowed' : ''}`}
-      style={{ width: `${effectiveTaskListWidth}px`, minWidth: `${MIN_TASK_LIST_WIDTH}px` }}
+      style={{ '--tasklist-width': `${effectiveTaskListWidth}px` } as React.CSSProperties}
     >
       <div className="gantt-tl-table">
         {/* Header row - aligns with TimeScaleHeader, 1px taller for row alignment */}
