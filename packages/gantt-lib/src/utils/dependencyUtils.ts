@@ -248,7 +248,8 @@ export function cascadeByLinks(
   movedTaskId: string,
   newStart: Date,
   newEnd: Date,
-  allTasks: Task[]
+  allTasks: Task[],
+  skipChildCascade: boolean = false
 ): Task[] {
   const taskById = new Map(allTasks.map(t => [t.id, t]));
 
@@ -265,34 +266,37 @@ export function cascadeByLinks(
     const { start: predStart, end: predEnd } = updatedDates.get(currentId)!;
 
     // First, cascade hierarchy children of the current task if it's a parent
-    const children = getChildren(currentId, allTasks);
-    for (const child of children) {
-      if (visited.has(child.id) || child.locked) continue;
+    // Skip if skipChildCascade is true (for parent task editing via task list)
+    if (!skipChildCascade) {
+      const children = getChildren(currentId, allTasks);
+      for (const child of children) {
+        if (visited.has(child.id) || child.locked) continue;
 
-      // When a parent moves, its children move by the same delta
-      const origStart = new Date(child.startDate as string);
-      const origEnd = new Date(child.endDate as string);
-      const durationMs = origEnd.getTime() - origStart.getTime();
+        // When a parent moves, its children move by the same delta
+        const origStart = new Date(child.startDate as string);
+        const origEnd = new Date(child.endDate as string);
+        const durationMs = origEnd.getTime() - origStart.getTime();
 
-      const parentOrig = taskById.get(currentId)!;
-      const parentOrigStart = new Date(parentOrig.startDate as string);
-      const parentOrigEnd = new Date(parentOrig.endDate as string);
+        const parentOrig = taskById.get(currentId)!;
+        const parentOrigStart = new Date(parentOrig.startDate as string);
+        const parentOrigEnd = new Date(parentOrig.endDate as string);
 
-      // Calculate delta from parent's original to new position
-      const parentStartDelta = predStart.getTime() - parentOrigStart.getTime();
-      const parentEndDelta = predEnd.getTime() - parentOrigEnd.getTime();
+        // Calculate delta from parent's original to new position
+        const parentStartDelta = predStart.getTime() - parentOrigStart.getTime();
+        const parentEndDelta = predEnd.getTime() - parentOrigEnd.getTime();
 
-      const newChildStart = new Date(origStart.getTime() + parentStartDelta);
-      const newChildEnd = new Date(origEnd.getTime() + parentEndDelta);
+        const newChildStart = new Date(origStart.getTime() + parentStartDelta);
+        const newChildEnd = new Date(origEnd.getTime() + parentEndDelta);
 
-      visited.add(child.id);
-      updatedDates.set(child.id, { start: newChildStart, end: newChildEnd });
-      result.push({
-        ...child,
-        startDate: newChildStart.toISOString().split('T')[0],
-        endDate: newChildEnd.toISOString().split('T')[0],
-      });
-      queue.push(child.id);
+        visited.add(child.id);
+        updatedDates.set(child.id, { start: newChildStart, end: newChildEnd });
+        result.push({
+          ...child,
+          startDate: newChildStart.toISOString().split('T')[0],
+          endDate: newChildEnd.toISOString().split('T')[0],
+        });
+        queue.push(child.id);
+      }
     }
 
     // Then, cascade dependency successors

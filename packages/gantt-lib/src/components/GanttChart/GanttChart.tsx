@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays, createCustomDayPredicate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks } from '../../utils/dependencyUtils';
+import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type { ValidationResult } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
@@ -421,13 +421,32 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       return;
     }
 
-    const cascadedTasks = disableConstraints
-      ? [updatedTask]
-      : [updatedTask, ...cascadeByLinks(updatedTask.id, newStart, newEnd, tasks)];
+    // Special handling for parent tasks: dates are computed from children
+    const isParent = isTaskParent(updatedTask.id, tasks);
+    if (isParent) {
+      // When editing a parent task via task list, ignore the entered dates
+      // and recalculate from children. Children should NOT be moved.
+      const { startDate: parentStart, endDate: parentEnd } = computeParentDates(updatedTask.id, tasks);
+      const parentWithRecalcDates = {
+        ...updatedTask,
+        startDate: parentStart.toISOString().split('T')[0],
+        endDate: parentEnd.toISOString().split('T')[0],
+      };
 
-    // Parent tasks are computed from children - don't send them in batch
-    // Backend should compute parent dates from children
-    onTasksChange?.(cascadedTasks);
+      // Cascade only dependency successors (not children) if constraints enabled
+      const cascadedTasks = disableConstraints
+        ? [parentWithRecalcDates]
+        : [parentWithRecalcDates, ...cascadeByLinks(updatedTask.id, parentStart, parentEnd, tasks, true)]; // skipChildCascade=true
+
+      onTasksChange?.(cascadedTasks);
+    } else {
+      // Regular task or child: normal cascade
+      const cascadedTasks = disableConstraints
+        ? [updatedTask]
+        : [updatedTask, ...cascadeByLinks(updatedTask.id, newStart, newEnd, tasks)];
+
+      onTasksChange?.(cascadedTasks);
+    }
   }, [tasks, onTasksChange, disableConstraints, editingTaskId]);
 
   /**
