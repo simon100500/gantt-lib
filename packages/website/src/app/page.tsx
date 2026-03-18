@@ -985,6 +985,13 @@ export default function Home() {
   const [hierarchyTasks, setHierarchyTasks] = useState<Task[]>(createHierarchyTasks);
   const [showHierarchyTaskList, setShowHierarchyTaskList] = useState(true);
 
+  // Custom Weekend Examples (Phase 21)
+  const [showCustomWeekendTaskList, setShowCustomWeekendTaskList] = useState(true);
+  const [showWorkdaysTaskList, setShowWorkdaysTaskList] = useState(true);
+  const [showPrecedenceTaskList, setShowPrecedenceTaskList] = useState(true);
+  const [showPredicateTaskList, setShowPredicateTaskList] = useState(true);
+  const [showMultiMonthTaskList, setShowMultiMonthTaskList] = useState(true);
+
   const handleHierarchyChange = useCallback(
     (updatedTasks: Task[]) => {
       setHierarchyTasks(prev => {
@@ -1004,6 +1011,30 @@ export default function Home() {
     // The reorderedTasks array has the correct order and parentId updates applied
     setHierarchyTasks(reorderedTasks);
   }, []);
+
+  // Custom Weekend Examples handlers (Phase 21)
+  const customWeekendTasks: Task[] = [
+    { id: '1', name: 'Task 1', startDate: '2026-03-05', endDate: '2026-03-12' },
+    { id: '2', name: 'Task 2', startDate: '2026-03-11', endDate: '2026-03-18' },
+  ];
+
+  const workdaysTasks: Task[] = [
+    { id: '1', name: 'Task 1', startDate: '2026-03-10', endDate: '2026-03-20' },
+    { id: '2', name: 'Task 2', startDate: '2026-03-14', endDate: '2026-03-22' },
+  ];
+
+  const precedenceTasks: Task[] = [
+    { id: '1', name: 'Task 1', startDate: '2026-03-17', endDate: '2026-03-28' },
+  ];
+
+  const predicateTasks: Task[] = [
+    { id: '1', name: 'Task 1', startDate: '2026-03-03', endDate: '2026-03-16' },
+  ];
+
+  const multiMonthTasks: Task[] = [
+    { id: '1', name: 'Task 1', startDate: '2026-03-01', endDate: '2026-04-15' },
+    { id: '2', name: 'Task 2', startDate: '2026-03-20', endDate: '2026-04-25' },
+  ];
 
   return (
     <main>
@@ -1290,6 +1321,152 @@ export default function Home() {
               rowHeight={40}
               containerHeight={300}
               showTaskList={showHierarchyTaskList}
+            />
+          </div>
+        </section>
+
+        {/* Custom Weekends Demo (Phase 21) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Custom Weekends (Holidays)</h2>
+          <p className="demo-section-desc">
+            <strong>Праздники:</strong> March 8 (International Women's Day) и March 10 добавлены как выходные (подсвечены красным).<br />
+            Default Saturday/Sunday выходные также применяются.
+          </p>
+          <div className="demo-controls">
+            <button
+              className={`demo-btn ${showCustomWeekendTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowCustomWeekendTaskList(!showCustomWeekendTaskList)}
+            >
+              {showCustomWeekendTaskList ? "Hide Task List" : "Show Task List"}
+            </button>
+          </div>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={customWeekendTasks}
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={200}
+              showTaskList={showCustomWeekendTaskList}
+              customDays={[
+                { date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' },  // March 8 (Saturday) - holiday
+                { date: new Date(Date.UTC(2026, 2, 10)), type: 'weekend' }, // March 10 (Monday) - holiday
+              ]}
+            />
+          </div>
+        </section>
+
+        {/* Workdays Demo (Phase 21) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Workdays (Exclude Weekends)</h2>
+          <p className="demo-section-desc">
+            <strong>Исключение выходных:</strong> March 15 (Saturday) и March 16 (Sunday) — рабочие дни (не подсвечены).<br />
+            Используется для переносных рабочих дней, когда выходные перенесены на другие даты.
+          </p>
+          <div className="demo-controls">
+            <button
+              className={`demo-btn ${showWorkdaysTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowWorkdaysTaskList(!showWorkdaysTaskList)}
+            >
+              {showWorkdaysTaskList ? "Hide Task List" : "Show Task List"}
+            </button>
+          </div>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={workdaysTasks}
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={200}
+              showTaskList={showWorkdaysTaskList}
+              customDays={[
+                { date: new Date(Date.UTC(2026, 2, 15)), type: 'workday' }, // March 15 (Saturday) - workday
+                { date: new Date(Date.UTC(2026, 2, 16)), type: 'workday' }, // March 16 (Sunday) - workday
+              ]}
+            />
+          </div>
+        </section>
+
+        {/* Precedence Demo (Phase 21) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Precedence: Workdays &gt; Weekends</h2>
+          <p className="demo-section-desc">
+            <strong>Приоритет workdays над weekends:</strong> March 22 (Saturday) добавлен как workday.<br />
+            По умолчанию Saturday — выходной, но workdays имеет приоритет, поэтому день НЕ подсвечен как выходной.
+          </p>
+          <div className="demo-controls">
+            <button
+              className={`demo-btn ${showPrecedenceTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowPrecedenceTaskList(!showPrecedenceTaskList)}
+            >
+              {showPrecedenceTaskList ? "Hide Task List" : "Show Task List"}
+            </button>
+          </div>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={precedenceTasks}
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={150}
+              showTaskList={showPrecedenceTaskList}
+              customDays={[
+                { date: new Date(Date.UTC(2026, 2, 22)), type: 'workday' }, // March 22 (Saturday) - workday overrides default weekend
+              ]}
+            />
+          </div>
+        </section>
+
+        {/* Custom Predicate Demo (Phase 21) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Custom Predicate (Sunday-Only Weekends)</h2>
+          <p className="demo-section-desc">
+            <strong>Кастомный предикат:</strong> Используется предикат для выходных только по воскресеньям (6-дневная рабочая неделя).<br />
+            субботы — рабочие дни (не подсвечены).
+          </p>
+          <div className="demo-controls">
+            <button
+              className={`demo-btn ${showPredicateTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowPredicateTaskList(!showPredicateTaskList)}
+            >
+              {showPredicateTaskList ? "Hide Task List" : "Show Task List"}
+            </button>
+          </div>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={predicateTasks}
+              dayWidth={40}
+              rowHeight={40}
+              containerHeight={150}
+              showTaskList={showPredicateTaskList}
+              isWeekend={(date: Date) => date.getUTCDay() === 0} // Sunday only
+            />
+          </div>
+        </section>
+
+        {/* Multi-Month View Demo (Phase 21) */}
+        <section className="demo-section">
+          <h2 className="demo-section-title">Multi-Month View with Custom Weekends</h2>
+          <p className="demo-section-desc">
+            <strong>Multi-month view:</strong> Кастомные выходные корректно подсвечены на границе месяцев.<br />
+            March 8 и April 10 — праздники (добавлены в customDays).
+          </p>
+          <div className="demo-controls">
+            <button
+              className={`demo-btn ${showMultiMonthTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
+              onClick={() => setShowMultiMonthTaskList(!showMultiMonthTaskList)}
+            >
+              {showMultiMonthTaskList ? "Hide Task List" : "Show Task List"}
+            </button>
+          </div>
+          <div className="demo-chart-card">
+            <GanttChart
+              tasks={multiMonthTasks}
+              dayWidth={30}
+              rowHeight={40}
+              containerHeight={200}
+              showTaskList={showMultiMonthTaskList}
+              customDays={[
+                { date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' },  // March 8 (holiday)
+                { date: new Date(Date.UTC(2026, 3, 10)), type: 'weekend' }, // April 10 (holiday)
+              ]}
             />
           </div>
         </section>
