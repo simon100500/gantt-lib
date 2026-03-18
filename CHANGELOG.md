@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.22.0] - 2026-03-19
+
+### Features
+- Add task filtering API with predicate-based filters
+- Add ready-made filters: `withoutDeps`, `expired`, `inDateRange`, `progressInRange`, `nameContains`
+- Add boolean composites: `and`, `or`, `not` for combining filters
+- Add `taskFilter` prop to `GanttChart` component
+- Add public export from `gantt-lib/filters` module
+- Add demo page with interactive filter examples
+
+### Fixes
+- Enhance demo filters with highlight behavior (filtered tasks are highlighted instead of hidden)
+- Refine expired task logic in filters
+- Fix hierarchy: prevent child tasks from moving when parent dates are edited via task list
+
+### Documentation
+- Add Section 7.3 "Task Filtering API" to REFERENCE.md with comprehensive examples
+- Update ROADMAP.md, MILESTONES.md, PROJECT.md after Phase 22 completion
+
 ## [0.21.0] - 2026-03-18
 
 ### Features
