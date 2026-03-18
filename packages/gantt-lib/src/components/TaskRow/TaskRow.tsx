@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { parseUTCDate, formatDateLabel } from '../../utils/dateUtils';
 import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
+import { isTaskExpired } from '../../utils/expired';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { isTaskParent, getChildren } from '../../utils/dependencyUtils';
 import type { Task } from '../GanttChart';
@@ -116,34 +117,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Calculate expiration status for overdue tasks
     const isExpired = useMemo(() => {
       if (!highlightExpiredTasks) return false;
-
-      // Create today boundary using LOCAL time so the day boundary matches the user's timezone.
-      // Using getUTCFullYear/Month/Date here would shift the day boundary by the UTC offset —
-      // e.g. for UTC+3 at 00:30 local, getUTCDate() still returns yesterday.
-      const now = new Date();
-      const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-
-      // Parse task dates as UTC
-      const taskStart = parseUTCDate(task.startDate);
-      const taskEnd = parseUTCDate(task.endDate);
-
-      // Task must be incomplete (progress < 100%) to be expired
-      const actualProgress = task.progress ?? 0;
-      if (actualProgress >= 100) {
-        return false; // Completed tasks are never expired
-      }
-
-      // Simple formula:
-      // duration = (end - start + 1) days
-      // elapsed = min(today - start, duration) days
-      // expected = elapsed / duration * 100
-      const msPerDay = 1000 * 60 * 60 * 24;
-      const duration = taskEnd.getTime() - taskStart.getTime() + msPerDay;
-      const elapsedFromToday = today.getTime() - taskStart.getTime();
-      const elapsed = Math.min(Math.max(0, elapsedFromToday), duration);
-      const expected = (elapsed / duration) * 100;
-
-      return actualProgress < expected;
+      return isTaskExpired(task);
     }, [task.startDate, task.endDate, task.progress, highlightExpiredTasks]);
 
     // Calculate task bar position and dimensions

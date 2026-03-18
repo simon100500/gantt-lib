@@ -801,7 +801,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         <div className="gantt-scrollContent">
           {/* TaskList - sticky left, scrolls with content horizontally */}
           <TaskList
-            tasks={normalizedTasks}
+            tasks={filteredTasks}
             rowHeight={rowHeight}
             headerHeight={headerHeight}
             taskListWidth={taskListWidth}

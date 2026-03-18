@@ -1,12 +1,13 @@
 import { Task } from '../types';
 import { parseUTCDate } from '../utils/dateUtils';
+import { isTaskExpired } from '../utils/expired';
 
 /**
  * Predicate function for filtering tasks
  * @param task - Task to evaluate
  * @returns true to include task in filtered results, false to exclude
  */
-export type TaskPredicate = (task: Task) => boolean;
+export type TaskPredicate = (task: Task | undefined) => boolean;
 
 /**
  * Combine predicates with AND logic — all must be true
@@ -37,7 +38,7 @@ export const not = (predicate: TaskPredicate): TaskPredicate =>
  * @returns Predicate that returns true for tasks without dependencies array or with empty array
  */
 export const withoutDeps = (): TaskPredicate =>
-  (task) => !task.dependencies || task.dependencies.length === 0;
+  (task) => !!task && (!task.dependencies || task.dependencies.length === 0);
 
 /**
  * Filter expired (overdue) tasks
@@ -45,11 +46,7 @@ export const withoutDeps = (): TaskPredicate =>
  * @returns Predicate that returns true for tasks ending before reference date
  */
 export const expired = (referenceDate: Date = new Date()): TaskPredicate =>
-  (task) => {
-    const end = parseUTCDate(task.endDate);
-    const ref = referenceDate;
-    return end.getTime() < ref.getTime();
-  };
+  (task) => isTaskExpired(task, referenceDate);
 
 /**
  * Filter tasks that intersect with a date range
@@ -60,6 +57,7 @@ export const expired = (referenceDate: Date = new Date()): TaskPredicate =>
  */
 export const inDateRange = (rangeStart: Date, rangeEnd: Date): TaskPredicate =>
   (task) => {
+    if (!task) return false;
     const taskStart = parseUTCDate(task.startDate);
     const taskEnd = parseUTCDate(task.endDate);
     return taskStart.getTime() <= rangeEnd.getTime() && taskEnd.getTime() >= rangeStart.getTime();
@@ -73,6 +71,7 @@ export const inDateRange = (rangeStart: Date, rangeEnd: Date): TaskPredicate =>
  */
 export const progressInRange = (min: number, max: number): TaskPredicate =>
   (task) => {
+    if (!task) return false;
     const progress = task.progress ?? 0;
     return progress >= min && progress <= max;
   };
@@ -85,6 +84,7 @@ export const progressInRange = (min: number, max: number): TaskPredicate =>
  */
 export const nameContains = (substring: string, caseSensitive = false): TaskPredicate =>
   (task) => {
+    if (!task) return false;
     const name = task.name;
     const search = caseSensitive ? substring : substring.toLowerCase();
     const target = caseSensitive ? name : name.toLowerCase();
