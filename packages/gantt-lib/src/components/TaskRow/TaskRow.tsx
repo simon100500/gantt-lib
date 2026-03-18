@@ -273,12 +273,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const estimatedTextWidth = durationDays >= 10 ? 76 : 62; // "15 д 100%" = ~76px, "1 д 100%" = ~62px
     const showProgressInside = progressWidth > 0 && displayWidth > estimatedTextWidth;
 
-    // Minimum width for displaying duration inside task bar
-    // Text "1 д" ≈ 20px + padding 16px + margin-right 4px = ~40px
-    const MIN_DURATION_WIDTH = 40;
-
     // Determine if duration fits inside the bar
-    const showDurationInside = displayWidth > MIN_DURATION_WIDTH;
+    // For 1-day tasks: always show duration outside (too narrow)
+    // For 2+ day tasks: show inside if there's enough width (min 50px)
+    const MIN_DURATION_WIDTH = 50;
+    const showDurationInside = durationDays >= 2 && displayWidth > MIN_DURATION_WIDTH;
 
     return (
       <div
@@ -359,7 +358,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           <div
             className="gantt-tr-rightLabels"
             style={{
-              left: `${displayLeft + displayWidth}px`,
+              left: `${displayLeft + displayWidth - Math.min(6, displayWidth / 2) + 8}px`,
             }}
           >
             {!showDurationInside && (
