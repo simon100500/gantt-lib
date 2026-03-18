@@ -15,7 +15,7 @@ vi.mock('../components/ui/Popover', () => ({
 }));
 
 describe('GanttChart taskFilter', () => {
-  it('filters the task list and chart rows consistently', () => {
+  it('highlights matching task list and chart rows without hiding other tasks', () => {
     const tasks: Task[] = [
       {
         id: 'a',
@@ -45,6 +45,16 @@ describe('GanttChart taskFilter', () => {
     );
 
     expect(screen.getAllByText('No deps').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Has deps')).toBeNull();
+    expect(screen.getAllByText('Has deps').length).toBeGreaterThan(0);
+
+    const highlightedRows = Array.from(
+      document.querySelectorAll('[data-filter-match="true"]')
+    );
+    const plainRows = Array.from(
+      document.querySelectorAll('[data-filter-match="false"]')
+    );
+
+    expect(highlightedRows.length).toBeGreaterThan(0);
+    expect(plainRows.length).toBeGreaterThan(0);
   });
 });

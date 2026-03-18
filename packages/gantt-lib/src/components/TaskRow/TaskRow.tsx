@@ -45,6 +45,8 @@ export interface TaskRowProps {
   divider?: 'top' | 'bottom';
   /** Highlight expired/overdue tasks with red background */
   highlightExpiredTasks?: boolean;
+  /** Whether this row matches the active filter highlight */
+  isFilterMatch?: boolean;
 }
 
 /**
@@ -85,7 +87,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.disableConstraints === nextProps.disableConstraints &&
     prevProps.task.locked === nextProps.task.locked &&
     prevProps.task.divider === nextProps.task.divider &&
-    prevProps.highlightExpiredTasks === nextProps.highlightExpiredTasks
+    prevProps.highlightExpiredTasks === nextProps.highlightExpiredTasks &&
+    prevProps.isFilterMatch === nextProps.isFilterMatch
     // onTasksChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
@@ -97,7 +100,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isFilterMatch = false }) => {
     // Extract divider from task prop
     const { divider: taskDivider } = task;
 
@@ -257,7 +260,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
     return (
       <div
-        className="gantt-tr-row"
+        data-filter-match={isFilterMatch ? 'true' : 'false'}
+        className={`gantt-tr-row ${isFilterMatch ? 'gantt-tr-row-filter-match' : ''}`}
         style={{ height: `${rowHeight}px` }}
       >
         {taskDivider === 'top' && <div className="gantt-tr-divider gantt-tr-divider-top" />}

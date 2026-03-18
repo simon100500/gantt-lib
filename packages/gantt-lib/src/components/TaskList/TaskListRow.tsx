@@ -617,6 +617,8 @@ export interface TaskListRowProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate for date picker */
   isWeekend?: (date: Date) => boolean;
+  /** Whether this row matches the active filter highlight */
+  isFilterMatch?: boolean;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -666,6 +668,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     ancestorContinues = [],
     customDays,
     isWeekend,
+    isFilterMatch = false,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState("");
@@ -1159,8 +1162,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     return (
       <div
+        data-filter-match={isFilterMatch ? 'true' : 'false'}
         className={[
           "gantt-tl-row",
+          isFilterMatch ? "gantt-tl-row-filter-match" : "",
           isSelected ? "gantt-tl-row-selected" : "",
           isPicking && !isSourceRow ? "gantt-tl-row-picking" : "",
           isSourceRow ? "gantt-tl-row-picking-self" : "",

@@ -132,9 +132,9 @@ export interface GanttChartProps {
   /** Optional base weekend predicate (checked before customDays overrides) */
   isWeekend?: (date: Date) => boolean;
   /**
-   * Optional predicate to filter tasks for display.
-   * Dependencies are still computed on ALL tasks (normalizedTasks), not just filtered.
-   * Filter is applied AFTER collapsed parent filtering.
+   * Optional predicate to mark tasks in the current view.
+   * Matching tasks stay visible and are highlighted in the chart and task list.
+   * Dependencies are still computed on ALL tasks (normalizedTasks).
    */
   taskFilter?: TaskPredicate;
 }
@@ -239,10 +239,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     [dateRange.length, dayWidth]
   );
 
-  // Filter tasks to hide children of collapsed parents (for chart rendering).
+  // Visible tasks are determined only by collapsed parent state.
   // Checks the full ancestor chain so grandchildren are hidden when any ancestor is collapsed.
-  // Filter is applied in two stages: collapsed parent first, then taskFilter.
-  const filteredTasks = useMemo(() => {
+  const visibleTasks = useMemo(() => {
     const parentMap = new Map(normalizedTasks.map(t => [t.id, t.parentId]));
 
     function isAnyAncestorCollapsed(parentId: string | undefined): boolean {
@@ -254,21 +253,18 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       return false;
     }
 
-    // Stage 1: Filter by collapsed parent
-    let result = normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
+    return normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
+  }, [normalizedTasks, collapsedParentIds]);
 
-    // Stage 2: Apply taskFilter if provided
-    if (taskFilter) {
-      result = result.filter(taskFilter);
-    }
-
-    return result;
-  }, [normalizedTasks, collapsedParentIds, taskFilter]);
+  const matchedTaskIds = useMemo(() => {
+    if (!taskFilter) return new Set<string>();
+    return new Set(visibleTasks.filter(taskFilter).map(task => task!.id));
+  }, [visibleTasks, taskFilter]);
 
   // Calculate total grid height (based on filtered tasks)
   const totalGridHeight = useMemo(
-    () => filteredTasks.length * rowHeight,
-    [filteredTasks.length, rowHeight]
+    () => visibleTasks.length * rowHeight,
+    [visibleTasks.length, rowHeight]
   );
 
   // Get month start for calculations (first day of date range)
@@ -801,7 +797,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         <div className="gantt-scrollContent">
           {/* TaskList - sticky left, scrolls with content horizontally */}
           <TaskList
-            tasks={filteredTasks}
+            tasks={normalizedTasks}
             rowHeight={rowHeight}
             headerHeight={headerHeight}
             taskListWidth={taskListWidth}
@@ -824,6 +820,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onToggleCollapse={handleToggleCollapse}
             onPromoteTask={onPromoteTask ?? handlePromoteTask}
             onDemoteTask={onDemoteTask ?? handleDemoteTask}
+            highlightedTaskIds={matchedTaskIds}
             customDays={customDays}
             isWeekend={isWeekend}
           />
@@ -861,7 +858,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
           {/* Dependency lines SVG overlay */}
           <DependencyLines
-            tasks={filteredTasks}
+            tasks={visibleTasks}
             allTasks={normalizedTasks}
             collapsedParentIds={collapsedParentIds}
             monthStart={monthStart}
@@ -882,7 +879,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             />
           )}
 
-          {filteredTasks.map((task, index) => (
+          {visibleTasks.map((task, index) => (
             <TaskRow
               key={task.id}
               task={task}
@@ -907,6 +904,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
               onCascadeProgress={handleCascadeProgress}
               onCascade={handleCascade}
               highlightExpiredTasks={highlightExpiredTasks}
+              isFilterMatch={matchedTaskIds.has(task.id)}
             />
           ))}
           </div>
