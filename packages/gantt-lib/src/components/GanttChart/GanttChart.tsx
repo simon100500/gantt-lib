@@ -6,6 +6,7 @@ import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type { ValidationResult } from '../../types';
+import { TaskPredicate } from '../../filters';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
@@ -130,6 +131,12 @@ export interface GanttChartProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate (checked before customDays overrides) */
   isWeekend?: (date: Date) => boolean;
+  /**
+   * Optional predicate to filter tasks for display.
+   * Dependencies are still computed on ALL tasks (normalizedTasks), not just filtered.
+   * Filter is applied AFTER collapsed parent filtering.
+   */
+  taskFilter?: TaskPredicate;
 }
 
 /**
@@ -192,6 +199,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   viewMode = 'day',
   customDays,
   isWeekend,
+  taskFilter,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -233,6 +241,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
   // Filter tasks to hide children of collapsed parents (for chart rendering).
   // Checks the full ancestor chain so grandchildren are hidden when any ancestor is collapsed.
+  // Filter is applied in two stages: collapsed parent first, then taskFilter.
   const filteredTasks = useMemo(() => {
     const parentMap = new Map(normalizedTasks.map(t => [t.id, t.parentId]));
 
@@ -245,8 +254,16 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       return false;
     }
 
-    return normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
-  }, [normalizedTasks, collapsedParentIds]);
+    // Stage 1: Filter by collapsed parent
+    let result = normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
+
+    // Stage 2: Apply taskFilter if provided
+    if (taskFilter) {
+      result = result.filter(taskFilter);
+    }
+
+    return result;
+  }, [normalizedTasks, collapsedParentIds, taskFilter]);
 
   // Calculate total grid height (based on filtered tasks)
   const totalGridHeight = useMemo(
