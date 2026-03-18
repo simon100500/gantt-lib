@@ -161,7 +161,7 @@ export const Calendar: React.FC<CalendarProps> = ({
 
       const dayCells = Array.from({ length: totalDays }, (_, i) => {
         const dayNum = i + 1;
-        const day = new Date(month.getFullYear(), month.getMonth(), dayNum);
+        const day = new Date(Date.UTC(month.getFullYear(), month.getMonth(), dayNum));
         const className = getDayClassName(day, selected, derivedWeekendPredicate);
         return (
           <button
@@ -171,7 +171,7 @@ export const Calendar: React.FC<CalendarProps> = ({
             disabled={disabled}
             onClick={() => {
               if (!disabled && onSelect) {
-                onSelect(new Date(month.getFullYear(), month.getMonth(), dayNum));
+                onSelect(new Date(Date.UTC(month.getFullYear(), month.getMonth(), dayNum)));
               }
             }}
           >
