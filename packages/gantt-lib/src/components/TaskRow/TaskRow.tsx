@@ -358,7 +358,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           <div
             className="gantt-tr-rightLabels"
             style={{
-              left: `${displayLeft + displayWidth - Math.min(6, displayWidth / 2) + 8}px`,
+              left: `${displayLeft + Math.max(displayWidth, 20) - Math.min(6, Math.max(displayWidth, 20) / 2) + 8}px`,
             }}
           >
             {!showDurationInside && (
