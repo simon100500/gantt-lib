@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.21.0] - 2026-03-18
+
+### Features
+- Add external duration labels for tasks - displays outside the task bar when duration text doesn't fit inside
+- Improve TaskList UI: display "-" for empty progress, add "д" suffix for duration, bold dates for parent tasks
+- Add custom weekend calendar examples to demo page
+
+### Fixes
+- Fix external label positioning and overflow handling
+- Fix parent bar text overflow
+- Adjust external labels alignment with task bar edge
+- Position external labels relative to visual bar edge accounting for border-radius
+- Clean up redundant margins on rightLabels flex children
+
 ## [0.20.0] - 2026-03-18
 
 ### Breaking Changes
