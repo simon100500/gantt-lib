@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.0] - 2026-03-18
+
+### Features
+- Add custom weekend calendar support with isCustomWeekend predicate
+- Add createIsWeekendPredicate utility for flexible weekend patterns
+- Add createDateKey utility for date-based lookups
+- Add isWeekend prop to Calendar component
+- Pass custom weekends to DatePicker in TaskList
+- Add weekday headers (Mon-Sun) to Calendar component
+
+### Fixes
+- Use UTC dates for consistent weekend detection across timezones
+- Remove unused custom weekends task lists and update GanttChart weekends
+
+### Refactor
+- Improve date utilities for custom weekend support
+
 ## [0.18.0] - 2026-03-17
 
 ### Features
