@@ -273,6 +273,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const estimatedTextWidth = durationDays >= 10 ? 76 : 62; // "15 д 100%" = ~76px, "1 д 100%" = ~62px
     const showProgressInside = progressWidth > 0 && displayWidth > estimatedTextWidth;
 
+    // Minimum width for displaying duration inside task bar
+    // Text "1 д" ≈ 20px + padding 16px + margin-right 4px = ~40px
+    const MIN_DURATION_WIDTH = 40;
+
+    // Determine if duration fits inside the bar
+    const showDurationInside = displayWidth > MIN_DURATION_WIDTH;
+
     return (
       <div
         className="gantt-tr-row"
@@ -306,9 +313,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               />
             )}
             {!isParent && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
-            <span className="gantt-tr-taskDuration">
-              {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
-            </span>
+            {showDurationInside && (
+              <span className="gantt-tr-taskDuration">
+                {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
+              </span>
+            )}
             {progressWidth > 0 && showProgressInside && (
               <span className="gantt-tr-progressText">
                 {progressWidth}%
@@ -353,6 +362,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               left: `${displayLeft + displayWidth}px`,
             }}
           >
+            {!showDurationInside && (
+              <span className="gantt-tr-externalDuration">
+                {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
+              </span>
+            )}
             {progressWidth > 0 && !showProgressInside && (
               <span className="gantt-tr-externalProgress">
                 {progressWidth}%
