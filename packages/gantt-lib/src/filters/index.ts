@@ -31,3 +31,62 @@ export const or = (...predicates: TaskPredicate[]): TaskPredicate =>
  */
 export const not = (predicate: TaskPredicate): TaskPredicate =>
   (task) => !predicate(task);
+
+/**
+ * Filter tasks that have no dependencies
+ * @returns Predicate that returns true for tasks without dependencies array or with empty array
+ */
+export const withoutDeps = (): TaskPredicate =>
+  (task) => !task.dependencies || task.dependencies.length === 0;
+
+/**
+ * Filter expired (overdue) tasks
+ * @param referenceDate - Date to compare against (default: now)
+ * @returns Predicate that returns true for tasks ending before reference date
+ */
+export const expired = (referenceDate: Date = new Date()): TaskPredicate =>
+  (task) => {
+    const end = parseUTCDate(task.endDate);
+    const ref = referenceDate;
+    return end.getTime() < ref.getTime();
+  };
+
+/**
+ * Filter tasks that intersect with a date range
+ * Task intersects if: taskStart <= rangeEnd && taskEnd >= rangeStart
+ * @param rangeStart - Start of the date range
+ * @param rangeEnd - End of the date range
+ * @returns Predicate that returns true for tasks intersecting the range
+ */
+export const inDateRange = (rangeStart: Date, rangeEnd: Date): TaskPredicate =>
+  (task) => {
+    const taskStart = parseUTCDate(task.startDate);
+    const taskEnd = parseUTCDate(task.endDate);
+    return taskStart.getTime() <= rangeEnd.getTime() && taskEnd.getTime() >= rangeStart.getTime();
+  };
+
+/**
+ * Filter tasks by progress value range
+ * @param min - Minimum progress value (0-100)
+ * @param max - Maximum progress value (0-100)
+ * @returns Predicate that returns true for tasks with progress in [min, max] range
+ */
+export const progressInRange = (min: number, max: number): TaskPredicate =>
+  (task) => {
+    const progress = task.progress ?? 0;
+    return progress >= min && progress <= max;
+  };
+
+/**
+ * Filter tasks by name substring search
+ * @param substring - Text to search for in task name
+ * @param caseSensitive - If false (default), search is case-insensitive
+ * @returns Predicate that returns true for tasks with substring in name
+ */
+export const nameContains = (substring: string, caseSensitive = false): TaskPredicate =>
+  (task) => {
+    const name = task.name;
+    const search = caseSensitive ? substring : substring.toLowerCase();
+    const target = caseSensitive ? name : name.toLowerCase();
+    return target.includes(search);
+  };
