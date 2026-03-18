@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.22.1] - 2026-03-19
+
+### Enhancements
+- Enhanced TaskList overlay animations with smooth slide and width transitions
+- TaskList now smoothly animates in/out without layout shifts
+
+### Documentation
+- Updated project documentation for v0.50.0 progress
+
 ## [0.22.0] - 2026-03-19
 
 ### Features
