@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.17.0
+**Version:** 0.19.0
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
@@ -10,7 +10,7 @@
 | Property | Value |
 |---|---|
 | Package name | `gantt-lib` |
-| Version | `0.14.0` |
+| Version | `0.19.0` |
 | NPM install | `npm install gantt-lib` |
 | Peer dependencies | `react >= 18`, `react-dom >= 18` |
 | CSS import (REQUIRED) | `import 'gantt-lib/styles.css'` |
@@ -321,7 +321,7 @@ export default function FullExample() {
 
 ---
 
-## 3. Task Interface
+## 4. Task Interface
 
 ```typescript
 interface Task {
@@ -348,14 +348,154 @@ interface Task {
 | `color` | `string` | no | `'#3b82f6'` | Any valid CSS color value (hex, rgb, named color). Applied as the task bar background color. |
 | `progress` | `number` | no | `undefined` | Range: 0–100. Decimal values are rounded for display. `0` or `undefined` means no progress bar is rendered. Progress is purely visual — it does not restrict drag behavior. |
 | `accepted` | `boolean` | no | `undefined` | Only meaningful when `progress === 100`. `true` renders a green progress bar. `false` or `undefined` at 100% renders a yellow bar. Has no effect when progress is not 100. |
-| `dependencies` | `TaskDependency[]` | no | `undefined` | Array of predecessor links. Dependencies are defined on the **successor** task, pointing to the predecessor via `taskId`. See Section 4 and Section 5. |
+| `dependencies` | `TaskDependency[]` | no | `undefined` | Array of predecessor links. Dependencies are defined on the **successor** task, pointing to the predecessor via `taskId`. See Section 5 and Section 6. |
 | `locked` | `boolean` | no | `undefined` | When `true`, the task cannot be dragged or resized. Task name and dates cannot be edited in the task list. Independent of `progress` and `accepted` — consumer controls locking separately. |
 | `divider` | `'top' \| 'bottom'` | no | `undefined` | Optional horizontal divider line for visual grouping. `'top'` renders a bold line above the task row. `'bottom'` renders a bold line below the task row. Spans the full grid width. |
-| `parentId` | `string` | no | `undefined` | ID of the parent task for hierarchy (parent-child relationships). Child tasks are indented in the task list. Parent tasks display with a gradient background and collapse/expand button. Dragging a task between child tasks automatically assigns it the same parent. |
+| `parentId` | `string` | no | `undefined` | ID of the parent task for hierarchy (parent-child relationships). Child tasks are indented in the task list. Parent tasks display with a gradient background and collapse/expand button. Dragging a task between child tasks automatically assigns it the same parent. **Unlimited nesting depth** is supported. Hierarchical numbering (1, 1.1, 1.1.1, 2...) is displayed in the task list's № column. |
 
 ---
 
-## 4. TaskDependency Interface
+### 4.1. Task Hierarchy — Parent-Child Relationships (v0.18.0+)
+
+The library supports unlimited-depth task hierarchy via the `parentId` property:
+
+```typescript
+interface Task {
+  // ... other fields
+  parentId?: string; // ID of parent task
+}
+```
+
+**Key Features:**
+
+1. **Unlimited Nesting Depth** — No artificial limit on hierarchy levels (1, 1.1, 1.1.1, 1.1.1.1, etc.)
+
+2. **Hierarchical Numbering** — The task list № column automatically displays hierarchical numbers:
+   ```
+   1    Root Task 1
+   1.1    Child of 1
+   1.1.1    Grandchild of 1.1
+   1.1.2    Another grandchild
+   2    Root Task 2
+   ```
+
+3. **Visual Indicators** — Parent tasks have:
+   - Gradient background
+   - Collapse/expand button
+   - Vertical guide lines for nested children
+
+4. **Drag-and-Drop** — Dragging a task between child tasks automatically assigns it the same `parentId`
+
+**Hierarchy Rules:**
+
+- **One-level parenting**: A child can have only one parent (single `parentId` reference)
+- **No cycles**: A task cannot be its own ancestor (validated by the library)
+- **Parent task dates**: Parent tasks can have their own dates, independent of children
+- **Parent progress**: Parent tasks can have their own progress, independent of children
+
+**Promote/Demote Buttons:**
+
+The task list includes hierarchy control buttons:
+- **⬆ Promote** — Move task to root level (remove `parentId`)
+- **⬇ Demote** — Make task a child of the previous visible task (set `parentId`)
+
+**Example — Hierarchy Setup:**
+
+```tsx
+const tasks: Task[] = [
+  {
+    id: '1',
+    name: 'Project Phase 1',
+    startDate: '2026-03-01',
+    endDate: '2026-03-15',
+    progress: 50,
+    // No parentId = root level task
+  },
+  {
+    id: '1-1',
+    parentId: '1',  // Child of '1'
+    name: 'Design',
+    startDate: '2026-03-01',
+    endDate: '2026-03-05',
+    progress: 100,
+  },
+  {
+    id: '1-1-1',
+    parentId: '1-1',  // Grandchild (nested)
+    name: 'UI Mockups',
+    startDate: '2026-03-01',
+    endDate: '2026-03-03',
+    progress: 100,
+  },
+  {
+    id: '1-1-2',
+    parentId: '1-1',  // Sibling of 1-1-1
+    name: 'API Design',
+    startDate: '2026-03-04',
+    endDate: '2026-03-05',
+    progress: 100,
+  },
+  {
+    id: '1-2',
+    parentId: '1',  // Another child of '1'
+    name: 'Development',
+    startDate: '2026-03-06',
+    endDate: '2026-03-15',
+    progress: 0,
+  },
+];
+```
+
+**Resulting Display:**
+```
+№    Name                     Start    End
+1    Project Phase 1          01.03    15.03
+1.1  Design                  01.03    05.03
+1.1.1  UI Mockups            01.03    03.03
+1.1.2  API Design            04.03    05.03
+1.2  Development             06.03    15.03
+```
+
+**Handling Promote/Demote:**
+
+```tsx
+// Optional: Provide custom handlers
+const handlePromoteTask = useCallback((taskId: string) => {
+  setTasks(currentTasks => {
+    const task = currentTasks.find(t => t.id === taskId);
+    if (!task || !task.parentId) return currentTasks;
+
+    // Option 1: Simple promote (remove parentId)
+    return currentTasks.map(t =>
+      t.id === taskId ? { ...t, parentId: undefined } : t
+    );
+
+    // Option 2: Reposition after siblings (advanced)
+    // Find last sibling and insert after it
+  });
+}, []);
+
+const handleDemoteTask = useCallback((taskId: string, newParentId: string) => {
+  setTasks(currentTasks => {
+    return currentTasks.map(t =>
+      t.id === taskId ? { ...t, parentId: newParentId } : t
+    );
+  });
+}, []);
+
+<GanttChart
+  tasks={tasks}
+  showTaskList={true}
+  onPromoteTask={handlePromoteTask}   // Optional
+  onDemoteTask={handleDemoteTask}     // Optional
+/>
+```
+
+**Note:** If `onPromoteTask` and `onDemoteTask` are not provided, the library uses internal default logic.
+
+---
+
+## 5. TaskDependency Interface
 
 ```typescript
 interface TaskDependency {
@@ -368,12 +508,12 @@ interface TaskDependency {
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
 | `taskId` | `string` | yes | — | ID of the **predecessor** task. Must match an `id` in the tasks array. A missing `taskId` reference is reported as a `'missing-task'` validation error. |
-| `type` | `'FS' \| 'SS' \| 'FF' \| 'SF'` | yes | — | Dependency link type. Determines which edges are constrained and how lag is calculated. See Section 5 for full semantics. |
+| `type` | `'FS' \| 'SS' \| 'FF' \| 'SF'` | yes | — | Dependency link type. Determines which edges are constrained and how lag is calculated. See Section 6 for full semantics. |
 | `lag` | `number` | no | `0` | Days of offset. Positive = delay (gap between tasks). Negative = overlap (tasks overlap by that many days). **Do not set lag manually** after initial construction — the library recalculates lag automatically on every drag completion. |
 
 ---
 
-## 5. Dependency Types — Semantics
+## 6. Dependency Types — Semantics
 
 Dependencies use standard project management link type semantics. All link types are relative to the predecessor task (A) and successor task (B).
 
@@ -442,7 +582,7 @@ When `enableAutoSchedule={true}` and a predecessor is dragged:
 
 ---
 
-## 6. GanttChart Props
+## 7. GanttChart Props
 
 ```typescript
 interface GanttChartProps {
@@ -478,11 +618,11 @@ interface GanttChartProps {
 |---|---|---|---|
 | `tasks` | `Task[]` | required | Array of tasks to display. Row order in the chart matches array order (index 0 is the top row). |
 | `dayWidth` | `number` | `40` | Width of each day column in pixels. In `'week'` view mode, this represents the width of a week column. Minimum effective value is approximately 20px — below that, day labels become illegible. |
-| `viewMode` | `'day' \| 'week' \| 'month'` | `'day'` | View mode for the time scale. `'day'` = daily columns (default), `'week'` = weekly columns with weekends skipped, `'month'` = one column per calendar month. See Section 6.1 for implementation details. |
+| `viewMode` | `'day' \| 'week' \| 'month'` | `'day'` | View mode for the time scale. `'day'` = daily columns (default), `'week'` = weekly columns with weekends skipped, `'month'` = one column per calendar month. See Section 7.1 for implementation details. |
 | `rowHeight` | `number` | `40` | Height of each task row in pixels. Also controls the task bar vertical position within the row. |
 | `headerHeight` | `number` | `40` | Height of the time-scale header (month + day rows) in pixels. |
 | `containerHeight` | `number \| string` | `undefined` | Container height. Can be pixels (`600`), string (`"90vh"`, `"100%"`, `"500px"`), or `undefined` for auto height (adapts to content). |
-| `onTasksChange` | `(tasks: Task[]) => void` | `undefined` | Called when tasks are modified. **Receives ONLY the changed tasks** (never the full array unless all actually changed). Single task = array of 1 element. Consumer must merge changed tasks into state. See Section 12 for usage patterns. |
+| `onTasksChange` | `(tasks: Task[]) => void` | `undefined` | Called when tasks are modified. **Receives ONLY the changed tasks** (never the full array unless all actually changed). Single task = array of 1 element. Consumer must merge changed tasks into state. See Section 13 for usage patterns. |
 | `onAdd` | `(task: Task) => void` | `undefined` | Called when user adds a new task. The library creates a task with auto-generated ID and default dates. Consumer adds the task to the array. |
 | `onDelete` | `(taskId: string) => void` | `undefined` | Called when user clicks the trash icon in the task list action panel. Receives the `taskId` of the task to delete. The library automatically cleans up dependencies pointing to this task. |
 | `onInsertAfter` | `(taskId: string, newTask: Task) => void` | `undefined` | Called when user clicks the "+" insert button in the action panel. Receives the `taskId` to insert after and the `newTask` object. After insertion, the new task automatically enters edit mode (managed internally by the component). |
@@ -501,10 +641,13 @@ interface GanttChartProps {
 | `collapsedParentIds` | `Set<string>` | `undefined` | Set of parent task IDs that are collapsed (children hidden). Pass `undefined` for uncontrolled mode (internal state). |
 | `onToggleCollapse` | `(parentId: string) => void` | `undefined` | Called when user clicks collapse/expand button on a parent task. Receives the `parentId` of the parent being toggled. Required for controlled mode when providing `collapsedParentIds`. |
 | `enableAddTask` | `boolean` | `true` | When `true`, shows the "+ Добавить задачу" button at the bottom of the task list for adding new tasks. |
+| `weekends` | `Date[]` | `undefined` | Array of dates to **ADD** to default weekends (e.g., holidays, company-specific off days). Dates are combined with default Saturday/Sunday weekends. **IMPORTANT:** Use UTC dates: `new Date(Date.UTC(2026, 2, 8))` for March 8, 2026. See Section 7.2 for details. |
+| `workdays` | `Date[]` | `undefined` | Array of dates to **EXCLUDE** from default weekends (e.g., shifted workdays, working Saturdays). These dates become workdays even if they fall on Saturday/Sunday. Takes precedence over `weekends` if the same date appears in both arrays. **IMPORTANT:** Use UTC dates. |
+| `isWeekend` | `(date: Date) => boolean` | `undefined` | Custom weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Overrides** `weekends` and `workdays` arrays when provided. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
 
 **Important — calendar range:** The visible date range is calculated automatically from the earliest `startDate` to the latest `endDate` across all tasks. The chart always shows complete calendar months. For example, if tasks span March 25 to May 5, the chart renders March 1 through May 31. There is no `month` prop.
 
-### 6.1. View Modes — Implementation Guide
+### 7.1. View Modes — Implementation Guide
 
 The Gantt chart supports three time-scale view modes via the `viewMode` prop:
 
@@ -674,9 +817,299 @@ The month view mode was added following this pattern:
 - `src/components/TaskRow/TaskRow.tsx` — Task bar positioning
 - `src/components/GanttChart/GanttChart.tsx` — View mode prop propagation
 
+### 7.2. Custom Weekend Calendar
+
+The library supports custom weekend calendars via three props: `weekends`, `workdays`, and `isWeekend`. This is useful for:
+- National holidays (e.g., March 8, May 1-9 in Russia)
+- Company-specific off days
+- Shifted workdays (working Saturdays)
+- Alternative work week patterns (4-day work week, Sunday-only weekends)
+
+**IMPORTANT — Date Format:**
+
+All custom weekend dates MUST be created as UTC dates to avoid timezone issues:
+
+```tsx
+// ❌ WRONG — uses local timezone, may cause off-by-one errors
+const holiday = new Date('2026-03-08');
+
+// ✅ CORRECT — explicit UTC date
+const holiday = new Date(Date.UTC(2026, 2, 8)); // March 8, 2026
+```
+
+**Why UTC?** The library internally uses UTC for all date calculations. If you pass a local timezone date, the date may be interpreted as the previous or next day depending on the user's timezone.
+
 ---
 
-## 7. Ref API
+#### 7.2.1. Adding Holidays (weekends prop)
+
+Use `weekends` to ADD specific dates to the default Saturday/Sunday weekends:
+
+```tsx
+import { GanttChart } from 'gantt-lib';
+
+const holidays = [
+  new Date(Date.UTC(2026, 2, 8)),   // March 8 (International Women's Day)
+  new Date(Date.UTC(2026, 4, 1)),   // May 1
+  new Date(Date.UTC(2026, 4, 9)),   // May 9
+];
+
+<GanttChart
+  tasks={tasks}
+  weekends={holidays}
+/>
+```
+
+**Behavior:**
+- Default weekends (Saturday, Sunday) remain
+- Holidays are added to the default weekends
+- Grid background highlights these dates
+- Task dates respect these as non-working days
+
+---
+
+#### 7.2.2. Working Saturdays (workdays prop)
+
+Use `workdays` to EXCLUDE specific dates from default weekends:
+
+```tsx
+const workingSaturdays = [
+  new Date(Date.UTC(2026, 2, 14)),  // Saturday, March 14 — make it a workday
+  new Date(Date.UTC(2026, 2, 21)),  // Saturday, March 21 — make it a workday
+];
+
+<GanttChart
+  tasks={tasks}
+  workdays={workingSaturdays}
+/>
+```
+
+**Behavior:**
+- Specified dates become workdays even if they fall on Saturday/Sunday
+- Takes precedence over `weekends` if the same date appears in both arrays
+- Grid background does NOT highlight these dates
+
+---
+
+#### 7.2.3. Custom Weekend Predicate (isWeekend prop)
+
+For maximum flexibility, provide a custom predicate function:
+
+```tsx
+// Sunday-only weekends (6-day work week)
+const sundayOnlyWeekend = (date: Date) => {
+  return date.getUTCDay() === 0; // Only Sunday (0)
+};
+
+<GanttChart
+  tasks={tasks}
+  isWeekend={sundayOnlyWeekend}
+/>
+```
+
+```tsx
+// 4-day work week (Friday, Saturday, Sunday are weekends)
+const fourDayWorkWeek = (date: Date) => {
+  const day = date.getUTCDay();
+  return day === 0 || day === 5 || day === 6; // Sun, Fri, Sat
+};
+
+<GanttChart
+  tasks={tasks}
+  isWeekend={fourDayWorkWeek}
+/>
+```
+
+```tsx
+// Complex pattern: every second Saturday is a workday
+const everySecondSaturdayWorkday = (date: Date) => {
+  const day = date.getUTCDay();
+  if (day === 6) { // Saturday
+    // Check if it's an even-numbered Saturday of the month
+    const dateNum = date.getUTCDate();
+    return dateNum % 2 !== 0; // Odd Saturdays = weekend, even = workday
+  }
+  return day === 0; // Sunday = weekend
+};
+```
+
+**Behavior:**
+- When provided, `isWeekend` **overrides** `weekends` and `workdays` arrays
+- Receives a UTC `Date` object (already parsed by the library)
+- Return `true` for weekends, `false` for workdays
+- Called for every day in the visible date range
+
+---
+
+#### 7.2.4. Precedence Order
+
+When multiple props are provided, the following precedence applies (highest to lowest):
+
+1. **`isWeekend`** predicate — used directly, arrays are ignored
+2. **`workdays`** array — these dates become workdays even if Saturday/Sunday
+3. **`weekends`** array — these dates become weekends in addition to Sat/Sun
+4. **Default** — Saturday (6) and Sunday (0) only
+
+```tsx
+// Example: March 14 is in both arrays
+<GanttChart
+  tasks={tasks}
+  weekends={[new Date(Date.UTC(2026, 2, 14))]}  // Saturday
+  workdays={[new Date(Date.UTC(2026, 2, 14))]}  // Same Saturday
+/>
+// Result: March 14 is a WORKDAY (workdays wins)
+```
+
+---
+
+#### 7.2.5. Internal Implementation
+
+The library uses `createIsWeekendPredicate()` utility from `src/utils/dateUtils.ts`:
+
+```typescript
+export interface WeekendConfig {
+  weekends?: Date[];
+  workdays?: Date[];
+  isWeekend?: (date: Date) => boolean;
+}
+
+export const createIsWeekendPredicate = (
+  config: WeekendConfig
+): ((date: Date) => boolean) => {
+  const { weekends, workdays, isWeekend: customPredicate } = config;
+
+  // Priority 1: Custom predicate
+  if (customPredicate) {
+    return customPredicate;
+  }
+
+  // Priority 2: Workdays (exclude from default weekends)
+  if (workdays && workdays.length > 0) {
+    const workdaySet = new Set(workdays.map(createDateKey));
+    return (date: Date) => {
+      const key = createDateKey(date); // "2026-2-15" format
+      if (workdaySet.has(key)) {
+        return false; // Workday takes precedence
+      }
+      return date.getUTCDay() === 0 || date.getUTCDay() === 6;
+    };
+  }
+
+  // Priority 3: Weekends (add to default)
+  if (weekends && weekends.length > 0) {
+    const weekendSet = new Set(weekends.map(createDateKey));
+    return (date: Date) => {
+      const key = createDateKey(date);
+      if (weekendSet.has(key)) {
+        return true; // Custom weekend
+      }
+      return date.getUTCDay() === 0 || date.getUTCDay() === 6;
+    };
+  }
+
+  // Priority 4: Default
+  return (date: Date) => {
+    return date.getUTCDay() === 0 || date.getUTCDay() === 6;
+  };
+};
+```
+
+**Key Utility Functions:**
+
+```typescript
+// Creates UTC-safe date key for Set lookup: "2026-2-15"
+// Note: Month is 0-indexed (0=January)
+export const createDateKey = (date: Date): string => {
+  return `${date.getUTCFullYear()}-${date.getUTCMonth()}-${date.getUTCDate()}`;
+};
+```
+
+---
+
+#### 7.2.6. Usage Examples
+
+**Example 1: Russian Holidays 2026**
+
+```tsx
+import { GanttChart } from 'gantt-lib';
+
+const russianHolidays2026 = [
+  // New Year holidays
+  new Date(Date.UTC(2026, 0, 1)),   // Jan 1
+  new Date(Date.UTC(2026, 0, 2)),   // Jan 2
+  new Date(Date.UTC(2026, 0, 3)),   // Jan 3
+  new Date(Date.UTC(2026, 0, 4)),   // Jan 4
+  new Date(Date.UTC(2026, 0, 5)),   // Jan 5
+  new Date(Date.UTC(2026, 0, 6)),   // Jan 6
+  new Date(Date.UTC(2026, 0, 7)),   // Jan 7
+  new Date(Date.UTC(2026, 0, 8)),   // Jan 8
+  // Defender of the Fatherland Day
+  new Date(Date.UTC(2026, 1, 23)),  // Feb 23
+  // International Women's Day
+  new Date(Date.UTC(2026, 2, 8)),   // Mar 8
+  // Spring and Labour Day
+  new Date(Date.UTC(2026, 4, 1)),   // May 1
+  new Date(Date.UTC(2026, 4, 2)),   // May 2
+  new Date(Date.UTC(2026, 4, 3)),   // May 3
+  new Date(Date.UTC(2026, 4, 4)),   // May 4
+  new Date(Date.UTC(2026, 4, 5)),   // May 5
+  new Date(Date.UTC(2026, 4, 6)),   // May 6
+  new Date(Date.UTC(2026, 4, 7)),   // May 7
+  new Date(Date.UTC(2026, 4, 8)),   // May 8
+  // Victory Day
+  new Date(Date.UTC(2026, 4, 9)),   // May 9
+  // Russia Day
+  new Date(Date.UTC(2026, 5, 12)),  // Jun 12
+  // Unity Day
+  new Date(Date.UTC(2026, 10, 4)),  // Nov 4
+];
+
+<GanttChart
+  tasks={tasks}
+  weekends={russianHolidays2026}
+/>
+```
+
+**Example 2: Dynamic Holiday Calculation**
+
+```tsx
+import { useMemo } from 'react';
+
+const App = () => {
+  const holidays = useMemo(() => {
+    const year = new Date().getUTCFullYear();
+    return [
+      new Date(Date.UTC(year, 0, 1)),   // Jan 1
+      new Date(Date.UTC(year + 1, 0, 1)), // Jan 1 next year
+    ];
+  }, []);
+
+  return <GanttChart tasks={tasks} weekends={holidays} />;
+};
+```
+
+**Example 3: Calendar Component Integration**
+
+The `Calendar` component also supports custom weekends:
+
+```tsx
+import { Calendar } from 'gantt-lib';
+
+const isWeekend = (date: Date) => {
+  const day = date.getUTCDay();
+  return day === 0 || day === 6; // Default Sat/Sun
+};
+
+<Calendar
+  selected={selectedDate}
+  onSelect={setSelectedDate}
+  isWeekend={isWeekend}
+/>
+```
+
+---
+
+## 8. Ref API
 
 The `GanttChart` component supports an imperative handle via `ref` for programmatic control.
 
@@ -734,7 +1167,7 @@ function App() {
 
 ---
 
-## 8. CSS Variables
+## 9. CSS Variables
 
 Override these in any global CSS file to customize the chart appearance. All overrides must target `:root` or a specific selector enclosing the chart.
 
@@ -774,7 +1207,7 @@ Override these in any global CSS file to customize the chart appearance. All ove
 
 ---
 
-## 9. Drag Interactions
+## 10. Drag Interactions
 
 | User Action | Result |
 |---|---|
@@ -793,7 +1226,7 @@ Override these in any global CSS file to customize the chart appearance. All ove
 
 ---
 
-## 10. ValidationResult Type
+## 11. ValidationResult Type
 
 Used as the argument type for the `onValidateDependencies` callback.
 
@@ -824,7 +1257,7 @@ Validation runs automatically on every tasks array change. You do not call it ma
 
 ---
 
-## 11. Date Handling Rules
+## 12. Date Handling Rules
 
 - **Use ISO strings.** Always pass dates as `'YYYY-MM-DD'` strings. `Date` objects from local environments can cause off-by-one errors due to timezone offsets.
 - **All internal calculations are UTC.** The library uses `Date.UTC()` internally. A date string `'2026-02-01'` is treated as `2026-02-01T00:00:00Z`.
@@ -834,7 +1267,7 @@ Validation runs automatically on every tasks array change. You do not call it ma
 
 ---
 
-## 12. onTasksChange Pattern — Correct Usage
+## 13. onTasksChange Pattern — Correct Usage
 
 The `onTasksChange` prop receives an array of **only the changed tasks**. You must merge these into your state. Single task changes are delivered as a single-element array.
 
@@ -875,7 +1308,7 @@ onTasksChange={(tasks) => patch('/api/tasks', { tasks })}
 
 ---
 
-## 13. enableAutoSchedule vs onCascade
+## 14. enableAutoSchedule vs onCascade
 
 Three distinct operating modes depending on prop combinations:
 
@@ -903,7 +1336,7 @@ Three distinct operating modes depending on prop combinations:
 
 ---
 
-## 14. AI Agent Usage Notes
+## 15. AI Agent Usage Notes
 
 When generating `Task` arrays for this library, follow these rules to avoid common errors:
 
@@ -1016,7 +1449,7 @@ const tasks: Task[] = [
 
 ---
 
-## 15. Public Exports
+## 16. Public Exports
 
 ```typescript
 // Named exports from 'gantt-lib'
@@ -1035,7 +1468,7 @@ import 'gantt-lib/styles.css';
 
 ---
 
-## 16. Performance Notes
+## 17. Performance Notes
 
 - `onTasksChange` fires once on mouseup — not on every drag frame. Safe with 100+ tasks.
 - `TaskRow` uses `React.memo` with a custom comparator. Only the dragged row re-renders during drag.
@@ -1044,7 +1477,7 @@ import 'gantt-lib/styles.css';
 
 ---
 
-## 17. Known Constraints and Edge Cases
+## 18. Known Constraints and Edge Cases
 
 | Scenario | Behavior |
 |---|---|

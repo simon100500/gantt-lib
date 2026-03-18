@@ -1125,6 +1125,9 @@ export default function Home() {
                 new Date(Date.UTC(2026, 4, 1)),   // May 1, 2026
                 new Date(Date.UTC(2026, 4, 11)),  // May 11, 2026
               ]}
+              workdays={[
+                new Date(Date.UTC(2026, 2, 14)),  // March 09, 2026
+              ]}
             />
           </div>
         </section>
