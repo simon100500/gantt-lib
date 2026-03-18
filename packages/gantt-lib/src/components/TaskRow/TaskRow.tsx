@@ -269,14 +269,16 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     };
 
     // Determine if progress text fits inside the bar
-    // Estimate: duration text (~"15 д" = ~30px) + progress text (~"100%" = ~30px) + padding (~16px)
-    const estimatedTextWidth = durationDays >= 10 ? 76 : 62; // "15 д 100%" = ~76px, "1 д 100%" = ~62px
+    // Parent bars have overflow: visible (for bracket ears), so threshold must be stricter:
+    // "X задач 100%" ≈ 60–70px text + 16px padding = ~110px
+    // Regular: "15 д 100%" ≈ 76px, "1 д 100%" ≈ 62px
+    const estimatedTextWidth = isParent ? 120 : (durationDays >= 10 ? 76 : 62);
     const showProgressInside = progressWidth > 0 && displayWidth > estimatedTextWidth;
 
     // Determine if duration fits inside the bar
     // For 1-day tasks: always show duration outside (too narrow)
-    // For 2+ day tasks: show inside if there's enough width (min 50px)
-    const MIN_DURATION_WIDTH = 50;
+    // Parent bars: child count label is longer — need more space
+    const MIN_DURATION_WIDTH = isParent ? 80 : 50;
     const showDurationInside = durationDays >= 2 && displayWidth > MIN_DURATION_WIDTH;
 
     return (
