@@ -641,9 +641,8 @@ interface GanttChartProps {
 | `collapsedParentIds` | `Set<string>` | `undefined` | Set of parent task IDs that are collapsed (children hidden). Pass `undefined` for uncontrolled mode (internal state). |
 | `onToggleCollapse` | `(parentId: string) => void` | `undefined` | Called when user clicks collapse/expand button on a parent task. Receives the `parentId` of the parent being toggled. Required for controlled mode when providing `collapsedParentIds`. |
 | `enableAddTask` | `boolean` | `true` | When `true`, shows the "+ Добавить задачу" button at the bottom of the task list for adding new tasks. |
-| `weekends` | `Date[]` | `undefined` | Array of dates to **ADD** to default weekends (e.g., holidays, company-specific off days). Dates are combined with default Saturday/Sunday weekends. **IMPORTANT:** Use UTC dates: `new Date(Date.UTC(2026, 2, 8))` for March 8, 2026. See Section 7.2 for details. |
-| `workdays` | `Date[]` | `undefined` | Array of dates to **EXCLUDE** from default weekends (e.g., shifted workdays, working Saturdays). These dates become workdays even if they fall on Saturday/Sunday. Takes precedence over `weekends` if the same date appears in both arrays. **IMPORTANT:** Use UTC dates. |
-| `isWeekend` | `(date: Date) => boolean` | `undefined` | Custom weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Overrides** `weekends` and `workdays` arrays when provided. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
+| `customDays` | `CustomDayConfig[]` | `undefined` | Array of custom day configurations with explicit types. Each entry: `{ date: Date, type: 'weekend' | 'workday' }`. **IMPORTANT:** Use UTC dates: `{ date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' }` for March 8, 2026. See Section 7.2 for details. |
+| `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Checked BEFORE customDays overrides** — use for base patterns, then override specific dates with `customDays`. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
 
 **Important — calendar range:** The visible date range is calculated automatically from the earliest `startDate` to the latest `endDate` across all tasks. The chart always shows complete calendar months. For example, if tasks span March 25 to May 5, the chart renders March 1 through May 31. There is no `month` prop.
 
@@ -817,9 +816,9 @@ The month view mode was added following this pattern:
 - `src/components/TaskRow/TaskRow.tsx` — Task bar positioning
 - `src/components/GanttChart/GanttChart.tsx` — View mode prop propagation
 
-### 7.2. Custom Weekend Calendar
+### 7.2. Custom Days API
 
-The library supports custom weekend calendars via three props: `weekends`, `workdays`, and `isWeekend`. This is useful for:
+The library supports custom weekend/workday calendars via the `customDays` prop and optional `isWeekend` predicate. This is useful for:
 - National holidays (e.g., March 8, May 1-9 in Russia)
 - Company-specific off days
 - Shifted workdays (working Saturdays)
@@ -827,36 +826,49 @@ The library supports custom weekend calendars via three props: `weekends`, `work
 
 **IMPORTANT — Date Format:**
 
-All custom weekend dates MUST be created as UTC dates to avoid timezone issues:
+All custom day dates MUST be created as UTC dates to avoid timezone issues:
 
 ```tsx
 // ❌ WRONG — uses local timezone, may cause off-by-one errors
 const holiday = new Date('2026-03-08');
 
 // ✅ CORRECT — explicit UTC date
-const holiday = new Date(Date.UTC(2026, 2, 8)); // March 8, 2026
+const holiday = { date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' };
 ```
 
 **Why UTC?** The library internally uses UTC for all date calculations. If you pass a local timezone date, the date may be interpreted as the previous or next day depending on the user's timezone.
 
 ---
 
-#### 7.2.1. Adding Holidays (weekends prop)
+#### 7.2.1. CustomDayConfig Type
 
-Use `weekends` to ADD specific dates to the default Saturday/Sunday weekends:
+Each custom day is defined with an explicit type:
+
+```typescript
+interface CustomDayConfig {
+  date: Date;           // The date to customize (UTC)
+  type: 'weekend' | 'workday';  // Explicit type annotation
+}
+```
+
+---
+
+#### 7.2.2. Adding Holidays
+
+Use `customDays` with `type: 'weekend'` to ADD specific dates to the default Saturday/Sunday weekends:
 
 ```tsx
 import { GanttChart } from 'gantt-lib';
 
 const holidays = [
-  new Date(Date.UTC(2026, 2, 8)),   // March 8 (International Women's Day)
-  new Date(Date.UTC(2026, 4, 1)),   // May 1
-  new Date(Date.UTC(2026, 4, 9)),   // May 9
+  { date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' },   // March 8
+  { date: new Date(Date.UTC(2026, 4, 1)), type: 'weekend' },   // May 1
+  { date: new Date(Date.UTC(2026, 4, 9)), type: 'weekend' },   // May 9
 ];
 
 <GanttChart
   tasks={tasks}
-  weekends={holidays}
+  customDays={holidays}
 />
 ```
 
@@ -868,32 +880,53 @@ const holidays = [
 
 ---
 
-#### 7.2.2. Working Saturdays (workdays prop)
+#### 7.2.3. Working Saturdays
 
-Use `workdays` to EXCLUDE specific dates from default weekends:
+Use `customDays` with `type: 'workday'` to EXCLUDE specific dates from default weekends:
 
 ```tsx
 const workingSaturdays = [
-  new Date(Date.UTC(2026, 2, 14)),  // Saturday, March 14 — make it a workday
-  new Date(Date.UTC(2026, 2, 21)),  // Saturday, March 21 — make it a workday
+  { date: new Date(Date.UTC(2026, 2, 14)), type: 'workday' },  // Saturday, March 14
+  { date: new Date(Date.UTC(2026, 2, 21)), type: 'workday' },  // Saturday, March 21
 ];
 
 <GanttChart
   tasks={tasks}
-  workdays={workingSaturdays}
+  customDays={workingSaturdays}
 />
 ```
 
 **Behavior:**
 - Specified dates become workdays even if they fall on Saturday/Sunday
-- Takes precedence over `weekends` if the same date appears in both arrays
 - Grid background does NOT highlight these dates
 
 ---
 
-#### 7.2.3. Custom Weekend Predicate (isWeekend prop)
+#### 7.2.4. Combining Weekends and Workdays
 
-For maximum flexibility, provide a custom predicate function:
+You can mix both types in a single array:
+
+```tsx
+const customDays = [
+  // Add holidays
+  { date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' },   // March 8 — holiday
+  { date: new Date(Date.UTC(2026, 4, 1)), type: 'weekend' },   // May 1 — holiday
+  // Add working Saturdays
+  { date: new Date(Date.UTC(2026, 2, 14)), type: 'workday' },  // March 14 — workday
+  { date: new Date(Date.UTC(2026, 2, 21)), type: 'workday' },  // March 21 — workday
+];
+
+<GanttChart
+  tasks={tasks}
+  customDays={customDays}
+/>
+```
+
+---
+
+#### 7.2.5. Custom Weekend Predicate (isWeekend prop)
+
+For maximum flexibility, provide a base `isWeekend` predicate:
 
 ```tsx
 // Sunday-only weekends (6-day work week)
@@ -920,96 +953,97 @@ const fourDayWorkWeek = (date: Date) => {
 />
 ```
 
-```tsx
-// Complex pattern: every second Saturday is a workday
-const everySecondSaturdayWorkday = (date: Date) => {
-  const day = date.getUTCDay();
-  if (day === 6) { // Saturday
-    // Check if it's an even-numbered Saturday of the month
-    const dateNum = date.getUTCDate();
-    return dateNum % 2 !== 0; // Odd Saturdays = weekend, even = workday
-  }
-  return day === 0; // Sunday = weekend
-};
-```
+**Important:** `isWeekend` is the **base predicate**. Specific dates from `customDays` override it:
 
-**Behavior:**
-- When provided, `isWeekend` **overrides** `weekends` and `workdays` arrays
-- Receives a UTC `Date` object (already parsed by the library)
-- Return `true` for weekends, `false` for workdays
-- Called for every day in the visible date range
+```tsx
+// 4-day work week, but make some Fridays workdays
+const customDays = [
+  { date: new Date(Date.UTC(2026, 2, 14)), type: 'workday' },  // Working Friday
+];
+
+<GanttChart
+  tasks={tasks}
+  isWeekend={fourDayWorkWeek}  // Fri-Sun are weekends
+  customDays={customDays}       // But March 14 is a workday
+/>
+```
 
 ---
 
-#### 7.2.4. Precedence Order
+#### 7.2.6. Precedence Order
 
-When multiple props are provided, the following precedence applies (highest to lowest):
+When both `customDays` and `isWeekend` are provided, the following precedence applies (highest to lowest):
 
-1. **`isWeekend`** predicate — used directly, arrays are ignored
-2. **`workdays`** array — these dates become workdays even if Saturday/Sunday
-3. **`weekends`** array — these dates become weekends in addition to Sat/Sun
+1. **`customDays` with `type: 'workday'`** — overrides everything
+2. **`customDays` with `type: 'weekend'`** — overrides base predicate and default
+3. **`isWeekend`** predicate — base pattern (if provided)
 4. **Default** — Saturday (6) and Sunday (0) only
 
 ```tsx
-// Example: March 14 is in both arrays
-<GanttChart
-  tasks={tasks}
-  weekends={[new Date(Date.UTC(2026, 2, 14))]}  // Saturday
-  workdays={[new Date(Date.UTC(2026, 2, 14))]}  // Same Saturday
-/>
-// Result: March 14 is a WORKDAY (workdays wins)
+// Example: Same date with different types
+const customDays = [
+  { date: new Date(Date.UTC(2026, 2, 14)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 2, 14)), type: 'workday' },
+];
+// Result: March 14 is a WORKDAY (workday takes precedence)
 ```
 
 ---
 
-#### 7.2.5. Internal Implementation
+#### 7.2.7. Internal Implementation
 
-The library uses `createIsWeekendPredicate()` utility from `src/utils/dateUtils.ts`:
+The library uses `createCustomDayPredicate()` utility from `src/utils/dateUtils.ts`:
 
 ```typescript
-export interface WeekendConfig {
-  weekends?: Date[];
-  workdays?: Date[];
+export interface CustomDayConfig {
+  date: Date;
+  type: 'weekend' | 'workday';
+}
+
+export interface CustomDayPredicateConfig {
+  customDays?: CustomDayConfig[];
   isWeekend?: (date: Date) => boolean;
 }
 
-export const createIsWeekendPredicate = (
-  config: WeekendConfig
+export const createCustomDayPredicate = (
+  config: CustomDayPredicateConfig
 ): ((date: Date) => boolean) => {
-  const { weekends, workdays, isWeekend: customPredicate } = config;
+  const { customDays, isWeekend: basePredicate } = config;
 
-  // Priority 1: Custom predicate
-  if (customPredicate) {
-    return customPredicate;
-  }
+  // Build Set-based lookups for O(1) performance
+  const workdaySet = new Set<string>();
+  const weekendSet = new Set<string>();
 
-  // Priority 2: Workdays (exclude from default weekends)
-  if (workdays && workdays.length > 0) {
-    const workdaySet = new Set(workdays.map(createDateKey));
-    return (date: Date) => {
-      const key = createDateKey(date); // "2026-2-15" format
-      if (workdaySet.has(key)) {
-        return false; // Workday takes precedence
-      }
-      return date.getUTCDay() === 0 || date.getUTCDay() === 6;
-    };
-  }
+  customDays?.forEach(({ date, type }) => {
+    const key = createDateKey(date);
+    if (type === 'workday') {
+      workdaySet.add(key);
+    } else {
+      weekendSet.add(key);
+    }
+  });
 
-  // Priority 3: Weekends (add to default)
-  if (weekends && weekends.length > 0) {
-    const weekendSet = new Set(weekends.map(createDateKey));
-    return (date: Date) => {
-      const key = createDateKey(date);
-      if (weekendSet.has(key)) {
-        return true; // Custom weekend
-      }
-      return date.getUTCDay() === 0 || date.getUTCDay() === 6;
-    };
-  }
-
-  // Priority 4: Default
   return (date: Date) => {
-    return date.getUTCDay() === 0 || date.getUTCDay() === 6;
+    const key = createDateKey(date);
+
+    // Priority 1: Workday (highest)
+    if (workdaySet.has(key)) {
+      return false;
+    }
+
+    // Priority 2: Weekend
+    if (weekendSet.has(key)) {
+      return true;
+    }
+
+    // Priority 3: Base predicate
+    if (basePredicate) {
+      return basePredicate(date);
+    }
+
+    // Priority 4: Default
+    const day = date.getUTCDay();
+    return day === 0 || day === 6;
   };
 };
 ```
@@ -1026,7 +1060,7 @@ export const createDateKey = (date: Date): string => {
 
 ---
 
-#### 7.2.6. Usage Examples
+#### 7.2.8. Usage Examples
 
 **Example 1: Russian Holidays 2026**
 
@@ -1035,60 +1069,100 @@ import { GanttChart } from 'gantt-lib';
 
 const russianHolidays2026 = [
   // New Year holidays
-  new Date(Date.UTC(2026, 0, 1)),   // Jan 1
-  new Date(Date.UTC(2026, 0, 2)),   // Jan 2
-  new Date(Date.UTC(2026, 0, 3)),   // Jan 3
-  new Date(Date.UTC(2026, 0, 4)),   // Jan 4
-  new Date(Date.UTC(2026, 0, 5)),   // Jan 5
-  new Date(Date.UTC(2026, 0, 6)),   // Jan 6
-  new Date(Date.UTC(2026, 0, 7)),   // Jan 7
-  new Date(Date.UTC(2026, 0, 8)),   // Jan 8
+  { date: new Date(Date.UTC(2026, 0, 1)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 0, 2)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 0, 3)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 0, 4)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 0, 5)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 0, 6)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 0, 7)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 0, 8)), type: 'weekend' },
   // Defender of the Fatherland Day
-  new Date(Date.UTC(2026, 1, 23)),  // Feb 23
+  { date: new Date(Date.UTC(2026, 1, 23)), type: 'weekend' },
   // International Women's Day
-  new Date(Date.UTC(2026, 2, 8)),   // Mar 8
+  { date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' },
   // Spring and Labour Day
-  new Date(Date.UTC(2026, 4, 1)),   // May 1
-  new Date(Date.UTC(2026, 4, 2)),   // May 2
-  new Date(Date.UTC(2026, 4, 3)),   // May 3
-  new Date(Date.UTC(2026, 4, 4)),   // May 4
-  new Date(Date.UTC(2026, 4, 5)),   // May 5
-  new Date(Date.UTC(2026, 4, 6)),   // May 6
-  new Date(Date.UTC(2026, 4, 7)),   // May 7
-  new Date(Date.UTC(2026, 4, 8)),   // May 8
+  { date: new Date(Date.UTC(2026, 4, 1)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 4, 2)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 4, 3)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 4, 4)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 4, 5)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 4, 6)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 4, 7)), type: 'weekend' },
+  { date: new Date(Date.UTC(2026, 4, 8)), type: 'weekend' },
   // Victory Day
-  new Date(Date.UTC(2026, 4, 9)),   // May 9
+  { date: new Date(Date.UTC(2026, 4, 9)), type: 'weekend' },
   // Russia Day
-  new Date(Date.UTC(2026, 5, 12)),  // Jun 12
+  { date: new Date(Date.UTC(2026, 5, 12)), type: 'weekend' },
   // Unity Day
-  new Date(Date.UTC(2026, 10, 4)),  // Nov 4
+  { date: new Date(Date.UTC(2026, 10, 4)), type: 'weekend' },
 ];
 
 <GanttChart
   tasks={tasks}
-  weekends={russianHolidays2026}
+  customDays={russianHolidays2026}
 />
 ```
 
-**Example 2: Dynamic Holiday Calculation**
+**Example 2: Holidays + Working Saturdays**
+
+```tsx
+const customDays = [
+  // Holidays
+  { date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' },   // March 8
+  { date: new Date(Date.UTC(2026, 4, 1)), type: 'weekend' },   // May 1
+  // Working Saturdays (shifted workdays)
+  { date: new Date(Date.UTC(2026, 2, 14)), type: 'workday' },  // March 14
+  { date: new Date(Date.UTC(2026, 2, 21)), type: 'workday' },  // March 21
+];
+
+<GanttChart
+  tasks={tasks}
+  customDays={customDays}
+/>
+```
+
+**Example 3: 4-Day Work Week with Overrides**
+
+```tsx
+// Base: Fri-Sun are weekends
+const fourDayWorkWeek = (date: Date) => {
+  const day = date.getUTCDay();
+  return day === 0 || day === 5 || day === 6; // Sun, Fri, Sat
+};
+
+// But make some Fridays workdays
+const customDays = [
+  { date: new Date(Date.UTC(2026, 2, 14)), type: 'workday' },  // Working Friday
+  { date: new Date(Date.UTC(2026, 2, 28)), type: 'workday' },  // Working Friday
+];
+
+<GanttChart
+  tasks={tasks}
+  isWeekend={fourDayWorkWeek}
+  customDays={customDays}
+/>
+```
+
+**Example 4: Dynamic Holiday Calculation**
 
 ```tsx
 import { useMemo } from 'react';
 
 const App = () => {
-  const holidays = useMemo(() => {
+  const customDays = useMemo(() => {
     const year = new Date().getUTCFullYear();
     return [
-      new Date(Date.UTC(year, 0, 1)),   // Jan 1
-      new Date(Date.UTC(year + 1, 0, 1)), // Jan 1 next year
+      { date: new Date(Date.UTC(year, 0, 1)), type: 'weekend' },
+      { date: new Date(Date.UTC(year + 1, 0, 1)), type: 'weekend' },
     ];
   }, []);
 
-  return <GanttChart tasks={tasks} weekends={holidays} />;
+  return <GanttChart tasks={tasks} customDays={customDays} />;
 };
 ```
 
-**Example 3: Calendar Component Integration**
+**Example 5: Calendar Component Integration**
 
 The `Calendar` component also supports custom weekends:
 
