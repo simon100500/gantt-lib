@@ -2,22 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.18
 milestone_name: milestone
-status: planning
-last_updated: "2026-03-18T13:40:10.351Z"
-last_activity: 2026-03-18 — Completed quick task 260318-n0f: вынос длительности за пределы узких полос
+status: unknown
+last_updated: "2026-03-18T20:18:00.851Z"
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 4
+  completed_phases: 3
+  total_plans: 7
+  completed_plans: 7
 ---
 
 ## Current Position
 
-**Phase:** 21 (Custom Weekend Calendar)
-**Plan:** 21-03 (Integration phase)
-**Status:** Ready to plan
-**Last activity:** 2026-03-17 — Integrated custom weekend props into GanttChart, GridBackground, TimeScaleHeader, and Calendar
+Phase: 22 (filters) — EXECUTING
+Plan: 1 of 2
 
 ## Project Reference
 
@@ -25,11 +22,13 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Drag-and-drop task scheduling with Excel-like visual simplicity
 **Current milestone:** v0.50.0 Adding Tools
-**Milestone goal:** Add extensibility features — custom weekend calendar and additional TaskList columns
+**Milestone goal:** Add extensibility features — custom weekend calendar, task filtering, and additional columns
 
 **Milestone features:**
+
 - Custom weekend calendar (Date[] array + isWeekend predicate)
-- Additional TaskList columns with renderCell/editor, positioned after Name column
+- Task filtering by various criteria
+- Additional TaskList columns with renderCell/editor
 
 ## Accumulated Context
 
@@ -71,14 +70,18 @@ None yet — no external users (library in active development)
 
 ### Roadmap Structure
 
-**v0.50.0 phases (3 phases, 4 estimated plans):**
+**v0.50.0 phases (4 phases, TBD estimated plans):**
+
 - Phase 21: Custom Weekend Calendar (CAL-01 to CAL-05)
 - Phase 21.1: custom-weekend-refactoring [INSERTED]
-- Phase 22: Additional TaskList Columns (COL-01 to COL-08)
+- Phase 22: filters
+- Phase 23: Additional TaskList Columns (COL-01 to COL-08)
 
 ### Roadmap Evolution
 
 - Phase 21.1 added: custom-weekend-refactoring
+- Phase 22 added: filters (inserted between 21.1 and old 22)
+- Old Phase 22 → Phase 23: Additional TaskList Columns (renumbered)
 
 **Coverage:** 13/13 requirements mapped ✓
 
@@ -86,22 +89,23 @@ None yet — no external users (library in active development)
 
 **Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
 
-**Current focus:** Phase 21 Plan 21-04 (Demo page with examples)
+**Current focus:** Phase 22 — filters
+
 - ✓ 21-01: TDD RED phase — 11 failing tests created
 - ✓ 21-02: TDD GREEN phase — utilities implemented (createDateKey, createIsWeekendPredicate)
 - ✓ 21-03: Integration phase — props added to GanttChart, GridBackground, TimeScaleHeader, Calendar
 - Next: 21-04: Demo page — examples of custom weekend usage
 
 **Next:** Phase 21 Plan 21-04 (Demo page)
+
 - Create demo page with custom weekend examples
 - Show holidays, shifted workdays, custom predicates
 - Visual verification of weekend highlighting and day number coloring
 
-**Later:** Phase 22 (Additional TaskList Columns)
-- Implement `additionalColumns?: Column[]` prop
-- Column interface: id, header, renderCell, editor?, width?, after?
-- Position columns after specified base column
-- Ensure scrolling works correctly
+**Later:** Phase 22 (filters) and Phase 23 (Additional TaskList Columns)
+
+- Phase 22: Task filtering by various criteria, Filter controls UI, Real-time filtered view updates
+- Phase 23: Additional columns with renderers, editors, and positioning
 
 **Upcoming:** Plan 21-04 (Demo page with custom weekend examples)
 

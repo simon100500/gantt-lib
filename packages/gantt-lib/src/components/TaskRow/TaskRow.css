@@ -13,8 +13,16 @@
   box-sizing: border-box;
 }
 
+.gantt-tr-row.gantt-tr-row-filter-match {
+  background-color: rgba(250, 204, 21, 0.24);
+}
+
 .gantt-tr-row:hover {
   background-color: rgba(59, 130, 246, 0.04);
+}
+
+.gantt-tr-row.gantt-tr-row-filter-match:hover {
+  background-color: rgba(250, 204, 21, 0.3);
 }
 
 .gantt-tr-taskBar {

@@ -25,6 +25,9 @@ export { useTaskDrag } from './hooks';
 // Utils
 export * from './utils';
 
+// Filters
+export * from './filters';
+
 // Types
 export type {
   GanttDateRange,

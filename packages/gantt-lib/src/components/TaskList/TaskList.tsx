@@ -142,6 +142,8 @@ export interface TaskListProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate for date picker */
   isWeekend?: (date: Date) => boolean;
+  /** Task IDs highlighted by the active filter */
+  highlightedTaskIds?: Set<string>;
 }
 
 /**
@@ -176,6 +178,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onDemoteTask,
   customDays,
   isWeekend,
+  highlightedTaskIds = new Set(),
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
@@ -853,6 +856,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
               customDays={customDays}
               isWeekend={isWeekend}
+              isFilterMatch={highlightedTaskIds.has(task.id)}
             />
           ))}
         </div>

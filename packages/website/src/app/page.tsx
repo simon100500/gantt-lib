@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { GanttChart, Calendar, type Task, type GanttChartHandle } from "gantt-lib";
+import { GanttChart, Calendar, type Task, type GanttChartHandle, and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains, type TaskPredicate } from "gantt-lib";
 
 const createSampleTasks = (): Task[] => {
   return [
@@ -777,6 +777,8 @@ export default function Home() {
 
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
   const [highlightExpired, setHighlightExpired] = useState(true);
+  const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
+  const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
 
   // Ref for the main GanttChart to access scrollToToday method
   const ganttChartRef = useRef<GanttChartHandle>(null);
@@ -1086,6 +1088,135 @@ export default function Home() {
               {highlightExpired ? "Disable Expired Highlight" : "Enable Expired Highlight"}
             </button>
           </div>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Фильтры:</span>
+            <button
+              onClick={() => {
+                setTaskFilter(undefined);
+                setTaskFilterId(undefined);
+              }}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid',
+                cursor: 'pointer',
+                backgroundColor: !taskFilterId ? '#1f2937' : 'transparent',
+                color: !taskFilterId ? '#ffffff' : '#374151',
+                borderColor: !taskFilterId ? '#1f2937' : '#d1d5db',
+              }}
+            >
+              Все
+            </button>
+            <button
+              onClick={() => {
+                setTaskFilter(() => withoutDeps());
+                setTaskFilterId('withoutDeps');
+              }}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid',
+                cursor: 'pointer',
+                backgroundColor: taskFilterId === 'withoutDeps' ? '#1f2937' : 'transparent',
+                color: taskFilterId === 'withoutDeps' ? '#ffffff' : '#374151',
+                borderColor: taskFilterId === 'withoutDeps' ? '#1f2937' : '#d1d5db',
+              }}
+            >
+              Без зависимостей
+            </button>
+            <button
+              onClick={() => {
+                setTaskFilter(() => expired());
+                setTaskFilterId('expired');
+              }}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid',
+                cursor: 'pointer',
+                backgroundColor: taskFilterId === 'expired' ? '#dc2626' : 'transparent',
+                color: taskFilterId === 'expired' ? '#ffffff' : '#374151',
+                borderColor: taskFilterId === 'expired' ? '#dc2626' : '#d1d5db',
+              }}
+            >
+              Просроченные
+            </button>
+            <button
+              onClick={() => {
+                setTaskFilter(() => nameContains('Подготов'));
+                setTaskFilterId('nameContains:Подготов');
+              }}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid',
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+                color: '#374151',
+                borderColor: '#d1d5db',
+              }}
+            >
+              Содержит "Подготов"
+            </button>
+            <button
+              onClick={() => {
+                setTaskFilter(() => progressInRange(50, 100));
+                setTaskFilterId('progressInRange:50:100');
+              }}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid',
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+                color: '#374151',
+                borderColor: '#d1d5db',
+              }}
+            >
+              Прогресс 50-100%
+            </button>
+            <button
+              onClick={() => {
+                setTaskFilter(() => inDateRange(new Date(Date.UTC(2026, 1, 1)), new Date(Date.UTC(2026, 1, 10))));
+                setTaskFilterId('inDateRange:2026-02-01:2026-02-10');
+              }}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid',
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+                color: '#374151',
+                borderColor: '#d1d5db',
+              }}
+            >
+              1-10 февраля
+            </button>
+            <button
+              onClick={() => {
+                setTaskFilter(() => or(expired(), withoutDeps()));
+                setTaskFilterId('or:expired:withoutDeps');
+              }}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid',
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+                color: '#374151',
+                borderColor: '#d1d5db',
+              }}
+            >
+              Просроченные ИЛИ без зависимостей
+            </button>
+          </div>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
             <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Масштаб:</span>
             <button
@@ -1138,6 +1269,7 @@ export default function Home() {
             <GanttChart
               ref={ganttChartRef}
               tasks={tasks}
+              taskFilter={taskFilter}
               dayWidth={viewMode === 'month' ? 2.5 : viewMode === 'week' ? 8 : 24}
               rowHeight={36}
               onTasksChange={handleChange}

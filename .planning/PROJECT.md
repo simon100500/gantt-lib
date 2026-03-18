@@ -30,6 +30,17 @@ The library is published as `gantt-lib` v0.18.0 on npm with the following featur
 - Row reordering via drag-and-drop
 - Expired task highlighting
 - Action buttons panel
+- **Task filtering API** (Phase 22) — predicate-based filtering with ready-made utilities
+- shadcn/ui components (DatePicker, Input)
+- Monthly calendar grid with task bars
+- Drag-and-drop task manipulation (move and resize)
+- Task dependencies with FS/SS/FF/SF link types
+- Task hierarchy (parent-child relationships)
+- Task list panel with inline editing
+- Dependency editing via TaskList
+- Row reordering via drag-and-drop
+- Expired task highlighting
+- Action buttons panel
 - shadcn/ui components (DatePicker, Input)
 
 **Tech stack:** React 18+, TypeScript, date-fns, @radix-ui
@@ -98,4 +109,4 @@ The library is published as `gantt-lib` v0.18.0 on npm with the following featur
 - **Browser**: Modern browsers — No IE11 requirement
 
 ---
-*Last updated: 2026-03-17 after v0.50.0 milestone started*
+*Last updated: 2026-03-18 after Phase 22 (filters) completed*

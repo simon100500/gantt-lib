@@ -6,6 +6,7 @@ import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type { ValidationResult } from '../../types';
+import { TaskPredicate } from '../../filters';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
@@ -130,6 +131,12 @@ export interface GanttChartProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate (checked before customDays overrides) */
   isWeekend?: (date: Date) => boolean;
+  /**
+   * Optional predicate to mark tasks in the current view.
+   * Matching tasks stay visible and are highlighted in the chart and task list.
+   * Dependencies are still computed on ALL tasks (normalizedTasks).
+   */
+  taskFilter?: TaskPredicate;
 }
 
 /**
@@ -192,6 +199,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   viewMode = 'day',
   customDays,
   isWeekend,
+  taskFilter,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -231,9 +239,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     [dateRange.length, dayWidth]
   );
 
-  // Filter tasks to hide children of collapsed parents (for chart rendering).
+  // Visible tasks are determined only by collapsed parent state.
   // Checks the full ancestor chain so grandchildren are hidden when any ancestor is collapsed.
-  const filteredTasks = useMemo(() => {
+  const visibleTasks = useMemo(() => {
     const parentMap = new Map(normalizedTasks.map(t => [t.id, t.parentId]));
 
     function isAnyAncestorCollapsed(parentId: string | undefined): boolean {
@@ -248,10 +256,15 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     return normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
   }, [normalizedTasks, collapsedParentIds]);
 
-  // Calculate total grid height (based on filtered tasks)
+  const matchedTaskIds = useMemo(() => {
+    if (!taskFilter) return new Set<string>();
+    return new Set(visibleTasks.filter(taskFilter).map(task => task!.id));
+  }, [visibleTasks, taskFilter]);
+
+  // Calculate total grid height from currently visible rows.
   const totalGridHeight = useMemo(
-    () => filteredTasks.length * rowHeight,
-    [filteredTasks.length, rowHeight]
+    () => visibleTasks.length * rowHeight,
+    [visibleTasks.length, rowHeight]
   );
 
   // Get month start for calculations (first day of date range)
@@ -807,6 +820,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onToggleCollapse={handleToggleCollapse}
             onPromoteTask={onPromoteTask ?? handlePromoteTask}
             onDemoteTask={onDemoteTask ?? handleDemoteTask}
+            highlightedTaskIds={matchedTaskIds}
             customDays={customDays}
             isWeekend={isWeekend}
           />
@@ -844,7 +858,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
           {/* Dependency lines SVG overlay */}
           <DependencyLines
-            tasks={filteredTasks}
+            tasks={visibleTasks}
             allTasks={normalizedTasks}
             collapsedParentIds={collapsedParentIds}
             monthStart={monthStart}
@@ -865,7 +879,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             />
           )}
 
-          {filteredTasks.map((task, index) => (
+          {visibleTasks.map((task, index) => (
             <TaskRow
               key={task.id}
               task={task}
@@ -890,6 +904,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
               onCascadeProgress={handleCascadeProgress}
               onCascade={handleCascade}
               highlightExpiredTasks={highlightExpiredTasks}
+              isFilterMatch={matchedTaskIds.has(task.id)}
             />
           ))}
           </div>

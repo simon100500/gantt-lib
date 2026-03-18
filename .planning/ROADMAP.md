@@ -4,17 +4,18 @@
 
 - ✅ **v0.18.0 Gantt Library MVP** — Phases 1-20 (shipped 2026-03-17)
   — See `.planning/milestones/v0.18.0-ROADMAP.md`
-- 🔄 **v0.50.0 Adding Tools** — Phases 21-22 (in progress)
+- 🔄 **v0.50.0 Adding Tools** — Phases 21-23 (in progress)
 
 ## Current Status
 
-🎯 **Phase 21 complete** — Custom Weekend Calendar
+🎯 **Phase 22 ready to plan** — Task filtering with predicate-based API
 
 ## Phases
 
 - [ ] **Phase 21: Custom Weekend Calendar** - User-defined weekend dates and flexible weekend logic
 - [x] **Phase 21.1: custom-weekend-refactoring [INSERTED]** - Refactor three props (weekends, workdays, isWeekend) to unified customDays array
-- [ ] **Phase 22: Additional TaskList Columns** - Custom columns with renderers and editors
+- [ ] **Phase 22: filters** - Task filtering functionality
+- [ ] **Phase 23: Additional TaskList Columns** - Custom columns with renderers and editors
 
 ### Phase 21: Custom Weekend Calendar
 
@@ -58,11 +59,32 @@
 
 - [x] 21.1-01-PLAN.md — Refactor API: replace weekends/workdays props with customDays array, update utilities, migrate tests
 
-### Phase 22: Additional TaskList Columns
+### Phase 22: filters
+
+**Goal:** Users can filter tasks by various criteria using predicate-based API with ready-made utilities
+
+**Depends on:** Phase 21.1
+
+**Requirements:** None (internal feature, not tracked in REQUIREMENTS.md)
+
+**Success Criteria** (what must be TRUE):
+1. User can import TaskPredicate type and ready-made filters from 'gantt-lib/filters'
+2. Boolean composites (and, or, not) allow combining any predicates
+3. Ready-made filters work without additional code: withoutDeps, expired, inDateRange, progressInRange, nameContains
+4. User can pass taskFilter prop to GanttChart and see filtered view
+5. Dependencies still work on ALL tasks (including hidden by filter)
+6. Filtered view updates in real-time as filters change
+
+**Plans:** 2 plans
+
+- [ ] 22-01-PLAN.md — Create filters module with TaskPredicate type, boolean composites, and 5 ready-made filters
+- [ ] 22-02-PLAN.md — Integrate taskFilter prop into GanttChart and add public export from index.ts
+
+### Phase 23: Additional TaskList Columns
 
 **Goal:** Users can extend TaskList with custom columns for project-specific data (assignee, status, priority, etc.)
 
-**Depends on:** Phase 21 (no technical dependency, but keeps calendar work focused first)
+**Depends on:** Phase 22
 
 **Requirements:** COL-01, COL-02, COL-03, COL-04, COL-05, COL-06, COL-07, COL-08
 
@@ -84,9 +106,10 @@
 | 1-20 | v0.18.0 | 50/51 | Complete | 2026-03-17 |
 | 21 | v0.50.0 | 0/4 | Not started | - |
 | 21.1 | v0.50.0 | 1/1 | Complete | 2026-03-18 |
-| 22 | v0.50.0 | 0/2 | Not started | - |
+| 22 | v0.50.0 | 0/2 | Ready to execute | - |
+| 23 | v0.50.0 | 0/TBD | Not started | - |
 
-**Overall:** 51/58 plans complete (88%)
+**Overall:** 51/60 plans complete (85%)
 
 <details>
 <summary>✅ v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -123,7 +146,7 @@ Build a lightweight React/Next.js library for interactive Gantt charts. Starting
 </details>
 
 <details>
-<summary>🔄 v0.50.0 Adding Tools (Phases 21-22) — IN PROGRESS</summary>
+<summary>🔄 v0.50.0 Adding Tools (Phases 21-23) — IN PROGRESS</summary>
 
 ### Overview
 
@@ -133,7 +156,7 @@ Add developer tools and calendar customization features to the Gantt library.
 
 - [x] **Phase 21.1: custom-weekend-refactoring** (1/1 plans) — Refactor API to unified customDays array
 
-**Total:** 1 phase complete, 2 in progress
+**Total:** 1 phase complete, 3 in progress
 
 </details>
 
