@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.20.0] - 2026-03-18
+
+### Breaking Changes
+- **Removed:** `weekends` and `workdays` props - replaced with unified `customDays` array
+- **New:** `customDays?: CustomDayConfig[]` prop where `CustomDayConfig = { date: Date; type: 'weekend' | 'workday' }`
+- Migration: replace `weekends={[date1, date2]}` with `customDays={[{ date: date1, type: 'weekend' }, { date: date2, type: 'weekend' }]}`
+
+### Refactor
+- Unify custom weekend/workday API into single `customDays` array with explicit type annotations
+- Add `CustomDayConfig` interface and `createCustomDayPredicate` utility with O(1) Set-based lookup
+- Update all components (GanttChart, TaskList, TaskListRow, Calendar, DatePicker) to use new API
+- Preserve `isWeekend?: (date: Date) => boolean` prop for custom predicate logic
+
+### Features
+- Add priority order for custom days: workday > weekend > base predicate > default
+
+### Fixes
+- Update demo page to use new `customDays` API
+
+### Tests
+- Add 8 new unit tests for `createCustomDayPredicate` covering all scenarios
+
 ## [0.19.0] - 2026-03-18
 
 ### Features
