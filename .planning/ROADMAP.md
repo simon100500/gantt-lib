@@ -8,13 +8,13 @@
 
 ## Current Status
 
-🎯 **Phase 22 ready to plan** — Task filtering with predicate-based API
+🎯 **Phase 23 ready to plan** — Additional TaskList Columns with custom renderers
 
 ## Phases
 
 - [ ] **Phase 21: Custom Weekend Calendar** - User-defined weekend dates and flexible weekend logic
 - [x] **Phase 21.1: custom-weekend-refactoring [INSERTED]** - Refactor three props (weekends, workdays, isWeekend) to unified customDays array
-- [ ] **Phase 22: filters** - Task filtering functionality
+- [x] **Phase 22: filters** - Task filtering functionality
 - [ ] **Phase 23: Additional TaskList Columns** - Custom columns with renderers and editors
 
 ### Phase 21: Custom Weekend Calendar
@@ -77,8 +77,8 @@
 
 **Plans:** 2 plans
 
-- [ ] 22-01-PLAN.md — Create filters module with TaskPredicate type, boolean composites, and 5 ready-made filters
-- [ ] 22-02-PLAN.md — Integrate taskFilter prop into GanttChart and add public export from index.ts
+- [x] 22-01-PLAN.md — Create filters module with TaskPredicate type, boolean composites, and 5 ready-made filters
+- [x] 22-02-PLAN.md — Integrate taskFilter prop into GanttChart and add public export from index.ts
 
 ### Phase 23: Additional TaskList Columns
 
@@ -106,10 +106,10 @@
 | 1-20 | v0.18.0 | 50/51 | Complete | 2026-03-17 |
 | 21 | v0.50.0 | 0/4 | Not started | - |
 | 21.1 | v0.50.0 | 1/1 | Complete | 2026-03-18 |
-| 22 | v0.50.0 | 0/2 | Ready to execute | - |
-| 23 | v0.50.0 | 0/TBD | Not started | - |
+| 22 | v0.50.0 | 2/2 | Complete | 2026-03-19 |
+| 23 | v0.50.0 | 0/TBD | Ready to plan | - |
 
-**Overall:** 51/60 plans complete (85%)
+**Overall:** 53/60 plans complete (88%)
 
 <details>
 <summary>✅ v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -155,8 +155,9 @@ Add developer tools and calendar customization features to the Gantt library.
 ### Completed Phases
 
 - [x] **Phase 21.1: custom-weekend-refactoring** (1/1 plans) — Refactor API to unified customDays array
+- [x] **Phase 22: filters** (2/2 plans) — Task filtering with predicate-based API
 
-**Total:** 1 phase complete, 3 in progress
+**Total:** 2 phases complete, 2 in progress
 
 </details>
 
@@ -166,4 +167,4 @@ Add developer tools and calendar customization features to the Gantt library.
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-**Roadmap updated:** 2026-03-18
+**Roadmap updated:** 2026-03-19

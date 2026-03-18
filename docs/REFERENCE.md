@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.21.0
+**Version:** 0.22.0
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
@@ -14,7 +14,8 @@
 | NPM install | `npm install gantt-lib` |
 | Peer dependencies | `react >= 18`, `react-dom >= 18` |
 | CSS import (REQUIRED) | `import 'gantt-lib/styles.css'` |
-| Main import | `import { GanttChart, type Task, type TaskDependency } from 'gantt-lib'` |
+| Main import | `import { GanttChart, type Task, type TaskDependency, type TaskPredicate } from 'gantt-lib'` |
+| Filters import | `import { and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains } from 'gantt-lib/filters'` |
 
 The CSS import MUST appear as a separate import line. Without it, task bars, grid lines, and layout will not render correctly.
 
@@ -591,7 +592,7 @@ interface GanttChartProps {
   rowHeight?: number;
   headerHeight?: number;
   containerHeight?: number | string;
-  viewMode?: 'day' | 'week';
+  viewMode?: 'day' | 'week' | 'month';
   onTasksChange?: (tasks: Task[]) => void;
   onAdd?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
@@ -611,6 +612,9 @@ interface GanttChartProps {
   collapsedParentIds?: Set<string>;
   onToggleCollapse?: (parentId: string) => void;
   enableAddTask?: boolean;
+  taskFilter?: TaskPredicate;
+  customDays?: CustomDayConfig[];
+  isWeekend?: (date: Date) => boolean;
 }
 ```
 
@@ -641,6 +645,7 @@ interface GanttChartProps {
 | `collapsedParentIds` | `Set<string>` | `undefined` | Set of parent task IDs that are collapsed (children hidden). Pass `undefined` for uncontrolled mode (internal state). |
 | `onToggleCollapse` | `(parentId: string) => void` | `undefined` | Called when user clicks collapse/expand button on a parent task. Receives the `parentId` of the parent being toggled. Required for controlled mode when providing `collapsedParentIds`. |
 | `enableAddTask` | `boolean` | `true` | When `true`, shows the "+ Добавить задачу" button at the bottom of the task list for adding new tasks. |
+| `taskFilter` | `TaskPredicate` | `undefined` | Predicate function to filter tasks. Receives a `Task | undefined`, returns `true` to show the task, `false` to hide it. **Import:** `import { type TaskPredicate } from 'gantt-lib'`. See Section 7.3 for usage and ready-made filters. |
 | `customDays` | `CustomDayConfig[]` | `undefined` | Array of custom day configurations with explicit types. Each entry: `{ date: Date, type: 'weekend' | 'workday' }`. **IMPORTANT:** Use UTC dates: `{ date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' }` for March 8, 2026. See Section 7.2 for details. |
 | `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Checked BEFORE customDays overrides** — use for base patterns, then override specific dates with `customDays`. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
 
@@ -1179,6 +1184,477 @@ const isWeekend = (date: Date) => {
   onSelect={setSelectedDate}
   isWeekend={isWeekend}
 />
+```
+
+---
+
+### 7.3. Task Filtering API
+
+The library supports task filtering via a predicate-based API. You can:
+- Use ready-made filters for common scenarios
+- Combine filters with boolean logic (`and`, `or`, `not`)
+- Create custom predicates for any filtering logic
+- Pass filters to `GanttChart` via the `taskFilter` prop
+
+**Key behaviors:**
+- Filtered tasks are **hidden from view** but remain in the data
+- Dependencies work on **ALL tasks** including hidden ones
+- Filter updates in real-time when the predicate changes
+- Filtering does NOT modify the underlying `tasks` array
+
+---
+
+#### 7.3.1. Basic Usage
+
+Import the filter utilities:
+
+```tsx
+import { GanttChart, type TaskPredicate } from 'gantt-lib';
+import { and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains } from 'gantt-lib/filters';
+```
+
+Pass a filter to `GanttChart`:
+
+```tsx
+const myFilter = withoutDeps();
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={myFilter}
+/>
+```
+
+---
+
+#### 7.3.2. TaskPredicate Type
+
+All filters are functions that accept a task and return a boolean:
+
+```typescript
+type TaskPredicate = (task: Task | undefined) => boolean;
+```
+
+- **Input:** `Task | undefined` — undefined is passed for placeholder/empty rows
+- **Output:** `true` = show task, `false` = hide task
+- **Safe:** Always check `if (!task) return false;` in custom predicates
+
+---
+
+#### 7.3.3. Ready-Made Filters
+
+The library provides 6 ready-made filters for common use cases:
+
+##### `withoutDeps()`
+
+Filter tasks that have no dependencies:
+
+```tsx
+import { withoutDeps } from 'gantt-lib/filters';
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={withoutDeps()}
+/>
+```
+
+**Use case:** Find root tasks that can start independently.
+
+---
+
+##### `expired(referenceDate?)`
+
+Filter overdue tasks (tasks ending before the reference date):
+
+```tsx
+import { expired } from 'gantt-lib/filters';
+
+// Uses today's date by default
+<GanttChart
+  tasks={tasks}
+  taskFilter={expired()}
+/>
+
+// Or specify a custom reference date
+<GanttChart
+  tasks={tasks}
+  taskFilter={expired(new Date(Date.UTC(2026, 5, 1)))}
+/>
+```
+
+**Use case:** Identify delayed tasks for project recovery.
+
+---
+
+##### `inDateRange(rangeStart, rangeEnd)`
+
+Filter tasks that intersect with a date range:
+
+```tsx
+import { inDateRange } from 'gantt-lib/filters';
+
+// Show tasks in March 2026
+const marchStart = new Date(Date.UTC(2026, 2, 1));
+const marchEnd = new Date(Date.UTC(2026, 2, 31));
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={inDateRange(marchStart, marchEnd)}
+/>
+```
+
+**Intersection logic:** Task intersects if `taskStart <= rangeEnd && taskEnd >= rangeStart`.
+
+**Use case:** Focus on specific time periods (sprints, quarters).
+
+---
+
+##### `progressInRange(min, max)`
+
+Filter tasks by progress percentage:
+
+```tsx
+import { progressInRange } from 'gantt-lib/filters';
+
+// Show not started tasks (0%)
+<GanttChart
+  tasks={tasks}
+  taskFilter={progressInRange(0, 0)}
+/>
+
+// Show in-progress tasks (1-99%)
+<GanttChart
+  tasks={tasks}
+  taskFilter={progressInRange(1, 99)}
+/>
+
+// Show completed tasks (100%)
+<GanttChart
+  tasks={tasks}
+  taskFilter={progressInRange(100, 100)}
+/>
+```
+
+**Use case:** Track project completion status.
+
+---
+
+##### `nameContains(substring, caseSensitive?)`
+
+Filter tasks by name substring:
+
+```tsx
+import { nameContains } from 'gantt-lib/filters';
+
+// Case-insensitive search (default)
+<GanttChart
+  tasks={tasks}
+  taskFilter={nameContains('backend')}
+/>
+
+// Case-sensitive search
+<GanttChart
+  tasks={tasks}
+  taskFilter={nameContains('API', true)}
+/>
+```
+
+**Use case:** Quick search by task name/keyword.
+
+---
+
+#### 7.3.4. Boolean Composites
+
+Combine multiple filters with boolean logic:
+
+##### `and(...predicates)`
+
+All predicates must return `true`:
+
+```tsx
+import { and, expired, nameContains } from 'gantt-lib/filters';
+
+// Show expired tasks containing "backend"
+const filter = and(expired(), nameContains('backend'));
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={filter}
+/>
+```
+
+---
+
+##### `or(...predicates)`
+
+At least one predicate must return `true`:
+
+```tsx
+import { or, withoutDeps, progressInRange } from 'gantt-lib/filters';
+
+// Show tasks without deps OR completed tasks
+const filter = or(withoutDeps(), progressInRange(100, 100));
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={filter}
+/>
+```
+
+---
+
+##### `not(predicate)`
+
+Inverts the predicate logic:
+
+```tsx
+import { not, expired } from 'gantt-lib/filters';
+
+// Hide expired tasks (show non-expired)
+const filter = not(expired());
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={filter}
+/>
+```
+
+---
+
+#### 7.3.5. Complex Combinations
+
+Nest composites for complex logic:
+
+```tsx
+import { and, or, not, expired, progressInRange, nameContains } from 'gantt-lib/filters';
+
+// Show (NOT expired AND in-progress) OR tasks containing "critical"
+const filter = or(
+  and(not(expired()), progressInRange(1, 99)),
+  nameContains('critical')
+);
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={filter}
+/>
+```
+
+---
+
+#### 7.3.6. Custom Predicates
+
+Create your own predicates for custom logic:
+
+```tsx
+import { type TaskPredicate } from 'gantt-lib';
+
+// Filter by color
+const blueTasks: TaskPredicate = (task) => {
+  if (!task) return false;
+  return task.color === '#3b82f6';
+};
+
+// Filter by parent status
+const topLevelTasks: TaskPredicate = (task) => {
+  if (!task) return false;
+  return !task.parentId;
+};
+
+// Filter by duration (shorter than 7 days)
+const shortTasks: TaskPredicate = (task) => {
+  if (!task) return false;
+  const start = new Date(task.startDate);
+  const end = new Date(task.endDate);
+  const days = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+  return days < 7;
+};
+
+// Use custom predicates
+<GanttChart
+  tasks={tasks}
+  taskFilter={blueTasks}
+/>
+```
+
+---
+
+#### 7.3.7. Combining Custom + Ready-Made
+
+```tsx
+import { and, withoutDeps } from 'gantt-lib/filters';
+
+// Combine custom predicate with ready-made filter
+const rootBackendTasks: TaskPredicate = and(
+  withoutDeps(),
+  (task) => task?.name.toLowerCase().includes('backend') ?? false
+);
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={rootBackendTasks}
+/>
+```
+
+---
+
+#### 7.3.8. Dynamic Filters
+
+Use `useState` for dynamic filter changes:
+
+```tsx
+import { useState } from 'react';
+import { GanttChart } from 'gantt-lib';
+import { expired, progressInRange, withoutDeps } from 'gantt-lib/filters';
+
+export default function App() {
+  const [filterType, setFilterType] = useState<'all' | 'expired' | 'completed' | 'root'>('all');
+
+  const getFilter = () => {
+    switch (filterType) {
+      case 'expired': return expired();
+      case 'completed': return progressInRange(100, 100);
+      case 'root': return withoutDeps();
+      default: return undefined;
+    }
+  };
+
+  return (
+    <>
+      <select value={filterType} onChange={(e) => setFilterType(e.target.value as any)}>
+        <option value="all">All Tasks</option>
+        <option value="expired">Expired Only</option>
+        <option value="completed">Completed Only</option>
+        <option value="root">Root Tasks Only</option>
+      </select>
+      <GanttChart tasks={tasks} taskFilter={getFilter()} />
+    </>
+  );
+}
+```
+
+---
+
+#### 7.3.9. Filter Behavior Details
+
+**Dependencies and filtering:**
+- Dependencies are calculated on ALL tasks, including hidden ones
+- Dragging a visible task still respects constraints from hidden predecessors
+- Dependency lines from hidden tasks are not rendered
+
+**Task list behavior:**
+- Row numbers reflect the **filtered view** (not the original array index)
+- Hidden tasks are excluded from row reordering
+- Add/delete operations work on the full `tasks` array
+
+**Performance:**
+- Filters run on every render — keep predicates lightweight
+- For large task sets (>1000), consider memoizing predicates with `useMemo`
+
+---
+
+#### 7.3.10. Usage Examples
+
+**Example 1: Sprint Focus**
+
+```tsx
+import { inDateRange } from 'gantt-lib/filters';
+
+const sprintStart = new Date(Date.UTC(2026, 2, 1));  // March 1
+const sprintEnd = new Date(Date.UTC(2026, 2, 14));   // March 14
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={inDateRange(sprintStart, sprintEnd)}
+/>
+```
+
+**Example 2: Risk Dashboard**
+
+```tsx
+import { or, and, not, expired, progressInRange } from 'gantt-lib/filters';
+
+// Show expired OR (behind schedule)
+const riskFilter = or(
+  expired(),
+  and(
+    not(expired()),
+    progressInRange(0, 50)  // Less than 50% complete
+  )
+);
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={riskFilter}
+/>
+```
+
+**Example 3: Assignee Search**
+
+```tsx
+import { type TaskPredicate } from 'gantt-lib';
+
+const byAssignee = (assigneeName: string): TaskPredicate =>
+  (task) => {
+    if (!task) return false;
+    // Assuming you store assignee in task metadata
+    return (task as any).assignee?.toLowerCase() === assigneeName.toLowerCase();
+  };
+
+<GanttChart
+  tasks={tasks}
+  taskFilter={byAssignee('alice')}
+/>
+```
+
+**Example 4: Multi-Filter UI**
+
+```tsx
+import { useState, useMemo } from 'react';
+import { GanttChart } from 'gantt-lib';
+import { and, or, not, expired, progressInRange, nameContains, inDateRange } from 'gantt-lib/filters';
+
+export default function FilterableGantt() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showExpiredOnly, setShowExpiredOnly] = useState(false);
+  const [progressRange, setProgressRange] = useState<[number, number]>([0, 100]);
+
+  const filter = useMemo(() => {
+    const predicates: Array<(task: any) => boolean> = [];
+
+    if (searchQuery) {
+      predicates.push(nameContains(searchQuery));
+    }
+
+    if (showExpiredOnly) {
+      predicates.push(expired());
+    }
+
+    if (progressRange[0] > 0 || progressRange[1] < 100) {
+      predicates.push(progressInRange(progressRange[0], progressRange[1]));
+    }
+
+    return predicates.length > 0 ? and(...predicates) : undefined;
+  }, [searchQuery, showExpiredOnly, progressRange]);
+
+  return (
+    <>
+      <input
+        placeholder="Search tasks..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      <label>
+        <input
+          type="checkbox"
+          checked={showExpiredOnly}
+          onChange={(e) => setShowExpiredOnly(e.target.checked)}
+        />
+        Expired only
+      </label>
+      <GanttChart tasks={tasks} taskFilter={filter} />
+    </>
+  );
+}
 ```
 
 ---
