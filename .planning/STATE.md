@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.18
 milestone_name: milestone
 status: planning
-last_updated: "2026-03-18T10:29:54.717Z"
-last_activity: 2026-03-18 — Quick task 260318-mso: UI improvements (progress "-", duration "д" suffix)
+last_updated: "2026-03-18T13:40:10.351Z"
+last_activity: 2026-03-17 — Integrated custom weekend props into GanttChart, GridBackground, TimeScaleHeader, and Calendar
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 ## Current Position
