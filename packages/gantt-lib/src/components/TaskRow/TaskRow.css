@@ -200,6 +200,15 @@
   margin-left: 4px;
 }
 
+/* Duration text outside task bar (before progress and task name) */
+.gantt-tr-externalDuration {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
 /* Locked task bar state — consumer CSS override point */
 .gantt-tr-taskBar.gantt-tr-locked {
   cursor: not-allowed;
