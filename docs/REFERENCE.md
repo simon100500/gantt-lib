@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.22.0
+**Version:** 0.23.0
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
@@ -10,7 +10,7 @@
 | Property | Value |
 |---|---|
 | Package name | `gantt-lib` |
-| Version | `0.21.0` |
+| Version | `0.23.0` |
 | NPM install | `npm install gantt-lib` |
 | Peer dependencies | `react >= 18`, `react-dom >= 18` |
 | CSS import (REQUIRED) | `import 'gantt-lib/styles.css'` |
@@ -281,8 +281,20 @@ export default function FullExample() {
     });
   }, []);
 
-  // Collapse/expand state (uncontrolled mode - internal)
-  // For controlled mode, pass collapsedParentIds and onToggleCollapse
+  // Collapse/expand state (controlled mode)
+  const [collapsedParentIds, setCollapsedParentIds] = useState<Set<string>>(new Set());
+
+  const handleToggleCollapse = useCallback((parentId: string) => {
+    setCollapsedParentIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(parentId)) {
+        newSet.delete(parentId);
+      } else {
+        newSet.add(parentId);
+      }
+      return newSet;
+    });
+  }, []);
 
   return (
     <div>
@@ -303,6 +315,8 @@ export default function FullExample() {
         onReorder={handleReorder}
         onPromoteTask={handlePromoteTask}
         onDemoteTask={handleDemoteTask}
+        collapsedParentIds={collapsedParentIds}
+        onToggleCollapse={handleToggleCollapse}
         showTaskList={true}
         taskListWidth={500}
         enableAddTask={true}
@@ -1656,6 +1670,178 @@ export default function FilterableGantt() {
   );
 }
 ```
+
+---
+
+### 7.4. Controlled Collapse/Expand Mode (v0.23.0+)
+
+The library supports both controlled and uncontrolled modes for managing parent task collapse/expand state:
+
+**Uncontrolled Mode (default):**
+- Omit `collapsedParentIds` and `onToggleCollapse` props
+- Component manages internal state
+- Use `ref.collapseAll()` and `ref.expandAll()` for bulk operations
+
+**Controlled Mode:**
+- Pass `collapsedParentIds: Set<string>` prop with current state
+- Pass `onToggleCollapse: (parentId: string) => void` callback
+- You own the state — useful for persistence, URL sync, or external controls
+
+---
+
+#### 7.4.1. Controlled Mode Example
+
+```tsx
+import { useState, useCallback } from 'react';
+import { GanttChart, type Task } from 'gantt-lib';
+import 'gantt-lib/styles.css';
+
+export default function ControlledCollapseExample() {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [collapsedParentIds, setCollapsedParentIds] = useState<Set<string>>(new Set());
+
+  const handleToggleCollapse = useCallback((parentId: string) => {
+    setCollapsedParentIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(parentId)) {
+        newSet.delete(parentId);  // Expand
+      } else {
+        newSet.add(parentId);     // Collapse
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Optional: Collapse/expand all via external controls
+  const handleCollapseAll = useCallback(() => {
+    const allParentIds = tasks
+      .filter(t => !t.parentId && tasks.some(c => c.parentId === t.id))
+      .map(t => t.id);
+    setCollapsedParentIds(new Set(allParentIds));
+  }, [tasks]);
+
+  const handleExpandAll = useCallback(() => {
+    setCollapsedParentIds(new Set());
+  }, []);
+
+  return (
+    <div>
+      <button onClick={handleCollapseAll}>Collapse All</button>
+      <button onClick={handleExpandAll}>Expand All</button>
+      <GanttChart
+        tasks={tasks}
+        collapsedParentIds={collapsedParentIds}
+        onToggleCollapse={handleToggleCollapse}
+        showTaskList={true}
+        onTasksChange={(changed) => {
+          const changedMap = new Map(changed.map(t => [t.id, t]));
+          setTasks(prev => prev.map(t => changedMap.get(t.id) ?? t));
+        }}
+      />
+    </div>
+  );
+}
+```
+
+---
+
+#### 7.4.2. Persistence Example
+
+```tsx
+import { useEffect, useState, useCallback } from 'react';
+
+export default function PersistentCollapseExample() {
+  const [collapsedParentIds, setCollapsedParentIds] = useState<Set<string>>(() => {
+    // Load from localStorage on mount
+    const saved = localStorage.getItem('gantt-collapsed');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+
+  // Persist to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('gantt-collapsed', JSON.stringify([...collapsedParentIds]));
+  }, [collapsedParentIds]);
+
+  const handleToggleCollapse = useCallback((parentId: string) => {
+    setCollapsedParentIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(parentId)) {
+        newSet.delete(parentId);
+      } else {
+        newSet.add(parentId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  return (
+    <GanttChart
+      tasks={tasks}
+      collapsedParentIds={collapsedParentIds}
+      onToggleCollapse={handleToggleCollapse}
+    />
+  );
+}
+```
+
+---
+
+#### 7.4.3. URL Sync Example
+
+```tsx
+import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
+export default function URLSyncExample() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [collapsedParentIds, setCollapsedParentIds] = useState<Set<string>>(() => {
+    const collapsed = searchParams.get('collapsed');
+    return collapsed ? new Set(collapsed.split(',')) : new Set();
+  });
+
+  const handleToggleCollapse = useCallback((parentId: string) => {
+    setCollapsedParentIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(parentId)) {
+        newSet.delete(parentId);
+      } else {
+        newSet.add(parentId);
+      }
+
+      // Update URL
+      const collapsedArray = Array.from(newSet);
+      setSearchParams(collapsedArray.length > 0
+        ? { collapsed: collapsedArray.join(',') }
+        : {}
+      );
+
+      return newSet;
+    });
+  }, [setSearchParams]);
+
+  return (
+    <GanttChart
+      tasks={tasks}
+      collapsedParentIds={collapsedParentIds}
+      onToggleCollapse={handleToggleCollapse}
+    />
+  );
+}
+```
+
+---
+
+#### 7.4.4. Mode Comparison
+
+| Feature | Uncontrolled | Controlled |
+|---------|--------------|------------|
+| State management | Internal (React useState) | External (your state) |
+| Props needed | None | `collapsedParentIds`, `onToggleCollapse` |
+| Ref methods | `collapseAll()`, `expandAll()` work | Ref methods still work (call `onToggleCollapse` per parent) |
+| Persistence | Manual implementation needed | Easy — just persist your state |
+| URL sync | Requires ref hacks | Direct — sync your state to URL |
+| External controls | Via ref only | Direct state access |
 
 ---
 
