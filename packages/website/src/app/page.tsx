@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { GanttChart, Calendar, type Task, type GanttChartHandle, and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains, type TaskPredicate } from "gantt-lib";
+import { isTaskParent, getAllDescendants } from "gantt-lib/lib/utils/dependencyUtils";
 
 const createSampleTasks = (): Task[] => {
   return [
@@ -803,11 +804,26 @@ export default function Home() {
 
   const handleInsertAfter = useCallback((taskId: string, newTask: Task) => {
     setTasks(prev => {
+      const task = prev.find(t => t.id === taskId);
+      if (!task) return prev;
+
+      // Case 1: Task is a parent → insert after all descendants
+      if (isTaskParent(taskId, prev)) {
+        const descendants = getAllDescendants(taskId, prev);
+        const lastIndex = descendants.length > 0
+          ? prev.findIndex(t => t.id === descendants[descendants.length - 1].id)
+          : prev.findIndex(t => t.id === taskId);
+        if (lastIndex === -1) return prev;
+        const newTasks = [...prev];
+        newTasks.splice(lastIndex + 1, 0, { ...newTask, parentId: undefined });
+        return newTasks;
+      }
+
+      // Case 2: Task is a child → insert with same parentId after current task
       const index = prev.findIndex(t => t.id === taskId);
       if (index === -1) return prev;
-      // Insert after the found index
       const newTasks = [...prev];
-      newTasks.splice(index + 1, 0, newTask);
+      newTasks.splice(index + 1, 0, { ...newTask, parentId: task.parentId });
       return newTasks;
     });
   }, []);
