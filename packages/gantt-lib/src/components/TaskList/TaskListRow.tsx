@@ -310,11 +310,10 @@ const DepChip: React.FC<DepChipProps> = ({
   const handleOpenChange = useCallback(
     (open: boolean) => {
       setPopoverOpen(open);
-      if (!open) {
-        onChipSelect?.(null);
-      }
+      // Don't clear selectedChip on automatic popover close (e.g. focus loss, escape)
+      // Only clear when user explicitly closes via chip click or trash button
     },
-    [onChipSelect],
+    [],
   );
 
   const handleTrashClick = (e: React.MouseEvent) => {
@@ -1152,7 +1151,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         );
         onChipSelect?.(null);
       },
-      [selectedChip, onRemoveDependency, onChipSelect],
+      [selectedChip?.successorId, selectedChip?.predecessorId, selectedChip?.linkType, onRemoveDependency, onChipSelect],
     );
 
     const startDateISO = toISODate(task.startDate);

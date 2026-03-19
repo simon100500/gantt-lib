@@ -972,10 +972,16 @@
   text-align: center;
 }
 
+.gantt-tl-dep-delete-label-default {
+  display: inline;
+  pointer-events: none;
+}
+
 .gantt-tl-dep-delete-label-hover {
   display: none;
   color: #fff;
   font-weight: 600;
+  pointer-events: none;
 }
 
 .gantt-tl-dep-delete-label:hover .gantt-tl-dep-delete-label-default {
