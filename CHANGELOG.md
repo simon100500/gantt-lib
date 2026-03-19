@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.23.1] - 2026-03-19
+
+### Refactor
+- Improve parent task ID retrieval logic in GanttChart component
+
 ## [0.23.0] - 2026-03-19
 
 ### Features
