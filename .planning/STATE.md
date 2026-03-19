@@ -64,6 +64,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | 260318-n0f | Вынос длительности за пределы узких полос (≤40px) | 2026-03-18 | [260318-n0f-1-1-5-100](./quick/260318-n0f-1-1-5-100/) |
 | 260318-nji | Фикс отступов внешних меток rightLabels (gap вместо margin) | 2026-03-18 | [260318-nji-taskrow](./quick/260318-nji-taskrow/) |
 | 260319-ofh | Move add connection button after chips (left-align connections) | 2026-03-19 | |
+| 260319-uwn | Иерархическое добавление задач: кнопка '+' на родителе → после детей, на ребёнке → тот же родитель | 2026-03-19 | [260319-uwn-1-2-3](./quick/260319-uwn-1-2-3/) |
 
 ### User Feedback
 
