@@ -142,6 +142,8 @@ export interface TaskListProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate for date picker */
   isWeekend?: (date: Date) => boolean;
+  /** Считать duration в рабочих днях */
+  businessDays?: boolean;
   /** Task IDs highlighted by the active filter */
   highlightedTaskIds?: Set<string>;
 }
@@ -178,6 +180,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onDemoteTask,
   customDays,
   isWeekend,
+  businessDays,
   highlightedTaskIds = new Set(),
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
@@ -856,6 +859,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
               customDays={customDays}
               isWeekend={isWeekend}
+              businessDays={businessDays}
               isFilterMatch={highlightedTaskIds.has(task.id)}
             />
           ))}

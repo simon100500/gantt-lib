@@ -131,6 +131,8 @@ export interface GanttChartProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate (checked before customDays overrides) */
   isWeekend?: (date: Date) => boolean;
+  /** Считать duration в рабочих днях, исключая выходные (default: false) */
+  businessDays?: boolean;
   /**
    * Optional predicate to mark tasks in the current view.
    * Matching tasks stay visible and are highlighted in the chart and task list.
@@ -203,6 +205,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   viewMode = 'day',
   customDays,
   isWeekend,
+  businessDays,
   taskFilter,
   collapsedParentIds: externalCollapsedParentIds,
   onToggleCollapse: externalOnToggleCollapse,
@@ -839,6 +842,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             highlightedTaskIds={matchedTaskIds}
             customDays={customDays}
             isWeekend={isWeekend}
+            businessDays={businessDays}
           />
 
           {/* Chart area */}
