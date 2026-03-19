@@ -137,6 +137,10 @@ export interface GanttChartProps {
    * Dependencies are still computed on ALL tasks (normalizedTasks).
    */
   taskFilter?: TaskPredicate;
+  /** Set of collapsed parent task IDs for controlled mode */
+  collapsedParentIds?: Set<string>;
+  /** Callback when collapse/expand button is clicked (controlled mode) */
+  onToggleCollapse?: (parentId: string) => void;
 }
 
 /**
@@ -200,6 +204,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   customDays,
   isWeekend,
   taskFilter,
+  collapsedParentIds: externalCollapsedParentIds,
+  onToggleCollapse: externalOnToggleCollapse,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -210,8 +216,11 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
 
-  // Hierarchy state: collapsed parent IDs
-  const [collapsedParentIds, setCollapsedParentIds] = useState<Set<string>>(new Set());
+  // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
+  const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
+
+  // Use external collapsedParentIds if provided (controlled mode), otherwise use internal state
+  const collapsedParentIds = externalCollapsedParentIds ?? internalCollapsedParentIds;
 
   // Track editing task ID for auto-edit mode after insert
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -572,8 +581,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   }, []);
 
   // Hierarchy callbacks
-  const handleToggleCollapse = useCallback((parentId: string) => {
-    setCollapsedParentIds(prev => {
+  // Use external onToggleCollapse if provided (controlled mode), otherwise use internal handler
+  const handleToggleCollapse = externalOnToggleCollapse ?? useCallback((parentId: string) => {
+    setInternalCollapsedParentIds(prev => {
       const next = new Set(prev);
       if (next.has(parentId)) {
         next.delete(parentId);
@@ -590,12 +600,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   }, [normalizedTasks]);
 
   const handleCollapseAll = useCallback(() => {
-    setCollapsedParentIds(allParentIds);
-  }, [allParentIds]);
+    if (externalCollapsedParentIds) return; // Don't modify external state
+    setInternalCollapsedParentIds(allParentIds);
+  }, [allParentIds, externalCollapsedParentIds]);
 
   const handleExpandAll = useCallback(() => {
-    setCollapsedParentIds(new Set());
-  }, []);
+    if (externalCollapsedParentIds) return; // Don't modify external state
+    setInternalCollapsedParentIds(new Set());
+  }, [externalCollapsedParentIds]);
 
   // Expose collapse/expand methods via ref (must be after handlers are defined)
   useImperativeHandle(
