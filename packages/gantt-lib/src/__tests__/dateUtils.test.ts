@@ -577,22 +577,22 @@ describe('getBusinessDaysCount', () => {
   };
 
   it('should count 2 business days for Fri-Mon (excludes Sat/Sun)', () => {
-    const start = new Date(Date.UTC(2026, 2, 14)); // Fri Mar 14
-    const end = new Date(Date.UTC(2026, 2, 17));   // Mon Mar 17
+    const start = new Date(Date.UTC(2026, 2, 13)); // Fri Mar 13
+    const end = new Date(Date.UTC(2026, 2, 16));   // Mon Mar 16
     expect(getBusinessDaysCount(start, end, defaultPredicate)).toBe(2);
   });
 
   it('should return 1 for single day range', () => {
-    const start = new Date(Date.UTC(2026, 2, 14)); // Fri Mar 14
-    const end = new Date(Date.UTC(2026, 2, 14));   // Fri Mar 14
+    const start = new Date(Date.UTC(2026, 2, 13)); // Fri Mar 13
+    const end = new Date(Date.UTC(2026, 2, 13));   // Fri Mar 13
     expect(getBusinessDaysCount(start, end, defaultPredicate)).toBe(1);
   });
 
   it('should exclude weekends using default predicate (Sat/Sun)', () => {
-    const start = new Date(Date.UTC(2026, 2, 13)); // Thu Mar 13
-    const end = new Date(Date.UTC(2026, 2, 18));   // Wed Mar 18
-    // Thu, Fri (skip Sat/Sun), Mon, Tue, Wed = 5 days
-    expect(getBusinessDaysCount(start, end, defaultPredicate)).toBe(5);
+    const start = new Date(Date.UTC(2026, 2, 12)); // Thu Mar 12
+    const end = new Date(Date.UTC(2026, 2, 17));   // Tue Mar 17
+    // Thu, Fri (skip Sat/Sun), Mon, Tue = 4 days
+    expect(getBusinessDaysCount(start, end, defaultPredicate)).toBe(4);
   });
 
   it('should work with custom weekend predicate', () => {
@@ -600,8 +600,8 @@ describe('getBusinessDaysCount', () => {
       const day = date.getUTCDay();
       return day === 0 || day === 6 || day === 5; // Sun+Sat+Fri (4-day work week)
     };
-    const start = new Date(Date.UTC(2026, 2, 13)); // Thu Mar 13
-    const end = new Date(Date.UTC(2026, 2, 17));   // Mon Mar 17
+    const start = new Date(Date.UTC(2026, 2, 12)); // Thu Mar 12
+    const end = new Date(Date.UTC(2026, 2, 16));   // Mon Mar 16
     // Thu (skip Fri), (skip Sat/Sun), Mon = 2 days
     expect(getBusinessDaysCount(start, end, customPredicate)).toBe(2);
   });
@@ -609,11 +609,11 @@ describe('getBusinessDaysCount', () => {
   it('should include custom workdays from customDays', () => {
     const predicate = createCustomDayPredicate({
       customDays: [
-        { date: new Date(Date.UTC(2026, 2, 15)), type: 'workday' } // Sat -> workday
+        { date: new Date(Date.UTC(2026, 2, 14)), type: 'workday' } // Sat -> workday
       ]
     });
-    const start = new Date(Date.UTC(2026, 2, 14)); // Fri Mar 14
-    const end = new Date(Date.UTC(2026, 2, 16));   // Sun Mar 16
+    const start = new Date(Date.UTC(2026, 2, 13)); // Fri Mar 13
+    const end = new Date(Date.UTC(2026, 2, 15));   // Sun Mar 15
     // Fri, Sat (custom workday), (skip Sun) = 2 days
     expect(getBusinessDaysCount(start, end, predicate)).toBe(2);
   });
@@ -621,24 +621,24 @@ describe('getBusinessDaysCount', () => {
   it('should exclude custom weekends from customDays', () => {
     const predicate = createCustomDayPredicate({
       customDays: [
-        { date: new Date(Date.UTC(2026, 2, 16)), type: 'weekend' } // Sun -> weekend (already weekend)
+        { date: new Date(Date.UTC(2026, 2, 16)), type: 'weekend' } // Mon -> weekend
       ]
     });
-    const start = new Date(Date.UTC(2026, 2, 14)); // Fri Mar 14
-    const end = new Date(Date.UTC(2026, 2, 17));   // Mon Mar 17
-    // Fri, (skip Sat), (skip Sun - custom weekend), Mon = 2 days
+    const start = new Date(Date.UTC(2026, 2, 13)); // Fri Mar 13
+    const end = new Date(Date.UTC(2026, 2, 17));   // Tue Mar 17
+    // Fri, (skip Sat), (skip Sun), (skip Mon - custom weekend), Tue = 2 days
     expect(getBusinessDaysCount(start, end, predicate)).toBe(2);
   });
 
   it('should handle work week (Mon-Fri) with no weekends', () => {
-    const start = new Date(Date.UTC(2026, 2, 16)); // Sun Mar 16
-    const end = new Date(Date.UTC(2026, 2, 22));   // Sun Mar 22
-    // (skip Sun), Mon, Tue, Wed, Thu, Fri, (skip Sat), Sun = 5 days
+    const start = new Date(Date.UTC(2026, 2, 15)); // Sun Mar 15
+    const end = new Date(Date.UTC(2026, 2, 21));   // Sat Mar 21
+    // (skip Sun), Mon, Tue, Wed, Thu, Fri, (skip Sat) = 5 days
     expect(getBusinessDaysCount(start, end, defaultPredicate)).toBe(5);
   });
 
   it('should handle date string inputs', () => {
-    expect(getBusinessDaysCount('2026-03-14', '2026-03-17', defaultPredicate)).toBe(2);
+    expect(getBusinessDaysCount('2026-03-13', '2026-03-16', defaultPredicate)).toBe(2);
   });
 
   it('should count correctly across month boundary', () => {
@@ -656,20 +656,20 @@ describe('addBusinessDays', () => {
   };
 
   it('should calculate end date for business days starting Friday', () => {
-    const start = new Date(Date.UTC(2026, 2, 14)); // Fri Mar 14
+    const start = new Date(Date.UTC(2026, 2, 13)); // Fri Mar 13
     // 4 business days: Fri (1), (skip Sat/Sun), Mon (2), Tue (3), Wed (4)
     expect(addBusinessDays(start, 4, defaultPredicate)).toBe('2026-03-18');
   });
 
   it('should handle 1 business day (minimum)', () => {
-    const start = new Date(Date.UTC(2026, 2, 14)); // Fri Mar 14
-    expect(addBusinessDays(start, 1, defaultPredicate)).toBe('2026-03-14');
+    const start = new Date(Date.UTC(2026, 2, 13)); // Fri Mar 13
+    expect(addBusinessDays(start, 1, defaultPredicate)).toBe('2026-03-13');
   });
 
   it('should skip weekends using default predicate', () => {
-    const start = new Date(Date.UTC(2026, 2, 14)); // Fri Mar 14
+    const start = new Date(Date.UTC(2026, 2, 13)); // Fri Mar 13
     // 2 business days: Fri (1), (skip Sat/Sun), Mon (2)
-    expect(addBusinessDays(start, 2, defaultPredicate)).toBe('2026-03-17');
+    expect(addBusinessDays(start, 2, defaultPredicate)).toBe('2026-03-16');
   });
 
   it('should work with custom weekend predicate', () => {
@@ -677,18 +677,18 @@ describe('addBusinessDays', () => {
       const day = date.getUTCDay();
       return day === 0 || day === 6 || day === 5; // Sun+Sat+Fri (4-day work week)
     };
-    const start = new Date(Date.UTC(2026, 2, 12)); // Wed Mar 12
-    // 3 business days: Wed (1), (skip Thu Fri), (skip Sat/Sun), Mon (2), Tue (3)
-    expect(addBusinessDays(start, 3, customPredicate)).toBe('2026-03-17');
+    const start = new Date(Date.UTC(2026, 2, 11)); // Wed Mar 11
+    // 3 business days: Wed (1), Thu (2), (skip Fri/Sat/Sun), Mon (3)
+    expect(addBusinessDays(start, 3, customPredicate)).toBe('2026-03-16');
   });
 
   it('should include custom workdays from customDays', () => {
     const predicate = createCustomDayPredicate({
       customDays: [
-        { date: new Date(Date.UTC(2026, 2, 15)), type: 'workday' } // Sat -> workday
+        { date: new Date(Date.UTC(2026, 2, 14)), type: 'workday' } // Sat -> workday
       ]
     });
-    const start = new Date(Date.UTC(2026, 2, 14)); // Fri Mar 14
+    const start = new Date(Date.UTC(2026, 2, 13)); // Fri Mar 13
     // 3 business days: Fri (1), Sat (2 - custom workday), (skip Sun), Mon (3)
     expect(addBusinessDays(start, 3, predicate)).toBe('2026-03-16');
   });
@@ -696,27 +696,27 @@ describe('addBusinessDays', () => {
   it('should exclude custom weekends from customDays', () => {
     const predicate = createCustomDayPredicate({
       customDays: [
-        { date: new Date(Date.UTC(2026, 2, 17)), type: 'weekend' } // Mon -> weekend
+        { date: new Date(Date.UTC(2026, 2, 16)), type: 'weekend' } // Mon -> weekend
       ]
     });
-    const start = new Date(Date.UTC(2026, 2, 14)); // Fri Mar 14
+    const start = new Date(Date.UTC(2026, 2, 13)); // Fri Mar 13
     // 3 business days: Fri (1), (skip Sat/Sun), (skip Mon - custom weekend), Tue (2), Wed (3)
     expect(addBusinessDays(start, 3, predicate)).toBe('2026-03-18');
   });
 
   it('should handle date string inputs', () => {
-    expect(addBusinessDays('2026-03-14', 2, defaultPredicate)).toBe('2026-03-17');
+    expect(addBusinessDays('2026-03-13', 2, defaultPredicate)).toBe('2026-03-16');
   });
 
   it('should work across month boundary', () => {
     const start = new Date(Date.UTC(2026, 2, 28)); // Sat Mar 28
     // 3 business days: (skip Sat), (skip Sun), Mon (1), Tue (2), Wed (3)
-    expect(addBusinessDays(start, 3, defaultPredicate)).toBe('2026-03-31');
+    expect(addBusinessDays(start, 3, defaultPredicate)).toBe('2026-04-01');
   });
 
   it('should handle long range with multiple weekends', () => {
-    const start = new Date(Date.UTC(2026, 2, 14)); // Fri Mar 14
-    // 10 business days starting Fri
-    expect(addBusinessDays(start, 10, defaultPredicate)).toBe('2026-03-27');
+    const start = new Date(Date.UTC(2026, 2, 13)); // Fri Mar 13
+    // 10 business days starting Fri: Fri(1) Mon(2) Tue(3) Wed(4) Thu(5) Fri(6) Mon(7) Tue(8) Wed(9) Thu(10)
+    expect(addBusinessDays(start, 10, defaultPredicate)).toBe('2026-03-26');
   });
 });
