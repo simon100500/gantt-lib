@@ -663,6 +663,37 @@
   background-color: #dc2626;
 }
 
+/* Quick delete button — always visible, compact × button */
+.gantt-tl-dep-quick-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  color: #9ca3af;
+  flex-shrink: 0;
+  line-height: 1;
+  font-size: 14px;
+  font-weight: bold;
+  padding: 0;
+  margin-left: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.gantt-tl-dep-chip-wrapper:hover .gantt-tl-dep-quick-delete {
+  opacity: 1;
+}
+
+.gantt-tl-dep-quick-delete:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
 /* Dep chip info popover — human-readable dependency description on click */
 .gantt-tl-dep-info-popover {
   font-size: 0.75rem;
@@ -952,37 +983,52 @@
   white-space: normal;
 }
 
-/* Predecessor cell full-replacement: "Зависит от [name]" → hover → "Удалить" */
-.gantt-tl-dep-delete-label {
-  display: inline-flex;
+/* Interactive cell for delete predecessor */
+.gantt-tl-cell-deps-interactive {
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
   background: #ef4444;
-  border: none;
   border-radius: 4px;
   padding: 2px 4px;
   font-size: 0.75rem;
-  font-family: inherit;
-  cursor: pointer;
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto !important;
+}
+
+.gantt-tl-cell-deps-interactive:hover {
+  background: #dc2626;
+}
+
+.gantt-tl-cell-deps-interactive:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.gantt-tl-dep-delete-label-default {
+  display: inline;
+  pointer-events: none;
 }
 
 .gantt-tl-dep-delete-label-hover {
   display: none;
-  color: #fff;
   font-weight: 600;
+  pointer-events: none;
 }
 
-.gantt-tl-dep-delete-label:hover .gantt-tl-dep-delete-label-default {
+.gantt-tl-cell-deps-interactive:hover .gantt-tl-dep-delete-label-default {
   display: none;
 }
 
-.gantt-tl-dep-delete-label:hover .gantt-tl-dep-delete-label-hover {
+.gantt-tl-cell-deps-interactive:hover .gantt-tl-dep-delete-label-hover {
   display: inline;
 }
 

@@ -325,10 +325,39 @@ export const TaskList: React.FC<TaskListProps> = ({
       }
     };
     const handleMouseDown = (e: MouseEvent) => {
+      const path = e.composedPath?.() || [];
       const target = e.target as Element;
-      if (overlayRef.current?.contains(target)) return;
+
+      if (overlayRef.current?.contains(target)) {
+        return;
+      }
+
       // Don't clear when clicking inside a floating portal (popover, date picker, etc.)
-      if (target.closest?.('.gantt-popover')) return;
+      // Use composedPath() for more robust detection through shadow DOM and portals
+      const isInPopover = path.some((node) => {
+        const el = node as Element;
+        return el?.classList?.contains?.('gantt-popover');
+      });
+      // Also check for PopoverTrigger (the chip itself) - don't clear when clicking to open popover
+      const isPopoverTrigger = path.some((node) => {
+        const el = node as Element;
+        return el?.classList?.contains?.('gantt-tl-dep-chip');
+      });
+      if (isInPopover || isPopoverTrigger) {
+        return;
+      }
+
+      // Don't clear when clicking the delete cell in predecessor row
+      // The delete cell has class .gantt-tl-cell-deps-interactive and is NOT in the popover
+      // (it's in a different row), so we need to check for it specifically
+      const isDeleteCellClick = path.some((node) => {
+        const el = node as Element;
+        return el?.classList?.contains?.('gantt-tl-cell-deps-interactive');
+      });
+      if (isDeleteCellClick) {
+        return;
+      }
+
       setSelectingPredecessorFor(null);
       setSelectedChip(null);
       onSelectedChipChange?.(null);
@@ -421,6 +450,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   ) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+    
     const updatedDeps = (task.dependencies ?? []).filter(
       d => !(d.taskId === predecessorTaskId && d.type === linkType)
     );

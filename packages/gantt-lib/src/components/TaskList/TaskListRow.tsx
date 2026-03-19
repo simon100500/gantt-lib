@@ -310,11 +310,10 @@ const DepChip: React.FC<DepChipProps> = ({
   const handleOpenChange = useCallback(
     (open: boolean) => {
       setPopoverOpen(open);
-      if (!open) {
-        onChipSelect?.(null);
-      }
+      // Don't clear selectedChip on automatic popover close (e.g. focus loss, escape)
+      // Only clear when user explicitly closes via chip click or trash button
     },
-    [onChipSelect],
+    [],
   );
 
   const handleTrashClick = (e: React.MouseEvent) => {
@@ -435,20 +434,21 @@ const DepChip: React.FC<DepChipProps> = ({
   }
 
   return (
-    <Popover open={popoverOpen} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <span
-          className={`gantt-tl-dep-chip${isSelected ? " gantt-tl-dep-chip-selected" : ""}`}
-          onClick={handleClick}
-        >
-          <Icon />
-          {effectiveLag !== 0
-            ? effectiveLag > 0
-              ? `+${effectiveLag}`
-              : `${effectiveLag}`
-            : ""}
-        </span>
-      </PopoverTrigger>
+    <span className="gantt-tl-dep-chip-wrapper">
+      <Popover open={popoverOpen} onOpenChange={handleOpenChange}>
+        <PopoverTrigger asChild>
+          <span
+            className={`gantt-tl-dep-chip${isSelected ? " gantt-tl-dep-chip-selected" : ""}`}
+            onClick={handleClick}
+          >
+            <Icon />
+            {effectiveLag !== 0
+              ? effectiveLag > 0
+                ? `+${effectiveLag}`
+                : `${effectiveLag}`
+              : ""}
+          </span>
+        </PopoverTrigger>
       <PopoverContent
         className="gantt-tl-dep-edit-popover"
         portal={true}
@@ -521,6 +521,25 @@ const DepChip: React.FC<DepChipProps> = ({
         </div>
       </PopoverContent>
     </Popover>
+    {!disableDependencyEditing && (
+      <button
+        type="button"
+        className="gantt-tl-dep-quick-delete"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemoveDependency?.(taskId, dep.taskId, dep.type);
+          if (popoverOpen) {
+            setPopoverOpen(false);
+            onChipSelect?.(null);
+          }
+        }}
+        aria-label="Удалить связь"
+        title="Удалить связь"
+      >
+        ×
+      </button>
+    )}
+  </span>
   );
 };
 
@@ -1144,7 +1163,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const handleDeleteSelected = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
+        // isSelectedPredecessor already guarantees selectedChip is not null
         if (!selectedChip) return;
+        
         onRemoveDependency?.(
           selectedChip.successorId,
           selectedChip.predecessorId,
@@ -1152,7 +1173,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         );
         onChipSelect?.(null);
       },
-      [selectedChip, onRemoveDependency, onChipSelect],
+      [selectedChip?.successorId, selectedChip?.predecessorId, selectedChip?.linkType, onRemoveDependency, onChipSelect],
     );
 
     const startDateISO = toISODate(task.startDate);
@@ -1598,30 +1619,52 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
         {/* Dependencies column */}
         <div
-          className="gantt-tl-cell gantt-tl-cell-deps"
-          onClick={
-            isSourceRow
-              ? handleCancelPicking
-              : isPicking
-                ? handlePredecessorPick
-                : undefined
+          className={`gantt-tl-cell gantt-tl-cell-deps${
+            isSelectedPredecessor && !disableDependencyEditing
+              ? " gantt-tl-cell-deps-interactive"
+              : ""
+          }`}
+          onMouseDown={(e) => {
+            // Stop propagation on mousedown to prevent row click interference
+            if (e.button === 0 && isSelectedPredecessor && !disableDependencyEditing) {
+              e.stopPropagation();
+            }
+          }}
+          onClick={(e) => {
+            // Stop propagation BEFORE any handler to prevent row onClick from firing
+            e.stopPropagation();
+            if (isSourceRow) {
+              handleCancelPicking(e);
+            } else if (isSelectedPredecessor && !disableDependencyEditing) {
+              handleDeleteSelected(e);
+            } else if (isPicking) {
+              handlePredecessorPick(e);
+            }
+          }}
+          onKeyDown={
+            isSelectedPredecessor && !disableDependencyEditing
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleDeleteSelected(e as any);
+                  }
+                }
+              : undefined
           }
+          role={isSelectedPredecessor && !disableDependencyEditing ? "button" : undefined}
+          tabIndex={isSelectedPredecessor && !disableDependencyEditing ? 0 : undefined}
+          aria-label={isSelectedPredecessor && !disableDependencyEditing ? "Удалить связь" : undefined}
         >
           {isSourceRow ? (
             <span className="gantt-tl-dep-source-hint">Выберите задачу</span>
           ) : isSelectedPredecessor && !disableDependencyEditing ? (
             /* Full-replacement: "Зависит от [name]" → hover → "Удалить" */
-            <button
-              type="button"
-              className="gantt-tl-dep-delete-label"
-              onClick={handleDeleteSelected}
-              aria-label="Удалить связь"
-            >
+            <>
               <span className="gantt-tl-dep-delete-label-default">
                 Связано с
               </span>
               <span className="gantt-tl-dep-delete-label-hover">× удалить</span>
-            </button>
+            </>
           ) : (
             <>
               {chips.length >= 2 ? (
