@@ -594,9 +594,13 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     });
   }, []);
 
-  // Get all parent task IDs
+  // Get all parent task IDs (tasks that have children)
   const allParentIds = useMemo(() => {
-    return new Set(normalizedTasks.filter(t => t.parentId).map(t => t.parentId!).filter(id => id));
+    return new Set(
+      normalizedTasks
+        .filter(t => isTaskParent(t.id, normalizedTasks))
+        .map(t => t.id)
+    );
   }, [normalizedTasks]);
 
   const handleCollapseAll = useCallback(() => {
