@@ -10,7 +10,7 @@ import React, {
 import type { Task } from "../GanttChart";
 import type { LinkType } from "../../types";
 import type { CustomDayConfig } from "../../utils/dateUtils";
-import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate } from "../../utils/dateUtils";
+import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate, getBusinessDaysCount, addBusinessDays } from "../../utils/dateUtils";
 import {
   computeLagFromDates,
   calculateSuccessorDate,
@@ -616,6 +616,8 @@ export interface TaskListRowProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate for date picker */
   isWeekend?: (date: Date) => boolean;
+  /** Считать duration в рабочих днях */
+  businessDays?: boolean;
   /** Whether this row matches the active filter highlight */
   isFilterMatch?: boolean;
 }
@@ -667,13 +669,14 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     ancestorContinues = [],
     customDays,
     isWeekend,
+    businessDays,
     isFilterMatch = false,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState("");
     const nameInputRef = useRef<HTMLInputElement>(null);
     const [editingDuration, setEditingDuration] = useState(false);
-    const [durationValue, setDurationValue] = useState(
+    const [durationValue, setDurationValue] = useState(() =>
       getInclusiveDurationDays(task.startDate, task.endDate),
     );
     const durationInputRef = useRef<HTMLInputElement>(null);
@@ -705,6 +708,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       () => createCustomDayPredicate({ customDays, isWeekend }),
       [customDays, isWeekend]
     );
+
+    // Memoized duration calculation function (business days vs calendar days)
+    const getDuration = useCallback(
+      (start: string | Date, end: string | Date) => {
+        return businessDays
+          ? getBusinessDaysCount(start, end, weekendPredicate)
+          : getInclusiveDurationDays(start, end);
+      },
+      [businessDays, weekendPredicate]
+    );
+
+    // Memoized end date calculation function (business days vs calendar days)
+    const getEndDate = useCallback(
+      (start: string | Date, duration: number) => {
+        return businessDays
+          ? addBusinessDays(start, duration, weekendPredicate)
+          : getEndDateFromDuration(start, duration);
+      },
+      [businessDays, weekendPredicate]
+    );
+
     const isCollapsed = collapsedParentIds.has(task.id);
 
     // Picker mode flags for this row
@@ -864,11 +888,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         e.stopPropagation();
         durationConfirmedRef.current = false;
         setDurationValue(
-          getInclusiveDurationDays(task.startDate, task.endDate),
+          getDuration(task.startDate, task.endDate),
         );
         setEditingDuration(true);
       },
-      [task.locked, task.startDate, task.endDate],
+      [task.locked, task.startDate, task.endDate, getDuration],
     );
 
     const applyDurationChange = useCallback((nextDuration: number) => {
@@ -885,16 +909,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       onTasksChange?.([
         {
           ...task,
-          endDate: getEndDateFromDuration(task.startDate, normalizedDuration),
+          endDate: getEndDate(task.startDate, normalizedDuration),
         },
       ]);
       setEditingDuration(false);
-    }, [durationValue, task, onTasksChange]);
+    }, [durationValue, task, onTasksChange, getEndDate]);
 
     const handleDurationCancel = useCallback(() => {
-      setDurationValue(getInclusiveDurationDays(task.startDate, task.endDate));
+      setDurationValue(getDuration(task.startDate, task.endDate));
       setEditingDuration(false);
-    }, [task.startDate, task.endDate]);
+    }, [task.startDate, task.endDate, getDuration]);
 
     const handleDurationAdjust = useCallback(
       (delta: number) => {
@@ -915,7 +939,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           onTasksChange?.([
             {
               ...task,
-              endDate: getEndDateFromDuration(
+              endDate: getEndDate(
                 task.startDate,
                 normalizedDuration,
               ),
@@ -926,7 +950,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           handleDurationCancel();
         }
       },
-      [durationValue, task, onTasksChange, handleDurationCancel],
+      [durationValue, task, onTasksChange, handleDurationCancel, getEndDate],
     );
 
     const handleProgressClick = useCallback(
@@ -1014,8 +1038,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [editingProgress]);
 
     useEffect(() => {
-      setDurationValue(getInclusiveDurationDays(task.startDate, task.endDate));
-    }, [task.startDate, task.endDate]);
+      setDurationValue(getDuration(task.startDate, task.endDate));
+    }, [task.startDate, task.endDate, getDuration]);
 
     useEffect(() => {
       if (editingDuration && durationInputRef.current) {
@@ -1156,7 +1180,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const startDateISO = toISODate(task.startDate);
     const endDateISO = editingDuration
-      ? getEndDateFromDuration(task.startDate, durationValue)
+      ? getEndDate(task.startDate, durationValue)
       : toISODate(task.endDate);
 
     return (
@@ -1499,7 +1523,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 : undefined
             }
           >
-            {getInclusiveDurationDays(task.startDate, task.endDate)}д
+            {getDuration(task.startDate, task.endDate)}д
           </span>
         </div>
 
