@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { parseUTCDate, formatDateLabel } from '../../utils/dateUtils';
+import { parseUTCDate, formatDateRangeLabel } from '../../utils/dateUtils';
 import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { isTaskExpired } from '../../utils/expired';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
@@ -224,8 +224,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       ? pixelsToDate(displayLeft + displayWidth - dayWidth, monthStart, dayWidth)
       : taskEndDate;
 
-    const startDateLabel = formatDateLabel(currentStartDate);
-    const endDateLabel = formatDateLabel(currentEndDate);
+    const dateRangeLabel = formatDateRangeLabel(currentStartDate, currentEndDate);
 
     // Calculate duration in days
     const durationDays = Math.round(
@@ -311,7 +310,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
           >
             <span className="gantt-tr-dateLabel gantt-tr-dateLabelLeft">
-              {startDateLabel}–{endDateLabel}
+              {dateRangeLabel}
             </span>
           </div>
           {task.locked && (

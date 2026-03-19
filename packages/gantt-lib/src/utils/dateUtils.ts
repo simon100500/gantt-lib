@@ -335,6 +335,56 @@ export const formatDateLabel = (date: Date | string): string => {
 };
 
 /**
+ * Russian month abbreviations (genitive case for dates)
+ */
+const MONTH_ABBR = [
+  'янв', 'фев', 'мар', 'апр', 'мая', 'июн',
+  'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'
+];
+
+/**
+ * Format date range smartly in Russian.
+ * Examples:
+ * - Same month: "1-3 мая"
+ * - Different months same year: "15 апр - 7 июн"
+ * - Different years: "15 дек 2025 - 7 янв 2026"
+ *
+ * @param startDate - Start date
+ * @param endDate - End date
+ * @returns Formatted date range string
+ */
+export const formatDateRangeLabel = (
+  startDate: Date | string,
+  endDate: Date | string
+): string => {
+  const start = parseUTCDate(startDate);
+  const end = parseUTCDate(endDate);
+
+  const startDay = start.getUTCDate();
+  const endDay = end.getUTCDate();
+  const startMonth = start.getUTCMonth();
+  const endMonth = end.getUTCMonth();
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+
+  // Same month and year: "1-3 мая"
+  if (startMonth === endMonth && startYear === endYear) {
+    if (startDay === endDay) {
+      return `${startDay} ${MONTH_ABBR[startMonth]}`;
+    }
+    return `${startDay}–${endDay} ${MONTH_ABBR[startMonth]}`;
+  }
+
+  // Same year: "15 апр–7 июн"
+  if (startYear === endYear) {
+    return `${startDay} ${MONTH_ABBR[startMonth]}–${endDay} ${MONTH_ABBR[endMonth]}`;
+  }
+
+  // Different years: "15 дек 2025–7 янв 2026"
+  return `${startDay} ${MONTH_ABBR[startMonth]} ${startYear}–${endDay} ${MONTH_ABBR[endMonth]} ${endYear}`;
+};
+
+/**
  * Return block boundaries for week-view, splitting on month boundaries.
  * Each block represents a column in the week-view header.
  * Blocks are typically 7 days, but split on month boundaries so
