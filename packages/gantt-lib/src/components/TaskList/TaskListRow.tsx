@@ -1623,6 +1623,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             </button>
           ) : (
             <>
+              {/* "+" add dependency button — hidden in picker mode and when editing disabled, hover-reveal */}
+              {!disableDependencyEditing && !isPicking && (
+                <button
+                  type="button"
+                  className={`gantt-tl-dep-add gantt-tl-dep-add-hover${selectedChip ? " gantt-tl-dep-add-hidden" : ""}`}
+                  onClick={handleAddClick}
+                  aria-label="Добавить связь"
+                >
+                  +
+                </button>
+              )}
+
               {chips.length >= 2 ? (
                 /* 2+ deps — show only "N связей" summary chip that opens a popover */
                 <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
@@ -1684,18 +1696,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   onTasksChange={onTasksChange}
                 />
               ) : null}
-
-              {/* "+" add dependency button — hidden in picker mode and when editing disabled, hover-reveal */}
-              {!disableDependencyEditing && !isPicking && (
-                <button
-                  type="button"
-                  className={`gantt-tl-dep-add gantt-tl-dep-add-hover${selectedChip ? " gantt-tl-dep-add-hidden" : ""}`}
-                  onClick={handleAddClick}
-                  aria-label="Добавить связь"
-                >
-                  +
-                </button>
-              )}
             </>
           )}
         </div>
