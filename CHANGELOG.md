@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.22.2] - 2026-03-19
+
+### Fixes
+- Fixed delete dependency button functionality issues
+- Moved add connection button to appear after dependency chips for better alignment
+- Improved chip minimum width and container gap for more consistent appearance
+
 ## [0.22.1] - 2026-03-19
 
 ### Enhancements
