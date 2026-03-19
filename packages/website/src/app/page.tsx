@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { GanttChart, Calendar, type Task, type GanttChartHandle, and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains, type TaskPredicate } from "gantt-lib";
-import { isTaskParent, getAllDescendants } from "gantt-lib/lib/utils/dependencyUtils";
+import { isTaskParent, getAllDescendants } from "gantt-lib";
 
 const createSampleTasks = (): Task[] => {
   return [
