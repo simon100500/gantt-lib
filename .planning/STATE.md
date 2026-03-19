@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v0.18
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-18T20:18:00.851Z"
+last_updated: "2026-03-19T14:35:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 3
@@ -63,6 +63,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | 260318-mso | 0% в прогрессе → "-", суффикс "д" для длительности | 2026-03-18 | [260318-mso-0](./quick/260318-mso-0/) |
 | 260318-n0f | Вынос длительности за пределы узких полос (≤40px) | 2026-03-18 | [260318-n0f-1-1-5-100](./quick/260318-n0f-1-1-5-100/) |
 | 260318-nji | Фикс отступов внешних меток rightLabels (gap вместо margin) | 2026-03-18 | [260318-nji-taskrow](./quick/260318-nji-taskrow/) |
+| 260319-ofh | Move add connection button after chips (left-align connections) | 2026-03-19 | |
 
 ### User Feedback
 
