@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.23.0] - 2026-03-19
+
+### Features
+- Add controlled collapse mode with `collapsedParentIds` and `onToggleCollapse` props
+- Add hierarchical task insertion with descendants when inserting after parent tasks
+- Add `getAllDescendants` utility for retrieving all descendant tasks
+
+### Fixes
+- Update import path for `getAllDescendants` utility in page component
+
+### Documentation
+- Update REFERENCE.md with controlled collapse mode examples and API reference
+
 ## [0.22.2] - 2026-03-19
 
 ### Fixes
