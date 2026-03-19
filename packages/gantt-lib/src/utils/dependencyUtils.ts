@@ -591,6 +591,33 @@ export function findParentId(taskId: string, tasks: Task[]): string | undefined 
   return task?.parentId;
 }
 
+/**
+ * Get all descendant tasks of a parent task (transitive closure of children).
+ * Returns all tasks where task.parentId is in the hierarchy of the parent.
+ *
+ * @param parentId - ID of the parent task
+ * @param tasks - All tasks array
+ * @returns Array of descendant tasks (not including the parent itself)
+ */
+export function getAllDescendants(parentId: string, tasks: Task[]): Task[] {
+  const descendants: Task[] = [];
+  const visited = new Set<string>();
+
+  function collectChildren(taskId: string) {
+    if (visited.has(taskId)) return;
+    visited.add(taskId);
+
+    const children = getChildren(taskId, tasks);
+    for (const child of children) {
+      descendants.push(child);
+      collectChildren(child.id);
+    }
+  }
+
+  collectChildren(parentId);
+  return descendants;
+}
+
 // ============================================================================
 // Universal Cascade Engine (Phase 19 fix)
 // ============================================================================
