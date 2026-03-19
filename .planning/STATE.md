@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v0.18
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-19T14:35:00.000Z"
+last_updated: "2026-03-19T19:20:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 3
@@ -64,7 +64,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | 260318-n0f | Вынос длительности за пределы узких полос (≤40px) | 2026-03-18 | [260318-n0f-1-1-5-100](./quick/260318-n0f-1-1-5-100/) |
 | 260318-nji | Фикс отступов внешних меток rightLabels (gap вместо margin) | 2026-03-18 | [260318-nji-taskrow](./quick/260318-nji-taskrow/) |
 | 260319-ofh | Move add connection button after chips (left-align connections) | 2026-03-19 | |
-| 260319-uwn | Иерархическое добавление задач: кнопка '+' на родителе → после детей, на ребёнке → тот же родитель | 2026-03-19 | [260319-uwn-1-2-3](./quick/260319-uwn-1-2-3/) |
+| 260319-uwn | Иерархическое добавление задач: кнопка '+' на родителе → после детей, на ребёнке → тот же родитель | 2026-03-19 | 69f27a0 | [260319-uwn-1-2-3](./quick/260319-uwn-1-2-3/) |
 
 ### User Feedback
 
@@ -113,5 +113,7 @@ None yet — no external users (library in active development)
 
 ---
 
-**State updated:** 2026-03-17
+Last activity: 2026-03-19 - Completed quick task 260319-uwn: Иерархическое добавление задач
+
+**State updated:** 2026-03-19
 **Milestone:** v0.50.0 Adding Tools
