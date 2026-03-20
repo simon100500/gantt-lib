@@ -20,6 +20,7 @@ import {
   isTaskParent,
   findParentId,
   getChildren,
+  recalculateIncomingLags,
 } from "../../utils/dependencyUtils";
 import { Input } from "../ui/Input";
 import { DatePicker } from "../ui/DatePicker";
@@ -1090,11 +1091,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
         const { startDate: normalizedStart, endDate: normalizedEnd } =
           normalizeTaskDates(normalizedInputStart, nextEndISO);
+        const startDate = new Date(`${normalizedStart}T00:00:00.000Z`);
+        const endDate = new Date(`${normalizedEnd}T00:00:00.000Z`);
         onTasksChange?.([
-          { ...task, startDate: normalizedStart, endDate: normalizedEnd },
+          {
+            ...task,
+            startDate: normalizedStart,
+            endDate: normalizedEnd,
+            ...(task.dependencies && {
+              dependencies: recalculateIncomingLags(
+                task,
+                startDate,
+                endDate,
+                allTasks,
+                businessDays,
+                weekendPredicate
+              ),
+            }),
+          },
         ]);
       },
-      [task, onTasksChange, businessDays, getDuration, getEndDate],
+      [task, onTasksChange, businessDays, getDuration, getEndDate, allTasks, weekendPredicate],
     );
 
     const handleEndDateChange = useCallback(
@@ -1123,11 +1140,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
         const { startDate: normalizedStart, endDate: normalizedEnd } =
           normalizeTaskDates(nextStartISO, normalizedInputEnd);
+        const startDate = new Date(`${normalizedStart}T00:00:00.000Z`);
+        const endDate = new Date(`${normalizedEnd}T00:00:00.000Z`);
         onTasksChange?.([
-          { ...task, startDate: normalizedStart, endDate: normalizedEnd },
+          {
+            ...task,
+            startDate: normalizedStart,
+            endDate: normalizedEnd,
+            ...(task.dependencies && {
+              dependencies: recalculateIncomingLags(
+                task,
+                startDate,
+                endDate,
+                allTasks,
+                businessDays,
+                weekendPredicate
+              ),
+            }),
+          },
         ]);
       },
-      [task, onTasksChange, businessDays, getDuration, weekendPredicate],
+      [task, onTasksChange, businessDays, getDuration, weekendPredicate, allTasks],
     );
 
     const handleRowClickInternal = useCallback(() => {

@@ -199,4 +199,45 @@ describe('TaskListRow duration editing', () => {
 
     expect(screen.getByText('+7')).toBeTruthy();
   });
+
+  it('recalculates incoming lag when start date is changed from the picker', () => {
+    const onTasksChange = vi.fn();
+    const predecessor: Task = {
+      id: 'pred',
+      name: 'Pred',
+      startDate: '2026-03-10',
+      endDate: '2026-03-12',
+      progress: 0,
+    };
+    const task: Task = {
+      id: 'task-1',
+      name: 'Task 1',
+      startDate: '2026-03-13',
+      endDate: '2026-03-16',
+      progress: 25,
+      dependencies: [{ taskId: 'pred', type: 'FS', lag: 0 }],
+    };
+
+    render(
+      <TaskListRow
+        task={task}
+        allTasks={[predecessor, task]}
+        rowIndex={0}
+        rowHeight={40}
+        onTasksChange={onTasksChange}
+        onRowClick={() => {}}
+        onChipSelect={() => {}}
+        businessDays={true}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '2026-03-13' }));
+
+    expect(onTasksChange).toHaveBeenCalledWith([{
+      ...task,
+      startDate: '2026-03-17',
+      endDate: '2026-03-18',
+      dependencies: [{ taskId: 'pred', type: 'FS', lag: 2 }],
+    }]);
+  });
 });
