@@ -736,6 +736,11 @@ export function universalCascade(
 
   // resultMap: deduplicated results keyed by task ID (updated in place on re-visits)
   const resultMap = new Map<string, Task>();
+  resultMap.set(movedTask.id, {
+    ...movedTask,
+    startDate: newStart.toISOString().split('T')[0],
+    endDate: newEnd.toISOString().split('T')[0],
+  });
 
   // Queue entries: [taskId, arrivalMode]
   const queue: Array<[string, ArrivalMode]> = [[movedTask.id, 'direct']];

@@ -10,7 +10,7 @@ import React, {
 import type { Task } from "../GanttChart";
 import type { LinkType } from "../../types";
 import type { CustomDayConfig } from "../../utils/dateUtils";
-import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate, getBusinessDaysCount, addBusinessDays } from "../../utils/dateUtils";
+import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate, getBusinessDaysCount, addBusinessDays, subtractBusinessDays } from "../../utils/dateUtils";
 import {
   computeLagFromDates,
   calculateSuccessorDate,
@@ -1053,35 +1053,51 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const handleStartDateChange = useCallback(
       (newDateISO: string) => {
         if (!newDateISO) return;
-        const origStart = parseUTCDate(task.startDate);
-        const origEnd = parseUTCDate(task.endDate);
-        const durationMs = origEnd.getTime() - origStart.getTime();
-        const newStart = new Date(newDateISO + "T00:00:00Z");
-        const newEnd = new Date(newStart.getTime() + durationMs);
+        let nextEndISO: string;
+
+        if (businessDays) {
+          const duration = getDuration(task.startDate, task.endDate);
+          nextEndISO = getEndDate(newDateISO, duration);
+        } else {
+          const origStart = parseUTCDate(task.startDate);
+          const origEnd = parseUTCDate(task.endDate);
+          const durationMs = origEnd.getTime() - origStart.getTime();
+          const newStart = new Date(newDateISO + "T00:00:00Z");
+          nextEndISO = new Date(newStart.getTime() + durationMs).toISOString().split("T")[0];
+        }
+
         const { startDate: normalizedStart, endDate: normalizedEnd } =
-          normalizeTaskDates(newDateISO, newEnd.toISOString().split("T")[0]);
+          normalizeTaskDates(newDateISO, nextEndISO);
         onTasksChange?.([
           { ...task, startDate: normalizedStart, endDate: normalizedEnd },
         ]);
       },
-      [task, onTasksChange],
+      [task, onTasksChange, businessDays, getDuration, getEndDate],
     );
 
     const handleEndDateChange = useCallback(
       (newDateISO: string) => {
         if (!newDateISO) return;
-        const origStart = parseUTCDate(task.startDate);
-        const origEnd = parseUTCDate(task.endDate);
-        const durationMs = origEnd.getTime() - origStart.getTime();
-        const newEnd = new Date(newDateISO + "T00:00:00Z");
-        const newStart = new Date(newEnd.getTime() - durationMs);
+        let nextStartISO: string;
+
+        if (businessDays) {
+          const duration = getDuration(task.startDate, task.endDate);
+          nextStartISO = subtractBusinessDays(newDateISO, duration, weekendPredicate);
+        } else {
+          const origStart = parseUTCDate(task.startDate);
+          const origEnd = parseUTCDate(task.endDate);
+          const durationMs = origEnd.getTime() - origStart.getTime();
+          const newEnd = new Date(newDateISO + "T00:00:00Z");
+          nextStartISO = new Date(newEnd.getTime() - durationMs).toISOString().split("T")[0];
+        }
+
         const { startDate: normalizedStart, endDate: normalizedEnd } =
-          normalizeTaskDates(newStart.toISOString().split("T")[0], newDateISO);
+          normalizeTaskDates(nextStartISO, newDateISO);
         onTasksChange?.([
           { ...task, startDate: normalizedStart, endDate: normalizedEnd },
         ]);
       },
-      [task, onTasksChange],
+      [task, onTasksChange, businessDays, getDuration, weekendPredicate],
     );
 
     const handleRowClickInternal = useCallback(() => {
@@ -1429,6 +1445,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             portal={true}
             disabled={task.locked}
             isWeekend={weekendPredicate}
+            businessDays={businessDays}
           />
         </div>
 
@@ -1444,6 +1461,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             portal={true}
             disabled={task.locked}
             isWeekend={weekendPredicate}
+            businessDays={businessDays}
           />
         </div>
 
