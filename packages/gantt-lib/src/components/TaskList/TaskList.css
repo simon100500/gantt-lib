@@ -511,7 +511,7 @@
   gap: 4px;
   padding: 2px 4px;
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
@@ -963,8 +963,95 @@
   font-size: 0.75rem;
   color: #6b7280;
   font-style: italic;
-  pointer-events: none;
   white-space: normal;
+}
+
+.gantt-tl-dep-source-picker {
+  position: absolute;
+  top: -2px;
+  left: calc(100% + 8px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 280px;
+  max-width: 280px;
+  padding: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+}
+
+.gantt-tl-dep-source-picker-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gantt-tl-dep-source-input {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 0.75rem;
+  font-family: inherit;
+  color: #111827;
+}
+
+.gantt-tl-dep-source-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.gantt-tl-dep-source-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(107, 114, 128, 0.12);
+  color: #6b7280;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.gantt-tl-dep-source-cancel:hover {
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
+}
+
+.gantt-tl-dep-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 164px;
+  overflow-y: auto;
+}
+
+.gantt-tl-dep-source-option {
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #1f2937;
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.gantt-tl-dep-source-option:hover,
+.gantt-tl-dep-source-option-active {
+  background: rgba(59, 130, 246, 0.16);
+  color: #1d4ed8;
 }
 
 /* Predecessor cell full-replacement: "Зависит от [name]" → hover → "Удалить" */

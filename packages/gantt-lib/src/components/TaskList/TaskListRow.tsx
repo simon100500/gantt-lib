@@ -593,6 +593,8 @@ export interface TaskListRowProps {
   rowIndex: number;
   /** Hierarchical task number (e.g., "1.2.3") */
   taskNumber?: string;
+  /** Visible task-list numbers by task id */
+  taskNumberMap?: Record<string, string>;
   /** Height of the task row in pixels */
   rowHeight: number;
   /** Callback when task is modified via inline edit. Receives array of changed tasks. */
@@ -744,6 +746,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       getInclusiveDurationDays(task.startDate, task.endDate),
     );
     const durationInputRef = useRef<HTMLInputElement>(null);
+    const dependencySearchInputRef = useRef<HTMLInputElement>(null);
     const [editingProgress, setEditingProgress] = useState(false);
     const [progressValue, setProgressValue] = useState(0);
     const progressInputRef = useRef<HTMLInputElement>(null);
@@ -798,6 +801,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     // Picker mode flags for this row
     const isPicking = selectingPredecessorFor != null;
     const isSourceRow = isPicking && selectingPredecessorFor === task.id;
+    const [dependencySearchQuery, setDependencySearchQuery] = useState("");
+    const [highlightedDependencyIndex, setHighlightedDependencyIndex] = useState(0);
 
     // Chip data: always reflect the persisted business lag, not the visual calendar gap.
     const chips = useMemo(() => {
@@ -810,6 +815,40 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [task.dependencies, allTasks]);
 
     const linkWord = chips.length <= 4 ? "связи" : "связей";
+
+    const dependencySearchCandidates = useMemo(() => {
+      if (!isSourceRow) return [];
+
+      const normalizedQuery = dependencySearchQuery.trim().toLowerCase();
+      return allTasks
+        .filter((candidate) => candidate.id !== task.id)
+        .filter((candidate) => {
+          if (!activeLinkType) return true;
+          return !(task.dependencies ?? []).some(
+            (dep) => dep.taskId === candidate.id && dep.type === activeLinkType
+          );
+        })
+        .map((candidate) => {
+          const number = taskNumberMap[candidate.id];
+          const label = `${formatTaskNumberLabel(number)}${candidate.name}`;
+          return {
+            task: candidate,
+            label,
+            searchable: `${number ?? ""} ${candidate.name}`.toLowerCase(),
+          };
+        })
+        .filter((candidate) =>
+          normalizedQuery === "" ? true : candidate.searchable.includes(normalizedQuery)
+        );
+    }, [
+      isSourceRow,
+      dependencySearchQuery,
+      allTasks,
+      task.id,
+      activeLinkType,
+      task.dependencies,
+      taskNumberMap,
+    ]);
 
     useEffect(() => {
       if (editingName && nameInputRef.current) {
@@ -824,6 +863,34 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         }
       }
     }, [editingName]);
+
+    useEffect(() => {
+      if (!isSourceRow && dependencySearchQuery !== "") {
+        setDependencySearchQuery("");
+      }
+    }, [isSourceRow, dependencySearchQuery]);
+
+    useEffect(() => {
+      setHighlightedDependencyIndex(0);
+    }, [dependencySearchQuery, isSourceRow]);
+
+    useEffect(() => {
+      if (dependencySearchCandidates.length === 0) {
+        setHighlightedDependencyIndex(0);
+        return;
+      }
+
+      if (highlightedDependencyIndex > dependencySearchCandidates.length - 1) {
+        setHighlightedDependencyIndex(dependencySearchCandidates.length - 1);
+      }
+    }, [dependencySearchCandidates, highlightedDependencyIndex]);
+
+    useEffect(() => {
+      if (isSourceRow && dependencySearchInputRef.current) {
+        dependencySearchInputRef.current.focus();
+        dependencySearchInputRef.current.select();
+      }
+    }, [isSourceRow]);
 
     // Reset delete confirmation when clicking elsewhere
     useEffect(() => {
@@ -1291,6 +1358,93 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         onSetSelectingPredecessorFor?.(null);
       },
       [onSetSelectingPredecessorFor],
+    );
+
+    const handleSourceCellClick = useCallback(
+      (e: React.MouseEvent) => {
+        if (e.target === e.currentTarget) {
+          handleCancelPicking(e);
+        }
+      },
+      [handleCancelPicking],
+    );
+
+    const handleSearchPick = useCallback(
+      (predecessorTaskId: string) => {
+        if (!activeLinkType) return;
+        onAddDependency?.(task.id, predecessorTaskId, activeLinkType);
+      },
+      [activeLinkType, onAddDependency, task.id],
+    );
+
+    const sourcePickerContent = (
+      <div
+        className="gantt-tl-dep-source-picker"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="gantt-tl-dep-source-picker-head">
+          <input
+            ref={dependencySearchInputRef}
+            type="text"
+            className="gantt-tl-dep-source-input"
+            placeholder="Выберите задачу"
+            value={dependencySearchQuery}
+            onChange={(e) => setDependencySearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                onSetSelectingPredecessorFor?.(null);
+                return;
+              }
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                if (dependencySearchCandidates.length > 0) {
+                  setHighlightedDependencyIndex((current) =>
+                    Math.min(current + 1, dependencySearchCandidates.length - 1)
+                  );
+                }
+                return;
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                if (dependencySearchCandidates.length > 0) {
+                  setHighlightedDependencyIndex((current) => Math.max(current - 1, 0));
+                }
+                return;
+              }
+              if (e.key === "Enter" && dependencySearchCandidates[highlightedDependencyIndex]) {
+                e.preventDefault();
+                handleSearchPick(dependencySearchCandidates[highlightedDependencyIndex].task.id);
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="gantt-tl-dep-source-cancel"
+            onClick={handleCancelPicking}
+            aria-label="Отменить выбор связи"
+          >
+            ×
+          </button>
+        </div>
+        <div className="gantt-tl-dep-source-list">
+          {dependencySearchCandidates.length > 0 ? (
+            dependencySearchCandidates.map(({ task: candidate, label }, index) => (
+              <button
+                key={candidate.id}
+                type="button"
+                className={`gantt-tl-dep-source-option${index === highlightedDependencyIndex ? " gantt-tl-dep-source-option-active" : ""}`}
+                onClick={() => handleSearchPick(candidate.id)}
+                onMouseEnter={() => setHighlightedDependencyIndex(index)}
+                title={label}
+              >
+                {label}
+              </button>
+            ))
+          ) : (
+            <span className="gantt-tl-dep-source-hint">Ничего не найдено</span>
+          )}
+        </div>
+      </div>
     );
 
     // True when this row is the predecessor for the currently selected chip
@@ -1764,15 +1918,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-deps"
           onClick={
             isSourceRow
-              ? handleCancelPicking
+              ? handleSourceCellClick
               : isPicking
                 ? handlePredecessorPick
                 : undefined
           }
         >
-          {isSourceRow ? (
-            <span className="gantt-tl-dep-source-hint">Выберите задачу</span>
-          ) : isSelectedPredecessor && !disableDependencyEditing ? (
+          {isSourceRow ? sourcePickerContent : isSelectedPredecessor && !disableDependencyEditing ? (
             /* Full-replacement: "Зависит от [name]" → hover → "Удалить" */
             <button
               type="button"

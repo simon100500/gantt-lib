@@ -327,4 +327,45 @@ describe('TaskListRow duration editing', () => {
       dependencies: [{ taskId: 'pred', type: 'FS', lag: -3 }],
     }]);
   });
+
+  it('filters dependency candidates and adds a link from the search picker', () => {
+    const onAddDependency = vi.fn();
+    const predecessor: Task = {
+      id: 'pred',
+      name: 'Подготовка основания',
+      startDate: '2026-03-10',
+      endDate: '2026-03-12',
+      progress: 0,
+    };
+    const task: Task = {
+      id: 'task-1',
+      name: 'Укладка плитки',
+      startDate: '2026-03-14',
+      endDate: '2026-03-16',
+      progress: 25,
+    };
+
+    render(
+      <TaskListRow
+        task={task}
+        allTasks={[predecessor, task]}
+        rowIndex={1}
+        rowHeight={40}
+        taskNumber="2"
+        taskNumberMap={{ pred: '1.1.1', 'task-1': '2' }}
+        selectingPredecessorFor="task-1"
+        activeLinkType="FS"
+        onAddDependency={onAddDependency}
+        onSetSelectingPredecessorFor={() => {}}
+        onRowClick={() => {}}
+        onChipSelect={() => {}}
+      />
+    );
+
+    const input = screen.getByPlaceholderText('Выберите задачу');
+    fireEvent.change(input, { target: { value: '1.1.1' } });
+    fireEvent.click(screen.getByRole('button', { name: '1.1.1. Подготовка основания' }));
+
+    expect(onAddDependency).toHaveBeenCalledWith('task-1', 'pred', 'FS');
+  });
 });
