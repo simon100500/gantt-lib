@@ -10,13 +10,19 @@ import React, {
 import type { Task } from "../GanttChart";
 import type { LinkType } from "../../types";
 import type { CustomDayConfig } from "../../utils/dateUtils";
-import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate } from "../../utils/dateUtils";
+import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate, getBusinessDaysCount, addBusinessDays, subtractBusinessDays } from "../../utils/dateUtils";
 import {
-  computeLagFromDates,
+  alignToWorkingDay,
+  buildTaskRangeFromEnd,
+  buildTaskRangeFromStart,
+  getDependencyLag,
   calculateSuccessorDate,
+  clampTaskRangeForIncomingFS,
+  normalizeDependencyLag,
   isTaskParent,
   findParentId,
   getChildren,
+  recalculateIncomingLags,
 } from "../../utils/dependencyUtils";
 import { Input } from "../ui/Input";
 import { DatePicker } from "../ui/DatePicker";
@@ -24,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
 import { LINK_TYPE_ICONS } from "./DepIcons";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const LINK_TYPE_ORDER: LinkType[] = ["FS", "SS", "FF", "SF"];
 
 const getInclusiveDurationDays = (
   startDate: string | Date,
@@ -54,7 +61,10 @@ interface DepChipProps {
   lag?: number;
   dep: { taskId: string; type: LinkType };
   taskId: string;
+  taskNumber?: string;
+  taskNumberMap?: Record<string, string>;
   predecessorName?: string;
+  predecessorTaskNumber?: string;
   selectedChip: TaskListRowProps["selectedChip"];
   disableDependencyEditing: boolean;
   onChipSelect: TaskListRowProps["onChipSelect"];
@@ -68,6 +78,8 @@ interface DepChipProps {
   allTasks: Task[];
   /** Callback to save date changes after lag modification */
   onTasksChange?: TaskListRowProps["onTasksChange"];
+  businessDays?: boolean;
+  weekendPredicate: (date: Date) => boolean;
 }
 
 const TrashIcon = () => (
@@ -130,6 +142,17 @@ const ChevronRightIcon = () => (
     <path d="m9 18 6-6-6-6" />
   </svg>
 );
+
+const LINK_TYPE_LABELS_RU: Record<LinkType, string> = {
+  FS: "ОН",
+  SS: "НН",
+  FF: "ОО",
+  SF: "НО",
+};
+
+function formatTaskNumberLabel(taskNumber?: string): string {
+  return taskNumber ? `${taskNumber}. ` : "";
+}
 
 // ---------------------------------------------------------------------------
 // HierarchyButton — Single button with left/right arrows for hierarchy navigation
@@ -263,7 +286,9 @@ const DepChip: React.FC<DepChipProps> = ({
   lag,
   dep,
   taskId,
+  taskNumber,
   predecessorName,
+  predecessorTaskNumber,
   selectedChip,
   disableDependencyEditing,
   onChipSelect,
@@ -274,6 +299,8 @@ const DepChip: React.FC<DepChipProps> = ({
   task,
   allTasks,
   onTasksChange,
+  businessDays = true,
+  weekendPredicate,
 }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const lagAbs = Math.abs(lag ?? 0);
@@ -300,7 +327,7 @@ const DepChip: React.FC<DepChipProps> = ({
         predecessorId: dep.taskId,
         linkType: dep.type,
       });
-      onScrollToTask?.(dep.taskId);
+      onScrollToTask?.(taskId);
     } else {
       // Only clear selection when explicitly closing via chip click
       onChipSelect?.(null);
@@ -335,21 +362,41 @@ const DepChip: React.FC<DepChipProps> = ({
       const origStart = parseUTCDate(task.startDate);
       const origEnd = parseUTCDate(task.endDate);
       const durationMs = origEnd.getTime() - origStart.getTime();
+      const normalizedLag = normalizeDependencyLag(
+        dep.type,
+        newLag,
+        predStart,
+        predEnd,
+        businessDays,
+        weekendPredicate,
+      );
 
       const constraintDate = calculateSuccessorDate(
         predStart,
         predEnd,
         dep.type,
-        newLag,
+        normalizedLag,
+        businessDays,
+        weekendPredicate,
       );
 
       let newStart: Date, newEnd: Date;
       if (dep.type === "FS" || dep.type === "SS") {
         newStart = constraintDate;
-        newEnd = new Date(constraintDate.getTime() + durationMs);
+        if (businessDays) {
+          const businessDuration = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
+          newEnd = new Date(`${addBusinessDays(constraintDate, businessDuration, weekendPredicate)}T00:00:00.000Z`);
+        } else {
+          newEnd = new Date(constraintDate.getTime() + durationMs);
+        }
       } else {
         newEnd = constraintDate;
-        newStart = new Date(constraintDate.getTime() - durationMs);
+        if (businessDays) {
+          const businessDuration = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
+          newStart = new Date(`${subtractBusinessDays(constraintDate, businessDuration, weekendPredicate)}T00:00:00.000Z`);
+        } else {
+          newStart = new Date(constraintDate.getTime() - durationMs);
+        }
       }
 
       onTasksChange([
@@ -357,10 +404,15 @@ const DepChip: React.FC<DepChipProps> = ({
           ...task,
           startDate: newStart.toISOString().split("T")[0],
           endDate: newEnd.toISOString().split("T")[0],
+          dependencies: (task.dependencies ?? []).map((existingDep) =>
+            existingDep.taskId === dep.taskId && existingDep.type === dep.type
+              ? { ...existingDep, lag: normalizedLag }
+              : existingDep
+          ),
         },
       ]);
     },
-    [dep, task, allTasks, onTasksChange],
+    [dep, task, allTasks, onTasksChange, businessDays, weekendPredicate],
   );
 
   const handleInputCommit = useCallback(
@@ -408,7 +460,12 @@ const DepChip: React.FC<DepChipProps> = ({
   let afterWhat: string;
   let preWord: string | null = null;
   if (dep.type === "SF") {
-    afterWhat = "до начала";
+    afterWhat =
+      effectiveLag < 0
+        ? "до начала"
+        : effectiveLag === 0
+          ? "с началом"
+          : "после начала";
     if (effectiveLag > 0) preWord = "через";
     else if (effectiveLag < 0) preWord = "за";
   } else if (dep.type === "SS") {
@@ -439,6 +496,7 @@ const DepChip: React.FC<DepChipProps> = ({
         <span
           className={`gantt-tl-dep-chip${isSelected ? " gantt-tl-dep-chip-selected" : ""}`}
           onClick={handleClick}
+          title={`[${LINK_TYPE_LABELS_RU[dep.type]}] ${formatTaskNumberLabel(predecessorTaskNumber)}${depName}`}
         >
           <Icon />
           {effectiveLag !== 0
@@ -454,7 +512,10 @@ const DepChip: React.FC<DepChipProps> = ({
         align="start"
       >
         <div onClick={(e) => e.stopPropagation()}>
-          <div className="gantt-tl-dep-edit-task">{task.name}</div>
+          <div className="gantt-tl-dep-edit-task">
+            {formatTaskNumberLabel(taskNumber)}
+            {task.name}
+          </div>
           <div className="gantt-tl-dep-edit-row">
             <span className="gantt-tl-dep-edit-label">
               {actionVerb}
@@ -492,7 +553,10 @@ const DepChip: React.FC<DepChipProps> = ({
             {effectiveLag !== 0 && <span>д.</span>}
             <span>{afterWhat}</span>
           </div>
-          <div className="gantt-tl-dep-edit-pred">{depName}</div>
+          <div className="gantt-tl-dep-edit-pred">
+            {formatTaskNumberLabel(predecessorTaskNumber)}
+            {depName}
+          </div>
           {!disableDependencyEditing && (
             <>
               <hr className="gantt-tl-dep-edit-divider" />
@@ -530,6 +594,8 @@ export interface TaskListRowProps {
   rowIndex: number;
   /** Hierarchical task number (e.g., "1.2.3") */
   taskNumber?: string;
+  /** Visible task-list numbers by task id */
+  taskNumberMap?: Record<string, string>;
   /** Height of the task row in pixels */
   rowHeight: number;
   /** Callback when task is modified via inline edit. Receives array of changed tasks. */
@@ -546,6 +612,12 @@ export interface TaskListRowProps {
   allTasks?: Task[];
   /** Currently active link type for new dependencies */
   activeLinkType?: LinkType;
+  /** Callback to change active link type for new dependencies */
+  onSetActiveLinkType?: (linkType: LinkType) => void;
+  /** Current dependency picking direction */
+  dependencyPickMode?: "predecessor" | "successor";
+  /** Callback to change dependency picking direction */
+  onSetDependencyPickMode?: (mode: "predecessor" | "successor") => void;
   /** Task ID currently in predecessor-picking mode (null if not picking) */
   selectingPredecessorFor?: string | null;
   /** Callback to set the task currently in predecessor-picking mode */
@@ -616,6 +688,8 @@ export interface TaskListRowProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate for date picker */
   isWeekend?: (date: Date) => boolean;
+  /** Считать duration в рабочих днях */
+  businessDays?: boolean;
   /** Whether this row matches the active filter highlight */
   isFilterMatch?: boolean;
 }
@@ -633,6 +707,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     task,
     rowIndex,
     taskNumber,
+    taskNumberMap = {},
     rowHeight,
     onTasksChange,
     selectedTaskId,
@@ -641,6 +716,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     disableDependencyEditing = false,
     allTasks = [],
     activeLinkType,
+    onSetActiveLinkType,
+    dependencyPickMode = "successor",
+    onSetDependencyPickMode,
     selectingPredecessorFor,
     onSetSelectingPredecessorFor,
     onAddDependency,
@@ -667,16 +745,19 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     ancestorContinues = [],
     customDays,
     isWeekend,
+    businessDays,
     isFilterMatch = false,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState("");
     const nameInputRef = useRef<HTMLInputElement>(null);
     const [editingDuration, setEditingDuration] = useState(false);
-    const [durationValue, setDurationValue] = useState(
+    const [durationValue, setDurationValue] = useState(() =>
       getInclusiveDurationDays(task.startDate, task.endDate),
     );
     const durationInputRef = useRef<HTMLInputElement>(null);
+    const dependencySearchInputRef = useRef<HTMLInputElement>(null);
+    const dependencySearchListRef = useRef<HTMLDivElement>(null);
     const [editingProgress, setEditingProgress] = useState(false);
     const [progressValue, setProgressValue] = useState(0);
     const progressInputRef = useRef<HTMLInputElement>(null);
@@ -705,33 +786,80 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       () => createCustomDayPredicate({ customDays, isWeekend }),
       [customDays, isWeekend]
     );
+
+    // Memoized duration calculation function (business days vs calendar days)
+    const getDuration = useCallback(
+      (start: string | Date, end: string | Date) => {
+        return businessDays
+          ? getBusinessDaysCount(start, end, weekendPredicate)
+          : getInclusiveDurationDays(start, end);
+      },
+      [businessDays, weekendPredicate]
+    );
+
+    // Memoized end date calculation function (business days vs calendar days)
+    const getEndDate = useCallback(
+      (start: string | Date, duration: number) => {
+        return businessDays
+          ? addBusinessDays(start, duration, weekendPredicate)
+          : getEndDateFromDuration(start, duration);
+      },
+      [businessDays, weekendPredicate]
+    );
+
     const isCollapsed = collapsedParentIds.has(task.id);
 
     // Picker mode flags for this row
     const isPicking = selectingPredecessorFor != null;
     const isSourceRow = isPicking && selectingPredecessorFor === task.id;
+    const [dependencySearchQuery, setDependencySearchQuery] = useState("");
+    const [highlightedDependencyIndex, setHighlightedDependencyIndex] = useState(0);
 
-    // Chip data: compute effective lag from actual dates (always correct, even on initial load)
+    // Chip data: always reflect the persisted business lag, not the visual calendar gap.
     const chips = useMemo(() => {
-      const succStart = new Date(task.startDate as string);
-      const succEnd = new Date(task.endDate as string);
       const taskById = new Map((allTasks ?? []).map((t) => [t.id, t]));
       return (task.dependencies ?? []).map((dep) => {
         const pred = taskById.get(dep.taskId);
-        const lag = pred
-          ? computeLagFromDates(
-              dep.type,
-              new Date(pred.startDate as string),
-              new Date(pred.endDate as string),
-              succStart,
-              succEnd,
-            )
-          : (dep.lag ?? 0);
+        const lag = getDependencyLag(dep);
         return { dep, lag, predecessorName: pred?.name ?? dep.taskId };
       });
-    }, [task.dependencies, task.startDate, task.endDate, allTasks]);
+    }, [task.dependencies, allTasks]);
 
     const linkWord = chips.length <= 4 ? "связи" : "связей";
+
+    const dependencySearchCandidates = useMemo(() => {
+      if (!isSourceRow) return [];
+
+      const normalizedQuery = dependencySearchQuery.trim().toLowerCase();
+      return allTasks
+        .filter((candidate) => candidate.id !== task.id)
+        .map((candidate) => {
+          const number = taskNumberMap[candidate.id];
+          const label = `${formatTaskNumberLabel(number)}${candidate.name}`;
+          const matchingDependencies = dependencyPickMode === "predecessor"
+            ? (task.dependencies ?? []).filter((dep) => dep.taskId === candidate.id)
+            : (candidate.dependencies ?? []).filter((dep) => dep.taskId === task.id);
+          return {
+            task: candidate,
+            label,
+            linkedTypes: matchingDependencies.map((dep) => dep.type),
+            isAlreadyLinked: matchingDependencies.length > 0,
+            searchable: `${number ?? ""} ${candidate.name}`.toLowerCase(),
+          };
+        })
+        .filter((candidate) =>
+          normalizedQuery === "" ? true : candidate.searchable.includes(normalizedQuery)
+        );
+    }, [
+      isSourceRow,
+      dependencySearchQuery,
+      allTasks,
+      task.id,
+      activeLinkType,
+      dependencyPickMode,
+      taskNumberMap,
+      task.dependencies,
+    ]);
 
     useEffect(() => {
       if (editingName && nameInputRef.current) {
@@ -746,6 +874,49 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         }
       }
     }, [editingName]);
+
+    useEffect(() => {
+      if (!isSourceRow && dependencySearchQuery !== "") {
+        setDependencySearchQuery("");
+      }
+    }, [isSourceRow, dependencySearchQuery]);
+
+    useEffect(() => {
+      setHighlightedDependencyIndex(0);
+    }, [dependencySearchQuery, isSourceRow, dependencyPickMode]);
+
+    useEffect(() => {
+      if (dependencySearchCandidates.length === 0) {
+        setHighlightedDependencyIndex(0);
+        return;
+      }
+
+      if (highlightedDependencyIndex > dependencySearchCandidates.length - 1) {
+        setHighlightedDependencyIndex(dependencySearchCandidates.length - 1);
+      }
+    }, [dependencySearchCandidates, highlightedDependencyIndex]);
+
+    useEffect(() => {
+      if (isSourceRow && dependencySearchInputRef.current) {
+        dependencySearchInputRef.current.focus();
+        dependencySearchInputRef.current.select();
+      }
+    }, [isSourceRow, dependencyPickMode, activeLinkType]);
+
+    useEffect(() => {
+      if (!isSourceRow || dependencySearchCandidates.length === 0) {
+        return;
+      }
+
+      const listElement = dependencySearchListRef.current;
+      const activeElement = listElement?.querySelector<HTMLElement>(
+        `.gantt-tl-dep-source-option[data-index="${highlightedDependencyIndex}"]`
+      );
+
+      activeElement?.scrollIntoView({
+        block: "nearest",
+      });
+    }, [isSourceRow, highlightedDependencyIndex, dependencySearchCandidates]);
 
     // Reset delete confirmation when clicking elsewhere
     useEffect(() => {
@@ -864,11 +1035,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         e.stopPropagation();
         durationConfirmedRef.current = false;
         setDurationValue(
-          getInclusiveDurationDays(task.startDate, task.endDate),
+          getDuration(task.startDate, task.endDate),
         );
         setEditingDuration(true);
       },
-      [task.locked, task.startDate, task.endDate],
+      [task.locked, task.startDate, task.endDate, getDuration],
     );
 
     const applyDurationChange = useCallback((nextDuration: number) => {
@@ -885,16 +1056,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       onTasksChange?.([
         {
           ...task,
-          endDate: getEndDateFromDuration(task.startDate, normalizedDuration),
+          endDate: getEndDate(task.startDate, normalizedDuration),
         },
       ]);
       setEditingDuration(false);
-    }, [durationValue, task, onTasksChange]);
+    }, [durationValue, task, onTasksChange, getEndDate]);
 
     const handleDurationCancel = useCallback(() => {
-      setDurationValue(getInclusiveDurationDays(task.startDate, task.endDate));
+      setDurationValue(getDuration(task.startDate, task.endDate));
       setEditingDuration(false);
-    }, [task.startDate, task.endDate]);
+    }, [task.startDate, task.endDate, getDuration]);
 
     const handleDurationAdjust = useCallback(
       (delta: number) => {
@@ -915,7 +1086,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           onTasksChange?.([
             {
               ...task,
-              endDate: getEndDateFromDuration(
+              endDate: getEndDate(
                 task.startDate,
                 normalizedDuration,
               ),
@@ -926,7 +1097,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           handleDurationCancel();
         }
       },
-      [durationValue, task, onTasksChange, handleDurationCancel],
+      [durationValue, task, onTasksChange, handleDurationCancel, getEndDate],
     );
 
     const handleProgressClick = useCallback(
@@ -1014,8 +1185,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [editingProgress]);
 
     useEffect(() => {
-      setDurationValue(getInclusiveDurationDays(task.startDate, task.endDate));
-    }, [task.startDate, task.endDate]);
+      setDurationValue(getDuration(task.startDate, task.endDate));
+    }, [task.startDate, task.endDate, getDuration]);
 
     useEffect(() => {
       if (editingDuration && durationInputRef.current) {
@@ -1029,35 +1200,115 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const handleStartDateChange = useCallback(
       (newDateISO: string) => {
         if (!newDateISO) return;
-        const origStart = parseUTCDate(task.startDate);
-        const origEnd = parseUTCDate(task.endDate);
-        const durationMs = origEnd.getTime() - origStart.getTime();
-        const newStart = new Date(newDateISO + "T00:00:00Z");
-        const newEnd = new Date(newStart.getTime() + durationMs);
+        let nextEndISO: string;
+        const normalizedInputStart = businessDays
+          ? alignToWorkingDay(new Date(`${newDateISO}T00:00:00.000Z`), 1, weekendPredicate)
+          : new Date(`${newDateISO}T00:00:00.000Z`);
+
+        if (businessDays) {
+          const duration = getDuration(task.startDate, task.endDate);
+          nextEndISO = buildTaskRangeFromStart(
+            normalizedInputStart,
+            duration,
+            true,
+            weekendPredicate,
+            1
+          ).end.toISOString().split("T")[0];
+        } else {
+          const origStart = parseUTCDate(task.startDate);
+          const origEnd = parseUTCDate(task.endDate);
+          const durationMs = origEnd.getTime() - origStart.getTime();
+          nextEndISO = new Date(normalizedInputStart.getTime() + durationMs).toISOString().split("T")[0];
+        }
+
         const { startDate: normalizedStart, endDate: normalizedEnd } =
-          normalizeTaskDates(newDateISO, newEnd.toISOString().split("T")[0]);
+          normalizeTaskDates(normalizedInputStart, nextEndISO);
+        const clampedRange = clampTaskRangeForIncomingFS(
+          task,
+          new Date(`${normalizedStart}T00:00:00.000Z`),
+          new Date(`${normalizedEnd}T00:00:00.000Z`),
+          allTasks,
+          businessDays,
+          weekendPredicate
+        );
+        const startDate = clampedRange.start;
+        const endDate = clampedRange.end;
         onTasksChange?.([
-          { ...task, startDate: normalizedStart, endDate: normalizedEnd },
+          {
+            ...task,
+            startDate: startDate.toISOString().split("T")[0],
+            endDate: endDate.toISOString().split("T")[0],
+            ...(task.dependencies && {
+              dependencies: recalculateIncomingLags(
+                task,
+                startDate,
+                endDate,
+                allTasks,
+                businessDays,
+                weekendPredicate
+              ),
+            }),
+          },
         ]);
       },
-      [task, onTasksChange],
+      [task, onTasksChange, businessDays, getDuration, getEndDate, allTasks, weekendPredicate],
     );
 
     const handleEndDateChange = useCallback(
       (newDateISO: string) => {
         if (!newDateISO) return;
-        const origStart = parseUTCDate(task.startDate);
-        const origEnd = parseUTCDate(task.endDate);
-        const durationMs = origEnd.getTime() - origStart.getTime();
-        const newEnd = new Date(newDateISO + "T00:00:00Z");
-        const newStart = new Date(newEnd.getTime() - durationMs);
+        let nextStartISO: string;
+        const normalizedInputEnd = businessDays
+          ? alignToWorkingDay(new Date(`${newDateISO}T00:00:00.000Z`), -1, weekendPredicate)
+          : new Date(`${newDateISO}T00:00:00.000Z`);
+
+        if (businessDays) {
+          const duration = getDuration(task.startDate, task.endDate);
+          nextStartISO = buildTaskRangeFromEnd(
+            normalizedInputEnd,
+            duration,
+            true,
+            weekendPredicate,
+            -1
+          ).start.toISOString().split("T")[0];
+        } else {
+          const origStart = parseUTCDate(task.startDate);
+          const origEnd = parseUTCDate(task.endDate);
+          const durationMs = origEnd.getTime() - origStart.getTime();
+          nextStartISO = new Date(normalizedInputEnd.getTime() - durationMs).toISOString().split("T")[0];
+        }
+
         const { startDate: normalizedStart, endDate: normalizedEnd } =
-          normalizeTaskDates(newStart.toISOString().split("T")[0], newDateISO);
+          normalizeTaskDates(nextStartISO, normalizedInputEnd);
+        const clampedRange = clampTaskRangeForIncomingFS(
+          task,
+          new Date(`${normalizedStart}T00:00:00.000Z`),
+          new Date(`${normalizedEnd}T00:00:00.000Z`),
+          allTasks,
+          businessDays,
+          weekendPredicate
+        );
+        const startDate = clampedRange.start;
+        const endDate = clampedRange.end;
         onTasksChange?.([
-          { ...task, startDate: normalizedStart, endDate: normalizedEnd },
+          {
+            ...task,
+            startDate: startDate.toISOString().split("T")[0],
+            endDate: endDate.toISOString().split("T")[0],
+            ...(task.dependencies && {
+              dependencies: recalculateIncomingLags(
+                task,
+                startDate,
+                endDate,
+                allTasks,
+                businessDays,
+                weekendPredicate
+              ),
+            }),
+          },
         ]);
       },
-      [task, onTasksChange],
+      [task, onTasksChange, businessDays, getDuration, weekendPredicate, allTasks],
     );
 
     const handleRowClickInternal = useCallback(() => {
@@ -1115,7 +1366,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         e.stopPropagation();
         if (!isPicking || isSourceRow) return;
         if (!selectingPredecessorFor || !activeLinkType) return;
-        onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
+        if (dependencyPickMode === "predecessor") {
+          onAddDependency?.(selectingPredecessorFor, task.id, activeLinkType);
+        } else {
+          onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
+        }
       },
       [
         isPicking,
@@ -1123,6 +1378,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         selectingPredecessorFor,
         task.id,
         activeLinkType,
+        dependencyPickMode,
         onAddDependency,
       ],
     );
@@ -1135,9 +1391,175 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [onSetSelectingPredecessorFor],
     );
 
+    const handleSourceCellClick = useCallback(
+      (e: React.MouseEvent) => {
+        if (e.target === e.currentTarget) {
+          handleCancelPicking(e);
+        }
+      },
+      [handleCancelPicking],
+    );
+
+    const handleSearchPick = useCallback(
+      (pickedTaskId: string) => {
+        if (!activeLinkType) return;
+        if (dependencyPickMode === "predecessor") {
+          onAddDependency?.(task.id, pickedTaskId, activeLinkType);
+        } else {
+          onAddDependency?.(pickedTaskId, task.id, activeLinkType);
+        }
+      },
+      [activeLinkType, dependencyPickMode, onAddDependency, task.id],
+    );
+
+    const handleSearchRemove = useCallback(
+      (pickedTaskId: string) => {
+        const matchingTypes = dependencyPickMode === "predecessor"
+          ? (task.dependencies ?? [])
+            .filter((dep) => dep.taskId === pickedTaskId)
+            .map((dep) => dep.type)
+          : ((allTasks.find((candidate) => candidate.id === pickedTaskId)?.dependencies ?? []))
+            .filter((dep) => dep.taskId === task.id)
+            .map((dep) => dep.type);
+
+        for (const linkType of matchingTypes) {
+          if (dependencyPickMode === "predecessor") {
+            onRemoveDependency?.(task.id, pickedTaskId, linkType);
+          } else {
+            onRemoveDependency?.(pickedTaskId, task.id, linkType);
+          }
+        }
+      },
+      [allTasks, dependencyPickMode, onRemoveDependency, task.dependencies, task.id],
+    );
+
+    const sourcePickerContent = (
+      <div
+        className="gantt-tl-dep-source-picker"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="gantt-tl-dep-source-direction">
+          <button
+            type="button"
+            className={`gantt-tl-dep-source-direction-btn${dependencyPickMode === "successor" ? " gantt-tl-dep-source-direction-btn-active" : ""}`}
+            onClick={() => onSetDependencyPickMode?.("successor")}
+          >
+            Последователь
+          </button>
+          <button
+            type="button"
+            className={`gantt-tl-dep-source-direction-btn${dependencyPickMode === "predecessor" ? " gantt-tl-dep-source-direction-btn-active" : ""}`}
+            onClick={() => onSetDependencyPickMode?.("predecessor")}
+          >
+            Предшественник
+          </button>
+        </div>
+        <div className="gantt-tl-dep-source-types">
+          {LINK_TYPE_ORDER.map((linkType) => {
+            const Icon = LINK_TYPE_ICONS[linkType];
+            return (
+              <button
+                key={linkType}
+                type="button"
+                className={`gantt-tl-dep-source-type-btn${activeLinkType === linkType ? " gantt-tl-dep-source-type-btn-active" : ""}`}
+                onClick={() => onSetActiveLinkType?.(linkType)}
+                aria-label={`Выбрать тип связи ${linkType}`}
+                title={linkType}
+              >
+                <Icon />
+                <span>{LINK_TYPE_LABELS_RU[linkType]}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="gantt-tl-dep-source-picker-head">
+          <input
+            ref={dependencySearchInputRef}
+            type="text"
+            className="gantt-tl-dep-source-input"
+            placeholder={dependencyPickMode === "predecessor" ? "Укажите предшественника" : "Укажите последователя"}
+            value={dependencySearchQuery}
+            onChange={(e) => setDependencySearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                onSetSelectingPredecessorFor?.(null);
+                return;
+              }
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                if (dependencySearchCandidates.length > 0) {
+                  setHighlightedDependencyIndex((current) =>
+                    Math.min(current + 1, dependencySearchCandidates.length - 1)
+                  );
+                }
+                return;
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                if (dependencySearchCandidates.length > 0) {
+                  setHighlightedDependencyIndex((current) => Math.max(current - 1, 0));
+                }
+                return;
+              }
+              if (e.key === "Enter" && dependencySearchCandidates[highlightedDependencyIndex]) {
+                e.preventDefault();
+                const activeCandidate = dependencySearchCandidates[highlightedDependencyIndex];
+                if (activeCandidate.isAlreadyLinked) {
+                  handleSearchRemove(activeCandidate.task.id);
+                } else {
+                  handleSearchPick(activeCandidate.task.id);
+                }
+              }
+            }}
+          />
+        </div>
+        <div
+          ref={dependencySearchListRef}
+          className="gantt-tl-dep-source-list"
+        >
+          {dependencySearchCandidates.length > 0 ? (
+            dependencySearchCandidates.map(({ task: candidate, label, isAlreadyLinked }, index) => (
+              <button
+                key={candidate.id}
+                type="button"
+                data-index={index}
+                className={`gantt-tl-dep-source-option${index === highlightedDependencyIndex ? " gantt-tl-dep-source-option-active" : ""}${isAlreadyLinked ? " gantt-tl-dep-source-option-linked" : ""}`}
+                onClick={() => {
+                  if (!isAlreadyLinked) {
+                    handleSearchPick(candidate.id);
+                  }
+                }}
+                onMouseEnter={() => setHighlightedDependencyIndex(index)}
+                title={label}
+              >
+                <span className="gantt-tl-dep-source-option-label">{label}</span>
+                {isAlreadyLinked && (
+                  <button
+                    type="button"
+                    className="gantt-tl-dep-source-option-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSearchRemove(candidate.id);
+                    }}
+                    aria-label={`Удалить связь с ${label}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </button>
+            ))
+          ) : (
+            <span className="gantt-tl-dep-source-hint">Ничего не найдено</span>
+          )}
+        </div>
+      </div>
+    );
+
     // True when this row is the predecessor for the currently selected chip
     const isSelectedPredecessor =
       selectedChip != null && selectedChip.predecessorId === task.id;
+    const isSelectedDependencyOwner =
+      selectedChip != null && selectedChip.successorId === task.id;
 
     // Delete the selected dependency from the predecessor row's "Удалить" button
     const handleDeleteSelected = useCallback(
@@ -1156,7 +1578,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const startDateISO = toISODate(task.startDate);
     const endDateISO = editingDuration
-      ? getEndDateFromDuration(task.startDate, durationValue)
+      ? getEndDate(task.startDate, durationValue)
       : toISODate(task.endDate);
 
     return (
@@ -1166,6 +1588,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           "gantt-tl-row",
           isFilterMatch ? "gantt-tl-row-filter-match" : "",
           isSelected ? "gantt-tl-row-selected" : "",
+          isSelectedDependencyOwner ? "gantt-tl-row-dependency-owner" : "",
+          isSelectedPredecessor ? "gantt-tl-row-dependency-selected" : "",
           isPicking && !isSourceRow ? "gantt-tl-row-picking" : "",
           isSourceRow ? "gantt-tl-row-picking-self" : "",
           isDragging ? "gantt-tl-row-dragging" : "",
@@ -1405,6 +1829,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             portal={true}
             disabled={task.locked}
             isWeekend={weekendPredicate}
+            businessDays={businessDays}
           />
         </div>
 
@@ -1420,6 +1845,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             portal={true}
             disabled={task.locked}
             isWeekend={weekendPredicate}
+            businessDays={businessDays}
           />
         </div>
 
@@ -1499,7 +1925,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 : undefined
             }
           >
-            {getInclusiveDurationDays(task.startDate, task.endDate)}д
+            {getDuration(task.startDate, task.endDate)}д
           </span>
         </div>
 
@@ -1579,11 +2005,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 ? { visibility: "hidden", pointerEvents: "none" }
                 : task.progress === 100
                   ? {
-                      backgroundColor: "#17c864",
-                      borderRadius: "4px",
-                      padding: "2px 4px",
-                      color: "#ffffff",
-                    }
+                    backgroundColor: "#17c864",
+                    borderRadius: "4px",
+                    padding: "2px 4px",
+                    color: "#ffffff",
+                  }
                   : undefined
             }
           >
@@ -1600,14 +2026,22 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-cell gantt-tl-cell-deps"
           onClick={
             isSourceRow
-              ? handleCancelPicking
+              ? handleSourceCellClick
               : isPicking
                 ? handlePredecessorPick
                 : undefined
           }
         >
           {isSourceRow ? (
-            <span className="gantt-tl-dep-source-hint">Выберите задачу</span>
+            <>
+              <span
+                className="gantt-tl-dep-source-hint"
+                onClick={handleCancelPicking}
+              >
+                Отменить
+              </span>
+              {sourcePickerContent}
+            </>
           ) : isSelectedPredecessor && !disableDependencyEditing ? (
             /* Full-replacement: "Зависит от [name]" → hover → "Удалить" */
             <button
@@ -1649,7 +2083,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                           lag={lag}
                           dep={dep}
                           taskId={task.id}
+                          taskNumber={taskNumber}
                           predecessorName={predecessorName}
+                          predecessorTaskNumber={taskNumberMap[dep.taskId]}
                           selectedChip={selectedChip}
                           disableDependencyEditing={disableDependencyEditing}
                           onChipSelect={onChipSelect}
@@ -1660,6 +2096,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                           task={task}
                           allTasks={allTasks}
                           onTasksChange={onTasksChange}
+                          businessDays={businessDays}
+                          weekendPredicate={weekendPredicate}
                         />
                       ))}
                     </div>
@@ -1671,7 +2109,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   lag={chips[0].lag}
                   dep={chips[0].dep}
                   taskId={task.id}
+                  taskNumber={taskNumber}
                   predecessorName={chips[0].predecessorName}
+                  predecessorTaskNumber={taskNumberMap[chips[0].dep.taskId]}
                   selectedChip={selectedChip}
                   disableDependencyEditing={disableDependencyEditing}
                   onChipSelect={onChipSelect}
@@ -1682,6 +2122,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   task={task}
                   allTasks={allTasks}
                   onTasksChange={onTasksChange}
+                  businessDays={businessDays}
+                  weekendPredicate={weekendPredicate}
                 />
               ) : null}
 
@@ -1706,3 +2148,4 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
 TaskListRow.displayName = "TaskListRow";
 export default TaskListRow;
+

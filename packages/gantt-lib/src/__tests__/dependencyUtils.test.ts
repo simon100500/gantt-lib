@@ -3,13 +3,17 @@ import {
   buildAdjacencyList,
   detectCycles,
   calculateSuccessorDate,
+  computeLagFromDates,
+  universalCascade,
   validateDependencies,
   getAllDependencyEdges,
   getSuccessorChain,
   getTransitiveCascadeChain,
   removeDependenciesBetweenTasks,
   findParentId,
+  recalculateIncomingLags,
 } from '../utils/dependencyUtils';
+import { isWeekend } from '../utils/dateUtils';
 import { Task } from '../types';
 
 describe('dependencyUtils', () => {
@@ -109,6 +113,11 @@ describe('dependencyUtils', () => {
     it('should calculate FS with negative lag', () => {
       const result = calculateSuccessorDate(jan1, jan5, 'FS', -2);
       expect(result.getUTCDate()).toBe(4); // lag=-2 means 2-day overlap
+    });
+
+    it('should clamp FS negative lag to predecessor duration', () => {
+      const result = calculateSuccessorDate(jan1, jan5, 'FS', -10);
+      expect(result.getUTCDate()).toBe(1);
     });
 
     it('should calculate SS (start-to-start) with no lag', () => {
@@ -329,32 +338,198 @@ describe('dependencyUtils', () => {
     });
   });
 
-  // NOTE: recalculateIncomingLags is private in useTaskDrag.ts
-  // These test cases document the expected FF lag behavior
-  // Verified via integration testing during drag operations
-  describe('recalculateIncomingLags - FF (documented)', () => {
-    it('should calculate FF lag as endB - endA with no floor', () => {
-      // FF: lag can be negative, zero, or positive
-      // Formula: lag = endB - endA (no Math.max(0, ...) floor unlike SS)
-      // Example: predEnd=2025-01-10, newEndDate=2025-01-05 → lag=-5
-      // This documents that FF has NO floor — lag is freely recalculated
-      expect(true).toBe(true); // Placeholder — behavior verified in integration
+  describe('recalculateIncomingLags', () => {
+    it('recomputes FS lag from moved successor dates', () => {
+      const tasks = [
+        createTask('pred', '2026-03-10', '2026-03-12'),
+        createTask('succ', '2026-03-14', '2026-03-16', [{ taskId: 'pred', type: 'FS', lag: 1 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-17T00:00:00.000Z'),
+        new Date('2026-03-19T00:00:00.000Z'),
+        tasks
+      );
+
+      expect(updated[0]?.lag).toBe(4);
     });
 
-    it('should calculate FF lag with zero lag', () => {
-      // predEnd=2025-01-10, newEndDate=2025-01-10 → lag=0
-      expect(true).toBe(true); // Placeholder
+    it('recomputes SS lag from moved successor dates', () => {
+      const tasks = [
+        createTask('pred', '2026-03-10', '2026-03-12'),
+        createTask('succ', '2026-03-11', '2026-03-13', [{ taskId: 'pred', type: 'SS', lag: 1 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-15T00:00:00.000Z'),
+        new Date('2026-03-17T00:00:00.000Z'),
+        tasks
+      );
+
+      expect(updated[0]?.lag).toBe(5);
     });
 
-    it('should calculate FF lag with positive lag', () => {
-      // predEnd=2025-01-10, newEndDate=2025-01-15 → lag=5
-      expect(true).toBe(true); // Placeholder
+    it('recomputes FF lag from moved successor dates', () => {
+      const tasks = [
+        createTask('pred', '2026-03-10', '2026-03-12'),
+        createTask('succ', '2026-03-11', '2026-03-13', [{ taskId: 'pred', type: 'FF', lag: 1 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-14T00:00:00.000Z'),
+        new Date('2026-03-18T00:00:00.000Z'),
+        tasks
+      );
+
+      expect(updated[0]?.lag).toBe(6);
     });
 
-    it('should calculate FF lag with negative lag (no floor)', () => {
-      // predEnd=2025-01-15, newEndDate=2025-01-10 → lag=-5
-      // Critical: FF allows negative lag (unlike SS which floors at 0)
-      expect(true).toBe(true); // Placeholder
+    it('recomputes SF lag from moved successor dates', () => {
+      const tasks = [
+        createTask('pred', '2026-03-10', '2026-03-12'),
+        createTask('succ', '2026-03-08', '2026-03-10', [{ taskId: 'pred', type: 'SF', lag: 1 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-09T00:00:00.000Z'),
+        new Date('2026-03-14T00:00:00.000Z'),
+        tasks
+      );
+
+      expect(updated[0]?.lag).toBe(5);
+    });
+
+    it('recomputes business-day lag from moved successor dates', () => {
+      const tasks = [
+        createTask('pred', '2026-03-12', '2026-03-13'),
+        createTask('succ', '2026-03-16', '2026-03-17', [{ taskId: 'pred', type: 'FS', lag: 0 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-19T00:00:00.000Z'),
+        new Date('2026-03-20T00:00:00.000Z'),
+        tasks,
+        true,
+        isWeekend
+      );
+
+      expect(updated[0]?.lag).toBe(3);
+    });
+
+    it('clamps FS negative lag to predecessor duration when successor moves too far left', () => {
+      const tasks = [
+        createTask('pred', '2026-03-10', '2026-03-12'),
+        createTask('succ', '2026-03-13', '2026-03-15', [{ taskId: 'pred', type: 'FS', lag: 0 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-08T00:00:00.000Z'),
+        new Date('2026-03-10T00:00:00.000Z'),
+        tasks
+      );
+
+      expect(updated[0]?.lag).toBe(-3);
+    });
+  });
+
+  describe('businessDays cascade lag preservation', () => {
+    it('preserves FF lag in working days when predecessor expands across a weekend', () => {
+      const tasks = [
+        createTask('pred', '2026-03-02', '2026-03-06'),
+        createTask('succ', '2026-03-11', '2026-03-17', [{ taskId: 'pred', type: 'FF', lag: 7 }]),
+      ];
+
+      const movedTask = {
+        ...tasks[0],
+        startDate: '2026-03-03',
+        endDate: '2026-03-09',
+      };
+
+      const result = universalCascade(
+        movedTask,
+        new Date('2026-03-03T00:00:00.000Z'),
+        new Date('2026-03-09T00:00:00.000Z'),
+        tasks,
+        true,
+        isWeekend
+      );
+
+      const successor = result.find(task => task.id === 'succ');
+      expect(successor).toBeDefined();
+      expect(successor?.startDate).toBe('2026-03-12');
+      expect(successor?.endDate).toBe('2026-03-18');
+
+      const effectiveLag = computeLagFromDates(
+        'FF',
+        new Date('2026-03-03T00:00:00.000Z'),
+        new Date('2026-03-09T00:00:00.000Z'),
+        new Date(`${successor?.startDate}T00:00:00.000Z`),
+        new Date(`${successor?.endDate}T00:00:00.000Z`),
+        true,
+        isWeekend
+      );
+
+      expect(effectiveLag).toBe(7);
+    });
+
+    it('snaps child tasks away from weekend starts when a parent move would place them there', () => {
+      const tasks = [
+        createTask('parent', '2026-03-03', '2026-03-05'),
+        { ...createTask('child', '2026-03-06', '2026-03-06'), parentId: 'parent' } as Task,
+      ];
+
+      const movedParent = {
+        ...tasks[0],
+        startDate: '2026-03-05',
+        endDate: '2026-03-07',
+      };
+
+      const result = universalCascade(
+        movedParent,
+        new Date('2026-03-05T00:00:00.000Z'),
+        new Date('2026-03-07T00:00:00.000Z'),
+        tasks,
+        true,
+        isWeekend
+      );
+
+      const child = result.find(task => task.id === 'child');
+      expect(child).toBeDefined();
+      expect(child?.startDate).toBe('2026-03-09');
+      expect(child?.endDate).toBe('2026-03-09');
+    });
+
+    it('keeps child start and end off weekends and expands span when needed after parent move', () => {
+      const tasks = [
+        createTask('parent', '2026-03-03', '2026-03-05'),
+        { ...createTask('child', '2026-03-06', '2026-03-09'), parentId: 'parent' } as Task,
+      ];
+
+      const movedParent = {
+        ...tasks[0],
+        startDate: '2026-03-04',
+        endDate: '2026-03-06',
+      };
+
+      const result = universalCascade(
+        movedParent,
+        new Date('2026-03-04T00:00:00.000Z'),
+        new Date('2026-03-06T00:00:00.000Z'),
+        tasks,
+        true,
+        isWeekend
+      );
+
+      const child = result.find(task => task.id === 'child');
+      expect(child).toBeDefined();
+      expect(child?.startDate).toBe('2026-03-09');
+      expect(child?.endDate).toBe('2026-03-10');
     });
   });
 

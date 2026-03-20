@@ -4,7 +4,8 @@ import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
 import type { CustomDayConfig } from '../../utils/dateUtils';
-import { validateDependencies, calculateSuccessorDate, isTaskParent } from '../../utils/dependencyUtils';
+import { createCustomDayPredicate } from '../../utils/dateUtils';
+import { validateDependencies, calculateSuccessorDate, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration, isTaskParent } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import { getVisibleReorderPosition } from '../../utils/taskListReorder';
 import { getChildren } from '../../utils/dependencyUtils';
@@ -17,6 +18,7 @@ import './TaskList.css';
 export { LINK_TYPE_ICONS };
 
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
+type DependencyPickMode = 'predecessor' | 'successor';
 const MIN_TASK_LIST_WIDTH = 640;
 
 /**
@@ -142,6 +144,8 @@ export interface TaskListProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate for date picker */
   isWeekend?: (date: Date) => boolean;
+  /** Считать duration в рабочих днях */
+  businessDays?: boolean;
   /** Task IDs highlighted by the active filter */
   highlightedTaskIds?: Set<string>;
 }
@@ -178,6 +182,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onDemoteTask,
   customDays,
   isWeekend,
+  businessDays,
   highlightedTaskIds = new Set(),
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
@@ -203,6 +208,11 @@ export const TaskList: React.FC<TaskListProps> = ({
     return normalizeHierarchyTasks(tasks);
   }, [tasks]);
 
+  const weekendPredicate = useMemo(
+    () => createCustomDayPredicate({ customDays, isWeekend }),
+    [customDays, isWeekend]
+  );
+
   // Filter tasks to hide children of collapsed parents.
   // Checks the full ancestor chain so grandchildren are hidden when any ancestor is collapsed.
   const visibleTasks = useMemo(() => {
@@ -223,6 +233,13 @@ export const TaskList: React.FC<TaskListProps> = ({
   const totalHeight = useMemo(
     () => visibleTasks.length * rowHeight,
     [visibleTasks.length, rowHeight]
+  );
+  const visibleTaskNumberMap = useMemo(
+    () =>
+      Object.fromEntries(
+        visibleTasks.map((task, index) => [task.id, String(getTaskNumber(visibleTasks, index))])
+      ) as Record<string, string>,
+    [visibleTasks]
   );
 
   // Compute nesting depth for each task (0 = root, 1 = child, 2 = grandchild, etc.)
@@ -292,6 +309,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   // Dependency state
   const [activeLinkType, setActiveLinkType] = useState<LinkType>('FS');
   const [selectingPredecessorFor, setSelectingPredecessorFor] = useState<string | null>(null);
+  const [dependencyPickMode, setDependencyPickMode] = useState<DependencyPickMode>('successor');
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const [cycleError, setCycleError] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -382,22 +400,40 @@ export const TaskList: React.FC<TaskListProps> = ({
     if (predecessor) {
       const predStart = new Date(predecessor.startDate as string);
       const predEnd = new Date(predecessor.endDate as string);
-      const constraintDate = calculateSuccessorDate(predStart, predEnd, linkType, 0);
+      const constraintDate = calculateSuccessorDate(
+        predStart,
+        predEnd,
+        linkType,
+        0,
+        businessDays ?? true,
+        weekendPredicate
+      );
 
       const origSuccessor = tasks.find(t => t.id === successorTaskId)!;
-      const durationMs =
-        new Date(origSuccessor.endDate as string).getTime() -
-        new Date(origSuccessor.startDate as string).getTime();
+      const duration = getTaskDuration(
+        origSuccessor.startDate,
+        origSuccessor.endDate,
+        businessDays ?? true,
+        weekendPredicate
+      );
 
       let newStart: Date;
       let newEnd: Date;
 
       if (linkType === 'FS' || linkType === 'SS') {
-        newStart = constraintDate;
-        newEnd = new Date(constraintDate.getTime() + durationMs);
+        ({ start: newStart, end: newEnd } = buildTaskRangeFromStart(
+          constraintDate,
+          duration,
+          businessDays ?? true,
+          weekendPredicate
+        ));
       } else {
-        newEnd = constraintDate;
-        newStart = new Date(constraintDate.getTime() - durationMs);
+        ({ start: newStart, end: newEnd } = buildTaskRangeFromEnd(
+          constraintDate,
+          duration,
+          businessDays ?? true,
+          weekendPredicate
+        ));
       }
 
       const snappedTask: Task = {
@@ -779,7 +815,7 @@ export const TaskList: React.FC<TaskListProps> = ({
           <div className="gantt-tl-headerCell gantt-tl-cell-name">Имя</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Начало</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Окончание</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-duration">Дн.</div>
+          <div className="gantt-tl-headerCell gantt-tl-cell-duration">{businessDays ? 'Дн. (р)' : 'Дн.'}</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-progress">%</div>
           {/* Dependencies column header with type switcher */}
           <div className="gantt-tl-headerCell gantt-tl-cell-deps" style={{ position: 'relative' }}>
@@ -822,6 +858,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               task={task}
               rowIndex={index}
               taskNumber={getTaskNumber(visibleTasks, index)}
+              taskNumberMap={visibleTaskNumberMap}
               rowHeight={rowHeight}
               onTasksChange={onTasksChange}
               selectedTaskId={selectedTaskId}
@@ -830,7 +867,10 @@ export const TaskList: React.FC<TaskListProps> = ({
               disableDependencyEditing={disableDependencyEditing}
               allTasks={tasks}
               activeLinkType={activeLinkType}
+              onSetActiveLinkType={setActiveLinkType}
               selectingPredecessorFor={selectingPredecessorFor}
+              dependencyPickMode={dependencyPickMode}
+              onSetDependencyPickMode={setDependencyPickMode}
               onSetSelectingPredecessorFor={setSelectingPredecessorFor}
               onAddDependency={handleAddDependency}
               onRemoveDependency={handleRemoveDependency}
@@ -856,6 +896,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
               customDays={customDays}
               isWeekend={isWeekend}
+              businessDays={businessDays}
               isFilterMatch={highlightedTaskIds.has(task.id)}
             />
           ))}

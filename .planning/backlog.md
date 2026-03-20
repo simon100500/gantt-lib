@@ -1,5 +1,12 @@
 ## Доработать календарную сетку:
 
+
+Добавить в фильтр параметр "дочерняя"
+Изменение типа связи прямо в чипе
+Писать id предшественника
+Добавить hover подсказку предш
+
+
 <!-- - рисовать сетку на весь проект при перетягивании полос (сейчас нет) -->
 <!-- - столбцы в заголовке делать одной ширины -->
 <!-- - сделать трёхуровненвый заголовок: год, месяц, день -->
@@ -209,3 +216,89 @@ TaskListTable: React.FC<{ rowHeight, rowWidth, fontFamily, fontSize, locale, tas
   └─────┴───────────────────────┴─────────────┴──────────┴───────────┘
 
   Хочешь, чтобы я оформил какие-то из этих фич в виде задач или сделал более детальный план реализации?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ---
+  Feature: Search Row Highlight & Scroll
+
+  Problem
+
+  При поиске задач нужно:
+  1. Подсвечивать найденную строку в TaskList
+  2. Прокручивать список к найденной задаче
+
+  Current State
+
+  - TaskList уже имеет highlightedTaskIds?: Set<string> (строка 748 index.d.ts)
+  - Но этот проп не проброшен через GanttChartProps
+  - GanttChartHandle.scrollToTask() прокручивает к задаче в grid, а не к строке в списке
+
+  Required Changes
+
+  1. Добавить проп в GanttChartProps
+
+  interface GanttChartProps {
+    // ... existing props
+
+    /** Task IDs to highlight in the task list (for search results) */
+    highlightedTaskIds?: Set<string>;
+  }
+
+  2. Пробросить в TaskList
+
+  Внутри компонента GanttChart передать highlightedTaskIds в TaskList.
+
+  3. Добавить метод scrollToRow в GanttChartHandle
+
+  interface GanttChartHandle {
+    scrollToToday: () => void;
+    scrollToTask: (taskId: string) => void;
+    scrollToRow: (taskId: string) => void;  // NEW
+    collapseAll: () => void;
+    expandAll: () => void;
+  }
+
+  4. Реализовать scrollToRow
+
+  Метод должен:
+  - Найти задачу по ID в tasks
+  - Вычислить её индекс в отфильтрованном/сплюсщенном списке visibleTasks
+  - Прокрутить контейнер TaskList к строке: rowHeight * rowIndex + headerHeight
+
+  Example Usage
+
+  const ganttRef = useRef<GanttChartHandle>(null);
+
+  const searchResults = new Set(['task-1', 'task-5']);
+
+  // Подсветка результатов
+  <GanttChart
+    ref={ganttRef}
+    highlightedTaskIds={searchResults}
+  />
+
+  // Прокрутка к конкретной строке
+  ganttRef.current?.scrollToRow('task-5');
+
+  Acceptance Criteria
+
+  - highlightedTaskIds проброшен через GanttChartProps
+  - Строки с ID из highlightedTaskIds имеют визуальное выделение (CSS класс)
+  - scrollToRow(taskId) прокручивает TaskList к нужной строке
+  - TypeScript типы обновлены
+  - Экспорт в index.d.ts
+
+  ---

@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays, createCustomDayPredicate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../utils/dependencyUtils';
+import { validateDependencies, cascadeByLinks, universalCascade, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type { ValidationResult } from '../../types';
 import { TaskPredicate } from '../../filters';
@@ -50,7 +50,7 @@ export interface Task {
    * Optional array of task dependencies
    * - Each dependency references a predecessor task by ID
    * - Supports 4 link types: FS (finish-to-start), SS (start-to-start), FF (finish-to-finish), SF (start-to-finish)
-   * - Lag is optional and defaults to 0 (positive = delay, negative = overlap)
+   * - Lag is required (positive = delay, negative = overlap)
    */
   dependencies?: TaskDependency[];
   /**
@@ -76,8 +76,8 @@ export interface TaskDependency {
   taskId: string;
   /** Link type: FS, SS, FF, or SF */
   type: 'FS' | 'SS' | 'FF' | 'SF';
-  /** Optional lag in days (default: 0) */
-  lag?: number;
+  /** Lag in days */
+  lag: number;
 }
 
 export interface GanttChartProps {
@@ -131,6 +131,8 @@ export interface GanttChartProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate (checked before customDays overrides) */
   isWeekend?: (date: Date) => boolean;
+  /** Считать duration в рабочих днях, исключая выходные (default: true) */
+  businessDays?: boolean;
   /**
    * Optional predicate to mark tasks in the current view.
    * Matching tasks stay visible and are highlighted in the chart and task list.
@@ -203,6 +205,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   viewMode = 'day',
   customDays,
   isWeekend,
+  businessDays = true,
   taskFilter,
   collapsedParentIds: externalCollapsedParentIds,
   onToggleCollapse: externalOnToggleCollapse,
@@ -381,6 +384,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
   // Track currently-dragged task's pixel position for real-time dependency line updates
   const [draggedTaskOverride, setDraggedTaskOverride] = useState<{ taskId: string; left: number; width: number } | null>(null);
+  const [previewTasksById, setPreviewTasksById] = useState<Map<string, Task>>(new Map());
 
   // Validate dependencies when tasks change
   useEffect(() => {
@@ -458,18 +462,18 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       // Cascade only dependency successors (not children) if constraints enabled
       const cascadedTasks = disableConstraints
         ? [parentWithRecalcDates]
-        : [parentWithRecalcDates, ...cascadeByLinks(updatedTask.id, parentStart, parentEnd, tasks, true)]; // skipChildCascade=true
+        : universalCascade(parentWithRecalcDates, parentStart, parentEnd, tasks, businessDays, isCustomWeekend);
 
       onTasksChange?.(cascadedTasks);
     } else {
       // Regular task or child: normal cascade
       const cascadedTasks = disableConstraints
         ? [updatedTask]
-        : [updatedTask, ...cascadeByLinks(updatedTask.id, newStart, newEnd, tasks)];
+        : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays, isCustomWeekend);
 
       onTasksChange?.(cascadedTasks);
     }
-  }, [tasks, onTasksChange, disableConstraints, editingTaskId]);
+  }, [tasks, onTasksChange, disableConstraints, editingTaskId, businessDays, isCustomWeekend]);
 
   /**
    * Handle task deletion: collect all changed tasks (with cleaned dependencies),
@@ -560,9 +564,23 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
    * so non-dragged chain members re-render with their preview positions.
    * new Map() forces React to detect the state change.
    */
-  const handleCascadeProgress = useCallback((overrides: Map<string, { left: number; width: number }>) => {
+  const handleCascadeProgress = useCallback((
+    overrides: Map<string, { left: number; width: number }>,
+    previewTasks: Task[] = []
+  ) => {
     setCascadeOverrides(new Map(overrides));
+    setPreviewTasksById(new Map(previewTasks.map(task => [task.id, task])));
   }, []);
+
+  const previewNormalizedTasks = useMemo(() => {
+    if (previewTasksById.size === 0) return normalizedTasks;
+    return normalizedTasks.map(task => previewTasksById.get(task.id) ?? task);
+  }, [normalizedTasks, previewTasksById]);
+
+  const previewVisibleTasks = useMemo(() => {
+    if (previewTasksById.size === 0) return visibleTasks;
+    return visibleTasks.map(task => previewTasksById.get(task.id) ?? task);
+  }, [visibleTasks, previewTasksById]);
 
   /**
    * Handle cascade completion — emit all changed tasks.
@@ -839,6 +857,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             highlightedTaskIds={matchedTaskIds}
             customDays={customDays}
             isWeekend={isWeekend}
+            businessDays={businessDays}
           />
 
           {/* Chart area */}
@@ -874,8 +893,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
           {/* Dependency lines SVG overlay */}
           <DependencyLines
-            tasks={visibleTasks}
-            allTasks={normalizedTasks}
+            tasks={previewVisibleTasks}
+            allTasks={previewNormalizedTasks}
             collapsedParentIds={collapsedParentIds}
             monthStart={monthStart}
             dayWidth={dayWidth}
@@ -883,6 +902,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             gridWidth={gridWidth}
             dragOverrides={dependencyOverrides}
             selectedDep={selectedChip}
+            businessDays={businessDays}
+            weekendPredicate={isCustomWeekend}
           />
 
           {dragGuideLines && (
@@ -921,6 +942,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
               onCascade={handleCascade}
               highlightExpiredTasks={highlightExpiredTasks}
               isFilterMatch={matchedTaskIds.has(task.id)}
+              businessDays={businessDays}
+              customDays={customDays}
+              isWeekend={isWeekend}
             />
           ))}
           </div>

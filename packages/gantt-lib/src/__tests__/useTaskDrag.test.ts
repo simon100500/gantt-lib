@@ -226,6 +226,85 @@ describe('useTaskDrag', () => {
         expect(result.current.dragMode).toBe(null);
       });
     });
+
+    it('should prevent a moved task from previewing a weekend start in business-days mode', async () => {
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 12)), // Thu Feb 12, 2026
+          initialEndDate: new Date(Date.UTC(2026, 1, 13)),   // Fri Feb 13, 2026
+          allTasks: [
+            { id: 'task-1', name: 'Task 1', startDate: '2026-02-12', endDate: '2026-02-13' },
+          ],
+          businessDays: true,
+          weekendPredicate: (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 440,
+          width: 80,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 480,
+        } as unknown as React.MouseEvent);
+      });
+
+      // Move to Saturday Feb 14, 2026
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 560 }));
+      });
+
+      await waitFor(() => {
+        // Preview snaps to Monday Feb 16, 2026
+        expect(result.current.currentLeft).toBe(600);
+      });
+    });
+
+    it('should stretch preview width during move when business duration crosses a weekend', async () => {
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 12)), // Thu Feb 12, 2026
+          initialEndDate: new Date(Date.UTC(2026, 1, 13)),   // Fri Feb 13, 2026
+          allTasks: [
+            { id: 'task-1', name: 'Task 1', startDate: '2026-02-12', endDate: '2026-02-13' },
+          ],
+          businessDays: true,
+          weekendPredicate: (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6,
+          onCascadeProgress: vi.fn(),
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 440,
+          width: 80,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 480,
+        } as unknown as React.MouseEvent);
+      });
+
+      // Move one business-day task so that it starts on Friday; end should spill to Monday.
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 520 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(480); // Fri Feb 13, 2026
+        expect(result.current.currentWidth).toBe(160); // Fri..Mon over the weekend
+      });
+    });
   });
 
   describe('Resize operation', () => {
@@ -319,6 +398,108 @@ describe('useTaskDrag', () => {
 
       waitFor(() => {
         expect(result.current.currentWidth).toBeGreaterThanOrEqual(40); // Minimum 1 day
+      });
+    });
+
+    it('should stretch resize-right preview across a weekend in business-days mode', async () => {
+      const onDragEnd = vi.fn();
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 12)), // Thu Feb 12, 2026
+          initialEndDate: new Date(Date.UTC(2026, 1, 13)),   // Fri Feb 13, 2026
+          allTasks: [
+            { id: 'task-1', name: 'Task 1', startDate: '2026-02-12', endDate: '2026-02-13' },
+          ],
+          businessDays: true,
+          weekendPredicate: (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 440,
+          width: 80,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 440 + 80 - 5,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 440 + 80 - 5 + 40 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(440);
+        expect(result.current.currentWidth).toBe(200); // Thu..Mon with weekend expansion
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      await waitFor(() => {
+        expect(onDragEnd).toHaveBeenCalledTimes(1);
+        const [{ startDate, endDate }] = onDragEnd.mock.calls[0];
+        expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 12)).toISOString());
+        expect(endDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 16)).toISOString());
+      });
+    });
+
+    it('should snap resize-left away from weekend starts in business-days mode', async () => {
+      const onDragEnd = vi.fn();
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 16)), // Mon Feb 16, 2026
+          initialEndDate: new Date(Date.UTC(2026, 1, 17)),   // Tue Feb 17, 2026
+          allTasks: [
+            { id: 'task-1', name: 'Task 1', startDate: '2026-02-16', endDate: '2026-02-17' },
+          ],
+          businessDays: true,
+          weekendPredicate: (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 600,
+          width: 80,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 605,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 565 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(480); // Fri Feb 13, 2026
+        expect(result.current.currentWidth).toBe(200); // Fri..Tue with weekend expansion
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      await waitFor(() => {
+        expect(onDragEnd).toHaveBeenCalledTimes(1);
+        const [{ startDate, endDate }] = onDragEnd.mock.calls[0];
+        expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 13)).toISOString());
+        expect(endDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 17)).toISOString());
       });
     });
   });
@@ -1145,6 +1326,242 @@ describe('useTaskDrag', () => {
         expect(new Date(successor.startDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 18)).toISOString());
         expect(new Date(successor.endDate).toISOString()).toBe(new Date(Date.UTC(2026, 1, 22)).toISOString());
       });
+    });
+  });
+
+  describe('Incoming lag edits during drag', () => {
+    it('clamps FS successor move when negative lag would exceed predecessor duration', async () => {
+      const onDragEnd = vi.fn();
+      const allTasks = [
+        {
+          id: 'pred',
+          name: 'Predecessor',
+          startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 12)).toISOString(),
+        },
+        {
+          id: 'task-1',
+          name: 'Successor',
+          startDate: new Date(Date.UTC(2026, 1, 13)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 15)).toISOString(),
+          dependencies: [{ taskId: 'pred', type: 'FS' as const, lag: 0 }],
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 13)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 15)),
+          allTasks,
+          disableConstraints: false,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 480, width: 120 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 540,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 380 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(360);
+        expect(result.current.currentWidth).toBe(120);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      const [{ startDate, endDate, updatedDependencies }] = onDragEnd.mock.calls[0];
+      expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 10)).toISOString());
+      expect(endDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 12)).toISOString());
+      expect(updatedDependencies?.[0]?.lag).toBe(-3);
+    });
+
+    it('allows reducing FS lag back to zero by moving successor left', async () => {
+      const onDragEnd = vi.fn();
+      const allTasks = [
+        {
+          id: 'pred',
+          name: 'Predecessor',
+          startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 12)).toISOString(),
+        },
+        {
+          id: 'task-1',
+          name: 'Successor',
+          startDate: new Date(Date.UTC(2026, 1, 14)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 16)).toISOString(),
+          dependencies: [{ taskId: 'pred', type: 'FS' as const, lag: 1 }],
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 14)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 16)),
+          allTasks,
+          disableConstraints: false,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 520, width: 120 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 580,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 540 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(480);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      const [{ startDate, updatedDependencies }] = onDragEnd.mock.calls[0];
+      expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 13)).toISOString());
+      expect(updatedDependencies?.[0]?.lag).toBe(0);
+    });
+
+    it('allows reducing SS lag back to zero by moving successor left', async () => {
+      const onDragEnd = vi.fn();
+      const allTasks = [
+        {
+          id: 'pred',
+          name: 'Predecessor',
+          startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 12)).toISOString(),
+        },
+        {
+          id: 'task-1',
+          name: 'Successor',
+          startDate: new Date(Date.UTC(2026, 1, 11)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 13)).toISOString(),
+          dependencies: [{ taskId: 'pred', type: 'SS' as const, lag: 1 }],
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 11)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 13)),
+          allTasks,
+          disableConstraints: false,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 400, width: 120 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 460,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 420 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(360);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      const [{ startDate, updatedDependencies }] = onDragEnd.mock.calls[0];
+      expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 10)).toISOString());
+      expect(updatedDependencies?.[0]?.lag).toBe(0);
+    });
+
+    it('allows increasing SF lag by moving successor right', async () => {
+      const onDragEnd = vi.fn();
+      const allTasks = [
+        {
+          id: 'pred',
+          name: 'Predecessor',
+          startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 12)).toISOString(),
+        },
+        {
+          id: 'task-1',
+          name: 'Successor',
+          startDate: new Date(Date.UTC(2026, 1, 8)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          dependencies: [{ taskId: 'pred', type: 'SF' as const, lag: 1 }],
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 8)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 10)),
+          allTasks,
+          disableConstraints: false,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 280, width: 120 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 340,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 380 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(320);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      const [{ endDate, updatedDependencies }] = onDragEnd.mock.calls[0];
+      expect(endDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 11)).toISOString());
+      expect(updatedDependencies?.[0]?.lag).toBe(2);
     });
   });
 });

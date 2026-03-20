@@ -22,6 +22,8 @@ export interface DatePickerProps {
   disabled?: boolean;
   /** Optional predicate for custom weekend logic */
   isWeekend?: (date: Date) => boolean;
+  /** Whether to use business days for +1/+7 buttons (default: true) */
+  businessDays?: boolean;
 }
 
 const segments = [
@@ -29,6 +31,48 @@ const segments = [
   { start: 3, end: 5, label: 'month', max: 12 },
   { start: 6, end: 8, label: 'year', max: 99 },
 ];
+
+const shiftByBusinessDays = (
+  startDate: Date,
+  delta: number,
+  weekendPredicate: (date: Date) => boolean
+): Date => {
+  if (delta === 0) return startDate;
+
+  const shifted = new Date(startDate);
+  const step = delta > 0 ? 1 : -1;
+  let remaining = Math.abs(delta);
+
+  while (remaining > 0) {
+    shifted.setUTCDate(shifted.getUTCDate() + step);
+    if (!weekendPredicate(shifted)) {
+      remaining--;
+    }
+  }
+
+  return shifted;
+};
+
+const snapToBusinessDay = (
+  date: Date,
+  direction: 1 | -1,
+  weekendPredicate: (date: Date) => boolean
+): Date => {
+  const snapped = new Date(date);
+  while (weekendPredicate(snapped)) {
+    snapped.setUTCDate(snapped.getUTCDate() + direction);
+  }
+  return snapped;
+};
+
+const formatUTCDate = (date: Date, pattern: string): string => {
+  const localDisplayDate = new Date(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate()
+  );
+  return format(localDisplayDate, pattern);
+};
 
 /**
  * DatePicker component — shows formatted date as a button, opens calendar popup on click.
@@ -44,6 +88,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   className,
   disabled = false,
   isWeekend,
+  businessDays = true,
 }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -61,14 +106,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   // Format Date for display on trigger button
   const displayValue = selectedDate
-    ? format(selectedDate, displayFormat)
+    ? formatUTCDate(selectedDate, displayFormat)
     : placeholder;
 
   // Sync inputValue with prop value
   useEffect(() => {
     if (value) {
       const d = new Date(value + 'T00:00:00Z');
-      if (isValid(d)) setInputValue(format(d, 'dd.MM.yy'));
+      if (isValid(d)) setInputValue(formatUTCDate(d, 'dd.MM.yy'));
     } else {
       setInputValue('');
     }
@@ -113,31 +158,46 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     }, 0);
   };
 
+  const handleShiftButtonMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+    },
+    []
+  );
+
   const updateFromDate = useCallback((newDate: Date) => {
     if (!isValid(newDate)) return;
-    setInputValue(format(newDate, 'dd.MM.yy'));
+    setInputValue(formatUTCDate(newDate, 'dd.MM.yy'));
     const iso = [
-      newDate.getFullYear(),
-      String(newDate.getMonth() + 1).padStart(2, '0'),
-      String(newDate.getDate()).padStart(2, '0'),
+      newDate.getUTCFullYear(),
+      String(newDate.getUTCMonth() + 1).padStart(2, '0'),
+      String(newDate.getUTCDate()).padStart(2, '0'),
     ].join('-');
     onChange?.(iso);
   }, [onChange]);
 
   const handleCalendarSelect = useCallback(
     (day: Date) => {
-      updateFromDate(day);
+      const normalizedDay = businessDays && isWeekend && isWeekend(day)
+        ? snapToBusinessDay(day, 1, isWeekend)
+        : day;
+      updateFromDate(normalizedDay);
       setOpen(false);
     },
-    [updateFromDate]
+    [updateFromDate, businessDays, isWeekend]
   );
 
   const handleDayShift = useCallback(
     (delta: number) => {
       const base = selectedDate ?? new Date();
-      updateFromDate(addDays(base, delta));
+      // Use business days if enabled and weekend predicate is available
+      if (businessDays && isWeekend) {
+        updateFromDate(shiftByBusinessDays(base, delta, isWeekend));
+      } else {
+        updateFromDate(addDays(base, delta));
+      }
     },
-    [selectedDate, updateFromDate]
+    [selectedDate, updateFromDate, businessDays, isWeekend]
   );
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -169,6 +229,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       if (seg.label === 'day')   newDate = e.key === 'ArrowUp' ? addDays(base, 1)   : subDays(base, 1);
       if (seg.label === 'month') newDate = e.key === 'ArrowUp' ? addMonths(base, 1) : subMonths(base, 1);
       if (seg.label === 'year')  newDate = e.key === 'ArrowUp' ? addYears(base, 1)  : subYears(base, 1);
+      if (businessDays && isWeekend && isWeekend(newDate)) {
+        newDate = snapToBusinessDay(newDate, e.key === 'ArrowUp' ? 1 : -1, isWeekend);
+      }
       charPosRef.current = 0;
       updateFromDate(newDate);
       requestAnimationFrame(() => selectSegByIdx(segIdx));
@@ -242,10 +305,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
       const parsed = parse(updated, 'dd.MM.yy', new Date());
       if (isValid(parsed) && !updated.includes('00.00')) {
-        updateFromDate(parsed);
+        const normalizedDate = new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
+        updateFromDate(
+          businessDays && isWeekend && isWeekend(normalizedDate)
+            ? snapToBusinessDay(normalizedDate, 1, isWeekend)
+            : normalizedDate
+        );
       }
     }
-  }, [selectedDate, updateFromDate, selectSegByIdx]);
+  }, [selectedDate, updateFromDate, selectSegByIdx, businessDays, isWeekend]);
 
   return (
     <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
@@ -267,8 +335,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         side="bottom"
       >
         <div className="gantt-datepicker-input-row">
-          <button type="button" className="gantt-datepicker-shift-btn" onClick={() => handleDayShift(-7)} tabIndex={-1}>-7</button>
-          <button type="button" className="gantt-datepicker-shift-btn" onClick={() => handleDayShift(-1)} tabIndex={-1}>-1</button>
+          <button type="button" className="gantt-datepicker-shift-btn" onMouseDown={handleShiftButtonMouseDown} onClick={() => handleDayShift(-7)} tabIndex={-1}>-7</button>
+          <button type="button" className="gantt-datepicker-shift-btn" onMouseDown={handleShiftButtonMouseDown} onClick={() => handleDayShift(-1)} tabIndex={-1}>-1</button>
           <input
             ref={dateInputRef}
             type="text"
@@ -281,8 +349,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             spellCheck={false}
             autoComplete="off"
           />
-          <button type="button" className="gantt-datepicker-shift-btn" onClick={() => handleDayShift(1)} tabIndex={-1}>+1</button>
-          <button type="button" className="gantt-datepicker-shift-btn" onClick={() => handleDayShift(7)} tabIndex={-1}>+7</button>
+          <button type="button" className="gantt-datepicker-shift-btn" onMouseDown={handleShiftButtonMouseDown} onClick={() => handleDayShift(1)} tabIndex={-1}>+1</button>
+          <button type="button" className="gantt-datepicker-shift-btn" onMouseDown={handleShiftButtonMouseDown} onClick={() => handleDayShift(7)} tabIndex={-1}>+7</button>
         </div>
         <Calendar
           mode="single"

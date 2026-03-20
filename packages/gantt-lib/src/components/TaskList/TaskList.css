@@ -102,6 +102,22 @@
   box-shadow: inset 0 0 0 9999px rgba(17, 24, 39, 0.08);
 }
 
+.gantt-tl-row-dependency-selected {
+  box-shadow: inset 0 0 0 9999px rgba(5, 150, 105, 0.12);
+}
+
+.gantt-tl-row-dependency-selected:hover {
+  box-shadow: inset 0 0 0 9999px rgba(5, 150, 105, 0.16);
+}
+
+.gantt-tl-row-dependency-owner {
+  box-shadow: inset 0 0 0 9999px rgba(37, 99, 235, 0.12);
+}
+
+.gantt-tl-row-dependency-owner:hover {
+  box-shadow: inset 0 0 0 9999px rgba(37, 99, 235, 0.16);
+}
+
 /* Hierarchy row styles */
 .gantt-tl-row-child {
   padding-left: 0;
@@ -495,7 +511,7 @@
   gap: 4px;
   padding: 2px 4px;
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
@@ -625,8 +641,8 @@
 
 /* Selected chip visual highlight — inverted */
 .gantt-tl-dep-chip-selected {
-  background-color: #1d4ed8;
-  border-color: #1d4ed8;
+  background-color: #2563eb;
+  border-color: #2563eb;
   color: #fff;
   font-weight: 600;
 }
@@ -947,8 +963,195 @@
   font-size: 0.75rem;
   color: #6b7280;
   font-style: italic;
-  pointer-events: none;
   white-space: normal;
+}
+
+.gantt-tl-dep-source-picker {
+  position: absolute;
+  top: -80px;
+  left: calc(100% + 8px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 280px;
+  max-width: 280px;
+  padding: 12px 10px 10px;
+  border: none;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
+}
+
+.gantt-tl-dep-source-direction {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.gantt-tl-dep-source-direction-btn {
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #111827;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.gantt-tl-dep-source-direction-btn:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+}
+
+.gantt-tl-dep-source-direction-btn-active,
+.gantt-tl-dep-source-direction-btn-active:hover {
+  background: rgba(59, 130, 246, 0.16);
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.gantt-tl-dep-source-types {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.gantt-tl-dep-source-type-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #111827;
+  padding: 6px 4px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-family: inherit;
+}
+
+.gantt-tl-dep-source-type-btn:hover {
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.gantt-tl-dep-source-type-btn-active {
+  background: rgba(59, 130, 246, 0.16);
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.gantt-tl-dep-source-type-btn-active:hover {
+  background: rgba(59, 130, 246, 0.16);
+  color: #1d4ed8;
+}
+
+.gantt-tl-dep-source-type-btn span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt-tl-dep-source-picker-head {
+  display: flex;
+  align-items: center;
+}
+
+.gantt-tl-dep-source-input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: #111827;
+}
+
+.gantt-tl-dep-source-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.gantt-tl-dep-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 164px;
+  overflow-y: auto;
+}
+
+.gantt-tl-dep-source-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #1f2937;
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.gantt-tl-dep-source-option-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt-tl-dep-source-option:hover,
+.gantt-tl-dep-source-option-active {
+  background: rgba(59, 130, 246, 0.16);
+  color: #1d4ed8;
+}
+
+.gantt-tl-dep-source-option-linked {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.gantt-tl-dep-source-option-linked:hover,
+.gantt-tl-dep-source-option-linked.gantt-tl-dep-source-option-active {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.gantt-tl-dep-source-option-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.gantt-tl-dep-source-option-linked:hover .gantt-tl-dep-source-option-remove,
+.gantt-tl-dep-source-option-linked.gantt-tl-dep-source-option-active .gantt-tl-dep-source-option-remove {
+  color: #dc2626;
+}
+
+.gantt-tl-dep-source-option-remove:hover {
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
 }
 
 /* Predecessor cell full-replacement: "Зависит от [name]" → hover → "Удалить" */
@@ -957,7 +1160,7 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  background: #ef4444;
+  background: #059669;
   border: none;
   border-radius: 4px;
   padding: 2px 4px;
@@ -969,6 +1172,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
+}
+
+.gantt-tl-dep-delete-label:hover {
+  background: #dc2626;
 }
 
 .gantt-tl-dep-delete-label-default {

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.18
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-19T20:15:11.361Z"
-last_activity: "2026-03-19 - Completed quick task 260319-uwn: Иерархическое добавление задач"
+last_updated: "2026-03-19T21:53:34.922Z"
+last_activity: 2026-03-19
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 5
+  completed_phases: 4
+  total_plans: 9
+  completed_plans: 9
   percent: 100
 ---
 
@@ -28,7 +28,7 @@ progress:
 
 ## Current Position
 
-Phase: 22 (filters) — EXECUTING
+Phase: 24 (buisiness-days) — EXECUTING
 Plan: 1 of 2
 
 ## Project Reference
@@ -73,14 +73,17 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 ### Quick Tasks Completed
 
-| # | Description | Date | Directory |
-|---|-------------|------|-----------|
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
 | 260318-mso | 0% в прогрессе → "-", суффикс "д" для длительности | 2026-03-18 | [260318-mso-0](./quick/260318-mso-0/) |
 | 260318-n0f | Вынос длительности за пределы узких полос (≤40px) | 2026-03-18 | [260318-n0f-1-1-5-100](./quick/260318-n0f-1-1-5-100/) |
 | 260318-nji | Фикс отступов внешних меток rightLabels (gap вместо margin) | 2026-03-18 | [260318-nji-taskrow](./quick/260318-nji-taskrow/) |
 | 260319-ofh | Move add connection button after chips (left-align connections) | 2026-03-19 | |
 | 260319-uwn | Иерархическое добавление задач: кнопка '+' на родителе → после детей, на ребёнке → тот же родитель | 2026-03-19 | 69f27a0 | [260319-uwn-1-2-3](./quick/260319-uwn-1-2-3/) |
 | 260319-w9n | добавить пропсы collapsedParentIds и onToggleCollapse для управления состоянием collapse/expand родительских задач | 2026-03-19 | 0be31d5 | [260319-w9n-collapsedparentids-ontogglecollapse-coll](./quick/260319-w9n-collapsedparentids-ontogglecollapse-coll/) |
+| 260320-ht7 | Каскадный пересчёт зависимостей с учётом рабочих дней | 2026-03-20 | 1c675fd | [260320-ht7-business-days-calc](./quick/260320-ht7-business-days-calc/) |
+
+| 260321-lag | РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј | 2026-03-20 | eb14476 | [260321-lag-planning-work-day-logic-md](./quick/260321-lag-planning-work-day-logic-md/) |
 
 ### User Feedback
 
@@ -100,6 +103,7 @@ None yet — no external users (library in active development)
 - Phase 21.1 added: custom-weekend-refactoring
 - Phase 22 added: filters (inserted between 21.1 and old 22)
 - Old Phase 22 → Phase 23: Additional TaskList Columns (renumbered)
+- Phase 24 added: buisiness-days
 
 **Coverage:** 13/13 requirements mapped ✓
 
@@ -107,7 +111,7 @@ None yet — no external users (library in active development)
 
 **Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
 
-**Current focus:** Phase 22 — filters
+**Current focus:** Phase 24 — buisiness-days
 
 - ✓ 21-01: TDD RED phase — 11 failing tests created
 - ✓ 21-02: TDD GREEN phase — utilities implemented (createDateKey, createIsWeekendPredicate)
@@ -129,7 +133,9 @@ None yet — no external users (library in active development)
 
 ---
 
-Last activity: 2026-03-19 - Completed quick task 260319-w9n: добавить пропсы collapsedParentIds и onToggleCollapse для управления состоянием collapse/expand родительских задач
+Last activity: 2026-03-20 - Completed quick task 260320-ht7: Каскадный пересчёт зависимостей с учётом рабочих дней
 
-**State updated:** 2026-03-19
+Last activity: 2026-03-20 - Completed quick task 260321-lag: РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј
+
+**State updated:** 2026-03-20
 **Milestone:** v0.50.0 Adding Tools

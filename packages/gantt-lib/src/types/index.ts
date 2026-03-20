@@ -15,8 +15,8 @@ export interface TaskDependency {
   taskId: string;
   /** Type of link: FS (finish-to-start), SS, FF, SF */
   type: LinkType;
-  /** Lag in days (positive or negative integer, default: 0) */
-  lag?: number;
+  /** Lag in days (positive or negative integer) */
+  lag: number;
 }
 
 /**

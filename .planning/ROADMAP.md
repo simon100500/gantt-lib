@@ -8,14 +8,15 @@
 
 ## Current Status
 
-🎯 **Phase 23 ready to plan** — Additional TaskList Columns with custom renderers
+🎯 **Phase 24 ready to execute** — Business days calculation mode for task duration
 
 ## Phases
 
-- [ ] **Phase 21: Custom Weekend Calendar** - User-defined weekend dates and flexible weekend logic
+- [x] **Phase 21: Custom Weekend Calendar** - User-defined weekend dates and flexible weekend logic
 - [x] **Phase 21.1: custom-weekend-refactoring [INSERTED]** - Refactor three props (weekends, workdays, isWeekend) to unified customDays array
 - [x] **Phase 22: filters** - Task filtering functionality
 - [ ] **Phase 23: Additional TaskList Columns** - Custom columns with renderers and editors
+- [ ] **Phase 24: buisiness-days** - Business days calculation mode for task duration
 
 ### Phase 21: Custom Weekend Calendar
 
@@ -34,9 +35,9 @@
 
 **Plans:** 4 plans
 
-- [ ] 21-01-PLAN.md — Create test stubs for custom weekend utilities (TDD RED phase)
-- [ ] 21-02-PLAN.md — Implement createDateKey, createIsWeekendPredicate, and modify calculateWeekendBlocks (TDD GREEN phase)
-- [ ] 21-03-PLAN.md — Integrate custom weekends into GanttChart, GridBackground, TimeScaleHeader, and Calendar
+- [x] 21-01-PLAN.md — Create test stubs for custom weekend utilities (TDD RED phase)
+- [x] 21-02-PLAN.md — Implement createDateKey, createIsWeekendPredicate, and modify calculateWeekendBlocks (TDD GREEN phase)
+- [x] 21-03-PLAN.md — Integrate custom weekends into GanttChart, GridBackground, TimeScaleHeader, and Calendar
 - [ ] 21-04-PLAN.md — Create demo page with visual verification examples
 
 ### Phase 21.1: custom-weekend-refactoring [INSERTED]
@@ -99,6 +100,26 @@
 
 **Plans:** TBD
 
+### Phase 24: buisiness-days
+
+**Goal:** Добавить режим учёта только рабочих дней при расчёте duration задач. Когда `businessDays={true}`, duration считается в рабочих днях (исключая выходные по isWeekend/customDays), а не в календарных.
+
+**Depends on:** Phase 23
+
+**Requirements:** None (internal feature, not tracked in REQUIREMENTS.md)
+
+**Success Criteria** (what must be TRUE):
+1. Пользователь может передать `businessDays?: boolean` проп в GanttChart
+2. Duration задач считается в рабочих днях (исключая выходные по isWeekend/customDays)
+3. При редактировании duration endDate пересчитывается правильно
+4. Обратная совместимость: без пропса работает как раньше (календарные дни)
+5. Не затронуты dependencyUtils.ts (calculateSuccessorDate, cascade)
+
+**Plans:** 2 plans
+
+- [ ] 24-01-PLAN.md — Create and implement getBusinessDaysCount and addBusinessDays utilities (TDD)
+- [ ] 24-02-PLAN.md — Integrate businessDays prop into GanttChart, TaskList, TaskListRow with memoized conditional functions
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -108,8 +129,9 @@
 | 21.1 | v0.50.0 | 1/1 | Complete | 2026-03-18 |
 | 22 | v0.50.0 | 2/2 | Complete | 2026-03-19 |
 | 23 | v0.50.0 | 0/TBD | Ready to plan | - |
+| 24 | v0.50.0 | 0/2 | Ready to execute | - |
 
-**Overall:** 53/60 plans complete (88%)
+**Overall:** 53/62 plans complete (85%)
 
 <details>
 <summary>✅ v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -167,4 +189,4 @@ Add developer tools and calendar customization features to the Gantt library.
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-**Roadmap updated:** 2026-03-19
+**Roadmap updated:** 2026-03-20
