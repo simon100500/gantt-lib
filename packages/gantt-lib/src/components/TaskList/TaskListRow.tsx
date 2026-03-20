@@ -1530,12 +1530,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   }
                 }}
                 onMouseEnter={() => setHighlightedDependencyIndex(index)}
+                onKeyDown={(e) => {
+                  // Allow Delete/Backspace to remove linked items via keyboard
+                  if (isAlreadyLinked && (e.key === "Delete" || e.key === "Backspace")) {
+                    e.preventDefault();
+                    handleSearchRemove(candidate.id);
+                  }
+                }}
                 title={label}
               >
                 <span className="gantt-tl-dep-source-option-label">{label}</span>
                 {isAlreadyLinked && (
-                  <button
-                    type="button"
+                  <span
                     className="gantt-tl-dep-source-option-remove"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1544,7 +1550,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                     aria-label={`Удалить связь с ${label}`}
                   >
                     ×
-                  </button>
+                  </span>
                 )}
               </button>
             ))
