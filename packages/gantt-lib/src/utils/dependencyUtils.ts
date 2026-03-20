@@ -1,4 +1,5 @@
 import { Task, TaskDependency, LinkType, ValidationResult, DependencyError } from '../types';
+import { getBusinessDaysCount, addBusinessDays } from './dateUtils';
 
 /**
  * Build adjacency list for dependency graph (task -> successors)
@@ -86,18 +87,37 @@ export function computeLagFromDates(
   predStart: Date,
   predEnd: Date,
   succStart: Date,
-  succEnd: Date
+  succEnd: Date,
+  businessDays: boolean = false,
+  weekendPredicate?: (date: Date) => boolean
 ): number {
   const DAY_MS = 24 * 60 * 60 * 1000;
   const pS = Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate());
   const pE = Date.UTC(predEnd.getUTCFullYear(),   predEnd.getUTCMonth(),   predEnd.getUTCDate());
   const sS = Date.UTC(succStart.getUTCFullYear(), succStart.getUTCMonth(), succStart.getUTCDate());
   const sE = Date.UTC(succEnd.getUTCFullYear(),   succEnd.getUTCMonth(),   succEnd.getUTCDate());
+
+  // Calendar days (original logic)
+  if (!businessDays || !weekendPredicate) {
+    switch (linkType) {
+      case 'FS': return Math.round((sS - pE) / DAY_MS) - 1;
+      case 'SS': return Math.round((sS - pS) / DAY_MS);
+      case 'FF': return Math.round((sE - pE) / DAY_MS);
+      case 'SF': return Math.round((sE - pS) / DAY_MS) + 1;
+    }
+  }
+
+  // Business days: count business days between dates
+  // Lag = (business days between dates) - expected for link type
+  const predDays = linkType === 'SS' || linkType === 'SF' ? predStart : predEnd;
+  const succDays = linkType === 'FS' || linkType === 'SS' ? succStart : succEnd;
+  const businessLag = getBusinessDaysCount(predDays, succDays, weekendPredicate) - 1;
+
   switch (linkType) {
-    case 'FS': return Math.round((sS - pE) / DAY_MS) - 1;
-    case 'SS': return Math.round((sS - pS) / DAY_MS);
-    case 'FF': return Math.round((sE - pE) / DAY_MS);
-    case 'SF': return Math.round((sE - pS) / DAY_MS) + 1;
+    case 'FS': return businessLag; // FS: adjacent = 0 business days
+    case 'SS': return businessLag;
+    case 'FF': return businessLag;
+    case 'SF': return businessLag;
   }
 }
 
@@ -114,22 +134,56 @@ export function calculateSuccessorDate(
   predecessorStart: Date,
   predecessorEnd: Date,
   linkType: LinkType,
-  lag: number = 0
+  lag: number = 0,
+  businessDays: boolean = false,
+  weekendPredicate?: (date: Date) => boolean
 ): Date {
   const DAY_MS = 24 * 60 * 60 * 1000;
 
+  // Calendar days (original logic)
+  if (!businessDays || !weekendPredicate) {
+    switch (linkType) {
+      case 'FS':
+        // lag=0 → successor starts the day after predecessor ends (inclusive dates)
+        return new Date(predecessorEnd.getTime() + (lag + 1) * DAY_MS);
+      case 'SS':
+        return new Date(predecessorStart.getTime() + lag * DAY_MS);
+      case 'FF':
+        return new Date(predecessorEnd.getTime() + lag * DAY_MS);
+      case 'SF':
+        // lag=0 → successor ends the day before predecessor starts (inclusive dates)
+        return new Date(predecessorStart.getTime() + (lag - 1) * DAY_MS);
+    }
+  }
+
+  // Business days: use addBusinessDays
+  const anchorDate = (linkType === 'FS' || linkType === 'FF') ? predecessorEnd : predecessorStart;
+  // Convert anchorDate to YYYY-MM-DD for addBusinessDays
+  const anchorDateStr = anchorDate.toISOString().split('T')[0];
+
+  // For FS: lag=0 means next business day (addBusinessDays(1))
+  // For SS/FF: lag=0 means same day (addBusinessDays(0) + 1 for anchor day itself)
+  // For SF: lag=0 means day before (negative logic)
+  let daysToAdd: number;
   switch (linkType) {
     case 'FS':
-      // lag=0 → successor starts the day after predecessor ends (inclusive dates)
-      return new Date(predecessorEnd.getTime() + (lag + 1) * DAY_MS);
+      daysToAdd = lag + 1; // lag=0 → 1 business day after
+      break;
     case 'SS':
-      return new Date(predecessorStart.getTime() + lag * DAY_MS);
+      daysToAdd = lag; // lag=0 → same day (0 days added)
+      break;
     case 'FF':
-      return new Date(predecessorEnd.getTime() + lag * DAY_MS);
+      daysToAdd = lag; // lag=0 → same day
+      break;
     case 'SF':
-      // lag=0 → successor ends the day before predecessor starts (inclusive dates)
-      return new Date(predecessorStart.getTime() + (lag - 1) * DAY_MS);
+      daysToAdd = lag - 1; // lag=0 → -1 (day before)
+      break;
   }
+
+  // Minimum 1 business day for FS/SS/FF when lag >= 0
+  const adjustedDays = (linkType !== 'SF' && lag >= 0) ? Math.max(1, daysToAdd) : daysToAdd;
+  const resultDateStr = addBusinessDays(anchorDateStr, adjustedDays, weekendPredicate);
+  return new Date(resultDateStr + 'T00:00:00.000Z');
 }
 
 /**
