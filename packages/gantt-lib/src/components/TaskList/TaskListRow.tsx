@@ -1296,6 +1296,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     // True when this row is the predecessor for the currently selected chip
     const isSelectedPredecessor =
       selectedChip != null && selectedChip.predecessorId === task.id;
+    const isSelectedDependencyOwner =
+      selectedChip != null && selectedChip.successorId === task.id;
 
     // Delete the selected dependency from the predecessor row's "Удалить" button
     const handleDeleteSelected = useCallback(
@@ -1324,6 +1326,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           "gantt-tl-row",
           isFilterMatch ? "gantt-tl-row-filter-match" : "",
           isSelected ? "gantt-tl-row-selected" : "",
+          isSelectedDependencyOwner ? "gantt-tl-row-dependency-owner" : "",
           isSelectedPredecessor ? "gantt-tl-row-dependency-selected" : "",
           isPicking && !isSourceRow ? "gantt-tl-row-picking" : "",
           isSourceRow ? "gantt-tl-row-picking-self" : "",
