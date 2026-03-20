@@ -139,6 +139,13 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
+const LINK_TYPE_LABELS_RU: Record<LinkType, string> = {
+  FS: "ОН",
+  SS: "НН",
+  FF: "ОО",
+  SF: "НО",
+};
+
 // ---------------------------------------------------------------------------
 // HierarchyButton — Single button with left/right arrows for hierarchy navigation
 // ---------------------------------------------------------------------------
@@ -479,6 +486,7 @@ const DepChip: React.FC<DepChipProps> = ({
         <span
           className={`gantt-tl-dep-chip${isSelected ? " gantt-tl-dep-chip-selected" : ""}`}
           onClick={handleClick}
+          title={`[${LINK_TYPE_LABELS_RU[dep.type]}] ${depName}`}
         >
           <Icon />
           {effectiveLag !== 0
