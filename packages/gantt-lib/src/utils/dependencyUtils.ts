@@ -612,7 +612,26 @@ export function recalculateIncomingLags(
   weekendPredicate?: (date: Date) => boolean
 ): NonNullable<Task['dependencies']> {
   if (!task.dependencies) return [];
-  return task.dependencies.map(dep => ({ ...dep, lag: getDependencyLag(dep) }));
+  return task.dependencies.map(dep => {
+    const predecessor = allTasks.find(candidate => candidate.id === dep.taskId);
+    if (!predecessor) {
+      return { ...dep, lag: getDependencyLag(dep) };
+    }
+
+    const predecessorStart = new Date(predecessor.startDate as string);
+    const predecessorEnd = new Date(predecessor.endDate as string);
+    const nextLag = computeLagFromDates(
+      dep.type,
+      predecessorStart,
+      predecessorEnd,
+      newStartDate,
+      newEndDate,
+      businessDays,
+      weekendPredicate
+    );
+
+    return { ...dep, lag: nextLag };
+  });
 }
 
 /**

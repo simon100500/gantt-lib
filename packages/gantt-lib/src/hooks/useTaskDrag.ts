@@ -56,7 +56,10 @@ interface ActiveDragState {
   cascadeChainStart: Task[];   // SS+SF successors (resize-left cascade) - Phase 10: renamed from cascadeChainSS
   cascadeChainEnd: Task[];     // FS+FF successors (resize-right cascade) - Phase 9
   hierarchyChain: Task[];      // Phase 19: children of parent task (for cascade drag)
-  onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
+  onCascadeProgress?: (
+    overrides: Map<string, { left: number; width: number }>,
+    previewTasks?: Task[]
+  ) => void;
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
 }
@@ -140,7 +143,7 @@ function completeDrag() {
 
   if (globalActiveDrag) {
     // Clear cascade overrides before completing (avoids stale preview positions)
-    globalActiveDrag.onCascadeProgress?.(new Map());
+    globalActiveDrag.onCascadeProgress?.(new Map(), []);
     const { onComplete, currentLeft, currentWidth, mode } = globalActiveDrag;
     globalActiveDrag = null;
     onComplete(currentLeft, currentWidth, mode);
@@ -266,92 +269,9 @@ function handleGlobalMouseMove(e: MouseEvent) {
         break;
     }
 
-    // Hard mode: check left-move boundary against predecessor.startDate (Phase 7)
-    // Child can move left until its startDate would go before predecessor.startDate
-    // Also applies to resize-left: the left edge cannot cross the predecessor's start date
-    if ((mode === 'move' || mode === 'resize-left') && allTasks.length > 0 && !activeDrag.disableConstraints) {
-      const currentTask = allTasks.find(t => t.id === activeDrag.taskId);
-      if (currentTask && currentTask.dependencies && currentTask.dependencies.length > 0) {
-        let minAllowedLeft = -Infinity; // in pixels from monthStart; -Infinity means no floor unless a real FS/SS predecessor sets one
-        for (const dep of currentTask.dependencies) {
-          if (dep.type !== 'FS' && dep.type !== 'SS') continue; // Phase 8: FS and SS
-          const predecessor = activeDrag.allTasks.find(t => t.id === dep.taskId);
-          if (!predecessor) continue;
-          // Boundary: child.startDate >= predecessor.startDate (allows negative lag)
-          const predStart = new Date(predecessor.startDate as string);
-          const predEnd = new Date(predecessor.endDate as string);
-          const boundaryDate = calculateSuccessorDate(
-            predStart,
-            predEnd,
-            dep.type,
-            getDependencyLag(dep),
-            activeDrag.businessDays,
-            activeDrag.weekendPredicate
-          );
-          const predStartOffset = Math.round(
-            (Date.UTC(boundaryDate.getUTCFullYear(), boundaryDate.getUTCMonth(), boundaryDate.getUTCDate()) -
-              Date.UTC(
-                activeDrag.monthStart.getUTCFullYear(),
-                activeDrag.monthStart.getUTCMonth(),
-                activeDrag.monthStart.getUTCDate()
-              )) / (24 * 60 * 60 * 1000)
-          );
-          const predStartLeft = Math.round(predStartOffset * activeDrag.dayWidth);
-          minAllowedLeft = Math.max(minAllowedLeft, predStartLeft);
-        }
-        // Clamp: don't let task go left of boundary
-        newLeft = Math.max(minAllowedLeft, newLeft);
-      }
-      // For resize-left, after clamping newLeft the right edge is fixed so newWidth must be recomputed
-      if (mode === 'resize-left') {
-        const rightEdge = activeDrag.initialLeft + activeDrag.initialWidth;
-        newWidth = Math.max(activeDrag.dayWidth, rightEdge - newLeft);
-      }
-    }
-
-    // Phase 10: SF constraint: endB <= startA (lag ceiling at 0)
-    // Applies when B is moved right or resized-right
-    if ((mode === 'move' || mode === 'resize-right') && allTasks.length > 0 && !activeDrag.disableConstraints) {
-      const currentTask = allTasks.find(t => t.id === activeDrag.taskId);
-      if (currentTask && currentTask.dependencies && currentTask.dependencies.length > 0) {
-        for (const dep of currentTask.dependencies) {
-          if (dep.type !== 'SF') continue;
-          const predecessor = activeDrag.allTasks.find(t => t.id === dep.taskId);
-          if (!predecessor) continue;
-          const boundaryDate = calculateSuccessorDate(
-            new Date(predecessor.startDate as string),
-            new Date(predecessor.endDate as string),
-            dep.type,
-            getDependencyLag(dep),
-            activeDrag.businessDays,
-            activeDrag.weekendPredicate
-          );
-          const predStartOffset = Math.round(
-            (Date.UTC(boundaryDate.getUTCFullYear(), boundaryDate.getUTCMonth(), boundaryDate.getUTCDate()) -
-              Date.UTC(activeDrag.monthStart.getUTCFullYear(), activeDrag.monthStart.getUTCMonth(), activeDrag.monthStart.getUTCDate()))
-            / (24 * 60 * 60 * 1000)
-          );
-          const predStartLeft = Math.round(predStartOffset * activeDrag.dayWidth);
-
-          // SF lag=0 boundary: B's visual end = day before A's start (adjacent = lag 0)
-          // B.right (exclusive pixel) = predStartLeft at lag=0
-          const sfBoundaryRight = predStartLeft;
-          if (mode === 'move') {
-            // Move mode: when B would hit startA constraint, stop movement entirely
-            const proposedEndRight = newLeft + activeDrag.initialWidth;
-            if (proposedEndRight > sfBoundaryRight) {
-              newLeft = Math.max(activeDrag.initialLeft, sfBoundaryRight - activeDrag.initialWidth);
-            }
-          } else {
-            // Resize-right mode: clamp width so endB = startA (lag=0)
-            const currentEndRight = newLeft + newWidth;
-            if (currentEndRight > sfBoundaryRight) {
-              newWidth = Math.max(activeDrag.dayWidth, sfBoundaryRight - newLeft);
-            }
-          }
-        }
-      }
-    }
+    // Incoming dependency lag is editable by dragging the successor itself.
+    // Do not clamp successor movement/resize by its current dependency dates;
+    // the new lag will be recomputed from the final dates on drop.
 
     const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
 
@@ -416,6 +336,29 @@ function handleGlobalMouseMove(e: MouseEvent) {
         activeDrag.weekendPredicate
       );
 
+      const mergedPreviewTasks = allTasks.map(task => {
+        const previewTask = cascadeResult.find(candidate => candidate.id === task.id);
+        return previewTask ?? task;
+      });
+
+      const previewTasks = cascadeResult.map(task => {
+        const previewStart = new Date(task.startDate as string);
+        const previewEnd = new Date(task.endDate as string);
+        return {
+          ...task,
+          ...(task.dependencies && {
+            dependencies: recalculateIncomingLags(
+              task,
+              previewStart,
+              previewEnd,
+              mergedPreviewTasks,
+              activeDrag.businessDays,
+              activeDrag.weekendPredicate
+            ),
+          }),
+        };
+      });
+
       // Convert cascaded tasks → pixel overrides
       const overrides = new Map<string, { left: number; width: number }>();
       // Always include the dragged task itself
@@ -441,7 +384,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
         });
       }
 
-      activeDrag.onCascadeProgress(overrides);
+      activeDrag.onCascadeProgress(overrides, previewTasks);
     }
 
     // Update current values in global state for completion
@@ -521,7 +464,10 @@ export interface UseTaskDragOptions {
   /** When true, dependency constraint checking is skipped during drag (default: false) */
   disableConstraints?: boolean;
   /** Callback for real-time cascade preview — called each RAF with non-dragged chain member positions */
-  onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
+  onCascadeProgress?: (
+    overrides: Map<string, { left: number; width: number }>,
+    previewTasks?: Task[]
+  ) => void;
   /** Callback when cascade completes — receives all shifted tasks including dragged task */
   onCascade?: (tasks: Task[]) => void;
   /** When true, all drag and resize interactions are disabled for this task */

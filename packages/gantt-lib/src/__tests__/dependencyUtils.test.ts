@@ -11,6 +11,7 @@ import {
   getTransitiveCascadeChain,
   removeDependenciesBetweenTasks,
   findParentId,
+  recalculateIncomingLags,
 } from '../utils/dependencyUtils';
 import { isWeekend } from '../utils/dateUtils';
 import { Task } from '../types';
@@ -332,32 +333,87 @@ describe('dependencyUtils', () => {
     });
   });
 
-  // NOTE: recalculateIncomingLags is private in useTaskDrag.ts
-  // These test cases document the expected FF lag behavior
-  // Verified via integration testing during drag operations
-  describe('recalculateIncomingLags - FF (documented)', () => {
-    it('should calculate FF lag as endB - endA with no floor', () => {
-      // FF: lag can be negative, zero, or positive
-      // Formula: lag = endB - endA (no Math.max(0, ...) floor unlike SS)
-      // Example: predEnd=2025-01-10, newEndDate=2025-01-05 → lag=-5
-      // This documents that FF has NO floor — lag is freely recalculated
-      expect(true).toBe(true); // Placeholder — behavior verified in integration
+  describe('recalculateIncomingLags', () => {
+    it('recomputes FS lag from moved successor dates', () => {
+      const tasks = [
+        createTask('pred', '2026-03-10', '2026-03-12'),
+        createTask('succ', '2026-03-14', '2026-03-16', [{ taskId: 'pred', type: 'FS', lag: 1 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-17T00:00:00.000Z'),
+        new Date('2026-03-19T00:00:00.000Z'),
+        tasks
+      );
+
+      expect(updated[0]?.lag).toBe(4);
     });
 
-    it('should calculate FF lag with zero lag', () => {
-      // predEnd=2025-01-10, newEndDate=2025-01-10 → lag=0
-      expect(true).toBe(true); // Placeholder
+    it('recomputes SS lag from moved successor dates', () => {
+      const tasks = [
+        createTask('pred', '2026-03-10', '2026-03-12'),
+        createTask('succ', '2026-03-11', '2026-03-13', [{ taskId: 'pred', type: 'SS', lag: 1 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-15T00:00:00.000Z'),
+        new Date('2026-03-17T00:00:00.000Z'),
+        tasks
+      );
+
+      expect(updated[0]?.lag).toBe(5);
     });
 
-    it('should calculate FF lag with positive lag', () => {
-      // predEnd=2025-01-10, newEndDate=2025-01-15 → lag=5
-      expect(true).toBe(true); // Placeholder
+    it('recomputes FF lag from moved successor dates', () => {
+      const tasks = [
+        createTask('pred', '2026-03-10', '2026-03-12'),
+        createTask('succ', '2026-03-11', '2026-03-13', [{ taskId: 'pred', type: 'FF', lag: 1 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-14T00:00:00.000Z'),
+        new Date('2026-03-18T00:00:00.000Z'),
+        tasks
+      );
+
+      expect(updated[0]?.lag).toBe(6);
     });
 
-    it('should calculate FF lag with negative lag (no floor)', () => {
-      // predEnd=2025-01-15, newEndDate=2025-01-10 → lag=-5
-      // Critical: FF allows negative lag (unlike SS which floors at 0)
-      expect(true).toBe(true); // Placeholder
+    it('recomputes SF lag from moved successor dates', () => {
+      const tasks = [
+        createTask('pred', '2026-03-10', '2026-03-12'),
+        createTask('succ', '2026-03-08', '2026-03-10', [{ taskId: 'pred', type: 'SF', lag: 1 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-09T00:00:00.000Z'),
+        new Date('2026-03-14T00:00:00.000Z'),
+        tasks
+      );
+
+      expect(updated[0]?.lag).toBe(5);
+    });
+
+    it('recomputes business-day lag from moved successor dates', () => {
+      const tasks = [
+        createTask('pred', '2026-03-12', '2026-03-13'),
+        createTask('succ', '2026-03-16', '2026-03-17', [{ taskId: 'pred', type: 'FS', lag: 0 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-19T00:00:00.000Z'),
+        new Date('2026-03-20T00:00:00.000Z'),
+        tasks,
+        true,
+        isWeekend
+      );
+
+      expect(updated[0]?.lag).toBe(3);
     });
   });
 

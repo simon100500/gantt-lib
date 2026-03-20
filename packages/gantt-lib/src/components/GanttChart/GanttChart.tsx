@@ -384,6 +384,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
   // Track currently-dragged task's pixel position for real-time dependency line updates
   const [draggedTaskOverride, setDraggedTaskOverride] = useState<{ taskId: string; left: number; width: number } | null>(null);
+  const [previewTasksById, setPreviewTasksById] = useState<Map<string, Task>>(new Map());
 
   // Validate dependencies when tasks change
   useEffect(() => {
@@ -563,9 +564,23 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
    * so non-dragged chain members re-render with their preview positions.
    * new Map() forces React to detect the state change.
    */
-  const handleCascadeProgress = useCallback((overrides: Map<string, { left: number; width: number }>) => {
+  const handleCascadeProgress = useCallback((
+    overrides: Map<string, { left: number; width: number }>,
+    previewTasks: Task[] = []
+  ) => {
     setCascadeOverrides(new Map(overrides));
+    setPreviewTasksById(new Map(previewTasks.map(task => [task.id, task])));
   }, []);
+
+  const previewNormalizedTasks = useMemo(() => {
+    if (previewTasksById.size === 0) return normalizedTasks;
+    return normalizedTasks.map(task => previewTasksById.get(task.id) ?? task);
+  }, [normalizedTasks, previewTasksById]);
+
+  const previewVisibleTasks = useMemo(() => {
+    if (previewTasksById.size === 0) return visibleTasks;
+    return visibleTasks.map(task => previewTasksById.get(task.id) ?? task);
+  }, [visibleTasks, previewTasksById]);
 
   /**
    * Handle cascade completion — emit all changed tasks.
@@ -878,8 +893,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 
           {/* Dependency lines SVG overlay */}
           <DependencyLines
-            tasks={visibleTasks}
-            allTasks={normalizedTasks}
+            tasks={previewVisibleTasks}
+            allTasks={previewNormalizedTasks}
             collapsedParentIds={collapsedParentIds}
             monthStart={monthStart}
             dayWidth={dayWidth}

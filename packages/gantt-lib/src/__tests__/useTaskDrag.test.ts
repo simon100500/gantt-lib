@@ -1328,4 +1328,180 @@ describe('useTaskDrag', () => {
       });
     });
   });
+
+  describe('Incoming lag edits during drag', () => {
+    it('allows reducing FS lag back to zero by moving successor left', async () => {
+      const onDragEnd = vi.fn();
+      const allTasks = [
+        {
+          id: 'pred',
+          name: 'Predecessor',
+          startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 12)).toISOString(),
+        },
+        {
+          id: 'task-1',
+          name: 'Successor',
+          startDate: new Date(Date.UTC(2026, 1, 14)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 16)).toISOString(),
+          dependencies: [{ taskId: 'pred', type: 'FS' as const, lag: 1 }],
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 14)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 16)),
+          allTasks,
+          disableConstraints: false,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 520, width: 120 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 580,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 540 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(480);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      const [{ startDate, updatedDependencies }] = onDragEnd.mock.calls[0];
+      expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 13)).toISOString());
+      expect(updatedDependencies?.[0]?.lag).toBe(0);
+    });
+
+    it('allows reducing SS lag back to zero by moving successor left', async () => {
+      const onDragEnd = vi.fn();
+      const allTasks = [
+        {
+          id: 'pred',
+          name: 'Predecessor',
+          startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 12)).toISOString(),
+        },
+        {
+          id: 'task-1',
+          name: 'Successor',
+          startDate: new Date(Date.UTC(2026, 1, 11)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 13)).toISOString(),
+          dependencies: [{ taskId: 'pred', type: 'SS' as const, lag: 1 }],
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 11)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 13)),
+          allTasks,
+          disableConstraints: false,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 400, width: 120 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 460,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 420 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(360);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      const [{ startDate, updatedDependencies }] = onDragEnd.mock.calls[0];
+      expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 10)).toISOString());
+      expect(updatedDependencies?.[0]?.lag).toBe(0);
+    });
+
+    it('allows increasing SF lag by moving successor right', async () => {
+      const onDragEnd = vi.fn();
+      const allTasks = [
+        {
+          id: 'pred',
+          name: 'Predecessor',
+          startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 12)).toISOString(),
+        },
+        {
+          id: 'task-1',
+          name: 'Successor',
+          startDate: new Date(Date.UTC(2026, 1, 8)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          dependencies: [{ taskId: 'pred', type: 'SF' as const, lag: 1 }],
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 8)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 10)),
+          allTasks,
+          disableConstraints: false,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 280, width: 120 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 340,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 380 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(320);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      const [{ endDate, updatedDependencies }] = onDragEnd.mock.calls[0];
+      expect(endDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 11)).toISOString());
+      expect(updatedDependencies?.[0]?.lag).toBe(2);
+    });
+  });
 });

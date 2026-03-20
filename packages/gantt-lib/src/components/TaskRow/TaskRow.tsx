@@ -38,7 +38,10 @@ export interface TaskRowProps {
   /** Position override for cascade preview — when set, overrides both static and drag position */
   overridePosition?: { left: number; width: number };
   /** Called each RAF during cascade drag with override positions for non-dragged chain tasks */
-  onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
+  onCascadeProgress?: (
+    overrides: Map<string, { left: number; width: number }>,
+    previewTasks?: Task[]
+  ) => void;
   /** Called when cascade drag completes; receives all shifted tasks including dragged task */
   onCascade?: (tasks: Task[]) => void;
   /** Optional horizontal divider line - renders above or below the task row */
