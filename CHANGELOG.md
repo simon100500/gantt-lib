@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.24.1] - 2026-03-21
+
+### Fixes
+- Fix hydration error: remove nested button in dependency source options
+- Replace inner `<button>` with `<span>` to resolve HTML constraint violation
+- Add keyboard support (Delete/Backspace) for removing linked items
+
 ## [0.24.0] - 2026-03-21
 
 ### Features
