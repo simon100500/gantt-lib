@@ -400,6 +400,60 @@ describe('dependencyUtils', () => {
 
       expect(effectiveLag).toBe(7);
     });
+
+    it('snaps child tasks away from weekend starts when a parent move would place them there', () => {
+      const tasks = [
+        createTask('parent', '2026-03-03', '2026-03-05'),
+        { ...createTask('child', '2026-03-06', '2026-03-06'), parentId: 'parent' } as Task,
+      ];
+
+      const movedParent = {
+        ...tasks[0],
+        startDate: '2026-03-05',
+        endDate: '2026-03-07',
+      };
+
+      const result = universalCascade(
+        movedParent,
+        new Date('2026-03-05T00:00:00.000Z'),
+        new Date('2026-03-07T00:00:00.000Z'),
+        tasks,
+        true,
+        isWeekend
+      );
+
+      const child = result.find(task => task.id === 'child');
+      expect(child).toBeDefined();
+      expect(child?.startDate).toBe('2026-03-09');
+      expect(child?.endDate).toBe('2026-03-09');
+    });
+
+    it('keeps child start and end off weekends and expands span when needed after parent move', () => {
+      const tasks = [
+        createTask('parent', '2026-03-03', '2026-03-05'),
+        { ...createTask('child', '2026-03-06', '2026-03-09'), parentId: 'parent' } as Task,
+      ];
+
+      const movedParent = {
+        ...tasks[0],
+        startDate: '2026-03-04',
+        endDate: '2026-03-06',
+      };
+
+      const result = universalCascade(
+        movedParent,
+        new Date('2026-03-04T00:00:00.000Z'),
+        new Date('2026-03-06T00:00:00.000Z'),
+        tasks,
+        true,
+        isWeekend
+      );
+
+      const child = result.find(task => task.id === 'child');
+      expect(child).toBeDefined();
+      expect(child?.startDate).toBe('2026-03-09');
+      expect(child?.endDate).toBe('2026-03-10');
+    });
   });
 
   describe('removeDependenciesBetweenTasks', () => {

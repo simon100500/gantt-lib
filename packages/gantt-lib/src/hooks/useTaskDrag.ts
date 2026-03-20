@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { calculateSuccessorDate, getDependencyLag, getTransitiveCascadeChain, moveTaskRange, recalculateIncomingLags, getChildren, isTaskParent, universalCascade } from '../utils/dependencyUtils';
-import { getBusinessDaysCount, addBusinessDays } from '../utils/dateUtils';
+import { alignToWorkingDay, buildTaskRangeFromEnd, buildTaskRangeFromStart, calculateSuccessorDate, getDependencyLag, getTransitiveCascadeChain, moveTaskRange, recalculateIncomingLags, getChildren, isTaskParent, universalCascade } from '../utils/dependencyUtils';
+import { getBusinessDaysCount } from '../utils/dateUtils';
 
 /**
  * Get transitive closure of successors for cascading.
@@ -47,7 +47,7 @@ interface ActiveDragState {
   dayWidth: number;
   monthStart: Date;
   onProgress: (left: number, width: number) => void;
-  onComplete: (finalLeft: number, finalWidth: number) => void;
+  onComplete: (finalLeft: number, finalWidth: number, finalMode: 'move' | 'resize-left' | 'resize-right') => void;
   onCancel: () => void;
   allTasks: Task[];
   disableConstraints?: boolean;
@@ -72,6 +72,63 @@ function getDayOffsetFromMonthStart(date: Date, monthStart: Date): number {
   );
 }
 
+function resolveDraggedRange(
+  mode: 'move' | 'resize-left' | 'resize-right',
+  left: number,
+  width: number,
+  monthStart: Date,
+  dayWidth: number,
+  task: Task,
+  businessDays?: boolean,
+  weekendPredicate?: (date: Date) => boolean
+): { start: Date; end: Date } {
+  const dayOffset = Math.round(left / dayWidth);
+  const rawStartDate = new Date(Date.UTC(
+    monthStart.getUTCFullYear(),
+    monthStart.getUTCMonth(),
+    monthStart.getUTCDate() + dayOffset
+  ));
+  const rawEndOffset = dayOffset + Math.round(width / dayWidth) - 1;
+  const rawEndDate = new Date(Date.UTC(
+    monthStart.getUTCFullYear(),
+    monthStart.getUTCMonth(),
+    monthStart.getUTCDate() + rawEndOffset
+  ));
+
+  if (!(businessDays && weekendPredicate)) {
+    return { start: rawStartDate, end: rawEndDate };
+  }
+
+  if (mode === 'move') {
+    const originalStart = new Date(task.startDate as string);
+    const snapDirection = rawStartDate.getTime() >= originalStart.getTime() ? 1 : -1;
+    return moveTaskRange(
+      task.startDate,
+      task.endDate,
+      rawStartDate,
+      true,
+      weekendPredicate,
+      snapDirection
+    );
+  }
+
+  if (mode === 'resize-right') {
+    const fixedStart = new Date(task.startDate as string);
+    const originalEnd = new Date(task.endDate as string);
+    const snapDirection: 1 | -1 = rawEndDate.getTime() >= originalEnd.getTime() ? 1 : -1;
+    const alignedEnd = alignToWorkingDay(rawEndDate, snapDirection, weekendPredicate);
+    const duration = Math.max(1, getBusinessDaysCount(fixedStart, alignedEnd, weekendPredicate));
+    return buildTaskRangeFromStart(fixedStart, duration, true, weekendPredicate);
+  }
+
+  const fixedEnd = new Date(task.endDate as string);
+  const originalStart = new Date(task.startDate as string);
+  const snapDirection: 1 | -1 = rawStartDate.getTime() >= originalStart.getTime() ? 1 : -1;
+  const alignedStart = alignToWorkingDay(rawStartDate, snapDirection, weekendPredicate);
+  const duration = Math.max(1, getBusinessDaysCount(alignedStart, fixedEnd, weekendPredicate));
+  return buildTaskRangeFromEnd(fixedEnd, duration, true, weekendPredicate);
+}
+
 /**
  * Complete the active drag operation
  */
@@ -84,9 +141,9 @@ function completeDrag() {
   if (globalActiveDrag) {
     // Clear cascade overrides before completing (avoids stale preview positions)
     globalActiveDrag.onCascadeProgress?.(new Map());
-    const { onComplete, currentLeft, currentWidth } = globalActiveDrag;
+    const { onComplete, currentLeft, currentWidth, mode } = globalActiveDrag;
     globalActiveDrag = null;
-    onComplete(currentLeft, currentWidth);
+    onComplete(currentLeft, currentWidth, mode);
   }
 }
 
@@ -298,26 +355,19 @@ function handleGlobalMouseMove(e: MouseEvent) {
 
     const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
 
-    if (mode === 'move' && activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
-      const rawPreviewStartDay = Math.round(newLeft / dayWidth);
-      const rawPreviewStartDate = new Date(Date.UTC(
-        activeDrag.monthStart.getUTCFullYear(),
-        activeDrag.monthStart.getUTCMonth(),
-        activeDrag.monthStart.getUTCDate() + rawPreviewStartDay
-      ));
-      const originalStart = new Date(draggedTask.startDate as string);
-      const snapDirection = rawPreviewStartDate.getTime() >= originalStart.getTime() ? 1 : -1;
-      const movedRange = moveTaskRange(
-        draggedTask.startDate,
-        draggedTask.endDate,
-        rawPreviewStartDate,
+    if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
+      const previewRange = resolveDraggedRange(
+        mode,
+        newLeft,
+        newWidth,
+        activeDrag.monthStart,
+        dayWidth,
+        draggedTask,
         true,
-        activeDrag.weekendPredicate,
-        snapDirection
+        activeDrag.weekendPredicate
       );
-
-      const alignedStartDay = getDayOffsetFromMonthStart(movedRange.start, activeDrag.monthStart);
-      const alignedEndDay = getDayOffsetFromMonthStart(movedRange.end, activeDrag.monthStart);
+      const alignedStartDay = getDayOffsetFromMonthStart(previewRange.start, activeDrag.monthStart);
+      const alignedEndDay = getDayOffsetFromMonthStart(previewRange.end, activeDrag.monthStart);
       newLeft = Math.round(alignedStartDay * dayWidth);
       newWidth = Math.round((alignedEndDay - alignedStartDay + 1) * dayWidth);
     }
@@ -329,48 +379,32 @@ function handleGlobalMouseMove(e: MouseEvent) {
     // Universal preview: convert pixels → dates → universalCascade → pixels
     if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress) {
       const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;
-      const previewStartDay = Math.round(newLeft / dayWidth);
-      const rawPreviewStartDate = new Date(Date.UTC(
-        mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate() + previewStartDay
-      ));
       const originalDraggedTask = draggedTask ?? allTasks.find(t => t.id === dragId);
-
-      // Calculate previewEndDate based on business days mode
-      let previewEndDate: Date;
-      let previewStartDate = rawPreviewStartDate;
-      if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask && mode === 'move') {
-        const originalStart = new Date(draggedTask.startDate as string);
-        const snapDirection = rawPreviewStartDate.getTime() >= originalStart.getTime() ? 1 : -1;
-        const movedRange = moveTaskRange(
-          draggedTask.startDate,
-          draggedTask.endDate,
-          rawPreviewStartDate,
-          true,
-          activeDrag.weekendPredicate,
-          snapDirection
-        );
-        previewStartDate = movedRange.start;
-        previewEndDate = movedRange.end;
-      } else if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
-        // Business days mode: preserve business days count
-        const businessDaysCount = getBusinessDaysCount(
-          draggedTask.startDate,
-          draggedTask.endDate,
+      const previewRange = originalDraggedTask
+        ? resolveDraggedRange(
+          mode,
+          newLeft,
+          newWidth,
+          mStart,
+          dayWidth,
+          originalDraggedTask,
+          activeDrag.businessDays,
           activeDrag.weekendPredicate
-        );
-        const endDateStr = addBusinessDays(previewStartDate, businessDaysCount, activeDrag.weekendPredicate);
-        previewEndDate = new Date(endDateStr + 'T00:00:00.000Z');
-
-        // Recalculate width from the actual previewEndDate (expands over weekends)
-        const previewEndOffset = getDayOffsetFromMonthStart(previewEndDate, mStart);
-        newWidth = Math.round((previewEndOffset - previewStartDay + 1) * dayWidth);
-      } else {
-        // Calendar days mode: use duration in calendar days
-        const previewEndDay = previewStartDay + Math.round(newWidth / dayWidth) - 1;
-        previewEndDate = new Date(Date.UTC(
-          mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate() + previewEndDay
-        ));
-      }
+        )
+        : (() => {
+          const previewStartDay = Math.round(newLeft / dayWidth);
+          const previewEndDay = previewStartDay + Math.round(newWidth / dayWidth) - 1;
+          return {
+            start: new Date(Date.UTC(
+              mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate() + previewStartDay
+            )),
+            end: new Date(Date.UTC(
+              mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate() + previewEndDay
+            )),
+          };
+        })();
+      const previewStartDate = previewRange.start;
+      const previewEndDate = previewRange.end;
 
       const movedTaskData = originalDraggedTask ?? { id: dragId, name: '', startDate: '', endDate: '' };
       const cascadeResult = universalCascade(
@@ -633,66 +667,41 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   /**
    * Handle drag completion from global manager
    */
-  const handleComplete = useCallback((finalLeft: number, finalWidth: number) => {
+  const handleComplete = useCallback((finalLeft: number, finalWidth: number, finalMode: 'move' | 'resize-left' | 'resize-right') => {
     const wasOwner = isOwnerRef.current;
     isOwnerRef.current = false;
 
-    // Calculate new dates from final pixel values
-    const dayOffset = Math.round(finalLeft / dayWidth);
-
-    const rawNewStartDate = new Date(Date.UTC(
-      monthStart.getUTCFullYear(),
-      monthStart.getUTCMonth(),
-      monthStart.getUTCDate() + dayOffset
-    ));
-
-    // Calculate endDate based on business days mode
-    let newEndDate: Date;
-    let newStartDate = rawNewStartDate;
-    if (businessDays && weekendPredicate) {
-      // Business days mode: preserve business days count
-      const currentTask = allTasks.find(t => t.id === taskId);
-      if (currentTask && dragMode === 'move') {
-        const originalStart = new Date(currentTask.startDate as string);
-        const snapDirection = rawNewStartDate.getTime() >= originalStart.getTime() ? 1 : -1;
-        const movedRange = moveTaskRange(
-          currentTask.startDate,
-          currentTask.endDate,
-          rawNewStartDate,
-          true,
-          weekendPredicate,
-          snapDirection
-        );
-        newStartDate = movedRange.start;
-        newEndDate = movedRange.end;
-      } else if (currentTask) {
-        // Calculate business days count from original task
-        const businessDaysCount = getBusinessDaysCount(
-          currentTask.startDate,
-          currentTask.endDate,
-          weekendPredicate
-        );
-        // Add business days to new start date
-        const endDateStr = addBusinessDays(newStartDate, businessDaysCount, weekendPredicate);
-        newEndDate = new Date(endDateStr + 'T00:00:00.000Z');
-      } else {
-        // Fallback to calendar days if task not found
+    const currentTask = allTasks.find(t => t.id === taskId);
+    const finalRange = currentTask
+      ? resolveDraggedRange(
+        finalMode,
+        finalLeft,
+        finalWidth,
+        monthStart,
+        dayWidth,
+        currentTask,
+        businessDays,
+        weekendPredicate
+      )
+      : (() => {
+        const dayOffset = Math.round(finalLeft / dayWidth);
         const durationDays = Math.round(finalWidth / dayWidth) - 1;
-        newEndDate = new Date(Date.UTC(
-          monthStart.getUTCFullYear(),
-          monthStart.getUTCMonth(),
-          monthStart.getUTCDate() + dayOffset + durationDays
-        ));
-      }
-    } else {
-      // Calendar days mode: use duration in calendar days
-      const durationDays = Math.round(finalWidth / dayWidth) - 1;
-      newEndDate = new Date(Date.UTC(
-        monthStart.getUTCFullYear(),
-        monthStart.getUTCMonth(),
-        monthStart.getUTCDate() + dayOffset + durationDays
-      ));
-    }
+        return {
+          start: new Date(Date.UTC(
+            monthStart.getUTCFullYear(),
+            monthStart.getUTCMonth(),
+            monthStart.getUTCDate() + dayOffset
+          )),
+          end: new Date(Date.UTC(
+            monthStart.getUTCFullYear(),
+            monthStart.getUTCMonth(),
+            monthStart.getUTCDate() + dayOffset + durationDays
+          )),
+        };
+      })();
+
+    const newStartDate = finalRange.start;
+    const newEndDate = finalRange.end;
 
     // Reset local state
     setIsDragging(false);
@@ -712,7 +721,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       if (!disableConstraints && onCascade && allTasks.length > 0) {
         // Hard mode with onCascade: use universalCascade for all cases
         // (parent drag, child drag, root task drag — all handled uniformly)
-        const draggedTaskData = allTasks.find(t => t.id === taskId);
+        const draggedTaskData = currentTask;
 
         const movedTask: Task = {
           ...(draggedTaskData ?? { id: taskId, name: '', startDate: '', endDate: '' }),
@@ -739,9 +748,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       // Soft mode OR hard mode with no FS successors: call onDragEnd
       // Always recalculate lag so hard-mode drags (chain.length===0) also persist the new lag
       if (allTasks.length > 0 && onDragEnd) {
-        const currentTaskData = allTasks.find(t => t.id === taskId);
-        const updatedDependencies = currentTaskData?.dependencies
-          ? recalculateIncomingLags(currentTaskData, newStartDate, newEndDate, allTasks, businessDays, weekendPredicate)
+        const updatedDependencies = currentTask?.dependencies
+          ? recalculateIncomingLags(currentTask, newStartDate, newEndDate, allTasks, businessDays, weekendPredicate)
           : undefined;
         onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate, updatedDependencies });
       } else if (onDragEnd) {
@@ -759,7 +767,6 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     allTasks,
     businessDays,
     weekendPredicate,
-    dragMode,
     initialStartDate,
     initialEndDate,
   ]);

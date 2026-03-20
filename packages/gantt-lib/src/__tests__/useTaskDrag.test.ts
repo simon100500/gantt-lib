@@ -400,6 +400,108 @@ describe('useTaskDrag', () => {
         expect(result.current.currentWidth).toBeGreaterThanOrEqual(40); // Minimum 1 day
       });
     });
+
+    it('should stretch resize-right preview across a weekend in business-days mode', async () => {
+      const onDragEnd = vi.fn();
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 12)), // Thu Feb 12, 2026
+          initialEndDate: new Date(Date.UTC(2026, 1, 13)),   // Fri Feb 13, 2026
+          allTasks: [
+            { id: 'task-1', name: 'Task 1', startDate: '2026-02-12', endDate: '2026-02-13' },
+          ],
+          businessDays: true,
+          weekendPredicate: (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 440,
+          width: 80,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 440 + 80 - 5,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 440 + 80 - 5 + 40 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(440);
+        expect(result.current.currentWidth).toBe(200); // Thu..Mon with weekend expansion
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      await waitFor(() => {
+        expect(onDragEnd).toHaveBeenCalledTimes(1);
+        const [{ startDate, endDate }] = onDragEnd.mock.calls[0];
+        expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 12)).toISOString());
+        expect(endDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 16)).toISOString());
+      });
+    });
+
+    it('should snap resize-left away from weekend starts in business-days mode', async () => {
+      const onDragEnd = vi.fn();
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 16)), // Mon Feb 16, 2026
+          initialEndDate: new Date(Date.UTC(2026, 1, 17)),   // Tue Feb 17, 2026
+          allTasks: [
+            { id: 'task-1', name: 'Task 1', startDate: '2026-02-16', endDate: '2026-02-17' },
+          ],
+          businessDays: true,
+          weekendPredicate: (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 600,
+          width: 80,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 605,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 565 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(480); // Fri Feb 13, 2026
+        expect(result.current.currentWidth).toBe(200); // Fri..Tue with weekend expansion
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      await waitFor(() => {
+        expect(onDragEnd).toHaveBeenCalledTimes(1);
+        const [{ startDate, endDate }] = onDragEnd.mock.calls[0];
+        expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 13)).toISOString());
+        expect(endDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 17)).toISOString());
+      });
+    });
   });
 
   describe('Event listener cleanup', () => {

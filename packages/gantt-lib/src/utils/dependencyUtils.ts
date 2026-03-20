@@ -900,8 +900,26 @@ export function universalCascade(
         const startDeltaMs = currStart.getTime() - parentOrigStart.getTime();
         const endDeltaMs   = currEnd.getTime()   - parentOrigEnd.getTime();
 
-        const childNewStart = new Date(childOrigStart.getTime() + startDeltaMs);
-        const childNewEnd   = new Date(childOrigEnd.getTime()   + endDeltaMs);
+        let childNewStart: Date;
+        let childNewEnd: Date;
+
+        if (businessDays && weekendPredicate) {
+          const proposedStart = new Date(childOrigStart.getTime() + startDeltaMs);
+          const snapDirection: 1 | -1 = currStart.getTime() >= parentOrigStart.getTime() ? 1 : -1;
+          const movedRange = moveTaskRange(
+            child.startDate,
+            child.endDate,
+            proposedStart,
+            true,
+            weekendPredicate,
+            snapDirection
+          );
+          childNewStart = movedRange.start;
+          childNewEnd = movedRange.end;
+        } else {
+          childNewStart = new Date(childOrigStart.getTime() + startDeltaMs);
+          childNewEnd = new Date(childOrigEnd.getTime() + endDeltaMs);
+        }
 
         // Change detection: skip if already at this position
         const prev = updatedDates.get(child.id);
