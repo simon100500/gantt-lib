@@ -59,6 +59,28 @@ export function getDependencyLag(dep: Pick<TaskDependency, 'lag'>): number {
   return Number.isFinite(dep.lag) ? dep.lag : 0;
 }
 
+export function normalizeDependencyLag(
+  linkType: LinkType,
+  lag: number,
+  predecessorStart: Date,
+  predecessorEnd: Date,
+  businessDays: boolean = false,
+  weekendPredicate?: (date: Date) => boolean
+): number {
+  if (linkType !== 'FS') {
+    return lag;
+  }
+
+  const predecessorDuration = getTaskDuration(
+    predecessorStart,
+    predecessorEnd,
+    businessDays,
+    weekendPredicate
+  );
+
+  return Math.max(-predecessorDuration, lag);
+}
+
 export function alignToWorkingDay(
   date: Date,
   direction: 1 | -1,
@@ -151,6 +173,64 @@ export function moveTaskRange(
     businessDays,
     weekendPredicate,
     snapDirection
+  );
+}
+
+export function clampTaskRangeForIncomingFS(
+  task: Pick<Task, 'dependencies'>,
+  proposedStart: Date,
+  proposedEnd: Date,
+  allTasks: Task[],
+  businessDays: boolean = false,
+  weekendPredicate?: (date: Date) => boolean
+): { start: Date; end: Date } {
+  if (!task.dependencies?.length) {
+    return { start: proposedStart, end: proposedEnd };
+  }
+
+  let minAllowedStart: Date | null = null;
+
+  for (const dep of task.dependencies) {
+    if (dep.type !== 'FS') {
+      continue;
+    }
+
+    const predecessor = allTasks.find(candidate => candidate.id === dep.taskId);
+    if (!predecessor) {
+      continue;
+    }
+
+    const predecessorStart = parseDateOnly(predecessor.startDate);
+    const predecessorEnd = parseDateOnly(predecessor.endDate);
+    const predecessorDuration = getTaskDuration(
+      predecessorStart,
+      predecessorEnd,
+      businessDays,
+      weekendPredicate
+    );
+    const candidateMinStart = calculateSuccessorDate(
+      predecessorStart,
+      predecessorEnd,
+      'FS',
+      -predecessorDuration,
+      businessDays,
+      weekendPredicate
+    );
+
+    if (!minAllowedStart || candidateMinStart.getTime() > minAllowedStart.getTime()) {
+      minAllowedStart = candidateMinStart;
+    }
+  }
+
+  if (!minAllowedStart || proposedStart.getTime() >= minAllowedStart.getTime()) {
+    return { start: proposedStart, end: proposedEnd };
+  }
+
+  return buildTaskRangeFromStart(
+    minAllowedStart,
+    getTaskDuration(proposedStart, proposedEnd, businessDays, weekendPredicate),
+    businessDays,
+    weekendPredicate
   );
 }
 
@@ -260,7 +340,15 @@ export function computeLagFromDates(
   // Calendar days (original logic)
   if (!businessDays || !weekendPredicate) {
     switch (linkType) {
-      case 'FS': return Math.round((sS - pE) / DAY_MS) - 1;
+      case 'FS':
+        return normalizeDependencyLag(
+          linkType,
+          Math.round((sS - pE) / DAY_MS) - 1,
+          predStart,
+          predEnd,
+          businessDays,
+          weekendPredicate
+        );
       case 'SS': return Math.round((sS - pS) / DAY_MS);
       case 'FF': return Math.round((sE - pE) / DAY_MS);
       case 'SF': return Math.round((sE - pS) / DAY_MS) + 1;
@@ -272,7 +360,15 @@ export function computeLagFromDates(
   const businessOffset = getBusinessDayOffset(anchorDate, targetDate, weekendPredicate);
 
   switch (linkType) {
-    case 'FS': return businessOffset - 1;
+    case 'FS':
+      return normalizeDependencyLag(
+        linkType,
+        businessOffset - 1,
+        predStart,
+        predEnd,
+        businessDays,
+        weekendPredicate
+      );
     case 'SS': return businessOffset;
     case 'FF': return businessOffset;
     case 'SF': return businessOffset + 1;
@@ -296,19 +392,28 @@ export function calculateSuccessorDate(
   businessDays: boolean = false,
   weekendPredicate?: (date: Date) => boolean
 ): Date {
+  const normalizedLag = normalizeDependencyLag(
+    linkType,
+    lag,
+    predecessorStart,
+    predecessorEnd,
+    businessDays,
+    weekendPredicate
+  );
+
   // Calendar days (original logic)
   if (!businessDays || !weekendPredicate) {
     switch (linkType) {
       case 'FS':
         // lag=0 → successor starts the day after predecessor ends (inclusive dates)
-        return new Date(predecessorEnd.getTime() + (lag + 1) * DAY_MS);
+        return new Date(predecessorEnd.getTime() + (normalizedLag + 1) * DAY_MS);
       case 'SS':
-        return new Date(predecessorStart.getTime() + lag * DAY_MS);
+        return new Date(predecessorStart.getTime() + normalizedLag * DAY_MS);
       case 'FF':
-        return new Date(predecessorEnd.getTime() + lag * DAY_MS);
+        return new Date(predecessorEnd.getTime() + normalizedLag * DAY_MS);
       case 'SF':
         // lag=0 → successor ends the day before predecessor starts (inclusive dates)
-        return new Date(predecessorStart.getTime() + (lag - 1) * DAY_MS);
+        return new Date(predecessorStart.getTime() + (normalizedLag - 1) * DAY_MS);
     }
   }
 
@@ -316,16 +421,16 @@ export function calculateSuccessorDate(
   let offset: number;
   switch (linkType) {
     case 'FS':
-      offset = lag + 1;
+      offset = normalizedLag + 1;
       break;
     case 'SS':
-      offset = lag;
+      offset = normalizedLag;
       break;
     case 'FF':
-      offset = lag;
+      offset = normalizedLag;
       break;
     case 'SF':
-      offset = lag - 1;
+      offset = normalizedLag - 1;
       break;
   }
   return shiftBusinessDayOffset(anchorDate, offset, weekendPredicate);

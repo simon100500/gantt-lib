@@ -17,6 +17,8 @@ import {
   buildTaskRangeFromStart,
   getDependencyLag,
   calculateSuccessorDate,
+  clampTaskRangeForIncomingFS,
+  normalizeDependencyLag,
   isTaskParent,
   findParentId,
   getChildren,
@@ -343,12 +345,20 @@ const DepChip: React.FC<DepChipProps> = ({
       const origStart = parseUTCDate(task.startDate);
       const origEnd = parseUTCDate(task.endDate);
       const durationMs = origEnd.getTime() - origStart.getTime();
+      const normalizedLag = normalizeDependencyLag(
+        dep.type,
+        newLag,
+        predStart,
+        predEnd,
+        businessDays,
+        weekendPredicate,
+      );
 
       const constraintDate = calculateSuccessorDate(
         predStart,
         predEnd,
         dep.type,
-        newLag,
+        normalizedLag,
         businessDays,
         weekendPredicate,
       );
@@ -379,7 +389,7 @@ const DepChip: React.FC<DepChipProps> = ({
           endDate: newEnd.toISOString().split("T")[0],
           dependencies: (task.dependencies ?? []).map((existingDep) =>
             existingDep.taskId === dep.taskId && existingDep.type === dep.type
-              ? { ...existingDep, lag: newLag }
+              ? { ...existingDep, lag: normalizedLag }
               : existingDep
           ),
         },
@@ -1091,13 +1101,21 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
         const { startDate: normalizedStart, endDate: normalizedEnd } =
           normalizeTaskDates(normalizedInputStart, nextEndISO);
-        const startDate = new Date(`${normalizedStart}T00:00:00.000Z`);
-        const endDate = new Date(`${normalizedEnd}T00:00:00.000Z`);
+        const clampedRange = clampTaskRangeForIncomingFS(
+          task,
+          new Date(`${normalizedStart}T00:00:00.000Z`),
+          new Date(`${normalizedEnd}T00:00:00.000Z`),
+          allTasks,
+          businessDays,
+          weekendPredicate
+        );
+        const startDate = clampedRange.start;
+        const endDate = clampedRange.end;
         onTasksChange?.([
           {
             ...task,
-            startDate: normalizedStart,
-            endDate: normalizedEnd,
+            startDate: startDate.toISOString().split("T")[0],
+            endDate: endDate.toISOString().split("T")[0],
             ...(task.dependencies && {
               dependencies: recalculateIncomingLags(
                 task,
@@ -1140,13 +1158,21 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
         const { startDate: normalizedStart, endDate: normalizedEnd } =
           normalizeTaskDates(nextStartISO, normalizedInputEnd);
-        const startDate = new Date(`${normalizedStart}T00:00:00.000Z`);
-        const endDate = new Date(`${normalizedEnd}T00:00:00.000Z`);
+        const clampedRange = clampTaskRangeForIncomingFS(
+          task,
+          new Date(`${normalizedStart}T00:00:00.000Z`),
+          new Date(`${normalizedEnd}T00:00:00.000Z`),
+          allTasks,
+          businessDays,
+          weekendPredicate
+        );
+        const startDate = clampedRange.start;
+        const endDate = clampedRange.end;
         onTasksChange?.([
           {
             ...task,
-            startDate: normalizedStart,
-            endDate: normalizedEnd,
+            startDate: startDate.toISOString().split("T")[0],
+            endDate: endDate.toISOString().split("T")[0],
             ...(task.dependencies && {
               dependencies: recalculateIncomingLags(
                 task,

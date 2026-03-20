@@ -1330,6 +1330,66 @@ describe('useTaskDrag', () => {
   });
 
   describe('Incoming lag edits during drag', () => {
+    it('clamps FS successor move when negative lag would exceed predecessor duration', async () => {
+      const onDragEnd = vi.fn();
+      const allTasks = [
+        {
+          id: 'pred',
+          name: 'Predecessor',
+          startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 12)).toISOString(),
+        },
+        {
+          id: 'task-1',
+          name: 'Successor',
+          startDate: new Date(Date.UTC(2026, 1, 13)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 15)).toISOString(),
+          dependencies: [{ taskId: 'pred', type: 'FS' as const, lag: 0 }],
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 13)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 15)),
+          allTasks,
+          disableConstraints: false,
+          onDragEnd,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 480, width: 120 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 540,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 380 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(360);
+        expect(result.current.currentWidth).toBe(120);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      expect(onDragEnd).toHaveBeenCalledTimes(1);
+      const [{ startDate, endDate, updatedDependencies }] = onDragEnd.mock.calls[0];
+      expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 10)).toISOString());
+      expect(endDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 12)).toISOString());
+      expect(updatedDependencies?.[0]?.lag).toBe(-3);
+    });
+
     it('allows reducing FS lag back to zero by moving successor left', async () => {
       const onDragEnd = vi.fn();
       const allTasks = [

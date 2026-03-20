@@ -115,6 +115,11 @@ describe('dependencyUtils', () => {
       expect(result.getUTCDate()).toBe(4); // lag=-2 means 2-day overlap
     });
 
+    it('should clamp FS negative lag to predecessor duration', () => {
+      const result = calculateSuccessorDate(jan1, jan5, 'FS', -10);
+      expect(result.getUTCDate()).toBe(1);
+    });
+
     it('should calculate SS (start-to-start) with no lag', () => {
       const result = calculateSuccessorDate(jan1, jan5, 'SS', 0);
       expect(result.getUTCDate()).toBe(1); // Starts when predecessor starts
@@ -414,6 +419,22 @@ describe('dependencyUtils', () => {
       );
 
       expect(updated[0]?.lag).toBe(3);
+    });
+
+    it('clamps FS negative lag to predecessor duration when successor moves too far left', () => {
+      const tasks = [
+        createTask('pred', '2026-03-10', '2026-03-12'),
+        createTask('succ', '2026-03-13', '2026-03-15', [{ taskId: 'pred', type: 'FS', lag: 0 }]),
+      ];
+
+      const updated = recalculateIncomingLags(
+        tasks[1],
+        new Date('2026-03-08T00:00:00.000Z'),
+        new Date('2026-03-10T00:00:00.000Z'),
+        tasks
+      );
+
+      expect(updated[0]?.lag).toBe(-3);
     });
   });
 

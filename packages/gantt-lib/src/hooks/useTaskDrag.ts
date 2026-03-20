@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { alignToWorkingDay, buildTaskRangeFromEnd, buildTaskRangeFromStart, calculateSuccessorDate, getDependencyLag, getTransitiveCascadeChain, moveTaskRange, recalculateIncomingLags, getChildren, isTaskParent, universalCascade } from '../utils/dependencyUtils';
+import { alignToWorkingDay, buildTaskRangeFromEnd, buildTaskRangeFromStart, calculateSuccessorDate, clampTaskRangeForIncomingFS, getDependencyLag, getTransitiveCascadeChain, moveTaskRange, recalculateIncomingLags, getChildren, isTaskParent, universalCascade } from '../utils/dependencyUtils';
 import { getBusinessDaysCount } from '../utils/dateUtils';
 
 /**
@@ -130,6 +130,28 @@ function resolveDraggedRange(
   const alignedStart = alignToWorkingDay(rawStartDate, snapDirection, weekendPredicate);
   const duration = Math.max(1, getBusinessDaysCount(alignedStart, fixedEnd, weekendPredicate));
   return buildTaskRangeFromEnd(fixedEnd, duration, true, weekendPredicate);
+}
+
+function clampDraggedRangeForIncomingFS(
+  task: Task,
+  range: { start: Date; end: Date },
+  allTasks: Task[],
+  mode: 'move' | 'resize-left' | 'resize-right',
+  businessDays?: boolean,
+  weekendPredicate?: (date: Date) => boolean
+): { start: Date; end: Date } {
+  if (mode === 'resize-right') {
+    return range;
+  }
+
+  return clampTaskRangeForIncomingFS(
+    task,
+    range.start,
+    range.end,
+    allTasks,
+    businessDays,
+    weekendPredicate
+  );
 }
 
 /**
@@ -276,15 +298,40 @@ function handleGlobalMouseMove(e: MouseEvent) {
     const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
 
     if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
-      const previewRange = resolveDraggedRange(
-        mode,
-        newLeft,
-        newWidth,
-        activeDrag.monthStart,
-        dayWidth,
+      const previewRange = clampDraggedRangeForIncomingFS(
         draggedTask,
+        resolveDraggedRange(
+          mode,
+          newLeft,
+          newWidth,
+          activeDrag.monthStart,
+          dayWidth,
+          draggedTask,
+          true,
+          activeDrag.weekendPredicate
+        ),
+        allTasks,
+        mode,
         true,
         activeDrag.weekendPredicate
+      );
+      const alignedStartDay = getDayOffsetFromMonthStart(previewRange.start, activeDrag.monthStart);
+      const alignedEndDay = getDayOffsetFromMonthStart(previewRange.end, activeDrag.monthStart);
+      newLeft = Math.round(alignedStartDay * dayWidth);
+      newWidth = Math.round((alignedEndDay - alignedStartDay + 1) * dayWidth);
+    } else if (draggedTask) {
+      const previewRange = clampDraggedRangeForIncomingFS(
+        draggedTask,
+        resolveDraggedRange(
+          mode,
+          newLeft,
+          newWidth,
+          activeDrag.monthStart,
+          dayWidth,
+          draggedTask
+        ),
+        allTasks,
+        mode
       );
       const alignedStartDay = getDayOffsetFromMonthStart(previewRange.start, activeDrag.monthStart);
       const alignedEndDay = getDayOffsetFromMonthStart(previewRange.end, activeDrag.monthStart);
@@ -301,13 +348,20 @@ function handleGlobalMouseMove(e: MouseEvent) {
       const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;
       const originalDraggedTask = draggedTask ?? allTasks.find(t => t.id === dragId);
       const previewRange = originalDraggedTask
-        ? resolveDraggedRange(
-          mode,
-          newLeft,
-          newWidth,
-          mStart,
-          dayWidth,
+        ? clampDraggedRangeForIncomingFS(
           originalDraggedTask,
+          resolveDraggedRange(
+            mode,
+            newLeft,
+            newWidth,
+            mStart,
+            dayWidth,
+            originalDraggedTask,
+            activeDrag.businessDays,
+            activeDrag.weekendPredicate
+          ),
+          allTasks,
+          mode,
           activeDrag.businessDays,
           activeDrag.weekendPredicate
         )
@@ -619,13 +673,20 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
     const currentTask = allTasks.find(t => t.id === taskId);
     const finalRange = currentTask
-      ? resolveDraggedRange(
-        finalMode,
-        finalLeft,
-        finalWidth,
-        monthStart,
-        dayWidth,
+      ? clampDraggedRangeForIncomingFS(
         currentTask,
+        resolveDraggedRange(
+          finalMode,
+          finalLeft,
+          finalWidth,
+          monthStart,
+          dayWidth,
+          currentTask,
+          businessDays,
+          weekendPredicate
+        ),
+        allTasks,
+        finalMode,
         businessDays,
         weekendPredicate
       )

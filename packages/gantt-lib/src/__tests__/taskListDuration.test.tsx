@@ -19,6 +19,7 @@ vi.mock('../components/ui/DatePicker', () => ({
       onClick={() => {
         if (value === '2026-03-13') onChange?.('2026-03-17');
         if (value === '2026-03-16') onChange?.('2026-03-18');
+        if (value === '2026-03-14') onChange?.('2026-03-09');
       }}
     >
       {value}
@@ -238,6 +239,92 @@ describe('TaskListRow duration editing', () => {
       startDate: '2026-03-17',
       endDate: '2026-03-18',
       dependencies: [{ taskId: 'pred', type: 'FS', lag: 2 }],
+    }]);
+  });
+
+  it('clamps FS lag editing to predecessor duration', () => {
+    const onTasksChange = vi.fn();
+    const predecessor: Task = {
+      id: 'pred',
+      name: 'Pred',
+      startDate: '2026-03-10',
+      endDate: '2026-03-12',
+      progress: 0,
+    };
+    const task: Task = {
+      id: 'task-1',
+      name: 'Task 1',
+      startDate: '2026-03-13',
+      endDate: '2026-03-15',
+      progress: 25,
+      dependencies: [{ taskId: 'pred', type: 'FS', lag: 0 }],
+    };
+
+    const { container } = render(
+      <TaskListRow
+        task={task}
+        allTasks={[predecessor, task]}
+        rowIndex={0}
+        rowHeight={40}
+        onTasksChange={onTasksChange}
+        onRowClick={() => {}}
+        onChipSelect={() => {}}
+        businessDays={true}
+      />
+    );
+
+    const lagInput = container.querySelector('.gantt-tl-dep-edit-input') as HTMLInputElement;
+    expect(lagInput).toBeTruthy();
+
+    fireEvent.change(lagInput, { target: { value: '-10' } });
+    fireEvent.blur(lagInput);
+
+    expect(onTasksChange).toHaveBeenLastCalledWith([{
+      ...task,
+      startDate: '2026-03-10',
+      endDate: '2026-03-10',
+      dependencies: [{ taskId: 'pred', type: 'FS', lag: -3 }],
+    }]);
+  });
+
+  it('clamps FS range when start date picker would exceed predecessor duration overlap', () => {
+    const onTasksChange = vi.fn();
+    const predecessor: Task = {
+      id: 'pred',
+      name: 'Pred',
+      startDate: '2026-03-10',
+      endDate: '2026-03-12',
+      progress: 0,
+    };
+    const task: Task = {
+      id: 'task-1',
+      name: 'Task 1',
+      startDate: '2026-03-14',
+      endDate: '2026-03-16',
+      progress: 25,
+      dependencies: [{ taskId: 'pred', type: 'FS', lag: 1 }],
+    };
+
+    render(
+      <TaskListRow
+        task={task}
+        allTasks={[predecessor, task]}
+        rowIndex={0}
+        rowHeight={40}
+        onTasksChange={onTasksChange}
+        onRowClick={() => {}}
+        onChipSelect={() => {}}
+        businessDays={true}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '2026-03-14' }));
+
+    expect(onTasksChange).toHaveBeenCalledWith([{
+      ...task,
+      startDate: '2026-03-10',
+      endDate: '2026-03-10',
+      dependencies: [{ taskId: 'pred', type: 'FS', lag: -3 }],
     }]);
   });
 });
