@@ -269,11 +269,13 @@ describe('TaskListRow duration editing', () => {
         onTasksChange={onTasksChange}
         onRowClick={() => {}}
         onChipSelect={() => {}}
+        selectingPredecessorFor="task-1"
+        dependencyPickMode="predecessor"
         businessDays={true}
       />
     );
 
-    const lagInput = container.querySelector('.gantt-tl-dep-edit-input') as HTMLInputElement;
+    const lagInput = container.querySelector('.gantt-tl-dep-source-existing-lag-input') as HTMLInputElement;
     expect(lagInput).toBeTruthy();
 
     fireEvent.change(lagInput, { target: { value: '-10' } });
@@ -354,6 +356,7 @@ describe('TaskListRow duration editing', () => {
         taskNumber="2"
         taskNumberMap={{ pred: '1.1.1', 'task-1': '2' }}
         selectingPredecessorFor="task-1"
+        dependencyPickMode="predecessor"
         activeLinkType="FS"
         onAddDependency={onAddDependency}
         onSetSelectingPredecessorFor={() => {}}

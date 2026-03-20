@@ -375,7 +375,6 @@ export const TaskList: React.FC<TaskListProps> = ({
       d => d.taskId === predecessorTaskId && d.type === linkType
     );
     if (alreadyExists) {
-      setSelectingPredecessorFor(null);
       return;
     }
 
@@ -446,8 +445,6 @@ export const TaskList: React.FC<TaskListProps> = ({
       // Predecessor not found — emit without snap (graceful fallback)
       onTasksChange?.([updatedTask]);
     }
-
-    setSelectingPredecessorFor(null);
   }, [tasks, onTasksChange]);
 
   const handleRemoveDependency = useCallback((

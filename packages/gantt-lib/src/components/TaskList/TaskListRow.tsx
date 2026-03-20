@@ -154,6 +154,70 @@ function formatTaskNumberLabel(taskNumber?: string): string {
   return taskNumber ? `${taskNumber}. ` : "";
 }
 
+function buildUpdatedTaskForLagChange(
+  targetTask: Task,
+  predecessorTask: Task,
+  depType: LinkType,
+  newLag: number,
+  allTasks: Task[],
+  businessDays: boolean,
+  weekendPredicate: (date: Date) => boolean
+): Task {
+  const predStart = parseUTCDate(predecessorTask.startDate);
+  const predEnd = parseUTCDate(predecessorTask.endDate);
+  const origStart = parseUTCDate(targetTask.startDate);
+  const origEnd = parseUTCDate(targetTask.endDate);
+  const durationMs = origEnd.getTime() - origStart.getTime();
+  const normalizedLag = normalizeDependencyLag(
+    depType,
+    newLag,
+    predStart,
+    predEnd,
+    businessDays,
+    weekendPredicate,
+  );
+
+  const constraintDate = calculateSuccessorDate(
+    predStart,
+    predEnd,
+    depType,
+    normalizedLag,
+    businessDays,
+    weekendPredicate,
+  );
+
+  let newStart: Date;
+  let newEnd: Date;
+  if (depType === "FS" || depType === "SS") {
+    newStart = constraintDate;
+    if (businessDays) {
+      const businessDuration = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
+      newEnd = new Date(`${addBusinessDays(constraintDate, businessDuration, weekendPredicate)}T00:00:00.000Z`);
+    } else {
+      newEnd = new Date(constraintDate.getTime() + durationMs);
+    }
+  } else {
+    newEnd = constraintDate;
+    if (businessDays) {
+      const businessDuration = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
+      newStart = new Date(`${subtractBusinessDays(constraintDate, businessDuration, weekendPredicate)}T00:00:00.000Z`);
+    } else {
+      newStart = new Date(constraintDate.getTime() - durationMs);
+    }
+  }
+
+  return {
+    ...targetTask,
+    startDate: newStart.toISOString().split("T")[0],
+    endDate: newEnd.toISOString().split("T")[0],
+    dependencies: (targetTask.dependencies ?? []).map((existingDep) =>
+      existingDep.taskId === predecessorTask.id && existingDep.type === depType
+        ? { ...existingDep, lag: normalizedLag }
+        : existingDep
+    ),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // HierarchyButton — Single button with left/right arrows for hierarchy navigation
 // ---------------------------------------------------------------------------
@@ -760,9 +824,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const dependencySearchListRef = useRef<HTMLDivElement>(null);
     const [editingProgress, setEditingProgress] = useState(false);
     const [progressValue, setProgressValue] = useState(0);
-    const progressInputRef = useRef<HTMLInputElement>(null);
-    const [overflowOpen, setOverflowOpen] = useState(false);
-    const nameConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
+    const progressInputRef = useRef<HTMLInputElement>(null);    const nameConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const durationConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const progressConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const autoEditedForRef = useRef<string | null>(null); // Track which editingTaskId we already auto-entered for
@@ -821,11 +883,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       return (task.dependencies ?? []).map((dep) => {
         const pred = taskById.get(dep.taskId);
         const lag = getDependencyLag(dep);
-        return { dep, lag, predecessorName: pred?.name ?? dep.taskId };
+        return { dep, lag, predecessorName: pred?.name ?? dep.taskId, predecessorTaskNumber: taskNumberMap[dep.taskId] };
       });
-    }, [task.dependencies, allTasks]);
-
-    const linkWord = chips.length <= 4 ? "связи" : "связей";
+    }, [task.dependencies, allTasks, taskNumberMap]);
 
     const dependencySearchCandidates = useMemo(() => {
       if (!isSourceRow) return [];
@@ -849,7 +909,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         })
         .filter((candidate) =>
           normalizedQuery === "" ? true : candidate.searchable.includes(normalizedQuery)
-        );
+        )
+        .filter((candidate) => !candidate.isAlreadyLinked);
     }, [
       isSourceRow,
       dependencySearchQuery,
@@ -860,6 +921,67 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       taskNumberMap,
       task.dependencies,
     ]);
+
+    const dependencyManagerEntries = useMemo(() => {
+      const taskById = new Map((allTasks ?? []).map((item) => [item.id, item]));
+
+      if (dependencyPickMode === "predecessor") {
+        return (task.dependencies ?? [])
+          .map((dep) => {
+            const predecessorTask = taskById.get(dep.taskId);
+            if (!predecessorTask) return null;
+
+            const counterpartNumber = taskNumberMap[predecessorTask.id];
+            return {
+              key: `${task.id}:${predecessorTask.id}:${dep.type}`,
+              dep,
+              lag: getDependencyLag(dep),
+              successorId: task.id,
+              predecessorId: predecessorTask.id,
+              targetTask: task,
+              predecessorTask,
+              counterpartTask: predecessorTask,
+              counterpartLabel: `${formatTaskNumberLabel(counterpartNumber)}${predecessorTask.name}`,
+              counterpartNumber,
+            };
+          })
+          .filter((entry): entry is NonNullable<typeof entry> => entry != null);
+      }
+
+      return allTasks.flatMap((candidate) =>
+        (candidate.dependencies ?? [])
+          .filter((dep) => dep.taskId === task.id)
+          .map((dep) => {
+            const counterpartNumber = taskNumberMap[candidate.id];
+            return {
+              key: `${candidate.id}:${task.id}:${dep.type}`,
+              dep,
+              lag: getDependencyLag(dep),
+              successorId: candidate.id,
+              predecessorId: task.id,
+              targetTask: candidate,
+              predecessorTask: task,
+              counterpartTask: candidate,
+              counterpartLabel: `${formatTaskNumberLabel(counterpartNumber)}${candidate.name}`,
+              counterpartNumber,
+            };
+          }),
+      );
+    }, [allTasks, dependencyPickMode, task, taskNumberMap]);
+
+    const selectedManagedDependency = useMemo(
+      () =>
+        dependencyManagerEntries.find(
+          (entry) =>
+            selectedChip?.successorId === entry.successorId &&
+            selectedChip?.predecessorId === entry.predecessorId &&
+            selectedChip?.linkType === entry.dep.type,
+        ) ?? null,
+      [dependencyManagerEntries, selectedChip],
+    );
+
+    const activeManagedDependency =
+      selectedManagedDependency ?? dependencyManagerEntries[0] ?? null;
 
     useEffect(() => {
       if (editingName && nameInputRef.current) {
@@ -913,9 +1035,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         `.gantt-tl-dep-source-option[data-index="${highlightedDependencyIndex}"]`
       );
 
-      activeElement?.scrollIntoView({
-        block: "nearest",
-      });
+      if (typeof activeElement?.scrollIntoView === "function") {
+        activeElement.scrollIntoView({
+          block: "nearest",
+        });
+      }
     }, [isSourceRow, highlightedDependencyIndex, dependencySearchCandidates]);
 
     // Reset delete confirmation when clicking elsewhere
@@ -1368,8 +1492,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         if (!selectingPredecessorFor || !activeLinkType) return;
         if (dependencyPickMode === "predecessor") {
           onAddDependency?.(selectingPredecessorFor, task.id, activeLinkType);
+          onChipSelect?.({
+            successorId: selectingPredecessorFor,
+            predecessorId: task.id,
+            linkType: activeLinkType,
+          });
         } else {
           onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
+          onChipSelect?.({
+            successorId: task.id,
+            predecessorId: selectingPredecessorFor,
+            linkType: activeLinkType,
+          });
         }
       },
       [
@@ -1380,6 +1514,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         activeLinkType,
         dependencyPickMode,
         onAddDependency,
+        onChipSelect,
       ],
     );
 
@@ -1405,11 +1540,21 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         if (!activeLinkType) return;
         if (dependencyPickMode === "predecessor") {
           onAddDependency?.(task.id, pickedTaskId, activeLinkType);
+          onChipSelect?.({
+            successorId: task.id,
+            predecessorId: pickedTaskId,
+            linkType: activeLinkType,
+          });
         } else {
           onAddDependency?.(pickedTaskId, task.id, activeLinkType);
+          onChipSelect?.({
+            successorId: pickedTaskId,
+            predecessorId: task.id,
+            linkType: activeLinkType,
+          });
         }
       },
-      [activeLinkType, dependencyPickMode, onAddDependency, task.id],
+      [activeLinkType, dependencyPickMode, onAddDependency, onChipSelect, task.id],
     );
 
     const handleSearchRemove = useCallback(
@@ -1429,9 +1574,111 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             onRemoveDependency?.(pickedTaskId, task.id, linkType);
           }
         }
+
+        if (
+          selectedChip &&
+          ((dependencyPickMode === "predecessor" &&
+            selectedChip.successorId === task.id &&
+            selectedChip.predecessorId === pickedTaskId) ||
+            (dependencyPickMode === "successor" &&
+              selectedChip.successorId === pickedTaskId &&
+              selectedChip.predecessorId === task.id))
+        ) {
+          onChipSelect?.(null);
+        }
       },
-      [allTasks, dependencyPickMode, onRemoveDependency, task.dependencies, task.id],
+      [
+        allTasks,
+        dependencyPickMode,
+        onChipSelect,
+        onRemoveDependency,
+        selectedChip,
+        task.dependencies,
+        task.id,
+      ],
     );
+
+    const handleExistingDependencySelect = useCallback(
+      (successorId: string, predecessorId: string, linkType: LinkType) => {
+        onChipSelect?.({
+          successorId,
+          predecessorId,
+          linkType,
+        });
+      },
+      [onChipSelect],
+    );
+
+    const handleExistingCandidateClick = useCallback(
+      (candidateId: string) => {
+        const existingEntry = dependencyManagerEntries.find(
+          (entry) => entry.counterpartTask.id === candidateId,
+        );
+        if (!existingEntry) return;
+        onSetActiveLinkType?.(existingEntry.dep.type);
+        handleExistingDependencySelect(
+          existingEntry.successorId,
+          existingEntry.predecessorId,
+          existingEntry.dep.type,
+        );
+      },
+      [
+        dependencyManagerEntries,
+        handleExistingDependencySelect,
+        onSetActiveLinkType,
+      ],
+    );
+
+    const handleManagedDependencyLagChange = useCallback(
+      (entry: NonNullable<typeof selectedManagedDependency>, nextLag: number) => {
+        if (!onTasksChange) return;
+
+        const updatedTask = buildUpdatedTaskForLagChange(
+          entry.targetTask,
+          entry.predecessorTask,
+          entry.dep.type,
+          nextLag,
+          allTasks,
+          businessDays ?? true,
+          weekendPredicate,
+        );
+        onTasksChange([updatedTask]);
+      },
+      [allTasks, businessDays, onTasksChange, weekendPredicate],
+    );
+
+    const dependencySummaryContent =
+      chips.length > 0 ? (
+        <div className="gantt-tl-dep-summary-list">
+          {chips.slice(0, 2).map(({ dep, lag, predecessorName, predecessorTaskNumber }) => (
+            <span
+              key={`${dep.taskId}-${dep.type}`}
+              className="gantt-tl-dep-summary-pill"
+              title={`${LINK_TYPE_LABELS_RU[dep.type]} ${formatTaskNumberLabel(predecessorTaskNumber)}${predecessorName}`}
+            >
+              <span className="gantt-tl-dep-summary-pill-type">
+                {LINK_TYPE_LABELS_RU[dep.type]}
+              </span>
+              <span className="gantt-tl-dep-summary-pill-label">
+                {formatTaskNumberLabel(predecessorTaskNumber)}
+                {predecessorName}
+              </span>
+              {lag !== 0 ? (
+                <span className="gantt-tl-dep-summary-pill-lag">
+                  {lag > 0 ? `+${lag}` : lag}
+                </span>
+              ) : null}
+            </span>
+          ))}
+          {chips.length > 2 ? (
+            <span className="gantt-tl-dep-summary-pill gantt-tl-dep-summary-pill-muted">
+              +{chips.length - 2}
+            </span>
+          ) : null}
+        </div>
+      ) : (
+        <span className="gantt-tl-dep-cell-empty">Добавить</span>
+      );
 
     const sourcePickerContent = (
       <div
@@ -1505,7 +1752,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 e.preventDefault();
                 const activeCandidate = dependencySearchCandidates[highlightedDependencyIndex];
                 if (activeCandidate.isAlreadyLinked) {
-                  handleSearchRemove(activeCandidate.task.id);
+                  handleExistingCandidateClick(activeCandidate.task.id);
                 } else {
                   handleSearchPick(activeCandidate.task.id);
                 }
@@ -1513,19 +1760,134 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             }}
           />
         </div>
+        {dependencyManagerEntries.length > 0 ? (
+          <div className="gantt-tl-dep-source-section">
+            <span className="gantt-tl-dep-source-section-label">
+              {dependencyPickMode === "predecessor" ? "Уже зависит от" : "Уже влияет на"}
+            </span>
+            <div className="gantt-tl-dep-source-existing-list">
+              {dependencyManagerEntries.map((entry) => {
+                const isActive =
+                  activeManagedDependency?.key === entry.key;
+
+                return (
+                  <div
+                    key={entry.key}
+                    role="button"
+                    tabIndex={0}
+                    className={`gantt-tl-dep-source-existing-item${isActive ? " gantt-tl-dep-source-existing-item-active" : ""}`}
+                    onClick={() => {
+                      onSetActiveLinkType?.(entry.dep.type);
+                      handleExistingDependencySelect(
+                        entry.successorId,
+                        entry.predecessorId,
+                        entry.dep.type,
+                      );
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSetActiveLinkType?.(entry.dep.type);
+                        handleExistingDependencySelect(
+                          entry.successorId,
+                          entry.predecessorId,
+                          entry.dep.type,
+                        );
+                      }
+                    }}
+                    title={entry.counterpartLabel}
+                  >
+                    <span className="gantt-tl-dep-source-existing-body">
+                      <span className="gantt-tl-dep-source-existing-head">
+                        <span className="gantt-tl-dep-source-existing-meta">
+                          <span className="gantt-tl-dep-source-existing-badge">
+                            {LINK_TYPE_LABELS_RU[entry.dep.type]}
+                          </span>
+                          <span className="gantt-tl-dep-source-existing-text">
+                            {entry.counterpartLabel}
+                          </span>
+                        </span>
+                        <label
+                          className="gantt-tl-dep-source-existing-lag-field"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="gantt-tl-dep-source-existing-lag-label">���</span>
+                          <input
+                            type="number"
+                            className="gantt-tl-dep-source-existing-lag-input"
+                            value={entry.lag}
+                            onChange={(e) =>
+                              handleManagedDependencyLagChange(
+                                entry,
+                                Number(e.target.value || 0),
+                              )
+                            }
+                            onFocus={() => {
+                              onSetActiveLinkType?.(entry.dep.type);
+                              handleExistingDependencySelect(
+                                entry.successorId,
+                                entry.predecessorId,
+                                entry.dep.type,
+                              );
+                            }}
+                          />
+                        </label>
+                      </span>
+                      <span className="gantt-tl-dep-source-existing-description">
+                        {formatDepDescription(entry.dep.type, entry.lag)}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      className="gantt-tl-dep-source-existing-remove"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveDependency?.(
+                          entry.successorId,
+                          entry.predecessorId,
+                          entry.dep.type,
+                        );
+                        if (isActive) {
+                          onChipSelect?.(null);
+                        }
+                      }}
+                      aria-label={`Удалить связь ${entry.counterpartLabel}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
         <div
           ref={dependencySearchListRef}
           className="gantt-tl-dep-source-list"
         >
           {dependencySearchCandidates.length > 0 ? (
             dependencySearchCandidates.map(({ task: candidate, label, isAlreadyLinked }, index) => (
-              <button
+              <div
                 key={candidate.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 data-index={index}
                 className={`gantt-tl-dep-source-option${index === highlightedDependencyIndex ? " gantt-tl-dep-source-option-active" : ""}${isAlreadyLinked ? " gantt-tl-dep-source-option-linked" : ""}`}
                 onClick={() => {
-                  if (!isAlreadyLinked) {
+                  if (isAlreadyLinked) {
+                    handleExistingCandidateClick(candidate.id);
+                    return;
+                  }
+                  handleSearchPick(candidate.id);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    if (isAlreadyLinked) {
+                      handleExistingCandidateClick(candidate.id);
+                      return;
+                    }
                     handleSearchPick(candidate.id);
                   }
                 }}
@@ -1546,7 +1908,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                     ×
                   </button>
                 )}
-              </button>
+              </div>
             ))
           ) : (
             <span className="gantt-tl-dep-source-hint">Ничего не найдено</span>
@@ -1560,21 +1922,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       selectedChip != null && selectedChip.predecessorId === task.id;
     const isSelectedDependencyOwner =
       selectedChip != null && selectedChip.successorId === task.id;
-
-    // Delete the selected dependency from the predecessor row's "Удалить" button
-    const handleDeleteSelected = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!selectedChip) return;
-        onRemoveDependency?.(
-          selectedChip.successorId,
-          selectedChip.predecessorId,
-          selectedChip.linkType as LinkType,
-        );
-        onChipSelect?.(null);
-      },
-      [selectedChip?.successorId, selectedChip?.predecessorId, selectedChip?.linkType, onRemoveDependency, onChipSelect],
-    );
 
     const startDateISO = toISODate(task.startDate);
     const endDateISO = editingDuration
@@ -2025,11 +2372,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         <div
           className="gantt-tl-cell gantt-tl-cell-deps"
           onClick={
-            isSourceRow
-              ? handleSourceCellClick
-              : isPicking
-                ? handlePredecessorPick
-                : undefined
+            disableDependencyEditing
+              ? undefined
+              : isSourceRow
+                ? handleSourceCellClick
+                : isPicking
+                  ? handlePredecessorPick
+                  : handleAddClick
           }
         >
           {isSourceRow ? (
@@ -2042,103 +2391,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               </span>
               {sourcePickerContent}
             </>
-          ) : isSelectedPredecessor && !disableDependencyEditing ? (
-            /* Full-replacement: "Зависит от [name]" → hover → "Удалить" */
-            <button
-              type="button"
-              className="gantt-tl-dep-delete-label"
-              onClick={handleDeleteSelected}
-              aria-label="Удалить связь"
-            >
-              <span className="gantt-tl-dep-delete-label-default">
-                Связано с
-              </span>
-              <span className="gantt-tl-dep-delete-label-hover">× удалить</span>
-            </button>
           ) : (
-            <>
-              {chips.length >= 2 ? (
-                /* 2+ deps — show only "N связей" summary chip that opens a popover */
-                <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="gantt-tl-dep-summary-chip"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOverflowOpen((v) => !v);
-                      }}
-                    >
-                      {chips.length} {linkWord}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent portal={true} align="start">
-                    <div
-                      className="gantt-tl-dep-overflow-list"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {chips.map(({ dep, lag, predecessorName }) => (
-                        <DepChip
-                          key={`${dep.taskId}-${dep.type}`}
-                          lag={lag}
-                          dep={dep}
-                          taskId={task.id}
-                          taskNumber={taskNumber}
-                          predecessorName={predecessorName}
-                          predecessorTaskNumber={taskNumberMap[dep.taskId]}
-                          selectedChip={selectedChip}
-                          disableDependencyEditing={disableDependencyEditing}
-                          onChipSelect={onChipSelect}
-                          onRowClick={onRowClick}
-                          onScrollToTask={onScrollToTask}
-                          onRemoveDependency={onRemoveDependency}
-                          onChipSelectClear={() => onChipSelect?.(null)}
-                          task={task}
-                          allTasks={allTasks}
-                          onTasksChange={onTasksChange}
-                          businessDays={businessDays}
-                          weekendPredicate={weekendPredicate}
-                        />
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              ) : chips.length === 1 ? (
-                /* Single chip — unified DepChip */
-                <DepChip
-                  lag={chips[0].lag}
-                  dep={chips[0].dep}
-                  taskId={task.id}
-                  taskNumber={taskNumber}
-                  predecessorName={chips[0].predecessorName}
-                  predecessorTaskNumber={taskNumberMap[chips[0].dep.taskId]}
-                  selectedChip={selectedChip}
-                  disableDependencyEditing={disableDependencyEditing}
-                  onChipSelect={onChipSelect}
-                  onRowClick={onRowClick}
-                  onScrollToTask={onScrollToTask}
-                  onRemoveDependency={onRemoveDependency}
-                  onChipSelectClear={() => onChipSelect?.(null)}
-                  task={task}
-                  allTasks={allTasks}
-                  onTasksChange={onTasksChange}
-                  businessDays={businessDays}
-                  weekendPredicate={weekendPredicate}
-                />
-              ) : null}
-
-              {/* "+" add dependency button — hidden in picker mode and when editing disabled, hover-reveal */}
-              {!disableDependencyEditing && !isPicking && (
-                <button
-                  type="button"
-                  className={`gantt-tl-dep-add gantt-tl-dep-add-hover${selectedChip ? " gantt-tl-dep-add-hidden" : ""}`}
-                  onClick={handleAddClick}
-                  aria-label="Добавить связь"
-                >
-                  +
-                </button>
-              )}
-            </>
+            dependencySummaryContent
           )}
         </div>
       </div>
@@ -2148,4 +2402,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
 TaskListRow.displayName = "TaskListRow";
 export default TaskListRow;
+
+
+
+
+
+
+
+
+
 
