@@ -233,6 +233,13 @@ export const TaskList: React.FC<TaskListProps> = ({
     () => visibleTasks.length * rowHeight,
     [visibleTasks.length, rowHeight]
   );
+  const visibleTaskNumberMap = useMemo(
+    () =>
+      Object.fromEntries(
+        visibleTasks.map((task, index) => [task.id, String(getTaskNumber(visibleTasks, index))])
+      ) as Record<string, string>,
+    [visibleTasks]
+  );
 
   // Compute nesting depth for each task (0 = root, 1 = child, 2 = grandchild, etc.)
   const nestingDepthMap = useMemo(() => {
@@ -849,6 +856,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               task={task}
               rowIndex={index}
               taskNumber={getTaskNumber(visibleTasks, index)}
+              taskNumberMap={visibleTaskNumberMap}
               rowHeight={rowHeight}
               onTasksChange={onTasksChange}
               selectedTaskId={selectedTaskId}

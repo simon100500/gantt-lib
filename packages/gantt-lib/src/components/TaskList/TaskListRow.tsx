@@ -60,7 +60,10 @@ interface DepChipProps {
   lag?: number;
   dep: { taskId: string; type: LinkType };
   taskId: string;
+  taskNumber?: string;
+  taskNumberMap?: Record<string, string>;
   predecessorName?: string;
+  predecessorTaskNumber?: string;
   selectedChip: TaskListRowProps["selectedChip"];
   disableDependencyEditing: boolean;
   onChipSelect: TaskListRowProps["onChipSelect"];
@@ -145,6 +148,10 @@ const LINK_TYPE_LABELS_RU: Record<LinkType, string> = {
   FF: "ОО",
   SF: "НО",
 };
+
+function formatTaskNumberLabel(taskNumber?: string): string {
+  return taskNumber ? `${taskNumber}. ` : "";
+}
 
 // ---------------------------------------------------------------------------
 // HierarchyButton — Single button with left/right arrows for hierarchy navigation
@@ -278,7 +285,9 @@ const DepChip: React.FC<DepChipProps> = ({
   lag,
   dep,
   taskId,
+  taskNumber,
   predecessorName,
+  predecessorTaskNumber,
   selectedChip,
   disableDependencyEditing,
   onChipSelect,
@@ -486,7 +495,7 @@ const DepChip: React.FC<DepChipProps> = ({
         <span
           className={`gantt-tl-dep-chip${isSelected ? " gantt-tl-dep-chip-selected" : ""}`}
           onClick={handleClick}
-          title={`[${LINK_TYPE_LABELS_RU[dep.type]}] ${depName}`}
+          title={`[${LINK_TYPE_LABELS_RU[dep.type]}] ${formatTaskNumberLabel(predecessorTaskNumber)}${depName}`}
         >
           <Icon />
           {effectiveLag !== 0
@@ -502,7 +511,10 @@ const DepChip: React.FC<DepChipProps> = ({
         align="start"
       >
         <div onClick={(e) => e.stopPropagation()}>
-          <div className="gantt-tl-dep-edit-task">{task.name}</div>
+          <div className="gantt-tl-dep-edit-task">
+            {formatTaskNumberLabel(taskNumber)}
+            {task.name}
+          </div>
           <div className="gantt-tl-dep-edit-row">
             <span className="gantt-tl-dep-edit-label">
               {actionVerb}
@@ -540,7 +552,10 @@ const DepChip: React.FC<DepChipProps> = ({
             {effectiveLag !== 0 && <span>д.</span>}
             <span>{afterWhat}</span>
           </div>
-          <div className="gantt-tl-dep-edit-pred">{depName}</div>
+          <div className="gantt-tl-dep-edit-pred">
+            {formatTaskNumberLabel(predecessorTaskNumber)}
+            {depName}
+          </div>
           {!disableDependencyEditing && (
             <>
               <hr className="gantt-tl-dep-edit-divider" />
@@ -683,6 +698,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     task,
     rowIndex,
     taskNumber,
+    taskNumberMap = {},
     rowHeight,
     onTasksChange,
     selectedTaskId,
@@ -1793,7 +1809,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                           lag={lag}
                           dep={dep}
                           taskId={task.id}
+                          taskNumber={taskNumber}
                           predecessorName={predecessorName}
+                          predecessorTaskNumber={taskNumberMap[dep.taskId]}
                           selectedChip={selectedChip}
                           disableDependencyEditing={disableDependencyEditing}
                           onChipSelect={onChipSelect}
@@ -1817,7 +1835,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   lag={chips[0].lag}
                   dep={chips[0].dep}
                   taskId={task.id}
+                  taskNumber={taskNumber}
                   predecessorName={chips[0].predecessorName}
+                  predecessorTaskNumber={taskNumberMap[chips[0].dep.taskId]}
                   selectedChip={selectedChip}
                   disableDependencyEditing={disableDependencyEditing}
                   onChipSelect={onChipSelect}
