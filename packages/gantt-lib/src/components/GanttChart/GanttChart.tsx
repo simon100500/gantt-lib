@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays, createCustomDayPredicate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, cascadeByLinks, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../utils/dependencyUtils';
+import { validateDependencies, cascadeByLinks, universalCascade, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type { ValidationResult } from '../../types';
 import { TaskPredicate } from '../../filters';
@@ -461,18 +461,18 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       // Cascade only dependency successors (not children) if constraints enabled
       const cascadedTasks = disableConstraints
         ? [parentWithRecalcDates]
-        : [parentWithRecalcDates, ...cascadeByLinks(updatedTask.id, parentStart, parentEnd, tasks, true)]; // skipChildCascade=true
+        : universalCascade(parentWithRecalcDates, parentStart, parentEnd, tasks, businessDays ?? false, isCustomWeekend);
 
       onTasksChange?.(cascadedTasks);
     } else {
       // Regular task or child: normal cascade
       const cascadedTasks = disableConstraints
         ? [updatedTask]
-        : [updatedTask, ...cascadeByLinks(updatedTask.id, newStart, newEnd, tasks)];
+        : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays ?? false, isCustomWeekend);
 
       onTasksChange?.(cascadedTasks);
     }
-  }, [tasks, onTasksChange, disableConstraints, editingTaskId]);
+  }, [tasks, onTasksChange, disableConstraints, editingTaskId, businessDays, isCustomWeekend]);
 
   /**
    * Handle task deletion: collect all changed tasks (with cleaned dependencies),

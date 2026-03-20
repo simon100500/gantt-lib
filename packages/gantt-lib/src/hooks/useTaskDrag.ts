@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
 import { calculateSuccessorDate, getTransitiveCascadeChain, recalculateIncomingLags, getChildren, isTaskParent, universalCascade } from '../utils/dependencyUtils';
+import { getBusinessDaysCount, addBusinessDays } from '../utils/dateUtils';
 
 /**
  * Get transitive closure of successors for cascading.
@@ -281,13 +282,36 @@ function handleGlobalMouseMove(e: MouseEvent) {
     if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress) {
       const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;
       const previewStartDay = Math.round(newLeft / dayWidth);
-      const previewEndDay = previewStartDay + Math.round(newWidth / dayWidth) - 1;
       const previewStartDate = new Date(Date.UTC(
         mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate() + previewStartDay
       ));
-      const previewEndDate = new Date(Date.UTC(
-        mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate() + previewEndDay
-      ));
+
+      // Calculate previewEndDate based on business days mode
+      let previewEndDate: Date;
+      if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
+        // Business days mode: preserve business days count
+        const businessDaysCount = getBusinessDaysCount(
+          draggedTask.startDate,
+          draggedTask.endDate,
+          activeDrag.weekendPredicate
+        );
+        const endDateStr = addBusinessDays(previewStartDate, businessDaysCount, activeDrag.weekendPredicate);
+        previewEndDate = new Date(endDateStr + 'T00:00:00.000Z');
+
+        // Recalculate width from the actual previewEndDate (expands over weekends)
+        const previewEndOffset = Math.round(
+          (Date.UTC(previewEndDate.getUTCFullYear(), previewEndDate.getUTCMonth(), previewEndDate.getUTCDate()) -
+            Date.UTC(mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate()))
+            / (24 * 60 * 60 * 1000)
+        );
+        newWidth = Math.round((previewEndOffset - previewStartDay + 1) * dayWidth);
+      } else {
+        // Calendar days mode: use duration in calendar days
+        const previewEndDay = previewStartDay + Math.round(newWidth / dayWidth) - 1;
+        previewEndDate = new Date(Date.UTC(
+          mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate() + previewEndDay
+        ));
+      }
 
       const movedTaskData = draggedTask ?? { id: dragId, name: '', startDate: '', endDate: '' };
       const cascadeResult = universalCascade(
@@ -556,7 +580,6 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
     // Calculate new dates from final pixel values
     const dayOffset = Math.round(finalLeft / dayWidth);
-    const durationDays = Math.round(finalWidth / dayWidth) - 1; // -1 because width includes end date
 
     const newStartDate = new Date(Date.UTC(
       monthStart.getUTCFullYear(),
@@ -564,11 +587,39 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       monthStart.getUTCDate() + dayOffset
     ));
 
-    const newEndDate = new Date(Date.UTC(
-      monthStart.getUTCFullYear(),
-      monthStart.getUTCMonth(),
-      monthStart.getUTCDate() + dayOffset + durationDays
-    ));
+    // Calculate endDate based on business days mode
+    let newEndDate: Date;
+    if (businessDays && weekendPredicate) {
+      // Business days mode: preserve business days count
+      const currentTask = allTasks.find(t => t.id === taskId);
+      if (currentTask) {
+        // Calculate business days count from original task
+        const businessDaysCount = getBusinessDaysCount(
+          currentTask.startDate,
+          currentTask.endDate,
+          weekendPredicate
+        );
+        // Add business days to new start date
+        const endDateStr = addBusinessDays(newStartDate, businessDaysCount, weekendPredicate);
+        newEndDate = new Date(endDateStr + 'T00:00:00.000Z');
+      } else {
+        // Fallback to calendar days if task not found
+        const durationDays = Math.round(finalWidth / dayWidth) - 1;
+        newEndDate = new Date(Date.UTC(
+          monthStart.getUTCFullYear(),
+          monthStart.getUTCMonth(),
+          monthStart.getUTCDate() + dayOffset + durationDays
+        ));
+      }
+    } else {
+      // Calendar days mode: use duration in calendar days
+      const durationDays = Math.round(finalWidth / dayWidth) - 1;
+      newEndDate = new Date(Date.UTC(
+        monthStart.getUTCFullYear(),
+        monthStart.getUTCMonth(),
+        monthStart.getUTCDate() + dayOffset + durationDays
+      ));
+    }
 
     // Reset local state
     setIsDragging(false);

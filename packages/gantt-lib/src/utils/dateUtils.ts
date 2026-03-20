@@ -670,3 +670,40 @@ export function addBusinessDays(
 
   return current.toISOString().split('T')[0];
 }
+
+/**
+ * Subtract business days from a date (inverse of addBusinessDays)
+ * @param endDate - End date (string or Date)
+ * @param businessDays - Number of business days to subtract (minimum 1)
+ * @param weekendPredicate - Function that returns true for weekends
+ * @returns Start date as YYYY-MM-DD string
+ *
+ * Example:
+ * subtractBusinessDays('2026-03-19', 4, (d) => d.getUTCDay() === 0 || d.getUTCDay() === 6)
+ * // Returns '2026-03-14' (going backwards: Fri[Thu][Wed][Tue]Mon, Sat/Sun skipped)
+ */
+export function subtractBusinessDays(
+  endDate: string | Date,
+  businessDays: number,
+  weekendPredicate: (date: Date) => boolean
+): string {
+  const end = parseUTCDate(endDate);
+  const current = new Date(end);
+  let targetDays = Math.max(1, businessDays);
+  let businessDaysCounted = 0;
+
+  // Count business days backwards until we reach the target
+  while (businessDaysCounted < targetDays) {
+    // Check if current day is a business day
+    if (!weekendPredicate(current)) {
+      businessDaysCounted++;
+    }
+
+    // Move to previous day if we haven't reached target yet
+    if (businessDaysCounted < targetDays) {
+      current.setUTCDate(current.getUTCDate() - 1);
+    }
+  }
+
+  return current.toISOString().split('T')[0];
+}

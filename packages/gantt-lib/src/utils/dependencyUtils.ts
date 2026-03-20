@@ -1,5 +1,5 @@
 import { Task, TaskDependency, LinkType, ValidationResult, DependencyError } from '../types';
-import { getBusinessDaysCount, addBusinessDays } from './dateUtils';
+import { getBusinessDaysCount, addBusinessDays, subtractBusinessDays } from './dateUtils';
 
 /**
  * Build adjacency list for dependency graph (task -> successors)
@@ -830,7 +830,6 @@ export function universalCascade(
 
       const origStart  = new Date(task.startDate as string);
       const origEnd    = new Date(task.endDate   as string);
-      const durationMs = origEnd.getTime() - origStart.getTime();
 
       // Effective lag from original dates (source of truth)
       const predOrigStart = new Date(currentOriginal.startDate as string);
@@ -850,10 +849,27 @@ export function universalCascade(
 
       if (dep.type === 'FS' || dep.type === 'SS') {
         succNewStart = constraintDate;
-        succNewEnd   = new Date(constraintDate.getTime() + durationMs);
+        // Business days: preserve business days count, not calendar duration
+        if (businessDays && weekendPredicate) {
+          const businessDaysCount = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
+          const endDateStr = addBusinessDays(constraintDate, businessDaysCount, weekendPredicate);
+          succNewEnd = new Date(endDateStr + 'T00:00:00.000Z');
+        } else {
+          const durationMs = origEnd.getTime() - origStart.getTime();
+          succNewEnd = new Date(constraintDate.getTime() + durationMs);
+        }
       } else {
-        succNewEnd   = constraintDate;
-        succNewStart = new Date(constraintDate.getTime() - durationMs);
+        succNewEnd = constraintDate;
+        // Business days: preserve business days count, not calendar duration
+        if (businessDays && weekendPredicate) {
+          const businessDaysCount = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
+          // For FF/SF: constraintDate is the new end date, calculate start backwards
+          const startDateStr = subtractBusinessDays(constraintDate, businessDaysCount, weekendPredicate);
+          succNewStart = new Date(startDateStr + 'T00:00:00.000Z');
+        } else {
+          const durationMs = origEnd.getTime() - origStart.getTime();
+          succNewStart = new Date(constraintDate.getTime() - durationMs);
+        }
       }
 
       // Change detection: skip if already at this position
