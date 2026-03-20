@@ -50,7 +50,7 @@ export interface Task {
    * Optional array of task dependencies
    * - Each dependency references a predecessor task by ID
    * - Supports 4 link types: FS (finish-to-start), SS (start-to-start), FF (finish-to-finish), SF (start-to-finish)
-   * - Lag is optional and defaults to 0 (positive = delay, negative = overlap)
+   * - Lag is required (positive = delay, negative = overlap)
    */
   dependencies?: TaskDependency[];
   /**
@@ -76,8 +76,8 @@ export interface TaskDependency {
   taskId: string;
   /** Link type: FS, SS, FF, or SF */
   type: 'FS' | 'SS' | 'FF' | 'SF';
-  /** Optional lag in days (default: 0) */
-  lag?: number;
+  /** Lag in days */
+  lag: number;
 }
 
 export interface GanttChartProps {
@@ -131,7 +131,7 @@ export interface GanttChartProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate (checked before customDays overrides) */
   isWeekend?: (date: Date) => boolean;
-  /** Считать duration в рабочих днях, исключая выходные (default: false) */
+  /** Считать duration в рабочих днях, исключая выходные (default: true) */
   businessDays?: boolean;
   /**
    * Optional predicate to mark tasks in the current view.
@@ -205,7 +205,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   viewMode = 'day',
   customDays,
   isWeekend,
-  businessDays,
+  businessDays = true,
   taskFilter,
   collapsedParentIds: externalCollapsedParentIds,
   onToggleCollapse: externalOnToggleCollapse,
@@ -461,14 +461,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       // Cascade only dependency successors (not children) if constraints enabled
       const cascadedTasks = disableConstraints
         ? [parentWithRecalcDates]
-        : universalCascade(parentWithRecalcDates, parentStart, parentEnd, tasks, businessDays ?? false, isCustomWeekend);
+        : universalCascade(parentWithRecalcDates, parentStart, parentEnd, tasks, businessDays, isCustomWeekend);
 
       onTasksChange?.(cascadedTasks);
     } else {
       // Regular task or child: normal cascade
       const cascadedTasks = disableConstraints
         ? [updatedTask]
-        : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays ?? false, isCustomWeekend);
+        : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays, isCustomWeekend);
 
       onTasksChange?.(cascadedTasks);
     }

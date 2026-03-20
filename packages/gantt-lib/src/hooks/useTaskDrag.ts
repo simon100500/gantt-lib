@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { calculateSuccessorDate, getTransitiveCascadeChain, recalculateIncomingLags, getChildren, isTaskParent, universalCascade } from '../utils/dependencyUtils';
+import { calculateSuccessorDate, getDependencyLag, getTransitiveCascadeChain, moveTaskRange, recalculateIncomingLags, getChildren, isTaskParent, universalCascade } from '../utils/dependencyUtils';
 import { getBusinessDaysCount, addBusinessDays } from '../utils/dateUtils';
 
 /**
@@ -214,8 +214,17 @@ function handleGlobalMouseMove(e: MouseEvent) {
           if (!predecessor) continue;
           // Boundary: child.startDate >= predecessor.startDate (allows negative lag)
           const predStart = new Date(predecessor.startDate as string);
+          const predEnd = new Date(predecessor.endDate as string);
+          const boundaryDate = calculateSuccessorDate(
+            predStart,
+            predEnd,
+            dep.type,
+            getDependencyLag(dep),
+            activeDrag.businessDays,
+            activeDrag.weekendPredicate
+          );
           const predStartOffset = Math.round(
-            (Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate()) -
+            (Date.UTC(boundaryDate.getUTCFullYear(), boundaryDate.getUTCMonth(), boundaryDate.getUTCDate()) -
               Date.UTC(
                 activeDrag.monthStart.getUTCFullYear(),
                 activeDrag.monthStart.getUTCMonth(),
@@ -244,9 +253,16 @@ function handleGlobalMouseMove(e: MouseEvent) {
           if (dep.type !== 'SF') continue;
           const predecessor = activeDrag.allTasks.find(t => t.id === dep.taskId);
           if (!predecessor) continue;
-          const predStart = new Date(predecessor.startDate as string);
+          const boundaryDate = calculateSuccessorDate(
+            new Date(predecessor.startDate as string),
+            new Date(predecessor.endDate as string),
+            dep.type,
+            getDependencyLag(dep),
+            activeDrag.businessDays,
+            activeDrag.weekendPredicate
+          );
           const predStartOffset = Math.round(
-            (Date.UTC(predStart.getUTCFullYear(), predStart.getUTCMonth(), predStart.getUTCDate()) -
+            (Date.UTC(boundaryDate.getUTCFullYear(), boundaryDate.getUTCMonth(), boundaryDate.getUTCDate()) -
               Date.UTC(activeDrag.monthStart.getUTCFullYear(), activeDrag.monthStart.getUTCMonth(), activeDrag.monthStart.getUTCDate()))
             / (24 * 60 * 60 * 1000)
           );
@@ -282,13 +298,28 @@ function handleGlobalMouseMove(e: MouseEvent) {
     if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress) {
       const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;
       const previewStartDay = Math.round(newLeft / dayWidth);
-      const previewStartDate = new Date(Date.UTC(
+      const rawPreviewStartDate = new Date(Date.UTC(
         mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate() + previewStartDay
       ));
+      const originalDraggedTask = draggedTask ?? allTasks.find(t => t.id === dragId);
 
       // Calculate previewEndDate based on business days mode
       let previewEndDate: Date;
-      if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
+      let previewStartDate = rawPreviewStartDate;
+      if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask && mode === 'move') {
+        const originalStart = new Date(draggedTask.startDate as string);
+        const snapDirection = rawPreviewStartDate.getTime() >= originalStart.getTime() ? 1 : -1;
+        const movedRange = moveTaskRange(
+          draggedTask.startDate,
+          draggedTask.endDate,
+          rawPreviewStartDate,
+          true,
+          activeDrag.weekendPredicate,
+          snapDirection
+        );
+        previewStartDate = movedRange.start;
+        previewEndDate = movedRange.end;
+      } else if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
         // Business days mode: preserve business days count
         const businessDaysCount = getBusinessDaysCount(
           draggedTask.startDate,
@@ -313,7 +344,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
         ));
       }
 
-      const movedTaskData = draggedTask ?? { id: dragId, name: '', startDate: '', endDate: '' };
+      const movedTaskData = originalDraggedTask ?? { id: dragId, name: '', startDate: '', endDate: '' };
       const cascadeResult = universalCascade(
         { ...movedTaskData, startDate: previewStartDate.toISOString(), endDate: previewEndDate.toISOString() },
         previewStartDate,
@@ -481,7 +512,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     disableConstraints = false,
     onCascadeProgress,
     onCascade,
-    businessDays = false,
+    businessDays = true,
     weekendPredicate,
   } = options;
 
@@ -581,7 +612,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     // Calculate new dates from final pixel values
     const dayOffset = Math.round(finalLeft / dayWidth);
 
-    const newStartDate = new Date(Date.UTC(
+    const rawNewStartDate = new Date(Date.UTC(
       monthStart.getUTCFullYear(),
       monthStart.getUTCMonth(),
       monthStart.getUTCDate() + dayOffset
@@ -589,10 +620,24 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
     // Calculate endDate based on business days mode
     let newEndDate: Date;
+    let newStartDate = rawNewStartDate;
     if (businessDays && weekendPredicate) {
       // Business days mode: preserve business days count
       const currentTask = allTasks.find(t => t.id === taskId);
-      if (currentTask) {
+      if (currentTask && dragMode === 'move') {
+        const originalStart = new Date(currentTask.startDate as string);
+        const snapDirection = rawNewStartDate.getTime() >= originalStart.getTime() ? 1 : -1;
+        const movedRange = moveTaskRange(
+          currentTask.startDate,
+          currentTask.endDate,
+          rawNewStartDate,
+          true,
+          weekendPredicate,
+          snapDirection
+        );
+        newStartDate = movedRange.start;
+        newEndDate = movedRange.end;
+      } else if (currentTask) {
         // Calculate business days count from original task
         const businessDaysCount = getBusinessDaysCount(
           currentTask.startDate,

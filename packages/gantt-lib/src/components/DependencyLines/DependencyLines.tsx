@@ -2,30 +2,9 @@
 
 import React, { useMemo } from 'react';
 import { Task } from '../../types';
-import { calculateTaskBar, calculateDependencyPath, pixelsToDate } from '../../utils/geometry';
-import { getAllDependencyEdges, detectCycles, computeLagFromDates } from '../../utils/dependencyUtils';
-import type { LinkType } from '../../types';
+import { calculateTaskBar, calculateDependencyPath } from '../../utils/geometry';
+import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils';
 import './DependencyLines.css';
-
-/**
- * Calculate effective lag based on current task pixel positions.
- * Delegates to computeLagFromDates for consistent semantics.
- */
-function calculateEffectiveLag(
-  edge: { type: string },
-  predPosition: { left: number; right: number },
-  succPosition: { left: number; right: number },
-  monthStart: Date,
-  dayWidth: number,
-  businessDays: boolean = false,
-  weekendPredicate?: (date: Date) => boolean
-): number {
-  const predStart = pixelsToDate(predPosition.left, monthStart, dayWidth);
-  const predEnd   = pixelsToDate(predPosition.right - dayWidth, monthStart, dayWidth);
-  const succStart = pixelsToDate(succPosition.left, monthStart, dayWidth);
-  const succEnd   = pixelsToDate(succPosition.right - dayWidth, monthStart, dayWidth);
-  return computeLagFromDates(edge.type as LinkType, predStart, predEnd, succStart, succEnd, businessDays, weekendPredicate);
-}
 
 /**
  * Check if a task is hidden inside a collapsed parent.
@@ -134,7 +113,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   gridWidth,
   dragOverrides,
   selectedDep,
-  businessDays = false,
+  businessDays = true,
   weekendPredicate,
 }) => {
   // Use allTasks for virtual position calculation if provided, otherwise use tasks
@@ -303,14 +282,11 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       // Check if this edge is part of a cycle
       const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
 
-      // Calculate effective lag from actual positions (always, not just during drag)
-      const lag = calculateEffectiveLag(edge, predecessor, successor, monthStart, dayWidth, businessDays, weekendPredicate);
-
       lines.push({
         id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
         path,
         hasCycle,
-        lag,
+        lag: edge.lag,
         fromX,
         toX,
         fromY,
@@ -320,7 +296,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     }
 
     return lines;
-  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, monthStart, dayWidth, dragOverrides, businessDays, weekendPredicate]);
+  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, collapsedParentIds]);
 
   // Calculate SVG height based on visible tasks (not all tasks)
   const svgHeight = tasks.length * rowHeight;

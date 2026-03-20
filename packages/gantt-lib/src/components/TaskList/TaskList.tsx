@@ -4,7 +4,8 @@ import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
 import type { CustomDayConfig } from '../../utils/dateUtils';
-import { validateDependencies, calculateSuccessorDate, isTaskParent } from '../../utils/dependencyUtils';
+import { createCustomDayPredicate } from '../../utils/dateUtils';
+import { validateDependencies, calculateSuccessorDate, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration, isTaskParent } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import { getVisibleReorderPosition } from '../../utils/taskListReorder';
 import { getChildren } from '../../utils/dependencyUtils';
@@ -206,6 +207,11 @@ export const TaskList: React.FC<TaskListProps> = ({
     return normalizeHierarchyTasks(tasks);
   }, [tasks]);
 
+  const weekendPredicate = useMemo(
+    () => createCustomDayPredicate({ customDays, isWeekend }),
+    [customDays, isWeekend]
+  );
+
   // Filter tasks to hide children of collapsed parents.
   // Checks the full ancestor chain so grandchildren are hidden when any ancestor is collapsed.
   const visibleTasks = useMemo(() => {
@@ -385,22 +391,40 @@ export const TaskList: React.FC<TaskListProps> = ({
     if (predecessor) {
       const predStart = new Date(predecessor.startDate as string);
       const predEnd = new Date(predecessor.endDate as string);
-      const constraintDate = calculateSuccessorDate(predStart, predEnd, linkType, 0);
+      const constraintDate = calculateSuccessorDate(
+        predStart,
+        predEnd,
+        linkType,
+        0,
+        businessDays ?? true,
+        weekendPredicate
+      );
 
       const origSuccessor = tasks.find(t => t.id === successorTaskId)!;
-      const durationMs =
-        new Date(origSuccessor.endDate as string).getTime() -
-        new Date(origSuccessor.startDate as string).getTime();
+      const duration = getTaskDuration(
+        origSuccessor.startDate,
+        origSuccessor.endDate,
+        businessDays ?? true,
+        weekendPredicate
+      );
 
       let newStart: Date;
       let newEnd: Date;
 
       if (linkType === 'FS' || linkType === 'SS') {
-        newStart = constraintDate;
-        newEnd = new Date(constraintDate.getTime() + durationMs);
+        ({ start: newStart, end: newEnd } = buildTaskRangeFromStart(
+          constraintDate,
+          duration,
+          businessDays ?? true,
+          weekendPredicate
+        ));
       } else {
-        newEnd = constraintDate;
-        newStart = new Date(constraintDate.getTime() - durationMs);
+        ({ start: newStart, end: newEnd } = buildTaskRangeFromEnd(
+          constraintDate,
+          duration,
+          businessDays ?? true,
+          weekendPredicate
+        ));
       }
 
       const snappedTask: Task = {

@@ -12,7 +12,10 @@ import type { LinkType } from "../../types";
 import type { CustomDayConfig } from "../../utils/dateUtils";
 import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate, getBusinessDaysCount, addBusinessDays, subtractBusinessDays } from "../../utils/dateUtils";
 import {
-  computeLagFromDates,
+  alignToWorkingDay,
+  buildTaskRangeFromEnd,
+  buildTaskRangeFromStart,
+  getDependencyLag,
   calculateSuccessorDate,
   isTaskParent,
   findParentId,
@@ -276,7 +279,7 @@ const DepChip: React.FC<DepChipProps> = ({
   task,
   allTasks,
   onTasksChange,
-  businessDays = false,
+  businessDays = true,
   weekendPredicate,
 }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -373,6 +376,11 @@ const DepChip: React.FC<DepChipProps> = ({
           ...task,
           startDate: newStart.toISOString().split("T")[0],
           endDate: newEnd.toISOString().split("T")[0],
+          dependencies: (task.dependencies ?? []).map((existingDep) =>
+            existingDep.taskId === dep.taskId && existingDep.type === dep.type
+              ? { ...existingDep, lag: newLag }
+              : existingDep
+          ),
         },
       ]);
     },
@@ -751,27 +759,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const isPicking = selectingPredecessorFor != null;
     const isSourceRow = isPicking && selectingPredecessorFor === task.id;
 
-    // Chip data: compute effective lag from actual dates (always correct, even on initial load)
+    // Chip data: always reflect the persisted business lag, not the visual calendar gap.
     const chips = useMemo(() => {
-      const succStart = new Date(task.startDate as string);
-      const succEnd = new Date(task.endDate as string);
       const taskById = new Map((allTasks ?? []).map((t) => [t.id, t]));
       return (task.dependencies ?? []).map((dep) => {
         const pred = taskById.get(dep.taskId);
-        const lag = pred
-          ? computeLagFromDates(
-              dep.type,
-              new Date(pred.startDate as string),
-              new Date(pred.endDate as string),
-              succStart,
-              succEnd,
-              businessDays,
-              weekendPredicate,
-            )
-          : (dep.lag ?? 0);
+        const lag = getDependencyLag(dep);
         return { dep, lag, predecessorName: pred?.name ?? dep.taskId };
       });
-    }, [task.dependencies, task.startDate, task.endDate, allTasks, businessDays, weekendPredicate]);
+    }, [task.dependencies, allTasks]);
 
     const linkWord = chips.length <= 4 ? "связи" : "связей";
 
@@ -1072,20 +1068,28 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       (newDateISO: string) => {
         if (!newDateISO) return;
         let nextEndISO: string;
+        const normalizedInputStart = businessDays
+          ? alignToWorkingDay(new Date(`${newDateISO}T00:00:00.000Z`), 1, weekendPredicate)
+          : new Date(`${newDateISO}T00:00:00.000Z`);
 
         if (businessDays) {
           const duration = getDuration(task.startDate, task.endDate);
-          nextEndISO = getEndDate(newDateISO, duration);
+          nextEndISO = buildTaskRangeFromStart(
+            normalizedInputStart,
+            duration,
+            true,
+            weekendPredicate,
+            1
+          ).end.toISOString().split("T")[0];
         } else {
           const origStart = parseUTCDate(task.startDate);
           const origEnd = parseUTCDate(task.endDate);
           const durationMs = origEnd.getTime() - origStart.getTime();
-          const newStart = new Date(newDateISO + "T00:00:00Z");
-          nextEndISO = new Date(newStart.getTime() + durationMs).toISOString().split("T")[0];
+          nextEndISO = new Date(normalizedInputStart.getTime() + durationMs).toISOString().split("T")[0];
         }
 
         const { startDate: normalizedStart, endDate: normalizedEnd } =
-          normalizeTaskDates(newDateISO, nextEndISO);
+          normalizeTaskDates(normalizedInputStart, nextEndISO);
         onTasksChange?.([
           { ...task, startDate: normalizedStart, endDate: normalizedEnd },
         ]);
@@ -1097,20 +1101,28 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       (newDateISO: string) => {
         if (!newDateISO) return;
         let nextStartISO: string;
+        const normalizedInputEnd = businessDays
+          ? alignToWorkingDay(new Date(`${newDateISO}T00:00:00.000Z`), -1, weekendPredicate)
+          : new Date(`${newDateISO}T00:00:00.000Z`);
 
         if (businessDays) {
           const duration = getDuration(task.startDate, task.endDate);
-          nextStartISO = subtractBusinessDays(newDateISO, duration, weekendPredicate);
+          nextStartISO = buildTaskRangeFromEnd(
+            normalizedInputEnd,
+            duration,
+            true,
+            weekendPredicate,
+            -1
+          ).start.toISOString().split("T")[0];
         } else {
           const origStart = parseUTCDate(task.startDate);
           const origEnd = parseUTCDate(task.endDate);
           const durationMs = origEnd.getTime() - origStart.getTime();
-          const newEnd = new Date(newDateISO + "T00:00:00Z");
-          nextStartISO = new Date(newEnd.getTime() - durationMs).toISOString().split("T")[0];
+          nextStartISO = new Date(normalizedInputEnd.getTime() - durationMs).toISOString().split("T")[0];
         }
 
         const { startDate: normalizedStart, endDate: normalizedEnd } =
-          normalizeTaskDates(nextStartISO, newDateISO);
+          normalizeTaskDates(nextStartISO, normalizedInputEnd);
         onTasksChange?.([
           { ...task, startDate: normalizedStart, endDate: normalizedEnd },
         ]);

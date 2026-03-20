@@ -22,7 +22,7 @@ export interface DatePickerProps {
   disabled?: boolean;
   /** Optional predicate for custom weekend logic */
   isWeekend?: (date: Date) => boolean;
-  /** Whether to use business days for +1/+7 buttons (default: false) */
+  /** Whether to use business days for +1/+7 buttons (default: true) */
   businessDays?: boolean;
 }
 
@@ -76,7 +76,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   className,
   disabled = false,
   isWeekend,
-  businessDays = false,
+  businessDays = true,
 }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
