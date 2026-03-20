@@ -443,7 +443,12 @@ const DepChip: React.FC<DepChipProps> = ({
   let afterWhat: string;
   let preWord: string | null = null;
   if (dep.type === "SF") {
-    afterWhat = "до начала";
+    afterWhat =
+      effectiveLag < 0
+        ? "до начала"
+        : effectiveLag === 0
+          ? "с началом"
+          : "после начала";
     if (effectiveLag > 0) preWord = "через";
     else if (effectiveLag < 0) preWord = "за";
   } else if (dep.type === "SS") {
@@ -1710,11 +1715,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 ? { visibility: "hidden", pointerEvents: "none" }
                 : task.progress === 100
                   ? {
-                      backgroundColor: "#17c864",
-                      borderRadius: "4px",
-                      padding: "2px 4px",
-                      color: "#ffffff",
-                    }
+                    backgroundColor: "#17c864",
+                    borderRadius: "4px",
+                    padding: "2px 4px",
+                    color: "#ffffff",
+                  }
                   : undefined
             }
           >
