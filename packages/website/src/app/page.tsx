@@ -778,6 +778,7 @@ export default function Home() {
 
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
   const [highlightExpired, setHighlightExpired] = useState(true);
+  const [businessDays, setBusinessDays] = useState(false);
   const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
   const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
 
@@ -1103,6 +1104,12 @@ export default function Home() {
             >
               {highlightExpired ? "Disable Expired Highlight" : "Enable Expired Highlight"}
             </button>
+            <button
+              className={`demo-btn ${businessDays ? "demo-btn-active" : "demo-btn-muted"}`}
+              onClick={() => setBusinessDays(!businessDays)}
+            >
+              {businessDays ? "Рабочие дни: ON" : "Рабочие дни: OFF"}
+            </button>
           </div>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Фильтры:</span>
@@ -1299,6 +1306,7 @@ export default function Home() {
               disableTaskNameEditing={disableTaskNameEditing}
               highlightExpiredTasks={highlightExpired}
               viewMode={viewMode}
+              businessDays={businessDays}
               customDays={[
                 { date: new Date(Date.UTC(2026, 2, 9)), type: 'weekend' },  // March 09, 2026
                 { date: new Date(Date.UTC(2026, 4, 1)), type: 'weekend' },  // May 1, 2026

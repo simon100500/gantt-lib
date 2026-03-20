@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { parseUTCDate, formatDateRangeLabel } from '../../utils/dateUtils';
+import { parseUTCDate, formatDateRangeLabel, getBusinessDaysCount, createCustomDayPredicate } from '../../utils/dateUtils';
 import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { isTaskExpired } from '../../utils/expired';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
@@ -47,6 +47,12 @@ export interface TaskRowProps {
   highlightExpiredTasks?: boolean;
   /** Whether this row matches the active filter highlight */
   isFilterMatch?: boolean;
+  /** Calculate duration in business days (excluding weekends) */
+  businessDays?: boolean;
+  /** Custom weekend configuration */
+  customDays?: Array<{ date: Date; type: 'weekend' | 'workday' }>;
+  /** Custom weekend predicate (overrides default Saturday/Sunday) */
+  isWeekend?: (date: Date) => boolean;
 }
 
 /**
@@ -88,7 +94,10 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.locked === nextProps.task.locked &&
     prevProps.task.divider === nextProps.task.divider &&
     prevProps.highlightExpiredTasks === nextProps.highlightExpiredTasks &&
-    prevProps.isFilterMatch === nextProps.isFilterMatch
+    prevProps.isFilterMatch === nextProps.isFilterMatch &&
+    prevProps.businessDays === nextProps.businessDays &&
+    prevProps.customDays === nextProps.customDays &&
+    prevProps.isWeekend === nextProps.isWeekend
     // onTasksChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
@@ -100,7 +109,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isFilterMatch = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isFilterMatch = false, businessDays, customDays, isWeekend }) => {
     // Extract divider from task prop
     const { divider: taskDivider } = task;
 
@@ -226,10 +235,18 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
     const dateRangeLabel = formatDateRangeLabel(currentStartDate, currentEndDate);
 
-    // Calculate duration in days
-    const durationDays = Math.round(
-      (currentEndDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24)
-    ) + 1;
+    // Weekend predicate for business days calculation
+    const weekendPredicate = useMemo(
+      () => createCustomDayPredicate({ customDays, isWeekend }),
+      [customDays, isWeekend]
+    );
+
+    // Calculate duration in days (calendar or business)
+    const durationDays = businessDays
+      ? getBusinessDaysCount(currentStartDate, currentEndDate, weekendPredicate)
+      : Math.round(
+          (currentEndDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24)
+        ) + 1;
 
     // Format child count label for parent tasks (Russian plural)
     const getChildCountLabel = (count: number): string => {

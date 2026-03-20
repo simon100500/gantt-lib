@@ -925,6 +925,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
               onCascade={handleCascade}
               highlightExpiredTasks={highlightExpiredTasks}
               isFilterMatch={matchedTaskIds.has(task.id)}
+              businessDays={businessDays}
+              customDays={customDays}
+              isWeekend={isWeekend}
             />
           ))}
           </div>

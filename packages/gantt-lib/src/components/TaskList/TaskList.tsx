@@ -782,7 +782,7 @@ export const TaskList: React.FC<TaskListProps> = ({
           <div className="gantt-tl-headerCell gantt-tl-cell-name">Имя</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Начало</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Окончание</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-duration">Дн.</div>
+          <div className="gantt-tl-headerCell gantt-tl-cell-duration">{businessDays ? 'Дн. (р)' : 'Дн.'}</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-progress">%</div>
           {/* Dependencies column header with type switcher */}
           <div className="gantt-tl-headerCell gantt-tl-cell-deps" style={{ position: 'relative' }}>
