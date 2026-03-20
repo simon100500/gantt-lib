@@ -310,7 +310,7 @@ const DepChip: React.FC<DepChipProps> = ({
         predecessorId: dep.taskId,
         linkType: dep.type,
       });
-      onScrollToTask?.(dep.taskId);
+      onScrollToTask?.(taskId);
     } else {
       // Only clear selection when explicitly closing via chip click
       onChipSelect?.(null);
