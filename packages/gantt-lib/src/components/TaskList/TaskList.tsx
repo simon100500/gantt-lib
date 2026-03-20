@@ -18,6 +18,7 @@ import './TaskList.css';
 export { LINK_TYPE_ICONS };
 
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
+type DependencyPickMode = 'predecessor' | 'successor';
 const MIN_TASK_LIST_WIDTH = 640;
 
 /**
@@ -308,6 +309,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   // Dependency state
   const [activeLinkType, setActiveLinkType] = useState<LinkType>('FS');
   const [selectingPredecessorFor, setSelectingPredecessorFor] = useState<string | null>(null);
+  const [dependencyPickMode, setDependencyPickMode] = useState<DependencyPickMode>('successor');
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const [cycleError, setCycleError] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -867,6 +869,8 @@ export const TaskList: React.FC<TaskListProps> = ({
               activeLinkType={activeLinkType}
               onSetActiveLinkType={setActiveLinkType}
               selectingPredecessorFor={selectingPredecessorFor}
+              dependencyPickMode={dependencyPickMode}
+              onSetDependencyPickMode={setDependencyPickMode}
               onSetSelectingPredecessorFor={setSelectingPredecessorFor}
               onAddDependency={handleAddDependency}
               onRemoveDependency={handleRemoveDependency}

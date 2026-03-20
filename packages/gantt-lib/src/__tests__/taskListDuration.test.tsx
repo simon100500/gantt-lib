@@ -362,7 +362,7 @@ describe('TaskListRow duration editing', () => {
       />
     );
 
-    const input = screen.getByPlaceholderText('Выберите задачу');
+    const input = screen.getByPlaceholderText('Укажите предшественника');
     fireEvent.change(input, { target: { value: '1.1.1' } });
     fireEvent.click(screen.getByRole('button', { name: '1.1.1. Подготовка основания' }));
 

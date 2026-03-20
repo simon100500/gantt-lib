@@ -614,6 +614,10 @@ export interface TaskListRowProps {
   activeLinkType?: LinkType;
   /** Callback to change active link type for new dependencies */
   onSetActiveLinkType?: (linkType: LinkType) => void;
+  /** Current dependency picking direction */
+  dependencyPickMode?: "predecessor" | "successor";
+  /** Callback to change dependency picking direction */
+  onSetDependencyPickMode?: (mode: "predecessor" | "successor") => void;
   /** Task ID currently in predecessor-picking mode (null if not picking) */
   selectingPredecessorFor?: string | null;
   /** Callback to set the task currently in predecessor-picking mode */
@@ -713,6 +717,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     allTasks = [],
     activeLinkType,
     onSetActiveLinkType,
+    dependencyPickMode = "successor",
+    onSetDependencyPickMode,
     selectingPredecessorFor,
     onSetSelectingPredecessorFor,
     onAddDependency,
@@ -828,9 +834,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         .filter((candidate) => candidate.id !== task.id)
         .filter((candidate) => {
           if (!activeLinkType) return true;
-          return !(task.dependencies ?? []).some(
-            (dep) => dep.taskId === candidate.id && dep.type === activeLinkType
-          );
+          if (dependencyPickMode === "predecessor") {
+            return !(task.dependencies ?? []).some(
+              (dep) => dep.taskId === candidate.id && dep.type === activeLinkType
+            );
+          }
+
+          return !((candidate.dependencies ?? []).some(
+            (dep) => dep.taskId === task.id && dep.type === activeLinkType
+          ));
         })
         .map((candidate) => {
           const number = taskNumberMap[candidate.id];
@@ -850,6 +862,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       allTasks,
       task.id,
       activeLinkType,
+      dependencyPickMode,
       task.dependencies,
       taskNumberMap,
     ]);
@@ -876,7 +889,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     useEffect(() => {
       setHighlightedDependencyIndex(0);
-    }, [dependencySearchQuery, isSourceRow]);
+    }, [dependencySearchQuery, isSourceRow, dependencyPickMode]);
 
     useEffect(() => {
       if (dependencySearchCandidates.length === 0) {
@@ -894,7 +907,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         dependencySearchInputRef.current.focus();
         dependencySearchInputRef.current.select();
       }
-    }, [isSourceRow]);
+    }, [isSourceRow, dependencyPickMode, activeLinkType]);
 
     // Reset delete confirmation when clicking elsewhere
     useEffect(() => {
@@ -1344,7 +1357,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         e.stopPropagation();
         if (!isPicking || isSourceRow) return;
         if (!selectingPredecessorFor || !activeLinkType) return;
-        onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
+        if (dependencyPickMode === "predecessor") {
+          onAddDependency?.(selectingPredecessorFor, task.id, activeLinkType);
+        } else {
+          onAddDependency?.(task.id, selectingPredecessorFor, activeLinkType);
+        }
       },
       [
         isPicking,
@@ -1352,6 +1369,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         selectingPredecessorFor,
         task.id,
         activeLinkType,
+        dependencyPickMode,
         onAddDependency,
       ],
     );
@@ -1374,11 +1392,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     );
 
     const handleSearchPick = useCallback(
-      (predecessorTaskId: string) => {
+      (pickedTaskId: string) => {
         if (!activeLinkType) return;
-        onAddDependency?.(task.id, predecessorTaskId, activeLinkType);
+        if (dependencyPickMode === "predecessor") {
+          onAddDependency?.(task.id, pickedTaskId, activeLinkType);
+        } else {
+          onAddDependency?.(pickedTaskId, task.id, activeLinkType);
+        }
       },
-      [activeLinkType, onAddDependency, task.id],
+      [activeLinkType, dependencyPickMode, onAddDependency, task.id],
     );
 
     const sourcePickerContent = (
@@ -1386,6 +1408,22 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         className="gantt-tl-dep-source-picker"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="gantt-tl-dep-source-direction">
+          <button
+            type="button"
+            className={`gantt-tl-dep-source-direction-btn${dependencyPickMode === "successor" ? " gantt-tl-dep-source-direction-btn-active" : ""}`}
+            onClick={() => onSetDependencyPickMode?.("successor")}
+          >
+            Последователь
+          </button>
+          <button
+            type="button"
+            className={`gantt-tl-dep-source-direction-btn${dependencyPickMode === "predecessor" ? " gantt-tl-dep-source-direction-btn-active" : ""}`}
+            onClick={() => onSetDependencyPickMode?.("predecessor")}
+          >
+            Предшественник
+          </button>
+        </div>
         <div className="gantt-tl-dep-source-types">
           {LINK_TYPE_ORDER.map((linkType) => {
             const Icon = LINK_TYPE_ICONS[linkType];
@@ -1409,7 +1447,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             ref={dependencySearchInputRef}
             type="text"
             className="gantt-tl-dep-source-input"
-            placeholder="Выберите задачу"
+            placeholder={dependencyPickMode === "predecessor" ? "Укажите предшественника" : "Укажите последователя"}
             value={dependencySearchQuery}
             onChange={(e) => setDependencySearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -1439,14 +1477,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               }
             }}
           />
-          <button
-            type="button"
-            className="gantt-tl-dep-source-cancel"
-            onClick={handleCancelPicking}
-            aria-label="Отменить выбор связи"
-          >
-            ×
-          </button>
         </div>
         <div className="gantt-tl-dep-source-list">
           {dependencySearchCandidates.length > 0 ? (
@@ -2062,3 +2092,4 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
 TaskListRow.displayName = "TaskListRow";
 export default TaskListRow;
+

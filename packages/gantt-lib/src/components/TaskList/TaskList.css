@@ -968,19 +968,48 @@
 
 .gantt-tl-dep-source-picker {
   position: absolute;
-  top: -2px;
+  top: -80px;
   left: calc(100% + 8px);
   z-index: 20;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   width: 280px;
   max-width: 280px;
-  padding: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.18);
+  padding: 12px 10px 10px;
+  border: none;
   border-radius: 10px;
   background: #ffffff;
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
+}
+
+.gantt-tl-dep-source-direction {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.gantt-tl-dep-source-direction-btn {
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #111827;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.gantt-tl-dep-source-direction-btn:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+}
+
+.gantt-tl-dep-source-direction-btn-active,
+.gantt-tl-dep-source-direction-btn-active:hover {
+  background: rgba(59, 130, 246, 0.16);
+  color: #1d4ed8;
+  font-weight: 600;
 }
 
 .gantt-tl-dep-source-types {
@@ -998,7 +1027,7 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #2563eb;
+  color: #111827;
   padding: 6px 4px;
   cursor: pointer;
   font-size: 0.7rem;
@@ -1011,14 +1040,14 @@
 }
 
 .gantt-tl-dep-source-type-btn-active {
-  background: #2563eb;
-  color: #ffffff;
+  background: rgba(59, 130, 246, 0.16);
+  color: #1d4ed8;
   font-weight: 600;
 }
 
 .gantt-tl-dep-source-type-btn-active:hover {
-  background: #2563eb;
-  color: #ffffff;
+  background: rgba(59, 130, 246, 0.16);
+  color: #1d4ed8;
 }
 
 .gantt-tl-dep-source-type-btn span {
@@ -1031,18 +1060,17 @@
 .gantt-tl-dep-source-picker-head {
   display: flex;
   align-items: center;
-  gap: 4px;
 }
 
 .gantt-tl-dep-source-input {
   width: 100%;
   min-width: 0;
-  height: 24px;
-  padding: 0 8px;
+  height: 34px;
+  padding: 0 10px;
   border: 1px solid rgba(59, 130, 246, 0.25);
   border-radius: 6px;
   background: #ffffff;
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   font-family: inherit;
   color: #111827;
 }
@@ -1051,25 +1079,6 @@
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-}
-
-.gantt-tl-dep-source-cancel {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(107, 114, 128, 0.12);
-  color: #6b7280;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.gantt-tl-dep-source-cancel:hover {
-  background: rgba(220, 38, 38, 0.12);
-  color: #dc2626;
 }
 
 .gantt-tl-dep-source-list {
