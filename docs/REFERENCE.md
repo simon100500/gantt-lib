@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.23.0
+**Version:** 0.24.0
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
@@ -10,12 +10,13 @@
 | Property | Value |
 |---|---|
 | Package name | `gantt-lib` |
-| Version | `0.23.0` |
+| Version | `0.24.0` |
 | NPM install | `npm install gantt-lib` |
 | Peer dependencies | `react >= 18`, `react-dom >= 18` |
 | CSS import (REQUIRED) | `import 'gantt-lib/styles.css'` |
 | Main import | `import { GanttChart, type Task, type TaskDependency, type TaskPredicate } from 'gantt-lib'` |
 | Filters import | `import { and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains } from 'gantt-lib/filters'` |
+| Date utils import | `import { getBusinessDaysCount, addBusinessDays } from 'gantt-lib'` |
 
 The CSS import MUST appear as a separate import line. Without it, task bars, grid lines, and layout will not render correctly.
 
@@ -629,6 +630,7 @@ interface GanttChartProps {
   taskFilter?: TaskPredicate;
   customDays?: CustomDayConfig[];
   isWeekend?: (date: Date) => boolean;
+  businessDays?: boolean;
 }
 ```
 
@@ -662,6 +664,7 @@ interface GanttChartProps {
 | `taskFilter` | `TaskPredicate` | `undefined` | Predicate function to filter tasks. Receives a `Task | undefined`, returns `true` to show the task, `false` to hide it. **Import:** `import { type TaskPredicate } from 'gantt-lib'`. See Section 7.3 for usage and ready-made filters. |
 | `customDays` | `CustomDayConfig[]` | `undefined` | Array of custom day configurations with explicit types. Each entry: `{ date: Date, type: 'weekend' | 'workday' }`. **IMPORTANT:** Use UTC dates: `{ date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' }` for March 8, 2026. See Section 7.2 for details. |
 | `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Checked BEFORE customDays overrides** — use for base patterns, then override specific dates with `customDays`. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
+| `businessDays` | `boolean` | `true` | Когда `true` (default), длительность задачи (duration) считается в рабочих днях, исключая выходные. Когда `false`, длительность считается в календарных днях. Влияет на расчёт зависимостей, перетаскивание задач и отображение длительности. См. раздел 7.5. |
 
 **Important — calendar range:** The visible date range is calculated automatically from the earliest `startDate` to the latest `endDate` across all tasks. The chart always shows complete calendar months. For example, if tasks span March 25 to May 5, the chart renders March 1 through May 31. There is no `month` prop.
 
@@ -1842,6 +1845,132 @@ export default function URLSyncExample() {
 | Persistence | Manual implementation needed | Easy — just persist your state |
 | URL sync | Requires ref hacks | Direct — sync your state to URL |
 | External controls | Via ref only | Direct state access |
+
+---
+
+### 7.5. Business Days Mode (Режим рабочих дней)
+
+Режим рабочих дней (`businessDays`) управляет тем, как считается длительность задач — в календарных или рабочих днях.
+
+#### 7.5.1. Prop: `businessDays`
+
+```typescript
+businessDays?: boolean;  // default: true
+```
+
+| Значение | Поведение |
+|----------|-----------|
+| `true` (default) | Длительность считается в **рабочих днях** (исключая выходные). Задача на 5 дней, начинающаяся в пятницу, закончится в следующую пятницу. |
+| `false` | Длительность считается в **календарных днях**. Задача на 5 дней всегда заканчивается через 5 календарных дней. |
+
+#### 7.5.2. Влияние на расчёты
+
+Когда `businessDays={true}`:
+
+1. **Duration calculations** — При изменении даты начала или конца, длительность пересчитывается в рабочих днях
+2. **Dependency lag** — Задержка зависимостей считается в рабочих днях
+3. **Task dragging** — При перетаскивании задачи она "прилипает" к будням
+4. **Cascade operations** — Каскадное обновление дат учитывает выходные
+
+#### 7.5.3. Утилиты для работы с рабочими днями
+
+```typescript
+import { getBusinessDaysCount, addBusinessDays } from 'gantt-lib';
+```
+
+**`getBusinessDaysCount(startDate, endDate, isWeekend?)`**
+
+Подсчитывает количество рабочих дней между двумя датами.
+
+```typescript
+const count = getBusinessDaysCount(
+  new Date(Date.UTC(2026, 2, 1)),  // 1 марта 2026 (пн)
+  new Date(Date.UTC(2026, 2, 7)),  // 7 марта 2026 (вс)
+  (date) => date.getUTCDay() === 0 || date.getUTCDay() === 6  // выходные: сб, вс
+);
+// count = 5 (пн, вт, ср, чт, пт)
+```
+
+**`addBusinessDays(date, days, isWeekend?)`**
+
+Добавляет указанное количество рабочих дней к дате.
+
+```typescript
+const result = addBusinessDays(
+  new Date(Date.UTC(2026, 2, 6)),  // 6 марта 2026 (пт)
+  3,  // добавить 3 рабочих дня
+  (date) => date.getUTCDay() === 0 || date.getUTCDay() === 6
+);
+// result = 11 марта 2026 (ср) — пт + 3 рабочих дня = пт, пн, вт, ср
+```
+
+#### 7.5.4. Пример использования
+
+```tsx
+import { GanttChart } from 'gantt-lib';
+import 'gantt-lib/styles.css';
+
+function ProjectSchedule() {
+  return (
+    <GanttChart
+      tasks={tasks}
+      businessDays={true}  // считать в рабочих днях (default)
+      isWeekend={(date) => {
+        const day = date.getUTCDay();
+        return day === 0 || day === 6;  // сб, вс = выходные
+      }}
+      onTasksChange={handleChange}
+    />
+  );
+}
+```
+
+#### 7.5.5. Сценарии использования
+
+**Сценарий 1: Стандартная 5-дневная рабочая неделя**
+
+```tsx
+<GanttChart
+  businessDays={true}  // default
+  // выходные определяются автоматически (сб, вс)
+/>
+```
+
+**Сценарий 2: 6-дневная рабочая неделя**
+
+```tsx
+<GanttChart
+  businessDays={true}
+  isWeekend={(date) => date.getUTCDay() === 0}  // только вс = выходной
+/>
+```
+
+**Сценарий 3: Календарные дни (без выходных)**
+
+```tsx
+<GanttChart
+  businessDays={false}  // считать в календарных днях
+/>
+```
+
+#### 7.5.6. Взаимодействие с `customDays` и `isWeekend`
+
+Порядок приоритета при определении выходного дня:
+
+1. **`customDays`** — явное указание типа для конкретной даты
+2. **`isWeekend`** — базовый предикат выходных (если не переопределён в `customDays`)
+3. **Default** — сб (6) и вс (0) считаются выходными
+
+Когда `businessDays={true}`:
+- Выходные дни (определённые через `isWeekend` или `customDays` с `type: 'weekend'`) **исключаются** из расчёта длительности
+- Рабочие дни (определённые через `customDays` с `type: 'workday'`) **включаются** в расчёт
+
+#### 7.5.7. Особенности реализации
+
+- **UTC dates**: Все утилиты работают с UTC датами для избежания проблем с часовыми поясами
+- **Inclusive start**: При подсчёте рабочих дней начальная дата включается
+- **Weekend snapping**: При перетаскивании в режиме рабочих дней задачи "прилипают" к ближайшему будню
+- **Lag calculations**: Задержка зависимостей автоматически пересчитывается при изменении дат
 
 ---
 
