@@ -757,6 +757,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     );
     const durationInputRef = useRef<HTMLInputElement>(null);
     const dependencySearchInputRef = useRef<HTMLInputElement>(null);
+    const dependencySearchListRef = useRef<HTMLDivElement>(null);
     const [editingProgress, setEditingProgress] = useState(false);
     const [progressValue, setProgressValue] = useState(0);
     const progressInputRef = useRef<HTMLInputElement>(null);
@@ -832,24 +833,17 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       const normalizedQuery = dependencySearchQuery.trim().toLowerCase();
       return allTasks
         .filter((candidate) => candidate.id !== task.id)
-        .filter((candidate) => {
-          if (!activeLinkType) return true;
-          if (dependencyPickMode === "predecessor") {
-            return !(task.dependencies ?? []).some(
-              (dep) => dep.taskId === candidate.id && dep.type === activeLinkType
-            );
-          }
-
-          return !((candidate.dependencies ?? []).some(
-            (dep) => dep.taskId === task.id && dep.type === activeLinkType
-          ));
-        })
         .map((candidate) => {
           const number = taskNumberMap[candidate.id];
           const label = `${formatTaskNumberLabel(number)}${candidate.name}`;
+          const matchingDependencies = dependencyPickMode === "predecessor"
+            ? (task.dependencies ?? []).filter((dep) => dep.taskId === candidate.id)
+            : (candidate.dependencies ?? []).filter((dep) => dep.taskId === task.id);
           return {
             task: candidate,
             label,
+            linkedTypes: matchingDependencies.map((dep) => dep.type),
+            isAlreadyLinked: matchingDependencies.length > 0,
             searchable: `${number ?? ""} ${candidate.name}`.toLowerCase(),
           };
         })
@@ -863,8 +857,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       task.id,
       activeLinkType,
       dependencyPickMode,
-      task.dependencies,
       taskNumberMap,
+      task.dependencies,
     ]);
 
     useEffect(() => {
@@ -908,6 +902,21 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         dependencySearchInputRef.current.select();
       }
     }, [isSourceRow, dependencyPickMode, activeLinkType]);
+
+    useEffect(() => {
+      if (!isSourceRow || dependencySearchCandidates.length === 0) {
+        return;
+      }
+
+      const listElement = dependencySearchListRef.current;
+      const activeElement = listElement?.querySelector<HTMLElement>(
+        `.gantt-tl-dep-source-option[data-index="${highlightedDependencyIndex}"]`
+      );
+
+      activeElement?.scrollIntoView({
+        block: "nearest",
+      });
+    }, [isSourceRow, highlightedDependencyIndex, dependencySearchCandidates]);
 
     // Reset delete confirmation when clicking elsewhere
     useEffect(() => {
@@ -1403,6 +1412,27 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [activeLinkType, dependencyPickMode, onAddDependency, task.id],
     );
 
+    const handleSearchRemove = useCallback(
+      (pickedTaskId: string) => {
+        const matchingTypes = dependencyPickMode === "predecessor"
+          ? (task.dependencies ?? [])
+            .filter((dep) => dep.taskId === pickedTaskId)
+            .map((dep) => dep.type)
+          : ((allTasks.find((candidate) => candidate.id === pickedTaskId)?.dependencies ?? []))
+            .filter((dep) => dep.taskId === task.id)
+            .map((dep) => dep.type);
+
+        for (const linkType of matchingTypes) {
+          if (dependencyPickMode === "predecessor") {
+            onRemoveDependency?.(task.id, pickedTaskId, linkType);
+          } else {
+            onRemoveDependency?.(pickedTaskId, task.id, linkType);
+          }
+        }
+      },
+      [allTasks, dependencyPickMode, onRemoveDependency, task.dependencies, task.id],
+    );
+
     const sourcePickerContent = (
       <div
         className="gantt-tl-dep-source-picker"
@@ -1473,23 +1503,49 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               }
               if (e.key === "Enter" && dependencySearchCandidates[highlightedDependencyIndex]) {
                 e.preventDefault();
-                handleSearchPick(dependencySearchCandidates[highlightedDependencyIndex].task.id);
+                const activeCandidate = dependencySearchCandidates[highlightedDependencyIndex];
+                if (activeCandidate.isAlreadyLinked) {
+                  handleSearchRemove(activeCandidate.task.id);
+                } else {
+                  handleSearchPick(activeCandidate.task.id);
+                }
               }
             }}
           />
         </div>
-        <div className="gantt-tl-dep-source-list">
+        <div
+          ref={dependencySearchListRef}
+          className="gantt-tl-dep-source-list"
+        >
           {dependencySearchCandidates.length > 0 ? (
-            dependencySearchCandidates.map(({ task: candidate, label }, index) => (
+            dependencySearchCandidates.map(({ task: candidate, label, isAlreadyLinked }, index) => (
               <button
                 key={candidate.id}
                 type="button"
-                className={`gantt-tl-dep-source-option${index === highlightedDependencyIndex ? " gantt-tl-dep-source-option-active" : ""}`}
-                onClick={() => handleSearchPick(candidate.id)}
+                data-index={index}
+                className={`gantt-tl-dep-source-option${index === highlightedDependencyIndex ? " gantt-tl-dep-source-option-active" : ""}${isAlreadyLinked ? " gantt-tl-dep-source-option-linked" : ""}`}
+                onClick={() => {
+                  if (!isAlreadyLinked) {
+                    handleSearchPick(candidate.id);
+                  }
+                }}
                 onMouseEnter={() => setHighlightedDependencyIndex(index)}
                 title={label}
               >
-                {label}
+                <span className="gantt-tl-dep-source-option-label">{label}</span>
+                {isAlreadyLinked && (
+                  <button
+                    type="button"
+                    className="gantt-tl-dep-source-option-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSearchRemove(candidate.id);
+                    }}
+                    aria-label={`Удалить связь с ${label}`}
+                  >
+                    ×
+                  </button>
+                )}
               </button>
             ))
           ) : (

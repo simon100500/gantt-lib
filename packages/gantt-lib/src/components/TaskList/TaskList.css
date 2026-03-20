@@ -1090,6 +1090,9 @@
 }
 
 .gantt-tl-dep-source-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
   border: none;
   border-radius: 6px;
@@ -1102,10 +1105,53 @@
   cursor: pointer;
 }
 
+.gantt-tl-dep-source-option-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .gantt-tl-dep-source-option:hover,
 .gantt-tl-dep-source-option-active {
   background: rgba(59, 130, 246, 0.16);
   color: #1d4ed8;
+}
+
+.gantt-tl-dep-source-option-linked {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.gantt-tl-dep-source-option-linked:hover,
+.gantt-tl-dep-source-option-linked.gantt-tl-dep-source-option-active {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.gantt-tl-dep-source-option-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.gantt-tl-dep-source-option-linked:hover .gantt-tl-dep-source-option-remove,
+.gantt-tl-dep-source-option-linked.gantt-tl-dep-source-option-active .gantt-tl-dep-source-option-remove {
+  color: #dc2626;
+}
+
+.gantt-tl-dep-source-option-remove:hover {
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
 }
 
 /* Predecessor cell full-replacement: "Зависит от [name]" → hover → "Удалить" */
