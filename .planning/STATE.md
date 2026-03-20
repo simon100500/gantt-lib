@@ -81,6 +81,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | 260319-ofh | Move add connection button after chips (left-align connections) | 2026-03-19 | |
 | 260319-uwn | Иерархическое добавление задач: кнопка '+' на родителе → после детей, на ребёнке → тот же родитель | 2026-03-19 | 69f27a0 | [260319-uwn-1-2-3](./quick/260319-uwn-1-2-3/) |
 | 260319-w9n | добавить пропсы collapsedParentIds и onToggleCollapse для управления состоянием collapse/expand родительских задач | 2026-03-19 | 0be31d5 | [260319-w9n-collapsedparentids-ontogglecollapse-coll](./quick/260319-w9n-collapsedparentids-ontogglecollapse-coll/) |
+| 260320-ht7 | Каскадный пересчёт зависимостей с учётом рабочих дней | 2026-03-20 | 1c675fd | [260320-ht7-business-days-calc](./quick/260320-ht7-business-days-calc/) |
 
 ### User Feedback
 
@@ -130,7 +131,7 @@ None yet — no external users (library in active development)
 
 ---
 
-Last activity: 2026-03-19
+Last activity: 2026-03-20 - Completed quick task 260320-ht7: Каскадный пересчёт зависимостей с учётом рабочих дней
 
-**State updated:** 2026-03-19
+**State updated:** 2026-03-20
 **Milestone:** v0.50.0 Adding Tools
