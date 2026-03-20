@@ -64,6 +64,14 @@ interface ActiveDragState {
 let globalActiveDrag: ActiveDragState | null = null;
 let globalRafId: number | null = null;
 
+function getDayOffsetFromMonthStart(date: Date, monthStart: Date): number {
+  return Math.round(
+    (Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) -
+      Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate())) /
+      (24 * 60 * 60 * 1000)
+  );
+}
+
 /**
  * Complete the active drag operation
  */
@@ -290,6 +298,30 @@ function handleGlobalMouseMove(e: MouseEvent) {
 
     const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
 
+    if (mode === 'move' && activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
+      const rawPreviewStartDay = Math.round(newLeft / dayWidth);
+      const rawPreviewStartDate = new Date(Date.UTC(
+        activeDrag.monthStart.getUTCFullYear(),
+        activeDrag.monthStart.getUTCMonth(),
+        activeDrag.monthStart.getUTCDate() + rawPreviewStartDay
+      ));
+      const originalStart = new Date(draggedTask.startDate as string);
+      const snapDirection = rawPreviewStartDate.getTime() >= originalStart.getTime() ? 1 : -1;
+      const movedRange = moveTaskRange(
+        draggedTask.startDate,
+        draggedTask.endDate,
+        rawPreviewStartDate,
+        true,
+        activeDrag.weekendPredicate,
+        snapDirection
+      );
+
+      const alignedStartDay = getDayOffsetFromMonthStart(movedRange.start, activeDrag.monthStart);
+      const alignedEndDay = getDayOffsetFromMonthStart(movedRange.end, activeDrag.monthStart);
+      newLeft = Math.round(alignedStartDay * dayWidth);
+      newWidth = Math.round((alignedEndDay - alignedStartDay + 1) * dayWidth);
+    }
+
     // ── Universal preview cascade ──────────────────────────────────────────
     // Same algorithm as handleComplete — converts pixels→dates, runs
     // universalCascade, converts dates→pixels for overrides.
@@ -330,11 +362,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
         previewEndDate = new Date(endDateStr + 'T00:00:00.000Z');
 
         // Recalculate width from the actual previewEndDate (expands over weekends)
-        const previewEndOffset = Math.round(
-          (Date.UTC(previewEndDate.getUTCFullYear(), previewEndDate.getUTCMonth(), previewEndDate.getUTCDate()) -
-            Date.UTC(mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate()))
-            / (24 * 60 * 60 * 1000)
-        );
+        const previewEndOffset = getDayOffsetFromMonthStart(previewEndDate, mStart);
         newWidth = Math.round((previewEndOffset - previewStartDay + 1) * dayWidth);
       } else {
         // Calendar days mode: use duration in calendar days
