@@ -983,6 +983,51 @@
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
 }
 
+.gantt-tl-dep-source-types {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.gantt-tl-dep-source-type-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #2563eb;
+  padding: 6px 4px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-family: inherit;
+}
+
+.gantt-tl-dep-source-type-btn:hover {
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.gantt-tl-dep-source-type-btn-active {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.gantt-tl-dep-source-type-btn-active:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.gantt-tl-dep-source-type-btn span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .gantt-tl-dep-source-picker-head {
   display: flex;
   align-items: center;

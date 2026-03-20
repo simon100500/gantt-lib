@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
 import { LINK_TYPE_ICONS } from "./DepIcons";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const LINK_TYPE_ORDER: LinkType[] = ["FS", "SS", "FF", "SF"];
 
 const getInclusiveDurationDays = (
   startDate: string | Date,
@@ -611,6 +612,8 @@ export interface TaskListRowProps {
   allTasks?: Task[];
   /** Currently active link type for new dependencies */
   activeLinkType?: LinkType;
+  /** Callback to change active link type for new dependencies */
+  onSetActiveLinkType?: (linkType: LinkType) => void;
   /** Task ID currently in predecessor-picking mode (null if not picking) */
   selectingPredecessorFor?: string | null;
   /** Callback to set the task currently in predecessor-picking mode */
@@ -709,6 +712,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     disableDependencyEditing = false,
     allTasks = [],
     activeLinkType,
+    onSetActiveLinkType,
     selectingPredecessorFor,
     onSetSelectingPredecessorFor,
     onAddDependency,
@@ -1382,6 +1386,24 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         className="gantt-tl-dep-source-picker"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="gantt-tl-dep-source-types">
+          {LINK_TYPE_ORDER.map((linkType) => {
+            const Icon = LINK_TYPE_ICONS[linkType];
+            return (
+              <button
+                key={linkType}
+                type="button"
+                className={`gantt-tl-dep-source-type-btn${activeLinkType === linkType ? " gantt-tl-dep-source-type-btn-active" : ""}`}
+                onClick={() => onSetActiveLinkType?.(linkType)}
+                aria-label={`Выбрать тип связи ${linkType}`}
+                title={linkType}
+              >
+                <Icon />
+                <span>{LINK_TYPE_LABELS_RU[linkType]}</span>
+              </button>
+            );
+          })}
+        </div>
         <div className="gantt-tl-dep-source-picker-head">
           <input
             ref={dependencySearchInputRef}
@@ -1924,7 +1946,17 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 : undefined
           }
         >
-          {isSourceRow ? sourcePickerContent : isSelectedPredecessor && !disableDependencyEditing ? (
+          {isSourceRow ? (
+            <>
+              <span
+                className="gantt-tl-dep-source-hint"
+                onClick={handleCancelPicking}
+              >
+                Отменить
+              </span>
+              {sourcePickerContent}
+            </>
+          ) : isSelectedPredecessor && !disableDependencyEditing ? (
             /* Full-replacement: "Зависит от [name]" → hover → "Удалить" */
             <button
               type="button"

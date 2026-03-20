@@ -865,6 +865,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               disableDependencyEditing={disableDependencyEditing}
               allTasks={tasks}
               activeLinkType={activeLinkType}
+              onSetActiveLinkType={setActiveLinkType}
               selectingPredecessorFor={selectingPredecessorFor}
               onSetSelectingPredecessorFor={setSelectingPredecessorFor}
               onAddDependency={handleAddDependency}
