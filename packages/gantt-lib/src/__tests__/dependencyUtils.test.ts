@@ -3,6 +3,8 @@ import {
   buildAdjacencyList,
   detectCycles,
   calculateSuccessorDate,
+  computeLagFromDates,
+  universalCascade,
   validateDependencies,
   getAllDependencyEdges,
   getSuccessorChain,
@@ -10,6 +12,7 @@ import {
   removeDependenciesBetweenTasks,
   findParentId,
 } from '../utils/dependencyUtils';
+import { isWeekend } from '../utils/dateUtils';
 import { Task } from '../types';
 
 describe('dependencyUtils', () => {
@@ -355,6 +358,47 @@ describe('dependencyUtils', () => {
       // predEnd=2025-01-15, newEndDate=2025-01-10 → lag=-5
       // Critical: FF allows negative lag (unlike SS which floors at 0)
       expect(true).toBe(true); // Placeholder
+    });
+  });
+
+  describe('businessDays cascade lag preservation', () => {
+    it('preserves FF lag in working days when predecessor expands across a weekend', () => {
+      const tasks = [
+        createTask('pred', '2026-03-02', '2026-03-06'),
+        createTask('succ', '2026-03-11', '2026-03-17', [{ taskId: 'pred', type: 'FF', lag: 7 }]),
+      ];
+
+      const movedTask = {
+        ...tasks[0],
+        startDate: '2026-03-03',
+        endDate: '2026-03-09',
+      };
+
+      const result = universalCascade(
+        movedTask,
+        new Date('2026-03-03T00:00:00.000Z'),
+        new Date('2026-03-09T00:00:00.000Z'),
+        tasks,
+        true,
+        isWeekend
+      );
+
+      const successor = result.find(task => task.id === 'succ');
+      expect(successor).toBeDefined();
+      expect(successor?.startDate).toBe('2026-03-12');
+      expect(successor?.endDate).toBe('2026-03-18');
+
+      const effectiveLag = computeLagFromDates(
+        'FF',
+        new Date('2026-03-03T00:00:00.000Z'),
+        new Date('2026-03-09T00:00:00.000Z'),
+        new Date(`${successor?.startDate}T00:00:00.000Z`),
+        new Date(`${successor?.endDate}T00:00:00.000Z`),
+        true,
+        isWeekend
+      );
+
+      expect(effectiveLag).toBe(7);
     });
   });
 

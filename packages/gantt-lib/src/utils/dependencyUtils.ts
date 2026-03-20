@@ -1,6 +1,60 @@
 import { Task, TaskDependency, LinkType, ValidationResult, DependencyError } from '../types';
 import { getBusinessDaysCount, addBusinessDays, subtractBusinessDays } from './dateUtils';
 
+function normalizeUTCDate(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function getBusinessDayOffset(
+  fromDate: Date,
+  toDate: Date,
+  weekendPredicate: (date: Date) => boolean
+): number {
+  const from = normalizeUTCDate(fromDate);
+  const to = normalizeUTCDate(toDate);
+
+  if (from.getTime() === to.getTime()) {
+    return 0;
+  }
+
+  const step = to.getTime() > from.getTime() ? 1 : -1;
+  const current = new Date(from);
+  let offset = 0;
+
+  while (current.getTime() !== to.getTime()) {
+    current.setUTCDate(current.getUTCDate() + step);
+    if (!weekendPredicate(current)) {
+      offset += step;
+    }
+  }
+
+  return offset;
+}
+
+function shiftBusinessDayOffset(
+  date: Date,
+  offset: number,
+  weekendPredicate: (date: Date) => boolean
+): Date {
+  const current = normalizeUTCDate(date);
+
+  if (offset === 0) {
+    return current;
+  }
+
+  const step = offset > 0 ? 1 : -1;
+  let remaining = Math.abs(offset);
+
+  while (remaining > 0) {
+    current.setUTCDate(current.getUTCDate() + step);
+    if (!weekendPredicate(current)) {
+      remaining--;
+    }
+  }
+
+  return current;
+}
+
 /**
  * Build adjacency list for dependency graph (task -> successors)
  */
@@ -107,17 +161,15 @@ export function computeLagFromDates(
     }
   }
 
-  // Business days: count business days between dates
-  // Lag = (business days between dates) - expected for link type
-  const predDays = linkType === 'SS' || linkType === 'SF' ? predStart : predEnd;
-  const succDays = linkType === 'FS' || linkType === 'SS' ? succStart : succEnd;
-  const businessLag = getBusinessDaysCount(predDays, succDays, weekendPredicate) - 1;
+  const anchorDate = linkType === 'SS' || linkType === 'SF' ? predStart : predEnd;
+  const targetDate = linkType === 'FS' || linkType === 'SS' ? succStart : succEnd;
+  const businessOffset = getBusinessDayOffset(anchorDate, targetDate, weekendPredicate);
 
   switch (linkType) {
-    case 'FS': return businessLag; // FS: adjacent = 0 business days
-    case 'SS': return businessLag;
-    case 'FF': return businessLag;
-    case 'SF': return businessLag;
+    case 'FS': return businessOffset - 1;
+    case 'SS': return businessOffset;
+    case 'FF': return businessOffset;
+    case 'SF': return businessOffset + 1;
   }
 }
 
@@ -173,11 +225,16 @@ export function calculateSuccessorDate(
       daysToAdd = lag; // lag=0 → same day (0 days added)
       break;
     case 'FF':
-      daysToAdd = lag; // lag=0 → same day
+      daysToAdd = lag + 1; // lag=0 → same day with inclusive business-day counting
       break;
     case 'SF':
       daysToAdd = lag - 1; // lag=0 → -1 (day before)
       break;
+  }
+
+  if (linkType === 'FF' && lag < 0) {
+    const resultDateStr = subtractBusinessDays(anchorDateStr, 1 - lag, weekendPredicate);
+    return new Date(resultDateStr + 'T00:00:00.000Z');
   }
 
   // Minimum 1 business day for FS/SS/FF when lag >= 0
@@ -472,7 +529,9 @@ export function recalculateIncomingLags(
   task: Task,
   newStartDate: Date,
   newEndDate: Date,
-  allTasks: Task[]
+  allTasks: Task[],
+  businessDays: boolean = false,
+  weekendPredicate?: (date: Date) => boolean
 ): NonNullable<Task['dependencies']> {
   if (!task.dependencies) return [];
   const taskById = new Map(allTasks.map(t => [t.id, t]));
@@ -483,7 +542,15 @@ export function recalculateIncomingLags(
 
     const predStart = new Date(predecessor.startDate as string);
     const predEnd   = new Date(predecessor.endDate   as string);
-    const lagDays   = computeLagFromDates(dep.type, predStart, predEnd, newStartDate, newEndDate);
+    const lagDays   = computeLagFromDates(
+      dep.type,
+      predStart,
+      predEnd,
+      newStartDate,
+      newEndDate,
+      businessDays,
+      weekendPredicate
+    );
     return { ...dep, lag: lagDays };
   });
 }

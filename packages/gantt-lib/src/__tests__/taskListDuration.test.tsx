@@ -166,4 +166,37 @@ describe('TaskListRow duration editing', () => {
     });
     expect(cascaded.find((task) => task.id === 'task-2')).toBeDefined();
   });
+
+  it('shows dependency chip lag in business days after a weekend-crossing shift', () => {
+    const predecessor: Task = {
+      id: 'pred',
+      name: 'Pred',
+      startDate: '2026-03-03',
+      endDate: '2026-03-09',
+      progress: 0,
+    };
+    const successor: Task = {
+      id: 'succ',
+      name: 'Succ',
+      startDate: '2026-03-12',
+      endDate: '2026-03-18',
+      progress: 0,
+      dependencies: [{ taskId: 'pred', type: 'FF', lag: 7 }],
+    };
+
+    render(
+      <TaskListRow
+        task={successor}
+        allTasks={[predecessor, successor]}
+        rowIndex={0}
+        rowHeight={40}
+        onTasksChange={vi.fn()}
+        onRowClick={() => {}}
+        onChipSelect={() => {}}
+        businessDays={true}
+      />
+    );
+
+    expect(screen.getByText('+7')).toBeTruthy();
+  });
 });

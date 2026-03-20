@@ -68,6 +68,8 @@ interface DepChipProps {
   allTasks: Task[];
   /** Callback to save date changes after lag modification */
   onTasksChange?: TaskListRowProps["onTasksChange"];
+  businessDays?: boolean;
+  weekendPredicate: (date: Date) => boolean;
 }
 
 const TrashIcon = () => (
@@ -274,6 +276,8 @@ const DepChip: React.FC<DepChipProps> = ({
   task,
   allTasks,
   onTasksChange,
+  businessDays = false,
+  weekendPredicate,
 }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const lagAbs = Math.abs(lag ?? 0);
@@ -341,15 +345,27 @@ const DepChip: React.FC<DepChipProps> = ({
         predEnd,
         dep.type,
         newLag,
+        businessDays,
+        weekendPredicate,
       );
 
       let newStart: Date, newEnd: Date;
       if (dep.type === "FS" || dep.type === "SS") {
         newStart = constraintDate;
-        newEnd = new Date(constraintDate.getTime() + durationMs);
+        if (businessDays) {
+          const businessDuration = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
+          newEnd = new Date(`${addBusinessDays(constraintDate, businessDuration, weekendPredicate)}T00:00:00.000Z`);
+        } else {
+          newEnd = new Date(constraintDate.getTime() + durationMs);
+        }
       } else {
         newEnd = constraintDate;
-        newStart = new Date(constraintDate.getTime() - durationMs);
+        if (businessDays) {
+          const businessDuration = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
+          newStart = new Date(`${subtractBusinessDays(constraintDate, businessDuration, weekendPredicate)}T00:00:00.000Z`);
+        } else {
+          newStart = new Date(constraintDate.getTime() - durationMs);
+        }
       }
 
       onTasksChange([
@@ -360,7 +376,7 @@ const DepChip: React.FC<DepChipProps> = ({
         },
       ]);
     },
-    [dep, task, allTasks, onTasksChange],
+    [dep, task, allTasks, onTasksChange, businessDays, weekendPredicate],
   );
 
   const handleInputCommit = useCallback(
@@ -749,11 +765,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               new Date(pred.endDate as string),
               succStart,
               succEnd,
+              businessDays,
+              weekendPredicate,
             )
           : (dep.lag ?? 0);
         return { dep, lag, predecessorName: pred?.name ?? dep.taskId };
       });
-    }, [task.dependencies, task.startDate, task.endDate, allTasks]);
+    }, [task.dependencies, task.startDate, task.endDate, allTasks, businessDays, weekendPredicate]);
 
     const linkWord = chips.length <= 4 ? "связи" : "связей";
 
@@ -1702,6 +1720,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                           task={task}
                           allTasks={allTasks}
                           onTasksChange={onTasksChange}
+                          businessDays={businessDays}
+                          weekendPredicate={weekendPredicate}
                         />
                       ))}
                     </div>
@@ -1724,6 +1744,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   task={task}
                   allTasks={allTasks}
                   onTasksChange={onTasksChange}
+                  businessDays={businessDays}
+                  weekendPredicate={weekendPredicate}
                 />
               ) : null}
 

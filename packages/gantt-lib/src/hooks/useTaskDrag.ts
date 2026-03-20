@@ -646,7 +646,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
           startDate: newStartDate.toISOString(),
           endDate: newEndDate.toISOString(),
           ...(draggedTaskData?.dependencies && {
-            dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks),
+            dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks, businessDays, weekendPredicate),
           }),
         };
 
@@ -668,7 +668,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       if (allTasks.length > 0 && onDragEnd) {
         const currentTaskData = allTasks.find(t => t.id === taskId);
         const updatedDependencies = currentTaskData?.dependencies
-          ? recalculateIncomingLags(currentTaskData, newStartDate, newEndDate, allTasks)
+          ? recalculateIncomingLags(currentTaskData, newStartDate, newEndDate, allTasks, businessDays, weekendPredicate)
           : undefined;
         onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate, updatedDependencies });
       } else if (onDragEnd) {

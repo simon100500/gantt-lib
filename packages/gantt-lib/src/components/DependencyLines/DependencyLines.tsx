@@ -16,13 +16,15 @@ function calculateEffectiveLag(
   predPosition: { left: number; right: number },
   succPosition: { left: number; right: number },
   monthStart: Date,
-  dayWidth: number
+  dayWidth: number,
+  businessDays: boolean = false,
+  weekendPredicate?: (date: Date) => boolean
 ): number {
   const predStart = pixelsToDate(predPosition.left, monthStart, dayWidth);
   const predEnd   = pixelsToDate(predPosition.right - dayWidth, monthStart, dayWidth);
   const succStart = pixelsToDate(succPosition.left, monthStart, dayWidth);
   const succEnd   = pixelsToDate(succPosition.right - dayWidth, monthStart, dayWidth);
-  return computeLagFromDates(edge.type as LinkType, predStart, predEnd, succStart, succEnd);
+  return computeLagFromDates(edge.type as LinkType, predStart, predEnd, succStart, succEnd, businessDays, weekendPredicate);
 }
 
 /**
@@ -105,6 +107,8 @@ export interface DependencyLinesProps {
   dragOverrides?: Map<string, { left: number; width: number }>;
   /** Currently selected dep chip — highlights the matching arrow in red */
   selectedDep?: { predecessorId: string; successorId: string; linkType: string } | null;
+  businessDays?: boolean;
+  weekendPredicate?: (date: Date) => boolean;
 }
 
 /**
@@ -130,6 +134,8 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   gridWidth,
   dragOverrides,
   selectedDep,
+  businessDays = false,
+  weekendPredicate,
 }) => {
   // Use allTasks for virtual position calculation if provided, otherwise use tasks
   const tasksForPositions = allTasks ?? tasks;
@@ -298,7 +304,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
 
       // Calculate effective lag from actual positions (always, not just during drag)
-      const lag = calculateEffectiveLag(edge, predecessor, successor, monthStart, dayWidth);
+      const lag = calculateEffectiveLag(edge, predecessor, successor, monthStart, dayWidth, businessDays, weekendPredicate);
 
       lines.push({
         id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
@@ -314,7 +320,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     }
 
     return lines;
-  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, monthStart, dayWidth, dragOverrides]);
+  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, monthStart, dayWidth, dragOverrides, businessDays, weekendPredicate]);
 
   // Calculate SVG height based on visible tasks (not all tasks)
   const svgHeight = tasks.length * rowHeight;

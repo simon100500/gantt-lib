@@ -887,6 +887,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             gridWidth={gridWidth}
             dragOverrides={dependencyOverrides}
             selectedDep={selectedChip}
+            businessDays={businessDays}
+            weekendPredicate={isCustomWeekend}
           />
 
           {dragGuideLines && (
