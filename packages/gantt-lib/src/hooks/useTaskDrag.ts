@@ -56,6 +56,8 @@ interface ActiveDragState {
   cascadeChainEnd: Task[];     // FS+FF successors (resize-right cascade) - Phase 9
   hierarchyChain: Task[];      // Phase 19: children of parent task (for cascade drag)
   onCascadeProgress?: (overrides: Map<string, { left: number; width: number }>) => void;
+  businessDays?: boolean;
+  weekendPredicate?: (date: Date) => boolean;
 }
 
 let globalActiveDrag: ActiveDragState | null = null;
@@ -292,7 +294,9 @@ function handleGlobalMouseMove(e: MouseEvent) {
         { ...movedTaskData, startDate: previewStartDate.toISOString(), endDate: previewEndDate.toISOString() },
         previewStartDate,
         previewEndDate,
-        allTasks
+        allTasks,
+        activeDrag.businessDays,
+        activeDrag.weekendPredicate
       );
 
       // Convert cascaded tasks → pixel overrides
@@ -405,6 +409,10 @@ export interface UseTaskDragOptions {
   onCascade?: (tasks: Task[]) => void;
   /** When true, all drag and resize interactions are disabled for this task */
   locked?: boolean;
+  /** If true, dependency cascade calculations skip weekends */
+  businessDays?: boolean;
+  /** Function that returns true for weekends (for businessDays mode) */
+  weekendPredicate?: (date: Date) => boolean;
 }
 
 /**
@@ -449,6 +457,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     disableConstraints = false,
     onCascadeProgress,
     onCascade,
+    businessDays = false,
+    weekendPredicate,
   } = options;
 
   // Track if this hook instance owns the current global drag
@@ -589,7 +599,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
           }),
         };
 
-        const cascadeResult = universalCascade(movedTask, newStartDate, newEndDate, allTasks);
+        const cascadeResult = universalCascade(movedTask, newStartDate, newEndDate, allTasks, businessDays, weekendPredicate);
 
         if (cascadeResult.length > 0) {
           onCascade([movedTask, ...cascadeResult]);
@@ -757,6 +767,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         : [],
       hierarchyChain, // Phase 19: children of parent task
       onCascadeProgress,
+      businessDays,
+      weekendPredicate,
     };
   }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, locked]);
 

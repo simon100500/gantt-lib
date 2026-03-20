@@ -196,6 +196,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       onTasksChange?.([updatedTask]);
     };
 
+    // Weekend predicate for business days calculation (must be before useTaskDrag)
+    const weekendPredicate = useMemo(
+      () => createCustomDayPredicate({ customDays, isWeekend }),
+      [customDays, isWeekend]
+    );
+
     // Use drag hook for interactive drag/resize
     const {
       isDragging,
@@ -219,6 +225,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       locked: task.locked,
       onCascadeProgress,
       onCascade,
+      businessDays,
+      weekendPredicate,
     });
 
     // Use override position (for cascade preview) with fallback to drag or static position
@@ -234,12 +242,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       : taskEndDate;
 
     const dateRangeLabel = formatDateRangeLabel(currentStartDate, currentEndDate);
-
-    // Weekend predicate for business days calculation
-    const weekendPredicate = useMemo(
-      () => createCustomDayPredicate({ customDays, isWeekend }),
-      [customDays, isWeekend]
-    );
 
     // Calculate duration in days (calendar or business)
     const durationDays = businessDays
