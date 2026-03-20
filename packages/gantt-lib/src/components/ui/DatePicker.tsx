@@ -53,6 +53,18 @@ const shiftByBusinessDays = (
   return shifted;
 };
 
+const snapToBusinessDay = (
+  date: Date,
+  direction: 1 | -1,
+  weekendPredicate: (date: Date) => boolean
+): Date => {
+  const snapped = new Date(date);
+  while (weekendPredicate(snapped)) {
+    snapped.setUTCDate(snapped.getUTCDate() + direction);
+  }
+  return snapped;
+};
+
 const formatUTCDate = (date: Date, pattern: string): string => {
   const localDisplayDate = new Date(
     date.getUTCFullYear(),
@@ -166,10 +178,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const handleCalendarSelect = useCallback(
     (day: Date) => {
-      updateFromDate(day);
+      const normalizedDay = businessDays && isWeekend && isWeekend(day)
+        ? snapToBusinessDay(day, 1, isWeekend)
+        : day;
+      updateFromDate(normalizedDay);
       setOpen(false);
     },
-    [updateFromDate]
+    [updateFromDate, businessDays, isWeekend]
   );
 
   const handleDayShift = useCallback(
@@ -214,6 +229,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       if (seg.label === 'day')   newDate = e.key === 'ArrowUp' ? addDays(base, 1)   : subDays(base, 1);
       if (seg.label === 'month') newDate = e.key === 'ArrowUp' ? addMonths(base, 1) : subMonths(base, 1);
       if (seg.label === 'year')  newDate = e.key === 'ArrowUp' ? addYears(base, 1)  : subYears(base, 1);
+      if (businessDays && isWeekend && isWeekend(newDate)) {
+        newDate = snapToBusinessDay(newDate, e.key === 'ArrowUp' ? 1 : -1, isWeekend);
+      }
       charPosRef.current = 0;
       updateFromDate(newDate);
       requestAnimationFrame(() => selectSegByIdx(segIdx));
@@ -287,12 +305,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
       const parsed = parse(updated, 'dd.MM.yy', new Date());
       if (isValid(parsed) && !updated.includes('00.00')) {
+        const normalizedDate = new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
         updateFromDate(
-          new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()))
+          businessDays && isWeekend && isWeekend(normalizedDate)
+            ? snapToBusinessDay(normalizedDate, 1, isWeekend)
+            : normalizedDate
         );
       }
     }
-  }, [selectedDate, updateFromDate, selectSegByIdx]);
+  }, [selectedDate, updateFromDate, selectSegByIdx, businessDays, isWeekend]);
 
   return (
     <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>

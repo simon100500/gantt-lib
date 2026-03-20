@@ -9,7 +9,14 @@ vi.mock('../components/ui/Popover', () => ({
 }));
 
 vi.mock('../components/ui/Calendar', () => ({
-  Calendar: () => <div data-testid="calendar" />,
+  Calendar: ({ onSelect }: { onSelect?: (date: Date) => void }) => (
+    <div>
+      <div data-testid="calendar" />
+      <button type="button" onClick={() => onSelect?.(new Date(Date.UTC(2026, 2, 14)))}>
+        pick-weekend
+      </button>
+    </div>
+  ),
 }));
 
 describe('DatePicker', () => {
@@ -48,5 +55,60 @@ describe('DatePicker', () => {
     fireEvent.click(screen.getByRole('button', { name: '+1' }));
 
     expect(onChange).toHaveBeenCalledWith('2026-03-14');
+  });
+
+  it('snaps ArrowUp to the next working day when it lands on a weekend', () => {
+    const onChange = vi.fn();
+
+    render(
+      <DatePicker
+        value="2026-03-13"
+        onChange={onChange}
+        businessDays={true}
+        isWeekend={(date) => date.getUTCDay() === 0 || date.getUTCDay() === 6}
+      />
+    );
+
+    const input = screen.getByDisplayValue('13.03.26');
+    input.focus();
+    fireEvent.keyDown(input, { key: 'ArrowUp' });
+
+    expect(onChange).toHaveBeenCalledWith('2026-03-16');
+  });
+
+  it('snaps ArrowDown to the previous working day when it lands on a weekend', () => {
+    const onChange = vi.fn();
+
+    render(
+      <DatePicker
+        value="2026-03-16"
+        onChange={onChange}
+        businessDays={true}
+        isWeekend={(date) => date.getUTCDay() === 0 || date.getUTCDay() === 6}
+      />
+    );
+
+    const input = screen.getByDisplayValue('16.03.26');
+    input.focus();
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+
+    expect(onChange).toHaveBeenCalledWith('2026-03-13');
+  });
+
+  it('snaps calendar weekend selection to the next working day', () => {
+    const onChange = vi.fn();
+
+    render(
+      <DatePicker
+        value="2026-03-13"
+        onChange={onChange}
+        businessDays={true}
+        isWeekend={(date) => date.getUTCDay() === 0 || date.getUTCDay() === 6}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'pick-weekend' }));
+
+    expect(onChange).toHaveBeenCalledWith('2026-03-16');
   });
 });
