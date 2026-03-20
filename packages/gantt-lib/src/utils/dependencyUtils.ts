@@ -717,12 +717,16 @@ type ArrivalMode = 'direct' | 'child-delta' | 'parent-recalc' | 'dependency';
  * @param newStart   - New start date of the moved task.
  * @param newEnd     - New end date of the moved task.
  * @param allTasks   - All tasks in the chart (original, unmodified dates).
+ * @param businessDays - If true, dependency calculations skip weekends.
+ * @param weekendPredicate - Function that returns true for weekends.
  */
 export function universalCascade(
   movedTask: Task,
   newStart: Date,
   newEnd: Date,
-  allTasks: Task[]
+  allTasks: Task[],
+  businessDays: boolean = false,
+  weekendPredicate?: (date: Date) => boolean
 ): Task[] {
   const taskById = new Map(allTasks.map(t => [t.id, t]));
 
@@ -831,9 +835,15 @@ export function universalCascade(
       // Effective lag from original dates (source of truth)
       const predOrigStart = new Date(currentOriginal.startDate as string);
       const predOrigEnd   = new Date(currentOriginal.endDate   as string);
-      const effectiveLag  = computeLagFromDates(dep.type, predOrigStart, predOrigEnd, origStart, origEnd);
+      const effectiveLag  = computeLagFromDates(
+        dep.type, predOrigStart, predOrigEnd, origStart, origEnd,
+        businessDays, weekendPredicate
+      );
 
-      const constraintDate = calculateSuccessorDate(currStart, currEnd, dep.type, effectiveLag);
+      const constraintDate = calculateSuccessorDate(
+        currStart, currEnd, dep.type, effectiveLag,
+        businessDays, weekendPredicate
+      );
 
       let succNewStart: Date;
       let succNewEnd: Date;
