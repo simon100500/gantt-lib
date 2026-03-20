@@ -1,8 +1,50 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { GanttChart, Calendar, type Task, type GanttChartHandle, and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains, type TaskPredicate } from "gantt-lib";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { GanttChart, Calendar, type Task, type GanttChartHandle, alignToWorkingDay, buildTaskRangeFromStart, createCustomDayPredicate, getTaskDuration, universalCascade, and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains, type TaskPredicate } from "gantt-lib";
 import { isTaskParent, getAllDescendants } from "gantt-lib";
+
+const MAIN_CHART_CUSTOM_DAYS = [
+  { date: new Date(Date.UTC(2026, 2, 9)), type: 'weekend' as const },  // March 09, 2026
+  { date: new Date(Date.UTC(2026, 4, 1)), type: 'weekend' as const },  // May 1, 2026
+  { date: new Date(Date.UTC(2026, 4, 11)), type: 'weekend' as const }, // May 11, 2026
+  { date: new Date(Date.UTC(2026, 2, 14)), type: 'workday' as const }, // March 14, 2026
+];
+
+const MAIN_CHART_WEEKEND_PREDICATE = createCustomDayPredicate({ customDays: MAIN_CHART_CUSTOM_DAYS });
+
+const reflowTasksForBusinessDays = (sourceTasks: Task[], weekendPredicate: (date: Date) => boolean): Task[] => {
+  let tasks = sourceTasks.map((task) => ({
+    ...task,
+    dependencies: task.dependencies?.map((dep) => ({ ...dep, lag: dep.lag ?? 0 })),
+  }));
+
+  const rootSeeds = tasks.filter((task) => !task.parentId && (!task.dependencies || task.dependencies.length === 0));
+
+  for (const seed of rootSeeds) {
+    const currentSeed = tasks.find((task) => task.id === seed.id);
+    if (!currentSeed) continue;
+
+    const alignedStart = alignToWorkingDay(new Date(`${currentSeed.startDate}T00:00:00.000Z`), 1, weekendPredicate);
+    const duration = getTaskDuration(currentSeed.startDate, currentSeed.endDate, true, weekendPredicate);
+    const range = buildTaskRangeFromStart(alignedStart, duration, true, weekendPredicate, 1);
+    const movedSeed: Task = {
+      ...currentSeed,
+      startDate: range.start.toISOString().split('T')[0],
+      endDate: range.end.toISOString().split('T')[0],
+    };
+
+    const cascaded = universalCascade(movedSeed, range.start, range.end, tasks, true, weekendPredicate);
+    const updates = new Map<string, Task>([
+      [movedSeed.id, movedSeed],
+      ...cascaded.map((task) => [task.id, task]),
+    ]);
+
+    tasks = tasks.map((task) => updates.get(task.id) ?? task);
+  }
+
+  return tasks;
+};
 
 const createSampleTasks = (): Task[] => {
   return [
@@ -778,9 +820,13 @@ export default function Home() {
 
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
   const [highlightExpired, setHighlightExpired] = useState(true);
-  const [businessDays, setBusinessDays] = useState(false);
+  const [businessDays, setBusinessDays] = useState(true);
   const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
   const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!businessDays) return;
+    setTasks((prev) => reflowTasksForBusinessDays(prev, MAIN_CHART_WEEKEND_PREDICATE));
+  }, [businessDays]);
 
   // Ref for the main GanttChart to access scrollToToday method
   const ganttChartRef = useRef<GanttChartHandle>(null);
@@ -1307,12 +1353,7 @@ export default function Home() {
               highlightExpiredTasks={highlightExpired}
               viewMode={viewMode}
               businessDays={businessDays}
-              customDays={[
-                { date: new Date(Date.UTC(2026, 2, 9)), type: 'weekend' },  // March 09, 2026
-                { date: new Date(Date.UTC(2026, 4, 1)), type: 'weekend' },  // May 1, 2026
-                { date: new Date(Date.UTC(2026, 4, 11)), type: 'weekend' }, // May 11, 2026
-                { date: new Date(Date.UTC(2026, 2, 14)), type: 'workday' }, // March 14, 2026
-              ]}
+              customDays={MAIN_CHART_CUSTOM_DAYS}
             />
           </div>
         </section>

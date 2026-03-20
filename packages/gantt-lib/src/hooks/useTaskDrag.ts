@@ -748,7 +748,21 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate });
       }
     }
-  }, [dayWidth, monthStart, onDragEnd, onDragStateChange, taskId, disableConstraints, onCascade, allTasks, initialStartDate, initialEndDate]);
+  }, [
+    dayWidth,
+    monthStart,
+    onDragEnd,
+    onDragStateChange,
+    taskId,
+    disableConstraints,
+    onCascade,
+    allTasks,
+    businessDays,
+    weekendPredicate,
+    dragMode,
+    initialStartDate,
+    initialEndDate,
+  ]);
 
   /**
    * Handle drag cancellation (e.g., if HMR orphaned the drag)
