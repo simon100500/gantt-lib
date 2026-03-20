@@ -1324,6 +1324,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           "gantt-tl-row",
           isFilterMatch ? "gantt-tl-row-filter-match" : "",
           isSelected ? "gantt-tl-row-selected" : "",
+          isSelectedPredecessor ? "gantt-tl-row-dependency-selected" : "",
           isPicking && !isSourceRow ? "gantt-tl-row-picking" : "",
           isSourceRow ? "gantt-tl-row-picking-self" : "",
           isDragging ? "gantt-tl-row-dragging" : "",
