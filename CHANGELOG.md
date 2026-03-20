@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.24.0] - 2026-03-21
+
+### Features
+- Add business days mode — count duration in workdays, excluding weekends
+- Add `businessDays` prop to GanttChart for controlling workday calculation
+- Add `getBusinessDaysCount` and `addBusinessDays` utilities for date calculations
+- Implement weekend snapping in DatePicker for business days
+- Add dependency search functionality in TaskListRow with row highlight and scroll
+- Add active link type selection (FS/SS/FF/SF) with visual feedback
+- Add Russian labels for dependency link types
+- Enhance task dependency lag calculations with business days support
+- Implement clamping for FS lag in task dependencies
+
+### Fixes
+- Correct task ID reference in DepChip component
+- Refine dependency lag display in TaskListRow
+- Ensure task duration integrity during business days adjustments
+- Enforce workday resize invariants
+- Snap workday drag preview to weekdays
+
+### Tests
+- Add tests for business days utilities (getBusinessDaysCount, addBusinessDays)
+- Add tests for incoming lag recalculation on start date change
+- Add tests for dependency handling with business days
+
+### Documentation
+- Update REFERENCE.md with businessDays API documentation and usage examples
+
 ## [0.23.1] - 2026-03-19
 
 ### Refactor
