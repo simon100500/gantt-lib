@@ -732,11 +732,10 @@ export const TaskList = forwardRef<TaskListHandle, TaskListProps>(({
       // Use scrollContainerRef if provided, otherwise fall back to bodyRef
       const scrollEl = scrollContainerRef?.current ?? bodyRef.current;
       if (index === -1 || !scrollEl) return;
-      // Account for header height when scrolling
-      const scrollTop = index * rowHeight + headerHeight;
+      const scrollTop = index * rowHeight;
       scrollEl.scrollTo({ top: scrollTop, behavior: 'smooth' });
     },
-  }), [visibleTasks, rowHeight, headerHeight, scrollContainerRef]);
+  }), [visibleTasks, rowHeight, scrollContainerRef]);
 
   /**
    * Calculate the depth of a task in the hierarchy.
