@@ -143,6 +143,8 @@ export interface GanttChartProps {
   collapsedParentIds?: Set<string>;
   /** Callback when collapse/expand button is clicked (controlled mode) */
   onToggleCollapse?: (parentId: string) => void;
+  /** Task IDs to highlight in the task list (for search results) */
+  highlightedTaskIds?: Set<string>;
 }
 
 /**
@@ -151,6 +153,7 @@ export interface GanttChartProps {
 export interface GanttChartHandle {
   scrollToToday: () => void;
   scrollToTask: (taskId: string) => void;
+  scrollToRow: (taskId: string) => void;
   collapseAll: () => void;
   expandAll: () => void;
 }
@@ -209,6 +212,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   taskFilter,
   collapsedParentIds: externalCollapsedParentIds,
   onToggleCollapse: externalOnToggleCollapse,
+  highlightedTaskIds: externalHighlightedTaskIds,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -637,6 +641,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     () => ({
       scrollToToday,
       scrollToTask,
+      scrollToRow: (taskId: string) => {
+        // Будет реализовано в Task 2
+        console.log('scrollToRow:', taskId);
+      },
       collapseAll: handleCollapseAll,
       expandAll: handleExpandAll,
     }),
@@ -854,7 +862,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onToggleCollapse={handleToggleCollapse}
             onPromoteTask={onPromoteTask ?? handlePromoteTask}
             onDemoteTask={onDemoteTask ?? handleDemoteTask}
-            highlightedTaskIds={matchedTaskIds}
+            highlightedTaskIds={externalHighlightedTaskIds ?? matchedTaskIds}
             customDays={customDays}
             isWeekend={isWeekend}
             businessDays={businessDays}
