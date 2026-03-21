@@ -867,6 +867,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             customDays={customDays}
             isWeekend={isWeekend}
             businessDays={businessDays}
+            scrollContainerRef={scrollContainerRef}
           />
 
           {/* Chart area */}

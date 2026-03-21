@@ -152,6 +152,8 @@ export interface TaskListProps {
   businessDays?: boolean;
   /** Task IDs highlighted by the active filter */
   highlightedTaskIds?: Set<string>;
+  /** Ref to the scroll container (for scrollToRow implementation) */
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -188,6 +190,7 @@ export const TaskList = forwardRef<TaskListHandle, TaskListProps>(({
   isWeekend,
   businessDays,
   highlightedTaskIds = new Set(),
+  scrollContainerRef,
 }, ref) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
@@ -726,12 +729,14 @@ export const TaskList = forwardRef<TaskListHandle, TaskListProps>(({
   useImperativeHandle(ref, () => ({
     scrollToRow: (taskId: string) => {
       const index = visibleTasks.findIndex(t => t.id === taskId);
-      if (index === -1 || !bodyRef.current) return;
+      // Use scrollContainerRef if provided, otherwise fall back to bodyRef
+      const scrollEl = scrollContainerRef?.current ?? bodyRef.current;
+      if (index === -1 || !scrollEl) return;
       // Account for header height when scrolling
       const scrollTop = index * rowHeight + headerHeight;
-      bodyRef.current.scrollTo({ top: scrollTop, behavior: 'smooth' });
+      scrollEl.scrollTo({ top: scrollTop, behavior: 'smooth' });
     },
-  }), [visibleTasks, rowHeight, headerHeight]);
+  }), [visibleTasks, rowHeight, headerHeight, scrollContainerRef]);
 
   /**
    * Calculate the depth of a task in the hierarchy.
