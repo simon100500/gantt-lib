@@ -302,6 +302,40 @@ export const TaskList: React.FC<TaskListProps> = ({
     return map;
   }, [tasks, visibleTasks, lastChildIds]);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter tasks based on search query
+  const searchFilteredTasks = useMemo(() => {
+    if (!searchQuery.trim()) return visibleTasks;
+    const query = searchQuery.toLowerCase();
+    return visibleTasks.filter(task =>
+      task.name.toLowerCase().includes(query)
+    );
+  }, [visibleTasks, searchQuery]);
+
+  // Recalculate total height based on filtered tasks
+  const searchTotalHeight = useMemo(
+    () => searchFilteredTasks.length * rowHeight,
+    [searchFilteredTasks.length, rowHeight]
+  );
+
+  // Recalculate task number map for filtered tasks
+  const searchVisibleTaskNumberMap = useMemo(
+    () =>
+      Object.fromEntries(
+        searchFilteredTasks.map((task, index) => [task.id, String(getTaskNumber(searchFilteredTasks, index))])
+      ) as Record<string, string>,
+    [searchFilteredTasks]
+  );
+
+  // Handler for Enter key - scroll to first matched task
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchFilteredTasks.length > 0) {
+      onScrollToTask?.(searchFilteredTasks[0].id);
+    }
+  }, [searchFilteredTasks, onScrollToTask]);
+
   const handleRowClick = useCallback((taskId: string) => {
     onTaskSelect?.(taskId);
   }, [onTaskSelect]);
@@ -483,7 +517,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       return true;
     }
 
-    const dropTarget = visibleTasks[dropIndex];
+    const dropTarget = searchFilteredTasks[dropIndex];
     if (!dropTarget) return true;
 
     // Scenario 1: Dropping parent between its own children
@@ -510,14 +544,14 @@ export const TaskList: React.FC<TaskListProps> = ({
 
     // Allow dropping on other root tasks (parents or non-parents)
     return true;
-  }, [tasks, visibleTasks, orderedTasks]);
+  }, [tasks, searchFilteredTasks, orderedTasks]);
 
   const handleDragStart = useCallback((index: number, e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'move';
     setDraggingIndex(index);
     dragOriginIndexRef.current = index;
-    dragTaskIdRef.current = visibleTasks[index]?.id ?? null;
-  }, [visibleTasks]);
+    dragTaskIdRef.current = searchFilteredTasks[index]?.id ?? null;
+  }, [searchFilteredTasks]);
 
   const handleDragOver = useCallback((index: number, e: React.DragEvent) => {
     e.preventDefault();
@@ -752,14 +786,14 @@ export const TaskList: React.FC<TaskListProps> = ({
    * The `_newParentId` argument from TaskListRow is ignored — we compute the correct parent here.
    */
   const handleDemoteWrapper = useCallback((taskId: string, _newParentId: string) => {
-    const taskIndex = visibleTasks.findIndex(t => t.id === taskId);
-    const currentTask = visibleTasks[taskIndex];
+    const taskIndex = searchFilteredTasks.findIndex(t => t.id === taskId);
+    const currentTask = searchFilteredTasks[taskIndex];
     const currentDepth = getTaskDepth(currentTask, orderedTasks);
 
     if (taskIndex > 0) {
       // Search backwards for the previous task at the same depth level
       for (let i = taskIndex - 1; i >= 0; i--) {
-        const previousTask = visibleTasks[i];
+        const previousTask = searchFilteredTasks[i];
         const previousDepth = getTaskDepth(previousTask, orderedTasks);
 
         // Found a task at the same level - use it as parent
@@ -798,7 +832,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     ];
 
     onReorder?.(updatedTasks, taskId, newSectionTask.id);
-  }, [visibleTasks, orderedTasks, onDemoteTask, onReorder]);
+  }, [searchFilteredTasks, orderedTasks, onDemoteTask, onReorder]);
 
   const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH);
 
@@ -812,7 +846,16 @@ export const TaskList: React.FC<TaskListProps> = ({
         {/* Header row - aligns with TimeScaleHeader, 1px taller for row alignment */}
         <div className="gantt-tl-header" style={{ height: `${headerHeight + 0.5}px` }}>
           <div className="gantt-tl-headerCell gantt-tl-cell-number">№</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-name">Имя</div>
+          <div className="gantt-tl-headerCell gantt-tl-cell-name">
+            <input
+              type="text"
+              placeholder="Поиск задач..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              className="gantt-tl-search-input"
+            />
+          </div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Начало</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-date">Окончание</div>
           <div className="gantt-tl-headerCell gantt-tl-cell-duration">{businessDays ? 'Дн. (р)' : 'Дн.'}</div>
@@ -851,14 +894,14 @@ export const TaskList: React.FC<TaskListProps> = ({
         </div>
 
         {/* Data rows */}
-        <div className="gantt-tl-body" style={{ height: `${totalHeight}px` }}>
-          {visibleTasks.map((task, index) => (
+        <div className="gantt-tl-body" style={{ height: `${searchTotalHeight}px` }}>
+          {searchFilteredTasks.map((task, index) => (
             <TaskListRow
               key={task.id}
               task={task}
               rowIndex={index}
-              taskNumber={getTaskNumber(visibleTasks, index)}
-              taskNumberMap={visibleTaskNumberMap}
+              taskNumber={getTaskNumber(searchFilteredTasks, index)}
+              taskNumberMap={searchVisibleTaskNumberMap}
               rowHeight={rowHeight}
               onTasksChange={onTasksChange}
               selectedTaskId={selectedTaskId}
@@ -914,16 +957,16 @@ export const TaskList: React.FC<TaskListProps> = ({
         {/* Add task button - also serves as drop target for moving tasks to end */}
         {enableAddTask && onAdd && !isCreating && (
           <button
-            className={`gantt-tl-add-btn${dragOverIndex === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
+            className={`gantt-tl-add-btn${dragOverIndex === searchFilteredTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
             onClick={() => setIsCreating(true)}
             onDragEnter={(e) => {
               e.preventDefault();
-              setDragOverIndex(visibleTasks.length);
+              setDragOverIndex(searchFilteredTasks.length);
             }}
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
-              setDragOverIndex(visibleTasks.length);
+              setDragOverIndex(searchFilteredTasks.length);
             }}
             onDragLeave={(e) => {
               e.preventDefault();
@@ -931,7 +974,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             }}
             onDrop={(e) => {
               e.preventDefault();
-              handleDrop(visibleTasks.length, e);
+              handleDrop(searchFilteredTasks.length, e);
             }}
             type="button"
           >
