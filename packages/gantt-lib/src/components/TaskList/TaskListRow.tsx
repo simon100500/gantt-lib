@@ -1708,9 +1708,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               <span
                 style={{
                   position: "absolute",
-                  left: `${nestingDepth * 20 + 9}px`,
-                  top: `${rowHeight / 2}px`,
-                  height: `${rowHeight / 2}px`,
+                  left: `${nestingDepth * 20 + 7}px`,
+                  top: `${rowHeight / 2 + 3}px`,
+                  height: `${rowHeight / 2 - 3}px`,
                   width: "1.5px",
                   background: "#d4bceb",
                   borderRadius: "1px",
@@ -1721,7 +1721,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 type="button"
                 className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
                 onClick={handleToggleCollapse}
-                style={{ left: `${nestingDepth * 20 + 4}px` }}
+                style={{ left: `${nestingDepth * 20 + 2}px` }}
                 aria-label={isCollapsed ? "Expand children" : "Collapse children"}
               >
                 <ChevronRightIcon />
@@ -1758,9 +1758,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             style={{
               paddingLeft:
                 nestingDepth > 0
-                  ? `${nestingDepth * 20 + (isParent ? 26 : 8)}px`
+                  ? `${nestingDepth * 20 + (isParent ? 24 : 8)}px`
                   : isParent
-                    ? "26px"
+                    ? "24px"
                     : undefined,
               ...(editingName
                 ? { visibility: "hidden", pointerEvents: "none" }
