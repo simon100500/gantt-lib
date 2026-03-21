@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { GanttChart, Calendar, type Task, type GanttChartHandle, alignToWorkingDay, buildTaskRangeFromStart, createCustomDayPredicate, getTaskDuration, universalCascade, and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains, type TaskPredicate } from "gantt-lib";
 import { isTaskParent, getAllDescendants } from "gantt-lib";
 
@@ -823,6 +823,22 @@ export default function Home() {
   const [businessDays, setBusinessDays] = useState(true);
   const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
   const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const highlightedTaskIds = useMemo(() => {
+    if (!searchQuery.trim()) return new Set<string>();
+    const query = searchQuery.toLowerCase();
+    return new Set(tasks.filter(t => t.name.toLowerCase().includes(query)).map(t => t.id));
+  }, [searchQuery, tasks]);
+
+  const handleSearchEnter = useCallback(() => {
+    if (!searchQuery.trim()) return;
+    const matched = tasks.find(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (matched) {
+      ganttChartRef.current?.scrollToRow(matched.id);
+    }
+  }, [searchQuery, tasks]);
+
   useEffect(() => {
     if (!businessDays) return;
     setTasks((prev) => reflowTasksForBusinessDays(prev, MAIN_CHART_WEEKEND_PREDICATE));
@@ -1157,6 +1173,22 @@ export default function Home() {
               {businessDays ? "Рабочие дни: ON" : "Рабочие дни: OFF"}
             </button>
           </div>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+            <input
+              type="text"
+              placeholder="Поиск задач..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSearchEnter(); }}
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                minWidth: '200px',
+              }}
+            />
+          </div>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Фильтры:</span>
             <button
@@ -1339,6 +1371,7 @@ export default function Home() {
               ref={ganttChartRef}
               tasks={tasks}
               taskFilter={taskFilter}
+              highlightedTaskIds={highlightedTaskIds}
               dayWidth={viewMode === 'month' ? 2.5 : viewMode === 'week' ? 8 : 24}
               rowHeight={36}
               onTasksChange={handleChange}

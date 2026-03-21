@@ -215,6 +215,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   highlightedTaskIds: externalHighlightedTaskIds,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const taskListRef = useRef<{ scrollToRow: (taskId: string) => void }>(null);
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -642,8 +643,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       scrollToToday,
       scrollToTask,
       scrollToRow: (taskId: string) => {
-        // Будет реализовано в Task 2
-        console.log('scrollToRow:', taskId);
+        taskListRef.current?.scrollToRow(taskId);
       },
       collapseAll: handleCollapseAll,
       expandAll: handleExpandAll,
@@ -839,6 +839,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         <div className="gantt-scrollContent">
           {/* TaskList - sticky left, scrolls with content horizontally */}
           <TaskList
+            ref={taskListRef}
             tasks={normalizedTasks}
             rowHeight={rowHeight}
             headerHeight={headerHeight}

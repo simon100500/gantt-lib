@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
 import type { CustomDayConfig } from '../../utils/dateUtils';
@@ -16,6 +16,10 @@ import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
 import './TaskList.css';
 
 export { LINK_TYPE_ICONS };
+
+export interface TaskListHandle {
+  scrollToRow: (taskId: string) => void;
+}
 
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
 type DependencyPickMode = 'predecessor' | 'successor';
@@ -156,7 +160,7 @@ export interface TaskListProps {
  * Renders a table with columns: № (number), Name, Start Date, End Date, Duration, Progress, Dependencies
  * Uses position: sticky for synchronized vertical scrolling with the chart.
  */
-export const TaskList: React.FC<TaskListProps> = ({
+export const TaskList = forwardRef<TaskListHandle, TaskListProps>(({
   tasks,
   rowHeight,
   headerHeight,
@@ -184,9 +188,12 @@ export const TaskList: React.FC<TaskListProps> = ({
   isWeekend,
   businessDays,
   highlightedTaskIds = new Set(),
-}) => {
+}, ref) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
+
+  // Ref for body div to support scrollToRow
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   // Use external collapsedParentIds if provided (controlled mode), otherwise use internal state
   const collapsedParentIds = externalCollapsedParentIds ?? internalCollapsedParentIds;
@@ -715,6 +722,16 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   const handleCancelNewTask = useCallback(() => setIsCreating(false), []);
 
+  // Expose scrollToRow method via ref
+  useImperativeHandle(ref, () => ({
+    scrollToRow: (taskId: string) => {
+      const index = visibleTasks.findIndex(t => t.id === taskId);
+      if (index === -1 || !bodyRef.current) return;
+      const scrollTop = index * rowHeight;
+      bodyRef.current.scrollTo({ top: scrollTop, behavior: 'smooth' });
+    },
+  }), [visibleTasks, rowHeight]);
+
   /**
    * Calculate the depth of a task in the hierarchy.
    * Root tasks have depth 0, their children have depth 1, etc.
@@ -852,7 +869,7 @@ export const TaskList: React.FC<TaskListProps> = ({
         </div>
 
         {/* Data rows */}
-        <div className="gantt-tl-body" style={{ height: `${totalHeight}px` }}>
+        <div className="gantt-tl-body" ref={bodyRef} style={{ height: `${totalHeight}px` }}>
           {visibleTasks.map((task, index) => (
             <TaskListRow
               key={task.id}
@@ -942,6 +959,8 @@ export const TaskList: React.FC<TaskListProps> = ({
       </div>
     </div>
   );
-};
+});
+
+TaskList.displayName = 'TaskList';
 
 export default TaskList;
