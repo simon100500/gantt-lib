@@ -526,6 +526,8 @@ export interface UseTaskDragOptions {
   onCascade?: (tasks: Task[]) => void;
   /** When true, all drag and resize interactions are disabled for this task */
   locked?: boolean;
+  /** When true, drag is disabled globally for all tasks (shows grab cursor instead of not-allowed) */
+  disableTaskDrag?: boolean;
   /** If true, dependency cascade calculations skip weekends */
   businessDays?: boolean;
   /** Function that returns true for weekends (for businessDays mode) */
@@ -574,13 +576,15 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     disableConstraints = false,
     onCascadeProgress,
     onCascade,
+    locked = false,
+    disableTaskDrag = false,
     businessDays = true,
     weekendPredicate,
   } = options;
 
   // Track if this hook instance owns the current global drag
   const isOwnerRef = useRef<boolean>(false);
-  const locked = options.locked ?? false;
+  const effectiveLocked = locked || disableTaskDrag;
 
   // Display state (triggers re-renders only when needed)
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -813,7 +817,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
    */
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Phase 11: locked tasks cannot be dragged or resized
-    if (locked) return;
+    if (effectiveLocked) return;
 
     const target = e.currentTarget as HTMLElement;
     const edgeZone = detectEdgeZone(e.clientX, target, edgeZoneWidth);
@@ -922,18 +926,19 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       businessDays,
       weekendPredicate,
     };
-  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, locked]);
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, effectiveLocked]);
 
   /**
    * Get cursor style based on current position
    */
   const getCursorStyle = useCallback((): string => {
-    if (locked) return 'not-allowed';
+    if (disableTaskDrag) return 'grab'; // Global disable - allow pan
+    if (locked) return 'not-allowed';   // Task-specific locked
     if (isDragging) {
       return 'grabbing';
     }
     return 'grab';
-  }, [locked, isDragging]);
+  }, [disableTaskDrag, locked, isDragging]);
 
   return {
     isDragging,
