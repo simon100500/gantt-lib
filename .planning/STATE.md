@@ -84,6 +84,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | 260320-ht7 | Каскадный пересчёт зависимостей с учётом рабочих дней | 2026-03-20 | 1c675fd | [260320-ht7-business-days-calc](./quick/260320-ht7-business-days-calc/) |
 
 | 260321-lag | РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј | 2026-03-20 | eb14476 | [260321-lag-planning-work-day-logic-md](./quick/260321-lag-planning-work-day-logic-md/) |
+| 260321-dsr | Feature: Search Row Highlight & Scroll | 2026-03-21 | 90dda50 | [260321-dsr-feature-search-row-highlight-scroll](./quick/260321-dsr-feature-search-row-highlight-scroll/) |
 
 ### User Feedback
 
@@ -135,7 +136,7 @@ None yet — no external users (library in active development)
 
 Last activity: 2026-03-20 - Completed quick task 260320-ht7: Каскадный пересчёт зависимостей с учётом рабочих дней
 
-Last activity: 2026-03-20 - Completed quick task 260321-lag: РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј
+Last activity: 2026-03-21 - Completed quick task 260321-dsr: Feature: Search Row Highlight & Scroll
 
 **State updated:** 2026-03-20
 **Milestone:** v0.50.0 Adding Tools
