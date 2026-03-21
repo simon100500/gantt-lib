@@ -56,6 +56,8 @@ export interface TaskRowProps {
   customDays?: Array<{ date: Date; type: 'weekend' | 'workday' }>;
   /** Custom weekend predicate (overrides default Saturday/Sunday) */
   isWeekend?: (date: Date) => boolean;
+  /** Disable task drag and resize (overrides task.locked) */
+  disableTaskDrag?: boolean;
 }
 
 /**
@@ -100,7 +102,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.isFilterMatch === nextProps.isFilterMatch &&
     prevProps.businessDays === nextProps.businessDays &&
     prevProps.customDays === nextProps.customDays &&
-    prevProps.isWeekend === nextProps.isWeekend
+    prevProps.isWeekend === nextProps.isWeekend &&
+    prevProps.disableTaskDrag === nextProps.disableTaskDrag
     // onTasksChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
@@ -112,7 +115,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isFilterMatch = false, businessDays, customDays, isWeekend }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false }) => {
     // Extract divider from task prop
     const { divider: taskDivider } = task;
 
@@ -225,7 +228,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       rowIndex,
       enableAutoSchedule,
       disableConstraints,
-      locked: task.locked,
+      locked: task.locked || disableTaskDrag,
       onCascadeProgress,
       onCascade,
       businessDays,

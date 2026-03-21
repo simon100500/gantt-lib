@@ -147,6 +147,8 @@ export interface GanttChartProps {
   onToggleCollapse?: (parentId: string) => void;
   /** Task IDs to highlight in the task list (for search results) */
   highlightedTaskIds?: Set<string>;
+  /** Disable task drag and resize on the calendar grid (default: false) */
+  disableTaskDrag?: boolean;
 }
 
 /**
@@ -215,6 +217,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   collapsedParentIds: externalCollapsedParentIds,
   onToggleCollapse: externalOnToggleCollapse,
   highlightedTaskIds,
+  disableTaskDrag = false,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -978,6 +981,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
               businessDays={businessDays}
               customDays={customDays}
               isWeekend={isWeekend}
+              disableTaskDrag={disableTaskDrag}
             />
           ))}
           </div>
