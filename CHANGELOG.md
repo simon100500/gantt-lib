@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.1] - 2026-03-22
+
+### Style
+- Update hierarchy line color to a more neutral shade
+- Use CSS variable for hierarchy line color
+- Move parent chevron and title left, start hierarchy line lower
+
+### Fixes
+- Hide hierarchy line when parent is collapsed
+- Align parent hierarchy line with children, remove horizontal segment
+- Start hierarchy line from parent chevron instead of first child
+
 ## [0.25.0] - 2026-03-21
 
 ### Features
