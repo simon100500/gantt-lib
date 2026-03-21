@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.26.0] - 2026-03-22
+
+### Features
+- Add disableTaskDrag prop to prevent accidental task movement during panning
+
+### Fixes
+- Use grab cursor instead of not-allowed when disableTaskDrag is enabled
+
 ## [0.25.1] - 2026-03-22
 
 ### Style
