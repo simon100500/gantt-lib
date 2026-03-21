@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.0] - 2026-03-21
+
+### Features
+- Add keyboard navigation for task list search results (ArrowUp/ArrowDown, Enter to select)
+- Add automatic scrolling to highlighted task rows when navigating search results
+- Improve task list row search with smooth scroll behavior
+
 ## [0.24.1] - 2026-03-21
 
 ### Fixes
