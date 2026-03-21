@@ -85,6 +85,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 | 260321-lag | РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј | 2026-03-20 | eb14476 | [260321-lag-planning-work-day-logic-md](./quick/260321-lag-planning-work-day-logic-md/) |
 | 260321-dsr | Feature: Search Row Highlight & Scroll | 2026-03-21 | 90dda50 | [260321-dsr-feature-search-row-highlight-scroll](./quick/260321-dsr-feature-search-row-highlight-scroll/) |
+| 260321-dzb | Fix search: highlight prop + scrollToRow method + demo search field | 2026-03-21 | b5ea781 | [260321-dzb-fix-search-highlight-prop-scrolltorow-me](./quick/260321-dzb-fix-search-highlight-prop-scrolltorow-me/) |
 
 ### User Feedback
 
@@ -136,7 +137,7 @@ None yet — no external users (library in active development)
 
 Last activity: 2026-03-20 - Completed quick task 260320-ht7: Каскадный пересчёт зависимостей с учётом рабочих дней
 
-Last activity: 2026-03-21 - Completed quick task 260321-dsr: Feature: Search Row Highlight & Scroll
+Last activity: 2026-03-21 - Completed quick task 260321-dzb: Fix search: highlight prop + scrollToRow method + demo search field
 
 **State updated:** 2026-03-20
 **Milestone:** v0.50.0 Adding Tools
