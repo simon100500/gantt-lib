@@ -1704,27 +1704,14 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           )}
           {isParent && !editingName && (
             <>
-              {/* Vertical line from chevron center down */}
-              <span
-                style={{
-                  position: "absolute",
-                  left: `${nestingDepth * 20 + 10.5}px`,
-                  top: `${rowHeight / 2}px`,
-                  height: `${rowHeight / 2}px`,
-                  width: "1.5px",
-                  background: "#d4bceb",
-                  borderRadius: "1px",
-                  pointerEvents: "none",
-                }}
-              />
-              {/* Horizontal line from children line position to chevron center */}
+              {/* Vertical line from chevron center down, aligned with children lines */}
               <span
                 style={{
                   position: "absolute",
                   left: `${nestingDepth * 20 + 9}px`,
-                  top: `${rowHeight - 1}px`,
-                  width: "2.5px",
-                  height: "1.5px",
+                  top: `${rowHeight / 2}px`,
+                  height: `${rowHeight / 2}px`,
+                  width: "1.5px",
                   background: "#d4bceb",
                   borderRadius: "1px",
                   pointerEvents: "none",
