@@ -1,7 +1,7 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
+import React, { createRef } from 'react';
+import { act, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { GanttChart, type Task } from '../components/GanttChart';
+import { GanttChart, type GanttChartHandle, type Task } from '../components/GanttChart';
 import { withoutDeps } from '../filters';
 
 vi.mock('../components/ui/DatePicker', () => ({
@@ -56,5 +56,80 @@ describe('GanttChart taskFilter', () => {
 
     expect(highlightedRows.length).toBeGreaterThan(0);
     expect(plainRows.length).toBeGreaterThan(0);
+  });
+
+  it('forwards external highlightedTaskIds to task list rows', () => {
+    const tasks: Task[] = [
+      {
+        id: 'a',
+        name: 'Alpha task',
+        startDate: '2026-02-01',
+        endDate: '2026-02-03',
+      },
+      {
+        id: 'b',
+        name: 'Beta task',
+        startDate: '2026-02-04',
+        endDate: '2026-02-06',
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart
+        tasks={tasks}
+        showTaskList
+        highlightedTaskIds={new Set(['b'])}
+        rowHeight={36}
+        headerHeight={40}
+      />
+    );
+
+    const highlightedTaskListRows = container.querySelectorAll('.gantt-tl-row[data-filter-match="true"]');
+    expect(highlightedTaskListRows).toHaveLength(1);
+    expect(within(highlightedTaskListRows[0] as HTMLElement).getByText('Beta task')).toBeTruthy();
+  });
+
+  it('scrollToRow scrolls the vertical container to the matching task list row', () => {
+    const tasks: Task[] = [
+      {
+        id: 'a',
+        name: 'Alpha task',
+        startDate: '2026-02-01',
+        endDate: '2026-02-03',
+      },
+      {
+        id: 'b',
+        name: 'Beta task',
+        startDate: '2026-02-04',
+        endDate: '2026-02-06',
+      },
+      {
+        id: 'c',
+        name: 'Gamma task',
+        startDate: '2026-02-07',
+        endDate: '2026-02-09',
+      },
+    ];
+
+    const ref = createRef<GanttChartHandle>();
+    const { container } = render(
+      <GanttChart
+        ref={ref}
+        tasks={tasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+      />
+    );
+
+    const scrollContainer = container.querySelector('.gantt-scrollContainer') as HTMLDivElement;
+    const scrollToSpy = vi.fn();
+    scrollContainer.scrollTo = scrollToSpy;
+
+    act(() => {
+      ref.current?.scrollToRow('c');
+    });
+
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 112, behavior: 'smooth' });
   });
 });

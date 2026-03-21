@@ -83,7 +83,7 @@ const initialTasks: Task[] = [
 
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void }>(null);
+  const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void; scrollToRow: (taskId: string) => void }>(null);
 
   const handleAdd = (task: Task) => {
     // Called when user adds a task via the task list
@@ -198,7 +198,7 @@ const initialTasks: Task[] = [
 
 export default function FullExample() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void }>(null);
+  const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void; scrollToRow: (taskId: string) => void }>(null);
 
   // Basic task operations
   const handleTasksChange = useCallback((changedTasks: Task[]) => {
@@ -628,6 +628,7 @@ interface GanttChartProps {
   onToggleCollapse?: (parentId: string) => void;
   enableAddTask?: boolean;
   taskFilter?: TaskPredicate;
+  highlightedTaskIds?: Set<string>;
   customDays?: CustomDayConfig[];
   isWeekend?: (date: Date) => boolean;
   businessDays?: boolean;
@@ -662,6 +663,7 @@ interface GanttChartProps {
 | `onToggleCollapse` | `(parentId: string) => void` | `undefined` | Called when user clicks collapse/expand button on a parent task. Receives the `parentId` of the parent being toggled. Required for controlled mode when providing `collapsedParentIds`. |
 | `enableAddTask` | `boolean` | `true` | When `true`, shows the "+ Добавить задачу" button at the bottom of the task list for adding new tasks. |
 | `taskFilter` | `TaskPredicate` | `undefined` | Predicate function to filter tasks. Receives a `Task | undefined`, returns `true` to show the task, `false` to hide it. **Import:** `import { type TaskPredicate } from 'gantt-lib'`. See Section 7.3 for usage and ready-made filters. |
+| `highlightedTaskIds` | `Set<string>` | `undefined` | Task IDs to highlight in the task list. Useful for external search results or navigation state without hiding other rows. |
 | `customDays` | `CustomDayConfig[]` | `undefined` | Array of custom day configurations with explicit types. Each entry: `{ date: Date, type: 'weekend' | 'workday' }`. **IMPORTANT:** Use UTC dates: `{ date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' }` for March 8, 2026. See Section 7.2 for details. |
 | `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Checked BEFORE customDays overrides** — use for base patterns, then override specific dates with `customDays`. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
 | `businessDays` | `boolean` | `true` | Когда `true` (default), длительность задачи (duration) считается в рабочих днях, исключая выходные. Когда `false`, длительность считается в календарных днях. Влияет на расчёт зависимостей, перетаскивание задач и отображение длительности. См. раздел 7.5. |
@@ -1982,6 +1984,7 @@ The `GanttChart` component supports an imperative handle via `ref` for programma
 interface GanttChartRef {
   scrollToToday: () => void;
   scrollToTask: (taskId: string) => void;
+  scrollToRow: (taskId: string) => void;
   collapseAll: () => void;
   expandAll: () => void;
 }
@@ -1994,7 +1997,7 @@ import { useRef } from 'react';
 import { GanttChart } from 'gantt-lib';
 
 function App() {
-  const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void; collapseAll: () => void; expandAll: () => void }>(null);
+  const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void; scrollToRow: (taskId: string) => void; collapseAll: () => void; expandAll: () => void }>(null);
 
   const handleTodayClick = () => {
     ganttRef.current?.scrollToToday();
@@ -2002,6 +2005,10 @@ function App() {
 
   const handleScrollToTask = (taskId: string) => {
     ganttRef.current?.scrollToTask(taskId);
+  };
+
+  const handleScrollToRow = (taskId: string) => {
+    ganttRef.current?.scrollToRow(taskId);
   };
 
   const handleCollapseAll = () => {
@@ -2015,6 +2022,7 @@ function App() {
   return (
     <>
       <button onClick={handleTodayClick}>Today</button>
+      <button onClick={() => handleScrollToRow('task-1')}>Row</button>
       <button onClick={handleCollapseAll}>Collapse All</button>
       <button onClick={handleExpandAll}>Expand All</button>
       <GanttChart ref={ganttRef} tasks={tasks} />
@@ -2026,7 +2034,8 @@ function App() {
 | Method | Return Type | Description |
 |---|---|---|
 | `scrollToToday()` | `void` | Scrolls the chart horizontally so that today's date is centered in the viewport. If today is not within the visible date range, no action is taken. |
-| `scrollToTask(taskId)` | `void` | Scrolls the chart horizontally and vertically so that the task with the given `taskId` is visible and centered. The corresponding row is also highlighted. If the task ID is not found, no action is taken. |
+| `scrollToTask(taskId)` | `void` | Scrolls the chart horizontally so that the task bar with the given `taskId` is visible in the grid. If the task ID is not found, no action is taken. |
+| `scrollToRow(taskId)` | `void` | Scrolls the task list vertically to the row for the given `taskId` using the current visible row order. If the task ID is not visible, no action is taken. |
 | `collapseAll()` | `void` | Collapses all parent tasks in the chart. Hides all child tasks from both the task list and the chart. |
 | `expandAll()` | `void` | Expands all parent tasks in the chart. Shows all child tasks in both the task list and the chart. |
 
@@ -2260,10 +2269,11 @@ const tasks: Task[] = [
 - Use `disableDependencyEditing={true}` to globally disable dependency editing. Date editing is automatically disabled for locked tasks.
 
 **Scroll to Today / Scroll to Task**
-- Use `ref` to access `scrollToToday()` and `scrollToTask(taskId)` methods for programmatic scroll.
+- Use `ref` to access `scrollToToday()`, `scrollToTask(taskId)`, and `scrollToRow(taskId)` methods for programmatic scroll.
 - `scrollToToday()` centers the current date in the viewport.
-- `scrollToTask(taskId)` scrolls to and highlights the specified task.
-- Example: `ganttRef.current?.scrollToToday()` or `ganttRef.current?.scrollToTask('task-1')`
+- `scrollToTask(taskId)` scrolls the chart grid to the specified task bar.
+- `scrollToRow(taskId)` scrolls the task list to the specified row.
+- Example: `ganttRef.current?.scrollToToday()`, `ganttRef.current?.scrollToTask('task-1')`, or `ganttRef.current?.scrollToRow('task-1')`
 - **Calendar Navigation Buttons:** The task list header includes quick-jump buttons (-7, -1, Today, +1, +7) for fast navigation. Click to shift the chart view by the specified number of days.
 
 **Collapse/Expand All**

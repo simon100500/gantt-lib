@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { GanttChart, Calendar, type Task, type GanttChartHandle, alignToWorkingDay, buildTaskRangeFromStart, createCustomDayPredicate, getTaskDuration, universalCascade, and, or, not, withoutDeps, expired, inDateRange, progressInRange, nameContains, type TaskPredicate } from "gantt-lib";
 import { isTaskParent, getAllDescendants } from "gantt-lib";
 
@@ -14,7 +14,7 @@ const MAIN_CHART_CUSTOM_DAYS = [
 const MAIN_CHART_WEEKEND_PREDICATE = createCustomDayPredicate({ customDays: MAIN_CHART_CUSTOM_DAYS });
 
 const reflowTasksForBusinessDays = (sourceTasks: Task[], weekendPredicate: (date: Date) => boolean): Task[] => {
-  let tasks = sourceTasks.map((task) => ({
+  let tasks: Task[] = sourceTasks.map((task) => ({
     ...task,
     dependencies: task.dependencies?.map((dep) => ({ ...dep, lag: dep.lag ?? 0 })),
   }));
@@ -36,8 +36,8 @@ const reflowTasksForBusinessDays = (sourceTasks: Task[], weekendPredicate: (date
 
     const cascaded = universalCascade(movedSeed, range.start, range.end, tasks, true, weekendPredicate);
     const updates = new Map<string, Task>([
-      [movedSeed.id, movedSeed],
-      ...cascaded.map((task) => [task.id, task]),
+      [movedSeed.id, movedSeed] as [string, Task],
+      ...cascaded.map((task): [string, Task] => [task.id, task]),
     ]);
 
     tasks = tasks.map((task) => updates.get(task.id) ?? task);
@@ -592,7 +592,7 @@ const createDependencyTasks = (): Task[] => {
       startDate: '2026-02-07',
       endDate: '2026-02-09',
       color: '#f59e0b',
-      dependencies: [{ taskId: 'task-2', type: 'FS' as const }],
+      dependencies: [{ taskId: 'task-2', type: 'FS' as const, lag: 0 }],
     },
     {
       id: 'task-2',
@@ -600,7 +600,7 @@ const createDependencyTasks = (): Task[] => {
       startDate: '2026-02-04',
       endDate: '2026-02-06',
       color: '#10b981',
-      dependencies: [{ taskId: 'task-1', type: 'FS' as const }],
+      dependencies: [{ taskId: 'task-1', type: 'FS' as const, lag: 0 }],
     },
     {
       id: 'task-4',
@@ -608,7 +608,7 @@ const createDependencyTasks = (): Task[] => {
       startDate: '2026-02-10',
       endDate: '2026-02-12',
       color: '#ef4444',
-      dependencies: [{ taskId: 'task-3', type: 'FS' as const }],
+      dependencies: [{ taskId: 'task-3', type: 'FS' as const, lag: 0 }],
     },
     {
       id: 'task-5',
@@ -616,7 +616,7 @@ const createDependencyTasks = (): Task[] => {
       startDate: '2026-02-13',
       endDate: '2026-02-15',
       color: '#8b5cf6',
-      dependencies: [{ taskId: 'task-4', type: 'FS' as const }],
+      dependencies: [{ taskId: 'task-4', type: 'FS' as const, lag: 0 }],
     },
 
     // FS with negative lag test case
@@ -823,6 +823,8 @@ export default function Home() {
   const [businessDays, setBusinessDays] = useState(true);
   const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
   const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearchResultIndex, setActiveSearchResultIndex] = useState(0);
   useEffect(() => {
     if (!businessDays) return;
     setTasks((prev) => reflowTasksForBusinessDays(prev, MAIN_CHART_WEEKEND_PREDICATE));
@@ -830,6 +832,51 @@ export default function Home() {
 
   // Ref for the main GanttChart to access scrollToToday method
   const ganttChartRef = useRef<GanttChartHandle>(null);
+
+  const searchResultIds = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return [];
+    }
+
+    return tasks
+      .filter((task) =>
+        task.name
+          .toLowerCase()
+          .split(/\s+/)
+          .some((word) => word.startsWith(normalizedQuery))
+      )
+      .map((task) => task.id);
+  }, [searchQuery, tasks]);
+
+  const highlightedSearchTaskIds = useMemo(
+    () => new Set(searchResultIds),
+    [searchResultIds]
+  );
+
+  const activeSearchTaskId = searchResultIds[activeSearchResultIndex] ?? searchResultIds[0];
+
+  useEffect(() => {
+    setActiveSearchResultIndex(0);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (searchResultIds.length === 0) {
+      if (activeSearchResultIndex !== 0) {
+        setActiveSearchResultIndex(0);
+      }
+      return;
+    }
+
+    if (activeSearchResultIndex > searchResultIds.length - 1) {
+      setActiveSearchResultIndex(searchResultIds.length - 1);
+    }
+  }, [activeSearchResultIndex, searchResultIds]);
+
+  useEffect(() => {
+    if (!activeSearchTaskId) return;
+    ganttChartRef.current?.scrollToRow(activeSearchTaskId);
+  }, [activeSearchTaskId]);
 
   const handleChange = useCallback(
     (updatedTasks: Task[]) => {
@@ -880,6 +927,23 @@ export default function Home() {
     // The reorderedTasks array has the correct order and parentId updates applied
     setTasks(reorderedTasks);
   }, []);
+
+  const handleSearchResultStep = useCallback((direction: -1 | 1) => {
+    if (searchResultIds.length === 0) {
+      return;
+    }
+
+    setActiveSearchResultIndex((prev) => {
+      const nextIndex = prev + direction;
+      if (nextIndex < 0) {
+        return searchResultIds.length - 1;
+      }
+      if (nextIndex >= searchResultIds.length) {
+        return 0;
+      }
+      return nextIndex;
+    });
+  }, [searchResultIds]);
 
   const exportTasksAsJson = useCallback((taskList: Task[]) => {
     const result = taskList.map((task) => ({
@@ -1158,6 +1222,41 @@ export default function Home() {
             </button>
           </div>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Поиск:</span>
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Начните вводить слово из названия задачи"
+              style={{
+                minWidth: '280px',
+                padding: '8px 12px',
+                fontSize: '0.875rem',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                outline: 'none',
+              }}
+            />
+            <button
+              className="demo-btn demo-btn-secondary"
+              onClick={() => handleSearchResultStep(-1)}
+              disabled={searchResultIds.length === 0}
+            >
+              ↑
+            </button>
+            <button
+              className="demo-btn demo-btn-secondary"
+              onClick={() => handleSearchResultStep(1)}
+              disabled={searchResultIds.length === 0}
+            >
+              ↓
+            </button>
+            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              {searchResultIds.length === 0
+                ? (searchQuery.trim() ? 'Совпадений нет' : 'Введите начало слова')
+                : `${activeSearchResultIndex + 1} / ${searchResultIds.length}`}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Фильтры:</span>
             <button
               onClick={() => {
@@ -1354,6 +1453,7 @@ export default function Home() {
               viewMode={viewMode}
               businessDays={businessDays}
               customDays={MAIN_CHART_CUSTOM_DAYS}
+              highlightedTaskIds={highlightedSearchTaskIds}
             />
           </div>
         </section>

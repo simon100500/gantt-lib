@@ -143,6 +143,8 @@ export interface GanttChartProps {
   collapsedParentIds?: Set<string>;
   /** Callback when collapse/expand button is clicked (controlled mode) */
   onToggleCollapse?: (parentId: string) => void;
+  /** Task IDs to highlight in the task list (for search results) */
+  highlightedTaskIds?: Set<string>;
 }
 
 /**
@@ -151,6 +153,7 @@ export interface GanttChartProps {
 export interface GanttChartHandle {
   scrollToToday: () => void;
   scrollToTask: (taskId: string) => void;
+  scrollToRow: (taskId: string) => void;
   collapseAll: () => void;
   expandAll: () => void;
 }
@@ -209,6 +212,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   taskFilter,
   collapsedParentIds: externalCollapsedParentIds,
   onToggleCollapse: externalOnToggleCollapse,
+  highlightedTaskIds,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -272,6 +276,16 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     if (!taskFilter) return new Set<string>();
     return new Set(visibleTasks.filter(taskFilter).map(task => task!.id));
   }, [visibleTasks, taskFilter]);
+
+  const taskListHighlightedTaskIds = useMemo(() => {
+    if ((!highlightedTaskIds || highlightedTaskIds.size === 0) && matchedTaskIds.size === 0) {
+      return new Set<string>();
+    }
+
+    const mergedHighlightedTaskIds = new Set(highlightedTaskIds ?? []);
+    matchedTaskIds.forEach((taskId) => mergedHighlightedTaskIds.add(taskId));
+    return mergedHighlightedTaskIds;
+  }, [highlightedTaskIds, matchedTaskIds]);
 
   // Calculate total grid height from currently visible rows.
   const totalGridHeight = useMemo(
@@ -373,6 +387,21 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const scrollLeft = Math.round(taskOffset - dayWidth * 2);
     container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
   }, [tasks, dateRange, dayWidth]);
+
+  const scrollToRow = useCallback((taskId: string) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const rowIndex = visibleTasks.findIndex(visibleTask => visibleTask.id === task.id);
+    if (rowIndex === -1) return;
+
+    const scrollTop = Math.max(0, headerHeight + rowHeight * rowIndex);
+    setSelectedTaskId(taskId);
+    container.scrollTo({ top: scrollTop, behavior: 'smooth' });
+  }, [tasks, visibleTasks, headerHeight, rowHeight]);
 
   // Track drag state for guide lines
   const [dragGuideLines, setDragGuideLines] = useState<{
@@ -637,10 +666,11 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     () => ({
       scrollToToday,
       scrollToTask,
+      scrollToRow,
       collapseAll: handleCollapseAll,
       expandAll: handleExpandAll,
     }),
-    [scrollToToday, scrollToTask, handleCollapseAll, handleExpandAll]
+    [scrollToToday, scrollToTask, scrollToRow, handleCollapseAll, handleExpandAll]
   );
 
   /**
@@ -854,7 +884,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             onToggleCollapse={handleToggleCollapse}
             onPromoteTask={onPromoteTask ?? handlePromoteTask}
             onDemoteTask={onDemoteTask ?? handleDemoteTask}
-            highlightedTaskIds={matchedTaskIds}
+            highlightedTaskIds={taskListHighlightedTaskIds}
             customDays={customDays}
             isWeekend={isWeekend}
             businessDays={businessDays}
