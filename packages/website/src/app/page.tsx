@@ -821,6 +821,7 @@ export default function Home() {
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
   const [highlightExpired, setHighlightExpired] = useState(true);
   const [businessDays, setBusinessDays] = useState(true);
+  const [disableTaskDrag, setDisableTaskDrag] = useState(false);
   const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
   const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1220,6 +1221,12 @@ export default function Home() {
             >
               {businessDays ? "Рабочие дни: ON" : "Рабочие дни: OFF"}
             </button>
+            <button
+              className={`demo-btn ${disableTaskDrag ? "demo-btn-danger" : "demo-btn-muted"}`}
+              onClick={() => setDisableTaskDrag(!disableTaskDrag)}
+            >
+              {disableTaskDrag ? "Drag: OFF" : "Drag: ON"}
+            </button>
           </div>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Поиск:</span>
@@ -1463,6 +1470,7 @@ export default function Home() {
               businessDays={businessDays}
               customDays={MAIN_CHART_CUSTOM_DAYS}
               highlightedTaskIds={highlightedSearchTaskIds}
+              disableTaskDrag={disableTaskDrag}
             />
           </div>
         </section>
