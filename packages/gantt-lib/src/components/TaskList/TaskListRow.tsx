@@ -1703,15 +1703,43 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             </>
           )}
           {isParent && !editingName && (
-            <button
-              type="button"
-              className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
-              onClick={handleToggleCollapse}
-              style={{ left: `${nestingDepth * 20 + 4}px` }}
-              aria-label={isCollapsed ? "Expand children" : "Collapse children"}
-            >
-              <ChevronRightIcon />
-            </button>
+            <>
+              {/* Vertical line from chevron center down */}
+              <span
+                style={{
+                  position: "absolute",
+                  left: `${nestingDepth * 20 + 10.5}px`,
+                  top: `${rowHeight / 2}px`,
+                  height: `${rowHeight / 2}px`,
+                  width: "1.5px",
+                  background: "#d4bceb",
+                  borderRadius: "1px",
+                  pointerEvents: "none",
+                }}
+              />
+              {/* Horizontal line from children line position to chevron center */}
+              <span
+                style={{
+                  position: "absolute",
+                  left: `${nestingDepth * 20 + 9}px`,
+                  top: `${rowHeight - 1}px`,
+                  width: "2.5px",
+                  height: "1.5px",
+                  background: "#d4bceb",
+                  borderRadius: "1px",
+                  pointerEvents: "none",
+                }}
+              />
+              <button
+                type="button"
+                className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
+                onClick={handleToggleCollapse}
+                style={{ left: `${nestingDepth * 20 + 4}px` }}
+                aria-label={isCollapsed ? "Expand children" : "Collapse children"}
+              >
+                <ChevronRightIcon />
+              </button>
+            </>
           )}
           {editingName && (
             <Input
