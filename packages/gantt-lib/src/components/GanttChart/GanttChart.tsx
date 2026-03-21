@@ -16,6 +16,8 @@ import { DependencyLines } from '../DependencyLines';
 import { TaskList } from '../TaskList';
 import './GanttChart.css';
 
+const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
+
 /**
  * Task data structure for Gantt chart
  */
@@ -398,10 +400,11 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const rowIndex = visibleTasks.findIndex(visibleTask => visibleTask.id === task.id);
     if (rowIndex === -1) return;
 
-    const scrollTop = Math.max(0, headerHeight + rowHeight * rowIndex);
+    const paddedRowIndex = Math.max(0, rowIndex - SCROLL_TO_ROW_CONTEXT_ROWS);
+    const scrollTop = Math.max(0, rowHeight * paddedRowIndex);
     setSelectedTaskId(taskId);
     container.scrollTo({ top: scrollTop, behavior: 'smooth' });
-  }, [tasks, visibleTasks, headerHeight, rowHeight]);
+  }, [tasks, visibleTasks, rowHeight]);
 
   // Track drag state for guide lines
   const [dragGuideLines, setDragGuideLines] = useState<{

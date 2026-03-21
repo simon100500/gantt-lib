@@ -109,6 +109,12 @@ describe('GanttChart taskFilter', () => {
         startDate: '2026-02-07',
         endDate: '2026-02-09',
       },
+      {
+        id: 'd',
+        name: 'Delta task',
+        startDate: '2026-02-10',
+        endDate: '2026-02-12',
+      },
     ];
 
     const ref = createRef<GanttChartHandle>();
@@ -127,9 +133,9 @@ describe('GanttChart taskFilter', () => {
     scrollContainer.scrollTo = scrollToSpy;
 
     act(() => {
-      ref.current?.scrollToRow('c');
+      ref.current?.scrollToRow('d');
     });
 
-    expect(scrollToSpy).toHaveBeenCalledWith({ top: 112, behavior: 'smooth' });
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 36, behavior: 'smooth' });
   });
 });

@@ -1226,6 +1226,15 @@ export default function Home() {
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  handleSearchResultStep(1);
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  handleSearchResultStep(-1);
+                }
+              }}
               placeholder="Начните вводить слово из названия задачи"
               style={{
                 minWidth: '280px',
