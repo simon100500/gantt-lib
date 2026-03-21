@@ -623,6 +623,7 @@ interface GanttChartProps {
   taskListWidth?: number;
   disableTaskNameEditing?: boolean;
   disableDependencyEditing?: boolean;
+  disableTaskDrag?: boolean;
   highlightExpiredTasks?: boolean;
   collapsedParentIds?: Set<string>;
   onToggleCollapse?: (parentId: string) => void;
@@ -658,6 +659,7 @@ interface GanttChartProps {
 | `taskListWidth` | `number` | `520` | Width of the task list panel in pixels. Only effective when `showTaskList={true}`. |
 | `disableTaskNameEditing` | `boolean` | `false` | When `true`, task names cannot be edited in the task list. Date editing is also disabled for locked tasks (see `task.locked` property). |
 | `disableDependencyEditing` | `boolean` | `false` | When `true`, dependency editing is disabled in the task list. Users cannot add, remove, or modify dependencies via the UI. |
+| `disableTaskDrag` | `boolean` | `false` | When `true`, all drag and resize operations on the calendar grid are disabled. Useful for preventing accidental task movement during panning. Cursor shows `grab` instead of `not-allowed` to allow panning. |
 | `highlightExpiredTasks` | `boolean` | `false` | When `true`, tasks that are behind schedule are visually highlighted. An expired task is one where today's date is within the task's date range and the current progress is less than the elapsed percentage. Expired tasks render with the `--gantt-expired-color` background. |
 | `collapsedParentIds` | `Set<string>` | `undefined` | Set of parent task IDs that are collapsed (children hidden). Pass `undefined` for uncontrolled mode (internal state). |
 | `onToggleCollapse` | `(parentId: string) => void` | `undefined` | Called when user clicks collapse/expand button on a parent task. Receives the `parentId` of the parent being toggled. Required for controlled mode when providing `collapsedParentIds`. |
