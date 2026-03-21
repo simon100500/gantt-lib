@@ -14,7 +14,7 @@ const MAIN_CHART_CUSTOM_DAYS = [
 const MAIN_CHART_WEEKEND_PREDICATE = createCustomDayPredicate({ customDays: MAIN_CHART_CUSTOM_DAYS });
 
 const reflowTasksForBusinessDays = (sourceTasks: Task[], weekendPredicate: (date: Date) => boolean): Task[] => {
-  let tasks = sourceTasks.map((task) => ({
+  let tasks: Task[] = sourceTasks.map((task) => ({
     ...task,
     dependencies: task.dependencies?.map((dep) => ({ ...dep, lag: dep.lag ?? 0 })),
   }));
@@ -37,7 +37,7 @@ const reflowTasksForBusinessDays = (sourceTasks: Task[], weekendPredicate: (date
     const cascaded = universalCascade(movedSeed, range.start, range.end, tasks, true, weekendPredicate);
     const updates = new Map<string, Task>([
       [movedSeed.id, movedSeed],
-      ...cascaded.map((task) => [task.id, task]),
+      ...cascaded.map((task) => [task.id, task] as [string, Task]),
     ]);
 
     tasks = tasks.map((task) => updates.get(task.id) ?? task);
@@ -592,7 +592,7 @@ const createDependencyTasks = (): Task[] => {
       startDate: '2026-02-07',
       endDate: '2026-02-09',
       color: '#f59e0b',
-      dependencies: [{ taskId: 'task-2', type: 'FS' as const }],
+      dependencies: [{ taskId: 'task-2', type: 'FS' as const, lag: 0 }],
     },
     {
       id: 'task-2',
@@ -600,7 +600,7 @@ const createDependencyTasks = (): Task[] => {
       startDate: '2026-02-04',
       endDate: '2026-02-06',
       color: '#10b981',
-      dependencies: [{ taskId: 'task-1', type: 'FS' as const }],
+      dependencies: [{ taskId: 'task-1', type: 'FS' as const, lag: 0 }],
     },
     {
       id: 'task-4',
@@ -608,7 +608,7 @@ const createDependencyTasks = (): Task[] => {
       startDate: '2026-02-10',
       endDate: '2026-02-12',
       color: '#ef4444',
-      dependencies: [{ taskId: 'task-3', type: 'FS' as const }],
+      dependencies: [{ taskId: 'task-3', type: 'FS' as const, lag: 0 }],
     },
     {
       id: 'task-5',
@@ -616,7 +616,7 @@ const createDependencyTasks = (): Task[] => {
       startDate: '2026-02-13',
       endDate: '2026-02-15',
       color: '#8b5cf6',
-      dependencies: [{ taskId: 'task-4', type: 'FS' as const }],
+      dependencies: [{ taskId: 'task-4', type: 'FS' as const, lag: 0 }],
     },
 
     // FS with negative lag test case
@@ -824,20 +824,39 @@ export default function Home() {
   const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
   const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(-1);
 
-  const highlightedTaskIds = useMemo(() => {
-    if (!searchQuery.trim()) return new Set<string>();
+  const matchedTaskIds = useMemo(() => {
+    if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
-    return new Set(tasks.filter(t => t.name.toLowerCase().includes(query)).map(t => t.id));
+    return tasks.filter(t => t.name.toLowerCase().includes(query)).map(t => t.id);
   }, [searchQuery, tasks]);
 
-  const handleSearchEnter = useCallback(() => {
-    if (!searchQuery.trim()) return;
-    const matched = tasks.find(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    if (matched) {
-      ganttChartRef.current?.scrollToRow(matched.id);
+  // Автопрокрутка к первой задаче при изменении поиска
+  useEffect(() => {
+    if (matchedTaskIds.length > 0) {
+      setCurrentMatchIndex(0);
+      ganttChartRef.current?.scrollToRow(matchedTaskIds[0]);
+    } else {
+      setCurrentMatchIndex(-1);
     }
-  }, [searchQuery, tasks]);
+  }, [matchedTaskIds]);
+
+  const highlightedTaskIds = useMemo(() => new Set(matchedTaskIds), [matchedTaskIds]);
+
+  const handlePrevMatch = useCallback(() => {
+    if (matchedTaskIds.length === 0) return;
+    const newIndex = currentMatchIndex <= 0 ? matchedTaskIds.length - 1 : currentMatchIndex - 1;
+    setCurrentMatchIndex(newIndex);
+    ganttChartRef.current?.scrollToRow(matchedTaskIds[newIndex]);
+  }, [matchedTaskIds, currentMatchIndex]);
+
+  const handleNextMatch = useCallback(() => {
+    if (matchedTaskIds.length === 0) return;
+    const newIndex = currentMatchIndex >= matchedTaskIds.length - 1 ? 0 : currentMatchIndex + 1;
+    setCurrentMatchIndex(newIndex);
+    ganttChartRef.current?.scrollToRow(matchedTaskIds[newIndex]);
+  }, [matchedTaskIds, currentMatchIndex]);
 
   useEffect(() => {
     if (!businessDays) return;
@@ -1179,7 +1198,6 @@ export default function Home() {
               placeholder="Поиск задач..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSearchEnter(); }}
               style={{
                 padding: '6px 12px',
                 fontSize: '0.875rem',
@@ -1188,6 +1206,45 @@ export default function Home() {
                 minWidth: '200px',
               }}
             />
+            {matchedTaskIds.length > 0 && (
+              <>
+                <button
+                  onClick={handlePrevMatch}
+                  disabled={matchedTaskIds.length === 0}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '0.875rem',
+                    borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                    cursor: 'pointer',
+                    backgroundColor: '#ffffff',
+                    color: '#374151',
+                  }}
+                  title="Предыдущий результат (Shift+Enter)"
+                >
+                  ←
+                </button>
+                <span style={{ fontSize: '0.875rem', color: '#6b7280', minWidth: '40px', textAlign: 'center' }}>
+                  {currentMatchIndex + 1}/{matchedTaskIds.length}
+                </span>
+                <button
+                  onClick={handleNextMatch}
+                  disabled={matchedTaskIds.length === 0}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '0.875rem',
+                    borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                    cursor: 'pointer',
+                    backgroundColor: '#ffffff',
+                    color: '#374151',
+                  }}
+                  title="Следующий результат (Enter)"
+                >
+                  →
+                </button>
+              </>
+            )}
           </div>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Фильтры:</span>
