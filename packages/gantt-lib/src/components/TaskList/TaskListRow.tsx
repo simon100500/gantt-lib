@@ -1654,7 +1654,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                       top: 0,
                       height: `${rowHeight}px`,
                       width: "1.5px",
-                      background: "#d4bceb",
+                      background: "var(--gantt-hierarchy-line-color)",
                       borderRadius: "1px",
                       pointerEvents: "none",
                     }}
@@ -1669,7 +1669,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   top: 0,
                   height: isLastChild ? `${rowHeight / 2}px` : `${rowHeight}px`,
                   width: "1.5px",
-                  background: "#d4bceb",
+                  background: "var(--gantt-hierarchy-line-color)",
                   borderRadius: "1px",
                   pointerEvents: "none",
                 }}
@@ -1682,7 +1682,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   top: `${rowHeight / 2 - 0.75}px`,
                   width: "8px",
                   height: "1.5px",
-                  background: "#d4bceb",
+                  background: "var(--gantt-hierarchy-line-color)",
                   borderRadius: "1px",
                   pointerEvents: "none",
                 }}
@@ -1696,7 +1696,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   width: "4px",
                   height: "4px",
                   borderRadius: "50%",
-                  background: "#d4bceb",
+                  background: "var(--gantt-hierarchy-line-color)",
                   pointerEvents: "none",
                 }}
               />
@@ -1712,7 +1712,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                     top: `${rowHeight / 2 + 7}px`,
                     height: `${rowHeight / 2 - 7}px`,
                     width: "1.5px",
-                    background: "#d4bceb",
+                    background: "var(--gantt-hierarchy-line-color)",
                     borderRadius: "1px",
                     pointerEvents: "none",
                   }}
