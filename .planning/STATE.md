@@ -70,6 +70,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | 260320-ht7 | Каскадный пересчёт зависимостей с учётом рабочих дней | 2026-03-20 | 1c675fd | [260320-ht7-business-days-calc](./quick/260320-ht7-business-days-calc/) |
 
 | 260321-lag | РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј | 2026-03-20 | eb14476 | [260321-lag-planning-work-day-logic-md](./quick/260321-lag-planning-work-day-logic-md/) |
+| 260322-oi0 | Добавить возможность скрытия тасклиста отдельно от календаря | 2026-03-22 | f06f820 | [260322-oi0](./quick/260322-oi0/) |
 
 ### User Feedback
 
@@ -121,7 +122,7 @@ None yet — no external users (library in active development)
 
 Last activity: 2026-03-22
 
-Last activity: 2026-03-20 - Completed quick task 260321-lag: РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј
+Last activity: 2026-03-22 - Completed quick task 260322-oi0: Добавить возможность скрытия тасклиста отдельно от календаря
 
 **State updated:** 2026-03-20
 **Milestone:** v0.50.0 Adding Tools
