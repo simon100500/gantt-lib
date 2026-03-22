@@ -33,10 +33,5 @@
 
 /* Hide chart area while keeping TaskList visible */
 .gantt-chart-hidden {
-  opacity: 0;
-  visibility: hidden;
-  flex: 0;
-  width: 0;
-  overflow: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease, flex 0.2s ease, width 0.2s ease;
+  display: none;
 }

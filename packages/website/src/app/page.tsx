@@ -813,6 +813,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
   const [blockConstraints, setBlockConstraints] = useState(true);
   const [showTaskList, setShowTaskList] = useState(true);
+  const [showChart, setShowChart] = useState(true);
   const [showDependencyTaskList, setShowDependencyTaskList] = useState(false);
   const [showCascadeTaskList, setShowCascadeTaskList] = useState(false);
   const [showChain100TaskList, setShowChain100TaskList] = useState(false);
@@ -1180,6 +1181,24 @@ export default function Home() {
           <h2 className="demo-section-title">Construction Project</h2>
           <div className="demo-controls">
             <button
+              className={`demo-btn ${showTaskList && showChart ? "demo-btn-active" : "demo-btn-muted"}`}
+              onClick={() => { setShowTaskList(true); setShowChart(true); }}
+            >
+              Оба
+            </button>
+            <button
+              className={`demo-btn ${showTaskList && !showChart ? "demo-btn-active" : "demo-btn-muted"}`}
+              onClick={() => { setShowTaskList(true); setShowChart(false); }}
+            >
+              Только список
+            </button>
+            <button
+              className={`demo-btn ${!showTaskList && showChart ? "demo-btn-active" : "demo-btn-muted"}`}
+              onClick={() => { setShowTaskList(false); setShowChart(true); }}
+            >
+              Только календарь
+            </button>
+            <button
               className={`demo-btn ${showTaskList ? "demo-btn-danger" : "demo-btn-primary"}`}
               onClick={() => setShowTaskList(!showTaskList)}
             >
@@ -1463,6 +1482,7 @@ export default function Home() {
               onReorder={handleReorder}
               containerHeight={"80dvh"}
               showTaskList={showTaskList}
+              showChart={showChart}
               taskListWidth={500}
               disableTaskNameEditing={disableTaskNameEditing}
               highlightExpiredTasks={highlightExpired}
