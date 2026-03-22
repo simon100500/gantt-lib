@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.27.0] - 2026-03-22
+
+### Features
+- Add `showChart` prop for controlling calendar chart visibility independently from task list
+- Update chart visibility handling with proper CSS (`display: none` for complete layout exclusion)
+- Add demo page buttons for view modes: "Оба", "Только список", "Только календарь"
+
+### Documentation
+- Add `showChart` prop to API reference
+
 ## [0.26.0] - 2026-03-22
 
 ### Features
