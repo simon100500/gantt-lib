@@ -149,6 +149,8 @@ export interface GanttChartProps {
   highlightedTaskIds?: Set<string>;
   /** Disable task drag and resize on the calendar grid (default: false) */
   disableTaskDrag?: boolean;
+  /** Show calendar chart area (default: true) */
+  showChart?: boolean;
 }
 
 /**
@@ -218,6 +220,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   onToggleCollapse: externalOnToggleCollapse,
   highlightedTaskIds,
   disableTaskDrag = false,
+  showChart = true,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -897,7 +900,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
           />
 
           {/* Chart area */}
-          <div style={{ minWidth: `${gridWidth}px`, flex: 1 }}>
+          <div className={showChart ? '' : 'gantt-chart-hidden'} style={{ minWidth: `${gridWidth}px`, flex: 1 }}>
             {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
             <div className="gantt-stickyHeader" style={{ width: `${gridWidth}px` }}>
               <TimeScaleHeader
