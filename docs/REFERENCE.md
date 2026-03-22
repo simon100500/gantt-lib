@@ -620,6 +620,7 @@ interface GanttChartProps {
   disableConstraints?: boolean;
   onCascade?: (tasks: Task[]) => void;
   showTaskList?: boolean;
+  showChart?: boolean;
   taskListWidth?: number;
   disableTaskNameEditing?: boolean;
   disableDependencyEditing?: boolean;
@@ -656,6 +657,7 @@ interface GanttChartProps {
 | `disableConstraints` | `boolean` | `false` | When `true`: all drag constraint checks are skipped. Tasks can be placed freely, ignoring all dependency rules. Useful for debugging layouts or building unconstrained editors. |
 | `onCascade` | `(tasks: Task[]) => void` | `undefined` | Called when a cascade drag completes in hard mode (`enableAutoSchedule={true}`). Receives all affected tasks including the dragged task. **When `onCascade` fires, `onTasksChange` does NOT fire for that drag.** Use `onCascade` to update state in hard mode. |
 | `showTaskList` | `boolean` | `false` | When `true`, displays a task list table on the left side of the chart with columns for №, Name, Start Date, End Date. The task list supports inline editing and synchronized scrolling. **CSS import required for hover-reveal action buttons.** |
+| `showChart` | `boolean` | `true` | When `false`, hides the calendar chart area (timeline grid, task bars, dependencies). Useful for displaying only the task list. Combine with `showTaskList={false}` to show only the calendar. |
 | `taskListWidth` | `number` | `520` | Width of the task list panel in pixels. Only effective when `showTaskList={true}`. |
 | `disableTaskNameEditing` | `boolean` | `false` | When `true`, task names cannot be edited in the task list. Date editing is also disabled for locked tasks (see `task.locked` property). |
 | `disableDependencyEditing` | `boolean` | `false` | When `true`, dependency editing is disabled in the task list. Users cannot add, remove, or modify dependencies via the UI. |
@@ -2255,6 +2257,11 @@ const tasks: Task[] = [
 **Task List**
 - Enable with `showTaskList={true}` prop. Shows a table on the left with №, Name, Start Date, End Date, Dependencies columns.
 - Task list scrolls horizontally in sync with the chart. Row selection highlights both the list row and the task bar.
+- **View modes:** Use `showTaskList` and `showChart` props independently:
+  - `showTaskList={true} showChart={true}` — Both task list and calendar visible (default)
+  - `showTaskList={true} showChart={false}` — Only task list (calendar hidden)
+  - `showTaskList={false} showChart={true}` — Only calendar (task list hidden)
+- When `showChart={false}`, the task list occupies full width without horizontal scroll sync.
 - Inline editing: click to edit, Enter to save, Esc to cancel. Press F2 to enter edit mode for the selected task name.
 - **Action Panel:** Hover over any row to reveal "+" (insert) and trash (delete) buttons in the name cell.
   - Click "+" to insert a new task below that row (triggers `onAdd` callback with the task ID).
