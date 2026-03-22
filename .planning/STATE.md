@@ -1,35 +1,21 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.18
+milestone: v0.18.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-19T21:53:34.922Z"
-last_activity: 2026-03-19
+last_updated: "2026-03-22T14:40:59.174Z"
+last_activity: 2026-03-22
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 9
   completed_plans: 9
-  percent: 100
----
-
----
-gsd_state_version: 1.0
-milestone: v0.18
-milestone_name: milestone
-status: unknown
-last_updated: "2026-03-19T19:20:00.000Z"
-progress:
-  [██████████] 100%
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
 ---
 
 ## Current Position
 
 Phase: 24 (buisiness-days) — EXECUTING
-Plan: 1 of 2
+Plan: 2 of 2
 
 ## Project Reference
 
@@ -133,7 +119,7 @@ None yet — no external users (library in active development)
 
 ---
 
-Last activity: 2026-03-20 - Completed quick task 260320-ht7: Каскадный пересчёт зависимостей с учётом рабочих дней
+Last activity: 2026-03-22
 
 Last activity: 2026-03-20 - Completed quick task 260321-lag: РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј
 

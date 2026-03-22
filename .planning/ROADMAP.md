@@ -38,7 +38,7 @@
 - [x] 21-01-PLAN.md — Create test stubs for custom weekend utilities (TDD RED phase)
 - [x] 21-02-PLAN.md — Implement createDateKey, createIsWeekendPredicate, and modify calculateWeekendBlocks (TDD GREEN phase)
 - [x] 21-03-PLAN.md — Integrate custom weekends into GanttChart, GridBackground, TimeScaleHeader, and Calendar
-- [ ] 21-04-PLAN.md — Create demo page with visual verification examples
+- [x] 21-04-PLAN.md — Create demo page with visual verification examples
 
 ### Phase 21.1: custom-weekend-refactoring [INSERTED]
 
@@ -117,19 +117,19 @@
 
 **Plans:** 2 plans
 
-- [ ] 24-01-PLAN.md — Create and implement getBusinessDaysCount and addBusinessDays utilities (TDD)
-- [ ] 24-02-PLAN.md — Integrate businessDays prop into GanttChart, TaskList, TaskListRow with memoized conditional functions
+- [x] 24-01-PLAN.md — Create and implement getBusinessDaysCount and addBusinessDays utilities (TDD)
+- [x] 24-02-PLAN.md — Integrate businessDays prop into GanttChart, TaskList, TaskListRow with memoized conditional functions
 
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1-20 | v0.18.0 | 50/51 | Complete | 2026-03-17 |
-| 21 | v0.50.0 | 0/4 | Not started | - |
+| 21 | v0.50.0 | 4/4 | Complete   | 2026-03-22 |
 | 21.1 | v0.50.0 | 1/1 | Complete | 2026-03-18 |
 | 22 | v0.50.0 | 2/2 | Complete | 2026-03-19 |
 | 23 | v0.50.0 | 0/TBD | Ready to plan | - |
-| 24 | v0.50.0 | 0/2 | Ready to execute | - |
+| 24 | v0.50.0 | 2/2 | Complete   | 2026-03-22 |
 
 **Overall:** 53/62 plans complete (85%)
 
