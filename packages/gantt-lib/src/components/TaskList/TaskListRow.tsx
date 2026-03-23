@@ -692,6 +692,8 @@ export interface TaskListRowProps {
   businessDays?: boolean;
   /** Whether this row matches the active filter highlight */
   isFilterMatch?: boolean;
+  /** Whether filter is in hide mode (simplifies hierarchy rendering to avoid confusion) */
+  isFilterHideMode?: boolean;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -747,6 +749,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     isWeekend,
     businessDays,
     isFilterMatch = false,
+    isFilterHideMode = false,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState("");
@@ -1643,37 +1646,41 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         <div className="gantt-tl-cell gantt-tl-cell-name">
           {isChild && !editingName && (
             <>
-              {/* Ancestor continuation lines — full-height vertical bars for each ongoing ancestor level */}
-              {ancestorContinues.map((continues, idx) =>
-                continues ? (
+              {!isFilterHideMode && (
+                <>
+                  {/* Ancestor continuation lines — full-height vertical bars for each ongoing ancestor level */}
+                  {ancestorContinues.map((continues, idx) =>
+                    continues ? (
+                      <span
+                        key={idx}
+                        style={{
+                          position: "absolute",
+                          left: `${idx * 20 + 9}px`,
+                          top: 0,
+                          height: `${rowHeight}px`,
+                          width: "1.5px",
+                          background: "var(--gantt-hierarchy-line-color)",
+                          borderRadius: "1px",
+                          pointerEvents: "none",
+                        }}
+                      />
+                    ) : null,
+                  )}
+                  {/* Own vline — full height if not last child, half if last (L-shape) */}
                   <span
-                    key={idx}
                     style={{
                       position: "absolute",
-                      left: `${idx * 20 + 9}px`,
+                      left: `${(nestingDepth - 1) * 20 + 9}px`,
                       top: 0,
-                      height: `${rowHeight}px`,
+                      height: isLastChild ? `${rowHeight / 2}px` : `${rowHeight}px`,
                       width: "1.5px",
                       background: "var(--gantt-hierarchy-line-color)",
                       borderRadius: "1px",
                       pointerEvents: "none",
                     }}
                   />
-                ) : null,
+                </>
               )}
-              {/* Own vline — full height if not last child, half if last (L-shape) */}
-              <span
-                style={{
-                  position: "absolute",
-                  left: `${(nestingDepth - 1) * 20 + 9}px`,
-                  top: 0,
-                  height: isLastChild ? `${rowHeight / 2}px` : `${rowHeight}px`,
-                  width: "1.5px",
-                  background: "var(--gantt-hierarchy-line-color)",
-                  borderRadius: "1px",
-                  pointerEvents: "none",
-                }}
-              />
               {/* Horizontal branch */}
               <span
                 style={{
@@ -1704,7 +1711,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           )}
           {isParent && !editingName && (
             <>
-              {!isCollapsed && (
+              {!isFilterHideMode && !isCollapsed && (
                 <span
                   style={{
                     position: "absolute",

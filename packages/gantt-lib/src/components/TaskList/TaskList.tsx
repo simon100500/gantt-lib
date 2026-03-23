@@ -927,6 +927,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               isWeekend={isWeekend}
               businessDays={businessDays}
               isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}
+              isFilterHideMode={filterMode === 'hide' && isFilterActive}
             />
           ))}
         </div>
