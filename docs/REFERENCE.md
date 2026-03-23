@@ -667,7 +667,10 @@ interface GanttChartProps {
 | `onToggleCollapse` | `(parentId: string) => void` | `undefined` | Called when user clicks collapse/expand button on a parent task. Receives the `parentId` of the parent being toggled. Required for controlled mode when providing `collapsedParentIds`. |
 | `enableAddTask` | `boolean` | `true` | When `true`, shows the "+ Добавить задачу" button at the bottom of the task list for adding new tasks. |
 | `taskFilter` | `TaskPredicate` | `undefined` | Predicate function to filter tasks. Receives a `Task | undefined`, returns `true` to show the task, `false` to hide it. **Import:** `import { type TaskPredicate } from 'gantt-lib'`. See Section 7.3 for usage and ready-made filters. |
-| `highlightedTaskIds` | `Set<string>` | `undefined` | Task IDs to highlight in the task list. Useful for external search results or navigation state without hiding other rows. |
+| `highlightedTaskIds` | `Set<string>` | `undefined` | Task IDs to highlight in the task list. Useful for external search results or navigation state without hiding other rows. Used with `filterMode='highlight'`. |
+| `filterMode` | `'highlight' \| 'hide'` | `'highlight'` | Filter display mode. `'highlight'` shows yellow highlight on matching tasks (default). `'hide'` hides non-matching tasks from view. Use with `filteredTaskIds` and `isFilterActive`. |
+| `filteredTaskIds` | `Set<string>` | `undefined` | Task IDs that match the filter. In `'hide'` mode with `isFilterActive={true}`, only these tasks are visible. In `'highlight'` mode, these tasks are highlighted with yellow background. |
+| `isFilterActive` | `boolean` | `false` | Whether filter is currently active. Needed to distinguish "no filter" from "filter with no matches". When `true` and `filterMode='hide'`, non-matching tasks are hidden. |
 | `customDays` | `CustomDayConfig[]` | `undefined` | Array of custom day configurations with explicit types. Each entry: `{ date: Date, type: 'weekend' | 'workday' }`. **IMPORTANT:** Use UTC dates: `{ date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' }` for March 8, 2026. See Section 7.2 for details. |
 | `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Checked BEFORE customDays overrides** — use for base patterns, then override specific dates with `customDays`. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
 | `businessDays` | `boolean` | `true` | Когда `true` (default), длительность задачи (duration) считается в рабочих днях, исключая выходные. Когда `false`, длительность считается в календарных днях. Влияет на расчёт зависимостей, перетаскивание задач и отображение длительности. См. раздел 7.5. |
@@ -1678,6 +1681,162 @@ export default function FilterableGantt() {
     </>
   );
 }
+```
+
+---
+
+#### 7.3.11. Filter Display Modes — Highlight vs Hide
+
+The library supports two filter display modes via `filterMode` prop:
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `'highlight'` (default) | Matching tasks are highlighted with yellow background, all tasks remain visible | Search results, navigation state |
+| `'hide'` | Non-matching tasks are hidden from view, only matching tasks visible | Focus mode, filtered views |
+
+**Props:**
+
+```typescript
+interface GanttChartProps {
+  filterMode?: 'highlight' | 'hide';
+  filteredTaskIds?: Set<string>;
+  isFilterActive?: boolean;
+  highlightedTaskIds?: Set<string>;
+}
+```
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `filterMode` | `'highlight' \| 'hide'` | `'highlight'` | Display mode for filtered tasks |
+| `filteredTaskIds` | `Set<string>` | `undefined` | Task IDs that match the filter |
+| `isFilterActive` | `boolean` | `false` | Whether filter is active (distinguishes "no filter" from "no matches") |
+| `highlightedTaskIds` | `Set<string>` | `undefined` | Alias for `filteredTaskIds` in highlight mode |
+
+---
+
+##### Highlight Mode Example
+
+```tsx
+import { useState, useMemo } from 'react';
+import { GanttChart } from 'gantt-lib';
+
+export default function HighlightExample() {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const highlightedTaskIds = useMemo(() => {
+    if (!searchQuery) return new Set();
+    const matches = tasks.filter(t =>
+      t.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    return new Set(matches.map(t => t.id));
+  }, [searchQuery, tasks]);
+
+  return (
+    <>
+      <input
+        placeholder="Search tasks..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      <GanttChart
+        tasks={tasks}
+        filterMode="highlight"
+        highlightedTaskIds={highlightedTaskIds}
+      />
+    </>
+  );
+}
+```
+
+**Visual result:** Matching tasks display with yellow background, all tasks remain visible.
+
+---
+
+##### Hide Mode Example
+
+```tsx
+import { useState, useMemo } from 'react';
+import { GanttChart } from 'gantt-lib';
+
+export default function HideModeExample() {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const { filteredTaskIds, isFilterActive } = useMemo(() => {
+    if (!searchQuery) {
+      return { filteredTaskIds: new Set(), isFilterActive: false };
+    }
+    const matches = tasks.filter(t =>
+      t.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    return {
+      filteredTaskIds: new Set(matches.map(t => t.id)),
+      isFilterActive: true,
+    };
+  }, [searchQuery, tasks]);
+
+  return (
+    <>
+      <input
+        placeholder="Search tasks..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      <GanttChart
+        tasks={tasks}
+        filterMode="hide"
+        filteredTaskIds={filteredTaskIds}
+        isFilterActive={isFilterActive}
+      />
+    </>
+  );
+}
+```
+
+**Visual result:** Only matching tasks are visible, non-matching tasks are hidden from both task list and chart.
+
+---
+
+##### Task Numbering in Hide Mode
+
+**Important:** In hide mode (`filterMode='hide'` with `isFilterActive={true}`), task numbers in the № column are **preserved from the original unfiltered list**. This ensures that task IDs remain consistent when filtering.
+
+Example:
+```
+Before filter:    After filter (tasks 2, 4 hidden):
+1  Task A         1  Task A
+2  Task B         3  Task C
+3  Task C         5  Task E
+4  Task D
+5  Task E
+```
+
+Task numbers (1, 3, 5) reflect the original positions, not the filtered view (1, 2, 3).
+
+---
+
+##### Hierarchy Lines in Hide Mode
+
+In hide mode, hierarchy connector lines are simplified to avoid visual confusion:
+- **Parent tasks:** No vertical guide line (only collapse/expand button)
+- **Child tasks:** Only horizontal branch line with dot (no vertical lines)
+
+This prevents the appearance of broken hierarchy when intermediate tasks are hidden.
+
+---
+
+##### Switching Between Modes
+
+```tsx
+const [filterMode, setFilterMode] = useState<'highlight' | 'hide'>('highlight');
+
+<GanttChart
+  tasks={tasks}
+  filterMode={filterMode}
+  filteredTaskIds={filteredTaskIds}
+  isFilterActive={isFilterActive}
+/>
+<button onClick={() => setFilterMode('highlight')}>Highlight</button>
+<button onClick={() => setFilterMode('hide')}>Hide</button>
 ```
 
 ---
