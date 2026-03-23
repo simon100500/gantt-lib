@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.28.0] - 2026-03-23
+
+### Features
+- Add filter mode functionality with `filterMode` prop (`highlight` or `hide`)
+- Add `filteredTaskIds` and `isFilterActive` props to GanttChart for task filtering
+- Add filter display modes to TaskList and TaskListRow components
+- Enhance demo page with filter mode examples and controls
+
+### Documentation
+- Split REFERENCE.md into modular chapter structure (12 chapters + INDEX.md)
+- Add docs/reference/ folder with separate files for each API section
+- Update REFERENCE.md with filter display modes documentation
+
 ## [0.27.0] - 2026-03-22
 
 ### Features
