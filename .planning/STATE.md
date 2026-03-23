@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v0.18.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-22T14:40:59.174Z"
+last_updated: "2026-03-23T15:39:24.077Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 5
@@ -71,6 +71,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 | 260321-lag | РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј | 2026-03-20 | eb14476 | [260321-lag-planning-work-day-logic-md](./quick/260321-lag-planning-work-day-logic-md/) |
 | 260322-oi0 | Добавить возможность скрытия тасклиста отдельно от календаря | 2026-03-22 | f06f820 | [260322-oi0](./quick/260322-oi0/) |
+| 260323-pud | Split REFERENCE.md into modular chapter structure (12 chapters + INDEX) | 2026-03-23 | ab4ca21 | [260323-pud](./quick/260323-pud-md-d-projects-gantt-lib-docs-reference-m/) |
 
 ### User Feedback
 
@@ -120,9 +121,9 @@ None yet — no external users (library in active development)
 
 ---
 
-Last activity: 2026-03-22
+Last activity: 2026-03-23
 
-Last activity: 2026-03-22 - Completed quick task 260322-oi0: Добавить возможность скрытия тасклиста отдельно от календаря
+Last activity: 2026-03-23 - Completed quick task 260323-pud: Split REFERENCE.md into modular chapter structure
 
-**State updated:** 2026-03-20
+**State updated:** 2026-03-23
 **Milestone:** v0.50.0 Adding Tools
