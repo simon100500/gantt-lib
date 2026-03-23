@@ -825,6 +825,7 @@ export default function Home() {
   const [disableTaskDrag, setDisableTaskDrag] = useState(false);
   const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
   const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
+  const [filterMode, setFilterMode] = useState<'highlight' | 'hide'>('highlight');
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearchResultIndex, setActiveSearchResultIndex] = useState(0);
   useEffect(() => {
@@ -1293,6 +1294,15 @@ export default function Home() {
           </div>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Фильтры:</span>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.875rem', color: '#374151', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={filterMode === 'hide'}
+                onChange={(e) => setFilterMode(e.target.checked ? 'hide' : 'highlight')}
+                style={{ cursor: 'pointer' }}
+              />
+              Скрывать несовпадающие
+            </label>
             <button
               onClick={() => {
                 setTaskFilter(undefined);
@@ -1491,6 +1501,7 @@ export default function Home() {
               customDays={MAIN_CHART_CUSTOM_DAYS}
               highlightedTaskIds={highlightedSearchTaskIds}
               disableTaskDrag={disableTaskDrag}
+              filterMode={filterMode}
             />
           </div>
         </section>

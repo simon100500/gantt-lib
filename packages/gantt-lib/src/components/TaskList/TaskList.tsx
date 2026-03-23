@@ -148,6 +148,12 @@ export interface TaskListProps {
   businessDays?: boolean;
   /** Task IDs highlighted by the active filter */
   highlightedTaskIds?: Set<string>;
+  /** Filter mode: 'highlight' shows yellow highlight on matches, 'hide' hides non-matching tasks */
+  filterMode?: 'highlight' | 'hide';
+  /** Task IDs that match the filter (used for hide mode). When undefined, no filtering is applied */
+  filteredTaskIds?: Set<string>;
+  /** Whether filter is currently active (needed to distinguish "no filter" from "filter with no matches") */
+  isFilterActive?: boolean;
 }
 
 /**
@@ -184,6 +190,9 @@ export const TaskList: React.FC<TaskListProps> = ({
   isWeekend,
   businessDays,
   highlightedTaskIds = new Set(),
+  filterMode = 'highlight',
+  filteredTaskIds = new Set(),
+  isFilterActive = false,
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
@@ -227,8 +236,15 @@ export const TaskList: React.FC<TaskListProps> = ({
       return false;
     }
 
-    return orderedTasks.filter(task => !isAnyAncestorCollapsed((task as any).parentId));
-  }, [orderedTasks, collapsedParentIds]);
+    let tasks = orderedTasks.filter(task => !isAnyAncestorCollapsed((task as any).parentId));
+
+    // In 'hide' mode with active filter, only show matching tasks
+    if (filterMode === 'hide' && isFilterActive) {
+      tasks = tasks.filter(task => filteredTaskIds.has(task.id));
+    }
+
+    return tasks;
+  }, [orderedTasks, collapsedParentIds, filterMode, filteredTaskIds, isFilterActive]);
 
   const totalHeight = useMemo(
     () => visibleTasks.length * rowHeight,
@@ -240,6 +256,19 @@ export const TaskList: React.FC<TaskListProps> = ({
         visibleTasks.map((task, index) => [task.id, String(getTaskNumber(visibleTasks, index))])
       ) as Record<string, string>,
     [visibleTasks]
+  );
+
+  // Оригинальные номера задач на основе полного списка (до фильтрации)
+  // Используются для сохранения нумерации при скрытии задач
+  const originalTaskNumberMap = useMemo(
+    () => {
+      const numberMap = new Map<string, string>();
+      for (let i = 0; i < orderedTasks.length; i++) {
+        numberMap.set(orderedTasks[i].id, getTaskNumber(orderedTasks, i));
+      }
+      return Object.fromEntries(numberMap) as Record<string, string>;
+    },
+    [orderedTasks]
   );
 
   // Compute nesting depth for each task (0 = root, 1 = child, 2 = grandchild, etc.)
@@ -857,8 +886,8 @@ export const TaskList: React.FC<TaskListProps> = ({
               key={task.id}
               task={task}
               rowIndex={index}
-              taskNumber={getTaskNumber(visibleTasks, index)}
-              taskNumberMap={visibleTaskNumberMap}
+              taskNumber={originalTaskNumberMap[task.id] || ''}
+              taskNumberMap={originalTaskNumberMap}
               rowHeight={rowHeight}
               onTasksChange={onTasksChange}
               selectedTaskId={selectedTaskId}
@@ -897,7 +926,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               customDays={customDays}
               isWeekend={isWeekend}
               businessDays={businessDays}
-              isFilterMatch={highlightedTaskIds.has(task.id)}
+              isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}
             />
           ))}
         </div>

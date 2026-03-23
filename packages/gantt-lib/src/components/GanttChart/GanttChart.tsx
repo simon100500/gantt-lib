@@ -141,6 +141,8 @@ export interface GanttChartProps {
    * Dependencies are still computed on ALL tasks (normalizedTasks).
    */
   taskFilter?: TaskPredicate;
+  /** Filter mode: 'highlight' shows all tasks with yellow highlight on matches, 'hide' hides non-matching tasks (default: 'highlight') */
+  filterMode?: 'highlight' | 'hide';
   /** Set of collapsed parent task IDs for controlled mode */
   collapsedParentIds?: Set<string>;
   /** Callback when collapse/expand button is clicked (controlled mode) */
@@ -216,6 +218,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   isWeekend,
   businessDays = true,
   taskFilter,
+  filterMode = 'highlight',
   collapsedParentIds: externalCollapsedParentIds,
   onToggleCollapse: externalOnToggleCollapse,
   highlightedTaskIds,
@@ -263,7 +266,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     [dateRange.length, dayWidth]
   );
 
-  // Visible tasks are determined only by collapsed parent state.
+  // Visible tasks are determined by collapsed parent state and optionally by filter mode.
   // Checks the full ancestor chain so grandchildren are hidden when any ancestor is collapsed.
   const visibleTasks = useMemo(() => {
     const parentMap = new Map(normalizedTasks.map(t => [t.id, t.parentId]));
@@ -277,8 +280,15 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       return false;
     }
 
-    return normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
-  }, [normalizedTasks, collapsedParentIds]);
+    let tasks = normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
+
+    // In 'hide' mode with active filter, only show matching tasks
+    if (filterMode === 'hide' && taskFilter) {
+      tasks = tasks.filter(taskFilter);
+    }
+
+    return tasks;
+  }, [normalizedTasks, collapsedParentIds, filterMode, taskFilter]);
 
   const matchedTaskIds = useMemo(() => {
     if (!taskFilter) return new Set<string>();
@@ -286,6 +296,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   }, [visibleTasks, taskFilter]);
 
   const taskListHighlightedTaskIds = useMemo(() => {
+    // In hide mode, no highlighting needed - all visible tasks already match the filter
+    if (filterMode === 'hide') {
+      return new Set<string>();
+    }
     if ((!highlightedTaskIds || highlightedTaskIds.size === 0) && matchedTaskIds.size === 0) {
       return new Set<string>();
     }
@@ -293,7 +307,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const mergedHighlightedTaskIds = new Set(highlightedTaskIds ?? []);
     matchedTaskIds.forEach((taskId) => mergedHighlightedTaskIds.add(taskId));
     return mergedHighlightedTaskIds;
-  }, [highlightedTaskIds, matchedTaskIds]);
+  }, [filterMode, highlightedTaskIds, matchedTaskIds]);
 
   // Calculate total grid height from currently visible rows.
   const totalGridHeight = useMemo(
@@ -897,6 +911,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             customDays={customDays}
             isWeekend={isWeekend}
             businessDays={businessDays}
+            filterMode={filterMode}
+            filteredTaskIds={matchedTaskIds}
+            isFilterActive={!!taskFilter}
           />
 
           {/* Chart area */}
@@ -980,7 +997,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
               onCascadeProgress={handleCascadeProgress}
               onCascade={handleCascade}
               highlightExpiredTasks={highlightExpiredTasks}
-              isFilterMatch={matchedTaskIds.has(task.id)}
+              isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
               businessDays={businessDays}
               customDays={customDays}
               isWeekend={isWeekend}
