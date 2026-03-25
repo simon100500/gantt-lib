@@ -19,8 +19,7 @@ export { LINK_TYPE_ICONS };
 
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
 type DependencyPickMode = 'predecessor' | 'successor';
-const MIN_TASK_LIST_WIDTH = 640;
-
+const MIN_TASK_LIST_WIDTH = 530;
 /**
  * Get all descendant tasks of a parent task (recursively).
  * Returns an array of all tasks where task.parentId is in the parent chain.
@@ -100,7 +99,7 @@ export interface TaskListProps {
   rowHeight: number;
   /** Height of the header row in pixels (must match Gantt chart's headerHeight) */
   headerHeight: number;
-  /** Width of the task list overlay in pixels (default: 400) */
+  /** Width of the task list overlay in pixels. Values below MIN_TASK_LIST_WIDTH are clamped. */
   taskListWidth?: number;
   /** Callback when tasks are modified via inline edit. Receives array of changed tasks. */
   onTasksChange?: (tasks: Task[]) => void;
@@ -166,7 +165,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   rowHeight,
   headerHeight,
-  taskListWidth = 640,
+  taskListWidth = MIN_TASK_LIST_WIDTH,
   onTasksChange,
   selectedTaskId,
   onTaskSelect,

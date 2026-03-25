@@ -1493,7 +1493,7 @@ export default function Home() {
               containerHeight={"80dvh"}
               showTaskList={showTaskList}
               showChart={showChart}
-              taskListWidth={500}
+              taskListWidth={600}
               disableTaskNameEditing={disableTaskNameEditing}
               highlightExpiredTasks={highlightExpired}
               viewMode={viewMode}
