@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.28.1] - 2026-03-25
+
+### Fixes
+- Update task list width handling and default values for better responsiveness
+- Change minimum task list width from 640px to 530px
+- Use CSS variables for task list width instead of fixed values
+
 ## [0.28.0] - 2026-03-23
 
 ### Features

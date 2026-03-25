@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.28.0
+**Version:** 0.28.1
 **For:** AI agents and human developers. Every public type, prop, constraint, and edge case is documented here. Reading this file is sufficient to use the library correctly — source inspection is not required.
 
 ---
