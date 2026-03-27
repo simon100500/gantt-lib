@@ -20,7 +20,7 @@ Requirements for adding extensibility features — custom weekend calendar and a
 - [x] **COL-01**: User can pass `additionalColumns?: Column[]` prop to TaskList
 - [x] **COL-02**: Column interface includes `id`, `header`, `renderCell`, optional `editor`, `width`, `after`
 - [x] **COL-03**: `renderCell: (row: GanttRow) => ReactNode` renders cell content for each row
-- [ ] **COL-04**: `editor?: (row: GanttRow) => ReactNode` provides inline editor component
+- [x] **COL-04**: `editor?: (row: GanttRow) => ReactNode` provides inline editor component
 - [x] **COL-05**: `after?: string` positions column after specified base column (default: after 'Name')
 - [x] **COL-06**: Base columns remain: №, Name, Dates, Dependencies, Actions
 - [x] **COL-07**: Additional columns render inline, scroll with TaskList
@@ -63,7 +63,7 @@ Deferred to future release.
 | COL-01 | Phase 22 | Complete |
 | COL-02 | Phase 22 | Complete |
 | COL-03 | Phase 22 | Complete |
-| COL-04 | Phase 22 | Pending |
+| COL-04 | Phase 22 | Complete |
 | COL-05 | Phase 22 | Complete |
 | COL-06 | Phase 22 | Complete |
 | COL-07 | Phase 22 | Complete |
