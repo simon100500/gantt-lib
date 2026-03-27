@@ -14,8 +14,8 @@ progress:
 
 ## Current Position
 
-Phase: 24 (buisiness-days) — EXECUTING
-Plan: 2 of 2
+Phase: 23 (Additional TaskList Columns) — READY TO DISCUSS
+Plan: 0 of TBD
 
 ## Project Reference
 
@@ -79,12 +79,13 @@ None yet — no external users (library in active development)
 
 ### Roadmap Structure
 
-**v0.50.0 phases (4 phases, TBD estimated plans):**
+**v0.50.0 phases (4 integer phases + 1 inserted decimal phase, TBD estimated plans):**
 
 - Phase 21: Custom Weekend Calendar (CAL-01 to CAL-05)
 - Phase 21.1: custom-weekend-refactoring [INSERTED]
 - Phase 22: filters
 - Phase 23: Additional TaskList Columns (COL-01 to COL-08)
+- Phase 24: buisiness-days
 
 ### Roadmap Evolution
 
@@ -99,7 +100,7 @@ None yet — no external users (library in active development)
 
 **Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
 
-**Current focus:** Phase 24 — buisiness-days
+**Current focus:** Phase 23 — Additional TaskList Columns
 
 - ✓ 21-01: TDD RED phase — 11 failing tests created
 - ✓ 21-02: TDD GREEN phase — utilities implemented (createDateKey, createIsWeekendPredicate)
@@ -112,10 +113,9 @@ None yet — no external users (library in active development)
 - Show holidays, shifted workdays, custom predicates
 - Visual verification of weekend highlighting and day number coloring
 
-**Later:** Phase 22 (filters) and Phase 23 (Additional TaskList Columns)
+**Later:** Phase 24 (buisiness-days)
 
-- Phase 22: Task filtering by various criteria, Filter controls UI, Real-time filtered view updates
-- Phase 23: Additional columns with renderers, editors, and positioning
+- Phase 24: business-days duration mode and related polish
 
 **Upcoming:** Plan 21-04 (Demo page with custom weekend examples)
 

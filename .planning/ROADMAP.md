@@ -4,11 +4,11 @@
 
 - ✅ **v0.18.0 Gantt Library MVP** — Phases 1-20 (shipped 2026-03-17)
   — See `.planning/milestones/v0.18.0-ROADMAP.md`
-- 🔄 **v0.50.0 Adding Tools** — Phases 21-23 (in progress)
+- 🔄 **v0.50.0 Adding Tools** — Phases 21-24 (in progress)
 
 ## Current Status
 
-🎯 **Phase 24 ready to execute** — Business days calculation mode for task duration
+🎯 **Phase 23 ready to discuss** — Additional TaskList Columns
 
 ## Phases
 
