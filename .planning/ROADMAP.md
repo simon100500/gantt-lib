@@ -100,8 +100,8 @@
 
 **Plans:** 3 plans
 
-- [ ] 23-01-PLAN.md — Define TaskListColumn public contracts and create wave-0 integration tests
-- [ ] 23-02-PLAN.md — Wire generic additionalColumns through GanttChart/TaskList and render display columns inline
+- [x] 23-01-PLAN.md — Define TaskListColumn public contracts and create wave-0 integration tests
+- [x] 23-02-PLAN.md — Wire generic additionalColumns through GanttChart/TaskList and render display columns inline
 - [ ] 23-03-PLAN.md — Add custom editor lifecycle in TaskListRow and close the phase with green tests
 
 ### Phase 24: buisiness-days
@@ -132,7 +132,7 @@
 | 21 | v0.50.0 | 4/4 | Complete   | 2026-03-22 |
 | 21.1 | v0.50.0 | 1/1 | Complete | 2026-03-18 |
 | 22 | v0.50.0 | 2/2 | Complete | 2026-03-19 |
-| 23 | v0.50.0 | 1/3 | In Progress | 2026-03-27 |
+| 23 | v0.50.0 | 2/3 | In Progress|  |
 | 24 | v0.50.0 | 2/2 | Complete   | 2026-03-22 |
 
 **Overall:** 53/62 plans complete (85%)
