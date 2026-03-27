@@ -241,25 +241,46 @@ describe('GanttChart additionalColumns', () => {
       />
     );
 
-    // Find the status cell for task t1 and click to trigger editor
-    const statusCell = container.querySelector('[data-custom-column-id="status"]');
-    expect(statusCell).not.toBeNull();
+    // Find status body cells (using data-custom-column-editing which only exists on row cells, not headers)
+    const statusBodyCells = container.querySelectorAll('[data-custom-column-editing="false"][data-custom-column-id="status"]');
+    expect(statusBodyCells.length).toBeGreaterThanOrEqual(1);
 
-    // Click on the cell content to open editor
-    const statusContent = statusCell!.querySelector('[data-testid="custom-cell-status"]') || statusCell;
-    fireEvent.click(statusContent!);
+    const statusCell = statusBodyCells[0] as HTMLElement;
 
-    // The editor button should appear with text "edit-t1"
+    // Before click, no editor should be visible
+    expect(container.querySelector('[data-custom-column-editor="status"]')).toBeNull();
+
+    // Click the editable cell to open editor
+    fireEvent.click(statusCell);
+
+    // Editor wrapper should appear
+    const editorWrapper = container.querySelector('[data-custom-column-editor="status"]');
+    expect(editorWrapper).not.toBeNull();
+
+    // Cell should now have editing="true"
+    expect(statusCell.getAttribute('data-custom-column-editing')).toBe('true');
+
+    // The editor button should be rendered with text "edit-t1"
     const editButton = screen.queryByText('edit-t1');
-    if (editButton) {
-      fireEvent.click(editButton);
+    expect(editButton).not.toBeNull();
 
-      // onTasksChange should be called with a patch merging status: 'done'
-      expect(onTasksChange).toHaveBeenCalled();
-      const lastCall = onTasksChange.mock.calls[onTasksChange.mock.calls.length - 1];
-      const patchedTask = lastCall[0].find((t: Task) => t.id === 't1');
-      expect(patchedTask).toBeDefined();
-      expect((patchedTask as ExtendedTask).status).toBe('done');
-    }
+    // Click the edit button inside the editor
+    fireEvent.click(editButton!);
+
+    // onTasksChange should have been called exactly once
+    expect(onTasksChange).toHaveBeenCalledTimes(1);
+    const lastCall = onTasksChange.mock.calls[0];
+    const patchedTask = lastCall[0].find((t: Task) => t.id === 't1');
+    expect(patchedTask).toBeDefined();
+    // All original fields preserved, only status changed
+    expect(patchedTask.id).toBe('t1');
+    expect(patchedTask.name).toBe('Task Alpha');
+    expect(patchedTask.startDate).toBe('2026-02-01');
+    expect(patchedTask.endDate).toBe('2026-02-05');
+    expect((patchedTask as ExtendedTask).status).toBe('done');
+
+    // Editor should be closed after save
+    expect(container.querySelector('[data-custom-column-editor="status"]')).toBeNull();
+    expect(statusCell.getAttribute('data-custom-column-editing')).toBe('false');
   });
 });

@@ -233,13 +233,6 @@ function GanttChartInner<TTask extends Task = Task>(
   showChart = true,
   additionalColumns,
   } = props;
-  // NOTE: Plan 23-02 WIP — additionalColumns is destructured but not yet threaded to <TaskList>.
-  // Next steps for 23-02 resumption:
-  //   1. Pass additionalColumns={additionalColumns} to <TaskList> in the return JSX
-  //   2. In TaskList.tsx: add additionalColumns prop, BUILT_IN_COLUMN_ORDER, anchor bucketing, width budget, header/body custom cells
-  //   3. In TaskListRow.tsx: add additionalColumnsByAnchor prop, render custom cells with data-custom-column-id
-  //   4. In TaskList.css: add .gantt-tl-cell-custom, .gantt-tl-headerCell-custom
-  //   5. Update taskListColumns.test.tsx to use new data-* markers
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
@@ -929,6 +922,7 @@ function GanttChartInner<TTask extends Task = Task>(
             filterMode={filterMode}
             filteredTaskIds={matchedTaskIds}
             isFilterActive={!!taskFilter}
+            additionalColumns={additionalColumns}
           />
 
           {/* Chart area */}
