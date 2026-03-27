@@ -154,7 +154,7 @@ export interface GanttChartProps<TTask extends Task = Task> {
   disableTaskDrag?: boolean;
   /** Show calendar chart area (default: true) */
   showChart?: boolean;
-  /** Additional columns to display in the task list after built-in columns */
+  /** Additional custom columns to render in the TaskList after built-in columns */
   additionalColumns?: TaskListColumn<TTask>[];
 }
 
@@ -193,7 +193,11 @@ export interface GanttChartHandle {
  * />
  * ```
  */
-export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
+function GanttChartInner<TTask extends Task = Task>(
+  props: GanttChartProps<TTask>,
+  ref: React.ForwardedRef<GanttChartHandle>
+) {
+  const {
   tasks,
   dayWidth = 40,
   rowHeight = 40,
@@ -228,7 +232,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   disableTaskDrag = false,
   showChart = true,
   additionalColumns,
-}, ref) => {
+  } = props;
+  // NOTE: Plan 23-02 WIP — additionalColumns is destructured but not yet threaded to <TaskList>.
+  // Next steps for 23-02 resumption:
+  //   1. Pass additionalColumns={additionalColumns} to <TaskList> in the return JSX
+  //   2. In TaskList.tsx: add additionalColumns prop, BUILT_IN_COLUMN_ORDER, anchor bucketing, width budget, header/body custom cells
+  //   3. In TaskListRow.tsx: add additionalColumnsByAnchor prop, render custom cells with data-custom-column-id
+  //   4. In TaskList.css: add .gantt-tl-cell-custom, .gantt-tl-headerCell-custom
+  //   5. Update taskListColumns.test.tsx to use new data-* markers
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
@@ -918,7 +929,6 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             filterMode={filterMode}
             filteredTaskIds={matchedTaskIds}
             isFilterActive={!!taskFilter}
-            additionalColumns={additionalColumns}
           />
 
           {/* Chart area */}
@@ -1015,24 +1025,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       </div>
     </div>
   );
-});
-
-GanttChart.displayName = 'GanttChart';
-
-/**
- * Internal generic component that accepts additionalColumns with extended task type.
- * The public `GanttChart` export delegates to this via a type-cast wrapper,
- * so consumers get full generic inference when passing additionalColumns.
- */
-function GanttChartInner<TTask extends Task = Task>(
-  props: GanttChartProps<TTask>,
-  ref: React.ForwardedRef<GanttChartHandle>,
-) {
-  return GanttChart({ ...props, ref } as any);
 }
 
-export const _GanttChartGeneric = forwardRef(GanttChartInner) as <
-  TTask extends Task = Task,
->(props: GanttChartProps<TTask> & { ref?: React.Ref<GanttChartHandle> }) => React.ReactElement;
+export const GanttChart = forwardRef(GanttChartInner) as <TTask extends Task = Task>(
+  props: GanttChartProps<TTask> & { ref?: React.Ref<GanttChartHandle> }
+) => React.ReactElement;
+
+(GanttChart as React.FC).displayName = 'GanttChart';
 
 export default GanttChart;
