@@ -8,7 +8,7 @@
 
 ## Current Status
 
-🎯 **Phase 23 ready to discuss** — Additional TaskList Columns
+🎯 **Phase 23 planned** — Additional TaskList Columns
 
 ## Phases
 
@@ -132,7 +132,7 @@
 | 21 | v0.50.0 | 4/4 | Complete   | 2026-03-22 |
 | 21.1 | v0.50.0 | 1/1 | Complete | 2026-03-18 |
 | 22 | v0.50.0 | 2/2 | Complete | 2026-03-19 |
-| 23 | v0.50.0 | 0/TBD | Ready to plan | - |
+| 23 | v0.50.0 | 0/3 | Planned | 2026-03-27 |
 | 24 | v0.50.0 | 2/2 | Complete   | 2026-03-22 |
 
 **Overall:** 53/62 plans complete (85%)
@@ -193,4 +193,4 @@ Add developer tools and calendar customization features to the Gantt library.
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-**Roadmap updated:** 2026-03-20
+**Roadmap updated:** 2026-03-27
