@@ -98,7 +98,11 @@
 6. Additional columns scroll horizontally with TaskList panel
 7. Base columns (№, Name, Dates, Dependencies, Actions) remain unchanged and functional
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+- [ ] 23-01-PLAN.md — Define TaskListColumn public contracts and create wave-0 integration tests
+- [ ] 23-02-PLAN.md — Wire generic additionalColumns through GanttChart/TaskList and render display columns inline
+- [ ] 23-03-PLAN.md — Add custom editor lifecycle in TaskListRow and close the phase with green tests
 
 ### Phase 24: buisiness-days
 
