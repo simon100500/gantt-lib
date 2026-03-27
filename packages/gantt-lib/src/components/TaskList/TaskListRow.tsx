@@ -779,6 +779,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const [deletePending, setDeletePending] = useState(false);
     const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
+    // Custom column editor state — only one custom editor open at a time per row
+    const [editingCustomColumnId, setEditingCustomColumnId] = useState<string | null>(null);
+
     const isSelected = selectedTaskId === task.id;
 
     // Hierarchy computed values
@@ -1852,25 +1855,49 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
         {/* Additional columns after Name */}
         {(additionalColumnsByAnchor?.['name'] ?? []).map((col) => {
+          const isEditing = editingCustomColumnId === col.id;
+
           const columnContext = {
             task,
             rowIndex,
             columnId: col.id,
-            isEditing: false,
-            openEditor: () => {},
-            closeEditor: () => {},
-            updateTask: () => {},
+            isEditing,
+            openEditor: () => {
+              if (col.editor) setEditingCustomColumnId(col.id);
+            },
+            closeEditor: () => {
+              if (editingCustomColumnId === col.id) setEditingCustomColumnId(null);
+            },
+            updateTask: (patch: Partial<Task>) => {
+              onTasksChange?.([{ ...task, ...patch } as Task]);
+              setEditingCustomColumnId(null);
+            },
           };
+
+          const colWidth = typeof col.width === 'number' ? `${col.width}px` : col.width ?? '120px';
+
           return (
             <div
               key={col.id}
               className="gantt-tl-cell gantt-tl-cell-custom"
               data-column-id={`custom:${col.id}`}
               data-custom-column-id={col.id}
+              data-custom-column-editing={isEditing ? 'true' : 'false'}
               data-testid={`custom-cell-${col.id}`}
-              style={{ width: typeof col.width === 'number' ? `${col.width}px` : col.width ?? '120px', minWidth: typeof col.width === 'number' ? `${col.width}px` : col.width ?? '120px', flexShrink: 0 }}
+              onClick={col.editor && !isEditing ? (e) => { e.stopPropagation(); setEditingCustomColumnId(col.id); } : undefined}
+              style={{ width: colWidth, minWidth: colWidth, flexShrink: 0 }}
             >
-              {col.renderCell(columnContext)}
+              {isEditing && col.editor ? (
+                <div
+                  data-custom-column-editor={col.id}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {col.editor(columnContext)}
+                </div>
+              ) : (
+                col.renderCell(columnContext)
+              )}
             </div>
           );
         })}
@@ -2081,25 +2108,49 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
         {/* Additional columns after Progress */}
         {(additionalColumnsByAnchor?.['progress'] ?? []).map((col) => {
+          const isEditing = editingCustomColumnId === col.id;
+
           const columnContext = {
             task,
             rowIndex,
             columnId: col.id,
-            isEditing: false,
-            openEditor: () => {},
-            closeEditor: () => {},
-            updateTask: () => {},
+            isEditing,
+            openEditor: () => {
+              if (col.editor) setEditingCustomColumnId(col.id);
+            },
+            closeEditor: () => {
+              if (editingCustomColumnId === col.id) setEditingCustomColumnId(null);
+            },
+            updateTask: (patch: Partial<Task>) => {
+              onTasksChange?.([{ ...task, ...patch } as Task]);
+              setEditingCustomColumnId(null);
+            },
           };
+
+          const colWidth = typeof col.width === 'number' ? `${col.width}px` : col.width ?? '120px';
+
           return (
             <div
               key={col.id}
               className="gantt-tl-cell gantt-tl-cell-custom"
               data-column-id={`custom:${col.id}`}
               data-custom-column-id={col.id}
+              data-custom-column-editing={isEditing ? 'true' : 'false'}
               data-testid={`custom-cell-${col.id}`}
-              style={{ width: typeof col.width === 'number' ? `${col.width}px` : col.width ?? '120px', minWidth: typeof col.width === 'number' ? `${col.width}px` : col.width ?? '120px', flexShrink: 0 }}
+              onClick={col.editor && !isEditing ? (e) => { e.stopPropagation(); setEditingCustomColumnId(col.id); } : undefined}
+              style={{ width: colWidth, minWidth: colWidth, flexShrink: 0 }}
             >
-              {col.renderCell(columnContext)}
+              {isEditing && col.editor ? (
+                <div
+                  data-custom-column-editor={col.id}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {col.editor(columnContext)}
+                </div>
+              ) : (
+                col.renderCell(columnContext)
+              )}
             </div>
           );
         })}
