@@ -58,7 +58,7 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 
 **v0.50.0 Goals:**
 - [ ] Custom weekend calendar — pass Date[] array or isWeekend function
-- [ ] Additional TaskList columns — add custom columns after Name with renderCell/editor
+- ✅ Additional TaskList columns — add custom columns after Name with renderCell/editor — v0.50.0 (Phase 23)
 
 ### Out of Scope
 
@@ -102,4 +102,4 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - **Browser**: Modern browsers — No IE11 requirement
 
 ---
-*Last updated: 2026-03-19 after Phase 22 (filters) completed*
+*Last updated: 2026-03-27 after Phase 23 (additional-tasklist-columns) completed*
