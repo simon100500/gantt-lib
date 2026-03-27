@@ -1229,6 +1229,15 @@
   font-family: inherit;
 }
 
+/* Additional (custom) column cells */
+.gantt-tl-headerCell-custom,
+.gantt-tl-cell-custom {
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .gantt-tl-add-btn:hover {
   background: var(--gantt-hover-bg, rgba(0, 0, 0, 0.04));
   color: var(--gantt-text-color, #374151);

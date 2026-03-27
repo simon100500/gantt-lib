@@ -28,6 +28,7 @@ import { Input } from "../ui/Input";
 import { DatePicker } from "../ui/DatePicker";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
 import { LINK_TYPE_ICONS } from "./DepIcons";
+import type { TaskListColumn } from "./taskListColumns";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LINK_TYPE_ORDER: LinkType[] = ["FS", "SS", "FF", "SF"];
@@ -694,6 +695,8 @@ export interface TaskListRowProps {
   isFilterMatch?: boolean;
   /** Whether filter is in hide mode (simplifies hierarchy rendering to avoid confusion) */
   isFilterHideMode?: boolean;
+  /** Additional columns bucketed by anchor id for rendering after built-in cells */
+  additionalColumnsByAnchor?: Record<string, TaskListColumn<Task>[]>;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -750,6 +753,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     businessDays,
     isFilterMatch = false,
     isFilterHideMode = false,
+    additionalColumnsByAnchor,
   }) => {
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState("");
@@ -1846,6 +1850,31 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           )}
         </div>
 
+        {/* Additional columns after Name */}
+        {(additionalColumnsByAnchor?.['name'] ?? []).map((col) => {
+          const columnContext = {
+            task,
+            rowIndex,
+            columnId: col.id,
+            isEditing: false,
+            openEditor: () => {},
+            closeEditor: () => {},
+            updateTask: () => {},
+          };
+          return (
+            <div
+              key={col.id}
+              className="gantt-tl-cell gantt-tl-cell-custom"
+              data-column-id={`custom:${col.id}`}
+              data-custom-column-id={col.id}
+              data-testid={`custom-cell-${col.id}`}
+              style={{ width: typeof col.width === 'number' ? `${col.width}px` : col.width ?? '120px', minWidth: typeof col.width === 'number' ? `${col.width}px` : col.width ?? '120px', flexShrink: 0 }}
+            >
+              {col.renderCell(columnContext)}
+            </div>
+          );
+        })}
+
         {/* Start Date — DatePicker component */}
         <div
           className="gantt-tl-cell gantt-tl-cell-date"
@@ -2049,6 +2078,31 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               : "-"}
           </span>
         </div>
+
+        {/* Additional columns after Progress */}
+        {(additionalColumnsByAnchor?.['progress'] ?? []).map((col) => {
+          const columnContext = {
+            task,
+            rowIndex,
+            columnId: col.id,
+            isEditing: false,
+            openEditor: () => {},
+            closeEditor: () => {},
+            updateTask: () => {},
+          };
+          return (
+            <div
+              key={col.id}
+              className="gantt-tl-cell gantt-tl-cell-custom"
+              data-column-id={`custom:${col.id}`}
+              data-custom-column-id={col.id}
+              data-testid={`custom-cell-${col.id}`}
+              style={{ width: typeof col.width === 'number' ? `${col.width}px` : col.width ?? '120px', minWidth: typeof col.width === 'number' ? `${col.width}px` : col.width ?? '120px', flexShrink: 0 }}
+            >
+              {col.renderCell(columnContext)}
+            </div>
+          );
+        })}
 
         {/* Dependencies column */}
         <div

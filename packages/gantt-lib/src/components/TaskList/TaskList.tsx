@@ -843,7 +843,35 @@ export const TaskList: React.FC<TaskListProps> = ({
     onReorder?.(updatedTasks, taskId, newSectionTask.id);
   }, [visibleTasks, orderedTasks, onDemoteTask, onReorder]);
 
-  const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH);
+  // ---- Additional columns helpers ----
+  const DEFAULT_ADDITIONAL_COLUMN_WIDTH = 120;
+
+  const normalizeColumnWidth = (width?: string | number) =>
+    typeof width === 'number' ? `${width}px` : width ?? `${DEFAULT_ADDITIONAL_COLUMN_WIDTH}px`;
+
+  const getColumnWidthPx = (width?: string | number) =>
+    typeof width === 'number' ? width : DEFAULT_ADDITIONAL_COLUMN_WIDTH;
+
+  // Bucket additional columns by their anchor (after). Invalid/missing anchors fall back to 'name'.
+  const additionalColumnsByAnchor = useMemo(() => {
+    if (!additionalColumns || additionalColumns.length === 0) return {} as Record<string, TaskListColumn<Task>[]>;
+
+    const buckets: Record<string, TaskListColumn<Task>[]> = {};
+    for (const col of additionalColumns) {
+      const anchor = col.after && BUILT_IN_COLUMN_ORDER.includes(col.after) ? col.after : 'name';
+      if (!buckets[anchor]) buckets[anchor] = [];
+      buckets[anchor].push(col);
+    }
+    return buckets;
+  }, [additionalColumns]);
+
+  // Calculate additional width from custom columns
+  const additionalWidth = useMemo(() => {
+    if (!additionalColumns) return 0;
+    return additionalColumns.reduce((sum, column) => sum + getColumnWidthPx(column.width), 0);
+  }, [additionalColumns]);
+
+  const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH + additionalWidth);
 
   return (
     <div
@@ -854,14 +882,36 @@ export const TaskList: React.FC<TaskListProps> = ({
       <div className="gantt-tl-table">
         {/* Header row - aligns with TimeScaleHeader, 1px taller for row alignment */}
         <div className="gantt-tl-header" style={{ height: `${headerHeight + 0.5}px` }}>
-          <div className="gantt-tl-headerCell gantt-tl-cell-number">№</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-name">Имя</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-date">Начало</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-date">Окончание</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-duration">{businessDays ? 'Дн. (р)' : 'Дн.'}</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-progress">%</div>
+          <div className="gantt-tl-headerCell gantt-tl-cell-number" data-column-id="number">№</div>
+          <div className="gantt-tl-headerCell gantt-tl-cell-name" data-column-id="name">Имя</div>
+          {(additionalColumnsByAnchor['name'] ?? []).map(col => (
+            <div
+              key={col.id}
+              className="gantt-tl-headerCell gantt-tl-headerCell-custom"
+              data-column-id={`custom:${col.id}`}
+              data-custom-column-id={col.id}
+              style={{ width: normalizeColumnWidth(col.width), minWidth: normalizeColumnWidth(col.width), flexShrink: 0 }}
+            >
+              {col.header}
+            </div>
+          ))}
+          <div className="gantt-tl-headerCell gantt-tl-cell-date" data-column-id="startDate">Начало</div>
+          <div className="gantt-tl-headerCell gantt-tl-cell-date" data-column-id="endDate">Окончание</div>
+          <div className="gantt-tl-headerCell gantt-tl-cell-duration" data-column-id="duration">{businessDays ? 'Дн. (р)' : 'Дн.'}</div>
+          <div className="gantt-tl-headerCell gantt-tl-cell-progress" data-column-id="progress">%</div>
+          {(additionalColumnsByAnchor['progress'] ?? []).map(col => (
+            <div
+              key={col.id}
+              className="gantt-tl-headerCell gantt-tl-headerCell-custom"
+              data-column-id={`custom:${col.id}`}
+              data-custom-column-id={col.id}
+              style={{ width: normalizeColumnWidth(col.width), minWidth: normalizeColumnWidth(col.width), flexShrink: 0 }}
+            >
+              {col.header}
+            </div>
+          ))}
           {/* Dependencies column header with type switcher */}
-          <div className="gantt-tl-headerCell gantt-tl-cell-deps" style={{ position: 'relative' }}>
+          <div className="gantt-tl-headerCell gantt-tl-cell-deps" data-column-id="dependencies" style={{ position: 'relative' }}>
             <Popover open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
               <PopoverTrigger asChild>
                 <button
@@ -942,6 +992,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               businessDays={businessDays}
               isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}
               isFilterHideMode={filterMode === 'hide' && isFilterActive}
+              additionalColumnsByAnchor={additionalColumnsByAnchor}
             />
           ))}
         </div>
