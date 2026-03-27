@@ -7,6 +7,7 @@ import { validateDependencies, cascadeByLinks, universalCascade, computeParentDa
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type { ValidationResult } from '../../types';
 import { TaskPredicate } from '../../filters';
+import type { TaskListColumn } from '../TaskList/taskListColumns';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
@@ -82,9 +83,9 @@ export interface TaskDependency {
   lag: number;
 }
 
-export interface GanttChartProps {
+export interface GanttChartProps<TTask extends Task = Task> {
   /** Array of tasks to display */
-  tasks: Task[];
+  tasks: TTask[];
   /** Width of each day column in pixels (default: 40) */
   dayWidth?: number;
   /** Height of each task row in pixels (default: 40) */
@@ -94,7 +95,7 @@ export interface GanttChartProps {
   /** Container height. Can be pixels (600), string ("90vh", "100%", "500px"), or undefined for auto height */
   containerHeight?: number | string;
   /** Callback when tasks are modified. Receives ONLY the changed tasks as full objects with all properties. */
-  onTasksChange?: (tasks: Task[]) => void;
+  onTasksChange?: (tasks: TTask[]) => void;
   /** Optional callback for dependency validation results */
   onValidateDependencies?: (result: ValidationResult) => void;
   /** Enable automatic shifting of dependent tasks when predecessor moves (default: false) */
@@ -102,7 +103,7 @@ export interface GanttChartProps {
   /** Disable dependency constraint checking during drag (default: false) */
   disableConstraints?: boolean;
   /** Called when a cascade drag completes; receives all shifted tasks (including dragged task) in hard mode */
-  onCascade?: (tasks: Task[]) => void;
+  onCascade?: (tasks: TTask[]) => void;
   /** Show task list overlay on the left side of the chart (default: false) */
   showTaskList?: boolean;
   /** Width of the task list overlay in pixels (default: 300) */
@@ -114,13 +115,13 @@ export interface GanttChartProps {
   /** Highlight expired/overdue tasks with red background (default: false) */
   highlightExpiredTasks?: boolean;
   /** Callback when a new task is added via the task list */
-  onAdd?: (task: Task) => void;
+  onAdd?: (task: TTask) => void;
   /** Callback when a task is deleted via the task list */
   onDelete?: (taskId: string) => void;
   /** Callback when a new task is inserted after a specific task via the task list */
-  onInsertAfter?: (taskId: string, newTask: Task) => void;
+  onInsertAfter?: (taskId: string, newTask: TTask) => void;
   /** Callback when tasks are reordered via drag in the task list */
-  onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
+  onReorder?: (tasks: TTask[], movedTaskId?: string, inferredParentId?: string) => void;
   /** Callback when a task is promoted (parentId removed). If not provided, default internal logic is used. */
   onPromoteTask?: (taskId: string) => void;
   /** Callback when a task is demoted (parentId set). If not provided, default internal logic is used. */
@@ -153,6 +154,8 @@ export interface GanttChartProps {
   disableTaskDrag?: boolean;
   /** Show calendar chart area (default: true) */
   showChart?: boolean;
+  /** Additional columns to display in the task list after built-in columns */
+  additionalColumns?: TaskListColumn<TTask>[];
 }
 
 /**
@@ -224,6 +227,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   highlightedTaskIds,
   disableTaskDrag = false,
   showChart = true,
+  additionalColumns,
 }, ref) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -914,6 +918,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             filterMode={filterMode}
             filteredTaskIds={matchedTaskIds}
             isFilterActive={!!taskFilter}
+            additionalColumns={additionalColumns}
           />
 
           {/* Chart area */}
@@ -1013,5 +1018,21 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
 });
 
 GanttChart.displayName = 'GanttChart';
+
+/**
+ * Internal generic component that accepts additionalColumns with extended task type.
+ * The public `GanttChart` export delegates to this via a type-cast wrapper,
+ * so consumers get full generic inference when passing additionalColumns.
+ */
+function GanttChartInner<TTask extends Task = Task>(
+  props: GanttChartProps<TTask>,
+  ref: React.ForwardedRef<GanttChartHandle>,
+) {
+  return GanttChart({ ...props, ref } as any);
+}
+
+export const _GanttChartGeneric = forwardRef(GanttChartInner) as <
+  TTask extends Task = Task,
+>(props: GanttChartProps<TTask> & { ref?: React.Ref<GanttChartHandle> }) => React.ReactElement;
 
 export default GanttChart;

@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
+import type { TaskListColumn, BuiltInTaskListColumnId } from './taskListColumns';
 import './TaskList.css';
 
 export { LINK_TYPE_ICONS };
@@ -20,6 +21,17 @@ export { LINK_TYPE_ICONS };
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
 type DependencyPickMode = 'predecessor' | 'successor';
 const MIN_TASK_LIST_WIDTH = 530;
+
+const BUILT_IN_COLUMN_ORDER: BuiltInTaskListColumnId[] = [
+  'number',
+  'name',
+  'startDate',
+  'endDate',
+  'duration',
+  'progress',
+  'dependencies',
+  'actions',
+];
 /**
  * Get all descendant tasks of a parent task (recursively).
  * Returns an array of all tasks where task.parentId is in the parent chain.
@@ -153,6 +165,8 @@ export interface TaskListProps {
   filteredTaskIds?: Set<string>;
   /** Whether filter is currently active (needed to distinguish "no filter" from "filter with no matches") */
   isFilterActive?: boolean;
+  /** Additional columns to display after built-in columns */
+  additionalColumns?: TaskListColumn<Task>[];
 }
 
 /**
@@ -192,6 +206,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   filterMode = 'highlight',
   filteredTaskIds = new Set(),
   isFilterActive = false,
+  additionalColumns,
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
