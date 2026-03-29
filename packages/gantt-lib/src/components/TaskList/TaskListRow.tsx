@@ -1619,6 +1619,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       </div>
     );
 
+    const nameTriggerPaddingLeft =
+      isParent
+        ? `${nestingDepth * 20 + 28}px`
+        : nestingDepth > 0
+          ? `${nestingDepth * 20 + 8}px`
+          : undefined;
+
+    const nameInputPaddingLeft =
+      nestingDepth > 0 ? `${nestingDepth * 20 + 8}px` : undefined;
+
     const nameCell = (
       <div className="gantt-tl-cell gantt-tl-cell-name">
         {isChild && !editingName && (
@@ -1644,8 +1654,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   ) : null
                 )}
                 {/* Vertical line from parent to last child position */}
-                {ancestorContinues.length > 0 && (
+                {nestingDepth > 0 && (
                   <span
+                    data-testid="gantt-tl-child-connector-vertical"
                     style={{
                       position: "absolute",
                       left: `${(nestingDepth - 1) * 20 + 9}px`,
@@ -1707,53 +1718,43 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
                   onClick={handleToggleCollapse}
                   style={{ left: `${nestingDepth * 20 + 1}px` }}
-                  aria-label={isCollapsed ? "Expand children" : "Collapse children"}
-                >
-                  <ChevronRightIcon />
-                </button>
+                    aria-label={isCollapsed ? "Expand children" : "Collapse children"}
+                  >
+                    <ChevronRightIcon />
+                  </button>
               </>
             )}
-            {editingName && (
-              <Input
-                ref={nameInputRef}
-                type="text"
-                value={nameValue}
-                onChange={(e) => setNameValue(e.target.value)}
-                onBlur={handleNameSave}
-                onKeyDown={handleNameKeyDown}
-                className="gantt-tl-name-input"
+          </>
+        )}
+        {!isChild && isParent && !editingName && (
+          <>
+            {!isFilterHideMode && !isCollapsed && (
+              <span
+                data-testid="gantt-tl-parent-connector-tail"
                 style={{
-                  paddingLeft:
-                    nestingDepth > 0 ? `${nestingDepth * 20 + 24}px` : undefined,
+                  position: "absolute",
+                  left: `${nestingDepth * 20 + 9}px`,
+                  top: `${rowHeight / 2 + 7}px`,
+                  height: `${rowHeight / 2 - 7}px`,
+                  width: "1.5px",
+                  background: "var(--gantt-hierarchy-line-color)",
+                  borderRadius: "1px",
+                  pointerEvents: "none",
                 }}
-                onClick={(e) => e.stopPropagation()}
               />
             )}
             <button
               type="button"
-              className={[
-                "gantt-tl-name-trigger",
-                disableTaskNameEditing ? "gantt-tl-name-locked" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              title={task.name}
-              onClick={handleNameClick}
-              onDoubleClick={handleNameDoubleClick}
-              style={{
-                paddingLeft:
-                  nestingDepth > 0
-                    ? `${nestingDepth * 20 + (isParent ? 24 : 8)}px`
-                    : isParent
-                      ? "24px"
-                      : undefined,
-              }}
+              className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
+              onClick={handleToggleCollapse}
+              style={{ left: `${nestingDepth * 20 + 1}px` }}
+              aria-label={isCollapsed ? "Expand children" : "Collapse children"}
             >
-              {task.name}
+              <ChevronRightIcon />
             </button>
           </>
         )}
-        {isParent && editingName && (
+        {editingName ? (
           <Input
             ref={nameInputRef}
             type="text"
@@ -1762,43 +1763,25 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             onBlur={handleNameSave}
             onKeyDown={handleNameKeyDown}
             className="gantt-tl-name-input"
-            style={{
-              paddingLeft:
-                nestingDepth > 0 ? `${nestingDepth * 20 + 24}px` : undefined,
-            }}
+            style={{ paddingLeft: nameInputPaddingLeft }}
             onClick={(e) => e.stopPropagation()}
           />
-        )}
-        {!isChild && isParent && !editingName && (
+        ) : (
           <button
             type="button"
-            className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
-            onClick={handleToggleCollapse}
-            style={{ left: `${nestingDepth * 20 + 1}px` }}
-            aria-label={isCollapsed ? "Expand children" : "Collapse children"}
+            className={[
+              "gantt-tl-name-trigger",
+              disableTaskNameEditing ? "gantt-tl-name-locked" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            title={task.name}
+            onClick={handleNameClick}
+            onDoubleClick={handleNameDoubleClick}
+            style={{ paddingLeft: nameTriggerPaddingLeft }}
           >
-            <ChevronRightIcon />
+            {task.name}
           </button>
-        )}
-        {((!isChild && !isParent) || (isChild && editingName) || (isParent && editingName)) && (
-          <>
-            {!editingName && (
-              <button
-                type="button"
-                className={[
-                  "gantt-tl-name-trigger",
-                  disableTaskNameEditing ? "gantt-tl-name-locked" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                title={task.name}
-                onClick={handleNameClick}
-                onDoubleClick={handleNameDoubleClick}
-              >
-                {task.name}
-              </button>
-            )}
-          </>
         )}
         {!editingName && (onDelete || onPromoteTask || onDemoteTask) && (
           <div className="gantt-tl-name-actions">
