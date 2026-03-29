@@ -77,7 +77,7 @@ describe('GanttChart additionalColumns', () => {
         rowHeight={36}
         headerHeight={40}
         taskListWidth={660}
-        additionalColumns={additionalColumns as TaskListColumn<Task>[]}
+        additionalColumns={additionalColumns}
       />
     );
 
@@ -122,7 +122,7 @@ describe('GanttChart additionalColumns', () => {
         rowHeight={36}
         headerHeight={40}
         taskListWidth={660}
-        additionalColumns={cols as TaskListColumn<Task>[]}
+        additionalColumns={cols}
       />
     );
 
@@ -144,7 +144,7 @@ describe('GanttChart additionalColumns', () => {
         rowHeight={36}
         headerHeight={40}
         taskListWidth={660}
-        additionalColumns={additionalColumns as TaskListColumn<Task>[]}
+        additionalColumns={additionalColumns}
       />
     );
 
@@ -166,7 +166,7 @@ describe('GanttChart additionalColumns', () => {
         rowHeight={36}
         headerHeight={40}
         taskListWidth={660}
-        additionalColumns={additionalColumns as TaskListColumn<Task>[]}
+        additionalColumns={additionalColumns}
       />
     );
 
@@ -191,7 +191,7 @@ describe('GanttChart additionalColumns', () => {
         rowHeight={36}
         headerHeight={40}
         taskListWidth={660}
-        additionalColumns={additionalColumns as TaskListColumn<Task>[]}
+        additionalColumns={additionalColumns}
       />
     );
 
@@ -214,7 +214,7 @@ describe('GanttChart additionalColumns', () => {
         rowHeight={36}
         headerHeight={40}
         taskListWidth={660}
-        additionalColumns={additionalColumns as TaskListColumn<Task>[]}
+        additionalColumns={additionalColumns}
       />
     );
 
@@ -236,7 +236,7 @@ describe('GanttChart additionalColumns', () => {
         rowHeight={36}
         headerHeight={40}
         taskListWidth={660}
-        additionalColumns={additionalColumns as TaskListColumn<Task>[]}
+        additionalColumns={additionalColumns}
         onTasksChange={onTasksChange}
       />
     );

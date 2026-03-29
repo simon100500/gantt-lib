@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.18.0
 milestone_name: milestone
-status: Ready to execute
-last_updated: "2026-03-29T13:24:47.489Z"
+status: Ready to verify
+last_updated: "2026-03-29T14:00:00.000Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 18
 ---
 
 ## Current Position
 
-Phase: 25 (columns-refactoring) — EXECUTING
-Plan: 3 of 4 (Wave 3)
+Phase: 25 (columns-refactoring) — ALL PLANS COMPLETE
+Plan: 4 of 4 (all done)
 
 ## Project Reference
 
@@ -44,12 +44,9 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | shadcn/ui components | Modern, accessible, customizable | ✓ Good — DatePicker, Input integrated |
 | Coarse granularity for v0.50.0 | 2 phases cover independent feature sets | ✓ Good — Custom Weekend Calendar + Additional Columns |
 | TDD approach for utilities | Test-first development ensures API correctness | ✓ Good — RED phase complete (11 failing tests) |
-<<<<<<< HEAD
 | Type alias intersection for union types | TypeScript doesn't support interface extends union (TS2312) | ✓ Good — used `type X = Union & { ... }` pattern |
 | Tracked insertion positions per anchor | Prevents same-anchor column order reversal | ✓ Good — Map<string, number> tracks last insert index |
-=======
 | Single editingColumnId state | One state for all editors, derived booleans for compat | ✓ Good — eliminates multi-editor race condition (Phase 25-03) |
->>>>>>> worktree-agent-ac3f468d
 
 ### Technical Constraints
 
@@ -75,7 +72,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | 260319-w9n | добавить пропсы collapsedParentIds и onToggleCollapse для управления состоянием collapse/expand родительских задач | 2026-03-19 | 0be31d5 | [260319-w9n-collapsedparentids-ontogglecollapse-coll](./quick/260319-w9n-collapsedparentids-ontogglecollapse-coll/) |
 | 260320-ht7 | Каскадный пересчёт зависимостей с учётом рабочих дней | 2026-03-20 | 1c675fd | [260320-ht7-business-days-calc](./quick/260320-ht7-business-days-calc/) |
 
-| 260321-lag | РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј | 2026-03-20 | eb14476 | [260321-lag-planning-work-day-logic-md](./quick/260321-lag-planning-work-day-logic-md/) |
+| 260321-lag | Перевести workday-логику на lag-как-инвариант и сделать businessDays дефолтом | 2026-03-20 | eb14476 | [260321-lag-planning-work-day-logic-md](./quick/260321-lag-planning-work-day-logic-md/) |
 | 260322-oi0 | Добавить возможность скрытия тасклиста отдельно от календаря | 2026-03-22 | f06f820 | [260322-oi0](./quick/260322-oi0/) |
 | 260323-pud | Split REFERENCE.md into modular chapter structure (12 chapters + INDEX) | 2026-03-23 | ab4ca21 | [260323-pud](./quick/260323-pud-md-d-projects-gantt-lib-docs-reference-m/) |
 
@@ -92,6 +89,7 @@ None yet — no external users (library in active development)
 - Phase 22: filters
 - Phase 23: Additional TaskList Columns (COL-01 to COL-08)
 - Phase 24: buisiness-days
+- Phase 25: columns-refactoring (4 plans, 4 waves)
 
 ### Roadmap Evolution
 
@@ -110,15 +108,15 @@ None yet — no external users (library in active development)
 **Current focus:** Phase 25 — columns-refactoring
 
 - ✓ 25-01: Structural foundations — new types, resolver with TDD, backward-compatible bridge
-- Next: 25-02: Built-in column factory
+- ✓ 25-02: Render unification — createBuiltInColumns factory, header/body via resolvedColumns.map()
+- ✓ 25-03: Editor unification — single editingColumnId replaces 4 separate states
+- ✓ 25-04: Generic tightening — (source changes superseded by Waves 1-3 architecture)
 
-**Next:** Phase 25 Plan 25-02 (Built-in column factory)
+**Next:** Verification
 
 ---
 
-Last activity: 2026-03-29
-
-Last activity: 2026-03-29 - Completed 25-01: Structural foundations for columns refactoring
+Last activity: 2026-03-29 - Completed all plans for phase 25: columns-refactoring
 
 **State updated:** 2026-03-29
 **Milestone:** v0.50.0 Adding Tools
