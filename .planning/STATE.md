@@ -14,8 +14,8 @@ progress:
 
 ## Current Position
 
-Phase: 25 (columns-refactoring)
-Plan: 3 of 4
+Phase: 25 (columns-refactoring) — EXECUTING
+Plan: 3 of 4 (Wave 3)
 
 ## Project Reference
 
@@ -44,8 +44,12 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | shadcn/ui components | Modern, accessible, customizable | ✓ Good — DatePicker, Input integrated |
 | Coarse granularity for v0.50.0 | 2 phases cover independent feature sets | ✓ Good — Custom Weekend Calendar + Additional Columns |
 | TDD approach for utilities | Test-first development ensures API correctness | ✓ Good — RED phase complete (11 failing tests) |
+<<<<<<< HEAD
 | Type alias intersection for union types | TypeScript doesn't support interface extends union (TS2312) | ✓ Good — used `type X = Union & { ... }` pattern |
 | Tracked insertion positions per anchor | Prevents same-anchor column order reversal | ✓ Good — Map<string, number> tracks last insert index |
+=======
+| Single editingColumnId state | One state for all editors, derived booleans for compat | ✓ Good — eliminates multi-editor race condition (Phase 25-03) |
+>>>>>>> worktree-agent-ac3f468d
 
 ### Technical Constraints
 

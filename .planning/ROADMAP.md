@@ -127,6 +127,7 @@
 
 ### Phase 25: columns-refactoring
 
+<<<<<<< HEAD
 **Goal:** Refactor TaskList column system: unify built-in and custom columns into single pipeline with one contract, one resolver, one render path, one editor lifecycle, and numeric-only width model
 
 **Depends on:** Phase 24
@@ -148,6 +149,24 @@
 - [x] 25-02-PLAN.md — Render unification: createBuiltInColumns factory, header/body via resolvedColumns.map()
 - [ ] 25-03-PLAN.md — Editor unification: single editingColumnId replaces 4 separate states
 - [ ] 25-04-PLAN.md — Generic tightening and cleanup: remove casts, dead code, finalize
+=======
+**Goal:** Refactor TaskList column architecture for extensibility — unified editor lifecycle, type-safe column contracts, and streamlined rendering.
+
+**Depends on:** Phase 23
+
+**Requirements:** None (internal refactoring, not tracked in REQUIREMENTS.md)
+
+**Success Criteria** (what must be TRUE):
+1. Single editingColumnId state controls all editors
+2. Type-safe column contract for built-in and custom columns
+3. Column rendering uses consistent patterns
+
+**Plans:** 4 plans
+
+- [ ] 25-01-PLAN.md — Column type contract
+- [ ] 25-02-PLAN.md — Column rendering refactoring
+- [x] 25-03-PLAN.md — Editor unification (editingColumnId)
+>>>>>>> worktree-agent-ac3f468d
 
 ## Progress
 
@@ -159,7 +178,11 @@
 | 22 | v0.50.0 | 2/2 | Complete | 2026-03-19 |
 | 23 | v0.50.0 | 3/3 | Complete    | 2026-03-27 |
 | 24 | v0.50.0 | 2/2 | Complete   | 2026-03-22 |
+<<<<<<< HEAD
 | 25 | v0.50.0 | 2/4 | In Progress|  |
+=======
+| 25 | v0.50.0 | 1/4 | Executing  | - |
+>>>>>>> worktree-agent-ac3f468d
 
 **Overall:** 62/66 plans complete (94%)
 
