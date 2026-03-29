@@ -169,7 +169,7 @@ export interface TaskListProps {
   /** Whether filter is currently active (needed to distinguish "no filter" from "filter with no matches") */
   isFilterActive?: boolean;
   /** Additional columns to display after built-in columns */
-  additionalColumns?: TaskListColumn<Task>[];
+  additionalColumns?: TaskListColumn<any>[];
 }
 
 /**
