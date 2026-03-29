@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v0.18.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-23T15:39:24.077Z"
-last_activity: 2026-03-22
+status: Phase complete — ready for verification
+last_updated: "2026-03-29T13:29:31.652Z"
+last_activity: 2026-03-29
 progress:
   total_phases: 5
   completed_phases: 4
@@ -14,8 +14,8 @@ progress:
 
 ## Current Position
 
-Phase: 24 (buisiness-days) — EXECUTING
-Plan: 2 of 2
+Phase: 25 (columns-refactoring) — EXECUTING
+Plan: 3 of 4 (Wave 3)
 
 ## Project Reference
 
@@ -44,6 +44,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | shadcn/ui components | Modern, accessible, customizable | ✓ Good — DatePicker, Input integrated |
 | Coarse granularity for v0.50.0 | 2 phases cover independent feature sets | ✓ Good — Custom Weekend Calendar + Additional Columns |
 | TDD approach for utilities | Test-first development ensures API correctness | ✓ Good — RED phase complete (11 failing tests) |
+| Single editingColumnId state | One state for all editors, derived booleans for compat | ✓ Good — eliminates multi-editor race condition (Phase 25-03) |
 
 ### Technical Constraints
 
@@ -92,6 +93,7 @@ None yet — no external users (library in active development)
 - Phase 22 added: filters (inserted between 21.1 and old 22)
 - Old Phase 22 → Phase 23: Additional TaskList Columns (renumbered)
 - Phase 24 added: buisiness-days
+- Phase 25 added: columns-refactoring
 
 **Coverage:** 13/13 requirements mapped ✓
 
@@ -121,7 +123,7 @@ None yet — no external users (library in active development)
 
 ---
 
-Last activity: 2026-03-23
+Last activity: 2026-03-29
 
 Last activity: 2026-03-23 - Completed quick task 260323-pud: Split REFERENCE.md into modular chapter structure
 

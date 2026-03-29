@@ -17,6 +17,7 @@
 - [x] **Phase 22: filters** - Task filtering functionality
 - [ ] **Phase 23: Additional TaskList Columns** - Custom columns with renderers and editors
 - [ ] **Phase 24: buisiness-days** - Business days calculation mode for task duration
+- [ ] **Phase 25: columns-refactoring** - Refactor TaskList column architecture for extensibility
 
 ### Phase 21: Custom Weekend Calendar
 
@@ -120,6 +121,25 @@
 - [x] 24-01-PLAN.md — Create and implement getBusinessDaysCount and addBusinessDays utilities (TDD)
 - [x] 24-02-PLAN.md — Integrate businessDays prop into GanttChart, TaskList, TaskListRow with memoized conditional functions
 
+### Phase 25: columns-refactoring
+
+**Goal:** Refactor TaskList column architecture for extensibility — unified editor lifecycle, type-safe column contracts, and streamlined rendering.
+
+**Depends on:** Phase 23
+
+**Requirements:** None (internal refactoring, not tracked in REQUIREMENTS.md)
+
+**Success Criteria** (what must be TRUE):
+1. Single editingColumnId state controls all editors
+2. Type-safe column contract for built-in and custom columns
+3. Column rendering uses consistent patterns
+
+**Plans:** 4 plans
+
+- [ ] 25-01-PLAN.md — Column type contract
+- [ ] 25-02-PLAN.md — Column rendering refactoring
+- [x] 25-03-PLAN.md — Editor unification (editingColumnId)
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -130,6 +150,7 @@
 | 22 | v0.50.0 | 2/2 | Complete | 2026-03-19 |
 | 23 | v0.50.0 | 0/TBD | Ready to plan | - |
 | 24 | v0.50.0 | 2/2 | Complete   | 2026-03-22 |
+| 25 | v0.50.0 | 1/4 | Executing  | - |
 
 **Overall:** 53/62 plans complete (85%)
 
