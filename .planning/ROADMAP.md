@@ -170,7 +170,7 @@
 **Plans:** 2 plans
 
 - [x] 26-01-PLAN.md — Удалить legacy editor fallback, bridge файл, обновить импорты и демо
-- [ ] 26-02-PLAN.md — Обновить документацию и добавить migration note
+- [x] 26-02-PLAN.md — Обновить документацию и добавить migration note
 
 ## Progress
 
@@ -183,7 +183,7 @@
 | 23 | v0.50.0 | 3/3 | Complete    | 2026-03-27 |
 | 24 | v0.50.0 | 2/2 | Complete   | 2026-03-22 |
 | 25 | v0.50.0 | 4/4 | Complete    | 2026-03-29 |
-| 26 | v0.50.0 | 1/2 | In Progress|  |
+| 26 | v0.50.0 | 2/2 | Complete   | 2026-03-29 |
 
 **Overall:** 62/68 plans complete (91%)
 
