@@ -780,9 +780,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const [deletePending, setDeletePending] = useState(false);
     const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
-    // Custom column editor state — only one custom editor open at a time per row
-    const [editingCustomColumnId, setEditingCustomColumnId] = useState<string | null>(null);
-
     const isSelected = selectedTaskId === task.id;
 
     // Hierarchy computed values
@@ -2210,21 +2207,21 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           if (builtIn) return <React.Fragment key={col.id}>{builtIn}</React.Fragment>;
 
           // Custom column
-          const isEditing = editingCustomColumnId === col.id;
+          const isEditing = editingColumnId === col.id;
           const editorFn = col.renderEditor ?? (col as any).editor;
           const columnContext = {
             task,
             rowIndex,
             isEditing,
             openEditor: () => {
-              if (editorFn) setEditingCustomColumnId(col.id);
+              if (editorFn) setEditingColumnId(col.id);
             },
             closeEditor: () => {
-              if (editingCustomColumnId === col.id) setEditingCustomColumnId(null);
+              if (editingColumnId === col.id) setEditingColumnId(null);
             },
             updateTask: (patch: Partial<Task>) => {
               onTasksChange?.([{ ...task, ...patch } as Task]);
-              setEditingCustomColumnId(null);
+              setEditingColumnId(null);
             },
           };
 
@@ -2236,7 +2233,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               data-custom-column-id={col.id}
               data-custom-column-editing={isEditing ? "true" : "false"}
               data-testid={`custom-cell-${col.id}`}
-              onClick={editorFn && !isEditing ? (e) => { e.stopPropagation(); setEditingCustomColumnId(col.id); } : undefined}
+              onClick={editorFn && !isEditing ? (e) => { e.stopPropagation(); setEditingColumnId(col.id); } : undefined}
               style={{ width: col.width ?? 120, minWidth: col.width ?? 120, flexShrink: 0 }}
             >
               {isEditing && editorFn ? (
