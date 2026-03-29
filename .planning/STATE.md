@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 - Custom weekend calendar (Date[] array + isWeekend predicate)
 - Task filtering by various criteria
-- Additional TaskList columns with renderCell/editor
+- Additional TaskList columns with renderCell/renderEditor
 
 ## Accumulated Context
 

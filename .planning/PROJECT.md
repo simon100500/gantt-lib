@@ -15,7 +15,7 @@ Drag-and-drop task scheduling with Excel-like visual simplicity.
 **Target features:**
 - Custom weekend calendar (Date[] array + isWeekend predicate)
 - Task filtering API with ready-made predicates
-- Additional TaskList columns with renderCell/editor, positioned after Name column
+- Additional TaskList columns with renderCell/renderEditor, positioned after Name column
 
 ## Current State (v0.22.0)
 
@@ -33,6 +33,7 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - Action buttons panel
 - **Task filtering API** (Phase 22) — predicate-based filtering with ready-made utilities
 - **Unified column pipeline** (Phase 25) — `resolvedColumns.map()` architecture with single editor state
+- **Columns API migration** (Phase 26) — unified column API with `renderEditor` as the only editor property
 - shadcn/ui components (DatePicker, Input)
 
 **Tech stack:** React 18+, TypeScript, date-fns, @radix-ui
