@@ -32,6 +32,7 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - Expired task highlighting
 - Action buttons panel
 - **Task filtering API** (Phase 22) — predicate-based filtering with ready-made utilities
+- **Unified column pipeline** (Phase 25) — `resolvedColumns.map()` architecture with single editor state
 - shadcn/ui components (DatePicker, Input)
 
 **Tech stack:** React 18+, TypeScript, date-fns, @radix-ui
@@ -53,12 +54,7 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - ✅ Customizable task colors — v0.18.0
 - ✅ TypeScript support — v0.18.0
 - ✅ Task filtering with predicates — v0.22.0
-
-### Active
-
-**v0.50.0 Goals:**
-- [ ] Custom weekend calendar — pass Date[] array or isWeekend function
-- ✅ Additional TaskList columns — add custom columns after Name with renderCell/editor — v0.50.0 (Phase 23)
+- ✅ Unified column pipeline — resolvedColumns.map() architecture, single editor state — v0.50.0 (Phase 25)
 
 ### Out of Scope
 
@@ -102,4 +98,4 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - **Browser**: Modern browsers — No IE11 requirement
 
 ---
-*Last updated: 2026-03-27 after Phase 23 (additional-tasklist-columns) completed*
+*Last updated: 2026-03-29 after Phase 25 (columns-refactoring) completed*
