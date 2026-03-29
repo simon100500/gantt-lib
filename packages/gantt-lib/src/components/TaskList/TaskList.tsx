@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
-import type { TaskListColumn } from './taskListColumns';
+import type { TaskListColumn } from './columns/types';
 import { createBuiltInColumns, BUILT_IN_COLUMN_WIDTHS } from './columns/createBuiltInColumns';
 import { resolveTaskListColumns } from './columns/resolveTaskListColumns';
 import type { TaskListColumn as NewTaskListColumn } from './columns/types';

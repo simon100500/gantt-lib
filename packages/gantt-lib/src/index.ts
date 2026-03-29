@@ -33,7 +33,7 @@ export type {
   BuiltInTaskListColumnId,
   TaskListColumn,
   TaskListColumnContext,
-} from './components/TaskList/taskListColumns';
+} from './components/TaskList/columns/types';
 
 // Types
 export type {

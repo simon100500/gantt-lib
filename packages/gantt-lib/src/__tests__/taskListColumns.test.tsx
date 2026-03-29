@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { GanttChart, type Task } from '../components/GanttChart';
-import type { TaskListColumn } from '../components/TaskList/taskListColumns';
+import type { TaskListColumn } from '../components/TaskList/columns/types';
 
 vi.mock('../components/ui/DatePicker', () => ({
   DatePicker: ({ value }: { value?: string }) => <button type="button">{value}</button>,

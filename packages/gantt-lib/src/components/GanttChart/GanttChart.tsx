@@ -7,7 +7,7 @@ import { validateDependencies, cascadeByLinks, universalCascade, computeParentDa
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type { ValidationResult } from '../../types';
 import { TaskPredicate } from '../../filters';
-import type { TaskListColumn } from '../TaskList/taskListColumns';
+import type { TaskListColumn } from '../TaskList/columns/types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';

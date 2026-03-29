@@ -2191,7 +2191,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
           // Custom column
           const isEditing = editingColumnId === col.id;
-          const editorFn = col.renderEditor ?? (col as any).editor;
+          const editorFn = col.renderEditor;
           const columnContext = {
             task,
             rowIndex,
