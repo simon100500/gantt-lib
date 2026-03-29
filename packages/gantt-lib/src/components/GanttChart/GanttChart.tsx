@@ -922,7 +922,7 @@ function GanttChartInner<TTask extends Task = Task>(
             filterMode={filterMode}
             filteredTaskIds={matchedTaskIds}
             isFilterActive={!!taskFilter}
-            additionalColumns={additionalColumns as TaskListColumn<Task>[] | undefined}
+            additionalColumns={additionalColumns}
           />
 
           {/* Chart area */}

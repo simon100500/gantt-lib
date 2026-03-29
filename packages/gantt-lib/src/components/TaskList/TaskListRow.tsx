@@ -696,7 +696,7 @@ export interface TaskListRowProps {
   /** Whether filter is in hide mode (simplifies hierarchy rendering to avoid confusion) */
   isFilterHideMode?: boolean;
   /** Additional columns bucketed by anchor id for rendering after built-in cells */
-  additionalColumnsByAnchor?: Record<string, TaskListColumn<Task>[]>;
+  additionalColumnsByAnchor?: Record<string, TaskListColumn<any>[]>;
 }
 
 const toISODate = (value: string | Date): string => {

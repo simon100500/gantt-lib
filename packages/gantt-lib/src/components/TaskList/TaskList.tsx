@@ -166,7 +166,7 @@ export interface TaskListProps {
   /** Whether filter is currently active (needed to distinguish "no filter" from "filter with no matches") */
   isFilterActive?: boolean;
   /** Additional columns to display after built-in columns */
-  additionalColumns?: TaskListColumn<Task>[];
+  additionalColumns?: TaskListColumn<any>[];
 }
 
 /**
@@ -854,9 +854,9 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   // Bucket additional columns by their anchor (after). Invalid/missing anchors fall back to 'name'.
   const additionalColumnsByAnchor = useMemo(() => {
-    if (!additionalColumns || additionalColumns.length === 0) return {} as Record<string, TaskListColumn<Task>[]>;
+    if (!additionalColumns || additionalColumns.length === 0) return {} as Record<string, TaskListColumn<any>[]>;
 
-    const buckets: Record<string, TaskListColumn<Task>[]> = {};
+    const buckets: Record<string, TaskListColumn<any>[]> = {};
     for (const col of additionalColumns) {
       const anchor = col.after && BUILT_IN_COLUMN_ORDER.includes(col.after) ? col.after : 'name';
       if (!buckets[anchor]) buckets[anchor] = [];
