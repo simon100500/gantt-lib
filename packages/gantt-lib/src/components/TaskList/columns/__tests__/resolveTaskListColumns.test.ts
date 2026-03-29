@@ -37,10 +37,10 @@ describe('resolveTaskListColumns', () => {
     const ids = result.map(c => c.id);
 
     const startDateIndex = ids.indexOf('startDate');
-    expect(startDateIndex).toBeGreaterThanOrEqual(0);
     const priorityIndex = ids.indexOf('priority');
     expect(priorityIndex).toBeGreaterThanOrEqual(0);
-    expect(priorityIndex).toBe(startDateIndex);
+    expect(startDateIndex).toBeGreaterThanOrEqual(0);
+    expect(priorityIndex).toBeLessThan(startDateIndex);
   });
 
   it('inserts custom column with { after: "progress" } after progress', () => {
@@ -110,7 +110,9 @@ describe('resolveTaskListColumns', () => {
 
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining('Duplicate column id'),
-      expect.stringContaining('"number"')
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"number"'),
     );
 
     consoleSpy.mockRestore();
