@@ -22,7 +22,7 @@ const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
 type DependencyPickMode = 'predecessor' | 'successor';
 const MIN_TASK_LIST_WIDTH = 530;
 
-const BUILT_IN_COLUMN_ORDER: BuiltInTaskListColumnId[] = [
+const VALID_BUILT_IN_ANCHORS: Set<BuiltInTaskListColumnId> = new Set([
   'number',
   'name',
   'startDate',
@@ -31,7 +31,7 @@ const BUILT_IN_COLUMN_ORDER: BuiltInTaskListColumnId[] = [
   'progress',
   'dependencies',
   'actions',
-];
+]);
 /**
  * Get all descendant tasks of a parent task (recursively).
  * Returns an array of all tasks where task.parentId is in the parent chain.
@@ -844,13 +844,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [visibleTasks, orderedTasks, onDemoteTask, onReorder]);
 
   // ---- Additional columns helpers ----
-  const DEFAULT_ADDITIONAL_COLUMN_WIDTH = 120;
-
-  const normalizeColumnWidth = (width?: string | number) =>
-    typeof width === 'number' ? `${width}px` : width ?? `${DEFAULT_ADDITIONAL_COLUMN_WIDTH}px`;
-
-  const getColumnWidthPx = (width?: string | number) =>
-    typeof width === 'number' ? width : DEFAULT_ADDITIONAL_COLUMN_WIDTH;
+  const toWidthPx = (w?: string | number) => typeof w === 'number' ? `${w}px` : w ?? '120px';
+  const toWidthNum = (w?: string | number) => typeof w === 'number' ? w : 120;
 
   // Bucket additional columns by their anchor (after). Invalid/missing anchors fall back to 'name'.
   const additionalColumnsByAnchor = useMemo(() => {
@@ -858,7 +853,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
     const buckets: Record<string, TaskListColumn<any>[]> = {};
     for (const col of additionalColumns) {
-      const anchor = col.after && BUILT_IN_COLUMN_ORDER.includes(col.after) ? col.after : 'name';
+      const anchor = col.after && VALID_BUILT_IN_ANCHORS.has(col.after) ? col.after : 'name';
       if (!buckets[anchor]) buckets[anchor] = [];
       buckets[anchor].push(col);
     }
@@ -868,7 +863,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   // Calculate additional width from custom columns
   const additionalWidth = useMemo(() => {
     if (!additionalColumns) return 0;
-    return additionalColumns.reduce((sum, column) => sum + getColumnWidthPx(column.width), 0);
+    return additionalColumns.reduce((sum, column) => sum + toWidthNum(column.width), 0);
   }, [additionalColumns]);
 
   const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH + additionalWidth);
@@ -890,7 +885,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               className="gantt-tl-headerCell gantt-tl-headerCell-custom"
               data-column-id={`custom:${col.id}`}
               data-custom-column-id={col.id}
-              style={{ width: normalizeColumnWidth(col.width), minWidth: normalizeColumnWidth(col.width), flexShrink: 0 }}
+              style={{ width: toWidthPx(col.width), minWidth: toWidthPx(col.width), flexShrink: 0 }}
             >
               {col.header}
             </div>
@@ -905,7 +900,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               className="gantt-tl-headerCell gantt-tl-headerCell-custom"
               data-column-id={`custom:${col.id}`}
               data-custom-column-id={col.id}
-              style={{ width: normalizeColumnWidth(col.width), minWidth: normalizeColumnWidth(col.width), flexShrink: 0 }}
+              style={{ width: toWidthPx(col.width), minWidth: toWidthPx(col.width), flexShrink: 0 }}
             >
               {col.header}
             </div>
