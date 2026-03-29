@@ -4,11 +4,11 @@
 
 - ✅ **v0.18.0 Gantt Library MVP** — Phases 1-20 (shipped 2026-03-17)
   — See `.planning/milestones/v0.18.0-ROADMAP.md`
-- 🔄 **v0.50.0 Adding Tools** — Phases 21-25 (in progress)
+- 🔄 **v0.50.0 Adding Tools** — Phases 21-26 (in progress)
 
 ## Current Status
 
-🎯 **Phase 25 planned** — Columns Refactoring
+🎯 **Phase 26 planning** — Columns API Migration
 
 ## Phases
 
@@ -17,7 +17,8 @@
 - [x] **Phase 22: filters** - Task filtering functionality
 - [x] **Phase 23: Additional TaskList Columns** - Custom columns with renderers and editors
 - [x] **Phase 24: buisiness-days** - Business days calculation mode for task duration
-- [ ] **Phase 25: columns-refactoring** - Unified column pipeline for TaskList
+- [x] **Phase 25: columns-refactoring** - Unified column pipeline for TaskList
+- [ ] **Phase 26: columns-api-migration** - Remove legacy column API, enforce new renderEditor/width contract
 
 ### Phase 21: Custom Weekend Calendar
 
@@ -93,9 +94,9 @@
 **Success Criteria** (what must be TRUE):
 1. User can pass `additionalColumns?: Column[]` prop to TaskList and see new columns render in the table
 2. Custom columns render after specified base column (via `after?: string` prop, defaults to after 'Name')
-3. Cell content renders correctly via `renderCell: (row: GanttRow) => ReactNode` for each row
-4. Inline editor appears via `editor?: (row: GanttRow) => ReactNode` when user clicks editable cells
-5. Column width is customizable via `width?: string | number` prop
+3. Cell content renders correctly via `renderCell: (ctx: TaskListColumnContext<TTask>) => ReactNode` for each row
+4. Inline editor appears via `renderEditor?: (ctx: TaskListColumnContext<TTask>) => ReactNode` when user clicks editable cells
+5. Column width is customizable via `width?: number` prop
 6. Additional columns scroll horizontally with TaskList panel
 7. Base columns (No, Name, Dates, Dependencies, Actions) remain unchanged and functional
 
@@ -127,7 +128,6 @@
 
 ### Phase 25: columns-refactoring
 
-<<<<<<< HEAD
 **Goal:** Refactor TaskList column system: unify built-in and custom columns into single pipeline with one contract, one resolver, one render path, one editor lifecycle, and numeric-only width model
 
 **Depends on:** Phase 24
@@ -150,6 +150,28 @@
 - [x] 25-03-PLAN.md — Editor unification: single editingColumnId replaces 4 separate states
 - [x] 25-04-PLAN.md — Generic tightening and cleanup: remove casts, dead code, finalize
 
+### Phase 26: columns-api-migration
+
+**Goal:** Remove legacy column editor API (`editor` property, fallback logic) and enforce the new unified contract (`renderEditor`, numeric `width`, canonical import path) as the only supported approach
+
+**Depends on:** Phase 25
+
+**Requirements:** MIG-01, MIG-02, MIG-03, MIG-04, MIG-05, MIG-06, MIG-07
+
+**Success Criteria** (what must be TRUE):
+1. `TaskListRow.tsx` no longer supports legacy `editor` property
+2. No repo examples use `editor` — only `renderEditor`
+3. No docs show `editor`
+4. Column examples use numeric `width`
+5. A maintainer can inspect the repo and find only one supported authoring style
+6. All existing custom column tests pass after removing legacy support
+7. Migration note documents the breaking change
+
+**Plans:** 2 plans
+
+- [ ] 26-01-PLAN.md — Удалить legacy editor fallback, bridge файл, обновить импорты и демо
+- [ ] 26-02-PLAN.md — Обновить документацию и добавить migration note
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -161,8 +183,9 @@
 | 23 | v0.50.0 | 3/3 | Complete    | 2026-03-27 |
 | 24 | v0.50.0 | 2/2 | Complete   | 2026-03-22 |
 | 25 | v0.50.0 | 4/4 | Complete    | 2026-03-29 |
+| 26 | v0.50.0 | 0/2 | Planning    | - |
 
-**Overall:** 62/66 plans complete (94%)
+**Overall:** 62/68 plans complete (91%)
 
 <details>
 <summary>v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -199,7 +222,7 @@ Build a lightweight React/Next.js library for interactive Gantt charts. Starting
 </details>
 
 <details>
-<summary>v0.50.0 Adding Tools (Phases 21-25) — IN PROGRESS</summary>
+<summary>v0.50.0 Adding Tools (Phases 21-26) — IN PROGRESS</summary>
 
 ### Overview
 
@@ -212,12 +235,13 @@ Add developer tools and calendar customization features to the Gantt library.
 - [x] **Phase 22: filters** (2/2 plans) — Task filtering with predicate-based API
 - [x] **Phase 23: Additional TaskList Columns** (3/3 plans) — Custom columns with renderers and editors
 - [x] **Phase 24: buisiness-days** (2/2 plans) — Business days calculation mode
+- [x] **Phase 25: columns-refactoring** (4/4 plans) — Unified column pipeline for TaskList
 
 ### In Progress
 
-- [ ] **Phase 25: columns-refactoring** (0/4 plans) — Unified column pipeline for TaskList
+- [ ] **Phase 26: columns-api-migration** (0/2 plans) — Remove legacy column API
 
-**Total:** 5 phases complete, 1 in progress
+**Total:** 6 phases complete, 1 in progress
 
 </details>
 
