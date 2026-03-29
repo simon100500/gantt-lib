@@ -751,17 +751,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     isFilterMatch = false,
     isFilterHideMode = false,
   }) => {
-    const [editingName, setEditingName] = useState(false);
+    const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+    const editingName = editingColumnId === 'name';
+    const editingDuration = editingColumnId === 'duration';
+    const editingProgress = editingColumnId === 'progress';
     const [nameValue, setNameValue] = useState("");
     const nameInputRef = useRef<HTMLInputElement>(null);
-    const [editingDuration, setEditingDuration] = useState(false);
     const [durationValue, setDurationValue] = useState(() =>
       getInclusiveDurationDays(task.startDate, task.endDate),
     );
     const durationInputRef = useRef<HTMLInputElement>(null);
     const dependencySearchInputRef = useRef<HTMLInputElement>(null);
     const dependencySearchListRef = useRef<HTMLDivElement>(null);
-    const [editingProgress, setEditingProgress] = useState(false);
     const [progressValue, setProgressValue] = useState(0);
     const progressInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
@@ -957,7 +958,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         nameConfirmedRef.current = false; // Reset stale flag from any previous Enter-key save
         editTriggerRef.current = "autoedit";
         setNameValue(task.name);
-        setEditingName(true);
+        setEditingColumnId('name');
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editingTaskId, task.id, disableTaskNameEditing]);
@@ -979,7 +980,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         nameConfirmedRef.current = false; // Reset stale flag from any previous Enter-key save
         editTriggerRef.current = "doubleclick";
         setNameValue(task.name);
-        setEditingName(true);
+        setEditingColumnId('name');
       },
       [task.name, disableTaskNameEditing],
     );
@@ -994,7 +995,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           nameConfirmedRef.current = false; // Reset stale flag from any previous Enter-key save
           editTriggerRef.current = "keypress"; // 'keypress' trigger = cursor at end (not select-all)
           setNameValue(task.name);
-          setEditingName(true);
+          setEditingColumnId('name');
           return;
         }
       },
@@ -1010,11 +1011,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       if (nameValue.trim()) {
         onTasksChange?.([{ ...task, name: nameValue.trim() }]);
       }
-      setEditingName(false);
+      setEditingColumnId(null);
     }, [nameValue, task, onTasksChange]);
 
     const handleNameCancel = useCallback(() => {
-      setEditingName(false);
+      setEditingColumnId(null);
     }, []);
 
     const handleNameKeyDown = useCallback(
@@ -1024,7 +1025,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           if (nameValue.trim()) {
             onTasksChange?.([{ ...task, name: nameValue.trim() }]);
           }
-          setEditingName(false);
+          setEditingColumnId(null);
         } else if (e.key === "Escape") {
           handleNameCancel();
         }
@@ -1040,7 +1041,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         setDurationValue(
           getDuration(task.startDate, task.endDate),
         );
-        setEditingDuration(true);
+        setEditingColumnId('duration');
       },
       [task.locked, task.startDate, task.endDate, getDuration],
     );
@@ -1062,12 +1063,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           endDate: getEndDate(task.startDate, normalizedDuration),
         },
       ]);
-      setEditingDuration(false);
+      setEditingColumnId(null);
     }, [durationValue, task, onTasksChange, getEndDate]);
 
     const handleDurationCancel = useCallback(() => {
       setDurationValue(getDuration(task.startDate, task.endDate));
-      setEditingDuration(false);
+      setEditingColumnId(null);
     }, [task.startDate, task.endDate, getDuration]);
 
     const handleDurationAdjust = useCallback(
@@ -1095,7 +1096,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               ),
             },
           ]);
-          setEditingDuration(false);
+          setEditingColumnId(null);
         } else if (e.key === "Escape") {
           handleDurationCancel();
         }
@@ -1109,7 +1110,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         e.stopPropagation();
         progressConfirmedRef.current = false;
         setProgressValue(task.progress ?? 0);
-        setEditingProgress(true);
+        setEditingColumnId('progress');
       },
       [task.progress, task.locked],
     );
@@ -1135,11 +1136,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       } else {
         onTasksChange?.([{ ...task, progress: clampedValue }]);
       }
-      setEditingProgress(false);
+      setEditingColumnId(null);
     }, [progressValue, task, onTasksChange, allTasks]);
 
     const handleProgressCancel = useCallback(() => {
-      setEditingProgress(false);
+      setEditingColumnId(null);
     }, []);
 
     const handleProgressAdjust = useCallback((delta: number) => {
@@ -1172,7 +1173,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           } else {
             onTasksChange?.([{ ...task, progress: clampedValue }]);
           }
-          setEditingProgress(false);
+          setEditingColumnId(null);
         } else if (e.key === "Escape") {
           handleProgressCancel();
         }
