@@ -99,4 +99,4 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - **Browser**: Modern browsers — No IE11 requirement
 
 ---
-*Last updated: 2026-03-29 after Phase 25 (columns-refactoring) completed*
+*Last updated: 2026-03-29 after Phase 26 (columns-api-migration) completed*
