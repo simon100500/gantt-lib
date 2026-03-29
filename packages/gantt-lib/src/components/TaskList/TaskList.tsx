@@ -858,7 +858,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
     const buckets: Record<string, TaskListColumn<Task>[]> = {};
     for (const col of additionalColumns) {
-      const anchor = col.after && BUILT_IN_COLUMN_ORDER.includes(col.after) ? col.after : 'name';
+      const anchor = ('after' in col && col.after && BUILT_IN_COLUMN_ORDER.includes(col.after as BuiltInTaskListColumnId)) ? col.after : 'name';
       if (!buckets[anchor]) buckets[anchor] = [];
       buckets[anchor].push(col);
     }

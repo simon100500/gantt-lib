@@ -1863,7 +1863,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             columnId: col.id,
             isEditing,
             openEditor: () => {
-              if (col.editor) setEditingCustomColumnId(col.id);
+              if (col.renderEditor) setEditingCustomColumnId(col.id);
             },
             closeEditor: () => {
               if (editingCustomColumnId === col.id) setEditingCustomColumnId(null);
@@ -1884,16 +1884,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               data-custom-column-id={col.id}
               data-custom-column-editing={isEditing ? 'true' : 'false'}
               data-testid={`custom-cell-${col.id}`}
-              onClick={col.editor && !isEditing ? (e) => { e.stopPropagation(); setEditingCustomColumnId(col.id); } : undefined}
+              onClick={col.renderEditor && !isEditing ? (e) => { e.stopPropagation(); setEditingCustomColumnId(col.id); } : undefined}
               style={{ width: colWidth, minWidth: colWidth, flexShrink: 0 }}
             >
-              {isEditing && col.editor ? (
+              {isEditing && col.renderEditor ? (
                 <div
                   data-custom-column-editor={col.id}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {col.editor(columnContext)}
+                  {col.renderEditor(columnContext)}
                 </div>
               ) : (
                 col.renderCell(columnContext)
@@ -2116,7 +2116,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             columnId: col.id,
             isEditing,
             openEditor: () => {
-              if (col.editor) setEditingCustomColumnId(col.id);
+              if (col.renderEditor) setEditingCustomColumnId(col.id);
             },
             closeEditor: () => {
               if (editingCustomColumnId === col.id) setEditingCustomColumnId(null);
@@ -2137,16 +2137,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               data-custom-column-id={col.id}
               data-custom-column-editing={isEditing ? 'true' : 'false'}
               data-testid={`custom-cell-${col.id}`}
-              onClick={col.editor && !isEditing ? (e) => { e.stopPropagation(); setEditingCustomColumnId(col.id); } : undefined}
+              onClick={col.renderEditor && !isEditing ? (e) => { e.stopPropagation(); setEditingCustomColumnId(col.id); } : undefined}
               style={{ width: colWidth, minWidth: colWidth, flexShrink: 0 }}
             >
-              {isEditing && col.editor ? (
+              {isEditing && col.renderEditor ? (
                 <div
                   data-custom-column-editor={col.id}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {col.editor(columnContext)}
+                  {col.renderEditor(columnContext)}
                 </div>
               ) : (
                 col.renderCell(columnContext)

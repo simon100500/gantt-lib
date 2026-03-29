@@ -19,7 +19,7 @@ export interface TaskListColumnContext<TTask extends Task> {
   updateTask: (patch: Partial<TTask>) => void;
 }
 
-export interface TaskListColumn<TTask extends Task> extends TaskListColumnAnchor {
+export type TaskListColumn<TTask extends Task> = TaskListColumnAnchor & {
   id: string;
   header: ReactNode;
   width?: number;
@@ -28,4 +28,4 @@ export interface TaskListColumn<TTask extends Task> extends TaskListColumnAnchor
   renderCell: (ctx: TaskListColumnContext<TTask>) => ReactNode;
   renderEditor?: (ctx: TaskListColumnContext<TTask>) => ReactNode;
   meta?: Record<string, unknown>;
-}
+};

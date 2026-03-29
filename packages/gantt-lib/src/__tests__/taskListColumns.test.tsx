@@ -22,9 +22,9 @@ const additionalColumns: TaskListColumn<ExtendedTask>[] = [
     id: 'status',
     header: 'Статус',
     after: 'progress',
-    width: '96px',
+    width: 96,
     renderCell: ({ task }) => task.status ?? 'new',
-    editor: ({ task, updateTask, closeEditor }) => (
+    renderEditor: ({ task, updateTask, closeEditor }) => (
       <button type="button" onClick={() => { updateTask({ status: 'done' }); closeEditor(); }}>
         edit-{task.id}
       </button>

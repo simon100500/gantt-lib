@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { resolveTaskListColumns } from '../resolveTaskListColumns';
 import type { TaskListColumn, BuiltInTaskListColumnId } from '../types';
-import type { Task } from '../../GanttChart';
+import type { Task } from '../../../GanttChart/GanttChart';
 
 const builtIn: TaskListColumn<Task>[] = [
   { id: 'number', header: '#', renderCell: () => null },
