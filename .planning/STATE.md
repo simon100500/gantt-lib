@@ -93,6 +93,7 @@ None yet — no external users (library in active development)
 - Phase 22 added: filters (inserted between 21.1 and old 22)
 - Old Phase 22 → Phase 23: Additional TaskList Columns (renumbered)
 - Phase 24 added: buisiness-days
+- Phase 25 added: columns-refactoring
 
 **Coverage:** 13/13 requirements mapped ✓
 
