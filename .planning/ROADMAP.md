@@ -147,7 +147,7 @@
 - [ ] 25-01-PLAN.md — Structural foundations: column types, resolver with TDD, backward-compat bridge
 - [ ] 25-02-PLAN.md — Render unification: createBuiltInColumns factory, header/body via resolvedColumns.map()
 - [ ] 25-03-PLAN.md — Editor unification: single editingColumnId replaces 4 separate states
-- [ ] 25-04-PLAN.md — Generic tightening and cleanup: remove casts, dead code, finalize
+- [x] 25-04-PLAN.md — Generic tightening and cleanup: remove casts, dead code, finalize
 
 ## Progress
 
@@ -159,7 +159,7 @@
 | 22 | v0.50.0 | 2/2 | Complete | 2026-03-19 |
 | 23 | v0.50.0 | 3/3 | Complete    | 2026-03-27 |
 | 24 | v0.50.0 | 2/2 | Complete   | 2026-03-22 |
-| 25 | v0.50.0 | 0/4 | Planned | |
+| 25 | v0.50.0 | 1/4 | In Progress|  |
 
 **Overall:** 62/66 plans complete (94%)
 

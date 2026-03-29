@@ -3,19 +3,19 @@ gsd_state_version: 1.0
 milestone: v0.18.0
 milestone_name: milestone
 status: Ready to plan
-last_updated: "2026-03-27T14:48:33.655Z"
+last_updated: "2026-03-29T13:36:42.671Z"
 last_activity: 2026-03-27
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 5
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 16
+  completed_plans: 13
 ---
 
 ## Current Position
 
-Phase: 24
-Plan: Not started
+Phase: 25 (columns-refactoring) — EXECUTING
+Plan: 4 of 4 (25-04 completed)
 
 ## Project Reference
 
@@ -44,6 +44,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | shadcn/ui components | Modern, accessible, customizable | ✓ Good — DatePicker, Input integrated |
 | Coarse granularity for v0.50.0 | 2 phases cover independent feature sets | ✓ Good — Custom Weekend Calendar + Additional Columns |
 | TDD approach for utilities | Test-first development ensures API correctness | ✓ Good — RED phase complete (11 failing tests) |
+| TaskListColumn<any>[] for internal props | Avoids cascading generic changes through TaskList/TaskListRow | ✓ Good — consumer code compiles without casts (Phase 25-04) |
 
 ### Technical Constraints
 
@@ -86,6 +87,7 @@ None yet — no external users (library in active development)
 - Phase 22: filters
 - Phase 23: Additional TaskList Columns (COL-01 to COL-08)
 - Phase 24: buisiness-days
+- Phase 25: columns-refactoring (4 plans, wave 4)
 
 ### Roadmap Evolution
 
@@ -101,30 +103,18 @@ None yet — no external users (library in active development)
 
 **Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
 
-**Current focus:** Phase 23 — additional-tasklist-columns
+**Current focus:** Phase 25 — columns-refactoring
 
-- ✓ 21-01: TDD RED phase — 11 failing tests created
-- ✓ 21-02: TDD GREEN phase — utilities implemented (createDateKey, createIsWeekendPredicate)
-- ✓ 21-03: Integration phase — props added to GanttChart, GridBackground, TimeScaleHeader, Calendar
-- Next: 21-04: Demo page — examples of custom weekend usage
+- ✓ 25-04: Generic tightening and cleanup — removed casts, dead code, test casts
+- Plans 25-01 through 25-03 not yet executed (depended on but skipped in parallel execution)
 
-**Next:** Phase 21 Plan 21-04 (Demo page)
-
-- Create demo page with custom weekend examples
-- Show holidays, shifted workdays, custom predicates
-- Visual verification of weekend highlighting and day number coloring
-
-**Later:** Phase 24 (buisiness-days)
-
-- Phase 24: business-days duration mode and related polish
-
-**Upcoming:** Plan 21-04 (Demo page with custom weekend examples)
+**Later:** Phase 24 (buisiness-days) completion
 
 ---
 
-Last activity: 2026-03-27
+Last activity: 2026-03-29
 
-Last activity: 2026-03-23 - Completed quick task 260323-pud: Split REFERENCE.md into modular chapter structure
+Last activity: 2026-03-29 - Completed plan 25-04: generic tightening and cleanup for additionalColumns
 
-**State updated:** 2026-03-23
+**State updated:** 2026-03-29
 **Milestone:** v0.50.0 Adding Tools
