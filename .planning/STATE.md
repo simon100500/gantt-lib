@@ -14,8 +14,8 @@ progress:
 
 ## Current Position
 
-Phase: 24
-Plan: Not started
+Phase: 25 (columns-refactoring)
+Plan: 2 of 4
 
 ## Project Reference
 
@@ -44,6 +44,8 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | shadcn/ui components | Modern, accessible, customizable | ✓ Good — DatePicker, Input integrated |
 | Coarse granularity for v0.50.0 | 2 phases cover independent feature sets | ✓ Good — Custom Weekend Calendar + Additional Columns |
 | TDD approach for utilities | Test-first development ensures API correctness | ✓ Good — RED phase complete (11 failing tests) |
+| Type alias intersection for union types | TypeScript doesn't support interface extends union (TS2312) | ✓ Good — used `type X = Union & { ... }` pattern |
+| Tracked insertion positions per anchor | Prevents same-anchor column order reversal | ✓ Good — Map<string, number> tracks last insert index |
 
 ### Technical Constraints
 
@@ -101,30 +103,18 @@ None yet — no external users (library in active development)
 
 **Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
 
-**Current focus:** Phase 23 — additional-tasklist-columns
+**Current focus:** Phase 25 — columns-refactoring
 
-- ✓ 21-01: TDD RED phase — 11 failing tests created
-- ✓ 21-02: TDD GREEN phase — utilities implemented (createDateKey, createIsWeekendPredicate)
-- ✓ 21-03: Integration phase — props added to GanttChart, GridBackground, TimeScaleHeader, Calendar
-- Next: 21-04: Demo page — examples of custom weekend usage
+- ✓ 25-01: Structural foundations — new types, resolver with TDD, backward-compatible bridge
+- Next: 25-02: Built-in column factory
 
-**Next:** Phase 21 Plan 21-04 (Demo page)
-
-- Create demo page with custom weekend examples
-- Show holidays, shifted workdays, custom predicates
-- Visual verification of weekend highlighting and day number coloring
-
-**Later:** Phase 24 (buisiness-days)
-
-- Phase 24: business-days duration mode and related polish
-
-**Upcoming:** Plan 21-04 (Demo page with custom weekend examples)
+**Next:** Phase 25 Plan 25-02 (Built-in column factory)
 
 ---
 
-Last activity: 2026-03-27
+Last activity: 2026-03-29
 
-Last activity: 2026-03-23 - Completed quick task 260323-pud: Split REFERENCE.md into modular chapter structure
+Last activity: 2026-03-29 - Completed 25-01: Structural foundations for columns refactoring
 
-**State updated:** 2026-03-23
+**State updated:** 2026-03-29
 **Milestone:** v0.50.0 Adding Tools
