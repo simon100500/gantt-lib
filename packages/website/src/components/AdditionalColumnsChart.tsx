@@ -19,7 +19,7 @@ export default function AdditionalColumnsChart() {
       width: 100,
       after: 'name',
       renderCell: ({ task }) => <span>{task.assignee || '—'}</span>,
-      editor: ({ task, updateTask, closeEditor }) => (
+      renderEditor: ({ task, updateTask, closeEditor }) => (
         <input
           autoFocus
           defaultValue={task.assignee || ''}
@@ -38,7 +38,7 @@ export default function AdditionalColumnsChart() {
         const colors = { low: '#888', medium: '#e6a700', high: '#e53935' };
         return <span style={{ color: colors[task.priority || 'low'], fontWeight: task.priority === 'high' ? 600 : 400 }}>{task.priority || 'low'}</span>;
       },
-      editor: ({ task, updateTask, closeEditor }) => (
+      renderEditor: ({ task, updateTask, closeEditor }) => (
         <select
           autoFocus
           defaultValue={task.priority || 'low'}
