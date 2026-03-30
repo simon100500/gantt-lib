@@ -371,10 +371,8 @@
 
 /* Full-cell button trigger for name edit */
 .gantt-tl-name-trigger {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+  display: flex;
+  align-items: center;
   position: absolute;
   inset: 0;
   padding: 0 4px;
@@ -389,9 +387,16 @@
   cursor: pointer;
   text-align: left;
   user-select: none;
+  box-sizing: border-box;
+}
+
+.gantt-tl-name-trigger-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   white-space: normal;
   word-break: break-word;
-  box-sizing: border-box;
 }
 
 .gantt-tl-name-trigger-parent {
@@ -433,6 +438,18 @@
 /* Locked task name — cursor indicates no editing */
 .gantt-tl-name-locked {
   cursor: default !important;
+}
+
+.gantt-tl-name-color-stripe {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  width: 6px;
+  height: 18px;
+  border-radius: 1px;
+  transform: translateY(-50%);
+  /* box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); */
+  pointer-events: none;
 }
 
 /* Name cell action buttons container */

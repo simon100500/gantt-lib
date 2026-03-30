@@ -172,6 +172,16 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       return `color-mix(in srgb, ${baseColor} 40%, black)`;
     }, [isExpired, progressWidth, task.accepted, task.color]);
 
+    const externalTaskNameColor = useMemo(() => {
+      if (isExpired) {
+        return 'color-mix(in srgb, var(--gantt-expired-color) 40%, black)';
+      }
+      const baseColor = isParent
+        ? (task.color || defaultParentBarColor)
+        : (task.color || 'var(--gantt-task-bar-default-color)');
+      return `color-mix(in srgb, ${baseColor} 40%, black)`;
+    }, [defaultParentBarColor, isExpired, isParent, task.color]);
+
     // At 100% progress, tint the bar itself instead of rendering a fill overlay.
     const barStyle = useMemo(() => {
       const parentBarColor = task.color || defaultParentBarColor;
@@ -376,7 +386,10 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 {progressWidth}%
               </span>
             )}
-            <span className="gantt-tr-externalTaskName">
+            <span
+              className="gantt-tr-externalTaskName"
+              style={{ color: externalTaskNameColor }}
+            >
               {task.name}
             </span>
           </div>

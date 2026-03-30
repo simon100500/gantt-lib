@@ -160,17 +160,27 @@ const CopyIcon = () => (
 );
 
 const TASK_COLOR_PALETTE = [
-  { label: "Палисандр", value: "#A61E4D" },
-  { label: "Киноварь", value: "#E8590C" },
-  { label: "Оранжевый", value: "#F08C00" },
+  // { label: "Палисандр", value: "#A61E4D" },
+  // { label: "Киноварь", value: "#E8590C" },
+  // { label: "Жёлт", value: "#eec45c" },
+  { label: "Киноварь2", value: "#fe724e" },
+  // { label: "Оранжевый", value: "#F08C00" },
+  { label: "Оранжевый2", value: "#ff991f" },
   { label: "Золотой", value: "#e5c800" },
-  { label: "Шартрез", value: "#A3BE00" },
-  { label: "Лесной", value: "#2B8A3E" },
-  { label: "Бирюза", value: "#0B7285" },
+  { label: "Бирюза", value: "#58d8a3" },
+  { label: "Палисандр", value: "#d64a7b" },
   { label: "Песочный", value: "#997B10" },
-  { label: "Серый", value: "#495057" },
-  { label: "Океан", value: "#5244ff" },
-  { label: "Виноград", value: "#AE3EC9" },
+  { label: "Шартрез", value: "#A3BE00" },
+  { label: "Голубой", value: "#03c7e6" },
+  { label: "Виноград2", value: "#8678d9" },
+  { label: "Серый2", value: "#6b778c" },
+  { label: "Лесной", value: "#2B8A3E" },
+  // { label: "Лесной3", value: "#60b838" },
+  // { label: "Бирюза", value: "#0B7285" },
+  // { label: "Серый", value: "#495057" },
+  // { label: "Океан", value: "#5244ff" },
+  // { label: "Океан2", value: "#0626ba" },
+  // { label: "Виноград", value: "#AE3EC9" },
 ] as const;
 
 const ChevronRightIcon = () => (
@@ -1837,10 +1847,20 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             title={task.name}
             onClick={handleNameClick}
             onDoubleClick={handleNameDoubleClick}
-            style={{ paddingLeft: nameTriggerPaddingLeft }}
+            style={{
+              paddingLeft: nameTriggerPaddingLeft,
+              paddingRight: task.color ? "20px" : undefined,
+            }}
           >
-            {task.name}
+            <span className="gantt-tl-name-trigger-text">{task.name}</span>
           </button>
+        )}
+        {!editingName && task.color && (
+          <span
+            className="gantt-tl-name-color-stripe"
+            style={{ backgroundColor: task.color }}
+            aria-hidden="true"
+          />
         )}
         {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onDuplicateTask || onTasksChange) && (
           <div className="gantt-tl-name-actions">
