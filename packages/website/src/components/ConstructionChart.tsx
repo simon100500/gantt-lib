@@ -7,12 +7,12 @@ import {
   type GanttChartHandle,
   withoutDeps, expired, inDateRange, progressInRange, nameContains, or,
   type TaskPredicate,
+  reflowTasksOnModeSwitch,
 } from "gantt-lib";
 import { isTaskParent, getAllDescendants } from "gantt-lib";
 import {
   MAIN_CHART_CUSTOM_DAYS,
   MAIN_CHART_WEEKEND_PREDICATE,
-  reflowTasksForBusinessDays,
   createSampleTasks,
 } from "@/data/sampleTasks";
 
@@ -32,8 +32,7 @@ export default function ConstructionChart() {
   const [activeSearchResultIndex, setActiveSearchResultIndex] = useState(0);
 
   useEffect(() => {
-    if (!businessDays) return;
-    setTasks((prev) => reflowTasksForBusinessDays(prev, MAIN_CHART_WEEKEND_PREDICATE));
+    setTasks((prev) => reflowTasksOnModeSwitch(prev, businessDays, MAIN_CHART_WEEKEND_PREDICATE));
   }, [businessDays]);
 
   const ganttChartRef = useRef<GanttChartHandle>(null);

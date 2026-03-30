@@ -1147,3 +1147,75 @@ export function universalCascade(
 
   return Array.from(resultMap.values());
 }
+
+/**
+ * Пересчитывает даты всех задач при переключении режима рабочих/календарных дней.
+ *
+ * Calendar → Working (toBusinessDays=true):
+ *   - duration число сохраняется (10 кал → 10 раб)
+ *   - start на выходном → сдвигается на ближайший рабочий
+ *   - end пересчитывается через buildTaskRangeFromStart
+ *   - каскад зависимостей (расширение может нарушить constraints)
+ *
+ * Working → Calendar (toBusinessDays=false):
+ *   - start остаётся как есть
+ *   - duration число сохраняется, но теперь считается как календарные дни
+ *   - end сдвигается ближе
+ *   - каскад НЕ нужен (сжатие не нарушает зависимости)
+ */
+export function reflowTasksOnModeSwitch(
+  sourceTasks: Task[],
+  toBusinessDays: boolean,
+  weekendPredicate: (date: Date) => boolean
+): Task[] {
+  const fromBusinessDays = !toBusinessDays;
+  let tasks: Task[] = sourceTasks.map(t => ({ ...t }));
+
+  const toISO = (d: Date) => d.toISOString().split('T')[0];
+
+  // Пересчитываем каждую leaf-задачу (не parent) индивидуально
+  for (const task of tasks) {
+    if (isTaskParent(task.id, tasks)) continue;
+
+    const start = normalizeUTCDate(new Date(`${task.startDate}T00:00:00.000Z`));
+    const duration = getTaskDuration(task.startDate, task.endDate, fromBusinessDays, weekendPredicate);
+
+    let range: { start: Date; end: Date };
+    if (toBusinessDays) {
+      const alignedStart = alignToWorkingDay(start, 1, weekendPredicate);
+      range = buildTaskRangeFromStart(alignedStart, duration, true, weekendPredicate);
+    } else {
+      range = buildTaskRangeFromStart(start, duration, false);
+    }
+
+    task.startDate = toISO(range.start);
+    task.endDate = toISO(range.end);
+  }
+
+  // Пересчитываем родительские задачи из детей
+  for (const task of tasks) {
+    if (!isTaskParent(task.id, tasks)) continue;
+    const { startDate, endDate } = computeParentDates(task.id, tasks);
+    task.startDate = toISO(startDate);
+    task.endDate = toISO(endDate);
+  }
+
+  // Каскад только при расширении (calendar → working)
+  if (toBusinessDays) {
+    const rootSeeds = tasks.filter(
+      t => !(t as any).parentId && (!t.dependencies || t.dependencies.length === 0)
+    );
+
+    for (const seed of rootSeeds) {
+      const current = tasks.find(t => t.id === seed.id)!;
+      const start = new Date(`${current.startDate}T00:00:00.000Z`);
+      const end = new Date(`${current.endDate}T00:00:00.000Z`);
+
+      const cascaded = universalCascade(current, start, end, tasks, toBusinessDays, weekendPredicate);
+      const updates = new Map(cascaded.map((t): [string, Task] => [t.id, t]));
+      tasks = tasks.map(t => updates.get(t.id) ?? t);
+    }
+  }
+
+  return tasks;
+}

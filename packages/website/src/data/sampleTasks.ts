@@ -1,10 +1,7 @@
 import {
   type Task,
-  alignToWorkingDay,
-  buildTaskRangeFromStart,
   createCustomDayPredicate,
-  getTaskDuration,
-  universalCascade,
+  reflowTasksOnModeSwitch,
 } from "gantt-lib";
 
 export const MAIN_CHART_CUSTOM_DAYS = [
@@ -17,36 +14,7 @@ export const MAIN_CHART_CUSTOM_DAYS = [
 export const MAIN_CHART_WEEKEND_PREDICATE = createCustomDayPredicate({ customDays: MAIN_CHART_CUSTOM_DAYS });
 
 export const reflowTasksForBusinessDays = (sourceTasks: Task[], weekendPredicate: (date: Date) => boolean): Task[] => {
-  let tasks: Task[] = sourceTasks.map((task) => ({
-    ...task,
-    dependencies: task.dependencies?.map((dep) => ({ ...dep, lag: dep.lag ?? 0 })),
-  }));
-
-  const rootSeeds = tasks.filter((task) => !task.parentId && (!task.dependencies || task.dependencies.length === 0));
-
-  for (const seed of rootSeeds) {
-    const currentSeed = tasks.find((task) => task.id === seed.id);
-    if (!currentSeed) continue;
-
-    const alignedStart = alignToWorkingDay(new Date(`${currentSeed.startDate}T00:00:00.000Z`), 1, weekendPredicate);
-    const duration = getTaskDuration(currentSeed.startDate, currentSeed.endDate, true, weekendPredicate);
-    const range = buildTaskRangeFromStart(alignedStart, duration, true, weekendPredicate, 1);
-    const movedSeed: Task = {
-      ...currentSeed,
-      startDate: range.start.toISOString().split('T')[0],
-      endDate: range.end.toISOString().split('T')[0],
-    };
-
-    const cascaded = universalCascade(movedSeed, range.start, range.end, tasks, true, weekendPredicate);
-    const updates = new Map<string, Task>([
-      [movedSeed.id, movedSeed] as [string, Task],
-      ...cascaded.map((task): [string, Task] => [task.id, task]),
-    ]);
-
-    tasks = tasks.map((task) => updates.get(task.id) ?? task);
-  }
-
-  return tasks;
+  return reflowTasksOnModeSwitch(sourceTasks, true, weekendPredicate);
 };
 
 export const createSampleTasks = (): Task[] => {
