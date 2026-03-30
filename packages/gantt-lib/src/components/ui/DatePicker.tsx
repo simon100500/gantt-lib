@@ -200,6 +200,21 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     [selectedDate, updateFromDate, businessDays, isWeekend]
   );
 
+  const handleTriggerKeyDown = useCallback((e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleDayShift(1);
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleDayShift(-1);
+    }
+  }, [disabled, handleDayShift]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!dateInputRef.current) return;
     const { value: inputVal } = dateInputRef.current;
@@ -322,6 +337,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           type="button"
           className={`gantt-datepicker-trigger${className ? ` ${className}` : ''}`}
           disabled={disabled}
+          onKeyDown={handleTriggerKeyDown}
           onClick={(e) => {
             e.stopPropagation();
           }}

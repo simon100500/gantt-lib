@@ -111,4 +111,26 @@ describe('DatePicker', () => {
 
     expect(onChange).toHaveBeenCalledWith('2026-03-16');
   });
+
+  it('shifts the date from the trigger with ArrowUp and ArrowDown', () => {
+    const onChange = vi.fn();
+
+    render(
+      <DatePicker
+        value="2026-03-13"
+        onChange={onChange}
+        businessDays={true}
+        isWeekend={(date) => date.getUTCDay() === 0 || date.getUTCDay() === 6}
+      />
+    );
+
+    const trigger = screen.getByRole('button', { name: '13.03.2026' });
+
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowUp' });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+
+    expect(onChange).toHaveBeenNthCalledWith(1, '2026-03-16');
+    expect(onChange).toHaveBeenNthCalledWith(2, '2026-03-12');
+  });
 });

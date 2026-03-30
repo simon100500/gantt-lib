@@ -507,32 +507,14 @@ function GanttChartInner<TTask extends Task = Task>(
       return;
     }
 
-    // Special handling for parent tasks: dates are computed from children
-    const isParent = isTaskParent(updatedTask.id, tasks);
-    if (isParent) {
-      // When editing a parent task via task list, ignore the entered dates
-      // and recalculate from children. Children should NOT be moved.
-      const { startDate: parentStart, endDate: parentEnd } = computeParentDates(updatedTask.id, tasks);
-      const parentWithRecalcDates = {
-        ...updatedTask,
-        startDate: parentStart.toISOString().split('T')[0],
-        endDate: parentEnd.toISOString().split('T')[0],
-      };
+    // Date edits should behave the same across chart drag and task-list picker:
+    // moving a parent shifts its descendants, and parent dates are then re-derived
+    // from the shifted children inside universalCascade.
+    const cascadedTasks = disableConstraints
+      ? [updatedTask]
+      : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays, isCustomWeekend);
 
-      // Cascade only dependency successors (not children) if constraints enabled
-      const cascadedTasks = disableConstraints
-        ? [parentWithRecalcDates]
-        : universalCascade(parentWithRecalcDates, parentStart, parentEnd, tasks, businessDays, isCustomWeekend);
-
-      onTasksChange?.(cascadedTasks as TTask[]);
-    } else {
-      // Regular task or child: normal cascade
-      const cascadedTasks = disableConstraints
-        ? [updatedTask]
-        : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays, isCustomWeekend);
-
-      onTasksChange?.(cascadedTasks as TTask[]);
-    }
+    onTasksChange?.(cascadedTasks as TTask[]);
   }, [tasks, onTasksChange, disableConstraints, editingTaskId, businessDays, isCustomWeekend]);
 
   /**
