@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.0] - 2026-03-30
+
+### Features
+
+- Add context menu for task actions
+- Enhance task demotion logic and UI integration
+- Implement task duplication functionality
+- Add color selection for tasks and descendants
+- Update color palette with localized labels
+
+### Refactoring
+
+- Update external task name and progress styles to inherit color
+
 ## [0.50.0] - 2026-03-30
 
 ### Breaking Changes
