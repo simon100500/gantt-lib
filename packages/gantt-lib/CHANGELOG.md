@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.53.0] - 2026-03-30
+
+### Features
+
+- Add hierarchical dependency validation — prevent dependency links between parent and child tasks
+
+### Fixes
+
+- Improve task color representation and alignment in TaskList
+
 ## [0.19.1] - 2026-03-30
 
 ### Features
