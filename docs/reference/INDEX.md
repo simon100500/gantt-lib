@@ -24,6 +24,7 @@
 - [Drag Interactions](./10-drag-interactions.md) — Drag/resize behavior
 - [Styling](./09-styling.md) — CSS variables
 - [Validation](./12-validation.md) — Dependency validation, date handling
+- [TaskList Columns](./13-tasklist-columns.md) — Custom columns, `renderEditor`, migration notes
 
 ## AI Agents
 
