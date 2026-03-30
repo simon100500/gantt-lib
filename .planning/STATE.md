@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.18.0
 milestone_name: milestone
-status: Ready to execute
-last_updated: "2026-03-30T21:51:13.877Z"
+status: Phase complete — ready for verification
+last_updated: "2026-03-30T22:01:55.221Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 9
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 23
-  completed_plans: 22
+  completed_plans: 23
 ---
 
 ## Current Position
 
-Phase: 28 (scheduling-core-hardening) — EXECUTING
-Plan: 3 of 3
+Phase: 28 (scheduling-core-hardening) — COMPLETE
+Plan: 3 of 3 (all plans done)
 
 ## Project Reference
 
@@ -114,7 +114,11 @@ None yet — no external users (library in active development)
 - ✓ 25-03: Editor unification — single editingColumnId replaces 4 separate states
 - ✓ 25-04: Generic tightening — (source changes superseded by Waves 1-3 architecture)
 
-**Next:** Plan 03 — Documentation updates
+**Next:** Phase 28 complete — ready for verification
+
+- ✓ 28-01: Domain types + command-level API (execute.ts, ScheduleTask, 22 tests)
+- ✓ 28-02: UI adapter extraction (adapters/scheduling/drag.ts, clean domain boundary)
+- ✓ 28-03: Boundary tests + documentation (5 boundary + 4 export-contract tests, docs rewrite)
 
 ---
 
