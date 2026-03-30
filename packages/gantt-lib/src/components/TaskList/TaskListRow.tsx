@@ -1837,10 +1837,20 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             title={task.name}
             onClick={handleNameClick}
             onDoubleClick={handleNameDoubleClick}
-            style={{ paddingLeft: nameTriggerPaddingLeft }}
+            style={{
+              paddingLeft: nameTriggerPaddingLeft,
+              paddingRight: task.color ? "20px" : undefined,
+            }}
           >
-            {task.name}
+            <span className="gantt-tl-name-trigger-text">{task.name}</span>
           </button>
+        )}
+        {!editingName && task.color && (
+          <span
+            className="gantt-tl-name-color-dot"
+            style={{ backgroundColor: task.color }}
+            aria-hidden="true"
+          />
         )}
         {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onDuplicateTask || onTasksChange) && (
           <div className="gantt-tl-name-actions">

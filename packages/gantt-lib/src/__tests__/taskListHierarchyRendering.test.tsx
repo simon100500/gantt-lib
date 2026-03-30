@@ -151,6 +151,34 @@ describe('TaskListRow hierarchy rendering', () => {
     expect(screen.getByTestId('gantt-tl-parent-connector-tail')).toBeTruthy();
   });
 
+  it('renders a color dot at the end of the task name cell when the task has a custom color', () => {
+    const task: Task = {
+      id: 'colored',
+      name: 'Colored task',
+      startDate: '2026-03-01',
+      endDate: '2026-03-05',
+      progress: 0,
+      color: '#0B7285',
+    };
+
+    const { container } = render(
+      <TaskListRow
+        task={task}
+        allTasks={[task]}
+        rowIndex={0}
+        rowHeight={40}
+        onRowClick={() => {}}
+        onChipSelect={() => {}}
+        resolvedColumns={resolvedColumns}
+      />
+    );
+
+    const colorDot = container.querySelector('.gantt-tl-name-color-dot') as HTMLElement | null;
+
+    expect(colorDot).toBeTruthy();
+    expect(colorDot?.style.backgroundColor).toBe('rgb(11, 114, 133)');
+  });
+
   it('applies selected color to a parent and all descendants', () => {
     const onTasksChange = vi.fn();
     const parent: Task = {
@@ -183,7 +211,7 @@ describe('TaskListRow hierarchy rendering', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /Цвет/i }));
-    fireEvent.click(screen.getByLabelText('Выбрать цвет Red'));
+    fireEvent.click(screen.getByLabelText('Выбрать цвет Палисандр'));
 
     expect(onTasksChange).toHaveBeenCalledWith([
       { ...parent, color: '#EF4444' },
