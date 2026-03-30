@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] — Phase 26: columns-api-migration
+## [0.50.0] - 2026-03-30
 
 ### Breaking Changes
 
@@ -14,6 +14,29 @@ All notable changes to this project will be documented in this file.
 - **Import path changed** — `TaskListColumn` type must be imported from the package root (`gantt-lib`), not from internal `taskListColumns` path
 - **Numeric `width` only** — Column `width` accepts only `number` (pixels), string values are not supported
 - **`before` / `after` placement** — The only supported way to position custom columns
+
+### Features
+
+- Add `additionalColumns` prop to GanttChart for custom TaskList columns
+- Add `TaskListColumn<TTask>` generic type with anchor-based placement (`before`/`after`)
+- Add `resolveTaskListColumns` pipeline for unified column resolution
+- Add built-in column factory for default TaskList columns
+- Add `onInsertAfter` callback for inserting tasks between rows
+- Add demo components: AdditionalColumnsChart, ConstructionChart
+
+### Refactoring
+
+- Unify header and row rendering via resolvedColumns pipeline
+- Unify editor state into single `editingColumnId`
+- Remove `as` Task casts from additionalColumns prop chain
+- Extract sample tasks data into separate module
+- Remove legacy editor fallback and bridge re-export
+
+### Fixes
+
+- Improve type safety for `onTasksChange` callbacks
+- Fix custom column editor state unification with `editingColumnId`
+- Widen `additionalColumns` prop type to `TaskListColumn<any>[]`
 
 ## [0.28.1] - 2026-03-25
 
