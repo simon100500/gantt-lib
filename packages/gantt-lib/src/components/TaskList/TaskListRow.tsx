@@ -160,17 +160,17 @@ const CopyIcon = () => (
 );
 
 const TASK_COLOR_PALETTE = [
-  { label: "Vermilion", value: "#E8590C" },
-  { label: "Orange", value: "#F08C00" },
-  { label: "Gold", value: "#D4A017" },
-  { label: "Chartreuse", value: "#A3BE00" },
-  { label: "Lime", value: "#7CB518" },
-  { label: "Green", value: "#2B8A3E" },
-  { label: "Emerald", value: "#099268" },
-  { label: "Teal", value: "#0F766E" },
-  { label: "Cyan", value: "#0EA5E9" },
-  { label: "Blue", value: "#2F55E7" },
-  { label: "Violet", value: "#cc51ff" },
+  { label: "Палисандр", value: "#A61E4D" },
+  { label: "Киноварь", value: "#E8590C" },
+  { label: "Оранжевый", value: "#F08C00" },
+  { label: "Золотой", value: "#e5c800" },
+  { label: "Шартрез", value: "#A3BE00" },
+  { label: "Лесной", value: "#2B8A3E" },
+  { label: "Бирюза", value: "#0B7285" },
+  { label: "Песочный", value: "#997B10" },
+  { label: "Серый", value: "#495057" },
+  { label: "Океан", value: "#5244ff" },
+  { label: "Виноград", value: "#AE3EC9" },
 ] as const;
 
 const ChevronRightIcon = () => (
