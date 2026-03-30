@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.53.1] - 2026-03-30
+
+### Fixes
+
+- Cascade parent date changes when editing dates via date picker
+
 ## [0.53.0] - 2026-03-30
 
 ### Features
