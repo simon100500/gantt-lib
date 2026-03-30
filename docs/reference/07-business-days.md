@@ -127,6 +127,64 @@ function ProjectSchedule() {
 
 ---
 
+## Переключение режима в рантайме: `reflowTasksOnModeSwitch`
+
+При смене пропа `businessDays` даты задач автоматически не пересчитываются — меняется только интерпретация при drag/resize. Для полного пересчёта используйте утилиту:
+
+```typescript
+import { reflowTasksOnModeSwitch } from 'gantt-lib';
+
+const updatedTasks = reflowTasksOnModeSwitch(tasks, toBusinessDays, weekendPredicate);
+```
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `tasks` | `Task[]` | Текущий массив задач |
+| `toBusinessDays` | `boolean` | Целевой режим: `true` — рабочие, `false` — календарные |
+| `weekendPredicate` | `(date: Date) => boolean` | Предикат выходных (из `createCustomDayPredicate` или свой) |
+
+### Правила пересчёта
+
+**Calendar → Working** (`toBusinessDays = true`):
+
+- Число дней duration сохраняется (10 кал → 10 раб)
+- Если start попадает на выходной — сдвигается на ближайший рабочий день вперёд
+- End пересчитывается из нового start + duration в рабочих днях
+- Запускается каскад зависимостей (расширение может нарушить constraints)
+
+**Working → Calendar** (`toBusinessDays = false`):
+
+- Start остаётся как есть
+- Число дней duration сохраняется, но теперь считается как календарные (end сдвигается ближе)
+- Каскад НЕ запускается (сжатие не нарушает зависимости)
+
+### Пример интеграции
+
+```tsx
+import { GanttChart, reflowTasksOnModeSwitch, createCustomDayPredicate } from 'gantt-lib';
+
+const weekendPredicate = createCustomDayPredicate({ customDays: [...] });
+
+function Schedule() {
+  const [tasks, setTasks] = useState(initialTasks);
+  const [businessDays, setBusinessDays] = useState(true);
+
+  useEffect(() => {
+    setTasks(prev => reflowTasksOnModeSwitch(prev, businessDays, weekendPredicate));
+  }, [businessDays]);
+
+  return (
+    <GanttChart
+      tasks={tasks}
+      businessDays={businessDays}
+      onTasksChange={setTasks}
+    />
+  );
+}
+```
+
+---
+
 ## Особенности реализации
 
 - **UTC dates**: Все утилиты работают с UTC датами для избежания проблем с часовыми поясами
