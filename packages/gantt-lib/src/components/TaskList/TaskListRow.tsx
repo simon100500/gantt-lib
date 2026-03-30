@@ -1847,7 +1847,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         )}
         {!editingName && task.color && (
           <span
-            className="gantt-tl-name-color-dot"
+            className="gantt-tl-name-color-stripe"
             style={{ backgroundColor: task.color }}
             aria-hidden="true"
           />

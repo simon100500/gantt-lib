@@ -440,15 +440,15 @@
   cursor: default !important;
 }
 
-.gantt-tl-name-color-dot {
+.gantt-tl-name-color-stripe {
   position: absolute;
   right: 6px;
   top: 50%;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
+  width: 6px;
+  height: 18px;
+  border-radius: 2px;
   transform: translateY(-50%);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9);
+  /* box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); */
   pointer-events: none;
 }
 

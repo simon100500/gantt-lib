@@ -151,7 +151,7 @@ describe('TaskListRow hierarchy rendering', () => {
     expect(screen.getByTestId('gantt-tl-parent-connector-tail')).toBeTruthy();
   });
 
-  it('renders a color dot at the end of the task name cell when the task has a custom color', () => {
+  it('renders a color stripe at the end of the task name cell when the task has a custom color', () => {
     const task: Task = {
       id: 'colored',
       name: 'Colored task',
@@ -173,7 +173,7 @@ describe('TaskListRow hierarchy rendering', () => {
       />
     );
 
-    const colorDot = container.querySelector('.gantt-tl-name-color-dot') as HTMLElement | null;
+    const colorDot = container.querySelector('.gantt-tl-name-color-stripe') as HTMLElement | null;
 
     expect(colorDot).toBeTruthy();
     expect(colorDot?.style.backgroundColor).toBe('rgb(11, 114, 133)');
