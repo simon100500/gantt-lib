@@ -10,6 +10,8 @@ import {
   getSuccessorChain,
   getTransitiveCascadeChain,
   removeDependenciesBetweenTasks,
+  areTasksHierarchicallyRelated,
+  isAncestorTask,
   findParentId,
   recalculateIncomingLags,
 } from '../utils/dependencyUtils';
@@ -203,6 +205,70 @@ describe('dependencyUtils', () => {
       const result = validateDependencies(tasks);
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should reject dependency from parent to child', () => {
+      const tasks: Task[] = [
+        createTask('parent', '2026-01-01', '2026-01-05'),
+        {
+          ...createTask('child', '2026-01-06', '2026-01-10', [{ taskId: 'parent', type: 'FS', lag: 0 }]),
+          parentId: 'parent',
+        },
+      ];
+
+      const result = validateDependencies(tasks);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(error => error.type === 'constraint')).toBe(true);
+    });
+
+    it('should reject dependency from child to parent', () => {
+      const tasks: Task[] = [
+        {
+          ...createTask('child', '2026-01-06', '2026-01-10'),
+          parentId: 'parent',
+        },
+        createTask('parent', '2026-01-01', '2026-01-05', [{ taskId: 'child', type: 'FS', lag: 0 }]),
+      ];
+
+      const result = validateDependencies(tasks);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(error => error.type === 'constraint')).toBe(true);
+    });
+
+    it('should reject dependency between ancestor and grandchild', () => {
+      const tasks: Task[] = [
+        createTask('root', '2026-01-01', '2026-01-05'),
+        { ...createTask('child', '2026-01-06', '2026-01-10'), parentId: 'root' },
+        {
+          ...createTask('grandchild', '2026-01-11', '2026-01-15', [{ taskId: 'root', type: 'SS', lag: 0 }]),
+          parentId: 'child',
+        },
+      ];
+
+      const result = validateDependencies(tasks);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(error => error.type === 'constraint')).toBe(true);
+    });
+  });
+
+  describe('hierarchy dependency guards', () => {
+    const hierarchyTasks: Task[] = [
+      createTask('root', '2026-01-01', '2026-01-05'),
+      { ...createTask('child', '2026-01-06', '2026-01-10'), parentId: 'root' },
+      { ...createTask('grandchild', '2026-01-11', '2026-01-15'), parentId: 'child' },
+      createTask('other', '2026-01-16', '2026-01-20'),
+    ];
+
+    it('detects ancestor relationship', () => {
+      expect(isAncestorTask('root', 'child', hierarchyTasks)).toBe(true);
+      expect(isAncestorTask('root', 'grandchild', hierarchyTasks)).toBe(true);
+      expect(isAncestorTask('child', 'root', hierarchyTasks)).toBe(false);
+    });
+
+    it('detects hierarchical relation in both directions only within the same chain', () => {
+      expect(areTasksHierarchicallyRelated('root', 'child', hierarchyTasks)).toBe(true);
+      expect(areTasksHierarchicallyRelated('grandchild', 'root', hierarchyTasks)).toBe(true);
+      expect(areTasksHierarchicallyRelated('child', 'other', hierarchyTasks)).toBe(false);
     });
   });
 

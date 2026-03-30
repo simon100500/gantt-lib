@@ -1325,17 +1325,22 @@
 /* Cycle error banner below header */
 .gantt-tl-dep-error {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 6px);
   left: 0;
-  right: 0;
+  right: auto;
+  min-width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
   background-color: #fef2f2;
   border: 1px solid #fca5a5;
-  border-top: none;
-  padding: 4px 8px;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(127, 29, 29, 0.16);
+  padding: 6px 10px;
   font-size: 0.75rem;
   color: #dc2626;
-  z-index: 10;
-  white-space: nowrap;
+  z-index: 30;
+  white-space: normal;
+  line-height: 1.35;
+  pointer-events: none;
 }
 
 /* Add task button */
