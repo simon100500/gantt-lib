@@ -128,6 +128,20 @@ const DragHandleIcon = () => (
   </svg>
 );
 
+const VerticalDotsIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
+    <circle cx="12" cy="5" r="2" />
+    <circle cx="12" cy="12" r="2" />
+    <circle cx="12" cy="19" r="2" />
+  </svg>
+);
+
 const ChevronRightIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -770,6 +784,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const [progressValue, setProgressValue] = useState(0);
     const progressInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
+    const [contextMenuOpen, setContextMenuOpen] = useState(false);
     const nameConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const durationConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const progressConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
@@ -777,8 +792,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const editTriggerRef = useRef<"keypress" | "doubleclick" | "autoedit">(
       "doubleclick",
     ); // How editing was started
-    const [deletePending, setDeletePending] = useState(false);
-    const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
     const isSelected = selectedTaskId === task.id;
 
@@ -925,27 +938,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         block: "nearest",
       });
     }, [isSourceRow, highlightedDependencyIndex, dependencySearchCandidates]);
-
-    // Reset delete confirmation when clicking elsewhere
-    useEffect(() => {
-      const handleMouseDownOutside = (event: MouseEvent) => {
-        if (
-          deletePending &&
-          deleteButtonRef.current &&
-          !deleteButtonRef.current.contains(event.target as Node)
-        ) {
-          setDeletePending(false);
-        }
-      };
-
-      if (deletePending) {
-        document.addEventListener("mousedown", handleMouseDownOutside);
-      }
-
-      return () => {
-        document.removeEventListener("mousedown", handleMouseDownOutside);
-      };
-    }, [deletePending]);
 
     // Auto-enter edit mode when this task is created via insert.
     // We track which editingTaskId we already reacted to (autoEditedForRef) so that
@@ -1823,31 +1815,43 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 <PlusIcon />
               </button>
             )}
-            {onDelete && (
-              <button
-                type="button"
-                ref={deleteButtonRef}
-                className={`gantt-tl-name-action-btn gantt-tl-action-delete${deletePending ? " gantt-tl-action-delete-confirm" : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!deletePending) {
-                    setDeletePending(true);
-                  } else {
-                    setDeletePending(false);
-                    onDelete(task.id);
-                  }
-                }}
-                aria-label="Удалить задачу"
-              >
-                {deletePending ? "Удалить?" : <TrashIcon />}
-              </button>
-            )}
             <HierarchyButton
               isChild={isChild}
               rowIndex={rowIndex}
               onPromote={onPromoteTask ? handlePromote : undefined}
               onDemote={onDemoteTask ? handleDemote : undefined}
             />
+            {onDelete && (
+              <Popover open={contextMenuOpen} onOpenChange={setContextMenuOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="gantt-tl-name-action-btn gantt-tl-action-context"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setContextMenuOpen((v) => !v);
+                    }}
+                    aria-label="Дополнительно"
+                  >
+                    <VerticalDotsIcon />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="gantt-tl-context-menu" portal={true} align="end">
+                  <button
+                    type="button"
+                    className="gantt-tl-context-menu-item gantt-tl-context-menu-item-danger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setContextMenuOpen(false);
+                      onDelete(task.id);
+                    }}
+                  >
+                    <TrashIcon />
+                    Удалить задачу
+                  </button>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
         )}
       </div>
@@ -2216,11 +2220,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         onKeyDown={handleRowKeyDown}
         onDragOver={(e) => onDragOver?.(rowIndex, e)}
         onDrop={(e) => onDrop?.(rowIndex, e)}
-        onMouseLeave={() => {
-          if (deletePending) {
-            setDeletePending(false);
-          }
-        }}
         tabIndex={isSelected ? 0 : -1}
       >
         {resolvedColumns?.map(col => {
