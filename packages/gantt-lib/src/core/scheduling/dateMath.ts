@@ -169,3 +169,41 @@ export function subtractBusinessDays(
 
   return current;
 }
+
+/**
+ * Snap a date to the nearest working day in the given direction.
+ */
+export function alignToWorkingDay(
+  date: Date,
+  direction: 1 | -1,
+  weekendPredicate: (date: Date) => boolean
+): Date {
+  const current = normalizeUTCDate(date);
+
+  while (weekendPredicate(current)) {
+    current.setUTCDate(current.getUTCDate() + direction);
+  }
+
+  return current;
+}
+
+/**
+ * Get task duration in days (inclusive).
+ * If businessDays mode, counts business days using weekendPredicate.
+ * Otherwise, counts calendar days.
+ */
+export function getTaskDuration(
+  startDate: string | Date,
+  endDate: string | Date,
+  businessDays: boolean = false,
+  weekendPredicate?: (date: Date) => boolean
+): number {
+  const start = parseDateOnly(startDate);
+  const end = parseDateOnly(endDate);
+
+  if (businessDays && weekendPredicate) {
+    return getBusinessDaysCount(start, end, weekendPredicate);
+  }
+
+  return Math.max(1, Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1);
+}

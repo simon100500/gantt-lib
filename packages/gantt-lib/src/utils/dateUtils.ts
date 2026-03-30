@@ -1,4 +1,9 @@
 import { parseISO, isValid } from 'date-fns';
+import {
+  getBusinessDaysCount as coreGetBusinessDaysCount,
+  addBusinessDays as coreAddBusinessDays,
+  subtractBusinessDays as coreSubtractBusinessDays,
+} from '../core/scheduling/dateMath';
 
 /**
  * Parse date string as UTC to prevent DST issues
@@ -605,105 +610,44 @@ export const normalizeTaskDates = (
 
 /**
  * Count business days between two dates (inclusive), excluding weekends
+ * Delegates to core/scheduling/dateMath for implementation.
  * @param startDate - Start date (string or Date)
  * @param endDate - End date (string or Date)
  * @param weekendPredicate - Function that returns true for weekends
  * @returns Number of business days (minimum 1)
- *
- * Example:
- * getBusinessDaysCount('2026-03-14', '2026-03-17', (d) => d.getUTCDay() === 0 || d.getUTCDay() === 6)
- * // Returns 2 (Fri + Mon, Sat/Sun excluded)
  */
 export function getBusinessDaysCount(
   startDate: string | Date,
   endDate: string | Date,
   weekendPredicate: (date: Date) => boolean
 ): number {
-  const start = parseUTCDate(startDate);
-  const end = parseUTCDate(endDate);
-  let count = 0;
-  const current = new Date(start);
-
-  while (current.getTime() <= end.getTime()) {
-    if (!weekendPredicate(current)) {
-      count++;
-    }
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-
-  return Math.max(1, count);
+  return coreGetBusinessDaysCount(startDate, endDate, weekendPredicate);
 }
 
 /**
- * Calculate end date by adding business days to start date
- * @param startDate - Start date (string or Date)
- * @param businessDays - Number of business days to add (minimum 1)
- * @param weekendPredicate - Function that returns true for weekends
+ * Calculate end date by adding business days to start date.
+ * Delegates to core/scheduling/dateMath, converts Date result to string.
  * @returns End date as YYYY-MM-DD string
- *
- * Example:
- * addBusinessDays('2026-03-14', 4, (d) => d.getUTCDay() === 0 || d.getUTCDay() === 6)
- * // Returns '2026-03-19' (Fri + Mon + Tue + Wed, Sat/Sun skipped)
  */
 export function addBusinessDays(
   startDate: string | Date,
   businessDays: number,
   weekendPredicate: (date: Date) => boolean
 ): string {
-  const start = parseUTCDate(startDate);
-  const current = new Date(start);
-  let targetDays = Math.max(1, businessDays);
-  let businessDaysCounted = 0;
-
-  // Count business days until we reach the target
-  while (businessDaysCounted < targetDays) {
-    // Check if current day is a business day
-    if (!weekendPredicate(current)) {
-      businessDaysCounted++;
-    }
-
-    // Move to next day if we haven't reached target yet
-    if (businessDaysCounted < targetDays) {
-      current.setUTCDate(current.getUTCDate() + 1);
-    }
-  }
-
-  return current.toISOString().split('T')[0];
+  const result = coreAddBusinessDays(startDate, businessDays, weekendPredicate);
+  return result.toISOString().split('T')[0];
 }
 
 /**
- * Subtract business days from a date (inverse of addBusinessDays)
- * @param endDate - End date (string or Date)
- * @param businessDays - Number of business days to subtract (minimum 1)
- * @param weekendPredicate - Function that returns true for weekends
+ * Subtract business days from a date (inverse of addBusinessDays).
+ * Delegates to core/scheduling/dateMath, converts Date result to string.
  * @returns Start date as YYYY-MM-DD string
- *
- * Example:
- * subtractBusinessDays('2026-03-19', 4, (d) => d.getUTCDay() === 0 || d.getUTCDay() === 6)
- * // Returns '2026-03-14' (going backwards: Fri[Thu][Wed][Tue]Mon, Sat/Sun skipped)
  */
 export function subtractBusinessDays(
   endDate: string | Date,
   businessDays: number,
   weekendPredicate: (date: Date) => boolean
 ): string {
-  const end = parseUTCDate(endDate);
-  const current = new Date(end);
-  let targetDays = Math.max(1, businessDays);
-  let businessDaysCounted = 0;
-
-  // Count business days backwards until we reach the target
-  while (businessDaysCounted < targetDays) {
-    // Check if current day is a business day
-    if (!weekendPredicate(current)) {
-      businessDaysCounted++;
-    }
-
-    // Move to previous day if we haven't reached target yet
-    if (businessDaysCounted < targetDays) {
-      current.setUTCDate(current.getUTCDate() - 1);
-    }
-  }
-
-  return current.toISOString().split('T')[0];
+  const result = coreSubtractBusinessDays(endDate, businessDays, weekendPredicate);
+  return result.toISOString().split('T')[0];
 }
