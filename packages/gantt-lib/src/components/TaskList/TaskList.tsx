@@ -61,6 +61,40 @@ function getAllDescendants(parentId: string, tasks: Task[]): Task[] {
   return descendants;
 }
 
+function duplicateTaskSubtree(anchorTaskId: string, orderedTasks: Task[]): Task[] {
+  const anchorTask = orderedTasks.find(task => task.id === anchorTaskId);
+  if (!anchorTask) return orderedTasks;
+
+  const descendants = getAllDescendants(anchorTaskId, orderedTasks);
+  const sourceIds = new Set([anchorTaskId, ...descendants.map(task => task.id)]);
+  const sourceSubtree = orderedTasks.filter(task => sourceIds.has(task.id));
+  const cloneIdMap = new Map(sourceSubtree.map(task => [task.id, crypto.randomUUID()]));
+
+  const clonedSubtree = sourceSubtree.map(task => {
+    const clonedDependencies = task.dependencies
+      ?.map(dep => ({
+        ...dep,
+        taskId: cloneIdMap.get(dep.taskId) ?? dep.taskId,
+      }));
+
+    return {
+      ...task,
+      id: cloneIdMap.get(task.id)!,
+      name: task.id === anchorTaskId ? `${task.name} (копия)` : task.name,
+      parentId: task.parentId ? (cloneIdMap.get(task.parentId) ?? task.parentId) : undefined,
+      dependencies: clonedDependencies,
+    };
+  });
+
+  const anchorIndex = orderedTasks.findIndex(task => task.id === anchorTaskId);
+  const insertIndex = anchorIndex + sourceSubtree.length;
+  return [
+    ...orderedTasks.slice(0, insertIndex),
+    ...clonedSubtree,
+    ...orderedTasks.slice(insertIndex),
+  ];
+}
+
 /**
  * Вычисляет иерархический номер задачи на основе позиции в списке visibleTasks.
  * Корневые задачи: 1, 2, 3...
@@ -845,6 +879,11 @@ export const TaskList: React.FC<TaskListProps> = ({
     onReorder?.(updatedTasks, taskId, newSectionTask.id);
   }, [visibleTasks, orderedTasks, onDemoteTask, onReorder]);
 
+  const handleDuplicateTask = useCallback((taskId: string) => {
+    const duplicatedTasks = duplicateTaskSubtree(taskId, orderedTasks);
+    onReorder?.(duplicatedTasks);
+  }, [orderedTasks, onReorder]);
+
   // ---- Column resolution ----
   const builtInColumns = useMemo(() => createBuiltInColumns<Task>({ businessDays }), [businessDays]);
   const resolvedColumns = useMemo(
@@ -976,6 +1015,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onToggleCollapse={handleToggleCollapse}
               onPromoteTask={onPromoteTask}
               onDemoteTask={onDemoteTask ? handleDemoteWrapper : undefined}
+              onDuplicateTask={onReorder ? handleDuplicateTask : undefined}
               canDemoteTask={canDemoteTask}
               isLastChild={lastChildIds.has(task.id)}
               nestingDepth={nestingDepthMap.get(task.id) ?? 0}

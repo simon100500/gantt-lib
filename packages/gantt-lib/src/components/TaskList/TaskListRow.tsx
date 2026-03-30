@@ -142,6 +142,23 @@ const VerticalDotsIcon = () => (
   </svg>
 );
 
+const CopyIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+  </svg>
+);
+
 const ChevronRightIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -693,6 +710,8 @@ export interface TaskListRowProps {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when task is demoted (parentId set to previous task) */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
+  /** Callback when task or task group should be duplicated */
+  onDuplicateTask?: (taskId: string) => void;
   /** Whether demote action should be shown for this row */
   canDemoteTask?: boolean;
   /** Whether this child is the last sibling (affects connector icon shape) */
@@ -761,6 +780,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onToggleCollapse,
     onPromoteTask,
     onDemoteTask,
+    onDuplicateTask,
     canDemoteTask = true,
     isLastChild = true,
     nestingDepth = 0,
@@ -1778,7 +1798,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             {task.name}
           </button>
         )}
-        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask) && (
+        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onDuplicateTask) && (
           <div className="gantt-tl-name-actions">
             {onInsertAfter && (
               <button
@@ -1825,7 +1845,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onPromote={onPromoteTask ? handlePromote : undefined}
               onDemote={onDemoteTask ? handleDemote : undefined}
             />
-            {onDelete && (
+            {(onDuplicateTask || onDelete) && (
               <Popover open={contextMenuOpen} onOpenChange={setContextMenuOpen}>
                 <PopoverTrigger asChild>
                   <button
@@ -1841,18 +1861,34 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="gantt-tl-context-menu" portal={true} align="end">
-                  <button
-                    type="button"
-                    className="gantt-tl-context-menu-item gantt-tl-context-menu-item-danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setContextMenuOpen(false);
-                      onDelete(task.id);
-                    }}
-                  >
-                    <TrashIcon />
-                    Удалить задачу
-                  </button>
+                  {onDuplicateTask && (
+                    <button
+                      type="button"
+                      className="gantt-tl-context-menu-item"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setContextMenuOpen(false);
+                        onDuplicateTask(task.id);
+                      }}
+                    >
+                      <CopyIcon />
+                      Дублировать
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      className="gantt-tl-context-menu-item gantt-tl-context-menu-item-danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setContextMenuOpen(false);
+                        onDelete(task.id);
+                      }}
+                    >
+                      <TrashIcon />
+                      Удалить задачу
+                    </button>
+                  )}
                 </PopoverContent>
               </Popover>
             )}

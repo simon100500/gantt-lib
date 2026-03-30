@@ -48,6 +48,40 @@ function cleanupDependencies(tasks: Task[], deletedId: string): Task[] {
     }));
 }
 
+function duplicateTaskSubtree(anchorTaskId: string, orderedTasks: Task[]): Task[] {
+  const collectDescendants = (parentId: string): Task[] => {
+    const directChildren = orderedTasks.filter(task => task.parentId === parentId);
+    return directChildren.flatMap(child => [child, ...collectDescendants(child.id)]);
+  };
+
+  const anchorTask = orderedTasks.find(task => task.id === anchorTaskId);
+  if (!anchorTask) return orderedTasks;
+
+  const descendants = collectDescendants(anchorTaskId);
+  const sourceIds = new Set([anchorTaskId, ...descendants.map(task => task.id)]);
+  const sourceSubtree = orderedTasks.filter(task => sourceIds.has(task.id));
+  const cloneIdMap = new Map(sourceSubtree.map(task => [task.id, `${task.id}-copy`]));
+
+  const clonedSubtree = sourceSubtree.map(task => ({
+    ...task,
+    id: cloneIdMap.get(task.id)!,
+    name: task.id === anchorTaskId ? `${task.name} (копия)` : task.name,
+    parentId: task.parentId ? (cloneIdMap.get(task.parentId) ?? task.parentId) : undefined,
+    dependencies: task.dependencies?.map(dep => ({
+      ...dep,
+      taskId: cloneIdMap.get(dep.taskId) ?? dep.taskId,
+    })),
+  }));
+
+  const anchorIndex = orderedTasks.findIndex(task => task.id === anchorTaskId);
+  const insertIndex = anchorIndex + sourceSubtree.length;
+  return [
+    ...orderedTasks.slice(0, insertIndex),
+    ...clonedSubtree,
+    ...orderedTasks.slice(insertIndex),
+  ];
+}
+
 // ===== tests =====
 
 describe('buildNewTask', () => {
@@ -240,5 +274,56 @@ describe('double-confirm guard', () => {
     reset();
     onConfirm();
     expect(callCount).toBe(2);
+  });
+});
+
+describe('duplicateTaskSubtree', () => {
+  it('duplicates a parent subtree directly after the original group with remapped ids', () => {
+    const tasks: Task[] = [
+      {
+        id: 'parent',
+        name: 'Parent',
+        startDate: '2026-03-01',
+        endDate: '2026-03-05',
+      },
+      {
+        id: 'child-1',
+        name: 'Child 1',
+        startDate: '2026-03-01',
+        endDate: '2026-03-02',
+        parentId: 'parent',
+      },
+      {
+        id: 'child-2',
+        name: 'Child 2',
+        startDate: '2026-03-03',
+        endDate: '2026-03-04',
+        parentId: 'parent',
+        dependencies: [{ taskId: 'child-1', type: 'FS', lag: 0 }],
+      },
+      {
+        id: 'next-root',
+        name: 'Next root',
+        startDate: '2026-03-06',
+        endDate: '2026-03-07',
+      },
+    ];
+
+    const duplicated = duplicateTaskSubtree('parent', tasks);
+
+    expect(duplicated.map(task => task.id)).toEqual([
+      'parent',
+      'child-1',
+      'child-2',
+      'parent-copy',
+      'child-1-copy',
+      'child-2-copy',
+      'next-root',
+    ]);
+
+    expect(duplicated[3].name).toBe('Parent (копия)');
+    expect(duplicated[4].parentId).toBe('parent-copy');
+    expect(duplicated[5].parentId).toBe('parent-copy');
+    expect(duplicated[5].dependencies).toEqual([{ taskId: 'child-1-copy', type: 'FS', lag: 0 }]);
   });
 });
