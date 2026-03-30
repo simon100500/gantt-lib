@@ -116,6 +116,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
   ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false }) => {
+    const defaultParentBarColor = '#782FC4';
     // Extract divider from task prop
     const { divider: taskDivider } = task;
 
@@ -149,11 +150,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       ? 'var(--gantt-expired-color)'
       : (task.color || 'var(--gantt-task-bar-default-color)');
 
-    // Color for the external task name label — parent tasks match their bar color
-    const nameColor = isParent
-      ? (task.color || 'var(--gantt-parent-bar-color, #333333)')
-      : undefined; // regular tasks use CSS class color (#2563eb)
-
     // Calculate clamped and rounded progress width
     const progressWidth = useMemo(() => {
       if (task.progress === undefined || task.progress <= 0) return 0;
@@ -178,18 +174,21 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
     // At 100% progress, tint the bar itself instead of rendering a fill overlay.
     const barStyle = useMemo(() => {
+      const parentBarColor = task.color || defaultParentBarColor;
       if (isParent) {
         if (progressWidth >= 100) {
-          const c = 'color-mix(in srgb, var(--gantt-task-bar-default-color) 40%, black)';
+          const c = isExpired
+            ? 'color-mix(in srgb, var(--gantt-expired-color) 40%, black)'
+            : `color-mix(in srgb, ${parentBarColor} 40%, black)`;
           return { backgroundColor: c, '--gantt-parent-bar-color': c } as React.CSSProperties;
         }
-        return {};
+        return { '--gantt-parent-bar-color': parentBarColor } as React.CSSProperties;
       }
       if (progressWidth >= 100) {
         return { backgroundColor: progressColor };
       }
       return { backgroundColor: barColor };
-    }, [isParent, progressWidth, barColor, progressColor]);
+    }, [defaultParentBarColor, isExpired, isParent, progressWidth, barColor, progressColor, task.color]);
 
     // Handle drag end - call onTasksChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
@@ -364,6 +363,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             className="gantt-tr-rightLabels"
             style={{
               left: `${displayLeft + Math.max(displayWidth, 20) - Math.min(6, Math.max(displayWidth, 20) / 2) + 8}px`,
+              color: isParent ? (task.color || defaultParentBarColor) : barColor,
             }}
           >
             {!showDurationInside && (
@@ -376,10 +376,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 {progressWidth}%
               </span>
             )}
-            <span
-              className="gantt-tr-externalTaskName"
-              style={nameColor ? { color: nameColor } : undefined}
-            >
+            <span className="gantt-tr-externalTaskName">
               {task.name}
             </span>
           </div>
