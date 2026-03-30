@@ -20,7 +20,7 @@ gantt-lib → src/index.ts → utils/index.ts → dependencyUtils.ts → core/sc
 
 ## Прямой импорт из core (для downstream-репо)
 
-Если downstream-проект хочет только scheduling-логику без React/UI, можно импортировать напрямую:
+Downstream-проекты (MCP-сервер, Node.js-скрипты и т.д.) могут импортировать только scheduling-логику, не подключая React и UI:
 
 ```typescript
 import {
@@ -31,7 +31,7 @@ import {
 } from 'gantt-lib/core/scheduling';
 ```
 
-> **Примечание:** Для этого нужно добавить `exports` map в `package.json` — сейчас headless-модуль доступен только внутри monorepo. Когда дойдёт до публикации — добавь путь в `exports`.
+Этот путь сконфигурирован в `exports` map package.json — tsup собирает `core/scheduling` как отдельный entry point (CJS + ESM + DTS). В bundle попадает только scheduling-код, без React, DOM и date-fns.
 
 ## Структура модуля
 

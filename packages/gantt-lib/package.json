@@ -20,7 +20,12 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": "./dist/styles.css",
+    "./core/scheduling": {
+      "types": "./dist/core/scheduling/index.d.ts",
+      "import": "./dist/core/scheduling/index.mjs",
+      "require": "./dist/core/scheduling/index.js"
+    }
   },
   "files": [
     "dist",

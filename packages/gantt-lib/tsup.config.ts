@@ -2,7 +2,7 @@ import { defineConfig } from 'tsup';
 import { preserveDirectivesPlugin } from 'esbuild-plugin-preserve-directives';
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/core/scheduling/index.ts'],
   format: ['cjs', 'esm'],
   dts: true,
   splitting: false,
