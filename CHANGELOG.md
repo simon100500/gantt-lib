@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.52.0] - 2026-03-30
+
+### Features
+
+- Add reflowTasksOnModeSwitch utility for recalculating task dates when toggling between business and calendar days
+
+### Documentation
+
+- Add documentation for reflowTasksOnModeSwitch in business days guide
+
 ## [0.51.1] - 2026-03-30
 
 ### Features
