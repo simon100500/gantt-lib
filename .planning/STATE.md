@@ -98,6 +98,7 @@ None yet — no external users (library in active development)
 - Old Phase 22 → Phase 23: Additional TaskList Columns (renumbered)
 - Phase 24 added: buisiness-days
 - Phase 25 added: columns-refactoring
+- Phase 27 added: core-refactor
 
 **Coverage:** 13/13 requirements mapped ✓
 

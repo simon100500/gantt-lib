@@ -245,6 +245,16 @@ Add developer tools and calendar customization features to the Gantt library.
 
 </details>
 
+### Phase 27: core-refactor
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 26
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 27 to break down)
+
 ---
 
 **Phase Numbering:**
