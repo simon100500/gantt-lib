@@ -2,6 +2,18 @@
 
 Все значительные изменения проекта будут задокументированы в этом файле.
 
+## [0.60.0] - 2026-03-30
+
+### Возможности
+
+- Извлечение headless-модуля `core/scheduling` — standalone движок планирования с backward-compat barrel exports
+- Переподключение всех UI-компонентов к `core/scheduling` вместо `dependencyUtils`
+
+### Документация
+
+- Добавлен раздел Architecture в INDEX.md со ссылкой на Headless Scheduling Core
+- Добавлен API-справочник 14-headless-scheduling.md
+
 ## [0.53.1] - 2026-03-30
 
 ### Исправления

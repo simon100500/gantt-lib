@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.60.0] - 2026-03-30
+
+### Features
+
+- Extract headless scheduling core module (`core/scheduling`) — standalone runtime-agnostic scheduling engine with backward-compat barrel exports
+- Rewire all UI consumers to import scheduling functions from `core/scheduling` instead of `dependencyUtils`
+
+### Documentation
+
+- Add Architecture section to INDEX.md with Headless Scheduling Core reference
+- Add 14-headless-scheduling.md API reference
+
 ## [0.53.1] - 2026-03-30
 
 ### Fixes
