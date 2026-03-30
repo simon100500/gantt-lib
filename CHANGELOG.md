@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.1] - 2026-03-30
+
+### Features
+
+- Add color stripe for custom task colors and fix parent-child dependency bug
+
+### Fixes
+
+- Update external task name color based on expiration status
+- Address parent-child dependency bug and update color palette
+- Rename color dot to color stripe and update styles
+- Update task color selection to reflect new color value
+
 ## [0.51.0] - 2026-03-30
 
 ### Features
