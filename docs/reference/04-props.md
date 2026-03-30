@@ -1,18 +1,18 @@
 # GanttChart Props
 
 ```typescript
-interface GanttChartProps {
-  tasks: Task[];
+interface GanttChartProps<TTask extends Task = Task> {
+  tasks: TTask[];
   dayWidth?: number;
   rowHeight?: number;
   headerHeight?: number;
   containerHeight?: number | string;
   viewMode?: 'day' | 'week' | 'month';
-  onTasksChange?: (tasks: Task[]) => void;
-  onAdd?: (task: Task) => void;
+  onTasksChange?: (tasks: TTask[]) => void;
+  onAdd?: (task: TTask) => void;
   onDelete?: (taskId: string) => void;
-  onInsertAfter?: (taskId: string, newTask: Task) => void;
-  onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
+  onInsertAfter?: (taskId: string, newTask: TTask) => void;
+  onReorder?: (tasks: TTask[], movedTaskId?: string, inferredParentId?: string) => void;
   onPromoteTask?: (taskId: string) => void;
   onDemoteTask?: (taskId: string, newParentId: string) => void;
   onValidateDependencies?: (result: ValidationResult) => void;
@@ -34,6 +34,7 @@ interface GanttChartProps {
   customDays?: CustomDayConfig[];
   isWeekend?: (date: Date) => boolean;
   businessDays?: boolean;
+  additionalColumns?: TaskListColumn<TTask>[];
 }
 ```
 
@@ -56,9 +57,9 @@ interface GanttChartProps {
 | `enableAutoSchedule` | `boolean` | `false` | When `true` (hard mode): dragging a predecessor cascades all successor tasks to maintain their constraints. Dependency lines redraw in real-time during drag. |
 | `disableConstraints` | `boolean` | `false` | When `true`: all drag constraint checks are skipped. Tasks can be placed freely, ignoring all dependency rules. Useful for debugging layouts or building unconstrained editors. |
 | `onCascade` | `(tasks: Task[]) => void` | `undefined` | Called when a cascade drag completes in hard mode (`enableAutoSchedule={true}`). Receives all affected tasks including the dragged task. **When `onCascade` fires, `onTasksChange` does NOT fire for that drag.** Use `onCascade` to update state in hard mode. |
-| `showTaskList` | `boolean` | `false` | When `true`, displays a task list table on the left side of the chart with columns for №, Name, Start Date, End Date. The task list supports inline editing and synchronized scrolling. **CSS import required for hover-reveal action buttons.** |
+| `showTaskList` | `boolean` | `false` | When `true`, displays the TaskList panel on the left side of the chart. Built-in columns are resolved through the same pipeline as `additionalColumns`. The task list supports inline editing, hierarchy actions, and synchronized scrolling. |
 | `showChart` | `boolean` | `true` | When `false`, hides the calendar chart area (timeline grid, task bars, dependencies). Useful for displaying only the task list. Combine with `showTaskList={false}` to show only the calendar. |
-| `taskListWidth` | `number` | `520` | Width of the task list panel in pixels. Only effective when `showTaskList={true}`. |
+| `taskListWidth` | `number` | `660` | Requested width of the task list panel in pixels. Only effective when `showTaskList={true}`. Actual width grows automatically when resolved built-in + custom columns require more space. |
 | `disableTaskNameEditing` | `boolean` | `false` | When `true`, task names cannot be edited in the task list. Date editing is also disabled for locked tasks (see `task.locked` property). |
 | `disableDependencyEditing` | `boolean` | `false` | When `true`, dependency editing is disabled in the task list. Users cannot add, remove, or modify dependencies via the UI. |
 | `disableTaskDrag` | `boolean` | `false` | When `true`, all drag and resize operations on the calendar grid are disabled. Useful for preventing accidental task movement during panning. Cursor shows `grab` instead of `not-allowed` to allow panning. |
@@ -74,8 +75,21 @@ interface GanttChartProps {
 | `customDays` | `CustomDayConfig[]` | `undefined` | Array of custom day configurations with explicit types. Each entry: `{ date: Date, type: 'weekend' | 'workday' }`. **IMPORTANT:** Use UTC dates: `{ date: new Date(Date.UTC(2026, 2, 8)), type: 'weekend' }` for March 8, 2026. See Section 7.2 for details. |
 | `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Checked BEFORE customDays overrides** — use for base patterns, then override specific dates with `customDays`. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
 | `businessDays` | `boolean` | `true` | Когда `true` (default), длительность задачи (duration) считается в рабочих днях, исключая выходные. Когда `false`, длительность считается в календарных днях. Влияет на расчёт зависимостей, перетаскивание задач и отображение длительности. См. раздел 7.5. |
+| `additionalColumns` | `TaskListColumn<TTask>[]` | `undefined` | Additional TaskList columns resolved together with the built-in columns. Use `renderCell` / `renderEditor` and place them with `before` / `after`. See [TaskList Columns](./13-tasklist-columns.md). |
 
 **Important — calendar range:** The visible date range is calculated automatically from the earliest `startDate` to the latest `endDate` across all tasks. The chart always shows complete calendar months. For example, if tasks span March 25 to May 5, the chart renders March 1 through May 31. There is no `month` prop.
+
+## TaskList Columns
+
+Use `additionalColumns` when you need custom fields in the task list.
+
+- Import `TaskListColumn` from the package root: `import { type TaskListColumn } from 'gantt-lib'`.
+- The canonical editor property is `renderEditor`.
+- The old `editor` property is not supported anymore.
+- `width` should be a number in pixels.
+- Columns are resolved in one pipeline with built-in columns and may be positioned with `before` / `after`.
+
+See the full guide in [TaskList Columns](./13-tasklist-columns.md).
 
 ---
 

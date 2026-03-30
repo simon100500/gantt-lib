@@ -15,7 +15,7 @@ Drag-and-drop task scheduling with Excel-like visual simplicity.
 **Target features:**
 - Custom weekend calendar (Date[] array + isWeekend predicate)
 - Task filtering API with ready-made predicates
-- Additional TaskList columns with renderCell/editor, positioned after Name column
+- Additional TaskList columns with renderCell/renderEditor, positioned after Name column
 
 ## Current State (v0.22.0)
 
@@ -32,6 +32,8 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - Expired task highlighting
 - Action buttons panel
 - **Task filtering API** (Phase 22) — predicate-based filtering with ready-made utilities
+- **Unified column pipeline** (Phase 25) — `resolvedColumns.map()` architecture with single editor state
+- **Columns API migration** (Phase 26) — unified column API with `renderEditor` as the only editor property
 - shadcn/ui components (DatePicker, Input)
 
 **Tech stack:** React 18+, TypeScript, date-fns, @radix-ui
@@ -53,12 +55,7 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - ✅ Customizable task colors — v0.18.0
 - ✅ TypeScript support — v0.18.0
 - ✅ Task filtering with predicates — v0.22.0
-
-### Active
-
-**v0.50.0 Goals:**
-- [ ] Custom weekend calendar — pass Date[] array or isWeekend function
-- [ ] Additional TaskList columns — add custom columns after Name with renderCell/editor
+- ✅ Unified column pipeline — resolvedColumns.map() architecture, single editor state — v0.50.0 (Phase 25)
 
 ### Out of Scope
 
@@ -102,4 +99,4 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - **Browser**: Modern browsers — No IE11 requirement
 
 ---
-*Last updated: 2026-03-19 after Phase 22 (filters) completed*
+*Last updated: 2026-03-29 after Phase 26 (columns-api-migration) completed*

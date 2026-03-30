@@ -13,6 +13,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
+import type { TaskListColumn } from './columns/types';
+import { createBuiltInColumns, BUILT_IN_COLUMN_WIDTHS } from './columns/createBuiltInColumns';
+import { resolveTaskListColumns } from './columns/resolveTaskListColumns';
+import type { TaskListColumn as NewTaskListColumn } from './columns/types';
 import './TaskList.css';
 
 export { LINK_TYPE_ICONS };
@@ -20,6 +24,16 @@ export { LINK_TYPE_ICONS };
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
 type DependencyPickMode = 'predecessor' | 'successor';
 const MIN_TASK_LIST_WIDTH = 530;
+
+const BUILT_IN_CSS_CLASSES: Record<string, string> = {
+  number: 'gantt-tl-cell-number',
+  name: 'gantt-tl-cell-name',
+  startDate: 'gantt-tl-cell-date',
+  endDate: 'gantt-tl-cell-date',
+  duration: 'gantt-tl-cell-duration',
+  progress: 'gantt-tl-cell-progress',
+};
+
 /**
  * Get all descendant tasks of a parent task (recursively).
  * Returns an array of all tasks where task.parentId is in the parent chain.
@@ -153,6 +167,8 @@ export interface TaskListProps {
   filteredTaskIds?: Set<string>;
   /** Whether filter is currently active (needed to distinguish "no filter" from "filter with no matches") */
   isFilterActive?: boolean;
+  /** Additional columns to display after built-in columns */
+  additionalColumns?: TaskListColumn<any>[];
 }
 
 /**
@@ -192,6 +208,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   filterMode = 'highlight',
   filteredTaskIds = new Set(),
   isFilterActive = false,
+  additionalColumns,
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
@@ -828,7 +845,18 @@ export const TaskList: React.FC<TaskListProps> = ({
     onReorder?.(updatedTasks, taskId, newSectionTask.id);
   }, [visibleTasks, orderedTasks, onDemoteTask, onReorder]);
 
-  const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH);
+  // ---- Column resolution ----
+  const builtInColumns = useMemo(() => createBuiltInColumns<Task>({ businessDays }), [businessDays]);
+  const resolvedColumns = useMemo(
+    () => resolveTaskListColumns(builtInColumns, (additionalColumns ?? []) as NewTaskListColumn<Task>[]),
+    [builtInColumns, additionalColumns]
+  );
+  const resolvedColumnWidthTotal = useMemo(
+    () => resolvedColumns.reduce((sum, col) => sum + (col.width ?? 120), 0),
+    [resolvedColumns]
+  );
+
+  const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH, resolvedColumnWidthTotal);
 
   return (
     <div
@@ -839,43 +867,66 @@ export const TaskList: React.FC<TaskListProps> = ({
       <div className="gantt-tl-table">
         {/* Header row - aligns with TimeScaleHeader, 1px taller for row alignment */}
         <div className="gantt-tl-header" style={{ height: `${headerHeight + 0.5}px` }}>
-          <div className="gantt-tl-headerCell gantt-tl-cell-number">№</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-name">Имя</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-date">Начало</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-date">Окончание</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-duration">{businessDays ? 'Дн. (р)' : 'Дн.'}</div>
-          <div className="gantt-tl-headerCell gantt-tl-cell-progress">%</div>
-          {/* Dependencies column header with type switcher */}
-          <div className="gantt-tl-headerCell gantt-tl-cell-deps" style={{ position: 'relative' }}>
-            <Popover open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  className="gantt-tl-dep-type-trigger"
-                  disabled={disableDependencyEditing}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Связи {React.createElement(LINK_TYPE_ICONS[activeLinkType])} &#9662;
-                </button>
-              </PopoverTrigger>
-              <PopoverContent portal={true} align="start">
-                <div className="gantt-tl-dep-type-menu">
-                  {LINK_TYPE_ORDER.map(lt => (
-                    <button
-                      key={lt}
-                      className={`gantt-tl-dep-type-option${activeLinkType === lt ? ' active' : ''}`}
-                      onClick={() => { setActiveLinkType(lt); setTypeMenuOpen(false); }}
-                    >
-                      {React.createElement(LINK_TYPE_ICONS[lt])}
-                      <span>{LINK_TYPE_LABELS[lt]}</span>
-                    </button>
-                  ))}
+          {resolvedColumns.map(col => {
+            // Dependencies header has special Popover UI
+            if (col.id === 'dependencies') {
+              return (
+                <div key={col.id} className="gantt-tl-headerCell gantt-tl-cell-deps"
+                     data-column-id="dependencies"
+                     style={{ position: 'relative' }}>
+                  <Popover open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        className="gantt-tl-dep-type-trigger"
+                        disabled={disableDependencyEditing}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Связи {React.createElement(LINK_TYPE_ICONS[activeLinkType])} &#9662;
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent portal={true} align="start">
+                      <div className="gantt-tl-dep-type-menu">
+                        {LINK_TYPE_ORDER.map(lt => (
+                          <button
+                            key={lt}
+                            className={`gantt-tl-dep-type-option${activeLinkType === lt ? ' active' : ''}`}
+                            onClick={() => { setActiveLinkType(lt); setTypeMenuOpen(false); }}
+                          >
+                            {React.createElement(LINK_TYPE_ICONS[lt])}
+                            <span>{LINK_TYPE_LABELS[lt]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  {cycleError && (
+                    <div className="gantt-tl-dep-error">Цикл зависимостей!</div>
+                  )}
                 </div>
-              </PopoverContent>
-            </Popover>
-            {cycleError && (
-              <div className="gantt-tl-dep-error">Цикл зависимостей!</div>
-            )}
-          </div>
+              );
+            }
+            // Built-in columns use CSS classes for width (same as body cells — no inline width override)
+            const builtInClass = BUILT_IN_CSS_CLASSES[col.id];
+            if (builtInClass !== undefined) {
+              return (
+                <div key={col.id}
+                     className={`gantt-tl-headerCell ${builtInClass}`}
+                     data-column-id={col.id}>
+                  {col.header}
+                </div>
+              );
+            }
+            // Custom columns
+            return (
+              <div key={col.id}
+                   className="gantt-tl-headerCell gantt-tl-headerCell-custom"
+                   data-column-id={`custom:${col.id}`}
+                   data-custom-column-id={col.id}
+                   style={{ width: col.width, minWidth: col.width, flexShrink: 0 }}>
+                {col.header}
+              </div>
+            );
+          })}
         </div>
 
         {/* Data rows */}
@@ -927,6 +978,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               businessDays={businessDays}
               isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}
               isFilterHideMode={filterMode === 'hide' && isFilterActive}
+              resolvedColumns={resolvedColumns}
             />
           ))}
         </div>

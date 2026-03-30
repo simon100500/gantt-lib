@@ -57,7 +57,7 @@ const tasks: Task[] = [
 - When a dependency chip is selected, the "add link" button is hidden to avoid UI clutter.
 - During link creation mode, click the source cell again to cancel (cursor shows pointer, not blocked).
 - Click the task number to scroll the chart to that task and highlight the row.
-- Use `taskListWidth` to control the panel width (default: 520px).
+- Use `taskListWidth` to request the panel width (default: 660px). The effective width grows automatically if built-in plus custom columns need more space.
 - Use `disableTaskNameEditing={true}` to globally disable name editing.
 - Use `disableDependencyEditing={true}` to globally disable dependency editing. Date editing is automatically disabled for locked tasks.
 

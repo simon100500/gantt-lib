@@ -7,6 +7,7 @@ import { validateDependencies, cascadeByLinks, universalCascade, computeParentDa
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type { ValidationResult } from '../../types';
 import { TaskPredicate } from '../../filters';
+import type { TaskListColumn } from '../TaskList/columns/types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
@@ -82,9 +83,9 @@ export interface TaskDependency {
   lag: number;
 }
 
-export interface GanttChartProps {
+export interface GanttChartProps<TTask extends Task = Task> {
   /** Array of tasks to display */
-  tasks: Task[];
+  tasks: TTask[];
   /** Width of each day column in pixels (default: 40) */
   dayWidth?: number;
   /** Height of each task row in pixels (default: 40) */
@@ -94,7 +95,7 @@ export interface GanttChartProps {
   /** Container height. Can be pixels (600), string ("90vh", "100%", "500px"), or undefined for auto height */
   containerHeight?: number | string;
   /** Callback when tasks are modified. Receives ONLY the changed tasks as full objects with all properties. */
-  onTasksChange?: (tasks: Task[]) => void;
+  onTasksChange?: (tasks: TTask[]) => void;
   /** Optional callback for dependency validation results */
   onValidateDependencies?: (result: ValidationResult) => void;
   /** Enable automatic shifting of dependent tasks when predecessor moves (default: false) */
@@ -102,7 +103,7 @@ export interface GanttChartProps {
   /** Disable dependency constraint checking during drag (default: false) */
   disableConstraints?: boolean;
   /** Called when a cascade drag completes; receives all shifted tasks (including dragged task) in hard mode */
-  onCascade?: (tasks: Task[]) => void;
+  onCascade?: (tasks: TTask[]) => void;
   /** Show task list overlay on the left side of the chart (default: false) */
   showTaskList?: boolean;
   /** Width of the task list overlay in pixels (default: 300) */
@@ -114,13 +115,13 @@ export interface GanttChartProps {
   /** Highlight expired/overdue tasks with red background (default: false) */
   highlightExpiredTasks?: boolean;
   /** Callback when a new task is added via the task list */
-  onAdd?: (task: Task) => void;
+  onAdd?: (task: TTask) => void;
   /** Callback when a task is deleted via the task list */
   onDelete?: (taskId: string) => void;
   /** Callback when a new task is inserted after a specific task via the task list */
-  onInsertAfter?: (taskId: string, newTask: Task) => void;
+  onInsertAfter?: (taskId: string, newTask: TTask) => void;
   /** Callback when tasks are reordered via drag in the task list */
-  onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
+  onReorder?: (tasks: TTask[], movedTaskId?: string, inferredParentId?: string) => void;
   /** Callback when a task is promoted (parentId removed). If not provided, default internal logic is used. */
   onPromoteTask?: (taskId: string) => void;
   /** Callback when a task is demoted (parentId set). If not provided, default internal logic is used. */
@@ -153,6 +154,8 @@ export interface GanttChartProps {
   disableTaskDrag?: boolean;
   /** Show calendar chart area (default: true) */
   showChart?: boolean;
+  /** Additional custom columns to render in the TaskList after built-in columns */
+  additionalColumns?: TaskListColumn<TTask>[];
 }
 
 /**
@@ -190,7 +193,11 @@ export interface GanttChartHandle {
  * />
  * ```
  */
-export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
+function GanttChartInner<TTask extends Task = Task>(
+  props: GanttChartProps<TTask>,
+  ref: React.ForwardedRef<GanttChartHandle>
+) {
+  const {
   tasks,
   dayWidth = 40,
   rowHeight = 40,
@@ -224,7 +231,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
   highlightedTaskIds,
   disableTaskDrag = false,
   showChart = true,
-}, ref) => {
+  additionalColumns,
+  } = props;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
@@ -456,7 +464,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const originalTask = tasks.find(t => t.id === updatedTask.id);
     if (!originalTask) {
       // New task or task not found - pass all tasks as-is
-      onTasksChange?.(updatedTasks);
+      onTasksChange?.(updatedTasks as TTask[]);
       if (editingTaskId === updatedTask.id) {
         setEditingTaskId(null);
       }
@@ -472,7 +480,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     if (!datesChanged) {
       // Special case: parent progress cascade (multiple tasks, no date changes)
       if (updatedTasks.length > 1) {
-        onTasksChange?.(updatedTasks);
+        onTasksChange?.(updatedTasks as TTask[]);
         if (editingTaskId === updatedTask.id) {
           setEditingTaskId(null);
         }
@@ -486,12 +494,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         const parentTask = tasks.find(t => t.id === taskParentId);
         if (parentTask) {
           const updatedParent = { ...parentTask, progress: parentProgress };
-          onTasksChange?.([updatedTask, updatedParent]);
+          onTasksChange?.([updatedTask, updatedParent] as TTask[]);
         } else {
-          onTasksChange?.([updatedTask]);
+          onTasksChange?.([updatedTask] as TTask[]);
         }
       } else {
-        onTasksChange?.([updatedTask]);
+        onTasksChange?.([updatedTask] as TTask[]);
       }
       if (editingTaskId === updatedTask.id) {
         setEditingTaskId(null);
@@ -516,14 +524,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
         ? [parentWithRecalcDates]
         : universalCascade(parentWithRecalcDates, parentStart, parentEnd, tasks, businessDays, isCustomWeekend);
 
-      onTasksChange?.(cascadedTasks);
+      onTasksChange?.(cascadedTasks as TTask[]);
     } else {
       // Regular task or child: normal cascade
       const cascadedTasks = disableConstraints
         ? [updatedTask]
         : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays, isCustomWeekend);
 
-      onTasksChange?.(cascadedTasks);
+      onTasksChange?.(cascadedTasks as TTask[]);
     }
   }, [tasks, onTasksChange, disableConstraints, editingTaskId, businessDays, isCustomWeekend]);
 
@@ -559,7 +567,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     });
 
     if (changedTasks.length > 0) {
-      onTasksChange?.(changedTasks);
+      onTasksChange?.(changedTasks as TTask[]);
     }
 
     // Call onDelete for each task in the cascade set (original + all descendants)
@@ -576,7 +584,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
    */
   const handleInsertAfter = useCallback((taskId: string, newTask: Task) => {
     setEditingTaskId(newTask.id);
-    onInsertAfter?.(taskId, newTask);
+    onInsertAfter?.(taskId, newTask as TTask);
   }, [onInsertAfter]);
 
   /**
@@ -595,8 +603,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     }
 
     const normalized = normalizeHierarchyTasks(updated);
-    onTasksChange?.(normalized);
-    onReorder?.(normalized, movedTaskId, inferredParentId);
+    onTasksChange?.(normalized as TTask[]);
+    onReorder?.(normalized as TTask[], movedTaskId, inferredParentId);
   }, [onTasksChange, onReorder]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
@@ -640,7 +648,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
    */
   const handleCascade = useCallback((cascadedTasks: Task[]) => {
     // Backend should compute parent dates from children
-    onTasksChange?.(cascadedTasks);
+    onTasksChange?.(cascadedTasks as TTask[]);
   }, [tasks, onTasksChange]);
 
   /**
@@ -737,7 +745,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     const promotedTask = { ...taskToPromote, parentId: grandparentId };
 
     if (siblings.length <= 1) {
-      onTasksChange?.([promotedTask]);
+      onTasksChange?.([promotedTask] as TTask[]);
       return;
     }
 
@@ -748,7 +756,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       .sort((a, b) => b.index - a.index)[0];
 
     if (!lastSiblingIndex) {
-      onTasksChange?.([promotedTask]);
+      onTasksChange?.([promotedTask] as TTask[]);
       return;
     }
 
@@ -758,7 +766,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       ...tasks.filter(t => t.id !== taskId).slice(lastSiblingIndex.index + 1)
     ]);
 
-    onTasksChange?.(reorderedTasks);
+    onTasksChange?.(reorderedTasks as TTask[]);
   }, [tasks, onTasksChange, onPromoteTask]);
 
   const handleDemoteTask = useCallback((taskId: string, newParentId: string) => {
@@ -814,7 +822,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
     };
 
     // Only send the demoted task - parent dates are computed from children
-    onTasksChange?.([updatedDemotedTask]);
+    onTasksChange?.([updatedDemotedTask] as TTask[]);
   }, [tasks, onTasksChange, onDemoteTask]);
 
   // Pan (grab-scroll) on empty grid area
@@ -897,10 +905,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             disableDependencyEditing={disableDependencyEditing}
             onScrollToTask={scrollToTask}
             onSelectedChipChange={setSelectedChip}
-            onAdd={onAdd}
+            onAdd={onAdd as ((task: Task) => void) | undefined}
             onDelete={handleDelete}
-            onInsertAfter={handleInsertAfter}
-            onReorder={handleReorder}
+            onInsertAfter={handleInsertAfter as ((taskId: string, newTask: Task) => void) | undefined}
+            onReorder={handleReorder as ((tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void) | undefined}
             editingTaskId={editingTaskId}
             enableAddTask={enableAddTask}
             collapsedParentIds={collapsedParentIds}
@@ -914,6 +922,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
             filterMode={filterMode}
             filteredTaskIds={matchedTaskIds}
             isFilterActive={!!taskFilter}
+            additionalColumns={additionalColumns}
           />
 
           {/* Chart area */}
@@ -979,7 +988,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
               monthStart={monthStart}
               dayWidth={dayWidth}
               rowHeight={rowHeight}
-              onTasksChange={handleTaskChange}
+              onTasksChange={handleTaskChange as (tasks: Task[]) => void}
               onDragStateChange={(state) => {
                 if (state.isDragging) {
                   setDragGuideLines(state);
@@ -994,8 +1003,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
               enableAutoSchedule={enableAutoSchedule ?? false}
               disableConstraints={disableConstraints ?? false}
               overridePosition={cascadeOverrides.get(task.id)}
-              onCascadeProgress={handleCascadeProgress}
-              onCascade={handleCascade}
+              onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
+              onCascade={handleCascade as (cascadedTasks: Task[]) => void}
               highlightExpiredTasks={highlightExpiredTasks}
               isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
               businessDays={businessDays}
@@ -1010,8 +1019,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(({
       </div>
     </div>
   );
-});
+}
 
-GanttChart.displayName = 'GanttChart';
+export const GanttChart = forwardRef(GanttChartInner) as <TTask extends Task = Task>(
+  props: GanttChartProps<TTask> & { ref?: React.Ref<GanttChartHandle> }
+) => React.ReactElement;
+
+(GanttChart as React.FC).displayName = 'GanttChart';
 
 export default GanttChart;

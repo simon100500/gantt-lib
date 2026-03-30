@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] — Phase 26: columns-api-migration
+
+### Breaking Changes
+
+- **`editor` property removed** — Custom columns must use `renderEditor` instead of `editor`. Simply rename the property:
+  ```diff
+  - editor: ({ task, updateTask, closeEditor }) => ...
+  + renderEditor: ({ task, updateTask, closeEditor }) => ...
+  ```
+- **Import path changed** — `TaskListColumn` type must be imported from the package root (`gantt-lib`), not from internal `taskListColumns` path
+- **Numeric `width` only** — Column `width` accepts only `number` (pixels), string values are not supported
+- **`before` / `after` placement** — The only supported way to position custom columns
+
 ## [0.28.1] - 2026-03-25
 
 ### Fixes

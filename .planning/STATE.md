@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.18.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-23T15:39:24.077Z"
-last_activity: 2026-03-22
+status: Milestone complete
+last_updated: "2026-03-29T20:19:59.459Z"
+last_activity: 2026-03-29
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 18
+  completed_plans: 18
 ---
 
 ## Current Position
 
-Phase: 24 (buisiness-days) — EXECUTING
-Plan: 2 of 2
+Phase: 26
+Plan: Not started
 
 ## Project Reference
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 - Custom weekend calendar (Date[] array + isWeekend predicate)
 - Task filtering by various criteria
-- Additional TaskList columns with renderCell/editor
+- Additional TaskList columns with renderCell/renderEditor
 
 ## Accumulated Context
 
@@ -44,6 +44,9 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | shadcn/ui components | Modern, accessible, customizable | ✓ Good — DatePicker, Input integrated |
 | Coarse granularity for v0.50.0 | 2 phases cover independent feature sets | ✓ Good — Custom Weekend Calendar + Additional Columns |
 | TDD approach for utilities | Test-first development ensures API correctness | ✓ Good — RED phase complete (11 failing tests) |
+| Type alias intersection for union types | TypeScript doesn't support interface extends union (TS2312) | ✓ Good — used `type X = Union & { ... }` pattern |
+| Tracked insertion positions per anchor | Prevents same-anchor column order reversal | ✓ Good — Map<string, number> tracks last insert index |
+| Single editingColumnId state | One state for all editors, derived booleans for compat | ✓ Good — eliminates multi-editor race condition (Phase 25-03) |
 
 ### Technical Constraints
 
@@ -69,7 +72,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | 260319-w9n | добавить пропсы collapsedParentIds и onToggleCollapse для управления состоянием collapse/expand родительских задач | 2026-03-19 | 0be31d5 | [260319-w9n-collapsedparentids-ontogglecollapse-coll](./quick/260319-w9n-collapsedparentids-ontogglecollapse-coll/) |
 | 260320-ht7 | Каскадный пересчёт зависимостей с учётом рабочих дней | 2026-03-20 | 1c675fd | [260320-ht7-business-days-calc](./quick/260320-ht7-business-days-calc/) |
 
-| 260321-lag | РџРµСЂРµРІРµСЃС‚Рё workday-Р»РѕРіРёРєСѓ РЅР° lag-РєР°Рє-РёРЅРІР°СЂРёР°РЅС‚ Рё СЃРґРµР»Р°С‚СЊ businessDays РґРµС„РѕР»С‚РѕРј | 2026-03-20 | eb14476 | [260321-lag-planning-work-day-logic-md](./quick/260321-lag-planning-work-day-logic-md/) |
+| 260321-lag | Перевести workday-логику на lag-как-инвариант и сделать businessDays дефолтом | 2026-03-20 | eb14476 | [260321-lag-planning-work-day-logic-md](./quick/260321-lag-planning-work-day-logic-md/) |
 | 260322-oi0 | Добавить возможность скрытия тасклиста отдельно от календаря | 2026-03-22 | f06f820 | [260322-oi0](./quick/260322-oi0/) |
 | 260323-pud | Split REFERENCE.md into modular chapter structure (12 chapters + INDEX) | 2026-03-23 | ab4ca21 | [260323-pud](./quick/260323-pud-md-d-projects-gantt-lib-docs-reference-m/) |
 
@@ -79,12 +82,14 @@ None yet — no external users (library in active development)
 
 ### Roadmap Structure
 
-**v0.50.0 phases (4 phases, TBD estimated plans):**
+**v0.50.0 phases (4 integer phases + 1 inserted decimal phase, TBD estimated plans):**
 
 - Phase 21: Custom Weekend Calendar (CAL-01 to CAL-05)
 - Phase 21.1: custom-weekend-refactoring [INSERTED]
 - Phase 22: filters
 - Phase 23: Additional TaskList Columns (COL-01 to COL-08)
+- Phase 24: buisiness-days
+- Phase 25: columns-refactoring (4 plans, 4 waves)
 
 ### Roadmap Evolution
 
@@ -92,6 +97,7 @@ None yet — no external users (library in active development)
 - Phase 22 added: filters (inserted between 21.1 and old 22)
 - Old Phase 22 → Phase 23: Additional TaskList Columns (renumbered)
 - Phase 24 added: buisiness-days
+- Phase 25 added: columns-refactoring
 
 **Coverage:** 13/13 requirements mapped ✓
 
@@ -99,31 +105,18 @@ None yet — no external users (library in active development)
 
 **Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
 
-**Current focus:** Phase 24 — buisiness-days
+**Current focus:** Phase 26 — columns-api-migration
 
-- ✓ 21-01: TDD RED phase — 11 failing tests created
-- ✓ 21-02: TDD GREEN phase — utilities implemented (createDateKey, createIsWeekendPredicate)
-- ✓ 21-03: Integration phase — props added to GanttChart, GridBackground, TimeScaleHeader, Calendar
-- Next: 21-04: Demo page — examples of custom weekend usage
+- ✓ 25-01: Structural foundations — new types, resolver with TDD, backward-compatible bridge
+- ✓ 25-02: Render unification — createBuiltInColumns factory, header/body via resolvedColumns.map()
+- ✓ 25-03: Editor unification — single editingColumnId replaces 4 separate states
+- ✓ 25-04: Generic tightening — (source changes superseded by Waves 1-3 architecture)
 
-**Next:** Phase 21 Plan 21-04 (Demo page)
-
-- Create demo page with custom weekend examples
-- Show holidays, shifted workdays, custom predicates
-- Visual verification of weekend highlighting and day number coloring
-
-**Later:** Phase 22 (filters) and Phase 23 (Additional TaskList Columns)
-
-- Phase 22: Task filtering by various criteria, Filter controls UI, Real-time filtered view updates
-- Phase 23: Additional columns with renderers, editors, and positioning
-
-**Upcoming:** Plan 21-04 (Demo page with custom weekend examples)
+**Next:** Verification
 
 ---
 
-Last activity: 2026-03-23
+Last activity: 2026-03-29
 
-Last activity: 2026-03-23 - Completed quick task 260323-pud: Split REFERENCE.md into modular chapter structure
-
-**State updated:** 2026-03-23
+**State updated:** 2026-03-29
 **Milestone:** v0.50.0 Adding Tools

@@ -28,6 +28,7 @@ import { Input } from "../ui/Input";
 import { DatePicker } from "../ui/DatePicker";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
 import { LINK_TYPE_ICONS } from "./DepIcons";
+import type { TaskListColumn as NewTaskListColumn } from "./columns/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LINK_TYPE_ORDER: LinkType[] = ["FS", "SS", "FF", "SF"];
@@ -694,6 +695,8 @@ export interface TaskListRowProps {
   isFilterMatch?: boolean;
   /** Whether filter is in hide mode (simplifies hierarchy rendering to avoid confusion) */
   isFilterHideMode?: boolean;
+  /** Resolved columns (built-in + custom) for unified rendering */
+  resolvedColumns?: NewTaskListColumn<Task>[];
 }
 
 const toISODate = (value: string | Date): string => {
@@ -750,18 +753,20 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     businessDays,
     isFilterMatch = false,
     isFilterHideMode = false,
+    resolvedColumns,
   }) => {
-    const [editingName, setEditingName] = useState(false);
+    const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+    const editingName = editingColumnId === 'name';
+    const editingDuration = editingColumnId === 'duration';
+    const editingProgress = editingColumnId === 'progress';
     const [nameValue, setNameValue] = useState("");
     const nameInputRef = useRef<HTMLInputElement>(null);
-    const [editingDuration, setEditingDuration] = useState(false);
     const [durationValue, setDurationValue] = useState(() =>
       getInclusiveDurationDays(task.startDate, task.endDate),
     );
     const durationInputRef = useRef<HTMLInputElement>(null);
     const dependencySearchInputRef = useRef<HTMLInputElement>(null);
     const dependencySearchListRef = useRef<HTMLDivElement>(null);
-    const [editingProgress, setEditingProgress] = useState(false);
     const [progressValue, setProgressValue] = useState(0);
     const progressInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
@@ -957,7 +962,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         nameConfirmedRef.current = false; // Reset stale flag from any previous Enter-key save
         editTriggerRef.current = "autoedit";
         setNameValue(task.name);
-        setEditingName(true);
+        setEditingColumnId('name');
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editingTaskId, task.id, disableTaskNameEditing]);
@@ -979,7 +984,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         nameConfirmedRef.current = false; // Reset stale flag from any previous Enter-key save
         editTriggerRef.current = "doubleclick";
         setNameValue(task.name);
-        setEditingName(true);
+        setEditingColumnId('name');
       },
       [task.name, disableTaskNameEditing],
     );
@@ -994,7 +999,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           nameConfirmedRef.current = false; // Reset stale flag from any previous Enter-key save
           editTriggerRef.current = "keypress"; // 'keypress' trigger = cursor at end (not select-all)
           setNameValue(task.name);
-          setEditingName(true);
+          setEditingColumnId('name');
           return;
         }
       },
@@ -1010,11 +1015,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       if (nameValue.trim()) {
         onTasksChange?.([{ ...task, name: nameValue.trim() }]);
       }
-      setEditingName(false);
+      setEditingColumnId(null);
     }, [nameValue, task, onTasksChange]);
 
     const handleNameCancel = useCallback(() => {
-      setEditingName(false);
+      setEditingColumnId(null);
     }, []);
 
     const handleNameKeyDown = useCallback(
@@ -1024,7 +1029,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           if (nameValue.trim()) {
             onTasksChange?.([{ ...task, name: nameValue.trim() }]);
           }
-          setEditingName(false);
+          setEditingColumnId(null);
         } else if (e.key === "Escape") {
           handleNameCancel();
         }
@@ -1040,7 +1045,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         setDurationValue(
           getDuration(task.startDate, task.endDate),
         );
-        setEditingDuration(true);
+        setEditingColumnId('duration');
       },
       [task.locked, task.startDate, task.endDate, getDuration],
     );
@@ -1062,12 +1067,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           endDate: getEndDate(task.startDate, normalizedDuration),
         },
       ]);
-      setEditingDuration(false);
+      setEditingColumnId(null);
     }, [durationValue, task, onTasksChange, getEndDate]);
 
     const handleDurationCancel = useCallback(() => {
       setDurationValue(getDuration(task.startDate, task.endDate));
-      setEditingDuration(false);
+      setEditingColumnId(null);
     }, [task.startDate, task.endDate, getDuration]);
 
     const handleDurationAdjust = useCallback(
@@ -1095,7 +1100,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               ),
             },
           ]);
-          setEditingDuration(false);
+          setEditingColumnId(null);
         } else if (e.key === "Escape") {
           handleDurationCancel();
         }
@@ -1109,7 +1114,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         e.stopPropagation();
         progressConfirmedRef.current = false;
         setProgressValue(task.progress ?? 0);
-        setEditingProgress(true);
+        setEditingColumnId('progress');
       },
       [task.progress, task.locked],
     );
@@ -1135,11 +1140,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       } else {
         onTasksChange?.([{ ...task, progress: clampedValue }]);
       }
-      setEditingProgress(false);
+      setEditingColumnId(null);
     }, [progressValue, task, onTasksChange, allTasks]);
 
     const handleProgressCancel = useCallback(() => {
-      setEditingProgress(false);
+      setEditingColumnId(null);
     }, []);
 
     const handleProgressAdjust = useCallback((delta: number) => {
@@ -1172,7 +1177,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           } else {
             onTasksChange?.([{ ...task, progress: clampedValue }]);
           }
-          setEditingProgress(false);
+          setEditingColumnId(null);
         } else if (e.key === "Escape") {
           handleProgressCancel();
         }
@@ -1590,6 +1595,604 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       ? getEndDate(task.startDate, durationValue)
       : toISODate(task.endDate);
 
+    // --- Built-in cell JSX (referenced from resolvedColumns.map) ---
+    const numberCell = (
+      <div
+        className="gantt-tl-cell gantt-tl-cell-number"
+        onClick={handleNumberClick}
+      >
+        <span
+          className="gantt-tl-drag-handle"
+          draggable={true}
+          onDragStart={(e) => {
+            e.stopPropagation();
+            onDragStart?.(rowIndex, e);
+          }}
+          onDragEnd={(e) => onDragEnd?.(e)}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DragHandleIcon />
+        </span>
+        <span className="gantt-tl-num-label">
+          {taskNumber || rowIndex + 1}
+        </span>
+      </div>
+    );
+
+    const nameTriggerPaddingLeft =
+      isParent
+        ? `${nestingDepth * 20 + 28}px`
+        : nestingDepth > 0
+          ? `${nestingDepth * 20 + 8}px`
+          : undefined;
+
+    const nameInputPaddingLeft =
+      nestingDepth > 0 ? `${nestingDepth * 20 + 8}px` : undefined;
+
+    const nameCell = (
+      <div className="gantt-tl-cell gantt-tl-cell-name">
+        {isChild && !editingName && (
+          <>
+            {!isFilterHideMode && (
+              <>
+                {/* Ancestor continuation lines — full-height vertical bars for each ongoing ancestor level */}
+                {ancestorContinues.map((continues, idx) =>
+                  continues ? (
+                    <span
+                      key={idx}
+                      style={{
+                        position: "absolute",
+                        left: `${idx * 20 + 9}px`,
+                        top: 0,
+                        height: `${rowHeight}px`,
+                        width: "1.5px",
+                        background: "var(--gantt-hierarchy-line-color)",
+                        borderRadius: "1px",
+                        pointerEvents: "none",
+                      }}
+                    />
+                  ) : null
+                )}
+                {/* Vertical line from parent to last child position */}
+                {nestingDepth > 0 && (
+                  <span
+                    data-testid="gantt-tl-child-connector-vertical"
+                    style={{
+                      position: "absolute",
+                      left: `${(nestingDepth - 1) * 20 + 9}px`,
+                      top: 0,
+                      height: isLastChild ? `${rowHeight / 2}px` : `${rowHeight}px`,
+                      width: "1.5px",
+                      background: "var(--gantt-hierarchy-line-color)",
+                      borderRadius: "1px",
+                      pointerEvents: "none",
+                    }}
+                  />
+                )}
+                {/* Horizontal branch */}
+                <span
+                  style={{
+                    position: "absolute",
+                    left: `${(nestingDepth - 1) * 20 + 9}px`,
+                    top: `${rowHeight / 2 - 0.75}px`,
+                    width: "8px",
+                    height: "1.5px",
+                    background: "var(--gantt-hierarchy-line-color)",
+                    borderRadius: "1px",
+                    pointerEvents: "none",
+                  }}
+                />
+                {/* End dot */}
+                <span
+                  style={{
+                    position: "absolute",
+                    left: `${(nestingDepth - 1) * 20 + 15}px`,
+                    top: `${rowHeight / 2 - 2}px`,
+                    width: "4px",
+                    height: "4px",
+                    borderRadius: "50%",
+                    background: "var(--gantt-hierarchy-line-color)",
+                    pointerEvents: "none",
+                  }}
+                />
+              </>
+            )}
+            {isParent && !editingName && (
+              <>
+                {!isFilterHideMode && !isCollapsed && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: `${nestingDepth * 20 + 9}px`,
+                      top: `${rowHeight / 2 + 7}px`,
+                      height: `${rowHeight / 2 - 7}px`,
+                      width: "1.5px",
+                      background: "var(--gantt-hierarchy-line-color)",
+                      borderRadius: "1px",
+                      pointerEvents: "none",
+                    }}
+                  />
+                )}
+                <button
+                  type="button"
+                  className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
+                  onClick={handleToggleCollapse}
+                  style={{ left: `${nestingDepth * 20 + 1}px` }}
+                    aria-label={isCollapsed ? "Expand children" : "Collapse children"}
+                  >
+                    <ChevronRightIcon />
+                  </button>
+              </>
+            )}
+          </>
+        )}
+        {!isChild && isParent && !editingName && (
+          <>
+            {!isFilterHideMode && !isCollapsed && (
+              <span
+                data-testid="gantt-tl-parent-connector-tail"
+                style={{
+                  position: "absolute",
+                  left: `${nestingDepth * 20 + 9}px`,
+                  top: `${rowHeight / 2 + 7}px`,
+                  height: `${rowHeight / 2 - 7}px`,
+                  width: "1.5px",
+                  background: "var(--gantt-hierarchy-line-color)",
+                  borderRadius: "1px",
+                  pointerEvents: "none",
+                }}
+              />
+            )}
+            <button
+              type="button"
+              className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
+              onClick={handleToggleCollapse}
+              style={{ left: `${nestingDepth * 20 + 1}px` }}
+              aria-label={isCollapsed ? "Expand children" : "Collapse children"}
+            >
+              <ChevronRightIcon />
+            </button>
+          </>
+        )}
+        {editingName ? (
+          <Input
+            ref={nameInputRef}
+            type="text"
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            onBlur={handleNameSave}
+            onKeyDown={handleNameKeyDown}
+            className="gantt-tl-name-input"
+            style={{ paddingLeft: nameInputPaddingLeft }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <button
+            type="button"
+            className={[
+              "gantt-tl-name-trigger",
+              disableTaskNameEditing ? "gantt-tl-name-locked" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            title={task.name}
+            onClick={handleNameClick}
+            onDoubleClick={handleNameDoubleClick}
+            style={{ paddingLeft: nameTriggerPaddingLeft }}
+          >
+            {task.name}
+          </button>
+        )}
+        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask) && (
+          <div className="gantt-tl-name-actions">
+            {onInsertAfter && (
+              <button
+                type="button"
+                className="gantt-tl-name-action-btn gantt-tl-action-insert"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const now = new Date();
+                  const todayISO = new Date(
+                    Date.UTC(
+                      now.getUTCFullYear(),
+                      now.getUTCMonth(),
+                      now.getUTCDate(),
+                    ),
+                  )
+                    .toISOString()
+                    .split("T")[0];
+                  const endISO = new Date(
+                    Date.UTC(
+                      now.getUTCFullYear(),
+                      now.getUTCMonth(),
+                      now.getUTCDate() + 7,
+                    ),
+                  )
+                    .toISOString()
+                    .split("T")[0];
+                  const newTask: Task = {
+                    id: crypto.randomUUID(),
+                    name: "Новая задача",
+                    startDate: todayISO,
+                    endDate: endISO,
+                  };
+                  onInsertAfter(task.id, newTask);
+                }}
+                aria-label="Вставить задачу после этой"
+              >
+                <PlusIcon />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                ref={deleteButtonRef}
+                className={`gantt-tl-name-action-btn gantt-tl-action-delete${deletePending ? " gantt-tl-action-delete-confirm" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!deletePending) {
+                    setDeletePending(true);
+                  } else {
+                    setDeletePending(false);
+                    onDelete(task.id);
+                  }
+                }}
+                aria-label="Удалить задачу"
+              >
+                {deletePending ? "Удалить?" : <TrashIcon />}
+              </button>
+            )}
+            <HierarchyButton
+              isChild={isChild}
+              rowIndex={rowIndex}
+              onPromote={onPromoteTask ? handlePromote : undefined}
+              onDemote={onDemoteTask ? handleDemote : undefined}
+            />
+          </div>
+        )}
+      </div>
+    );
+
+    const startDateCell = (
+      <div
+        className="gantt-tl-cell gantt-tl-cell-date"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DatePicker
+          value={startDateISO}
+          onChange={handleStartDateChange}
+          format="dd.MM.yy"
+          portal={true}
+          disabled={task.locked}
+          isWeekend={weekendPredicate}
+          businessDays={businessDays}
+        />
+      </div>
+    );
+
+    const endDateCell = (
+      <div
+        className="gantt-tl-cell gantt-tl-cell-date"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DatePicker
+          value={endDateISO}
+          onChange={handleEndDateChange}
+          format="dd.MM.yy"
+          portal={true}
+          disabled={task.locked}
+          isWeekend={weekendPredicate}
+          businessDays={businessDays}
+        />
+      </div>
+    );
+
+    const durationCell = (
+      <div
+        className="gantt-tl-cell gantt-tl-cell-duration"
+        onClick={handleDurationClick}
+      >
+        {editingDuration && (
+          <div
+            className="gantt-tl-number-editor"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Input
+              ref={durationInputRef}
+              type="number"
+              min={1}
+              step={1}
+              value={durationValue}
+              onChange={(e) =>
+                applyDurationChange(parseInt(e.target.value, 10) || 1)
+              }
+              onBlur={handleDurationSave}
+              onKeyDown={handleDurationKeyDown}
+              className="gantt-tl-number-input"
+            />
+            <div className="gantt-tl-number-steppers" aria-hidden="true">
+              <button
+                type="button"
+                className="gantt-tl-number-stepper"
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleDurationAdjust(1)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m18 15-6-6-6 6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="gantt-tl-number-stepper"
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleDurationAdjust(-1)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+        <span
+          style={
+            editingDuration
+              ? { visibility: "hidden", pointerEvents: "none" }
+              : undefined
+          }
+        >
+          {getDuration(task.startDate, task.endDate)}д
+        </span>
+      </div>
+    );
+
+    const progressCell = (
+      <div
+        className="gantt-tl-cell gantt-tl-cell-progress"
+        onClick={handleProgressClick}
+      >
+        {editingProgress && (
+          <div
+            className="gantt-tl-number-editor"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Input
+              ref={progressInputRef}
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={progressValue}
+              onChange={(e) =>
+                setProgressValue(parseInt(e.target.value, 10) || 0)
+              }
+              onBlur={handleProgressSave}
+              onKeyDown={handleProgressKeyDown}
+              className="gantt-tl-number-input"
+            />
+            <div className="gantt-tl-number-steppers" aria-hidden="true">
+              <button
+                type="button"
+                className="gantt-tl-number-stepper"
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleProgressAdjust(1)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m18 15-6-6-6 6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="gantt-tl-number-stepper"
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleProgressAdjust(-1)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+        <span
+          style={
+            editingProgress
+              ? { visibility: "hidden", pointerEvents: "none" }
+              : task.progress === 100
+                ? {
+                    backgroundColor: "#17c864",
+                    borderRadius: "4px",
+                    padding: "2px 4px",
+                    color: "#ffffff",
+                  }
+                : undefined
+          }
+        >
+          {task.progress
+            ? Math.round(task.progress) === 100
+              ? "100"
+              : `${Math.round(task.progress)}%`
+            : "-"}
+        </span>
+      </div>
+    );
+
+    const dependenciesCell = (
+      <div
+        className="gantt-tl-cell gantt-tl-cell-deps"
+        onClick={
+          isSourceRow
+            ? handleSourceCellClick
+            : isPicking
+              ? handlePredecessorPick
+              : undefined
+        }
+      >
+        {isSourceRow ? (
+          <>
+            <span
+              className="gantt-tl-dep-source-hint"
+              onClick={handleCancelPicking}
+            >
+              Отменить
+            </span>
+            {sourcePickerContent}
+          </>
+        ) : isSelectedPredecessor && !disableDependencyEditing ? (
+          /* Full-replacement: "Зависит от [name]" → hover → "Удалить" */
+          <button
+            type="button"
+            className="gantt-tl-dep-delete-label"
+            onClick={handleDeleteSelected}
+            aria-label="Удалить связь"
+          >
+            <span className="gantt-tl-dep-delete-label-default">
+              Связано с
+            </span>
+            <span className="gantt-tl-dep-delete-label-hover">× удалить</span>
+          </button>
+        ) : (
+          <>
+            {chips.length >= 2 ? (
+              /* 2+ deps — show only "N связей" summary chip that opens a popover */
+              <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="gantt-tl-dep-summary-chip"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOverflowOpen((v) => !v);
+                    }}
+                  >
+                    {chips.length} {linkWord}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent portal={true} align="start">
+                  <div
+                    className="gantt-tl-dep-overflow-list"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {chips.map(({ dep, lag, predecessorName }) => (
+                      <DepChip
+                        key={`${dep.taskId}-${dep.type}`}
+                        lag={lag}
+                        dep={dep}
+                        taskId={task.id}
+                        taskNumber={taskNumber}
+                        predecessorName={predecessorName}
+                        predecessorTaskNumber={taskNumberMap[dep.taskId]}
+                        selectedChip={selectedChip}
+                        disableDependencyEditing={disableDependencyEditing}
+                        onChipSelect={onChipSelect}
+                        onRowClick={onRowClick}
+                        onScrollToTask={onScrollToTask}
+                        onRemoveDependency={onRemoveDependency}
+                        onChipSelectClear={() => onChipSelect?.(null)}
+                        task={task}
+                        allTasks={allTasks}
+                        onTasksChange={onTasksChange}
+                        businessDays={businessDays}
+                        weekendPredicate={weekendPredicate}
+                      />
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            ) : chips.length === 1 ? (
+              /* Single chip — unified DepChip */
+              <DepChip
+                lag={chips[0].lag}
+                dep={chips[0].dep}
+                taskId={task.id}
+                taskNumber={taskNumber}
+                predecessorName={chips[0].predecessorName}
+                predecessorTaskNumber={taskNumberMap[chips[0].dep.taskId]}
+                selectedChip={selectedChip}
+                disableDependencyEditing={disableDependencyEditing}
+                onChipSelect={onChipSelect}
+                onRowClick={onRowClick}
+                onScrollToTask={onScrollToTask}
+                onRemoveDependency={onRemoveDependency}
+                onChipSelectClear={() => onChipSelect?.(null)}
+                task={task}
+                allTasks={allTasks}
+                onTasksChange={onTasksChange}
+                businessDays={businessDays}
+                weekendPredicate={weekendPredicate}
+              />
+            ) : null}
+
+            {/* "+" add dependency button — hidden in picker mode and when editing disabled, hover-reveal */}
+            {!disableDependencyEditing && !isPicking && (
+              <button
+                type="button"
+                className={`gantt-tl-dep-add gantt-tl-dep-add-hover${selectedChip ? " gantt-tl-dep-add-hidden" : ""}`}
+                onClick={handleAddClick}
+                aria-label="Добавить связь"
+              >
+                +
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    );
+
+    const builtInCells: Record<string, React.ReactNode> = {
+      number: numberCell,
+      name: nameCell,
+      startDate: startDateCell,
+      endDate: endDateCell,
+      duration: durationCell,
+      progress: progressCell,
+      dependencies: dependenciesCell,
+    };
+
     return (
       <div
         data-filter-match={isFilterMatch ? 'true' : 'false'}
@@ -1620,556 +2223,54 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         }}
         tabIndex={isSelected ? 0 : -1}
       >
-        {/* Number column — click selects the row */}
-        <div
-          className="gantt-tl-cell gantt-tl-cell-number"
-          onClick={handleNumberClick}
-        >
-          <span
-            className="gantt-tl-drag-handle"
-            draggable={true}
-            onDragStart={(e) => {
-              e.stopPropagation();
-              onDragStart?.(rowIndex, e);
-            }}
-            onDragEnd={(e) => onDragEnd?.(e)}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DragHandleIcon />
-          </span>
-          <span className="gantt-tl-num-label">
-            {taskNumber || rowIndex + 1}
-          </span>
-        </div>
+        {resolvedColumns?.map(col => {
+          const builtIn = builtInCells[col.id];
+          if (builtIn) return <React.Fragment key={col.id}>{builtIn}</React.Fragment>;
 
-        {/* Name column — styled Input overlay on edit */}
-        <div className="gantt-tl-cell gantt-tl-cell-name">
-          {isChild && !editingName && (
-            <>
-              {!isFilterHideMode && (
-                <>
-                  {/* Ancestor continuation lines — full-height vertical bars for each ongoing ancestor level */}
-                  {ancestorContinues.map((continues, idx) =>
-                    continues ? (
-                      <span
-                        key={idx}
-                        style={{
-                          position: "absolute",
-                          left: `${idx * 20 + 9}px`,
-                          top: 0,
-                          height: `${rowHeight}px`,
-                          width: "1.5px",
-                          background: "var(--gantt-hierarchy-line-color)",
-                          borderRadius: "1px",
-                          pointerEvents: "none",
-                        }}
-                      />
-                    ) : null,
-                  )}
-                  {/* Own vline — full height if not last child, half if last (L-shape) */}
-                  <span
-                    style={{
-                      position: "absolute",
-                      left: `${(nestingDepth - 1) * 20 + 9}px`,
-                      top: 0,
-                      height: isLastChild ? `${rowHeight / 2}px` : `${rowHeight}px`,
-                      width: "1.5px",
-                      background: "var(--gantt-hierarchy-line-color)",
-                      borderRadius: "1px",
-                      pointerEvents: "none",
-                    }}
-                  />
-                </>
-              )}
-              {/* Horizontal branch */}
-              <span
-                style={{
-                  position: "absolute",
-                  left: `${(nestingDepth - 1) * 20 + 9}px`,
-                  top: `${rowHeight / 2 - 0.75}px`,
-                  width: "8px",
-                  height: "1.5px",
-                  background: "var(--gantt-hierarchy-line-color)",
-                  borderRadius: "1px",
-                  pointerEvents: "none",
-                }}
-              />
-              {/* End dot */}
-              <span
-                style={{
-                  position: "absolute",
-                  left: `${(nestingDepth - 1) * 20 + 15}px`,
-                  top: `${rowHeight / 2 - 2}px`,
-                  width: "4px",
-                  height: "4px",
-                  borderRadius: "50%",
-                  background: "var(--gantt-hierarchy-line-color)",
-                  pointerEvents: "none",
-                }}
-              />
-            </>
-          )}
-          {isParent && !editingName && (
-            <>
-              {!isFilterHideMode && !isCollapsed && (
-                <span
-                  style={{
-                    position: "absolute",
-                    left: `${nestingDepth * 20 + 9}px`,
-                    top: `${rowHeight / 2 + 7}px`,
-                    height: `${rowHeight / 2 - 7}px`,
-                    width: "1.5px",
-                    background: "var(--gantt-hierarchy-line-color)",
-                    borderRadius: "1px",
-                    pointerEvents: "none",
-                  }}
-                />
-              )}
-              <button
-                type="button"
-                className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
-                onClick={handleToggleCollapse}
-                style={{ left: `${nestingDepth * 20 + 1}px` }}
-                aria-label={isCollapsed ? "Expand children" : "Collapse children"}
-              >
-                <ChevronRightIcon />
-              </button>
-            </>
-          )}
-          {editingName && (
-            <Input
-              ref={nameInputRef}
-              type="text"
-              value={nameValue}
-              onChange={(e) => setNameValue(e.target.value)}
-              onBlur={handleNameSave}
-              onKeyDown={handleNameKeyDown}
-              className="gantt-tl-name-input"
-              style={{
-                paddingLeft:
-                  nestingDepth > 0 ? `${nestingDepth * 20 + 24}px` : undefined,
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          )}
-          <button
-            type="button"
-            className={[
-              "gantt-tl-name-trigger",
-              disableTaskNameEditing ? "gantt-tl-name-locked" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            title={task.name}
-            onClick={handleNameClick}
-            onDoubleClick={handleNameDoubleClick}
-            style={{
-              paddingLeft:
-                nestingDepth > 0
-                  ? `${nestingDepth * 20 + (isParent ? 24 : 8)}px`
-                  : isParent
-                    ? "24px"
-                    : undefined,
-              ...(editingName
-                ? { visibility: "hidden", pointerEvents: "none" }
-                : undefined),
-            }}
-          >
-            {task.name}
-          </button>
-          {!editingName && (
-            <div className="gantt-tl-name-actions">
-              {onInsertAfter && (
-                <button
-                  type="button"
-                  className="gantt-tl-name-action-btn gantt-tl-action-insert"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const now = new Date();
-                    const todayISO = new Date(
-                      Date.UTC(
-                        now.getUTCFullYear(),
-                        now.getUTCMonth(),
-                        now.getUTCDate(),
-                      ),
-                    )
-                      .toISOString()
-                      .split("T")[0];
-                    const endISO = new Date(
-                      Date.UTC(
-                        now.getUTCFullYear(),
-                        now.getUTCMonth(),
-                        now.getUTCDate() + 7,
-                      ),
-                    )
-                      .toISOString()
-                      .split("T")[0];
-                    const newTask: Task = {
-                      id: crypto.randomUUID(),
-                      name: "Новая задача",
-                      startDate: todayISO,
-                      endDate: endISO,
-                    };
-                    onInsertAfter(task.id, newTask);
-                  }}
-                  aria-label="Вставить задачу после этой"
-                >
-                  <PlusIcon />
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  type="button"
-                  ref={deleteButtonRef}
-                  className={`gantt-tl-name-action-btn gantt-tl-action-delete${deletePending ? " gantt-tl-action-delete-confirm" : ""}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!deletePending) {
-                      setDeletePending(true);
-                    } else {
-                      setDeletePending(false);
-                      onDelete(task.id);
-                    }
-                  }}
-                  aria-label="Удалить задачу"
-                >
-                  {deletePending ? "Удалить?" : <TrashIcon />}
-                </button>
-              )}
-              <HierarchyButton
-                isChild={isChild}
-                rowIndex={rowIndex}
-                onPromote={onPromoteTask ? handlePromote : undefined}
-                onDemote={onDemoteTask ? handleDemote : undefined}
-              />
-            </div>
-          )}
-        </div>
+          // Custom column
+          const isEditing = editingColumnId === col.id;
+          const editorFn = col.renderEditor;
+          const columnContext = {
+            task,
+            rowIndex,
+            isEditing,
+            openEditor: () => {
+              if (editorFn) setEditingColumnId(col.id);
+            },
+            closeEditor: () => {
+              if (editingColumnId === col.id) setEditingColumnId(null);
+            },
+            updateTask: (patch: Partial<Task>) => {
+              onTasksChange?.([{ ...task, ...patch } as Task]);
+              setEditingColumnId(null);
+            },
+          };
 
-        {/* Start Date — DatePicker component */}
-        <div
-          className="gantt-tl-cell gantt-tl-cell-date"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <DatePicker
-            value={startDateISO}
-            onChange={handleStartDateChange}
-            format="dd.MM.yy"
-            portal={true}
-            disabled={task.locked}
-            isWeekend={weekendPredicate}
-            businessDays={businessDays}
-          />
-        </div>
-
-        {/* End Date — DatePicker component */}
-        <div
-          className="gantt-tl-cell gantt-tl-cell-date"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <DatePicker
-            value={endDateISO}
-            onChange={handleEndDateChange}
-            format="dd.MM.yy"
-            portal={true}
-            disabled={task.locked}
-            isWeekend={weekendPredicate}
-            businessDays={businessDays}
-          />
-        </div>
-
-        {/* Duration column */}
-        <div
-          className="gantt-tl-cell gantt-tl-cell-duration"
-          onClick={handleDurationClick}
-        >
-          {editingDuration && (
+          return (
             <div
-              className="gantt-tl-number-editor"
-              onClick={(e) => e.stopPropagation()}
+              key={col.id}
+              className="gantt-tl-cell gantt-tl-cell-custom"
+              data-column-id={`custom:${col.id}`}
+              data-custom-column-id={col.id}
+              data-custom-column-editing={isEditing ? "true" : "false"}
+              data-testid={`custom-cell-${col.id}`}
+              onClick={editorFn && !isEditing ? (e) => { e.stopPropagation(); setEditingColumnId(col.id); } : undefined}
+              style={{ width: col.width ?? 120, minWidth: col.width ?? 120, flexShrink: 0 }}
             >
-              <Input
-                ref={durationInputRef}
-                type="number"
-                min={1}
-                step={1}
-                value={durationValue}
-                onChange={(e) =>
-                  applyDurationChange(parseInt(e.target.value, 10) || 1)
-                }
-                onBlur={handleDurationSave}
-                onKeyDown={handleDurationKeyDown}
-                className="gantt-tl-number-input"
-              />
-              <div className="gantt-tl-number-steppers" aria-hidden="true">
-                <button
-                  type="button"
-                  className="gantt-tl-number-stepper"
-                  tabIndex={-1}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleDurationAdjust(1)}
+              {isEditing && editorFn ? (
+                <div
+                  data-custom-column-editor={col.id}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m18 15-6-6-6 6" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  className="gantt-tl-number-stepper"
-                  tabIndex={-1}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleDurationAdjust(-1)}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
-          <span
-            style={
-              editingDuration
-                ? { visibility: "hidden", pointerEvents: "none" }
-                : undefined
-            }
-          >
-            {getDuration(task.startDate, task.endDate)}д
-          </span>
-        </div>
-
-        {/* Progress column */}
-        <div
-          className="gantt-tl-cell gantt-tl-cell-progress"
-          onClick={handleProgressClick}
-        >
-          {editingProgress && (
-            <div
-              className="gantt-tl-number-editor"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Input
-                ref={progressInputRef}
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={progressValue}
-                onChange={(e) =>
-                  setProgressValue(parseInt(e.target.value, 10) || 0)
-                }
-                onBlur={handleProgressSave}
-                onKeyDown={handleProgressKeyDown}
-                className="gantt-tl-number-input"
-              />
-              <div className="gantt-tl-number-steppers" aria-hidden="true">
-                <button
-                  type="button"
-                  className="gantt-tl-number-stepper"
-                  tabIndex={-1}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleProgressAdjust(1)}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m18 15-6-6-6 6" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  className="gantt-tl-number-stepper"
-                  tabIndex={-1}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleProgressAdjust(-1)}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
-          <span
-            style={
-              editingProgress
-                ? { visibility: "hidden", pointerEvents: "none" }
-                : task.progress === 100
-                  ? {
-                    backgroundColor: "#17c864",
-                    borderRadius: "4px",
-                    padding: "2px 4px",
-                    color: "#ffffff",
-                  }
-                  : undefined
-            }
-          >
-            {task.progress
-              ? Math.round(task.progress) === 100
-                ? "100"
-                : `${Math.round(task.progress)}%`
-              : "-"}
-          </span>
-        </div>
-
-        {/* Dependencies column */}
-        <div
-          className="gantt-tl-cell gantt-tl-cell-deps"
-          onClick={
-            isSourceRow
-              ? handleSourceCellClick
-              : isPicking
-                ? handlePredecessorPick
-                : undefined
-          }
-        >
-          {isSourceRow ? (
-            <>
-              <span
-                className="gantt-tl-dep-source-hint"
-                onClick={handleCancelPicking}
-              >
-                Отменить
-              </span>
-              {sourcePickerContent}
-            </>
-          ) : isSelectedPredecessor && !disableDependencyEditing ? (
-            /* Full-replacement: "Зависит от [name]" → hover → "Удалить" */
-            <button
-              type="button"
-              className="gantt-tl-dep-delete-label"
-              onClick={handleDeleteSelected}
-              aria-label="Удалить связь"
-            >
-              <span className="gantt-tl-dep-delete-label-default">
-                Связано с
-              </span>
-              <span className="gantt-tl-dep-delete-label-hover">× удалить</span>
-            </button>
-          ) : (
-            <>
-              {chips.length >= 2 ? (
-                /* 2+ deps — show only "N связей" summary chip that opens a popover */
-                <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="gantt-tl-dep-summary-chip"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOverflowOpen((v) => !v);
-                      }}
-                    >
-                      {chips.length} {linkWord}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent portal={true} align="start">
-                    <div
-                      className="gantt-tl-dep-overflow-list"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {chips.map(({ dep, lag, predecessorName }) => (
-                        <DepChip
-                          key={`${dep.taskId}-${dep.type}`}
-                          lag={lag}
-                          dep={dep}
-                          taskId={task.id}
-                          taskNumber={taskNumber}
-                          predecessorName={predecessorName}
-                          predecessorTaskNumber={taskNumberMap[dep.taskId]}
-                          selectedChip={selectedChip}
-                          disableDependencyEditing={disableDependencyEditing}
-                          onChipSelect={onChipSelect}
-                          onRowClick={onRowClick}
-                          onScrollToTask={onScrollToTask}
-                          onRemoveDependency={onRemoveDependency}
-                          onChipSelectClear={() => onChipSelect?.(null)}
-                          task={task}
-                          allTasks={allTasks}
-                          onTasksChange={onTasksChange}
-                          businessDays={businessDays}
-                          weekendPredicate={weekendPredicate}
-                        />
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              ) : chips.length === 1 ? (
-                /* Single chip — unified DepChip */
-                <DepChip
-                  lag={chips[0].lag}
-                  dep={chips[0].dep}
-                  taskId={task.id}
-                  taskNumber={taskNumber}
-                  predecessorName={chips[0].predecessorName}
-                  predecessorTaskNumber={taskNumberMap[chips[0].dep.taskId]}
-                  selectedChip={selectedChip}
-                  disableDependencyEditing={disableDependencyEditing}
-                  onChipSelect={onChipSelect}
-                  onRowClick={onRowClick}
-                  onScrollToTask={onScrollToTask}
-                  onRemoveDependency={onRemoveDependency}
-                  onChipSelectClear={() => onChipSelect?.(null)}
-                  task={task}
-                  allTasks={allTasks}
-                  onTasksChange={onTasksChange}
-                  businessDays={businessDays}
-                  weekendPredicate={weekendPredicate}
-                />
-              ) : null}
-
-              {/* "+" add dependency button — hidden in picker mode and when editing disabled, hover-reveal */}
-              {!disableDependencyEditing && !isPicking && (
-                <button
-                  type="button"
-                  className={`gantt-tl-dep-add gantt-tl-dep-add-hover${selectedChip ? " gantt-tl-dep-add-hidden" : ""}`}
-                  onClick={handleAddClick}
-                  aria-label="Добавить связь"
-                >
-                  +
-                </button>
+                  {editorFn(columnContext)}
+                </div>
+              ) : (
+                col.renderCell(columnContext)
               )}
-            </>
-          )}
-        </div>
+            </div>
+          );
+        })}
       </div>
     );
   },

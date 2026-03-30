@@ -45,8 +45,9 @@ npm run dev
 ```tsx
 import { GanttChart, type Task } from 'gantt-lib';
 import 'gantt-lib/styles.css';
+import { useState } from 'react';
 
-const tasks: Task[] = [
+const initialTasks: Task[] = [
   {
     id: '1',
     name: 'Планирование спринта',
@@ -68,10 +69,18 @@ export default function App() {
   return (
     <GanttChart
       tasks={tasks}
-      month={new Date('2026-02-01')}
+      showTaskList
       dayWidth={40}
       rowHeight={40}
-      onChange={setTasks}
+      onTasksChange={(changed) =>
+        setTasks((prev) => {
+          const byId = new Map(prev.map((task) => [task.id, task]));
+          for (const task of changed) {
+            byId.set(task.id, task);
+          }
+          return [...byId.values()];
+        })
+      }
     />
   );
 }
@@ -82,11 +91,53 @@ export default function App() {
 | Проп           | Тип                                                     | По умолчанию    | Описание                                      |
 | -------------- | ------------------------------------------------------- | --------------- | --------------------------------------------- |
 | `tasks`        | `Task[]`                                                | обязательный    | Массив задач для отображения                  |
-| `month`        | `Date \| string`                                        | текущий месяц   | Отображаемый месяц                            |
 | `dayWidth`     | `number`                                                | `40`            | Ширина столбца в пикселях                     |
 | `rowHeight`    | `number`                                                | `40`            | Высота строки в пикселях                      |
 | `headerHeight` | `number`                                                | `40`            | Высота заголовка в пикселях                   |
-| `onChange`     | `(tasks: Task[] \| ((prev: Task[]) => Task[])) => void` | —               | Вызывается после завершения перетаскивания    |
+| `showTaskList` | `boolean`                                               | `false`         | Показывает левую панель TaskList              |
+| `taskListWidth`| `number`                                                | `660`           | Желаемая ширина TaskList в пикселях           |
+| `onTasksChange`| `(tasks: Task[]) => void`                               | —               | Вызывается с массивом изменённых задач        |
+
+Полный список актуальных пропсов смотрите в `docs/reference/04-props.md`.
+
+## Кастомные колонки TaskList
+
+TaskList теперь расширяется через `additionalColumns` и единый API колонок:
+
+- `renderCell` для отображения
+- `renderEditor` для редактирования
+- `before` / `after` для позиционирования
+- `width` только числом в пикселях
+
+Короткий пример:
+
+```tsx
+import { GanttChart, type Task, type TaskListColumn } from 'gantt-lib';
+
+type MyTask = Task & { assignee?: string };
+
+const additionalColumns: TaskListColumn<MyTask>[] = [
+  {
+    id: 'assignee',
+    header: 'Assignee',
+    after: 'name',
+    width: 120,
+    renderCell: ({ task }) => task.assignee ?? '—',
+    renderEditor: ({ task, updateTask, closeEditor }) => (
+      <input
+        autoFocus
+        defaultValue={task.assignee ?? ''}
+        onBlur={(e) => {
+          updateTask({ assignee: e.target.value || undefined });
+          closeEditor();
+        }}
+      />
+    ),
+  },
+];
+```
+
+Старое поле `editor` больше не поддерживается. Полное руководство: `docs/reference/13-tasklist-columns.md`.
 
 ## Интерфейс Task
 
@@ -177,8 +228,8 @@ packages/
 
 ## Архитектурные заметки
 
-**Производительность:** `TaskRow` обёрнут в `React.memo` с кастомным компаратором, который исключает `onChange`. При перетаскивании перерисовывается только перетаскиваемая строка — остальные не трогаются. Обновления позиции используют рефы + `requestAnimationFrame`, чтобы не нагружать React state на каждый кадр.
+**Производительность:** `TaskRow` обёрнут в `React.memo` с кастомным компаратором, который исключает внешние callbacks вроде `onTasksChange`. При перетаскивании перерисовывается только перетаскиваемая строка — остальные не трогаются. Обновления позиции используют рефы + `requestAnimationFrame`, чтобы не нагружать React state на каждый кадр.
 
-**Паттерн состояния:** `onChange` принимает как новый массив задач, так и функциональный апдейтер `(prev) => next`. Это предотвращает баги с устаревшим замыканием при нескольких быстрых перетаскиваниях подряд.
+**Паттерн состояния:** `onTasksChange` отдаёт только изменённые задачи, а consumer сам мержит их в своё состояние. Это позволяет обновлять большие массивы задач без лишней пересборки всего списка внутри библиотеки.
 
 **Даты:** Все внутренние вычисления дат выполняются в UTC, чтобы избежать смещений из-за перехода на летнее время. Для надёжности передавайте даты как ISO-строки (`'2026-02-01'`).

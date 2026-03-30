@@ -17,14 +17,24 @@ Requirements for adding extensibility features — custom weekend calendar and a
 
 ### Additional TaskList Columns
 
-- [ ] **COL-01**: User can pass `additionalColumns?: Column[]` prop to TaskList
-- [ ] **COL-02**: Column interface includes `id`, `header`, `renderCell`, optional `editor`, `width`, `after`
-- [ ] **COL-03**: `renderCell: (row: GanttRow) => ReactNode` renders cell content for each row
-- [ ] **COL-04**: `editor?: (row: GanttRow) => ReactNode` provides inline editor component
-- [ ] **COL-05**: `after?: string` positions column after specified base column (default: after 'Name')
-- [ ] **COL-06**: Base columns remain: №, Name, Dates, Dependencies, Actions
-- [ ] **COL-07**: Additional columns render inline, scroll with TaskList
-- [ ] **COL-08**: Column width is customizable via `width?: string | number`
+- [x] **COL-01**: User can pass `additionalColumns?: Column[]` prop to TaskList
+- [x] **COL-02**: Column interface includes `id`, `header`, `renderCell`, optional `editor`, `width`, `after` [migrated to renderEditor in Phase 26]
+- [x] **COL-03**: `renderCell: (row: GanttRow) => ReactNode` renders cell content for each row
+- [x] **COL-04**: `editor?: (row: GanttRow) => ReactNode` provides inline editor component [migrated to renderEditor in Phase 26]
+- [x] **COL-05**: `after?: string` positions column after specified base column (default: after 'Name')
+- [x] **COL-06**: Base columns remain: №, Name, Dates, Dependencies, Actions
+- [x] **COL-07**: Additional columns render inline, scroll with TaskList
+- [x] **COL-08**: Column width is customizable via `width?: string | number`
+
+### Phase 26: columns-api-migration
+
+- [x] **MIG-01**: Legacy `editor` property удалён из runtime
+- [x] **MIG-02**: Все примеры используют только `renderEditor`
+- [x] **MIG-03**: Документация описывает только `renderEditor`
+- [x] **MIG-04**: Единственный документированный editor field — `renderEditor`
+- [x] **MIG-05**: Column examples используют numeric `width`
+- [x] **MIG-06**: Один поддерживаемый стиль авторинга
+- [x] **MIG-07**: Тесты проходят после удаления legacy support
 
 ## Future Requirements
 
@@ -60,20 +70,27 @@ Deferred to future release.
 | CAL-03 | Phase 21 | Complete |
 | CAL-04 | Phase 21 | Complete |
 | CAL-05 | Phase 21 | Complete |
-| COL-01 | Phase 22 | Pending |
-| COL-02 | Phase 22 | Pending |
-| COL-03 | Phase 22 | Pending |
-| COL-04 | Phase 22 | Pending |
-| COL-05 | Phase 22 | Pending |
-| COL-06 | Phase 22 | Pending |
-| COL-07 | Phase 22 | Pending |
-| COL-08 | Phase 22 | Pending |
+| COL-01 | Phase 22 | Complete |
+| COL-02 | Phase 22 | Complete |
+| COL-03 | Phase 22 | Complete |
+| COL-04 | Phase 22 | Complete |
+| COL-05 | Phase 22 | Complete |
+| COL-06 | Phase 22 | Complete |
+| COL-07 | Phase 22 | Complete |
+| COL-08 | Phase 22 | Complete |
+| MIG-01 | Phase 26 | Complete |
+| MIG-02 | Phase 26 | Complete |
+| MIG-03 | Phase 26 | Complete |
+| MIG-04 | Phase 26 | Complete |
+| MIG-05 | Phase 26 | Complete |
+| MIG-06 | Phase 26 | Complete |
+| MIG-07 | Phase 26 | Complete |
 
 **Coverage:**
-- v0.50.0 requirements: 13 total
-- Mapped to phases: 13
+- v0.50.0 requirements: 20 total
+- Mapped to phases: 20
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-17*
-*Last updated: 2026-03-17 after initial definition*
+*Last updated: 2026-03-29 after Phase 26 completion*

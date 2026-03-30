@@ -28,6 +28,13 @@ export * from './utils';
 // Filters
 export * from './filters';
 
+// TaskList Column API
+export type {
+  BuiltInTaskListColumnId,
+  TaskListColumn,
+  TaskListColumnContext,
+} from './components/TaskList/columns/types';
+
 // Types
 export type {
   GanttDateRange,
