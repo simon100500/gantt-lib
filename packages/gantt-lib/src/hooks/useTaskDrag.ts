@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { alignToWorkingDay, buildTaskRangeFromEnd, buildTaskRangeFromStart, calculateSuccessorDate, clampTaskRangeForIncomingFS, getDependencyLag, getTransitiveCascadeChain, moveTaskRange, recalculateIncomingLags, getChildren, isTaskParent, universalCascade } from '../utils/dependencyUtils';
-import { getBusinessDaysCount } from '../utils/dateUtils';
+import { buildTaskRangeFromEnd, buildTaskRangeFromStart, calculateSuccessorDate, clampTaskRangeForIncomingFS, getDependencyLag, getTransitiveCascadeChain, moveTaskRange, recalculateIncomingLags, getChildren, isTaskParent, universalCascade, resolveDateRangeFromPixels, clampDateRangeForIncomingFS } from '../core/scheduling';
 
 /**
  * Get transitive closure of successors for cascading.
@@ -72,85 +71,6 @@ function getDayOffsetFromMonthStart(date: Date, monthStart: Date): number {
     (Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) -
       Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate())) /
       (24 * 60 * 60 * 1000)
-  );
-}
-
-function resolveDraggedRange(
-  mode: 'move' | 'resize-left' | 'resize-right',
-  left: number,
-  width: number,
-  monthStart: Date,
-  dayWidth: number,
-  task: Task,
-  businessDays?: boolean,
-  weekendPredicate?: (date: Date) => boolean
-): { start: Date; end: Date } {
-  const dayOffset = Math.round(left / dayWidth);
-  const rawStartDate = new Date(Date.UTC(
-    monthStart.getUTCFullYear(),
-    monthStart.getUTCMonth(),
-    monthStart.getUTCDate() + dayOffset
-  ));
-  const rawEndOffset = dayOffset + Math.round(width / dayWidth) - 1;
-  const rawEndDate = new Date(Date.UTC(
-    monthStart.getUTCFullYear(),
-    monthStart.getUTCMonth(),
-    monthStart.getUTCDate() + rawEndOffset
-  ));
-
-  if (!(businessDays && weekendPredicate)) {
-    return { start: rawStartDate, end: rawEndDate };
-  }
-
-  if (mode === 'move') {
-    const originalStart = new Date(task.startDate as string);
-    const snapDirection = rawStartDate.getTime() >= originalStart.getTime() ? 1 : -1;
-    return moveTaskRange(
-      task.startDate,
-      task.endDate,
-      rawStartDate,
-      true,
-      weekendPredicate,
-      snapDirection
-    );
-  }
-
-  if (mode === 'resize-right') {
-    const fixedStart = new Date(task.startDate as string);
-    const originalEnd = new Date(task.endDate as string);
-    const snapDirection: 1 | -1 = rawEndDate.getTime() >= originalEnd.getTime() ? 1 : -1;
-    const alignedEnd = alignToWorkingDay(rawEndDate, snapDirection, weekendPredicate);
-    const duration = Math.max(1, getBusinessDaysCount(fixedStart, alignedEnd, weekendPredicate));
-    return buildTaskRangeFromStart(fixedStart, duration, true, weekendPredicate);
-  }
-
-  const fixedEnd = new Date(task.endDate as string);
-  const originalStart = new Date(task.startDate as string);
-  const snapDirection: 1 | -1 = rawStartDate.getTime() >= originalStart.getTime() ? 1 : -1;
-  const alignedStart = alignToWorkingDay(rawStartDate, snapDirection, weekendPredicate);
-  const duration = Math.max(1, getBusinessDaysCount(alignedStart, fixedEnd, weekendPredicate));
-  return buildTaskRangeFromEnd(fixedEnd, duration, true, weekendPredicate);
-}
-
-function clampDraggedRangeForIncomingFS(
-  task: Task,
-  range: { start: Date; end: Date },
-  allTasks: Task[],
-  mode: 'move' | 'resize-left' | 'resize-right',
-  businessDays?: boolean,
-  weekendPredicate?: (date: Date) => boolean
-): { start: Date; end: Date } {
-  if (mode === 'resize-right') {
-    return range;
-  }
-
-  return clampTaskRangeForIncomingFS(
-    task,
-    range.start,
-    range.end,
-    allTasks,
-    businessDays,
-    weekendPredicate
   );
 }
 
@@ -298,9 +218,9 @@ function handleGlobalMouseMove(e: MouseEvent) {
     const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
 
     if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
-      const previewRange = clampDraggedRangeForIncomingFS(
+      const previewRange = clampDateRangeForIncomingFS(
         draggedTask,
-        resolveDraggedRange(
+        resolveDateRangeFromPixels(
           mode,
           newLeft,
           newWidth,
@@ -320,9 +240,9 @@ function handleGlobalMouseMove(e: MouseEvent) {
       newLeft = Math.round(alignedStartDay * dayWidth);
       newWidth = Math.round((alignedEndDay - alignedStartDay + 1) * dayWidth);
     } else if (draggedTask) {
-      const previewRange = clampDraggedRangeForIncomingFS(
+      const previewRange = clampDateRangeForIncomingFS(
         draggedTask,
-        resolveDraggedRange(
+        resolveDateRangeFromPixels(
           mode,
           newLeft,
           newWidth,
@@ -348,9 +268,9 @@ function handleGlobalMouseMove(e: MouseEvent) {
       const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;
       const originalDraggedTask = draggedTask ?? allTasks.find(t => t.id === dragId);
       const previewRange = originalDraggedTask
-        ? clampDraggedRangeForIncomingFS(
+        ? clampDateRangeForIncomingFS(
           originalDraggedTask,
-          resolveDraggedRange(
+          resolveDateRangeFromPixels(
             mode,
             newLeft,
             newWidth,
@@ -677,9 +597,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
     const currentTask = allTasks.find(t => t.id === taskId);
     const finalRange = currentTask
-      ? clampDraggedRangeForIncomingFS(
+      ? clampDateRangeForIncomingFS(
         currentTask,
-        resolveDraggedRange(
+        resolveDateRangeFromPixels(
           finalMode,
           finalLeft,
           finalWidth,

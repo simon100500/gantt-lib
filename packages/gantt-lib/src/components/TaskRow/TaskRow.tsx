@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { parseUTCDate, formatDateRangeLabel, getBusinessDaysCount, createCustomDayPredicate } from '../../utils/dateUtils';
+import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
 import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { isTaskExpired } from '../../utils/expired';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
-import { isTaskParent, getChildren } from '../../utils/dependencyUtils';
+import { isTaskParent, getChildren, getBusinessDaysCount } from '../../core/scheduling';
 import type { Task } from '../GanttChart';
 import './TaskRow.css';
 

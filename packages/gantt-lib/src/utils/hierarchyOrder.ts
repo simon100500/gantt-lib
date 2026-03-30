@@ -1,5 +1,5 @@
 import type { Task } from '../types';
-import { computeParentDates, computeParentProgress, isTaskParent } from './dependencyUtils';
+import { computeParentDates, computeParentProgress, isTaskParent } from '../core/scheduling';
 import { normalizeTaskDates } from './dateUtils';
 
 /**

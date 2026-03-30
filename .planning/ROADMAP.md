@@ -190,8 +190,8 @@
 
 **Plans:** 2 plans
 
-- [ ] 27-01-PLAN.md — Create core/scheduling module, move scheduling logic from dependencyUtils + dateUtils, create backward-compat re-export barrels
-- [ ] 27-02-PLAN.md — Rewire UI consumers to import from core/scheduling, extract inline scheduling from useTaskDrag
+- [x] 27-01-PLAN.md — Create core/scheduling module, move scheduling logic from dependencyUtils + dateUtils, create backward-compat re-export barrels
+- [x] 27-02-PLAN.md — Rewire UI consumers to import from core/scheduling, extract inline scheduling from useTaskDrag
 
 ## Progress
 
@@ -205,7 +205,7 @@
 | 24 | v0.50.0 | 2/2 | Complete   | 2026-03-22 |
 | 25 | v0.50.0 | 4/4 | Complete    | 2026-03-29 |
 | 26 | v0.50.0 | 2/2 | Complete    | 2026-03-29 |
-| 27 | v0.50.0 | 0/2 | Planning | — |
+| 27 | v0.50.0 | 2/2 | Complete    | 2026-03-30 |
 
 **Overall:** 64/66 plans complete (97%)
 
