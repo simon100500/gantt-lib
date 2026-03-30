@@ -1783,8 +1783,46 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             {task.name}
           </button>
         )}
-        {!editingName && (onDelete || onPromoteTask || onDemoteTask) && (
+        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask) && (
           <div className="gantt-tl-name-actions">
+            {onInsertAfter && (
+              <button
+                type="button"
+                className="gantt-tl-name-action-btn gantt-tl-action-insert"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const now = new Date();
+                  const todayISO = new Date(
+                    Date.UTC(
+                      now.getUTCFullYear(),
+                      now.getUTCMonth(),
+                      now.getUTCDate(),
+                    ),
+                  )
+                    .toISOString()
+                    .split("T")[0];
+                  const endISO = new Date(
+                    Date.UTC(
+                      now.getUTCFullYear(),
+                      now.getUTCMonth(),
+                      now.getUTCDate() + 7,
+                    ),
+                  )
+                    .toISOString()
+                    .split("T")[0];
+                  const newTask: Task = {
+                    id: crypto.randomUUID(),
+                    name: "Новая задача",
+                    startDate: todayISO,
+                    endDate: endISO,
+                  };
+                  onInsertAfter(task.id, newTask);
+                }}
+                aria-label="Вставить задачу после этой"
+              >
+                <PlusIcon />
+              </button>
+            )}
             {onDelete && (
               <button
                 type="button"

@@ -32,7 +32,6 @@ const BUILT_IN_CSS_CLASSES: Record<string, string> = {
   endDate: 'gantt-tl-cell-date',
   duration: 'gantt-tl-cell-duration',
   progress: 'gantt-tl-cell-progress',
-  actions: '',
 };
 
 /**
@@ -874,7 +873,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               return (
                 <div key={col.id} className="gantt-tl-headerCell gantt-tl-cell-deps"
                      data-column-id="dependencies"
-                     style={{ width: col.width, minWidth: col.width, flexShrink: 0, position: 'relative' }}>
+                     style={{ position: 'relative' }}>
                   <Popover open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
                     <PopoverTrigger asChild>
                       <button
@@ -906,14 +905,13 @@ export const TaskList: React.FC<TaskListProps> = ({
                 </div>
               );
             }
-            // Built-in columns use CSS classes for styling
+            // Built-in columns use CSS classes for width (same as body cells — no inline width override)
             const builtInClass = BUILT_IN_CSS_CLASSES[col.id];
             if (builtInClass !== undefined) {
               return (
                 <div key={col.id}
                      className={`gantt-tl-headerCell ${builtInClass}`}
-                     data-column-id={col.id}
-                     style={{ width: col.width, minWidth: col.width, flexShrink: 0 }}>
+                     data-column-id={col.id}>
                   {col.header}
                 </div>
               );

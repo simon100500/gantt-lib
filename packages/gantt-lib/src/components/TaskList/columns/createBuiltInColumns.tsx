@@ -23,6 +23,5 @@ export function createBuiltInColumns<TTask extends Task>(opts?: {
     { id: 'duration', header: opts?.businessDays ? '\u0414\u043D. (\u0440)' : '\u0414\u043D.', width: BUILT_IN_COLUMN_WIDTHS.duration, renderCell: () => null },
     { id: 'progress', header: '%', width: BUILT_IN_COLUMN_WIDTHS.progress, renderCell: () => null },
     { id: 'dependencies', header: null, width: BUILT_IN_COLUMN_WIDTHS.dependencies, renderCell: () => null },
-    { id: 'actions', header: '', width: BUILT_IN_COLUMN_WIDTHS.actions, renderCell: () => null },
   ];
 }
