@@ -56,4 +56,14 @@ export {
   findParentId,
   isAncestorTask,
   areTasksHierarchicallyRelated,
+
+  // execute (command-level API)
+  moveTaskWithCascade,
+  resizeTaskWithCascade,
+  recalculateTaskFromDependencies,
+  recalculateProjectSchedule,
+
+  // backward-compat UI adapter re-exports
+  resolveDateRangeFromPixels,
+  clampDateRangeForIncomingFS,
 } from '../core/scheduling';
