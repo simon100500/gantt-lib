@@ -214,8 +214,8 @@ describe('TaskListRow hierarchy rendering', () => {
     fireEvent.click(screen.getByLabelText('Выбрать цвет Палисандр'));
 
     expect(onTasksChange).toHaveBeenCalledWith([
-      { ...parent, color: '#EF4444' },
-      { ...child, color: '#EF4444' },
+      { ...parent, color: '#A61E4D' },
+      { ...child, color: '#A61E4D' },
     ]);
   });
 });
