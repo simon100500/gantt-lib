@@ -26,6 +26,10 @@
 - [Validation](./12-validation.md) — Dependency validation, date handling
 - [TaskList Columns](./13-tasklist-columns.md) — Custom columns, `renderEditor`, migration notes
 
+## Architecture
+
+- [Headless Scheduling Core](./14-headless-scheduling.md) — Runtime-agnostic scheduling module, API reference
+
 ## AI Agents
 
 - [AI Agent Notes](./11-ai-agent-notes.md) — Tips for AI code generation
