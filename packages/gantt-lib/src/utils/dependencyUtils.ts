@@ -459,6 +459,26 @@ export function validateDependencies(tasks: Task[]): ValidationResult {
     }
   }
 
+  // Check for invalid hierarchy links (ancestor <-> descendant)
+  for (const task of tasks) {
+    if (!task.dependencies) continue;
+
+    for (const dep of task.dependencies) {
+      if (!taskIds.has(dep.taskId)) {
+        continue;
+      }
+
+      if (areTasksHierarchicallyRelated(task.id, dep.taskId, tasks)) {
+        errors.push({
+          type: 'constraint',
+          taskId: task.id,
+          message: `Dependencies between parent and child tasks are not allowed: ${dep.taskId} -> ${task.id}`,
+          relatedTaskIds: [dep.taskId, task.id],
+        });
+      }
+    }
+  }
+
   // Check for cycles
   const cycleResult = detectCycles(tasks);
   if (cycleResult.hasCycle && cycleResult.cyclePath) {
@@ -894,6 +914,41 @@ export function removeDependenciesBetweenTasks(
 export function findParentId(taskId: string, tasks: Task[]): string | undefined {
   const task = tasks.find(t => t.id === taskId);
   return task?.parentId;
+}
+
+/**
+ * Returns true when ancestorId is an ancestor of taskId in the current hierarchy.
+ */
+export function isAncestorTask(ancestorId: string, taskId: string, tasks: Task[]): boolean {
+  const taskById = new Map(tasks.map(task => [task.id, task]));
+  const visited = new Set<string>();
+  let current = taskById.get(taskId);
+
+  while (current?.parentId) {
+    if (current.parentId === ancestorId) {
+      return true;
+    }
+
+    if (visited.has(current.parentId)) {
+      return false;
+    }
+
+    visited.add(current.parentId);
+    current = taskById.get(current.parentId);
+  }
+
+  return false;
+}
+
+/**
+ * Returns true when tasks are in the same ancestry chain (ancestor/descendant in either direction).
+ */
+export function areTasksHierarchicallyRelated(taskId1: string, taskId2: string, tasks: Task[]): boolean {
+  if (taskId1 === taskId2) {
+    return true;
+  }
+
+  return isAncestorTask(taskId1, taskId2, tasks) || isAncestorTask(taskId2, taskId1, tasks);
 }
 
 /**

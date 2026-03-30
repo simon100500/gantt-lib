@@ -5,7 +5,7 @@ import type { Task, TaskDependency } from '../GanttChart';
 import type { LinkType } from '../../types';
 import type { CustomDayConfig } from '../../utils/dateUtils';
 import { createCustomDayPredicate } from '../../utils/dateUtils';
-import { validateDependencies, calculateSuccessorDate, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration, isTaskParent } from '../../utils/dependencyUtils';
+import { validateDependencies, calculateSuccessorDate, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration, isTaskParent, areTasksHierarchicallyRelated } from '../../utils/dependencyUtils';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import { getVisibleReorderPosition } from '../../utils/taskListReorder';
 import { getChildren } from '../../utils/dependencyUtils';
@@ -390,7 +390,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [selectingPredecessorFor, setSelectingPredecessorFor] = useState<string | null>(null);
   const [dependencyPickMode, setDependencyPickMode] = useState<DependencyPickMode>('successor');
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
-  const [cycleError, setCycleError] = useState(false);
+  const [dependencyError, setDependencyError] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   // Selected chip state: clicking a chip on a successor row selects it,
@@ -447,6 +447,14 @@ export const TaskList: React.FC<TaskListProps> = ({
     // Guard: no self-links
     if (successorTaskId === predecessorTaskId) return;
 
+    // Guard: no links between ancestors and descendants in either direction
+    if (areTasksHierarchicallyRelated(successorTaskId, predecessorTaskId, tasks)) {
+      setDependencyError('Связи между родителем и потомком запрещены');
+      setTimeout(() => setDependencyError(null), 3000);
+      setSelectingPredecessorFor(null);
+      return;
+    }
+
     // Guard: no duplicate (same taskId + type)
     const successor = tasks.find(t => t.id === successorTaskId);
     if (!successor) return;
@@ -467,8 +475,13 @@ export const TaskList: React.FC<TaskListProps> = ({
     );
     const validation = validateDependencies(hypothetical);
     if (!validation.isValid) {
-      setCycleError(true);
-      setTimeout(() => setCycleError(false), 3000);
+      const hasHierarchyConstraint = validation.errors.some(error => error.type === 'constraint');
+      setDependencyError(
+        hasHierarchyConstraint
+          ? 'Связи между родителем и потомком запрещены'
+          : 'Цикл зависимостей!'
+      );
+      setTimeout(() => setDependencyError(null), 3000);
       return;
     }
 
@@ -938,8 +951,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                       </div>
                     </PopoverContent>
                   </Popover>
-                  {cycleError && (
-                    <div className="gantt-tl-dep-error">Цикл зависимостей!</div>
+                  {dependencyError && (
+                    <div className="gantt-tl-dep-error">{dependencyError}</div>
                   )}
                 </div>
               );
