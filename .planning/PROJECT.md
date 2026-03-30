@@ -35,6 +35,7 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - **Unified column pipeline** (Phase 25) — `resolvedColumns.map()` architecture with single editor state
 - **Columns API migration** (Phase 26) — unified column API with `renderEditor` as the only editor property
 - **Headless scheduling core** (Phase 27) — `src/core/scheduling/` with 7 modules, zero React/DOM deps, backward-compat barrels
+- **Scheduling core hardening** (Phase 28) — command-level API (execute.ts), UI adapters separation, 92 tests, documentation
 - shadcn/ui components (DatePicker, Input)
 
 **Tech stack:** React 18+, TypeScript, date-fns, @radix-ui
@@ -58,6 +59,7 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - ✅ Task filtering with predicates — v0.22.0
 - ✅ Unified column pipeline — resolvedColumns.map() architecture, single editor state — v0.50.0 (Phase 25)
 - ✅ Headless scheduling core — runtime-agnostic core/scheduling module with zero React/DOM deps — v0.53.0 (Phase 27)
+- ✅ Scheduling core hardening — command-level API (execute.ts), UI adapter separation, boundary tests, documentation — v0.53.0 (Phase 28)
 
 ### Out of Scope
 
@@ -101,4 +103,4 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - **Browser**: Modern browsers — No IE11 requirement
 
 ---
-*Last updated: 2026-03-30 after Phase 27 (core-refactor) completed*
+*Last updated: 2026-03-31 after Phase 28 (scheduling-core-hardening) completed*
