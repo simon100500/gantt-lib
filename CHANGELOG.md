@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.60.1] - 2026-03-30
+
+### Refactor
+
+- Add `./core/scheduling` subpath export to package.json for tree-shakeable scheduling core imports
+
 ## [0.60.0] - 2026-03-30
 
 ### Features

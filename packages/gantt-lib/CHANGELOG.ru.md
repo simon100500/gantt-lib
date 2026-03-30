@@ -5,6 +5,12 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.60.1] - 2026-03-30
+
+### Рефакторинг
+
+- Добавлен subpath-экспорт `./core/scheduling` в package.json для tree-shakeable импортов scheduling core
+
 ## [0.60.0] - 2026-03-30
 
 ### Добавлено
