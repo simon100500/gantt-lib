@@ -20,7 +20,7 @@ vi.mock('../components/ui/Calendar', () => ({
 }));
 
 describe('DatePicker', () => {
-  it('shifts by business days and keeps focus on the input when clicking +1', () => {
+  it('keeps focus on the input when clicking +1 and commits on blur', () => {
     const onChange = vi.fn();
 
     render(
@@ -43,21 +43,29 @@ describe('DatePicker', () => {
 
     fireEvent.click(plusOneButton);
 
-    expect(onChange).toHaveBeenCalledWith('2026-03-16');
+    expect(onChange).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(input);
+
+    fireEvent.blur(input);
+
+    expect(onChange).toHaveBeenCalledWith('2026-03-16');
   });
 
-  it('keeps calendar-day shifting when business days mode is disabled', () => {
+  it('keeps calendar-day shifting when business days mode is disabled and commits on blur', () => {
     const onChange = vi.fn();
 
     render(<DatePicker value="2026-03-13" onChange={onChange} />);
 
+    const input = screen.getByDisplayValue('13.03.26');
     fireEvent.click(screen.getByRole('button', { name: '+1' }));
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.blur(input);
 
     expect(onChange).toHaveBeenCalledWith('2026-03-14');
   });
 
-  it('snaps ArrowUp to the next working day when it lands on a weekend', () => {
+  it('snaps ArrowUp to the next working day and commits on Enter', () => {
     const onChange = vi.fn();
 
     render(
@@ -72,11 +80,14 @@ describe('DatePicker', () => {
     const input = screen.getByDisplayValue('13.03.26');
     input.focus();
     fireEvent.keyDown(input, { key: 'ArrowUp' });
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: 'Enter' });
 
     expect(onChange).toHaveBeenCalledWith('2026-03-16');
   });
 
-  it('snaps ArrowDown to the previous working day when it lands on a weekend', () => {
+  it('snaps ArrowDown to the previous working day and commits on blur', () => {
     const onChange = vi.fn();
 
     render(
@@ -91,6 +102,9 @@ describe('DatePicker', () => {
     const input = screen.getByDisplayValue('16.03.26');
     input.focus();
     fireEvent.keyDown(input, { key: 'ArrowDown' });
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.blur(input);
 
     expect(onChange).toHaveBeenCalledWith('2026-03-13');
   });
@@ -130,7 +144,28 @@ describe('DatePicker', () => {
     fireEvent.keyDown(trigger, { key: 'ArrowUp' });
     fireEvent.keyDown(trigger, { key: 'ArrowDown' });
 
-    expect(onChange).toHaveBeenNthCalledWith(1, '2026-03-16');
-    expect(onChange).toHaveBeenNthCalledWith(2, '2026-03-12');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('does not emit intermediate onChange while typing a valid date until confirmation', () => {
+    const onChange = vi.fn();
+
+    render(<DatePicker value="2026-03-13" onChange={onChange} />);
+
+    const input = screen.getByDisplayValue('13.03.26');
+    input.focus();
+
+    fireEvent.keyDown(input, { key: '2' });
+    fireEvent.keyDown(input, { key: '8' });
+    fireEvent.keyDown(input, { key: '0' });
+    fireEvent.keyDown(input, { key: '3' });
+    fireEvent.keyDown(input, { key: '2' });
+    fireEvent.keyDown(input, { key: '6' });
+
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onChange).toHaveBeenCalledWith('2026-03-28');
   });
 });

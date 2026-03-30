@@ -92,6 +92,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [draftDate, setDraftDate] = useState<Date | undefined>(undefined);
   const dateInputRef = useRef<HTMLInputElement>(null);
   // Refs для синхронного отслеживания позиции — не зависят от DOM/rAF
   const segIdxRef = useRef(0);   // текущий сегмент (0=day, 1=month, 2=year)
@@ -103,6 +104,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const d = new Date(value + 'T00:00:00Z');
     return isValid(d) ? d : undefined;
   })();
+  const activeDate = draftDate ?? selectedDate;
 
   // Format Date for display on trigger button
   const displayValue = selectedDate
@@ -113,9 +115,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   useEffect(() => {
     if (value) {
       const d = new Date(value + 'T00:00:00Z');
-      if (isValid(d)) setInputValue(formatUTCDate(d, 'dd.MM.yy'));
+      if (isValid(d)) {
+        setInputValue(formatUTCDate(d, 'dd.MM.yy'));
+        setDraftDate(undefined);
+      }
     } else {
       setInputValue('');
+      setDraftDate(undefined);
     }
   }, [value]);
 
@@ -168,13 +174,20 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const updateFromDate = useCallback((newDate: Date) => {
     if (!isValid(newDate)) return;
     setInputValue(formatUTCDate(newDate, 'dd.MM.yy'));
+    setDraftDate(newDate);
+  }, []);
+
+  const commitDate = useCallback((dateToCommit?: Date) => {
+    const nextDate = dateToCommit ?? draftDate ?? selectedDate;
+    if (!nextDate || !isValid(nextDate)) return;
     const iso = [
-      newDate.getUTCFullYear(),
-      String(newDate.getUTCMonth() + 1).padStart(2, '0'),
-      String(newDate.getUTCDate()).padStart(2, '0'),
+      nextDate.getUTCFullYear(),
+      String(nextDate.getUTCMonth() + 1).padStart(2, '0'),
+      String(nextDate.getUTCDate()).padStart(2, '0'),
     ].join('-');
+    if (iso === value) return;
     onChange?.(iso);
-  }, [onChange]);
+  }, [draftDate, onChange, selectedDate, value]);
 
   const handleCalendarSelect = useCallback(
     (day: Date) => {
@@ -182,14 +195,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         ? snapToBusinessDay(day, 1, isWeekend)
         : day;
       updateFromDate(normalizedDay);
+      commitDate(normalizedDay);
       setOpen(false);
     },
-    [updateFromDate, businessDays, isWeekend]
+    [businessDays, commitDate, isWeekend, updateFromDate]
   );
 
   const handleDayShift = useCallback(
     (delta: number) => {
-      const base = selectedDate ?? new Date();
+      const base = activeDate ?? new Date();
       // Use business days if enabled and weekend predicate is available
       if (businessDays && isWeekend) {
         updateFromDate(shiftByBusinessDays(base, delta, isWeekend));
@@ -197,7 +211,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         updateFromDate(addDays(base, delta));
       }
     },
-    [selectedDate, updateFromDate, businessDays, isWeekend]
+    [activeDate, updateFromDate, businessDays, isWeekend]
   );
 
   const handleTriggerKeyDown = useCallback((e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -233,13 +247,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
     if (e.key === 'Enter') {
       e.preventDefault(); e.stopPropagation();
+      commitDate();
       setOpen(false);
       return;
     }
 
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault(); e.stopPropagation();
-      const base = selectedDate ?? new Date();
+      const base = activeDate ?? new Date();
       let newDate = base;
       if (seg.label === 'day')   newDate = e.key === 'ArrowUp' ? addDays(base, 1)   : subDays(base, 1);
       if (seg.label === 'month') newDate = e.key === 'ArrowUp' ? addMonths(base, 1) : subMonths(base, 1);
@@ -328,10 +343,17 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         );
       }
     }
-  }, [selectedDate, updateFromDate, selectSegByIdx, businessDays, isWeekend]);
+  }, [activeDate, businessDays, commitDate, isWeekend, selectSegByIdx, updateFromDate]);
+
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    if (!nextOpen && open) {
+      commitDate();
+    }
+    setOpen(nextOpen);
+  }, [commitDate, open]);
 
   return (
-    <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
+    <Popover open={open} onOpenChange={disabled ? undefined : handleOpenChange}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -362,6 +384,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             onFocus={handleFocus}
             onMouseDown={handleMouseDown}
             onKeyDown={handleKeyDown}
+            onBlur={() => {
+              commitDate();
+            }}
             spellCheck={false}
             autoComplete="off"
           />
@@ -370,9 +395,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         </div>
         <Calendar
           mode="single"
-          selected={selectedDate}
+          selected={activeDate}
           onSelect={handleCalendarSelect}
-          initialDate={selectedDate}
+          initialDate={activeDate}
           isWeekend={isWeekend}
         />
       </PopoverContent>
