@@ -159,6 +159,20 @@ const CopyIcon = () => (
   </svg>
 );
 
+const TASK_COLOR_PALETTE = [
+  { label: "Vermilion", value: "#E8590C" },
+  { label: "Orange", value: "#F08C00" },
+  { label: "Gold", value: "#D4A017" },
+  { label: "Chartreuse", value: "#A3BE00" },
+  { label: "Lime", value: "#7CB518" },
+  { label: "Green", value: "#2B8A3E" },
+  { label: "Emerald", value: "#099268" },
+  { label: "Teal", value: "#0F766E" },
+  { label: "Cyan", value: "#0EA5E9" },
+  { label: "Blue", value: "#2F55E7" },
+  { label: "Violet", value: "#cc51ff" },
+] as const;
+
 const ChevronRightIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -808,6 +822,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const progressInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
     const [contextMenuOpen, setContextMenuOpen] = useState(false);
+    const [colorMenuOpen, setColorMenuOpen] = useState(false);
     const nameConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const durationConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const progressConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
@@ -1375,6 +1390,35 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [task.id, onDemoteTask],
     );
 
+    const handleApplyColor = useCallback(
+      (color?: string) => {
+        if (!onTasksChange) return;
+
+        const descendantIds = new Set<string>();
+        if (isParent) {
+          const stack = getChildren(task.id, allTasks);
+          while (stack.length > 0) {
+            const current = stack.shift();
+            if (!current || descendantIds.has(current.id)) continue;
+            descendantIds.add(current.id);
+            stack.push(...getChildren(current.id, allTasks));
+          }
+        }
+
+        const updatedTasks: Task[] = [
+          { ...task, color },
+          ...allTasks
+            .filter(candidate => descendantIds.has(candidate.id))
+            .map(candidate => ({ ...candidate, color })),
+        ];
+
+        onTasksChange(updatedTasks);
+        setColorMenuOpen(false);
+        setContextMenuOpen(false);
+      },
+      [allTasks, isParent, onTasksChange, task],
+    );
+
     // Dependency handlers
     const handleAddClick = useCallback(
       (e: React.MouseEvent) => {
@@ -1733,10 +1777,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
                   onClick={handleToggleCollapse}
                   style={{ left: `${nestingDepth * 20 + 1}px` }}
-                    aria-label={isCollapsed ? "Expand children" : "Collapse children"}
-                  >
-                    <ChevronRightIcon />
-                  </button>
+                  aria-label={isCollapsed ? "Expand children" : "Collapse children"}
+                >
+                  <ChevronRightIcon />
+                </button>
               </>
             )}
           </>
@@ -1798,7 +1842,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             {task.name}
           </button>
         )}
-        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onDuplicateTask) && (
+        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onDuplicateTask || onTasksChange) && (
           <div className="gantt-tl-name-actions">
             {onInsertAfter && (
               <button
@@ -1845,8 +1889,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onPromote={onPromoteTask ? handlePromote : undefined}
               onDemote={onDemoteTask ? handleDemote : undefined}
             />
-            {(onDuplicateTask || onDelete) && (
-              <Popover open={contextMenuOpen} onOpenChange={setContextMenuOpen}>
+            {(onDuplicateTask || onDelete || onTasksChange) && (
+              <Popover open={contextMenuOpen} onOpenChange={(open) => {
+                setContextMenuOpen(open);
+                if (!open) setColorMenuOpen(false);
+              }}>
                 <PopoverTrigger asChild>
                   <button
                     type="button"
@@ -1861,6 +1908,61 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="gantt-tl-context-menu" portal={true} align="end">
+                  {onTasksChange && (
+                    <div className="gantt-tl-context-menu-section">
+                      <button
+                        type="button"
+                        className="gantt-tl-context-menu-item gantt-tl-context-menu-item-toggle"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setColorMenuOpen((value) => !value);
+                        }}
+                        aria-expanded={colorMenuOpen}
+                      >
+                        <span className="gantt-tl-context-menu-item-main">
+                          {task.color && (
+                            <span
+                              className="gantt-tl-color-swatch gantt-tl-color-swatch-inline"
+                              style={{ backgroundColor: task.color }}
+                              aria-hidden="true"
+                            />
+                          )}
+                          Цвет
+                        </span>
+                        <ChevronRightIcon />
+                      </button>
+                      {colorMenuOpen && (
+                        <div className="gantt-tl-color-grid">
+                          <button
+                            type="button"
+                            className={`gantt-tl-color-swatch gantt-tl-color-swatch-clear${!task.color ? " is-selected" : ""}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleApplyColor(undefined);
+                            }}
+                            aria-label="Сбросить цвет"
+                            title="Сбросить цвет"
+                          >
+                            <span className="gantt-tl-color-swatch-clear-line" />
+                          </button>
+                          {TASK_COLOR_PALETTE.map((paletteColor) => (
+                            <button
+                              key={paletteColor.value}
+                              type="button"
+                              className={`gantt-tl-color-swatch${task.color === paletteColor.value ? " is-selected" : ""}`}
+                              style={{ backgroundColor: paletteColor.value }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApplyColor(paletteColor.value);
+                              }}
+                              aria-label={`Выбрать цвет ${paletteColor.label}`}
+                              title={paletteColor.label}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {onDuplicateTask && (
                     <button
                       type="button"
@@ -2088,11 +2190,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               ? { visibility: "hidden", pointerEvents: "none" }
               : task.progress === 100
                 ? {
-                    backgroundColor: "#17c864",
-                    borderRadius: "4px",
-                    padding: "2px 4px",
-                    color: "#ffffff",
-                  }
+                  backgroundColor: "#17c864",
+                  borderRadius: "4px",
+                  padding: "2px 4px",
+                  color: "#ffffff",
+                }
                 : undefined
           }
         >

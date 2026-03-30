@@ -150,4 +150,44 @@ describe('TaskListRow hierarchy rendering', () => {
 
     expect(screen.getByTestId('gantt-tl-parent-connector-tail')).toBeTruthy();
   });
+
+  it('applies selected color to a parent and all descendants', () => {
+    const onTasksChange = vi.fn();
+    const parent: Task = {
+      id: 'parent',
+      name: 'Parent task',
+      startDate: '2026-03-01',
+      endDate: '2026-03-05',
+      progress: 0,
+    };
+    const child: Task = {
+      id: 'child',
+      name: 'Child task',
+      startDate: '2026-03-02',
+      endDate: '2026-03-04',
+      progress: 0,
+      parentId: 'parent',
+    };
+
+    render(
+      <TaskListRow
+        task={parent}
+        allTasks={[parent, child]}
+        rowIndex={0}
+        rowHeight={40}
+        onTasksChange={onTasksChange}
+        onRowClick={() => {}}
+        onChipSelect={() => {}}
+        resolvedColumns={resolvedColumns}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Цвет/i }));
+    fireEvent.click(screen.getByLabelText('Выбрать цвет Red'));
+
+    expect(onTasksChange).toHaveBeenCalledWith([
+      { ...parent, color: '#EF4444' },
+      { ...child, color: '#EF4444' },
+    ]);
+  });
 });
