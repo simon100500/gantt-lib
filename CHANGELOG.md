@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.60.2] - 2026-03-30
+
+### Fixes
+
+- Commit date picker changes on confirm instead of on every value change
+
 ## [0.60.1] - 2026-03-30
 
 ### Refactor
