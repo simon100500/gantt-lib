@@ -10,8 +10,11 @@ import React, {
 import type { Task } from "../GanttChart";
 import type { LinkType } from "../../types";
 import type { CustomDayConfig } from "../../utils/dateUtils";
-import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate, getBusinessDaysCount, addBusinessDays, subtractBusinessDays } from "../../utils/dateUtils";
+import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate } from "../../utils/dateUtils";
 import {
+  getBusinessDaysCount,
+  addBusinessDays,
+  subtractBusinessDays,
   alignToWorkingDay,
   buildTaskRangeFromEnd,
   buildTaskRangeFromStart,
@@ -23,7 +26,7 @@ import {
   findParentId,
   getChildren,
   recalculateIncomingLags,
-} from "../../utils/dependencyUtils";
+} from "../../core/scheduling";
 import { Input } from "../ui/Input";
 import { DatePicker } from "../ui/DatePicker";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
@@ -441,7 +444,7 @@ const DepChip: React.FC<DepChipProps> = ({
         newStart = constraintDate;
         if (businessDays) {
           const businessDuration = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
-          newEnd = new Date(`${addBusinessDays(constraintDate, businessDuration, weekendPredicate)}T00:00:00.000Z`);
+          newEnd = addBusinessDays(constraintDate, businessDuration, weekendPredicate);
         } else {
           newEnd = new Date(constraintDate.getTime() + durationMs);
         }
@@ -449,7 +452,7 @@ const DepChip: React.FC<DepChipProps> = ({
         newEnd = constraintDate;
         if (businessDays) {
           const businessDuration = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
-          newStart = new Date(`${subtractBusinessDays(constraintDate, businessDuration, weekendPredicate)}T00:00:00.000Z`);
+          newStart = subtractBusinessDays(constraintDate, businessDuration, weekendPredicate);
         } else {
           newStart = new Date(constraintDate.getTime() - durationMs);
         }
@@ -870,7 +873,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const getEndDate = useCallback(
       (start: string | Date, duration: number) => {
         return businessDays
-          ? addBusinessDays(start, duration, weekendPredicate)
+          ? addBusinessDays(start, duration, weekendPredicate).toISOString().split('T')[0]
           : getEndDateFromDuration(start, duration);
       },
       [businessDays, weekendPredicate]
