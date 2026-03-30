@@ -7,5 +7,6 @@ export * from './dateMath';
 export * from './dependencies';
 export * from './cascade';
 export * from './commands';
+export * from './execute';
 export * from './validation';
 export * from './hierarchy';
