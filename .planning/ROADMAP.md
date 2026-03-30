@@ -213,7 +213,7 @@
 **Plans:** 3 plans
 
 - [x] 28-01-PLAN.md — Domain types + execute.ts command API + parity tests
-- [ ] 28-02-PLAN.md — UI extraction: move pixel functions to adapters/scheduling, update useTaskDrag
+- [x] 28-02-PLAN.md — UI extraction: move pixel functions to adapters/scheduling, update useTaskDrag
 - [ ] 28-03-PLAN.md — Boundary tests + documentation corrections + downstream guide
 
 ## Progress
@@ -229,7 +229,7 @@
 | 25 | v0.50.0 | 4/4 | Complete    | 2026-03-29 |
 | 26 | v0.50.0 | 2/2 | Complete    | 2026-03-29 |
 | 27 | v0.50.0 | 2/2 | Complete    | 2026-03-30 |
-| 28 | v0.50.0 | 1/3 | In Progress|  |
+| 28 | v0.50.0 | 2/3 | In Progress|  |
 
 **Overall:** 64/69 plans complete (93%)
 
