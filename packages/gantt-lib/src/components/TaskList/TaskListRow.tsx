@@ -177,6 +177,8 @@ interface HierarchyButtonProps {
   isChild: boolean;
   /** Row index - first row cannot demote */
   rowIndex: number;
+  /** Whether demote action should be shown for this row */
+  canDemote: boolean;
   /** Callback when promote is clicked (left arrow) */
   onPromote?: (e: React.MouseEvent) => void;
   /** Callback when demote is clicked (right arrow) */
@@ -220,16 +222,14 @@ const ArrowRight = () => (
 const HierarchyButton: React.FC<HierarchyButtonProps> = ({
   isChild,
   rowIndex: _rowIndex,
+  canDemote,
   onPromote,
   onDemote,
 }) => {
   const canPromote = isChild && onPromote;
-  // Demote is always allowed when the callback is provided.
-  // rowIndex === 0 is handled upstream: clicking Demote on the first task
-  // triggers "Новый раздел" parent creation (not blocked here).
-  const canDemote = !!onDemote;
+  const showDemote = canDemote && !!onDemote;
 
-  if (!canPromote && !canDemote) return null;
+  if (!canPromote && !showDemote) return null;
 
   return (
     <>
@@ -246,7 +246,7 @@ const HierarchyButton: React.FC<HierarchyButtonProps> = ({
           <ArrowLeft />
         </button>
       )}
-      {canDemote && (
+      {showDemote && (
         <button
           type="button"
           className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
@@ -693,6 +693,8 @@ export interface TaskListRowProps {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when task is demoted (parentId set to previous task) */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
+  /** Whether demote action should be shown for this row */
+  canDemoteTask?: boolean;
   /** Whether this child is the last sibling (affects connector icon shape) */
   isLastChild?: boolean;
   /** Nesting depth (0 = root, 1 = child, 2 = grandchild, etc.) */
@@ -759,6 +761,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onToggleCollapse,
     onPromoteTask,
     onDemoteTask,
+    canDemoteTask = true,
     isLastChild = true,
     nestingDepth = 0,
     ancestorContinues = [],
@@ -1818,6 +1821,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             <HierarchyButton
               isChild={isChild}
               rowIndex={rowIndex}
+              canDemote={canDemoteTask}
               onPromote={onPromoteTask ? handlePromote : undefined}
               onDemote={onDemoteTask ? handleDemote : undefined}
             />

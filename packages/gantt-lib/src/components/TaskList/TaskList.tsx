@@ -931,7 +931,13 @@ export const TaskList: React.FC<TaskListProps> = ({
 
         {/* Data rows */}
         <div className="gantt-tl-body" style={{ height: `${totalHeight}px` }}>
-          {visibleTasks.map((task, index) => (
+          {visibleTasks.map((task, index) => {
+            const previousVisibleTask = index > 0 ? visibleTasks[index - 1] : undefined;
+            const canDemoteTask = index === 0
+              || !task.parentId
+              || previousVisibleTask?.id !== task.parentId;
+
+            return (
             <TaskListRow
               key={task.id}
               task={task}
@@ -970,6 +976,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onToggleCollapse={handleToggleCollapse}
               onPromoteTask={onPromoteTask}
               onDemoteTask={onDemoteTask ? handleDemoteWrapper : undefined}
+              canDemoteTask={canDemoteTask}
               isLastChild={lastChildIds.has(task.id)}
               nestingDepth={nestingDepthMap.get(task.id) ?? 0}
               ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
@@ -980,7 +987,8 @@ export const TaskList: React.FC<TaskListProps> = ({
               isFilterHideMode={filterMode === 'hide' && isFilterActive}
               resolvedColumns={resolvedColumns}
             />
-          ))}
+            );
+          })}
         </div>
 
         {/* Ghost row for new task creation — positioned OUTSIDE body div to avoid height desync */}
