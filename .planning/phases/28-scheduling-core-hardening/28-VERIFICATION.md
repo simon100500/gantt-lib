@@ -139,11 +139,25 @@ The following test failures exist in the codebase but are NOT caused by Phase 28
 
 ### Human Verification Required
 
-None required -- all success criteria are programmatically verified.
+Post-phase architecture review completed after initial verification. Review found contract-level follow-up gaps not covered by the original automated must-have set.
 
 ### Gaps Summary
 
-No gaps found. All 18 must-have truths verified across 3 plans. All artifacts exist, are substantive (no stubs), and are properly wired. Data flows through all command functions. Documentation matches code behavior. Backward compatibility chain is complete and tested.
+Functional Phase 28 work is complete and the original 18/18 must-have truths remain verified, but the phase is **not fully closed contractually**. The following follow-up gaps remain:
+
+1. **Minimal downstream contract is not truly executable yet.**
+   `ScheduleTask` is documented as the minimal scheduling input, but command APIs in `execute.ts` still accept `Task[]`, where `Task` requires `name`. Downstream consumers cannot use the advertised minimal shape without type assertions or synthetic fields.
+
+2. **Export contract verification is source-level, not package-level.**
+   `export-contract.test.ts` verifies source barrel imports, but does not prove the built package `exports` map works via actual `require('gantt-lib/core/scheduling')` / `import('gantt-lib/core/scheduling')`.
+
+3. **Documentation recommends a path that is not publicly exported.**
+   Phase docs refer consumers to `adapters/scheduling`, but `package.json` exports only `.` and `./core/scheduling`. This makes the recommended adapter import path unsupported as a public package contract.
+
+4. **`resizeTaskWithCascade(anchor='start')` semantics are still mismatched across artifacts.**
+   Implementation preserves the original `end` boundary, while some comments/docs still describe the behavior as duration-preserving recalculation. This must be normalized so code, docs, and verification say the same thing.
+
+These gaps are tracked in [28-FOLLOWUP-PRD.md](/D:/Projects/gantt-lib/.planning/phases/28-scheduling-core-hardening/28-FOLLOWUP-PRD.md).
 
 ---
 

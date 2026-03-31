@@ -105,15 +105,28 @@ None beyond the auto-fixed re-export issue.
 None - no external service configuration required.
 
 ## Next Phase Readiness
-- Phase 28 (scheduling-core-hardening) is now complete
-- core/scheduling is server-ready: pure Node, documented, tested, export-contract verified
-- All stability markers in documentation set clear expectations for downstream consumers
+- Phase 28 implementation is complete, but post-phase review found contract-level closure gaps
+- core/scheduling is materially improved and usable for internal/server mirroring work, but not yet fully closed as a downstream public contract
+- Follow-up required on minimal input contract, package-level export verification, public adapter path policy, and resize semantics alignment
+- Follow-up tracked in [28-FOLLOWUP-PRD.md](/D:/Projects/gantt-lib/.planning/phases/28-scheduling-core-hardening/28-FOLLOWUP-PRD.md)
 
 ## Self-Check: PASSED
 
 - All 4 created/modified files verified present
 - All 3 task commits verified in git log (234dfb7, 239e183, ddf02f1)
 - SUMMARY.md present at expected path
+
+## Post-Review Gap
+
+After initial execution summary and verifier pass, an architecture review found one remaining closure category: **contract correctness for downstream consumers**.
+
+The implementation achieved the core extraction/hardening goal, but four follow-up gaps remain:
+- command APIs still use `Task[]` instead of a truly minimal executable scheduling contract
+- export tests verify source barrels, not real built package entrypoints
+- docs recommend `adapters/scheduling` as if it were a public import path, but it is not exported from `package.json`
+- `resizeTaskWithCascade(anchor='start')` semantics are not described consistently across code and docs
+
+This does not invalidate the completed implementation work in Plan 03. It means the phase should be considered **functionally complete, with follow-up contract closure work remaining**.
 
 ---
 *Phase: 28-scheduling-core-hardening*
