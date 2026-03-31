@@ -150,7 +150,7 @@ describe('moveTaskWithCascade', () => {
 });
 
 describe('resizeTaskWithCascade', () => {
-  it('8. anchor=end — shrinks task, successor recalculates', () => {
+  it('8. anchor=end keeps start fixed and resizes by end date', () => {
     const task = makeTask({ id: 'A', startDate: '2024-01-01', endDate: '2024-01-05' });
     const successor = makeTask({
       id: 'B', startDate: '2024-01-06', endDate: '2024-01-10',
@@ -161,13 +161,14 @@ describe('resizeTaskWithCascade', () => {
     const result = resizeTaskWithCascade('A', 'end', d('2024-01-03'), snapshot);
 
     const resizedA = result.changedTasks.find(t => t.id === 'A')!;
+    expect(resizedA.startDate).toBe('2024-01-01');
     expect(resizedA.endDate).toBe('2024-01-03');
 
     const movedB = result.changedTasks.find(t => t.id === 'B')!;
     expect(movedB.startDate).toBe('2024-01-04');
   });
 
-  it('9. anchor=start — changes start, end fixed', () => {
+  it('9. anchor=start keeps end fixed and resizes by start date', () => {
     const task = makeTask({ id: 'A', startDate: '2024-01-01', endDate: '2024-01-05' });
     const successor = makeTask({
       id: 'B', startDate: '2024-01-06', endDate: '2024-01-10',
@@ -179,7 +180,6 @@ describe('resizeTaskWithCascade', () => {
 
     const resizedA = result.changedTasks.find(t => t.id === 'A')!;
     expect(resizedA.startDate).toBe('2024-01-03');
-    // end stays the same since we anchored start
     expect(resizedA.endDate).toBe('2024-01-05');
   });
 
@@ -241,15 +241,54 @@ describe('recalculateProjectSchedule', () => {
 
     const result = recalculateProjectSchedule(snapshot);
 
+    expect(result.changedIds).toEqual(['B', 'C']);
     const resultB = result.changedTasks.find(t => t.id === 'B')!;
     const resultC = result.changedTasks.find(t => t.id === 'C')!;
     expect(resultB.startDate).toBe('2024-01-08');
     expect(resultC.startDate).toBe('2024-01-13');
   });
+
+  it('12. uses strongest constraint across multiple roots and predecessors', () => {
+    const a = makeTask({ id: 'A', startDate: '2024-01-10', endDate: '2024-01-12' });
+    const b = makeTask({ id: 'B', startDate: '2024-01-03', endDate: '2024-01-05' });
+    const c = makeTask({
+      id: 'C',
+      startDate: '2024-01-06',
+      endDate: '2024-01-08',
+      dependencies: [
+        { taskId: 'A', type: 'FS', lag: 0 },
+        { taskId: 'B', type: 'FS', lag: 0 },
+      ],
+    });
+    const snapshot = [a, b, c];
+
+    const result = recalculateProjectSchedule(snapshot);
+
+    expect(result.changedIds).toEqual(['C']);
+    const recalculatedC = result.changedTasks.find(t => t.id === 'C')!;
+    expect(recalculatedC.startDate).toBe('2024-01-13');
+    expect(recalculatedC.endDate).toBe('2024-01-15');
+  });
+
+  it('13. returns only the true diff instead of the full snapshot', () => {
+    const a = makeTask({ id: 'A', startDate: '2024-01-01', endDate: '2024-01-05' });
+    const b = makeTask({
+      id: 'B',
+      startDate: '2024-01-08',
+      endDate: '2024-01-12',
+      dependencies: [{ taskId: 'A', type: 'FS', lag: 2 }],
+    });
+    const unchanged = makeTask({ id: 'C', startDate: '2024-02-01', endDate: '2024-02-03' });
+
+    const result = recalculateProjectSchedule([a, b, unchanged]);
+
+    expect(result.changedIds).toEqual([]);
+    expect(result.changedTasks).toEqual([]);
+  });
 });
 
 describe('recalculateIncomingLags path', () => {
-  it('12. Lag updates after successor moved manually', () => {
+  it('14. Lag updates after successor moved manually', () => {
     const predecessor = makeTask({ id: 'A', startDate: '2024-01-01', endDate: '2024-01-05' });
     const successor = makeTask({
       id: 'B', startDate: '2024-01-10', endDate: '2024-01-14',
