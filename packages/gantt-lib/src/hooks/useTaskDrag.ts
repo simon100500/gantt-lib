@@ -3,7 +3,23 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { buildTaskRangeFromEnd, buildTaskRangeFromStart, calculateSuccessorDate, clampTaskRangeForIncomingFS, getDependencyLag, getTransitiveCascadeChain, moveTaskRange, recalculateIncomingLags, getChildren, isTaskParent, universalCascade, resolveDateRangeFromPixels, clampDateRangeForIncomingFS } from '../core/scheduling';
+// Domain scheduling functions
+import {
+  buildTaskRangeFromEnd,
+  buildTaskRangeFromStart,
+  calculateSuccessorDate,
+  clampTaskRangeForIncomingFS,
+  getDependencyLag,
+  getTransitiveCascadeChain,
+  moveTaskRange,
+  recalculateIncomingLags,
+  getChildren,
+  isTaskParent,
+  universalCascade,
+} from '../core/scheduling';
+
+// UI adapter functions (pixel-to-date conversion)
+import { resolveDateRangeFromPixels, clampDateRangeForIncomingFS } from '../adapters/scheduling';
 
 /**
  * Get transitive closure of successors for cascading.

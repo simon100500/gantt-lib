@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v0.18.0
 milestone_name: milestone
 status: Milestone complete
-last_updated: "2026-03-30T20:17:19.884Z"
+last_updated: "2026-03-30T22:16:27.720Z"
 last_activity: 2026-03-30
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 20
-  completed_plans: 20
+  total_phases: 9
+  completed_phases: 9
+  total_plans: 23
+  completed_plans: 23
 ---
 
 ## Current Position
 
-Phase: 27
+Phase: 28
 Plan: Not started
 
 ## Project Reference
@@ -99,6 +99,7 @@ None yet — no external users (library in active development)
 - Phase 24 added: buisiness-days
 - Phase 25 added: columns-refactoring
 - Phase 27 added: core-refactor
+- Phase 28 added: scheduling-core-hardening
 
 **Coverage:** 13/13 requirements mapped ✓
 
@@ -106,18 +107,22 @@ None yet — no external users (library in active development)
 
 **Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
 
-**Current focus:** Phase 27 — core-refactor
+**Current focus:** Phase 28 — scheduling-core-hardening
 
 - ✓ 25-01: Structural foundations — new types, resolver with TDD, backward-compatible bridge
 - ✓ 25-02: Render unification — createBuiltInColumns factory, header/body via resolvedColumns.map()
 - ✓ 25-03: Editor unification — single editingColumnId replaces 4 separate states
 - ✓ 25-04: Generic tightening — (source changes superseded by Waves 1-3 architecture)
 
-**Next:** Verification
+**Next:** Phase 28 complete — ready for verification
+
+- ✓ 28-01: Domain types + command-level API (execute.ts, ScheduleTask, 22 tests)
+- ✓ 28-02: UI adapter extraction (adapters/scheduling/drag.ts, clean domain boundary)
+- ✓ 28-03: Boundary tests + documentation (5 boundary + 4 export-contract tests, docs rewrite)
 
 ---
 
 Last activity: 2026-03-30
 
-**State updated:** 2026-03-29
+**State updated:** 2026-03-30
 **Milestone:** v0.50.0 Adding Tools

@@ -2,6 +2,8 @@
 
 Библиотека включает headless-модуль планирования в `src/core/scheduling/` — runtime-агностический код с **нулевыми** зависимостями от React, DOM и date-fns. Это позволяет использовать scheduling-логику без UI.
 
+@stability stable
+
 ## Обратная совместимость
 
 Существующий импорт из `gantt-lib` работает без изменений:
@@ -35,27 +37,61 @@ import {
 
 ## Структура модуля
 
+@stability stable
+
 ```
 src/core/scheduling/
-├── types.ts          — Типы: LinkType, Task, TaskDependency, ValidationResult, DependencyError
+├── types.ts          — Типы: Task, ScheduleTask, ScheduleCommandResult, ScheduleCommandOptions, etc.
 ├── dateMath.ts       — Дата-математика: normalizeUTCDate, бизнес-дни, DAY_MS
 ├── dependencies.ts   — Расчёт successor-дат, lag-нормализация
 ├── cascade.ts        — Каскадное распространение изменений
-├── commands.ts       — Высокоуровневые команды: moveTaskRange, clamp, resolve
+├── commands.ts       — Доменные команды: moveTaskRange, clamp, recalculateLags
+├── execute.ts        — Command-level API (stable) — высокоуровневые команды
 ├── validation.ts     — Валидация зависимостей, обнаружение циклов
 ├── hierarchy.ts      — Иерархия задач: дети, родители, агрегация дат
-└── index.ts          — Barrel re-export
+└── index.ts          — Barrel re-export + backward-compat deprecated re-exports
+
+src/adapters/scheduling/     — UI adapter layer
+├── drag.ts                  — Пиксельно-дата конвертация для drag
+└── index.ts                 — Barrel
 ```
 
 ## API Reference
 
 ### types.ts
 
+@stability stable
+
 ```typescript
+// Re-exports from library types
 export type { LinkType, TaskDependency, DependencyError, ValidationResult, Task } from '../../types';
+
+// Core scheduling domain types
+export interface ScheduleTask {
+  id: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  dependencies?: TaskDependency[];
+  parentId?: string;
+  locked?: boolean;
+  progress?: number;
+}
+
+export interface ScheduleCommandResult {
+  changedTasks: Task[];
+  changedIds: string[];
+}
+
+export interface ScheduleCommandOptions {
+  businessDays?: boolean;
+  weekendPredicate?: (date: Date) => boolean;
+  skipCascade?: boolean;
+}
 ```
 
 ### dateMath.ts
+
+@stability stable
 
 Чистые функции для работы с датами. Ноль побочных эффектов.
 
@@ -64,9 +100,6 @@ export type { LinkType, TaskDependency, DependencyError, ValidationResult, Task 
 | `DAY_MS` | `const 86400000` | Миллисекунд в сутках |
 | `normalizeUTCDate` | `(date: Date) => Date` | Приводит дату к UTC midnight |
 | `parseDateOnly` | `(date: string \| Date) => Date` | Парсит ISO-строку в UTC Date |
-| `getBusinessDaysCount` | `(start, end, weekendPredicate?) => number` | Считает рабочие дни между датами |
-| `addBusinessDays` | `(start, days, weekendPredicate?) => Date` | Добавляет N рабочих дней |
-| `subtractBusinessDays` | `(end, days, weekendPredicate?) => Date` | Вычитает N рабочих дней |
 | `getBusinessDayOffset` | `(from, to, weekendPredicate?) => number` | Offset в рабочих днях |
 | `shiftBusinessDayOffset` | `(date, offset, weekendPredicate?) => Date` | Сдвигает дату на offset рабочих дней |
 | `alignToWorkingDay` | `(date, direction, weekendPredicate?) => Date` | Приводит к рабочему дню (вперёд/назад) |
@@ -74,30 +107,38 @@ export type { LinkType, TaskDependency, DependencyError, ValidationResult, Task 
 
 ### dependencies.ts
 
+@stability stable
+
 Расчёт дат successor-задач по связям FS/SS/FF/SF.
 
 | Функция | Описание |
 |---|---|
 | `getDependencyLag(dep)` | Возвращает lag или 0 |
-| `normalizeDependencyLag(linkType, lag, businessDays?, weekendPredicate?)` | Нормализует lag (FS: ≥ 0) |
-| `calculateSuccessorDate(predStart, predEnd, linkType, lag?, businessDays?, weekendPredicate?)` | Вычисляет дату successor |
-| `computeLagFromDates(linkType, predStart, predEnd, succStart, succEnd, businessDays?, weekendPredicate?)` | Вычисляет lag из дат |
+| `normalizeDependencyLag(linkType, lag, predStart, predEnd, businessDays?, weekendPredicate?)` | Нормализует lag: FS — clamp к >= -predecessorDuration (не >= 0). Остальные типы — без изменений |
+| `calculateSuccessorDate(predStart, predEnd, linkType, lag?, businessDays?, weekendPredicate?)` | Вычисляет дату successor. FS: predEnd + lag + 1; SS: predStart + lag; FF: predEnd + lag; SF: predStart + lag - 1 |
+| `computeLagFromDates(linkType, predStart, predEnd, succStart, succEnd, businessDays?, weekendPredicate?)` | Вычисляет lag из дат. FS: lag = succStart - predEnd - 1; SS: lag = succStart - predStart; FF: lag = succEnd - predEnd; SF: lag = succEnd - predStart + 1 |
 
 ### cascade.ts
+
+@stability internal
 
 Распространение изменений по цепочке зависимостей.
 
 | Функция | Описание |
 |---|---|
-| `cascadeByLinks(movedTaskId, newStart, newEnd, allTasks, ...)` | Каскад по FS-связям |
-| `universalCascade(movedTask, newStart, newEnd, allTasks, ...)` | Каскад по всем типам связей |
-| `getSuccessorChain(draggedTaskId, allTasks, linkTypes?)` | Транзитивные successors |
+| `cascadeByLinks(movedTaskId, newStart, newEnd, allTasks, ...)` | Каскад по всем типам связей: FS/SS → buildFromStart, FF/SF → buildFromEnd |
+| `universalCascade(movedTask, newStart, newEnd, allTasks, businessDays?, weekendPredicate?)` | Полный каскад: dependency + hierarchy (children follow parent, parent recomputed from children) |
+| `getSuccessorChain(draggedTaskId, allTasks, linkTypes?)` | Транзитивные successors (BFS) |
 | `getTransitiveCascadeChain(changedTaskId, allTasks, firstLevelLinkTypes?)` | Полная цепочка каскада |
 | `reflowTasksOnModeSwitch(sourceTasks, toBusinessDays, weekendPredicate?)` | Конвертация business/calendar дней |
 
+**Per-type поведение cascadeByLinks:** FS и SS successors пересчитываются от start date (buildFromStart). FF и SF successors пересчитываются от end date (buildFromEnd).
+
 ### commands.ts
 
-Высокоуровневые операции с задачами.
+@stability public
+
+Доменные операции с задачами (pure scheduling, без pixel/UI параметров).
 
 | Функция | Описание |
 |---|---|
@@ -106,10 +147,29 @@ export type { LinkType, TaskDependency, DependencyError, ValidationResult, Task 
 | `moveTaskRange(originalStart, originalEnd, proposedStart, ...)` | Перемещение с сохранением длительности |
 | `clampTaskRangeForIncomingFS(task, proposedStart, proposedEnd, allTasks, ...)` | Ограничение по входящим FS-связям |
 | `recalculateIncomingLags(task, newStart, newEnd, allTasks, ...)` | Пересчёт lag после изменения дат |
-| `resolveDateRangeFromPixels(mode, left, width, monthStart, dayWidth, task, ...)` | Конвертация пикселей в даты (из drag) |
-| `clampDateRangeForIncomingFS(task, range, allTasks, mode, ...)` | Ограничение range по FS-связям (из drag) |
+
+> **Примечание:** UI-функции resolveDateRangeFromPixels и clampDateRangeForIncomingFS перемещены в `adapters/scheduling/`. Backward-compat re-exports через core/scheduling/index.ts помечены `@deprecated`.
+
+### execute.ts — Command-level API
+
+@stability stable
+
+Высокоуровневые команды, инкапсулирующие типичные scheduling-операции.
+Каждая команда compose существующие low-level helpers.
+
+| Функция | Описание |
+|---|---|
+| `moveTaskWithCascade(taskId, newStart, snapshot, options?)` | Переместить задачу + cascade + lag пересчёт |
+| `resizeTaskWithCascade(taskId, anchor, newDate, snapshot, options?)` | Resize задачи + cascade + lag пересчёт |
+| `recalculateTaskFromDependencies(taskId, snapshot, options?)` | Пересчитать даты задачи по constraints predecessors |
+| `recalculateProjectSchedule(snapshot, options?)` | Полный пересчёт всех задач в snapshot |
+
+**ScheduleCommandOptions:** businessDays?, weekendPredicate?, skipCascade?
+**ScheduleCommandResult:** { changedTasks: Task[], changedIds: string[] }
 
 ### validation.ts
+
+@stability stable
 
 | Функция | Описание |
 |---|---|
@@ -118,6 +178,8 @@ export type { LinkType, TaskDependency, DependencyError, ValidationResult, Task 
 | `validateDependencies(tasks)` | Полная валидация: циклы, missing tasks, иерархия |
 
 ### hierarchy.ts
+
+@stability stable
 
 Работа с parent-child иерархией.
 
@@ -134,6 +196,53 @@ export type { LinkType, TaskDependency, DependencyError, ValidationResult, Task 
 | `removeDependenciesBetweenTasks(id1, id2, tasks)` | Удаление связей между двумя задачами |
 | `getAllDependencyEdges(tasks)` | Все рёбра графа зависимостей |
 
+### adapters/scheduling/ — UI Adapter Layer
+
+@stability internal
+
+Функции конвертации pixel-координат в domain-даты. Используются drag-and-drop interaction layer.
+Не являются частью headless scheduling API.
+
+| Функция | Описание |
+|---|---|
+| `resolveDateRangeFromPixels(mode, left, width, monthStart, dayWidth, task, ...)` | Конвертация пикселей в даты для drag |
+| `clampDateRangeForIncomingFS(task, range, allTasks, mode, ...)` | Ограничение range для drag по FS-связям |
+
+> **Обратная совместимость:** Эти функции реэкспортируются через core/scheduling/index.ts с пометкой `@deprecated`. Новые импорты должны использовать `adapters/scheduling`.
+
+## Downstream Consumption Contract
+
+### Recommended import path
+
+```typescript
+import { moveTaskWithCascade, resizeTaskWithCascade, ... } from 'gantt-lib/core/scheduling';
+```
+
+### Stable entry points
+
+- `gantt-lib/core/scheduling` — все scheduling-функции (CJS + ESM + DTS)
+
+### Stability levels
+
+- **stable** — public API, backward-compat гарантирован: execute.ts (4 команды), types, dateMath, dependencies, validation, hierarchy
+- **public** — public API, может меняться: commands.ts (low-level helpers)
+- **internal** — для внутреннего использования: cascade.ts (низкоуровневый cascade), adapters/scheduling/
+- **deprecated** — будет удалён: импорт UI-функций через core/scheduling barrel
+
+### Minimal task shape для scheduling
+
+```typescript
+const task: ScheduleTask = {
+  id: 'task-1',
+  startDate: '2024-01-01',
+  endDate: '2024-01-05',
+};
+```
+
+### Что authoritative
+
+Команды возвращают полные Task objects (spread из input), но authoritative являются только scheduling-поля: startDate, endDate, dependencies, progress. Остальные поля (name, color, accepted) — pass-through.
+
 ## Гарантии
 
 - Ноль `import ... from 'react'` в core/scheduling
@@ -141,6 +250,8 @@ export type { LinkType, TaskDependency, DependencyError, ValidationResult, Task 
 - Ноль обращений к `document.*` или DOM API
 - Все функции — чистые, без побочных эффектов
 - Все существующие тесты проходят через backward-compat re-export цепочку
+- Command-level API доступен через `gantt-lib/core/scheduling` entry point
+- Доказано boundary-тестами: core/scheduling работает в pure Node без jsdom
 
 ---
 

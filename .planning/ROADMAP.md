@@ -4,11 +4,11 @@
 
 - ✅ **v0.18.0 Gantt Library MVP** — Phases 1-20 (shipped 2026-03-17)
   — See `.planning/milestones/v0.18.0-ROADMAP.md`
-- 🔄 **v0.50.0 Adding Tools** — Phases 21-27 (in progress)
+- 🔄 **v0.50.0 Adding Tools** — Phases 21-28 (in progress)
 
 ## Current Status
 
-🎯 **Phase 27 planning** — Core Refactor (Scheduling Logic Extraction)
+🎯 **Phase 28 planning** — Scheduling Core Hardening
 
 ## Phases
 
@@ -19,7 +19,8 @@
 - [x] **Phase 24: buisiness-days** - Business days calculation mode for task duration
 - [x] **Phase 25: columns-refactoring** - Unified column pipeline for TaskList
 - [x] **Phase 26: columns-api-migration** - Remove legacy column API, enforce new renderEditor/width contract
-- [ ] **Phase 27: core-refactor** - Extract scheduling logic into headless runtime-agnostic core module
+- [x] **Phase 27: core-refactor** - Extract scheduling logic into headless runtime-agnostic core module
+- [ ] **Phase 28: scheduling-core-hardening** - Domain/UI boundary separation, command-level API, documentation
 
 ### Phase 21: Custom Weekend Calendar
 
@@ -193,6 +194,28 @@
 - [x] 27-01-PLAN.md — Create core/scheduling module, move scheduling logic from dependencyUtils + dateUtils, create backward-compat re-export barrels
 - [x] 27-02-PLAN.md — Rewire UI consumers to import from core/scheduling, extract inline scheduling from useTaskDrag
 
+### Phase 28: scheduling-core-hardening
+
+**Goal:** Make core/scheduling server-ready with clean domain/UI boundary, command-level API, and accurate documentation
+
+**Depends on:** Phase 27
+
+**Requirements:** FR-1, FR-2, FR-3, FR-4, FR-5, FR-6
+
+**Success Criteria** (what must be TRUE):
+1. Pixel-based UI functions live in adapters/scheduling/, not in core/scheduling/
+2. Downstream consumer can call moveTaskWithCascade/resizeTaskWithCascade without manual helper composition
+3. ScheduleTask and ScheduleCommandResult types define minimal scheduling contract
+4. Documentation matches code: normalizeDependencyLag semantics, cascadeByLinks per-type behavior, command API
+5. Core scheduling runs in pure Node without React/DOM/jsdom
+6. Backward-compatible re-exports preserve existing import paths
+
+**Plans:** 3 plans
+
+- [x] 28-01-PLAN.md — Domain types + execute.ts command API + parity tests
+- [x] 28-02-PLAN.md — UI extraction: move pixel functions to adapters/scheduling, update useTaskDrag
+- [x] 28-03-PLAN.md — Boundary tests + documentation corrections + downstream guide
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -206,8 +229,9 @@
 | 25 | v0.50.0 | 4/4 | Complete    | 2026-03-29 |
 | 26 | v0.50.0 | 2/2 | Complete    | 2026-03-29 |
 | 27 | v0.50.0 | 2/2 | Complete    | 2026-03-30 |
+| 28 | v0.50.0 | 3/3 | Complete    | 2026-03-30 |
 
-**Overall:** 64/66 plans complete (97%)
+**Overall:** 64/69 plans complete (93%)
 
 <details>
 <summary>v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -244,7 +268,7 @@ Build a lightweight React/Next.js library for interactive Gantt charts. Starting
 </details>
 
 <details>
-<summary>v0.50.0 Adding Tools (Phases 21-27) — IN PROGRESS</summary>
+<summary>v0.50.0 Adding Tools (Phases 21-28) — IN PROGRESS</summary>
 
 ### Overview
 
@@ -259,12 +283,13 @@ Add developer tools and calendar customization features to the Gantt library.
 - [x] **Phase 24: buisiness-days** (2/2 plans) — Business days calculation mode
 - [x] **Phase 25: columns-refactoring** (4/4 plans) — Unified column pipeline for TaskList
 - [x] **Phase 26: columns-api-migration** (2/2 plans) — Remove legacy column API
+- [x] **Phase 27: core-refactor** (2/2 plans) — Extract scheduling logic into headless core module
 
 ### In Progress
 
-- [ ] **Phase 27: core-refactor** (0/2 plans) — Extract scheduling logic into headless core module
+- [ ] **Phase 28: scheduling-core-hardening** (0/3 plans) — Domain/UI boundary, command API, documentation
 
-**Total:** 7 phases complete, 1 in progress
+**Total:** 8 phases complete, 1 in progress
 
 </details>
 
