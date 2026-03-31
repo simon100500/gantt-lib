@@ -62,8 +62,10 @@ export {
   resizeTaskWithCascade,
   recalculateTaskFromDependencies,
   recalculateProjectSchedule,
+} from '../core/scheduling';
 
-  // backward-compat UI adapter re-exports
+// backward-compat UI adapter re-exports
+export {
   resolveDateRangeFromPixels,
   clampDateRangeForIncomingFS,
-} from '../core/scheduling';
+} from '../adapters/scheduling';

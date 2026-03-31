@@ -20,12 +20,6 @@ describe('Export contract: core/scheduling', () => {
     expect(mod).toBeDefined();
   });
 
-  it('backward-compat: re-exports UI adapter functions from core/scheduling', async () => {
-    const mod = await import('../core/scheduling');
-    expect(mod.resolveDateRangeFromPixels).toBeDefined();
-    expect(mod.clampDateRangeForIncomingFS).toBeDefined();
-  });
-
   it('dependencyUtils re-exports all core scheduling functions', async () => {
     const mod = await import('../utils/dependencyUtils');
     expect(mod.moveTaskWithCascade).toBeDefined();
