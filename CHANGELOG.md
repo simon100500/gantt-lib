@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.0] - 2026-03-31
+
+### Features
+
+- Add command-level scheduling API with ScheduleTask, ScheduleCommandResult, ScheduleCommandOptions domain types
+- Implement scheduling execution engine with task resizing and project recalculation logic
+- Extract UI adapter functions for drag scheduling to adapters/scheduling/drag.ts
+
+### Refactor
+
+- Rewire useTaskDrag hook to import UI functions from adapters/scheduling
+
+### Documentation
+
+- Rewrite headless scheduling API reference (14-headless-scheduling.md)
+
 ## [0.60.2] - 2026-03-30
 
 ### Fixes

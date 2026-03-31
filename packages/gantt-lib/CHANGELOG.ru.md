@@ -5,6 +5,22 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.61.0] - 2026-03-31
+
+### Новые возможности
+
+- Добавлен API планирования на уровне команд с доменными типами ScheduleTask, ScheduleCommandResult, ScheduleCommandOptions
+- Реализован движок выполнения планирования с логикой изменения размеров задач и пересчёта проекта
+- Извлечены UI-адаптеры для drag-планирования в adapters/scheduling/drag.ts
+
+### Рефакторинг
+
+- Обновлён хук useTaskDrag для импорта UI-функций из adapters/scheduling
+
+### Документация
+
+- Переписан API-справочник headless-планирования (14-headless-scheduling.md)
+
 ## [0.60.2] - 2026-03-30
 
 ### Исправлено
