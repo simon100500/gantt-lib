@@ -558,14 +558,10 @@ function GanttChartInner<TTask extends Task = Task>(
   }, [tasks, onTasksChange, onDelete]);
 
   /**
-   * Handle task insertion: set editingTaskId to trigger auto-edit mode,
-   * then notify external consumer via onInsertAfter callback.
-   *
-   * NOTE: The external onInsertAfter callback is responsible for adding
-   * the task and should emit onTasksChange with the new task.
+   * Handle task insertion after inline draft confirmation.
+   * The task name is already confirmed inside TaskList, so no auto-edit is needed here.
    */
   const handleInsertAfter = useCallback((taskId: string, newTask: Task) => {
-    setEditingTaskId(newTask.id);
     onInsertAfter?.(taskId, newTask as TTask);
   }, [onInsertAfter]);
 

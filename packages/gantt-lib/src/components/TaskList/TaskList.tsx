@@ -204,6 +204,15 @@ export interface TaskListProps {
   additionalColumns?: TaskListColumn<any>[];
 }
 
+interface PendingInsertState {
+  anchorTaskId: string;
+  insertAfterTaskId: string;
+  parentId?: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  nestingDepth: number;
+}
+
 /**
  * TaskList component - displays tasks in a table format as an overlay
  *
@@ -556,6 +565,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   // New task creation state
   const [isCreating, setIsCreating] = useState(false);
+  const [pendingInsert, setPendingInsert] = useState<PendingInsertState | null>(null);
 
   // Drag-to-reorder state
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
@@ -805,6 +815,99 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   const handleCancelNewTask = useCallback(() => setIsCreating(false), []);
 
+  const findInsertAfterTaskId = useCallback((anchorTaskId: string): string => {
+    const anchorIndex = orderedTasks.findIndex(task => task.id === anchorTaskId);
+    if (anchorIndex === -1) {
+      return anchorTaskId;
+    }
+
+    const taskById = new Map(orderedTasks.map(task => [task.id, task]));
+    let insertAfterTaskId = anchorTaskId;
+
+    for (let index = anchorIndex + 1; index < orderedTasks.length; index += 1) {
+      let currentParentId = orderedTasks[index]?.parentId;
+      let isDescendant = false;
+
+      while (currentParentId) {
+        if (currentParentId === anchorTaskId) {
+          isDescendant = true;
+          break;
+        }
+        currentParentId = taskById.get(currentParentId)?.parentId;
+      }
+
+      if (!isDescendant) {
+        break;
+      }
+
+      insertAfterTaskId = orderedTasks[index].id;
+    }
+
+    return insertAfterTaskId;
+  }, [orderedTasks]);
+
+  const pendingInsertDisplayTaskId = useMemo(() => {
+    if (!pendingInsert) {
+      return null;
+    }
+
+    const taskById = new Map(visibleTasks.map(task => [task.id, task]));
+    if (!taskById.has(pendingInsert.anchorTaskId)) {
+      return null;
+    }
+
+    let displayTaskId = pendingInsert.anchorTaskId;
+
+    for (const task of visibleTasks) {
+      let currentParentId = task.parentId;
+      while (currentParentId) {
+        if (currentParentId === pendingInsert.anchorTaskId) {
+          displayTaskId = task.id;
+          break;
+        }
+        currentParentId = taskById.get(currentParentId)?.parentId;
+      }
+    }
+
+    return displayTaskId;
+  }, [pendingInsert, visibleTasks]);
+
+  const handleStartInsertAfter = useCallback((taskId: string, newTask: Task) => {
+    const anchorTask = orderedTasks.find(task => task.id === taskId);
+    if (!anchorTask) {
+      return;
+    }
+
+    setIsCreating(false);
+    setPendingInsert({
+      anchorTaskId: taskId,
+      insertAfterTaskId: findInsertAfterTaskId(taskId),
+      parentId: anchorTask.parentId,
+      startDate: newTask.startDate,
+      endDate: newTask.endDate,
+      nestingDepth: nestingDepthMap.get(taskId) ?? 0,
+    });
+  }, [findInsertAfterTaskId, nestingDepthMap, orderedTasks]);
+
+  const handleConfirmInsertedTask = useCallback((name: string) => {
+    if (!pendingInsert) {
+      return;
+    }
+
+    const newTask: Task = {
+      id: crypto.randomUUID(),
+      name,
+      startDate: pendingInsert.startDate,
+      endDate: pendingInsert.endDate,
+      parentId: pendingInsert.parentId,
+    };
+
+    onInsertAfter?.(pendingInsert.insertAfterTaskId, newTask);
+    setPendingInsert(null);
+  }, [onInsertAfter, pendingInsert]);
+
+  const handleCancelInsertedTask = useCallback(() => setPendingInsert(null), []);
+
   /**
    * Calculate the depth of a task in the hierarchy.
    * Root tasks have depth 0, their children have depth 1, etc.
@@ -989,74 +1092,87 @@ export const TaskList: React.FC<TaskListProps> = ({
               || previousVisibleTask?.id !== task.parentId;
 
             return (
-            <TaskListRow
-              key={task.id}
-              task={task}
-              rowIndex={index}
-              taskNumber={originalTaskNumberMap[task.id] || ''}
-              taskNumberMap={originalTaskNumberMap}
-              rowHeight={rowHeight}
-              onTasksChange={onTasksChange}
-              selectedTaskId={selectedTaskId}
-              onRowClick={handleRowClick}
-              disableTaskNameEditing={disableTaskNameEditing}
-              disableDependencyEditing={disableDependencyEditing}
-              allTasks={tasks}
-              activeLinkType={activeLinkType}
-              onSetActiveLinkType={setActiveLinkType}
-              selectingPredecessorFor={selectingPredecessorFor}
-              dependencyPickMode={dependencyPickMode}
-              onSetDependencyPickMode={setDependencyPickMode}
-              onSetSelectingPredecessorFor={setSelectingPredecessorFor}
-              onAddDependency={handleAddDependency}
-              onRemoveDependency={handleRemoveDependency}
-              selectedChip={selectedChip}
-              onChipSelect={handleChipSelect}
-              onScrollToTask={onScrollToTask}
-              onDelete={onDelete}
-              onAdd={onAdd}
-              onInsertAfter={onInsertAfter}
-              editingTaskId={propEditingTaskId}
-              isDragging={draggingIndex === index}
-              isDragOver={dragOverIndex === index}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onDragEnd={handleDragEnd}
-              collapsedParentIds={collapsedParentIds}
-              onToggleCollapse={handleToggleCollapse}
-              onPromoteTask={onPromoteTask}
-              onDemoteTask={onDemoteTask ? handleDemoteWrapper : undefined}
-              onDuplicateTask={onReorder ? handleDuplicateTask : undefined}
-              canDemoteTask={canDemoteTask}
-              isLastChild={lastChildIds.has(task.id)}
-              nestingDepth={nestingDepthMap.get(task.id) ?? 0}
-              ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
-              customDays={customDays}
-              isWeekend={isWeekend}
-              businessDays={businessDays}
-              isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}
-              isFilterHideMode={filterMode === 'hide' && isFilterActive}
-              resolvedColumns={resolvedColumns}
-            />
+              <React.Fragment key={task.id}>
+                <TaskListRow
+                  task={task}
+                  rowIndex={index}
+                  taskNumber={originalTaskNumberMap[task.id] || ''}
+                  taskNumberMap={originalTaskNumberMap}
+                  rowHeight={rowHeight}
+                  onTasksChange={onTasksChange}
+                  selectedTaskId={selectedTaskId}
+                  onRowClick={handleRowClick}
+                  disableTaskNameEditing={disableTaskNameEditing}
+                  disableDependencyEditing={disableDependencyEditing}
+                  allTasks={tasks}
+                  activeLinkType={activeLinkType}
+                  onSetActiveLinkType={setActiveLinkType}
+                  selectingPredecessorFor={selectingPredecessorFor}
+                  dependencyPickMode={dependencyPickMode}
+                  onSetDependencyPickMode={setDependencyPickMode}
+                  onSetSelectingPredecessorFor={setSelectingPredecessorFor}
+                  onAddDependency={handleAddDependency}
+                  onRemoveDependency={handleRemoveDependency}
+                  selectedChip={selectedChip}
+                  onChipSelect={handleChipSelect}
+                  onScrollToTask={onScrollToTask}
+                  onDelete={onDelete}
+                  onAdd={onAdd}
+                  onInsertAfter={handleStartInsertAfter}
+                  editingTaskId={propEditingTaskId}
+                  isDragging={draggingIndex === index}
+                  isDragOver={dragOverIndex === index}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onDragEnd={handleDragEnd}
+                  collapsedParentIds={collapsedParentIds}
+                  onToggleCollapse={handleToggleCollapse}
+                  onPromoteTask={onPromoteTask}
+                  onDemoteTask={onDemoteTask ? handleDemoteWrapper : undefined}
+                  onDuplicateTask={onReorder ? handleDuplicateTask : undefined}
+                  canDemoteTask={canDemoteTask}
+                  isLastChild={lastChildIds.has(task.id)}
+                  nestingDepth={nestingDepthMap.get(task.id) ?? 0}
+                  ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
+                  customDays={customDays}
+                  isWeekend={isWeekend}
+                  businessDays={businessDays}
+                  isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}
+                  isFilterHideMode={filterMode === 'hide' && isFilterActive}
+                  resolvedColumns={resolvedColumns}
+                />
+                {pendingInsertDisplayTaskId === task.id && (
+                  <NewTaskRow
+                    rowHeight={rowHeight}
+                    onConfirm={handleConfirmInsertedTask}
+                    onCancel={handleCancelInsertedTask}
+                    nestingDepth={pendingInsert?.nestingDepth ?? 0}
+                  />
+                )}
+              </React.Fragment>
             );
           })}
         </div>
 
         {/* Ghost row for new task creation — positioned OUTSIDE body div to avoid height desync */}
-        {isCreating && (
+        {isCreating && !pendingInsert && (
           <NewTaskRow
             rowHeight={rowHeight}
             onConfirm={handleConfirmNewTask}
             onCancel={handleCancelNewTask}
+            nestingDepth={0}
           />
         )}
 
         {/* Add task button - also serves as drop target for moving tasks to end */}
-        {enableAddTask && onAdd && !isCreating && (
+        {enableAddTask && onAdd && !isCreating && !pendingInsert && (
           <button
             className={`gantt-tl-add-btn${dragOverIndex === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
-            onClick={() => setIsCreating(true)}
+            onClick={() => {
+              setPendingInsert(null);
+              setIsCreating(true);
+            }}
             onDragEnter={(e) => {
               e.preventDefault();
               setDragOverIndex(visibleTasks.length);

@@ -1897,6 +1897,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                     name: "Новая задача",
                     startDate: todayISO,
                     endDate: endISO,
+                    parentId: task.parentId,
                   };
                   onInsertAfter(task.id, newTask);
                 }}

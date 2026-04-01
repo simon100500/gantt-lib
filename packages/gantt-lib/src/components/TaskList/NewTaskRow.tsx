@@ -7,12 +7,19 @@ interface NewTaskRowProps {
   rowHeight: number;
   onConfirm: (name: string) => void;
   onCancel: () => void;
+  nestingDepth?: number;
 }
 
-export const NewTaskRow: React.FC<NewTaskRowProps> = ({ rowHeight, onConfirm, onCancel }) => {
+export const NewTaskRow: React.FC<NewTaskRowProps> = ({
+  rowHeight,
+  onConfirm,
+  onCancel,
+  nestingDepth = 0,
+}) => {
   const [nameValue, setNameValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const confirmedRef = useRef(false);
+  const inputPaddingLeft = nestingDepth > 0 ? `${nestingDepth * 20 + 8}px` : undefined;
 
   useEffect(() => {
     if (inputRef.current) {
@@ -56,6 +63,7 @@ export const NewTaskRow: React.FC<NewTaskRowProps> = ({ rowHeight, onConfirm, on
           onBlur={handleBlur}
           placeholder="Название"
           className="gantt-tl-name-input"
+          style={{ paddingLeft: inputPaddingLeft }}
         />
       </div>
       <div className="gantt-tl-cell" />
