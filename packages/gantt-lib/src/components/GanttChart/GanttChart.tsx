@@ -570,8 +570,14 @@ function GanttChartInner<TTask extends Task = Task>(
   }, [onInsertAfter]);
 
   /**
-   * Handle task reordering: notify external consumer via onTasksChange and onReorder callbacks.
-   * Reordering changes all tasks positions, so we emit the full reordered array.
+   * Handle task reordering.
+   *
+   * Preferred path: emit a single onReorder callback with the full normalized task array.
+   * Backward-compatibility path: if onReorder is not provided, fall back to onTasksChange.
+   *
+   * This avoids duplicate reorder notifications for consumers that already opted into
+   * the dedicated reorder API while preserving legacy consumers that only listen to
+   * onTasksChange.
    */
   const handleReorder = useCallback((reorderedTasks: Task[], movedTaskId?: string, inferredParentId?: string) => {
     let updated = reorderedTasks;
@@ -585,8 +591,12 @@ function GanttChartInner<TTask extends Task = Task>(
     }
 
     const normalized = normalizeHierarchyTasks(updated);
+    if (onReorder) {
+      onReorder(normalized as TTask[], movedTaskId, inferredParentId);
+      return;
+    }
+
     onTasksChange?.(normalized as TTask[]);
-    onReorder?.(normalized as TTask[], movedTaskId, inferredParentId);
   }, [onTasksChange, onReorder]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
