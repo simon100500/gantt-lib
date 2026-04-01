@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.0] - 2026-04-01
+
+### Features
+
+- Improve task reordering to prefer onReorder callback over onTasksChange, avoiding duplicate notifications
+- Fix DTS generation for core/scheduling subpath export and remove deprecated backward-compat re-exports
+
+### Fixes
+
+- Resolve business days handling in task dragging and date adjustments
+
 ## [0.61.0] - 2026-03-31
 
 ### Features
