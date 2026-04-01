@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.63.0] - 2026-04-01
+
+### Features
+
+- Enhance task insertion handling and UI adjustments in TaskList
+
+### Refactor
+
+- Optimize input styling for nested tasks in NewTaskRow
+
 ## [0.62.0] - 2026-04-01
 
 ### Features
