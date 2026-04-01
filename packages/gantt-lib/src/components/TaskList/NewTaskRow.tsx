@@ -19,7 +19,8 @@ export const NewTaskRow: React.FC<NewTaskRowProps> = ({
   const [nameValue, setNameValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const confirmedRef = useRef(false);
-  const inputPaddingLeft = nestingDepth > 0 ? `${nestingDepth * 20 + 8}px` : undefined;
+  const inputInnerPadding = 4;
+  const levelOffset = nestingDepth > 0 ? nestingDepth * 20 + 8 : 0;
 
   useEffect(() => {
     if (inputRef.current) {
@@ -63,7 +64,11 @@ export const NewTaskRow: React.FC<NewTaskRowProps> = ({
           onBlur={handleBlur}
           placeholder="Название"
           className="gantt-tl-name-input"
-          style={{ paddingLeft: inputPaddingLeft }}
+          style={{
+            left: `${Math.max(0, levelOffset - inputInnerPadding)}px`,
+            width: levelOffset > 0 ? `calc(100% - ${Math.max(0, levelOffset - inputInnerPadding)}px)` : '100%',
+            paddingLeft: `${inputInnerPadding}px`,
+          }}
         />
       </div>
       <div className="gantt-tl-cell" />
