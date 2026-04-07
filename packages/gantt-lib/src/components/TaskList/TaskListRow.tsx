@@ -1012,12 +1012,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const handleNameClick = useCallback(
       (e: React.MouseEvent) => {
-        if (disableTaskNameEditing) return;
         e.stopPropagation();
         onRowClick?.(task.id);
         onScrollToTask?.(task.id);
       },
-      [task.id, disableTaskNameEditing, onRowClick, onScrollToTask],
+      [task.id, onRowClick, onScrollToTask],
     );
 
     const handleNameDoubleClick = useCallback(

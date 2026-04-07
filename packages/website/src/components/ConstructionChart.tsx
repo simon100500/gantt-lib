@@ -25,6 +25,7 @@ export default function ConstructionChart() {
   const [highlightExpired, setHighlightExpired] = useState(true);
   const [businessDays, setBusinessDays] = useState(true);
   const [disableTaskDrag, setDisableTaskDrag] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
   const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
   const [filterMode, setFilterMode] = useState<'highlight' | 'hide'>('highlight');
@@ -142,6 +143,7 @@ export default function ConstructionChart() {
         <button className={`demo-btn ${highlightExpired ? "demo-btn-danger" : "demo-btn-muted"}`} onClick={() => setHighlightExpired(!highlightExpired)}>{highlightExpired ? "Disable Expired Highlight" : "Enable Expired Highlight"}</button>
         <button className={`demo-btn ${businessDays ? "demo-btn-active" : "demo-btn-muted"}`} onClick={() => setBusinessDays(!businessDays)}>{businessDays ? "Рабочие дни: ON" : "Рабочие дни: OFF"}</button>
         <button className={`demo-btn ${disableTaskDrag ? "demo-btn-danger" : "demo-btn-muted"}`} onClick={() => setDisableTaskDrag(!disableTaskDrag)}>{disableTaskDrag ? "Drag: OFF" : "Drag: ON"}</button>
+        <button className={`demo-btn ${locked ? "demo-btn-danger" : "demo-btn-muted"}`} onClick={() => { setLocked(!locked); setDisableTaskNameEditing(!locked); setDisableTaskDrag(!locked); }}>{locked ? "🔓 Разблокировать" : "🔒 Заблокировать"}</button>
       </div>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>

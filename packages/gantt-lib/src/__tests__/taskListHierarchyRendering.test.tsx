@@ -119,6 +119,37 @@ describe('TaskListRow hierarchy rendering', () => {
     expect(screen.getByDisplayValue('Parent task')).toBeTruthy();
   });
 
+  it('keeps task navigation by name click when name editing is disabled', () => {
+    const onRowClick = vi.fn();
+    const onScrollToTask = vi.fn();
+    const task: Task = {
+      id: 'readonly-task',
+      name: 'Readonly task',
+      startDate: '2026-03-01',
+      endDate: '2026-03-05',
+      progress: 0,
+    };
+
+    render(
+      <TaskListRow
+        task={task}
+        allTasks={[task]}
+        rowIndex={0}
+        rowHeight={40}
+        disableTaskNameEditing
+        onRowClick={onRowClick}
+        onScrollToTask={onScrollToTask}
+        onChipSelect={() => {}}
+        resolvedColumns={resolvedColumns}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Readonly task' }));
+
+    expect(onRowClick).toHaveBeenCalledWith('readonly-task');
+    expect(onScrollToTask).toHaveBeenCalledWith('readonly-task');
+  });
+
   it('renders the parent connector tail below the chevron for a root parent task', () => {
     const parent: Task = {
       id: 'parent',
@@ -214,8 +245,8 @@ describe('TaskListRow hierarchy rendering', () => {
     fireEvent.click(screen.getByLabelText('Выбрать цвет Палисандр'));
 
     expect(onTasksChange).toHaveBeenCalledWith([
-      { ...parent, color: '#A61E4D' },
-      { ...child, color: '#A61E4D' },
+      { ...parent, color: '#d64a7b' },
+      { ...child, color: '#d64a7b' },
     ]);
   });
 });
