@@ -198,40 +198,40 @@ function GanttChartInner<TTask extends Task = Task>(
   ref: React.ForwardedRef<GanttChartHandle>
 ) {
   const {
-  tasks,
-  dayWidth = 40,
-  rowHeight = 40,
-  headerHeight = 40,
-  containerHeight,
-  onTasksChange,
-  onValidateDependencies,
-  enableAutoSchedule,
-  disableConstraints,
-  onCascade,
-  showTaskList = false,
-  taskListWidth = 660,
-  disableTaskNameEditing = false,
-  disableDependencyEditing = false,
-  highlightExpiredTasks = false,
-  onAdd,
-  onDelete,
-  onInsertAfter,
-  onReorder,
-  onPromoteTask,
-  onDemoteTask,
-  enableAddTask = true,
-  viewMode = 'day',
-  customDays,
-  isWeekend,
-  businessDays = true,
-  taskFilter,
-  filterMode = 'highlight',
-  collapsedParentIds: externalCollapsedParentIds,
-  onToggleCollapse: externalOnToggleCollapse,
-  highlightedTaskIds,
-  disableTaskDrag = false,
-  showChart = true,
-  additionalColumns,
+    tasks,
+    dayWidth = 40,
+    rowHeight = 40,
+    headerHeight = 40,
+    containerHeight,
+    onTasksChange,
+    onValidateDependencies,
+    enableAutoSchedule,
+    disableConstraints,
+    onCascade,
+    showTaskList = false,
+    taskListWidth = 660,
+    disableTaskNameEditing = false,
+    disableDependencyEditing = false,
+    highlightExpiredTasks = false,
+    onAdd,
+    onDelete,
+    onInsertAfter,
+    onReorder,
+    onPromoteTask,
+    onDemoteTask,
+    enableAddTask = true,
+    viewMode = 'day',
+    customDays,
+    isWeekend,
+    businessDays = true,
+    taskFilter,
+    filterMode = 'highlight',
+    collapsedParentIds: externalCollapsedParentIds,
+    onToggleCollapse: externalOnToggleCollapse,
+    highlightedTaskIds,
+    disableTaskDrag = false,
+    showChart = true,
+    additionalColumns,
   } = props;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -350,10 +350,10 @@ function GanttChartInner<TTask extends Task = Task>(
 
     if (todayIndex === -1) return;
 
-    // Calculate scroll position to center today
+    // Position today at ~30% of visible area (closer to task list side)
     const todayOffset = todayIndex * dayWidth;
     const containerWidth = container.clientWidth;
-    const scrollLeft = Math.round(todayOffset - (containerWidth / 2) + (dayWidth / 2));
+    const scrollLeft = Math.round(todayOffset + (dayWidth / 2) - containerWidth * 0.3);
 
     container.scrollLeft = Math.max(0, scrollLeft);
   }, []); // Empty deps array - run only on mount
@@ -386,10 +386,10 @@ function GanttChartInner<TTask extends Task = Task>(
 
     if (todayIndex === -1) return;
 
-    // Calculate scroll position to center today
+    // Position today at ~30% of visible area (closer to task list side)
     const todayOffset = todayIndex * dayWidth;
     const containerWidth = container.clientWidth;
-    const scrollLeft = Math.round(todayOffset - (containerWidth / 2) + (dayWidth / 2));
+    const scrollLeft = Math.round(todayOffset + (dayWidth / 2) - containerWidth * 0.3);
 
     container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
   }, [dateRange, dayWidth]);
@@ -934,74 +934,74 @@ function GanttChartInner<TTask extends Task = Task>(
                 width: `${gridWidth}px`,
               }}
             >
-          <GridBackground
-            dateRange={dateRange}
-            dayWidth={dayWidth}
-            totalHeight={totalGridHeight}
-            viewMode={viewMode}
-            isCustomWeekend={isCustomWeekend}
-          />
+              <GridBackground
+                dateRange={dateRange}
+                dayWidth={dayWidth}
+                totalHeight={totalGridHeight}
+                viewMode={viewMode}
+                isCustomWeekend={isCustomWeekend}
+              />
 
-          {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
+              {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
 
-          {/* Dependency lines SVG overlay */}
-          <DependencyLines
-            tasks={previewVisibleTasks}
-            allTasks={previewNormalizedTasks}
-            collapsedParentIds={collapsedParentIds}
-            monthStart={monthStart}
-            dayWidth={dayWidth}
-            rowHeight={rowHeight}
-            gridWidth={gridWidth}
-            dragOverrides={dependencyOverrides}
-            selectedDep={selectedChip}
-            businessDays={businessDays}
-            weekendPredicate={isCustomWeekend}
-          />
+              {/* Dependency lines SVG overlay */}
+              <DependencyLines
+                tasks={previewVisibleTasks}
+                allTasks={previewNormalizedTasks}
+                collapsedParentIds={collapsedParentIds}
+                monthStart={monthStart}
+                dayWidth={dayWidth}
+                rowHeight={rowHeight}
+                gridWidth={gridWidth}
+                dragOverrides={dependencyOverrides}
+                selectedDep={selectedChip}
+                businessDays={businessDays}
+                weekendPredicate={isCustomWeekend}
+              />
 
-          {dragGuideLines && (
-            <DragGuideLines
-              isDragging={dragGuideLines.isDragging}
-              dragMode={dragGuideLines.dragMode}
-              left={dragGuideLines.left}
-              width={dragGuideLines.width}
-              totalHeight={totalGridHeight}
-            />
-          )}
+              {dragGuideLines && (
+                <DragGuideLines
+                  isDragging={dragGuideLines.isDragging}
+                  dragMode={dragGuideLines.dragMode}
+                  left={dragGuideLines.left}
+                  width={dragGuideLines.width}
+                  totalHeight={totalGridHeight}
+                />
+              )}
 
-          {visibleTasks.map((task, index) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              monthStart={monthStart}
-              dayWidth={dayWidth}
-              rowHeight={rowHeight}
-              onTasksChange={handleTaskChange as (tasks: Task[]) => void}
-              onDragStateChange={(state) => {
-                if (state.isDragging) {
-                  setDragGuideLines(state);
-                  setDraggedTaskOverride({ taskId: task.id, left: state.left, width: state.width });
-                } else {
-                  setDragGuideLines(null);
-                  setDraggedTaskOverride(null);
-                }
-              }}
-              rowIndex={index}
-            allTasks={normalizedTasks}
-              enableAutoSchedule={enableAutoSchedule ?? false}
-              disableConstraints={disableConstraints ?? false}
-              overridePosition={cascadeOverrides.get(task.id)}
-              onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
-              onCascade={handleCascade as (cascadedTasks: Task[]) => void}
-              highlightExpiredTasks={highlightExpiredTasks}
-              isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
-              businessDays={businessDays}
-              customDays={customDays}
-              isWeekend={isWeekend}
-              disableTaskDrag={disableTaskDrag}
-            />
-          ))}
-          </div>
+              {visibleTasks.map((task, index) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  monthStart={monthStart}
+                  dayWidth={dayWidth}
+                  rowHeight={rowHeight}
+                  onTasksChange={handleTaskChange as (tasks: Task[]) => void}
+                  onDragStateChange={(state) => {
+                    if (state.isDragging) {
+                      setDragGuideLines(state);
+                      setDraggedTaskOverride({ taskId: task.id, left: state.left, width: state.width });
+                    } else {
+                      setDragGuideLines(null);
+                      setDraggedTaskOverride(null);
+                    }
+                  }}
+                  rowIndex={index}
+                  allTasks={normalizedTasks}
+                  enableAutoSchedule={enableAutoSchedule ?? false}
+                  disableConstraints={disableConstraints ?? false}
+                  overridePosition={cascadeOverrides.get(task.id)}
+                  onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
+                  onCascade={handleCascade as (cascadedTasks: Task[]) => void}
+                  highlightExpiredTasks={highlightExpiredTasks}
+                  isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
+                  businessDays={businessDays}
+                  customDays={customDays}
+                  isWeekend={isWeekend}
+                  disableTaskDrag={disableTaskDrag}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
