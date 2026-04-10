@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.64.1] - 2026-04-10
+
+### Fixes
+
+- Correct task source handling in cascading logic — updated task is now properly integrated into source tasks during dependency cascade
+
 ## [0.64.0] - 2026-04-08
 
 ### Features

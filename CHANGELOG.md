@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.64.1] - 2026-04-10
+
+### Fixes
+
+- Correct task source handling in cascading logic — updated task is now properly integrated into source tasks during dependency cascade
+
+## [0.64.0] - 2026-04-08
+
+### Features
+
+- Keep task navigation by name click when name editing is disabled — clicking a task name still scrolls to the task and highlights its row
+
+### Refactor
+
+- Position "Today" line at ~30% of visible chart area (closer to task list) instead of center
+- Remove cursor override on locked task names — pointer cursor always shown
+
 ## [0.63.0] - 2026-04-01
 
 ### Features
