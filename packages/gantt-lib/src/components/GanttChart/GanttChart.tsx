@@ -510,9 +510,13 @@ function GanttChartInner<TTask extends Task = Task>(
     // Date edits should behave the same across chart drag and task-list picker:
     // moving a parent shifts its descendants, and parent dates are then re-derived
     // from the shifted children inside universalCascade.
+    const sourceTasks = tasks.map((task) => (
+      task.id === updatedTask.id ? updatedTask : task
+    ));
+
     const cascadedTasks = disableConstraints
       ? [updatedTask]
-      : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays, isCustomWeekend);
+      : universalCascade(updatedTask, newStart, newEnd, sourceTasks, businessDays, isCustomWeekend);
 
     onTasksChange?.(cascadedTasks as TTask[]);
   }, [tasks, onTasksChange, disableConstraints, editingTaskId, businessDays, isCustomWeekend]);
