@@ -22,6 +22,8 @@ interface TaskDependency {
 
 Dependencies use standard project management link type semantics. All link types are relative to the predecessor task (A) and successor task (B).
 
+Milestones do **not** change FS/SS/FF/SF scheduling rules. The only milestone-specific behavior is visual: dependency lines attach to the diamond edges instead of rectangular bar edges.
+
 ### FS — Finish-to-Start
 
 | Property | Value |

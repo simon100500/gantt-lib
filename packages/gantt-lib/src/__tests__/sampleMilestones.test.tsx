@@ -12,11 +12,16 @@ describe('sample milestone targets', () => {
     type: 'milestone',
   };
 
-  it.skip('sample tasks include milestone entries', async () => {
+  it('sample tasks include milestone entries', async () => {
     const { createSampleTasks } = await import('../../../website/src/data/sampleTasks');
     const sampleTasks = createSampleTasks();
 
     expect(sampleTasks.some(task => task.type === 'milestone')).toBe(true);
+    expect(
+      sampleTasks
+        .filter(task => task.type === 'milestone')
+        .every(task => task.startDate === task.endDate)
+    ).toBe(true);
   });
 
   it('sample milestones are normalized to a single date', () => {
