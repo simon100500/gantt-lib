@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
+import { isMilestoneTask } from '../utils/taskType';
 // Domain scheduling functions
 import {
   buildTaskRangeFromEnd,
@@ -648,7 +649,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       })();
 
     const newStartDate = finalRange.start;
-    const newEndDate = finalRange.end;
+    const newEndDate = currentTask && isMilestoneTask(currentTask)
+      ? finalRange.start
+      : finalRange.end;
 
     // Reset local state
     setIsDragging(false);
@@ -777,6 +780,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     if (mode === 'resize-left' || mode === 'resize-right') {
       const currentTask = allTasks.find(t => t.id === taskId);
       if (currentTask && isTaskParent(taskId, allTasks)) {
+        mode = 'move';
+      }
+      if (currentTask && isMilestoneTask(currentTask)) {
         mode = 'move';
       }
     }

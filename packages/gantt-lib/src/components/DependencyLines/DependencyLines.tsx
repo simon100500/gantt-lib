@@ -2,7 +2,8 @@
 
 import React, { useMemo } from 'react';
 import { Task } from '../../types';
-import { calculateTaskBar, calculateDependencyPath } from '../../utils/geometry';
+import { calculateMilestoneGeometry, calculateTaskBar, calculateDependencyPath } from '../../utils/geometry';
+import { isMilestoneTask } from '../../utils/taskType';
 import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils';
 import './DependencyLines.css';
 
@@ -90,6 +91,19 @@ export interface DependencyLinesProps {
   weekendPredicate?: (date: Date) => boolean;
 }
 
+function getHorizontalGeometry(task: Task, monthStart: Date, dayWidth: number): { left: number; right: number } {
+  const startDate = new Date(task.startDate);
+  const endDate = new Date(task.endDate);
+
+  if (isMilestoneTask(task)) {
+    const milestone = calculateMilestoneGeometry(startDate, monthStart, dayWidth);
+    return { left: milestone.left, right: milestone.right };
+  }
+
+  const bar = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
+  return { left: bar.left, right: bar.left + bar.width };
+}
+
 /**
  * SVG overlay component rendering dependency lines as orthogonal paths with rounded corners
  *
@@ -129,19 +143,19 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
     // First pass: Calculate positions for visible tasks (existing logic)
     tasks.forEach((task, index) => {
-      const startDate = new Date(task.startDate);
-      const endDate = new Date(task.endDate);
-      const computed = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
+      const computed = getHorizontalGeometry(task, monthStart, dayWidth);
 
       // Use real-time pixel override if available (during drag)
       const override = dragOverrides?.get(task.id);
       const resolvedLeft = override?.left ?? computed.left;
-      const resolvedWidth = override?.width ?? computed.width;
+      const resolvedRight = override
+        ? override.left + override.width
+        : computed.right;
 
       indices.set(task.id, index);
       positions.set(task.id, {
         left: resolvedLeft,
-        right: resolvedLeft + resolvedWidth,
+        right: resolvedRight,
         rowTop: index * rowHeight,
         isVirtual: false,
       });
@@ -167,19 +181,19 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         if (!ancestorPosition) continue;
 
         // Calculate horizontal position from task's dates
-        const startDate = new Date(task.startDate);
-        const endDate = new Date(task.endDate);
-        const computed = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
+        const computed = getHorizontalGeometry(task, monthStart, dayWidth);
 
         // Use real-time pixel override if available (during drag)
         const override = dragOverrides?.get(task.id);
         const resolvedLeft = override?.left ?? computed.left;
-        const resolvedWidth = override?.width ?? computed.width;
+        const resolvedRight = override
+          ? override.left + override.width
+          : computed.right;
 
         // Store virtual position using ancestor's rowTop
         positions.set(task.id, {
           left: resolvedLeft,
-          right: resolvedLeft + resolvedWidth,
+          right: resolvedRight,
           rowTop: ancestorPosition.rowTop,
           isVirtual: true,
         });
@@ -304,6 +318,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   return (
     <svg
       className="gantt-dependencies-svg"
+      data-testid="dependency-lines-svg"
       width={gridWidth}
       height={svgHeight}
       xmlns="http://www.w3.org/2000/svg"

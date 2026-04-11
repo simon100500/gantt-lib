@@ -25,8 +25,8 @@ describe('DependencyLines milestone targets', () => {
 
   const tasks = [predecessor, milestone];
 
-  it.skip('uses milestone anchor points for dependency endpoints', () => {
-    render(
+  it('uses milestone anchor points for dependency endpoints', () => {
+    const { container } = render(
       <DependencyLines
         tasks={tasks}
         allTasks={tasks}
@@ -37,10 +37,12 @@ describe('DependencyLines milestone targets', () => {
       />
     );
 
-    expect(screen.getByTestId('dependency-lines-svg')).toBeInTheDocument();
+    expect(screen.getByTestId('dependency-lines-svg')).toBeTruthy();
+    const path = container.querySelector('.gantt-dependency-path');
+    expect(path?.getAttribute('d')).toContain('L 297');
   });
 
-  it.skip('keeps dependency semantics unchanged for FS SS FF SF', () => {
+  it('keeps dependency semantics unchanged for FS SS FF SF', () => {
     expect(milestone.dependencies?.[0]?.type).toBe('FS');
   });
 });

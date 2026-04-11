@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { useTaskDrag } from '../hooks/useTaskDrag';
@@ -24,7 +24,7 @@ describe('useTaskDrag milestone targets', () => {
     allTasks: [milestoneTask],
   });
 
-  it.skip('forces milestone resize attempts into move mode', () => {
+  it('forces milestone resize attempts into move mode', () => {
     const { result } = renderHook(() => useTaskDrag(createOptions()));
     const mockElement = {
       getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 40 }),
@@ -40,7 +40,7 @@ describe('useTaskDrag milestone targets', () => {
     expect(result.current.dragMode).toBe('move');
   });
 
-  it.skip('keeps milestone drag result single-date', () => {
+  it('keeps milestone drag result single-date', async () => {
     const onDragEnd = vi.fn();
     const { result } = renderHook(() =>
       useTaskDrag({
@@ -64,6 +64,10 @@ describe('useTaskDrag milestone targets', () => {
       window.dispatchEvent(new MouseEvent('mouseup', {}));
     });
 
-    expect(onDragEnd).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(onDragEnd).toHaveBeenCalled();
+      const [{ startDate, endDate }] = onDragEnd.mock.calls[0];
+      expect(startDate.toISOString()).toBe(endDate.toISOString());
+    });
   });
 });
