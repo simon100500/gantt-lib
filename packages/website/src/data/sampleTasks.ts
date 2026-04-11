@@ -548,6 +548,7 @@ export const createSampleTasks = (): Task[] => {
       name: 'Сдача объекта',
       startDate: '2026-08-10',
       endDate: '2026-08-15',
+      type: 'milestone',
       progress: 0,
       accepted: false,
       locked: false,

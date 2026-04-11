@@ -668,6 +668,21 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     }
 
     if (wasOwner) {
+      // Skip if position didn't actually change (e.g. click without drag)
+      const startUnchanged = newStartDate.getTime() === Date.UTC(
+        initialStartDate.getUTCFullYear(), initialStartDate.getUTCMonth(), initialStartDate.getUTCDate()
+      );
+      const endUnchanged = newEndDate.getTime() === Date.UTC(
+        initialEndDate.getUTCFullYear(), initialEndDate.getUTCMonth(), initialEndDate.getUTCDate()
+      );
+      if (startUnchanged && endUnchanged) {
+        // Reset position from dates (in case pixel rounding drifted)
+        const { left, width } = getInitialPosition();
+        setCurrentLeft(left);
+        setCurrentWidth(width);
+        return;
+      }
+
       if (!disableConstraints && onCascade && allTasks.length > 0) {
         // Hard mode with onCascade: use universalCascade for all cases
         // (parent drag, child drag, root task drag — all handled uniformly)
