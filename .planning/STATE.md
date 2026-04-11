@@ -100,6 +100,7 @@ None yet — no external users (library in active development)
 - Phase 25 added: columns-refactoring
 - Phase 27 added: core-refactor
 - Phase 28 added: scheduling-core-hardening
+- Phase 29 added: Milestones type tasks
 
 **Coverage:** 13/13 requirements mapped ✓
 
