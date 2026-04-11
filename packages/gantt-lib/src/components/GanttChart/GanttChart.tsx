@@ -33,6 +33,11 @@ export interface Task {
   endDate: string | Date;
   /** Optional color for task bar visualization */
   color?: string;
+  /**
+   * Optional task subtype. Milestones are single-date tasks and default to
+   * regular 'task' behavior when omitted.
+   */
+  type?: 'task' | 'milestone';
   /** Optional parent task ID for hierarchy relationship */
   parentId?: string;
   /**
