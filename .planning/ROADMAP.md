@@ -306,10 +306,10 @@ Add developer tools and calendar customization features to the Gantt library.
 5. FS/SS/FF/SF dependency semantics stay unchanged; only milestone endpoint geometry changes where needed
 6. Demo/sample data and docs show milestone usage and explicitly preserve existing `parentId`-based parent/project grouping semantics
 
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
-- [ ] 29-01-PLAN.md — Lock public milestone contract, shared helpers, and milestone test targets
+- [x] 29-01-PLAN.md — Lock public milestone contract, shared helpers, and milestone test targets
 - [ ] 29-02-PLAN.md — Implement diamond rendering, move-only drag, and milestone dependency geometry
 - [ ] 29-03-PLAN.md — Make TaskList milestone-aware and update samples/docs
 
