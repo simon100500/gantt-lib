@@ -293,6 +293,26 @@ Add developer tools and calendar customization features to the Gantt library.
 
 </details>
 
+### Phase 29: Milestones type tasks
+
+**Goal:** Add milestone task support as an explicit `Task.type` subtype rendered as a single-date diamond with move-only chart interaction, while keeping dependency semantics and existing `parentId` hierarchy behavior unchanged
+**Requirements**: PH29-1, PH29-2, PH29-3, PH29-4, PH29-5, PH29-6
+**Depends on:** Phase 28
+**Success Criteria** (what must be TRUE):
+1. User can mark a task with `type: 'milestone'` and the public Task contract accepts it without introducing a new `project` type
+2. A milestone renders as a visible diamond on a single date, while a regular same-day task stays rectangular unless explicitly typed as milestone
+3. Milestones are move-only on the chart: resize handles and resize drag paths do not create multi-day milestones
+4. TaskList edits keep milestone `startDate` and `endDate` synchronized to one date and do not allow independent duration growth
+5. FS/SS/FF/SF dependency semantics stay unchanged; only milestone endpoint geometry changes where needed
+6. Demo/sample data and docs show milestone usage and explicitly preserve existing `parentId`-based parent/project grouping semantics
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 29-01-PLAN.md — Lock public milestone contract, shared helpers, and milestone test targets
+- [ ] 29-02-PLAN.md — Implement diamond rendering, move-only drag, and milestone dependency geometry
+- [ ] 29-03-PLAN.md — Make TaskList milestone-aware and update samples/docs
+
 ---
 
 **Phase Numbering:**
