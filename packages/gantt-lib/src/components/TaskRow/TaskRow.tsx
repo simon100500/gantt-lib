@@ -2,8 +2,9 @@
 
 import React, { useMemo } from 'react';
 import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
-import { calculateTaskBar, pixelsToDate } from '../../utils/geometry';
+import { calculateMilestoneGeometry, calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { isTaskExpired } from '../../utils/expired';
+import { isMilestoneTask, normalizeTaskDatesForType } from '../../utils/taskType';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { isTaskParent, getChildren, getBusinessDaysCount } from '../../core/scheduling';
 import type { Task } from '../GanttChart';
@@ -86,6 +87,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.name === nextProps.task.name &&
     prevProps.task.startDate === nextProps.task.startDate &&
     prevProps.task.endDate === nextProps.task.endDate &&
+    prevProps.task.type === nextProps.task.type &&
     prevProps.task.color === nextProps.task.color &&
     prevProps.task.progress === nextProps.task.progress &&
     prevProps.task.accepted === nextProps.task.accepted &&
@@ -120,9 +122,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Extract divider from task prop
     const { divider: taskDivider } = task;
 
+    const normalizedTask = useMemo(() => normalizeTaskDatesForType(task), [task]);
+    const milestone = useMemo(() => isMilestoneTask(normalizedTask), [normalizedTask]);
+
     // Parse dates as UTC
-    const taskStartDate = useMemo(() => parseUTCDate(task.startDate), [task.startDate]);
-    const taskEndDate = useMemo(() => parseUTCDate(task.endDate), [task.endDate]);
+    const taskStartDate = useMemo(() => parseUTCDate(normalizedTask.startDate), [normalizedTask.startDate]);
+    const taskEndDate = useMemo(() => parseUTCDate(normalizedTask.endDate), [normalizedTask.endDate]);
 
     // Hierarchy: compute isParent and childCount
     const isParent = useMemo(() => {
@@ -136,13 +141,18 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Calculate expiration status for overdue tasks
     const isExpired = useMemo(() => {
       if (!highlightExpiredTasks) return false;
-      return isTaskExpired(task);
-    }, [task.startDate, task.endDate, task.progress, highlightExpiredTasks]);
+      return isTaskExpired(normalizedTask);
+    }, [normalizedTask.startDate, normalizedTask.endDate, normalizedTask.progress, highlightExpiredTasks]);
 
     // Calculate task bar position and dimensions
     const { left, width } = useMemo(
       () => calculateTaskBar(taskStartDate, taskEndDate, monthStart, dayWidth),
       [taskStartDate, taskEndDate, monthStart, dayWidth]
+    );
+
+    const milestoneGeometry = useMemo(
+      () => calculateMilestoneGeometry(taskStartDate, monthStart, dayWidth),
+      [taskStartDate, monthStart, dayWidth]
     );
 
     // Determine task bar color
@@ -203,7 +213,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Handle drag end - call onTasksChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
       const updatedTask: Task = {
-        ...task,
+        ...normalizedTask,
         startDate: result.startDate.toISOString(),
         endDate: result.endDate.toISOString(),
         ...(result.updatedDependencies !== undefined && { dependencies: result.updatedDependencies }),
@@ -248,13 +258,29 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Use override position (for cascade preview) with fallback to drag or static position
     const displayLeft = overridePosition?.left ?? (isDragging ? currentLeft : left);
     const displayWidth = overridePosition?.width ?? (isDragging ? currentWidth : width);
+    const displayMilestoneGeometry = useMemo(() => {
+      const centerX = Math.round(displayLeft + displayWidth / 2);
+      const halfSize = Math.round(milestoneGeometry.size / 2);
+      return {
+        centerX,
+        left: centerX - halfSize,
+        right: centerX + halfSize,
+        size: milestoneGeometry.size,
+      };
+    }, [displayLeft, displayWidth, milestoneGeometry.size]);
+    const visualLeft = milestone ? displayMilestoneGeometry.left : displayLeft;
+    const visualWidth = milestone ? displayMilestoneGeometry.size : displayWidth;
 
     // Format date labels for display - update in real-time during drag
     const currentStartDate = isDragging
       ? pixelsToDate(displayLeft, monthStart, dayWidth)
       : taskStartDate;
     const currentEndDate = isDragging
-      ? pixelsToDate(displayLeft + displayWidth - dayWidth, monthStart, dayWidth)
+      ? (
+        milestone
+          ? pixelsToDate(displayLeft, monthStart, dayWidth)
+          : pixelsToDate(displayLeft + displayWidth - dayWidth, monthStart, dayWidth)
+      )
       : taskEndDate;
 
     const dateRangeLabel = formatDateRangeLabel(currentStartDate, currentEndDate);
@@ -284,13 +310,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // "X задач 100%" ≈ 60–70px text + 16px padding = ~110px
     // Regular: "15 д 100%" ≈ 76px, "1 д 100%" ≈ 62px
     const estimatedTextWidth = isParent ? 120 : (durationDays >= 10 ? 76 : 62);
-    const showProgressInside = progressWidth > 0 && displayWidth > estimatedTextWidth;
+    const showProgressInside = !milestone && progressWidth > 0 && displayWidth > estimatedTextWidth;
 
     // Determine if duration fits inside the bar
     // For 1-day tasks: always show duration outside (too narrow)
     // Parent bars: child count label is longer — need more space
     const MIN_DURATION_WIDTH = isParent ? 80 : 50;
-    const showDurationInside = durationDays >= 2 && displayWidth > MIN_DURATION_WIDTH;
+    const showDurationInside = !milestone && durationDays >= 2 && displayWidth > MIN_DURATION_WIDTH;
 
     return (
       <div
@@ -302,18 +328,26 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         <div className="gantt-tr-taskContainer">
           <div
             data-taskbar
-            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${isParent ? 'gantt-tr-parentBar' : ''}`}
+            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${isParent ? 'gantt-tr-parentBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''}`}
             style={{
-              left: `${displayLeft}px`,
-              width: `${displayWidth}px`,
+              left: `${visualLeft}px`,
+              width: `${visualWidth}px`,
               ...barStyle,
-              height: isParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
+              ...(milestone
+                ? {
+                  height: `${displayMilestoneGeometry.size}px`,
+                  width: `${displayMilestoneGeometry.size}px`,
+                  padding: 0,
+                }
+                : {
+                  height: isParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
+                }),
               cursor: dragHandleProps.style.cursor,
               userSelect: dragHandleProps.style.userSelect,
             }}
             onMouseDown={dragHandleProps.onMouseDown}
           >
-            {progressWidth > 0 && progressWidth < 100 && (
+            {!milestone && progressWidth > 0 && progressWidth < 100 && (
               <div
                 className="gantt-tr-progressBar"
                 style={{
@@ -325,7 +359,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 }}
               />
             )}
-            {!isParent && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
+            {!isParent && !milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
             {showDurationInside && (
               <span className="gantt-tr-taskDuration">
                 {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
@@ -336,12 +370,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 {progressWidth}%
               </span>
             )}
-            {!isParent && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
+            {!isParent && !milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
           </div>
           <div
             className={`gantt-tr-leftLabels ${task.locked ? 'gantt-tr-leftLabels-locked' : ''}`}
             style={{
-              left: `${displayLeft}px`
+              left: `${visualLeft}px`
             }}
           >
             <span className="gantt-tr-dateLabel gantt-tr-dateLabelLeft">
@@ -353,7 +387,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               className="gantt-tr-lockIcon"
               style={{
                 position: 'absolute',
-                left: `${displayLeft - 16}px`,
+                left: `${visualLeft - 16}px`,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 width: '12px',
@@ -372,7 +406,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           <div
             className="gantt-tr-rightLabels"
             style={{
-              left: `${displayLeft + Math.max(displayWidth, 20) - Math.min(6, Math.max(displayWidth, 20) / 2) + 8}px`,
+              left: `${visualLeft + Math.max(visualWidth, 20) - Math.min(6, Math.max(visualWidth, 20) / 2) + 8}px`,
               color: isParent ? (task.color || defaultParentBarColor) : barColor,
             }}
           >

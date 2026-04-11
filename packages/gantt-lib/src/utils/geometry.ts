@@ -40,6 +40,27 @@ export const calculateTaskBar = (
 };
 
 /**
+ * Calculate fixed-size milestone geometry centered on a single task day.
+ */
+export const calculateMilestoneGeometry = (
+  taskDate: Date,
+  monthStart: Date,
+  dayWidth: number,
+  size: number = 14
+): { centerX: number; left: number; right: number; size: number } => {
+  const { left, width } = calculateTaskBar(taskDate, taskDate, monthStart, dayWidth);
+  const centerX = Math.round(left + width / 2);
+  const halfSize = Math.round(size / 2);
+
+  return {
+    centerX,
+    left: centerX - halfSize,
+    right: centerX + halfSize,
+    size,
+  };
+};
+
+/**
  * Convert pixel position to date (inverse of calculateTaskBar)
  * @param pixels - Position in pixels (left or width)
  * @param monthStart - Start of the month/visible range

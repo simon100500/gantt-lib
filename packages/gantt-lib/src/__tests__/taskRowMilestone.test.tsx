@@ -1,8 +1,8 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { TaskRow } from '../components/TaskRow';
+import TaskRow from '../components/TaskRow';
 import type { Task } from '../components/GanttChart';
 
 describe('TaskRow milestone targets', () => {
@@ -30,15 +30,18 @@ describe('TaskRow milestone targets', () => {
     onTasksChange: vi.fn(),
   };
 
-  it.skip('renders milestone as diamond', () => {
-    render(<TaskRow task={milestoneTask} {...baseProps} />);
+  it('renders milestone as diamond', () => {
+    const { container } = render(<TaskRow task={milestoneTask} {...baseProps} />);
 
-    expect(screen.getByText('Launch')).toBeInTheDocument();
+    const milestoneBar = container.querySelector('.gantt-tr-milestone');
+    expect(milestoneBar).not.toBeNull();
+    expect(milestoneBar?.querySelector('.gantt-tr-resizeHandle')).toBeNull();
   });
 
-  it.skip('keeps regular same-day task rectangular', () => {
-    render(<TaskRow task={sameDayTask} {...baseProps} />);
+  it('keeps regular same-day task rectangular', () => {
+    const { container } = render(<TaskRow task={sameDayTask} {...baseProps} />);
 
-    expect(screen.getByText('Single day task')).toBeInTheDocument();
+    expect(container.querySelector('.gantt-tr-milestone')).toBeNull();
+    expect(container.querySelectorAll('.gantt-tr-resizeHandle')).toHaveLength(2);
   });
 });
