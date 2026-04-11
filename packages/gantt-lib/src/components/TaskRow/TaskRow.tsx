@@ -331,7 +331,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${isParent ? 'gantt-tr-parentBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''}`}
             style={{
               left: `${visualLeft}px`,
-              width: `${visualWidth}px`,
               ...barStyle,
               ...(milestone
                 ? {
@@ -340,6 +339,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                   padding: 0,
                 }
                 : {
+                  width: `${visualWidth}px`,
                   height: isParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
                 }),
               cursor: dragHandleProps.style.cursor,
@@ -410,7 +410,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               color: isParent ? (task.color || defaultParentBarColor) : barColor,
             }}
           >
-            {!showDurationInside && (
+            {!showDurationInside && !milestone && (
               <span className="gantt-tr-externalDuration">
                 {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
               </span>

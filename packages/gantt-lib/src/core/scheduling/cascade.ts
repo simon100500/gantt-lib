@@ -13,6 +13,7 @@ import {
 import {
   calculateSuccessorDate,
   getDependencyLag,
+  normalizePredecessorDates,
 } from './dependencies';
 import {
   getChildren,
@@ -135,7 +136,9 @@ export function cascadeByLinks(
         const origStart = new Date(orig.startDate as string);
         const origEnd = new Date(orig.endDate as string);
         const duration = getTaskDuration(origStart, origEnd);
-        const constraintDate = calculateSuccessorDate(predStart, predEnd, dep.type, getDependencyLag(dep));
+        const currentTask = taskById.get(currentId)!;
+        const normPredEnd = currentTask.type === 'milestone' ? predStart : predEnd;
+        const constraintDate = calculateSuccessorDate(predStart, normPredEnd, dep.type, getDependencyLag(dep));
 
         let newSuccStart: Date;
         let newSuccEnd: Date;
@@ -349,8 +352,10 @@ export function universalCascade(
 
       const origStart  = new Date(task.startDate as string);
       const origEnd    = new Date(task.endDate   as string);
+      // For milestone predecessors, treat end = start (zero duration)
+      const normCurrEnd = currentOriginal.type === 'milestone' ? currStart : currEnd;
       const constraintDate = calculateSuccessorDate(
-        currStart, currEnd, dep.type, getDependencyLag(dep),
+        currStart, normCurrEnd, dep.type, getDependencyLag(dep),
         businessDays, weekendPredicate
       );
 

@@ -61,14 +61,18 @@ describe('TaskListRow milestone targets', () => {
     ]);
   });
 
-  it('prevents independent duration edits for milestones', () => {
+  it('shows 0 duration for milestones and opens editor on click', () => {
     const { container } = render(<TaskListRow {...baseProps} />);
 
     const durationCell = container.querySelector('.gantt-tl-cell-duration');
-    expect(durationCell?.textContent).toContain('1д');
+    // Milestones show "0" in the duration cell
+    expect(durationCell?.textContent?.trim()).toBe('0');
 
     fireEvent.click(durationCell!);
 
+    // Editor should open with value 0
+    expect(screen.queryByDisplayValue('0')).not.toBeNull();
+    // Should not show legacy value "1"
     expect(screen.queryByDisplayValue('1')).toBeNull();
   });
 });

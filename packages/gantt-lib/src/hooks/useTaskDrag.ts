@@ -209,8 +209,12 @@ function handleGlobalMouseMove(e: MouseEvent) {
     const { startX, initialLeft, initialWidth, mode, dayWidth, onProgress, allTasks } = activeDrag;
     const deltaX = e.clientX - startX;
 
+    // For milestones, force width to single day regardless of stored dates
+    const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
+    const effectiveWidth = draggedTask && isMilestoneTask(draggedTask) ? dayWidth : initialWidth;
+
     let newLeft = initialLeft;
-    let newWidth = initialWidth;
+    let newWidth = effectiveWidth;
 
     switch (mode) {
       case 'move':
@@ -231,8 +235,6 @@ function handleGlobalMouseMove(e: MouseEvent) {
     // Incoming dependency lag is editable by dragging the successor itself.
     // Do not clamp successor movement/resize by its current dependency dates;
     // the new lag will be recomputed from the final dates on drop.
-
-    const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
 
     if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
       const previewRange = clampDateRangeForIncomingFS(
@@ -276,6 +278,11 @@ function handleGlobalMouseMove(e: MouseEvent) {
       newWidth = Math.round((alignedEndDay - alignedStartDay + 1) * dayWidth);
     }
 
+    // Milestone: force single-day width after all date recalculations
+    if (draggedTask && isMilestoneTask(draggedTask)) {
+      newWidth = dayWidth;
+    }
+
     // ── Universal preview cascade ──────────────────────────────────────────
     // Same algorithm as handleComplete — converts pixels→dates, runs
     // universalCascade, converts dates→pixels for overrides.
@@ -315,7 +322,8 @@ function handleGlobalMouseMove(e: MouseEvent) {
           };
         })();
       const previewStartDate = previewRange.start;
-      const previewEndDate = previewRange.end;
+      const isMilestone = originalDraggedTask ? isMilestoneTask(originalDraggedTask) : false;
+      const previewEndDate = isMilestone ? previewRange.start : previewRange.end;
 
       const movedTaskData = originalDraggedTask ?? { id: dragId, name: '', startDate: '', endDate: '' };
       const cascadeResult = universalCascade(
