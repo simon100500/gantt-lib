@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.70.0] - 2026-04-12
+
+### Features
+
+- Add milestone task type (`type: 'milestone'`) — renders as diamond on chart with zero duration
+- Milestone-aware drag and dependency alignment — milestones maintain zero duration during interaction
+- Milestone cascade behavior — successors maintain the same day when predecessor has zero lag
+- Geometry-aware dependency lines for milestones — correct rendering for stacked milestones
+- Task list milestone handling — shows zero duration with proper editing behavior
+
+### Fixes
+
+- Prevent unnecessary position reset when drag dates remain unchanged
+
 ## [0.64.1] - 2026-04-10
 
 ### Fixes
