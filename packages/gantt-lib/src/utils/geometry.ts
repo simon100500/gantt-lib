@@ -60,6 +60,23 @@ export const calculateMilestoneGeometry = (
   };
 };
 
+/**
+ * Resolve milestone connection points relative to the task day cell.
+ * Anchors sit at day boundary +/- half diamond diagonal.
+ */
+export const calculateMilestoneConnectionBounds = (
+  dayLeft: number,
+  dayWidth: number,
+  size: number = 14
+): { left: number; right: number } => {
+  const halfDiagonal = Math.round(size / Math.SQRT2);
+  const visualNudge = 2;
+  return {
+    left: dayLeft + halfDiagonal + visualNudge,
+    right: dayLeft + dayWidth - halfDiagonal - visualNudge,
+  };
+};
+
 type HorizontalGeometryTask = {
   startDate: string | Date;
   endDate: string | Date;
@@ -80,17 +97,13 @@ export const resolveTaskHorizontalGeometry = (
   const endDate = new Date(task.endDate);
 
   if (task.type === 'milestone') {
+    const size = 14;
     if (override) {
-      const centerX = Math.round(override.left + dayWidth / 2);
-      const halfSize = Math.round(14 / 2);
-      return {
-        left: centerX - halfSize,
-        right: centerX + halfSize,
-      };
+      return calculateMilestoneConnectionBounds(override.left, dayWidth, size);
     }
 
-    const milestone = calculateMilestoneGeometry(startDate, monthStart, dayWidth);
-    return { left: milestone.left, right: milestone.right };
+    const bar = calculateTaskBar(startDate, startDate, monthStart, dayWidth);
+    return calculateMilestoneConnectionBounds(bar.left, dayWidth, size);
   }
 
   if (override) {
@@ -332,6 +345,12 @@ export const calculateDependencyPath = (
   // Same row: straight horizontal line
   if (fy === ty) {
     return `M ${fx} ${fy} H ${tx}`;
+  }
+
+  // Same column: straight vertical line without chamfer.
+  // This matters for stacked milestones where the diagonal corner looks wrong.
+  if (fx === tx) {
+    return `M ${fx} ${fy} V ${ty}`;
   }
 
   const C = 2; // chamfer size

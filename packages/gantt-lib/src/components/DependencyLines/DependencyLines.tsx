@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { Task } from '../../types';
 import { calculateDependencyPath, resolveTaskHorizontalGeometry } from '../../utils/geometry';
+import { isMilestoneTask } from '../../utils/taskType';
 import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils';
 import './DependencyLines.css';
 
@@ -189,6 +190,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   // Calculate all dependency line paths (use allTasks if available)
   const lines = useMemo(() => {
     const tasksForEdges = allTasks ?? tasks;
+    const taskMap = new Map(tasksForEdges.map(task => [task.id, task]));
     const edges = getAllDependencyEdges(tasksForEdges);
     const lines: Array<{
       id: string;
@@ -211,6 +213,9 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       if (!predecessor || !successor) {
         continue; // Skip if task not found (shouldn't happen with validation)
       }
+
+      const predecessorTask = taskMap.get(edge.predecessorId);
+      const successorTask = taskMap.get(edge.successorId);
 
       // Check if both tasks are hidden inside the same collapsed parent
       // If so, skip rendering this line (it's internal to the collapsed group)
@@ -253,7 +258,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       // SS: left  → left
       // FF: right → right
       // SF: left  → right
-      const fromX = (edge.type === 'SS' || edge.type === 'SF')
+      let fromX = (edge.type === 'SS' || edge.type === 'SF')
         ? predecessor.left
         : predecessor.right;
 
@@ -261,10 +266,28 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         ? successor.right
         : successor.left;
 
+      const stackedMilestonesSameDay = Boolean(
+        predecessorTask &&
+        successorTask &&
+        isMilestoneTask(predecessorTask) &&
+        isMilestoneTask(successorTask) &&
+        edge.lag === 0 &&
+        new Date(predecessorTask.startDate).toISOString().split('T')[0] ===
+          new Date(successorTask.startDate).toISOString().split('T')[0] &&
+        predecessor.rowTop !== successor.rowTop &&
+        edge.type === 'FS'
+      );
+
+      const finalToX = stackedMilestonesSameDay
+        ? Math.round(((predecessor.left + predecessor.right) / 2 + (successor.left + successor.right) / 2) / 2)
+        : toX;
+      if (stackedMilestonesSameDay) {
+        fromX = finalToX;
+      }
       const arrivesFromRight = edge.type === 'FF' || edge.type === 'SF';
 
       const from = { x: fromX, y: fromY };
-      const to = { x: toX, y: toY };
+      const to = { x: finalToX, y: toY };
 
       const path = calculateDependencyPath(from, to, arrivesFromRight);
 
@@ -277,7 +300,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         hasCycle,
         lag: edge.lag,
         fromX,
-        toX,
+        toX: finalToX,
         fromY,
         reverseOrder,
         isVirtual,
