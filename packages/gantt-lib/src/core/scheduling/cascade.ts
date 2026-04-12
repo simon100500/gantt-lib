@@ -26,6 +26,13 @@ import {
   moveTaskRange,
 } from './commands';
 
+function parseCascadeDateInput(date: string | Date): Date {
+  if (date instanceof Date) {
+    return normalizeUTCDate(date);
+  }
+  return normalizeUTCDate(new Date(`${date.split('T')[0]}T00:00:00.000Z`));
+}
+
 /**
  * Get successor tasks of a dragged task using BFS, filtered by link type(s).
  */
@@ -143,7 +150,7 @@ export function cascadeByLinks(
             endDate: predEnd,
             type: currentTask.type,
           },
-          normalizeUTCDate
+          parseCascadeDateInput
         );
         const constraintDate = calculateSuccessorDate(
           normalizedPredStart,
@@ -370,7 +377,7 @@ export function universalCascade(
           endDate: currEnd,
           type: currentOriginal.type,
         },
-        normalizeUTCDate
+        parseCascadeDateInput
       );
       const constraintDate = calculateSuccessorDate(
         normalizedPredStart, normalizedPredEnd, dep.type, getDependencyLag(dep),
