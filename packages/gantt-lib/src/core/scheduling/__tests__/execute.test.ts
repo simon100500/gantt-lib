@@ -229,6 +229,33 @@ describe('recalculateTaskFromDependencies', () => {
     expect(recalcB.endDate).toBe('2024-01-07');
   });
 
+  it('10.2 moving milestone predecessor keeps milestone successor on the same day for FS lag=0', () => {
+    const predecessor = makeTask({
+      id: 'M1',
+      startDate: '2024-01-05',
+      endDate: '2024-01-05',
+      type: 'milestone',
+    });
+    const successor = makeTask({
+      id: 'M2',
+      startDate: '2024-01-05',
+      endDate: '2024-01-05',
+      type: 'milestone',
+      dependencies: [{ taskId: 'M1', type: 'FS', lag: 0 }],
+    });
+
+    const result = moveTaskWithCascade('M1', new Date('2024-01-08T00:00:00.000Z'), [predecessor, successor]);
+
+    const movedPredecessor = result.changedTasks.find(t => t.id === 'M1')!;
+    const movedSuccessor = result.changedTasks.find(t => t.id === 'M2')!;
+
+    expect(movedPredecessor.startDate).toBe('2024-01-08');
+    expect(movedPredecessor.endDate).toBe('2024-01-08');
+    expect(movedSuccessor.startDate).toBe('2024-01-08');
+    expect(movedSuccessor.endDate).toBe('2024-01-08');
+    expect(movedSuccessor.dependencies?.[0]?.lag).toBe(0);
+  });
+
   it('returns empty for task without dependencies', () => {
     const task = makeTask({ id: 'A', startDate: '2024-01-01', endDate: '2024-01-05' });
     const result = recalculateTaskFromDependencies('A', [task]);

@@ -116,4 +116,61 @@ describe('useTaskDrag milestone targets', () => {
       expect(onDragEnd).not.toHaveBeenCalled();
     });
   });
+
+  it('keeps milestone successor preview on the same day for FS lag=0', async () => {
+    const predecessor: Task = {
+      id: 'ms-1',
+      name: 'First',
+      startDate: '2026-04-10',
+      endDate: '2026-04-10',
+      type: 'milestone',
+    };
+    const successor: Task = {
+      id: 'ms-2',
+      name: 'Second',
+      startDate: '2026-04-10',
+      endDate: '2026-04-10',
+      type: 'milestone',
+      dependencies: [{ taskId: 'ms-1', type: 'FS', lag: 0 }],
+    };
+    const onCascadeProgress = vi.fn();
+
+    const { result } = renderHook(() =>
+      useTaskDrag({
+        taskId: predecessor.id,
+        initialStartDate: new Date(Date.UTC(2026, 3, 10)),
+        initialEndDate: new Date(Date.UTC(2026, 3, 10)),
+        monthStart: new Date(Date.UTC(2026, 3, 1)),
+        dayWidth: 40,
+        allTasks: [predecessor, successor],
+        onDragEnd: vi.fn(),
+        onCascade: vi.fn(),
+        onCascadeProgress,
+      })
+    );
+
+    const mockElement = {
+      getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 40 }),
+    } as unknown as HTMLElement;
+
+    act(() => {
+      result.current.dragHandleProps.onMouseDown({
+        currentTarget: mockElement,
+        clientX: 380,
+      } as unknown as React.MouseEvent);
+    });
+
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 420 }));
+    });
+
+    await waitFor(() => {
+      const nonEmptyCalls = onCascadeProgress.mock.calls.filter(([overrides]) => overrides.size > 0);
+      expect(nonEmptyCalls.length).toBeGreaterThan(0);
+      const [overrideMap, previewTasks] = nonEmptyCalls[0];
+      expect(overrideMap.get('ms-2')).toEqual({ left: 400, width: 40 });
+      expect(previewTasks.find((task: Task) => task.id === 'ms-2')?.startDate).toBe('2026-04-11');
+      expect(previewTasks.find((task: Task) => task.id === 'ms-2')?.dependencies?.[0]?.lag).toBe(0);
+    });
+  });
 });

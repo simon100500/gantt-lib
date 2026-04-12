@@ -137,8 +137,20 @@ export function cascadeByLinks(
         const origEnd = new Date(orig.endDate as string);
         const duration = getTaskDuration(origStart, origEnd);
         const currentTask = taskById.get(currentId)!;
-        const normPredEnd = currentTask.type === 'milestone' ? predStart : predEnd;
-        const constraintDate = calculateSuccessorDate(predStart, normPredEnd, dep.type, getDependencyLag(dep));
+        const { predStart: normalizedPredStart, predEnd: normalizedPredEnd } = normalizePredecessorDates(
+          {
+            startDate: predStart,
+            endDate: predEnd,
+            type: currentTask.type,
+          },
+          normalizeUTCDate
+        );
+        const constraintDate = calculateSuccessorDate(
+          normalizedPredStart,
+          normalizedPredEnd,
+          dep.type,
+          getDependencyLag(dep)
+        );
 
         let newSuccStart: Date;
         let newSuccEnd: Date;
@@ -352,10 +364,16 @@ export function universalCascade(
 
       const origStart  = new Date(task.startDate as string);
       const origEnd    = new Date(task.endDate   as string);
-      // For milestone predecessors, treat end = start (zero duration)
-      const normCurrEnd = currentOriginal.type === 'milestone' ? currStart : currEnd;
+      const { predStart: normalizedPredStart, predEnd: normalizedPredEnd } = normalizePredecessorDates(
+        {
+          startDate: currStart,
+          endDate: currEnd,
+          type: currentOriginal.type,
+        },
+        normalizeUTCDate
+      );
       const constraintDate = calculateSuccessorDate(
-        currStart, normCurrEnd, dep.type, getDependencyLag(dep),
+        normalizedPredStart, normalizedPredEnd, dep.type, getDependencyLag(dep),
         businessDays, weekendPredicate
       );
 
