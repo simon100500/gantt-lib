@@ -25,6 +25,7 @@ export {
   normalizeDependencyLag,
   calculateSuccessorDate,
   computeLagFromDates,
+  normalizePredecessorDates,
 
   // cascade
   cascadeByLinks,

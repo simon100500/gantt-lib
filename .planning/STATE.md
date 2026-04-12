@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v0.18.0
 milestone_name: milestone
 status: Milestone complete
-last_updated: "2026-03-30T22:16:27.720Z"
-last_activity: 2026-03-30
+last_updated: "2026-04-11T14:26:22.279Z"
+last_activity: 2026-04-11
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 23
-  completed_plans: 23
+  total_phases: 10
+  completed_phases: 10
+  total_plans: 26
+  completed_plans: 26
 ---
 
 ## Current Position
 
-Phase: 28
+Phase: 29
 Plan: Not started
 
 ## Project Reference
@@ -100,6 +100,7 @@ None yet — no external users (library in active development)
 - Phase 25 added: columns-refactoring
 - Phase 27 added: core-refactor
 - Phase 28 added: scheduling-core-hardening
+- Phase 29 added: Milestones type tasks
 
 **Coverage:** 13/13 requirements mapped ✓
 
@@ -107,7 +108,7 @@ None yet — no external users (library in active development)
 
 **Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
 
-**Current focus:** Phase 28 — scheduling-core-hardening
+**Current focus:** Phase 29 — milestones-type-tasks
 
 - ✓ 25-01: Structural foundations — new types, resolver with TDD, backward-compatible bridge
 - ✓ 25-02: Render unification — createBuiltInColumns factory, header/body via resolvedColumns.map()
@@ -122,7 +123,7 @@ None yet — no external users (library in active development)
 
 ---
 
-Last activity: 2026-03-30
+Last activity: 2026-04-11
 
 **State updated:** 2026-03-30
 **Milestone:** v0.50.0 Adding Tools

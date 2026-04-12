@@ -11,6 +11,7 @@ import type { Task } from "../GanttChart";
 import type { LinkType } from "../../types";
 import type { CustomDayConfig } from "../../utils/dateUtils";
 import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate } from "../../utils/dateUtils";
+import { isMilestoneTask, normalizeTaskDatesForType } from "../../utils/taskType";
 import {
   getBusinessDaysCount,
   addBusinessDays,
@@ -417,7 +418,8 @@ const DepChip: React.FC<DepChipProps> = ({
       if (!predecessor) return;
 
       const predStart = parseUTCDate(predecessor.startDate);
-      const predEnd = parseUTCDate(predecessor.endDate);
+      // Milestone predecessors have zero duration — treat end = start
+      const predEnd = predecessor.type === 'milestone' ? predStart : parseUTCDate(predecessor.endDate);
       const origStart = parseUTCDate(task.startDate);
       const origEnd = parseUTCDate(task.endDate);
       const durationMs = origEnd.getTime() - origStart.getTime();
@@ -823,10 +825,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const editingName = editingColumnId === 'name';
     const editingDuration = editingColumnId === 'duration';
     const editingProgress = editingColumnId === 'progress';
+    const normalizedTask = useMemo(() => normalizeTaskDatesForType(task), [task]);
+    const isMilestone = useMemo(() => isMilestoneTask(normalizedTask), [normalizedTask]);
     const [nameValue, setNameValue] = useState("");
     const nameInputRef = useRef<HTMLInputElement>(null);
     const [durationValue, setDurationValue] = useState(() =>
-      getInclusiveDurationDays(task.startDate, task.endDate),
+      getInclusiveDurationDays(normalizedTask.startDate, normalizedTask.endDate),
     );
     const durationInputRef = useRef<HTMLInputElement>(null);
     const dependencySearchInputRef = useRef<HTMLInputElement>(null);
@@ -1085,15 +1089,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         e.stopPropagation();
         durationConfirmedRef.current = false;
         setDurationValue(
-          getDuration(task.startDate, task.endDate),
+          isMilestone ? 0 : getDuration(normalizedTask.startDate, normalizedTask.endDate),
         );
         setEditingColumnId('duration');
       },
-      [task.locked, task.startDate, task.endDate, getDuration],
+      [task.locked, normalizedTask.startDate, normalizedTask.endDate, getDuration, isMilestone],
     );
 
     const applyDurationChange = useCallback((nextDuration: number) => {
-      const normalizedDuration = Math.max(1, Math.round(nextDuration) || 1);
+      const normalizedDuration = Math.max(0, Math.round(nextDuration) || 0);
       setDurationValue(normalizedDuration);
     }, []);
 
@@ -1102,20 +1106,30 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         durationConfirmedRef.current = false;
         return;
       }
-      const normalizedDuration = Math.max(1, Math.round(durationValue) || 1);
-      onTasksChange?.([
-        {
-          ...task,
-          endDate: getEndDate(task.startDate, normalizedDuration),
-        },
-      ]);
+      const rounded = Math.round(durationValue) || 0;
+      if (isMilestone && rounded > 0) {
+        // Convert milestone → task
+        onTasksChange?.([
+          { ...task, type: 'task' as const, endDate: getEndDate(task.startDate, rounded) },
+        ]);
+      } else if (!isMilestone && rounded === 0) {
+        // Convert task → milestone
+        onTasksChange?.([
+          { ...task, type: 'milestone' as const, endDate: task.startDate },
+        ]);
+      } else if (!isMilestone && rounded > 0) {
+        onTasksChange?.([
+          { ...task, endDate: getEndDate(task.startDate, rounded) },
+        ]);
+      }
+      // isMilestone && rounded === 0 → no-op, just close
       setEditingColumnId(null);
-    }, [durationValue, task, onTasksChange, getEndDate]);
+    }, [durationValue, task, onTasksChange, getEndDate, isMilestone]);
 
     const handleDurationCancel = useCallback(() => {
-      setDurationValue(getDuration(task.startDate, task.endDate));
+      setDurationValue(isMilestone ? 0 : getDuration(normalizedTask.startDate, normalizedTask.endDate));
       setEditingColumnId(null);
-    }, [task.startDate, task.endDate, getDuration]);
+    }, [normalizedTask.startDate, normalizedTask.endDate, getDuration, isMilestone]);
 
     const handleDurationAdjust = useCallback(
       (delta: number) => {
@@ -1129,25 +1143,29 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         e.stopPropagation();
         if (e.key === "Enter") {
           durationConfirmedRef.current = true;
-          const normalizedDuration = Math.max(
-            1,
-            Math.round(durationValue) || 1,
-          );
-          onTasksChange?.([
-            {
-              ...task,
-              endDate: getEndDate(
-                task.startDate,
-                normalizedDuration,
-              ),
-            },
-          ]);
+          const rounded = Math.round(durationValue) || 0;
+          if (isMilestone && rounded > 0) {
+            // Convert milestone → task
+            onTasksChange?.([
+              { ...task, type: 'task' as const, endDate: getEndDate(task.startDate, rounded) },
+            ]);
+          } else if (!isMilestone && rounded === 0) {
+            // Convert task → milestone
+            onTasksChange?.([
+              { ...task, type: 'milestone' as const, endDate: task.startDate },
+            ]);
+          } else if (!isMilestone && rounded > 0) {
+            onTasksChange?.([
+              { ...task, endDate: getEndDate(task.startDate, rounded) },
+            ]);
+          }
+          // isMilestone && rounded === 0 → no-op, just close
           setEditingColumnId(null);
         } else if (e.key === "Escape") {
           handleDurationCancel();
         }
       },
-      [durationValue, task, onTasksChange, handleDurationCancel, getEndDate],
+      [durationValue, task, onTasksChange, handleDurationCancel, getEndDate, isMilestone],
     );
 
     const handleProgressClick = useCallback(
@@ -1235,8 +1253,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     }, [editingProgress]);
 
     useEffect(() => {
-      setDurationValue(getDuration(task.startDate, task.endDate));
-    }, [task.startDate, task.endDate, getDuration]);
+      setDurationValue(getDuration(normalizedTask.startDate, normalizedTask.endDate));
+    }, [normalizedTask.startDate, normalizedTask.endDate, getDuration]);
 
     useEffect(() => {
       if (editingDuration && durationInputRef.current) {
@@ -1245,11 +1263,53 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       }
     }, [editingDuration]);
 
+    const emitMilestoneDateChange = useCallback((nextDateISO: string) => {
+      const alignedDate = businessDays
+        ? alignToWorkingDay(new Date(`${nextDateISO}T00:00:00.000Z`), 1, weekendPredicate)
+        : new Date(`${nextDateISO}T00:00:00.000Z`);
+
+      const clampedRange = clampTaskRangeForIncomingFS(
+        task,
+        alignedDate,
+        alignedDate,
+        allTasks,
+        businessDays,
+        weekendPredicate
+      );
+      const normalized = normalizeTaskDatesForType({
+        ...task,
+        startDate: clampedRange.start.toISOString().split("T")[0],
+        endDate: clampedRange.end.toISOString().split("T")[0],
+      });
+      const startDate = parseUTCDate(normalized.startDate);
+      const endDate = parseUTCDate(normalized.endDate);
+
+      onTasksChange?.([
+        {
+          ...normalized,
+          ...(task.dependencies && {
+            dependencies: recalculateIncomingLags(
+              task,
+              startDate,
+              endDate,
+              allTasks,
+              businessDays,
+              weekendPredicate
+            ),
+          }),
+        },
+      ]);
+    }, [task, onTasksChange, allTasks, businessDays, weekendPredicate]);
+
     // Both date pickers shift the whole task (preserving duration), same as drag-move
     // Also normalizes dates to ensure startDate is always before or equal to endDate
     const handleStartDateChange = useCallback(
       (newDateISO: string) => {
         if (!newDateISO) return;
+        if (isMilestone) {
+          emitMilestoneDateChange(newDateISO);
+          return;
+        }
         let nextEndISO: string;
         const normalizedInputStart = businessDays
           ? alignToWorkingDay(new Date(`${newDateISO}T00:00:00.000Z`), 1, weekendPredicate)
@@ -1301,12 +1361,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           },
         ]);
       },
-      [task, onTasksChange, businessDays, getDuration, getEndDate, allTasks, weekendPredicate],
+      [task, onTasksChange, businessDays, getDuration, getEndDate, allTasks, weekendPredicate, isMilestone, emitMilestoneDateChange],
     );
 
     const handleEndDateChange = useCallback(
       (newDateISO: string) => {
         if (!newDateISO) return;
+        if (isMilestone) {
+          emitMilestoneDateChange(newDateISO);
+          return;
+        }
         let nextStartISO: string;
         const normalizedInputEnd = businessDays
           ? alignToWorkingDay(new Date(`${newDateISO}T00:00:00.000Z`), -1, weekendPredicate)
@@ -1358,7 +1422,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           },
         ]);
       },
-      [task, onTasksChange, businessDays, getDuration, weekendPredicate, allTasks],
+      [task, onTasksChange, businessDays, getDuration, weekendPredicate, allTasks, isMilestone, emitMilestoneDateChange],
     );
 
     const handleRowClickInternal = useCallback(() => {
@@ -1661,10 +1725,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [selectedChip?.successorId, selectedChip?.predecessorId, selectedChip?.linkType, onRemoveDependency, onChipSelect],
     );
 
-    const startDateISO = toISODate(task.startDate);
+    const startDateISO = toISODate(normalizedTask.startDate);
     const endDateISO = editingDuration
-      ? getEndDate(task.startDate, durationValue)
-      : toISODate(task.endDate);
+      ? getEndDate(normalizedTask.startDate, durationValue)
+      : toISODate(normalizedTask.endDate);
 
     // --- Built-in cell JSX (referenced from resolvedColumns.map) ---
     const numberCell = (
@@ -2069,11 +2133,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             <Input
               ref={durationInputRef}
               type="number"
-              min={1}
+              min={0}
               step={1}
               value={durationValue}
               onChange={(e) =>
-                applyDurationChange(parseInt(e.target.value, 10) || 1)
+                applyDurationChange(parseInt(e.target.value, 10) || 0)
               }
               onBlur={handleDurationSave}
               onKeyDown={handleDurationKeyDown}
@@ -2132,7 +2196,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               : undefined
           }
         >
-          {getDuration(task.startDate, task.endDate)}д
+          {isMilestone ? '0' : `${getDuration(normalizedTask.startDate, normalizedTask.endDate)}д`}
         </span>
       </div>
     );

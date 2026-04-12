@@ -4,11 +4,11 @@
 
 - ✅ **v0.18.0 Gantt Library MVP** — Phases 1-20 (shipped 2026-03-17)
   — See `.planning/milestones/v0.18.0-ROADMAP.md`
-- 🔄 **v0.50.0 Adding Tools** — Phases 21-28 (in progress)
+- ✅ **v0.50.0 Adding Tools** — Phases 21-29 (complete)
 
 ## Current Status
 
-🎯 **Phase 28 planning** — Scheduling Core Hardening
+✅ **Phase 29 complete** — Milestones type tasks
 
 ## Phases
 
@@ -20,7 +20,8 @@
 - [x] **Phase 25: columns-refactoring** - Unified column pipeline for TaskList
 - [x] **Phase 26: columns-api-migration** - Remove legacy column API, enforce new renderEditor/width contract
 - [x] **Phase 27: core-refactor** - Extract scheduling logic into headless runtime-agnostic core module
-- [ ] **Phase 28: scheduling-core-hardening** - Domain/UI boundary separation, command-level API, documentation
+- [x] **Phase 28: scheduling-core-hardening** - Domain/UI boundary separation, command-level API, documentation
+- [x] **Phase 29: milestones-type-tasks** - Explicit milestone task type, diamond rendering, move-only interaction, samples and docs
 
 ### Phase 21: Custom Weekend Calendar
 
@@ -230,8 +231,9 @@
 | 26 | v0.50.0 | 2/2 | Complete    | 2026-03-29 |
 | 27 | v0.50.0 | 2/2 | Complete    | 2026-03-30 |
 | 28 | v0.50.0 | 3/3 | Complete    | 2026-03-30 |
+| 29 | v0.50.0 | 3/3 | Complete    | 2026-04-11 |
 
-**Overall:** 64/69 plans complete (93%)
+**Overall:** 67/72 plans complete (93%)
 
 <details>
 <summary>v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -268,7 +270,7 @@ Build a lightweight React/Next.js library for interactive Gantt charts. Starting
 </details>
 
 <details>
-<summary>v0.50.0 Adding Tools (Phases 21-28) — IN PROGRESS</summary>
+<summary>v0.50.0 Adding Tools (Phases 21-29) — COMPLETE</summary>
 
 ### Overview
 
@@ -285,11 +287,12 @@ Add developer tools and calendar customization features to the Gantt library.
 - [x] **Phase 26: columns-api-migration** (2/2 plans) — Remove legacy column API
 - [x] **Phase 27: core-refactor** (2/2 plans) — Extract scheduling logic into headless core module
 
-### In Progress
+### Completed Phases
 
-- [ ] **Phase 28: scheduling-core-hardening** (0/3 plans) — Domain/UI boundary, command API, documentation
+- [x] **Phase 28: scheduling-core-hardening** (3/3 plans) — Domain/UI boundary, command API, documentation
+- [x] **Phase 29: milestones-type-tasks** (3/3 plans) — Explicit milestone task type, milestone chart/task-list behavior, samples and docs
 
-**Total:** 8 phases complete, 1 in progress
+**Total:** 9 phases complete
 
 </details>
 
@@ -306,12 +309,12 @@ Add developer tools and calendar customization features to the Gantt library.
 5. FS/SS/FF/SF dependency semantics stay unchanged; only milestone endpoint geometry changes where needed
 6. Demo/sample data and docs show milestone usage and explicitly preserve existing `parentId`-based parent/project grouping semantics
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 29-01-PLAN.md — Lock public milestone contract, shared helpers, and milestone test targets
-- [ ] 29-02-PLAN.md — Implement diamond rendering, move-only drag, and milestone dependency geometry
-- [ ] 29-03-PLAN.md — Make TaskList milestone-aware and update samples/docs
+- [x] 29-01-PLAN.md — Lock public milestone contract, shared helpers, and milestone test targets
+- [x] 29-02-PLAN.md — Implement diamond rendering, move-only drag, and milestone dependency geometry
+- [x] 29-03-PLAN.md — Make TaskList milestone-aware and update samples/docs
 
 ---
 
@@ -319,4 +322,4 @@ Plans:
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-**Roadmap updated:** 2026-03-30
+**Roadmap updated:** 2026-04-11

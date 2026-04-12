@@ -533,15 +533,27 @@ export const createSampleTasks = (): Task[] => {
       dependencies: [{ taskId: 'g8-3', type: 'SS' as const, lag: 8 }],
     },
     {
+      id: 'g8-ms-1',
+      name: 'Комиссия готовности к сдаче',
+      startDate: '2026-08-08',
+      endDate: '2026-08-15',
+      type: 'milestone',
+      progress: 0,
+      accepted: false,
+      parentId: 'g8',
+      dependencies: [{ taskId: 'g8-4', type: 'FS' as const, lag: 0 }],
+    },
+    {
       id: 'g8-5',
       name: 'Сдача объекта',
       startDate: '2026-08-10',
       endDate: '2026-08-15',
+      type: 'milestone',
       progress: 0,
       accepted: false,
       locked: false,
       parentId: 'g8',
-      dependencies: [{ taskId: 'g8-3', type: 'FF' as const, lag: 10 }],
+      dependencies: [{ taskId: 'g8-ms-1', type: 'FS' as const, lag: 2 }],
     },
   ];
 };

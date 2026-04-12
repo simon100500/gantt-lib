@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateTaskBar, calculateGridWidth, calculateGridLines, calculateWeekendBlocks, detectEdgeZone } from '../utils/geometry';
+import { calculateMilestoneGeometry, calculateTaskBar, calculateGridWidth, calculateGridLines, calculateWeekendBlocks, detectEdgeZone } from '../utils/geometry';
 
 describe('calculateTaskBar', () => {
   const monthStart = new Date('2024-03-01T00:00:00Z');
@@ -118,6 +118,24 @@ describe('calculateGridWidth', () => {
   it('should handle zero days', () => {
     const result = calculateGridWidth(0, 40);
     expect(result).toBe(0);
+  });
+});
+
+describe('calculateMilestoneGeometry', () => {
+  const monthStart = new Date('2024-03-01T00:00:00Z');
+
+  it('returns a fixed-size diamond box centered on the task day', () => {
+    const result = calculateMilestoneGeometry(
+      new Date('2024-03-10T00:00:00Z'),
+      monthStart,
+      40,
+      14
+    );
+
+    expect(result.size).toBe(14);
+    expect(result.centerX).toBe(380);
+    expect(result.left).toBe(373);
+    expect(result.right).toBe(387);
   });
 });
 

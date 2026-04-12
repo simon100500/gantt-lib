@@ -19,6 +19,7 @@ import {
   getDependencyLag,
   normalizeDependencyLag,
   computeLagFromDates,
+  normalizePredecessorDates,
 } from './dependencies';
 
 // Re-export for backward compat — these live in dateMath now
@@ -127,8 +128,7 @@ export function clampTaskRangeForIncomingFS(
       continue;
     }
 
-    const predecessorStart = parseDateOnly(predecessor.startDate);
-    const predecessorEnd = parseDateOnly(predecessor.endDate);
+    const { predStart: predecessorStart, predEnd: predecessorEnd } = normalizePredecessorDates(predecessor, parseDateOnly);
     const predecessorDuration = getTaskDuration(
       predecessorStart,
       predecessorEnd,
@@ -179,8 +179,10 @@ export function recalculateIncomingLags(
       return { ...dep, lag: getDependencyLag(dep) };
     }
 
-    const predecessorStart = new Date(predecessor.startDate as string);
-    const predecessorEnd = new Date(predecessor.endDate as string);
+    const { predStart: predecessorStart, predEnd: predecessorEnd } = normalizePredecessorDates(
+      predecessor,
+      (d) => new Date(d instanceof Date ? d.getTime() : `${String(d).split('T')[0]}T00:00:00.000Z`)
+    );
     const nextLag = computeLagFromDates(
       dep.type,
       predecessorStart,

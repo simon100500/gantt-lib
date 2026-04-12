@@ -8,7 +8,7 @@ import type { Task, ScheduleCommandResult, ScheduleCommandOptions } from './type
 import { moveTaskRange, recalculateIncomingLags, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration } from './commands';
 import { universalCascade } from './cascade';
 import { parseDateOnly } from './dateMath';
-import { calculateSuccessorDate, getDependencyLag } from './dependencies';
+import { calculateSuccessorDate, getDependencyLag, normalizePredecessorDates } from './dependencies';
 import { computeParentDates, isTaskParent } from './hierarchy';
 
 function toIsoDate(date: Date): string {
@@ -214,8 +214,7 @@ export function recalculateTaskFromDependencies(
     const predecessor = snapshot.find(t => t.id === dep.taskId);
     if (!predecessor) continue;
 
-    const predStart = parseDateOnly(predecessor.startDate);
-    const predEnd = parseDateOnly(predecessor.endDate);
+    const { predStart, predEnd } = normalizePredecessorDates(predecessor, parseDateOnly);
     const constraintDate = calculateSuccessorDate(
       predStart,
       predEnd,
@@ -367,8 +366,7 @@ export function recalculateProjectSchedule(
           continue;
         }
 
-        const predecessorStart = parseDateOnly(predecessor.startDate);
-        const predecessorEnd = parseDateOnly(predecessor.endDate);
+        const { predStart: predecessorStart, predEnd: predecessorEnd } = normalizePredecessorDates(predecessor, parseDateOnly);
         const constraintDate = calculateSuccessorDate(
           predecessorStart,
           predecessorEnd,

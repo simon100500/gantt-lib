@@ -6,6 +6,7 @@ interface Task {
   name: string;
   startDate: string | Date;
   endDate: string | Date;
+  type?: 'task' | 'milestone';
   color?: string;
   progress?: number;
   accepted?: boolean;
@@ -22,6 +23,7 @@ interface Task {
 | `name` | `string` | yes | — | Displayed as text label on the task bar. No length limit enforced, but very long names may overflow the bar visually. |
 | `startDate` | `string \| Date` | yes | — | ISO string (`'2026-02-01'`) or `Date` object. All arithmetic is UTC. Prefer ISO strings to avoid local timezone off-by-one errors. |
 | `endDate` | `string \| Date` | yes | — | Same format rules as `startDate`. **endDate is inclusive:** a task where `startDate === endDate` occupies exactly 1 day column. |
+| `type` | `'task' \| 'milestone'` | no | `'task'` | Explicit task subtype. `type: 'milestone'` renders the item as a diamond, keeps it single-date, and synchronizes `endDate` with `startDate`. Omitting the field keeps existing regular task behavior, including for same-day tasks. |
 | `color` | `string` | no | `'#3b82f6'` | Any valid CSS color value (hex, rgb, named color). Applied as the task bar background color. |
 | `progress` | `number` | no | `undefined` | Range: 0–100. Decimal values are rounded for display. `0` or `undefined` means no progress bar is rendered. Progress is purely visual — it does not restrict drag behavior. |
 | `accepted` | `boolean` | no | `undefined` | Only meaningful when `progress === 100`. `true` renders a green progress bar. `false` or `undefined` at 100% renders a yellow bar. Has no effect when progress is not 100. |
@@ -33,6 +35,25 @@ interface Task {
 ---
 
 ## Task Hierarchy — Parent-Child Relationships (v0.18.0+)
+
+## Milestones (Phase 29+)
+
+Milestones are an explicit task subtype, not a separate project/group model:
+
+```typescript
+const milestone: Task = {
+  id: 'approval',
+  name: 'Approval complete',
+  startDate: '2026-04-12',
+  endDate: '2026-04-12',
+  type: 'milestone',
+};
+```
+
+- `type: 'milestone'` renders the task as a diamond on the chart.
+- Milestones are always single-date tasks. If a consumer passes different start/end dates, the library normalizes the milestone back to one date.
+- A same-day regular task stays a rectangular bar unless `type: 'milestone'` is set explicitly.
+- Existing `parentId` hierarchy rules remain the only parent/project grouping mechanism. Milestones do not introduce a new `project` or `group` type.
 
 The library supports unlimited-depth task hierarchy via the `parentId` property:
 

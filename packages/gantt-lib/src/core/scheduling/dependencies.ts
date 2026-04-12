@@ -4,13 +4,31 @@
  * Zero React/DOM/date-fns imports.
  */
 
-import type { LinkType, TaskDependency } from './types';
+import type { LinkType, TaskDependency, Task } from './types';
 import {
   getBusinessDayOffset,
   shiftBusinessDayOffset,
   DAY_MS,
   getTaskDuration,
 } from './dateMath';
+
+/**
+ * Normalize predecessor dates for scheduling calculations.
+ * For milestone tasks, the scheduling "finish" anchor is treated as the day
+ * before startDate. This preserves the standard inclusive FS formula
+ * (`predEnd + lag + 1`) while making milestone FS lag=0 land on the same day.
+ */
+export function normalizePredecessorDates(
+  predecessor: Pick<Task, 'startDate' | 'endDate' | 'type'>,
+  parseDateFn: (d: string | Date) => Date
+): { predStart: Date; predEnd: Date } {
+  const predStart = parseDateFn(predecessor.startDate);
+  const isMilestone = predecessor.type === 'milestone';
+  const predEnd = isMilestone
+    ? new Date(predStart.getTime() - DAY_MS)
+    : parseDateFn(predecessor.endDate);
+  return { predStart, predEnd };
+}
 
 /**
  * Get lag value from dependency, defaulting to 0.

@@ -2,7 +2,8 @@
 
 import React, { useMemo } from 'react';
 import { Task } from '../../types';
-import { calculateTaskBar, calculateDependencyPath } from '../../utils/geometry';
+import { calculateDependencyPath, resolveTaskHorizontalGeometry } from '../../utils/geometry';
+import { isMilestoneTask } from '../../utils/taskType';
 import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils';
 import './DependencyLines.css';
 
@@ -129,19 +130,14 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
     // First pass: Calculate positions for visible tasks (existing logic)
     tasks.forEach((task, index) => {
-      const startDate = new Date(task.startDate);
-      const endDate = new Date(task.endDate);
-      const computed = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
-
       // Use real-time pixel override if available (during drag)
       const override = dragOverrides?.get(task.id);
-      const resolvedLeft = override?.left ?? computed.left;
-      const resolvedWidth = override?.width ?? computed.width;
+      const computed = resolveTaskHorizontalGeometry(task, monthStart, dayWidth, override);
 
       indices.set(task.id, index);
       positions.set(task.id, {
-        left: resolvedLeft,
-        right: resolvedLeft + resolvedWidth,
+        left: computed.left,
+        right: computed.right,
         rowTop: index * rowHeight,
         isVirtual: false,
       });
@@ -166,20 +162,14 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         const ancestorPosition = positions.get(visibleAncestor.id);
         if (!ancestorPosition) continue;
 
-        // Calculate horizontal position from task's dates
-        const startDate = new Date(task.startDate);
-        const endDate = new Date(task.endDate);
-        const computed = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
-
         // Use real-time pixel override if available (during drag)
         const override = dragOverrides?.get(task.id);
-        const resolvedLeft = override?.left ?? computed.left;
-        const resolvedWidth = override?.width ?? computed.width;
+        const computed = resolveTaskHorizontalGeometry(task, monthStart, dayWidth, override);
 
         // Store virtual position using ancestor's rowTop
         positions.set(task.id, {
-          left: resolvedLeft,
-          right: resolvedLeft + resolvedWidth,
+          left: computed.left,
+          right: computed.right,
           rowTop: ancestorPosition.rowTop,
           isVirtual: true,
         });
@@ -200,6 +190,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   // Calculate all dependency line paths (use allTasks if available)
   const lines = useMemo(() => {
     const tasksForEdges = allTasks ?? tasks;
+    const taskMap = new Map(tasksForEdges.map(task => [task.id, task]));
     const edges = getAllDependencyEdges(tasksForEdges);
     const lines: Array<{
       id: string;
@@ -222,6 +213,9 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       if (!predecessor || !successor) {
         continue; // Skip if task not found (shouldn't happen with validation)
       }
+
+      const predecessorTask = taskMap.get(edge.predecessorId);
+      const successorTask = taskMap.get(edge.successorId);
 
       // Check if both tasks are hidden inside the same collapsed parent
       // If so, skip rendering this line (it's internal to the collapsed group)
@@ -264,7 +258,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       // SS: left  → left
       // FF: right → right
       // SF: left  → right
-      const fromX = (edge.type === 'SS' || edge.type === 'SF')
+      let fromX = (edge.type === 'SS' || edge.type === 'SF')
         ? predecessor.left
         : predecessor.right;
 
@@ -272,10 +266,28 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         ? successor.right
         : successor.left;
 
+      const stackedMilestonesSameDay = Boolean(
+        predecessorTask &&
+        successorTask &&
+        isMilestoneTask(predecessorTask) &&
+        isMilestoneTask(successorTask) &&
+        edge.lag === 0 &&
+        new Date(predecessorTask.startDate).toISOString().split('T')[0] ===
+          new Date(successorTask.startDate).toISOString().split('T')[0] &&
+        predecessor.rowTop !== successor.rowTop &&
+        edge.type === 'FS'
+      );
+
+      const finalToX = stackedMilestonesSameDay
+        ? Math.round(((predecessor.left + predecessor.right) / 2 + (successor.left + successor.right) / 2) / 2)
+        : toX;
+      if (stackedMilestonesSameDay) {
+        fromX = finalToX;
+      }
       const arrivesFromRight = edge.type === 'FF' || edge.type === 'SF';
 
       const from = { x: fromX, y: fromY };
-      const to = { x: toX, y: toY };
+      const to = { x: finalToX, y: toY };
 
       const path = calculateDependencyPath(from, to, arrivesFromRight);
 
@@ -288,7 +300,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         hasCycle,
         lag: edge.lag,
         fromX,
-        toX,
+        toX: finalToX,
         fromY,
         reverseOrder,
         isVirtual,
@@ -304,6 +316,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   return (
     <svg
       className="gantt-dependencies-svg"
+      data-testid="dependency-lines-svg"
       width={gridWidth}
       height={svgHeight}
       xmlns="http://www.w3.org/2000/svg"

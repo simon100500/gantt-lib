@@ -40,6 +40,84 @@ export const calculateTaskBar = (
 };
 
 /**
+ * Calculate fixed-size milestone geometry centered on a single task day.
+ */
+export const calculateMilestoneGeometry = (
+  taskDate: Date,
+  monthStart: Date,
+  dayWidth: number,
+  size: number = 14
+): { centerX: number; left: number; right: number; size: number } => {
+  const { left, width } = calculateTaskBar(taskDate, taskDate, monthStart, dayWidth);
+  const centerX = Math.round(left + width / 2);
+  const halfSize = Math.round(size / 2);
+
+  return {
+    centerX,
+    left: centerX - halfSize,
+    right: centerX + halfSize,
+    size,
+  };
+};
+
+/**
+ * Resolve milestone connection points relative to the task day cell.
+ * Anchors sit at day boundary +/- half diamond diagonal.
+ */
+export const calculateMilestoneConnectionBounds = (
+  dayLeft: number,
+  dayWidth: number,
+  size: number = 14
+): { left: number; right: number } => {
+  const halfDiagonal = Math.round(size / Math.SQRT2);
+  const visualNudge = 2;
+  return {
+    left: dayLeft + halfDiagonal + visualNudge,
+    right: dayLeft + dayWidth - halfDiagonal - visualNudge,
+  };
+};
+
+type HorizontalGeometryTask = {
+  startDate: string | Date;
+  endDate: string | Date;
+  type?: 'task' | 'milestone';
+};
+
+/**
+ * Resolve horizontal task geometry with optional drag override.
+ * Milestones always stay anchored to a single day even if an override carries a wider width.
+ */
+export const resolveTaskHorizontalGeometry = (
+  task: HorizontalGeometryTask,
+  monthStart: Date,
+  dayWidth: number,
+  override?: { left: number; width: number }
+): { left: number; right: number } => {
+  const startDate = new Date(task.startDate);
+  const endDate = new Date(task.endDate);
+
+  if (task.type === 'milestone') {
+    const size = 14;
+    if (override) {
+      return calculateMilestoneConnectionBounds(override.left, dayWidth, size);
+    }
+
+    const bar = calculateTaskBar(startDate, startDate, monthStart, dayWidth);
+    return calculateMilestoneConnectionBounds(bar.left, dayWidth, size);
+  }
+
+  if (override) {
+    return {
+      left: override.left,
+      right: override.left + override.width,
+    };
+  }
+
+  const bar = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
+  return { left: bar.left, right: bar.left + bar.width };
+};
+
+/**
  * Convert pixel position to date (inverse of calculateTaskBar)
  * @param pixels - Position in pixels (left or width)
  * @param monthStart - Start of the month/visible range
@@ -267,6 +345,12 @@ export const calculateDependencyPath = (
   // Same row: straight horizontal line
   if (fy === ty) {
     return `M ${fx} ${fy} H ${tx}`;
+  }
+
+  // Same column: straight vertical line without chamfer.
+  // This matters for stacked milestones where the diagonal corner looks wrong.
+  if (fx === tx) {
+    return `M ${fx} ${fy} V ${ty}`;
   }
 
   const C = 2; // chamfer size

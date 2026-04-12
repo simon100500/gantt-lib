@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
+import { isMilestoneTask, normalizeTaskDatesForType } from '../utils/taskType';
 // Domain scheduling functions
 import {
   buildTaskRangeFromEnd,
@@ -208,8 +209,12 @@ function handleGlobalMouseMove(e: MouseEvent) {
     const { startX, initialLeft, initialWidth, mode, dayWidth, onProgress, allTasks } = activeDrag;
     const deltaX = e.clientX - startX;
 
+    // For milestones, force width to single day regardless of stored dates
+    const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
+    const effectiveWidth = draggedTask && isMilestoneTask(draggedTask) ? dayWidth : initialWidth;
+
     let newLeft = initialLeft;
-    let newWidth = initialWidth;
+    let newWidth = effectiveWidth;
 
     switch (mode) {
       case 'move':
@@ -230,8 +235,6 @@ function handleGlobalMouseMove(e: MouseEvent) {
     // Incoming dependency lag is editable by dragging the successor itself.
     // Do not clamp successor movement/resize by its current dependency dates;
     // the new lag will be recomputed from the final dates on drop.
-
-    const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
 
     if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
       const previewRange = clampDateRangeForIncomingFS(
@@ -275,6 +278,11 @@ function handleGlobalMouseMove(e: MouseEvent) {
       newWidth = Math.round((alignedEndDay - alignedStartDay + 1) * dayWidth);
     }
 
+    // Milestone: force single-day width after all date recalculations
+    if (draggedTask && isMilestoneTask(draggedTask)) {
+      newWidth = dayWidth;
+    }
+
     // ── Universal preview cascade ──────────────────────────────────────────
     // Same algorithm as handleComplete — converts pixels→dates, runs
     // universalCascade, converts dates→pixels for overrides.
@@ -314,7 +322,8 @@ function handleGlobalMouseMove(e: MouseEvent) {
           };
         })();
       const previewStartDate = previewRange.start;
-      const previewEndDate = previewRange.end;
+      const isMilestone = originalDraggedTask ? isMilestoneTask(originalDraggedTask) : false;
+      const previewEndDate = isMilestone ? previewRange.start : previewRange.end;
 
       const movedTaskData = originalDraggedTask ?? { id: dragId, name: '', startDate: '', endDate: '' };
       const cascadeResult = universalCascade(
@@ -517,6 +526,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     businessDays = true,
     weekendPredicate,
   } = options;
+  const rawHookTask = allTasks.find(t => t.id === taskId);
+  const hookTask = rawHookTask ? normalizeTaskDatesForType(rawHookTask) : undefined;
+  const hookTaskIsMilestone = hookTask ? isMilestoneTask(hookTask) : false;
 
   // Track if this hook instance owns the current global drag
   const isOwnerRef = useRef<boolean>(false);
@@ -547,13 +559,15 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     };
 
     const startOffset = getUTCDayDifference(initialStartDate, monthStart);
-    const duration = getUTCDayDifference(initialEndDate, initialStartDate);
+    const duration = hookTaskIsMilestone
+      ? 0
+      : getUTCDayDifference(initialEndDate, initialStartDate);
 
     const left = Math.round(startOffset * dayWidth);
     const width = Math.round((duration + 1) * dayWidth); // +1 to include end date
 
     return { left, width };
-  }, [initialStartDate, initialEndDate, monthStart, dayWidth]);
+  }, [initialStartDate, initialEndDate, monthStart, dayWidth, hookTaskIsMilestone]);
 
   /**
    * Initialize position when dates or dayWidth changes.
@@ -611,7 +625,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     const wasOwner = isOwnerRef.current;
     isOwnerRef.current = false;
 
-    const currentTask = allTasks.find(t => t.id === taskId);
+    const currentTaskRaw = allTasks.find(t => t.id === taskId);
+    const currentTask = currentTaskRaw ? normalizeTaskDatesForType(currentTaskRaw) : undefined;
     const finalRange = currentTask
       ? clampDateRangeForIncomingFS(
         currentTask,
@@ -648,7 +663,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       })();
 
     const newStartDate = finalRange.start;
-    const newEndDate = finalRange.end;
+    const newEndDate = currentTask && isMilestoneTask(currentTask)
+      ? finalRange.start
+      : finalRange.end;
 
     // Reset local state
     setIsDragging(false);
@@ -665,6 +682,22 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     }
 
     if (wasOwner) {
+      // Skip if position didn't actually change (e.g. click without drag)
+      const startUnchanged = newStartDate.getTime() === Date.UTC(
+        initialStartDate.getUTCFullYear(), initialStartDate.getUTCMonth(), initialStartDate.getUTCDate()
+      );
+      const baselineEndDate = hookTaskIsMilestone ? initialStartDate : initialEndDate;
+      const endUnchanged = newEndDate.getTime() === Date.UTC(
+        baselineEndDate.getUTCFullYear(), baselineEndDate.getUTCMonth(), baselineEndDate.getUTCDate()
+      );
+      if (startUnchanged && endUnchanged) {
+        // Reset position from dates (in case pixel rounding drifted)
+        const { left, width } = getInitialPosition();
+        setCurrentLeft(left);
+        setCurrentWidth(width);
+        return;
+      }
+
       if (!disableConstraints && onCascade && allTasks.length > 0) {
         // Hard mode with onCascade: use universalCascade for all cases
         // (parent drag, child drag, root task drag — all handled uniformly)
@@ -716,6 +749,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     weekendPredicate,
     initialStartDate,
     initialEndDate,
+    hookTaskIsMilestone,
   ]);
 
   /**
@@ -777,6 +811,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     if (mode === 'resize-left' || mode === 'resize-right') {
       const currentTask = allTasks.find(t => t.id === taskId);
       if (currentTask && isTaskParent(taskId, allTasks)) {
+        mode = 'move';
+      }
+      if (currentTask && isMilestoneTask(currentTask)) {
         mode = 'move';
       }
     }
