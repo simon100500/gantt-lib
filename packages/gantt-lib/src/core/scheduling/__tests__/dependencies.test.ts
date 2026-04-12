@@ -4,6 +4,7 @@ import {
   normalizeDependencyLag,
   calculateSuccessorDate,
   computeLagFromDates,
+  normalizePredecessorDates,
 } from '../dependencies';
 import type { Task, LinkType } from '../../types';
 
@@ -80,6 +81,21 @@ describe('dependencies', () => {
       // FS lag=2: successor starts predEnd + 3 days = Mon Jan 13
       expect(result.getUTCDate()).toBe(13);
     });
+
+    it('computes milestone FS with lag=0 on the same day', () => {
+      const { predStart, predEnd } = normalizePredecessorDates(
+        {
+          startDate: '2025-01-10',
+          endDate: '2025-01-10',
+          type: 'milestone',
+        },
+        (value) => new Date(`${String(value).split('T')[0]}T00:00:00.000Z`)
+      );
+
+      const result = calculateSuccessorDate(predStart, predEnd, 'FS', 0);
+
+      expect(result.toISOString()).toBe('2025-01-10T00:00:00.000Z');
+    });
   });
 
   describe('computeLagFromDates', () => {
@@ -100,6 +116,23 @@ describe('dependencies', () => {
       const result = computeLagFromDates('FS', predStart, predEnd, succStart, succEnd);
       // FS: lag = (succStart - predEnd) / DAY_MS - 1 = (14-10)/1 - 1 = 3
       expect(result).toBe(3);
+    });
+
+    it('computes milestone FS lag=0 when successor starts the same day', () => {
+      const { predStart, predEnd } = normalizePredecessorDates(
+        {
+          startDate: '2025-01-10',
+          endDate: '2025-01-10',
+          type: 'milestone',
+        },
+        (value) => new Date(`${String(value).split('T')[0]}T00:00:00.000Z`)
+      );
+      const succStart = makeDate(2025, 0, 10);
+      const succEnd = makeDate(2025, 0, 12);
+
+      const result = computeLagFromDates('FS', predStart, predEnd, succStart, succEnd);
+
+      expect(result).toBe(0);
     });
   });
 });

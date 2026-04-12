@@ -259,7 +259,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const displayLeft = overridePosition?.left ?? (isDragging ? currentLeft : left);
     const displayWidth = overridePosition?.width ?? (isDragging ? currentWidth : width);
     const displayMilestoneGeometry = useMemo(() => {
-      const centerX = Math.round(displayLeft + displayWidth / 2);
+      // Milestones are always anchored to a single day cell even if some preview path
+      // passes a wider width (for example, malformed input dates before normalization).
+      const centerX = Math.round(displayLeft + dayWidth / 2);
       const halfSize = Math.round(milestoneGeometry.size / 2);
       return {
         centerX,
@@ -267,7 +269,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         right: centerX + halfSize,
         size: milestoneGeometry.size,
       };
-    }, [displayLeft, displayWidth, milestoneGeometry.size]);
+    }, [displayLeft, dayWidth, milestoneGeometry.size]);
     const visualLeft = milestone ? displayMilestoneGeometry.left : displayLeft;
     const visualWidth = milestone ? displayMilestoneGeometry.size : displayWidth;
 

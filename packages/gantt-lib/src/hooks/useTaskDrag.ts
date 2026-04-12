@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { Task, TaskDependency, LinkType } from '../types';
-import { isMilestoneTask } from '../utils/taskType';
+import { isMilestoneTask, normalizeTaskDatesForType } from '../utils/taskType';
 // Domain scheduling functions
 import {
   buildTaskRangeFromEnd,
@@ -526,6 +526,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     businessDays = true,
     weekendPredicate,
   } = options;
+  const rawHookTask = allTasks.find(t => t.id === taskId);
+  const hookTask = rawHookTask ? normalizeTaskDatesForType(rawHookTask) : undefined;
+  const hookTaskIsMilestone = hookTask ? isMilestoneTask(hookTask) : false;
 
   // Track if this hook instance owns the current global drag
   const isOwnerRef = useRef<boolean>(false);
@@ -556,13 +559,15 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     };
 
     const startOffset = getUTCDayDifference(initialStartDate, monthStart);
-    const duration = getUTCDayDifference(initialEndDate, initialStartDate);
+    const duration = hookTaskIsMilestone
+      ? 0
+      : getUTCDayDifference(initialEndDate, initialStartDate);
 
     const left = Math.round(startOffset * dayWidth);
     const width = Math.round((duration + 1) * dayWidth); // +1 to include end date
 
     return { left, width };
-  }, [initialStartDate, initialEndDate, monthStart, dayWidth]);
+  }, [initialStartDate, initialEndDate, monthStart, dayWidth, hookTaskIsMilestone]);
 
   /**
    * Initialize position when dates or dayWidth changes.
@@ -620,7 +625,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     const wasOwner = isOwnerRef.current;
     isOwnerRef.current = false;
 
-    const currentTask = allTasks.find(t => t.id === taskId);
+    const currentTaskRaw = allTasks.find(t => t.id === taskId);
+    const currentTask = currentTaskRaw ? normalizeTaskDatesForType(currentTaskRaw) : undefined;
     const finalRange = currentTask
       ? clampDateRangeForIncomingFS(
         currentTask,
@@ -680,8 +686,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       const startUnchanged = newStartDate.getTime() === Date.UTC(
         initialStartDate.getUTCFullYear(), initialStartDate.getUTCMonth(), initialStartDate.getUTCDate()
       );
+      const baselineEndDate = hookTaskIsMilestone ? initialStartDate : initialEndDate;
       const endUnchanged = newEndDate.getTime() === Date.UTC(
-        initialEndDate.getUTCFullYear(), initialEndDate.getUTCMonth(), initialEndDate.getUTCDate()
+        baselineEndDate.getUTCFullYear(), baselineEndDate.getUTCMonth(), baselineEndDate.getUTCDate()
       );
       if (startUnchanged && endUnchanged) {
         // Reset position from dates (in case pixel rounding drifted)
@@ -742,6 +749,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     weekendPredicate,
     initialStartDate,
     initialEndDate,
+    hookTaskIsMilestone,
   ]);
 
   /**

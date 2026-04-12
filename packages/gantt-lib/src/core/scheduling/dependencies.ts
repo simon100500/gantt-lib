@@ -14,8 +14,9 @@ import {
 
 /**
  * Normalize predecessor dates for scheduling calculations.
- * For milestone tasks, endDate is treated as equal to startDate (zero duration).
- * This ensures FS links from milestones place successors on the same day (not +1).
+ * For milestone tasks, the scheduling "finish" anchor is treated as the day
+ * before startDate. This preserves the standard inclusive FS formula
+ * (`predEnd + lag + 1`) while making milestone FS lag=0 land on the same day.
  */
 export function normalizePredecessorDates(
   predecessor: Pick<Task, 'startDate' | 'endDate' | 'type'>,
@@ -23,7 +24,9 @@ export function normalizePredecessorDates(
 ): { predStart: Date; predEnd: Date } {
   const predStart = parseDateFn(predecessor.startDate);
   const isMilestone = predecessor.type === 'milestone';
-  const predEnd = isMilestone ? predStart : parseDateFn(predecessor.endDate);
+  const predEnd = isMilestone
+    ? new Date(predStart.getTime() - DAY_MS)
+    : parseDateFn(predecessor.endDate);
   return { predStart, predEnd };
 }
 

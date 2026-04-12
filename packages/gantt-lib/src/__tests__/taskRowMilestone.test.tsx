@@ -44,4 +44,24 @@ describe('TaskRow milestone targets', () => {
     expect(container.querySelector('.gantt-tr-milestone')).toBeNull();
     expect(container.querySelectorAll('.gantt-tr-resizeHandle')).toHaveLength(2);
   });
+
+  it('anchors milestone preview to the task day even if override width is wider', () => {
+    const malformedMilestone: Task = {
+      ...milestoneTask,
+      endDate: '2026-04-15',
+    };
+
+    const { container } = render(
+      <TaskRow
+        task={malformedMilestone}
+        {...baseProps}
+        allTasks={[malformedMilestone, sameDayTask]}
+        overridePosition={{ left: 288, width: 192 }}
+      />
+    );
+
+    const milestoneBar = container.querySelector('.gantt-tr-milestone') as HTMLElement | null;
+    expect(milestoneBar).not.toBeNull();
+    expect(milestoneBar?.style.left).toBe('297px');
+  });
 });

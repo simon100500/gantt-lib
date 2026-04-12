@@ -207,6 +207,28 @@ describe('recalculateTaskFromDependencies', () => {
     expect(recalcB.startDate).toBe('2024-01-08');
   });
 
+  it('10.1 milestone FS lag=0 keeps successor on the same day', () => {
+    const predecessor = makeTask({
+      id: 'M',
+      startDate: '2024-01-05',
+      endDate: '2024-01-05',
+      type: 'milestone',
+    });
+    const successor = makeTask({
+      id: 'B',
+      startDate: '2024-01-06',
+      endDate: '2024-01-08',
+      dependencies: [{ taskId: 'M', type: 'FS', lag: 0 }],
+    });
+    const snapshot = [predecessor, successor];
+
+    const result = recalculateTaskFromDependencies('B', snapshot);
+
+    const recalcB = result.changedTasks.find(t => t.id === 'B')!;
+    expect(recalcB.startDate).toBe('2024-01-05');
+    expect(recalcB.endDate).toBe('2024-01-07');
+  });
+
   it('returns empty for task without dependencies', () => {
     const task = makeTask({ id: 'A', startDate: '2024-01-01', endDate: '2024-01-05' });
     const result = recalculateTaskFromDependencies('A', [task]);

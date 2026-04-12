@@ -48,6 +48,22 @@ export function resolveDateRangeFromPixels(
     monthStart.getUTCMonth(),
     monthStart.getUTCDate() + rawEndOffset
   ));
+  const isMilestone = task.type === 'milestone';
+
+  // Milestone type has priority over incoming date span.
+  // During drag, milestones are always treated as zero-duration (single date).
+  if (isMilestone) {
+    const anchorDate = mode === 'resize-right' ? rawEndDate : rawStartDate;
+    if (businessDays && weekendPredicate) {
+      const originalAnchor = mode === 'resize-right'
+        ? new Date(task.endDate as string)
+        : new Date(task.startDate as string);
+      const snapDirection: 1 | -1 = anchorDate.getTime() >= originalAnchor.getTime() ? 1 : -1;
+      const alignedDate = alignToWorkingDay(anchorDate, snapDirection, weekendPredicate);
+      return { start: alignedDate, end: alignedDate };
+    }
+    return { start: anchorDate, end: anchorDate };
+  }
 
   if (!(businessDays && weekendPredicate)) {
     return { start: rawStartDate, end: rawEndDate };

@@ -46,6 +46,20 @@ describe('resolveDateRangeFromPixels', () => {
     expect(result.start.getUTCDate()).toBe(2);
     expect(result.end.getUTCDate()).toBe(3);
   });
+
+  it('treats milestone as zero-duration even when endDate is malformed', () => {
+    const malformedMilestone: Task = {
+      id: 'm1',
+      name: 'Milestone',
+      startDate: '2024-01-10',
+      endDate: '2024-01-15',
+      type: 'milestone',
+    };
+
+    const result = resolveDateRangeFromPixels('move', 60, 150, monthStart, dayWidth, malformedMilestone);
+    expect(result.start.getUTCDate()).toBe(3);
+    expect(result.end.getUTCDate()).toBe(3);
+  });
 });
 
 describe('clampDateRangeForIncomingFS', () => {

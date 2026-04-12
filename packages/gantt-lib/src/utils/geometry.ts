@@ -60,6 +60,50 @@ export const calculateMilestoneGeometry = (
   };
 };
 
+type HorizontalGeometryTask = {
+  startDate: string | Date;
+  endDate: string | Date;
+  type?: 'task' | 'milestone';
+};
+
+/**
+ * Resolve horizontal task geometry with optional drag override.
+ * Milestones always stay anchored to a single day even if an override carries a wider width.
+ */
+export const resolveTaskHorizontalGeometry = (
+  task: HorizontalGeometryTask,
+  monthStart: Date,
+  dayWidth: number,
+  override?: { left: number; width: number }
+): { left: number; right: number } => {
+  const startDate = new Date(task.startDate);
+  const endDate = new Date(task.endDate);
+
+  if (task.type === 'milestone') {
+    if (override) {
+      const centerX = Math.round(override.left + dayWidth / 2);
+      const halfSize = Math.round(14 / 2);
+      return {
+        left: centerX - halfSize,
+        right: centerX + halfSize,
+      };
+    }
+
+    const milestone = calculateMilestoneGeometry(startDate, monthStart, dayWidth);
+    return { left: milestone.left, right: milestone.right };
+  }
+
+  if (override) {
+    return {
+      left: override.left,
+      right: override.left + override.width,
+    };
+  }
+
+  const bar = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
+  return { left: bar.left, right: bar.left + bar.width };
+};
+
 /**
  * Convert pixel position to date (inverse of calculateTaskBar)
  * @param pixels - Position in pixels (left or width)

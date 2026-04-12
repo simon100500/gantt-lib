@@ -536,7 +536,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g8-ms-1',
       name: 'Комиссия готовности к сдаче',
       startDate: '2026-08-08',
-      endDate: '2026-08-08',
+      endDate: '2026-08-15',
       type: 'milestone',
       progress: 0,
       accepted: false,

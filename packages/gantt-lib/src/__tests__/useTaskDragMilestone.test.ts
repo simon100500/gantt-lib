@@ -61,6 +61,13 @@ describe('useTaskDrag milestone targets', () => {
 
     act(() => {
       window.dispatchEvent(new MouseEvent('mousemove', { clientX: 420 }));
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentLeft).toBe(400);
+    });
+
+    act(() => {
       window.dispatchEvent(new MouseEvent('mouseup', {}));
     });
 
@@ -68,6 +75,45 @@ describe('useTaskDrag milestone targets', () => {
       expect(onDragEnd).toHaveBeenCalled();
       const [{ startDate, endDate }] = onDragEnd.mock.calls[0];
       expect(startDate.toISOString()).toBe(endDate.toISOString());
+    });
+  });
+
+  it('uses zero duration for malformed milestone dates during init and no-op drag', async () => {
+    const onDragEnd = vi.fn();
+    const malformedMilestone: Task = {
+      ...milestoneTask,
+      endDate: '2026-04-15',
+    };
+
+    const { result } = renderHook(() =>
+      useTaskDrag({
+        ...createOptions(),
+        initialEndDate: new Date(Date.UTC(2026, 3, 15)),
+        onDragEnd,
+        allTasks: [malformedMilestone],
+      })
+    );
+
+    // Milestone must stay visually one-day wide even with malformed endDate in input
+    expect(result.current.currentWidth).toBe(40);
+
+    const mockElement = {
+      getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 40 }),
+    } as unknown as HTMLElement;
+
+    act(() => {
+      result.current.dragHandleProps.onMouseDown({
+        currentTarget: mockElement,
+        clientX: 380,
+      } as unknown as React.MouseEvent);
+    });
+
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mouseup', {}));
+    });
+
+    await waitFor(() => {
+      expect(onDragEnd).not.toHaveBeenCalled();
     });
   });
 });

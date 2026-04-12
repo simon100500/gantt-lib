@@ -45,4 +45,26 @@ describe('DependencyLines milestone targets', () => {
   it('keeps dependency semantics unchanged for FS SS FF SF', () => {
     expect(milestone.dependencies?.[0]?.type).toBe('FS');
   });
+
+  it('keeps milestone dependency anchor aligned during drag preview with wide override', () => {
+    const malformedMilestone: Task = {
+      ...milestone,
+      endDate: '2026-04-15',
+    };
+
+    const { container } = render(
+      <DependencyLines
+        tasks={[predecessor, malformedMilestone]}
+        allTasks={[predecessor, malformedMilestone]}
+        monthStart={new Date(Date.UTC(2026, 3, 1))}
+        dayWidth={32}
+        rowHeight={40}
+        gridWidth={31 * 32}
+        dragOverrides={new Map([[malformedMilestone.id, { left: 288, width: 192 }]])}
+      />
+    );
+
+    const path = container.querySelector('.gantt-dependency-path');
+    expect(path?.getAttribute('d')).toContain('L 297');
+  });
 });
