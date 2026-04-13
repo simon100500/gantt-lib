@@ -366,28 +366,50 @@ export const TaskList: React.FC<TaskListProps> = ({
     return last;
   }, [visibleTasks]);
 
-  // For each task, track whether each ancestor level "continues" (has siblings below).
-  // ancestorContinuesMap[taskId][i] = true means the ancestor at depth (i+1) is NOT the last child,
-  // so a vertical continuation line should be drawn at horizontal position i.
-  const ancestorContinuesMap = useMemo(() => {
-    const taskById = new Map(tasks.map(t => [t.id, t]));
-    const map = new Map<string, boolean[]>();
+  const visibleParentIds = useMemo(() => {
+    const parentIds = new Set<string>();
     for (const task of visibleTasks) {
-      const continues: boolean[] = [];
-      let current: any = taskById.get(task.id);
+      if (task.parentId) parentIds.add(task.parentId);
+    }
+    return parentIds;
+  }, [visibleTasks]);
+
+  // For each visible task, determine whether each ancestor line above the direct parent
+  // should continue through the full row or terminate at the row midpoint.
+  const ancestorLineModesMap = useMemo(() => {
+    const taskById = new Map(tasks.map(t => [t.id, t]));
+
+    const isDescendantOf = (taskId: string, ancestorId: string): boolean => {
+      let current: any = taskById.get(taskId);
       while (current?.parentId && taskById.has(current.parentId)) {
-        continues.unshift(!lastChildIds.has(current.id));
+        if (current.parentId === ancestorId) return true;
         current = taskById.get(current.parentId);
       }
-      // Walk builds: [!isLastChild(outermost ancestor), ..., !isLastChild(parent), !isLastChild(task)]
-      // We slice off the last entry (the task's own "continues" status) — the task's own vline
-      // is rendered separately in TaskListRow using isLastChild.
-      // Remaining entries: one per ancestor level, outermost first.
-      // ancestorContinues[i] = true → draw vertical continuation line at position i * 20 + 9 px.
-      map.set(task.id, continues.slice(0, -1));
+      return false;
+    };
+
+    const map = new Map<string, ("full" | "half")[]>();
+    for (let index = 0; index < visibleTasks.length; index++) {
+      const task = visibleTasks[index];
+      const ancestorIds: string[] = [];
+      let current: any = taskById.get(task.id);
+      while (current?.parentId && taskById.has(current.parentId)) {
+        ancestorIds.unshift(current.parentId as string);
+        current = taskById.get(current.parentId);
+      }
+
+      const ancestorsAboveParent = ancestorIds.slice(0, -1);
+      const modes = ancestorsAboveParent.map((ancestorId) => {
+        const hasLaterVisibleDescendant = visibleTasks
+          .slice(index + 1)
+          .some((laterTask) => isDescendantOf(laterTask.id, ancestorId));
+        return hasLaterVisibleDescendant ? "full" : "half";
+      });
+
+      map.set(task.id, modes);
     }
     return map;
-  }, [tasks, visibleTasks, lastChildIds]);
+  }, [tasks, visibleTasks]);
 
   const handleRowClick = useCallback((taskId: string) => {
     onTaskSelect?.(taskId);
@@ -1134,7 +1156,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                   canDemoteTask={canDemoteTask}
                   isLastChild={lastChildIds.has(task.id)}
                   nestingDepth={nestingDepthMap.get(task.id) ?? 0}
-                  ancestorContinues={ancestorContinuesMap.get(task.id) ?? []}
+                  hasVisibleChildren={visibleParentIds.has(task.id)}
+                  ancestorLineModes={ancestorLineModesMap.get(task.id) ?? []}
                   customDays={customDays}
                   isWeekend={isWeekend}
                   businessDays={businessDays}

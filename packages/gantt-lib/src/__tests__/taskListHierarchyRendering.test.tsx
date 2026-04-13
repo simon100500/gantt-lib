@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { TaskList } from '../components/TaskList/TaskList';
 import { TaskListRow } from '../components/TaskList/TaskListRow';
 import { createBuiltInColumns } from '../components/TaskList/columns/createBuiltInColumns';
 import type { Task } from '../components/GanttChart';
@@ -75,7 +76,7 @@ describe('TaskListRow hierarchy rendering', () => {
         rowHeight={40}
         nestingDepth={1}
         isLastChild={true}
-        ancestorContinues={[]}
+        ancestorLineModes={[]}
         onRowClick={() => {}}
         onChipSelect={() => {}}
         resolvedColumns={resolvedColumns}
@@ -83,6 +84,132 @@ describe('TaskListRow hierarchy rendering', () => {
     );
 
     expect(screen.getByTestId('gantt-tl-child-connector-vertical')).toBeTruthy();
+  });
+
+  it('keeps a full-height vertical connector for the last child when it has visible children', () => {
+    const parent: Task = {
+      id: 'parent',
+      name: 'Parent task',
+      startDate: '2026-03-01',
+      endDate: '2026-03-05',
+      progress: 0,
+    };
+    const child: Task = {
+      id: 'child',
+      name: 'Child task',
+      startDate: '2026-03-02',
+      endDate: '2026-03-04',
+      progress: 0,
+      parentId: 'parent',
+    };
+    const grandChild: Task = {
+      id: 'grandchild',
+      name: 'Grandchild task',
+      startDate: '2026-03-03',
+      endDate: '2026-03-04',
+      progress: 0,
+      parentId: 'child',
+    };
+
+    render(
+      <TaskListRow
+        task={child}
+        allTasks={[parent, child, grandChild]}
+        rowIndex={1}
+        rowHeight={40}
+        nestingDepth={1}
+        isLastChild={true}
+        hasVisibleChildren={true}
+        ancestorLineModes={[]}
+        onRowClick={() => {}}
+        onChipSelect={() => {}}
+        resolvedColumns={resolvedColumns}
+      />
+    );
+
+    expect((screen.getByTestId('gantt-tl-child-connector-vertical') as HTMLElement).style.height).toBe('40px');
+  });
+
+  it('cuts the vertical connector to half-height for the last visible leaf child', () => {
+    const parent: Task = {
+      id: 'parent',
+      name: 'Parent task',
+      startDate: '2026-03-01',
+      endDate: '2026-03-05',
+      progress: 0,
+    };
+    const child: Task = {
+      id: 'child',
+      name: 'Child task',
+      startDate: '2026-03-02',
+      endDate: '2026-03-04',
+      progress: 0,
+      parentId: 'parent',
+    };
+
+    render(
+      <TaskListRow
+        task={child}
+        allTasks={[parent, child]}
+        rowIndex={1}
+        rowHeight={40}
+        nestingDepth={1}
+        isLastChild={true}
+        hasVisibleChildren={false}
+        ancestorLineModes={[]}
+        onRowClick={() => {}}
+        onChipSelect={() => {}}
+        resolvedColumns={resolvedColumns}
+      />
+    );
+
+    expect((screen.getByTestId('gantt-tl-child-connector-vertical') as HTMLElement).style.height).toBe('20px');
+  });
+
+  it('keeps the root ancestor line for grandchildren of the last child', () => {
+    const parent: Task = {
+      id: 'parent',
+      name: 'Parent task',
+      startDate: '2026-03-01',
+      endDate: '2026-03-05',
+      progress: 0,
+    };
+    const firstChild: Task = {
+      id: 'child-1',
+      name: 'Child 1',
+      startDate: '2026-03-02',
+      endDate: '2026-03-03',
+      progress: 0,
+      parentId: 'parent',
+    };
+    const lastChild: Task = {
+      id: 'child-2',
+      name: 'Child 2',
+      startDate: '2026-03-04',
+      endDate: '2026-03-05',
+      progress: 0,
+      parentId: 'parent',
+    };
+    const grandChild: Task = {
+      id: 'grandchild-1',
+      name: 'Grandchild',
+      startDate: '2026-03-04',
+      endDate: '2026-03-05',
+      progress: 0,
+      parentId: 'child-2',
+    };
+
+    render(
+      <TaskList
+        tasks={[parent, firstChild, lastChild, grandChild]}
+        rowHeight={40}
+        headerHeight={40}
+        show
+      />
+    );
+
+    expect(screen.getByTestId('gantt-tl-ancestor-connector-0')).toBeTruthy();
+    expect((screen.getByTestId('gantt-tl-ancestor-connector-0') as HTMLElement).style.height).toBe('20px');
   });
 
   it('shows the name input when a root parent task is double-clicked', () => {

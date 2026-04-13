@@ -747,8 +747,10 @@ export interface TaskListRowProps {
   isLastChild?: boolean;
   /** Nesting depth (0 = root, 1 = child, 2 = grandchild, etc.) */
   nestingDepth?: number;
-  /** For each ancestor above the direct parent: true if that ancestor has more siblings below */
-  ancestorContinues?: boolean[];
+  /** Whether this row currently has visible children in the rendered task list */
+  hasVisibleChildren?: boolean;
+  /** For each ancestor above the direct parent: whether its vertical line is full or ends at mid-row */
+  ancestorLineModes?: ("full" | "half")[];
   /** Custom day configurations for date picker */
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate for date picker */
@@ -813,7 +815,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     canDemoteTask = true,
     isLastChild = true,
     nestingDepth = 0,
-    ancestorContinues = [],
+    hasVisibleChildren = false,
+    ancestorLineModes = [],
     customDays,
     isWeekend,
     businessDays,
@@ -1771,15 +1774,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             {!isFilterHideMode && (
               <>
                 {/* Ancestor continuation lines — full-height vertical bars for each ongoing ancestor level */}
-                {ancestorContinues.map((continues, idx) =>
-                  continues ? (
+                {ancestorLineModes.map((mode, idx) =>
+                  mode ? (
                     <span
                       key={idx}
+                      data-testid={`gantt-tl-ancestor-connector-${idx}`}
                       style={{
                         position: "absolute",
                         left: `${idx * 20 + 9}px`,
                         top: 0,
-                        height: `${rowHeight}px`,
+                        height: mode === "half" ? `${rowHeight / 2}px` : `${rowHeight}px`,
                         width: "1.5px",
                         background: "var(--gantt-hierarchy-line-color)",
                         borderRadius: "1px",
@@ -1796,7 +1800,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                       position: "absolute",
                       left: `${(nestingDepth - 1) * 20 + 9}px`,
                       top: 0,
-                      height: isLastChild ? `${rowHeight / 2}px` : `${rowHeight}px`,
+                      height:
+                        isLastChild && !hasVisibleChildren
+                          ? `${rowHeight / 2}px`
+                          : `${rowHeight}px`,
                       width: "1.5px",
                       background: "var(--gantt-hierarchy-line-color)",
                       borderRadius: "1px",
