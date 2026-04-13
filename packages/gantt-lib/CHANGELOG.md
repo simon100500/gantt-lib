@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.71.0] - 2026-04-13
+
+### Features
+
+- Dynamic hierarchy line colors based on column depth for improved visual distinction
+- Connector caps for half-height ancestor lines
+- Full and half-height connectors for task hierarchy rendering
+
+### Fixes
+
+- Update milestone duration display from '0' to '◆' for better visual representation
+
+### Documentation
+
+- Update milestone section to clarify behavior, interactions, and dependency handling
+
 ## [0.70.0] - 2026-04-12
 
 ### Features
