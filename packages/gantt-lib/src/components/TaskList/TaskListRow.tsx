@@ -888,6 +888,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const isCollapsed = collapsedParentIds.has(task.id);
 
+    const getHierarchyLineColor = useCallback((columnDepth: number) => {
+      return columnDepth % 2 === 0
+        ? "var(--gantt-hierarchy-line-color)"
+        : "#93c5fd";
+    }, []);
+
     // Picker mode flags for this row
     const isPicking = selectingPredecessorFor != null;
     const isSourceRow = isPicking && selectingPredecessorFor === task.id;
@@ -1785,7 +1791,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                           top: 0,
                           height: mode === "half" ? `${rowHeight / 2}px` : `${rowHeight}px`,
                           width: "1.5px",
-                          background: "var(--gantt-hierarchy-line-color)",
+                          background: getHierarchyLineColor(idx),
                           borderRadius: "1px",
                           pointerEvents: "none",
                         }}
@@ -1799,7 +1805,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                             top: `${rowHeight / 2 - 0.75}px`,
                             width: "5px",
                             height: "1.5px",
-                            background: "var(--gantt-hierarchy-line-color)",
+                            background: getHierarchyLineColor(idx),
                             borderRadius: "1px",
                             pointerEvents: "none",
                           }}
@@ -1821,7 +1827,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                           ? `${rowHeight / 2}px`
                           : `${rowHeight}px`,
                       width: "1.5px",
-                      background: "var(--gantt-hierarchy-line-color)",
+                      background: getHierarchyLineColor(nestingDepth - 1),
                       borderRadius: "1px",
                       pointerEvents: "none",
                     }}
@@ -1835,7 +1841,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                     top: `${rowHeight / 2 - 0.75}px`,
                     width: "8px",
                     height: "1.5px",
-                    background: "var(--gantt-hierarchy-line-color)",
+                    background: getHierarchyLineColor(nestingDepth - 1),
                     borderRadius: "1px",
                     pointerEvents: "none",
                   }}
@@ -1849,7 +1855,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                     width: "4px",
                     height: "4px",
                     borderRadius: "50%",
-                    background: "var(--gantt-hierarchy-line-color)",
+                    background: getHierarchyLineColor(nestingDepth - 1),
                     pointerEvents: "none",
                   }}
                 />
@@ -1865,7 +1871,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                       top: `${rowHeight / 2 + 7}px`,
                       height: `${rowHeight / 2 - 7}px`,
                       width: "1.5px",
-                      background: "var(--gantt-hierarchy-line-color)",
+                      background: getHierarchyLineColor(nestingDepth),
                       borderRadius: "1px",
                       pointerEvents: "none",
                     }}
@@ -1895,7 +1901,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   top: `${rowHeight / 2 + 7}px`,
                   height: `${rowHeight / 2 - 7}px`,
                   width: "1.5px",
-                  background: "var(--gantt-hierarchy-line-color)",
+                  background: getHierarchyLineColor(nestingDepth),
                   borderRadius: "1px",
                   pointerEvents: "none",
                 }}
