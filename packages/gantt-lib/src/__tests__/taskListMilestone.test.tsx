@@ -61,12 +61,12 @@ describe('TaskListRow milestone targets', () => {
     ]);
   });
 
-  it('shows 0 duration for milestones and opens editor on click', () => {
+  it('shows a diamond for milestones and opens editor on click', () => {
     const { container } = render(<TaskListRow {...baseProps} />);
 
     const durationCell = container.querySelector('.gantt-tl-cell-duration');
-    // Milestones show "0" in the duration cell
-    expect(durationCell?.textContent?.trim()).toBe('0');
+    // Milestones show a diamond in the duration cell
+    expect(durationCell?.textContent?.trim()).toBe('◆');
 
     fireEvent.click(durationCell!);
 

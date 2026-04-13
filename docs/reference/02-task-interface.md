@@ -74,7 +74,7 @@ const milestone: Task = {
 
 ### Task List
 
-- **Duration display** — Milestones show `0` in the duration column (instead of `1д` for a same-day task).
+- **Duration display** — Milestones show `◆` in the duration column (instead of `1д` for a same-day task).
 - **Date editing** — Changing start or end date moves the entire milestone to that date (both dates are synchronized).
 - **Duration editing** — Setting duration to `0` converts a regular task to milestone. Setting a positive duration on a milestone converts it to a regular task. This is the inline way to toggle milestone type.
 - **Dependency editing** — Milestone predecessors have their `endDate` treated as equal to `startDate` for lag calculations in the dependency popover.

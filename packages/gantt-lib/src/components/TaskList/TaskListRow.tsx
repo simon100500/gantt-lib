@@ -2225,7 +2225,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               : undefined
           }
         >
-          {isMilestone ? '0' : `${getDuration(normalizedTask.startDate, normalizedTask.endDate)}д`}
+          {isMilestone ? '◆' : `${getDuration(normalizedTask.startDate, normalizedTask.endDate)}д`}
         </span>
       </div>
     );
