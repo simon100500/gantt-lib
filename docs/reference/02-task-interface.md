@@ -36,9 +36,11 @@ interface Task {
 
 ## Task Hierarchy — Parent-Child Relationships (v0.18.0+)
 
-## Milestones (Phase 29+)
+## Milestones (v0.70.0+)
 
-Milestones are an explicit task subtype, not a separate project/group model:
+Milestones are an explicit task subtype representing zero-duration events (e.g., approvals, deadlines, deliverables). They are not a separate project/group model.
+
+### Creating a Milestone
 
 ```typescript
 const milestone: Task = {
@@ -50,10 +52,41 @@ const milestone: Task = {
 };
 ```
 
-- `type: 'milestone'` renders the task as a diamond on the chart.
-- Milestones are always single-date tasks. If a consumer passes different start/end dates, the library normalizes the milestone back to one date.
-- A same-day regular task stays a rectangular bar unless `type: 'milestone'` is set explicitly.
-- Existing `parentId` hierarchy rules remain the only parent/project grouping mechanism. Milestones do not introduce a new `project` or `group` type.
+### Core Behavior
+
+- **Diamond rendering** — `type: 'milestone'` renders as a diamond on the chart instead of a rectangular bar. Diamond size is 14px (default).
+- **Single-date enforcement** — Milestones are always single-date tasks (`startDate === endDate`). If a consumer passes different start/end dates, the library normalizes `endDate` to match `startDate` via `normalizeTaskDatesForType()`.
+- **Same-day vs milestone** — A same-day regular task (`type: 'task'` or no `type`) stays a rectangular bar. Only explicit `type: 'milestone'` triggers diamond rendering.
+- **No new grouping** — `parentId` hierarchy remains the only parent/project grouping mechanism. Milestones do not introduce a `project` or `group` type.
+
+### Chart Interaction
+
+- **Drag** — Milestones can only be **moved** (drag). Resize is disabled because milestones have zero duration. The library forces `mode: 'move'` even if the cursor is near the bar edges.
+- **Width** — During drag, milestone width is always clamped to a single day (`dayWidth` pixels). After all date calculations, the engine forces `newWidth = dayWidth` to prevent visual stretching.
+- **Cascade** — When a milestone is a predecessor in a dependency chain, its `endDate` is treated as equal to `startDate` (zero duration). The cascade engine uses `normalizePredecessorDates()` to handle this automatically.
+- **Zero-lag cascade** — When a milestone predecessor has `lag: 0`, successor tasks are scheduled to start on the **same day** as the milestone (not the next day). This matches project management convention: a milestone marks an event, and successor work can begin immediately.
+
+### Dependency Lines
+
+- Connection points are calculated via `calculateMilestoneConnectionBounds()` — lines attach to the diamond edges (offset by half the diamond diagonal), not the full bar edges.
+- For stacked milestones in the same column, dependency lines render as straight vertical lines instead of diagonal chamfers.
+- FS/SS/FF/SF scheduling rules are unchanged for milestones. Only the visual attachment points differ.
+
+### Task List
+
+- **Duration display** — Milestones show `0` in the duration column (instead of `1д` for a same-day task).
+- **Date editing** — Changing start or end date moves the entire milestone to that date (both dates are synchronized).
+- **Duration editing** — Setting duration to `0` converts a regular task to milestone. Setting a positive duration on a milestone converts it to a regular task. This is the inline way to toggle milestone type.
+- **Dependency editing** — Milestone predecessors have their `endDate` treated as equal to `startDate` for lag calculations in the dependency popover.
+
+### Type Conversion
+
+| Action | Result |
+|--------|--------|
+| Set `type: 'milestone'` on a task | Converts to diamond, `endDate` synced to `startDate` |
+| Set `type: 'task'` on a milestone | Converts to bar, keeps current `startDate`, `endDate` recalculated from duration |
+| Edit duration to `0` in TaskList | Sets `type: 'milestone'`, `endDate = startDate` |
+| Edit duration to `>0` in TaskList | Sets `type: 'task'`, `endDate` calculated from duration |
 
 The library supports unlimited-depth task hierarchy via the `parentId` property:
 

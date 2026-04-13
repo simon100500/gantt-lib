@@ -22,7 +22,11 @@ interface TaskDependency {
 
 Dependencies use standard project management link type semantics. All link types are relative to the predecessor task (A) and successor task (B).
 
-Milestones do **not** change FS/SS/FF/SF scheduling rules. The only milestone-specific behavior is visual: dependency lines attach to the diamond edges instead of rectangular bar edges.
+Milestones do **not** change FS/SS/FF/SF scheduling rules. Milestone-specific behaviors:
+
+- **Visual**: dependency lines attach to the diamond edges via `calculateMilestoneConnectionBounds()`, offset by half the diamond diagonal (~10px from bar boundary).
+- **Cascade**: when a milestone is a predecessor, its `endDate` is treated as equal to `startDate` (zero duration) via `normalizePredecessorDates()`. With `lag: 0`, successors start on the **same day** as the milestone — not the next day.
+- **Stacked milestones**: when two milestones with a dependency share the same column (same date), the dependency line renders as a straight vertical segment instead of a diagonal chamfer.
 
 ### FS — Finish-to-Start
 

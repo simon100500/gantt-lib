@@ -79,7 +79,7 @@ interface GanttChartProps<TTask extends Task = Task> {
 
 **Important — calendar range:** The visible date range is calculated automatically from the earliest `startDate` to the latest `endDate` across all tasks. The chart always shows complete calendar months. For example, if tasks span March 25 to May 5, the chart renders March 1 through May 31. There is no `month` prop.
 
-**Milestone note:** If a task uses `type: 'milestone'`, the chart renders it as a single-date diamond and TaskList editing keeps `startDate` and `endDate` synchronized. This does not change parent/project semantics: `parentId` remains the only built-in hierarchy mechanism.
+**Milestone note:** If a task uses `type: 'milestone'`, the chart renders it as a single-date diamond (14px) and TaskList editing keeps `startDate` and `endDate` synchronized. Milestone drag is move-only (resize disabled). Dependency lines attach to diamond edges. With `enableAutoSchedule`, milestone predecessors with `lag: 0` schedule successors on the same day. Duration column shows `0`; editing duration to `>0` converts milestone to task and vice versa. See [Task Interface — Milestones](./02-task-interface.md#milestones-v0700).
 
 ## TaskList Columns
 

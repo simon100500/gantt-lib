@@ -15,6 +15,8 @@
 
 **Snapping:** All drag operations snap to full day boundaries. Sub-day positioning is not supported.
 
+**Milestone drag:** When `type: 'milestone'`, resize is disabled — edge zones are ignored and the drag mode is always `move`. Milestone width is clamped to a single day (`dayWidth` pixels) after every frame, preventing visual stretching during drag. On drop, `endDate` is set equal to `startDate`.
+
 ---
 
 [← Back to API Reference](./INDEX.md)
