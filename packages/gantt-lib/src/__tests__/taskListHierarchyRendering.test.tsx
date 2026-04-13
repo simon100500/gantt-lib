@@ -210,6 +210,7 @@ describe('TaskListRow hierarchy rendering', () => {
 
     expect(screen.getByTestId('gantt-tl-ancestor-connector-0')).toBeTruthy();
     expect((screen.getByTestId('gantt-tl-ancestor-connector-0') as HTMLElement).style.height).toBe('20px');
+    expect(screen.getByTestId('gantt-tl-ancestor-connector-cap-0')).toBeTruthy();
   });
 
   it('shows the name input when a root parent task is double-clicked', () => {

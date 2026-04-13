@@ -1776,20 +1776,36 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 {/* Ancestor continuation lines — full-height vertical bars for each ongoing ancestor level */}
                 {ancestorLineModes.map((mode, idx) =>
                   mode ? (
-                    <span
-                      key={idx}
-                      data-testid={`gantt-tl-ancestor-connector-${idx}`}
-                      style={{
-                        position: "absolute",
-                        left: `${idx * 20 + 9}px`,
-                        top: 0,
-                        height: mode === "half" ? `${rowHeight / 2}px` : `${rowHeight}px`,
-                        width: "1.5px",
-                        background: "var(--gantt-hierarchy-line-color)",
-                        borderRadius: "1px",
-                        pointerEvents: "none",
-                      }}
-                    />
+                    <React.Fragment key={idx}>
+                      <span
+                        data-testid={`gantt-tl-ancestor-connector-${idx}`}
+                        style={{
+                          position: "absolute",
+                          left: `${idx * 20 + 9}px`,
+                          top: 0,
+                          height: mode === "half" ? `${rowHeight / 2}px` : `${rowHeight}px`,
+                          width: "1.5px",
+                          background: "var(--gantt-hierarchy-line-color)",
+                          borderRadius: "1px",
+                          pointerEvents: "none",
+                        }}
+                      />
+                      {mode === "half" && (
+                        <span
+                          data-testid={`gantt-tl-ancestor-connector-cap-${idx}`}
+                          style={{
+                            position: "absolute",
+                            left: `${idx * 20 + 9}px`,
+                            top: `${rowHeight / 2 - 0.75}px`,
+                            width: "5px",
+                            height: "1.5px",
+                            background: "var(--gantt-hierarchy-line-color)",
+                            borderRadius: "1px",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                    </React.Fragment>
                   ) : null
                 )}
                 {/* Vertical line from parent to last child position */}
