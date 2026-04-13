@@ -890,8 +890,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const getHierarchyLineColor = useCallback((columnDepth: number) => {
       return columnDepth % 2 === 0
-        ? "var(--gantt-hierarchy-line-color)"
-        : "#93c5fd";
+        ? "#93c5fd"
+        : "var(--gantt-hierarchy-line-color)";
     }, []);
 
     // Picker mode flags for this row
