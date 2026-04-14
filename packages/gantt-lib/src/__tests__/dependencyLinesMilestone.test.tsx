@@ -39,7 +39,7 @@ describe('DependencyLines milestone targets', () => {
 
     expect(screen.getByTestId('dependency-lines-svg')).toBeTruthy();
     const path = container.querySelector('.gantt-dependency-path');
-    expect(path?.getAttribute('d')).toContain('L 300');
+    expect(path?.getAttribute('d')).toContain('L 304');
   });
 
   it('keeps dependency semantics unchanged for FS SS FF SF', () => {
@@ -65,7 +65,7 @@ describe('DependencyLines milestone targets', () => {
     );
 
     const path = container.querySelector('.gantt-dependency-path');
-    expect(path?.getAttribute('d')).toContain('L 300');
+    expect(path?.getAttribute('d')).toContain('L 304');
   });
 
   it('renders straight vertical line for milestones stacked in one column', () => {
@@ -131,7 +131,7 @@ describe('DependencyLines milestone targets', () => {
     );
 
     const path = container.querySelector('.gantt-dependency-path');
-    expect(path?.getAttribute('d')).toContain('L 332');
+    expect(path?.getAttribute('d')).toContain('L 336');
     expect(path?.getAttribute('d')).not.toBe('M 304 30 V 46');
   });
 });

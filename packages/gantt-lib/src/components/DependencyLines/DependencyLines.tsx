@@ -122,7 +122,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
   // Create a lookup map for task positions and their indices
   const { taskPositions, taskIndices, hiddenTaskIds } = useMemo(() => {
-    const positions = new Map<string, { left: number; right: number; rowTop: number; isVirtual: boolean }>();
+    const positions = new Map<string, { left: number; right: number; centerX: number; rowTop: number; isVirtual: boolean }>();
     const indices = new Map<string, number>();
     const hidden = new Set<string>();
     const taskMap = new Map(tasksForPositions.map(t => [t.id, t]));
@@ -138,6 +138,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       positions.set(task.id, {
         left: computed.left,
         right: computed.right,
+        centerX: computed.centerX,
         rowTop: index * rowHeight,
         isVirtual: false,
       });
@@ -170,6 +171,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         positions.set(task.id, {
           left: computed.left,
           right: computed.right,
+          centerX: computed.centerX,
           rowTop: ancestorPosition.rowTop,
           isVirtual: true,
         });
@@ -258,13 +260,17 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       // SS: left  → left
       // FF: right → right
       // SF: left  → right
-      let fromX = (edge.type === 'SS' || edge.type === 'SF')
-        ? predecessor.left
-        : predecessor.right;
+      let fromX = predecessorTask && isMilestoneTask(predecessorTask)
+        ? predecessor.centerX
+        : (edge.type === 'SS' || edge.type === 'SF')
+          ? predecessor.left
+          : predecessor.right;
 
-      const toX = (edge.type === 'FF' || edge.type === 'SF')
-        ? successor.right
-        : successor.left;
+      const toX = successorTask && isMilestoneTask(successorTask)
+        ? successor.centerX
+        : (edge.type === 'FF' || edge.type === 'SF')
+          ? successor.right
+          : successor.left;
 
       const stackedMilestonesSameDay = Boolean(
         predecessorTask &&
@@ -279,7 +285,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       );
 
       const finalToX = stackedMilestonesSameDay
-        ? Math.round(((predecessor.left + predecessor.right) / 2 + (successor.left + successor.right) / 2) / 2)
+        ? Math.round((predecessor.centerX + successor.centerX) / 2)
         : toX;
       if (stackedMilestonesSameDay) {
         fromX = finalToX;

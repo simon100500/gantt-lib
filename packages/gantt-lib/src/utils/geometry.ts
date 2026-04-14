@@ -62,7 +62,7 @@ export const calculateMilestoneGeometry = (
 
 /**
  * Resolve milestone connection points relative to the task day cell.
- * Anchors sit at day boundary +/- half diamond diagonal.
+ * Anchors sit on the actual horizontal diamond vertices.
  */
 export const calculateMilestoneConnectionBounds = (
   dayLeft: number,
@@ -70,10 +70,10 @@ export const calculateMilestoneConnectionBounds = (
   size: number = 14
 ): { left: number; right: number } => {
   const halfDiagonal = Math.round(size / Math.SQRT2);
-  const visualNudge = 2;
+  const centerX = Math.round(dayLeft + dayWidth / 2);
   return {
-    left: dayLeft + halfDiagonal + visualNudge,
-    right: dayLeft + dayWidth - halfDiagonal - visualNudge,
+    left: centerX - halfDiagonal,
+    right: centerX + halfDiagonal,
   };
 };
 
@@ -92,29 +92,42 @@ export const resolveTaskHorizontalGeometry = (
   monthStart: Date,
   dayWidth: number,
   override?: { left: number; width: number }
-): { left: number; right: number } => {
+): { left: number; right: number; centerX: number } => {
   const startDate = new Date(task.startDate);
   const endDate = new Date(task.endDate);
 
   if (task.type === 'milestone') {
     const size = 14;
     if (override) {
-      return calculateMilestoneConnectionBounds(override.left, dayWidth, size);
+      const bounds = calculateMilestoneConnectionBounds(override.left, dayWidth, size);
+      return {
+        ...bounds,
+        centerX: Math.round(override.left + dayWidth / 2),
+      };
     }
 
     const bar = calculateTaskBar(startDate, startDate, monthStart, dayWidth);
-    return calculateMilestoneConnectionBounds(bar.left, dayWidth, size);
+    const bounds = calculateMilestoneConnectionBounds(bar.left, dayWidth, size);
+    return {
+      ...bounds,
+      centerX: Math.round(bar.left + dayWidth / 2),
+    };
   }
 
   if (override) {
     return {
       left: override.left,
       right: override.left + override.width,
+      centerX: Math.round(override.left + override.width / 2),
     };
   }
 
   const bar = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
-  return { left: bar.left, right: bar.left + bar.width };
+  return {
+    left: bar.left,
+    right: bar.left + bar.width,
+    centerX: Math.round(bar.left + bar.width / 2),
+  };
 };
 
 /**
