@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.71.2] - 2026-04-14
+
+### Fixes
+
+- Update milestone connection logic in DependencyLines to use centerX for accurate positioning
+
 ## [0.71.1] - 2026-04-14
 
 ### Fixes

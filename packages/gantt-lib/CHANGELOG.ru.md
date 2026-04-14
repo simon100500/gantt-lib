@@ -5,6 +5,12 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.71.2] - 2026-04-14
+
+### Исправления
+
+- Обновлена логика подключения milestone в DependencyLines — используется centerX для точного позиционирования
+
 ## [0.71.1] - 2026-04-14
 
 ### Исправления
