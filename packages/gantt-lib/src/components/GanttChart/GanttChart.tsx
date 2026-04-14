@@ -16,6 +16,8 @@ import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
 import { TaskList } from '../TaskList';
 import { printGanttChart } from './print';
+import { renderGanttToSvg, type GanttSvgExportOptions } from '../../export/svg';
+import { downloadSvgString, type DownloadGanttSvgOptions } from '../../export/download';
 import './GanttChart.css';
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
@@ -203,6 +205,8 @@ export interface GanttChartHandle {
   scrollToRow: (taskId: string) => void;
   collapseAll: () => void;
   expandAll: () => void;
+  exportToSvg: (options?: GanttSvgExportOptions) => string;
+  downloadSvg: (options?: DownloadGanttSvgOptions) => void;
   exportToPdf: (options?: ExportToPdfOptions) => Promise<void>;
 }
 
@@ -723,46 +727,65 @@ function GanttChartInner<TTask extends Task = Task>(
   }, [externalCollapsedParentIds]);
 
   const exportToPdf = useCallback(async (options?: ExportToPdfOptions) => {
-    const sourceContainer = containerRef.current;
-    const sourceContent = scrollContentRef.current;
-
-    if (!sourceContainer || !sourceContent || typeof window === 'undefined' || typeof document === 'undefined') {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
       return;
     }
 
-    const includeTaskList = options?.includeTaskList ?? showTaskList;
-    const includeChart = options?.includeChart ?? showChart;
-
-    if (!includeTaskList && !includeChart) {
-      return;
-    }
-
-    const printContent = sourceContent.cloneNode(true) as HTMLDivElement;
-    const taskListClone = printContent.querySelector('.gantt-tl-overlay') as HTMLDivElement | null;
-    const chartClone = printContent.querySelector('.gantt-chartSurface') as HTMLDivElement | null;
-
-    if (includeTaskList) {
-      taskListClone?.classList.remove('gantt-tl-hidden', 'gantt-tl-overlay-shadowed');
-    } else {
-      taskListClone?.remove();
-    }
-
-    if (includeChart) {
-      chartClone?.classList.remove('gantt-chart-hidden');
-    } else {
-      chartClone?.remove();
-    }
+    const svgMarkup = renderGanttToSvg(tasks, {
+      dayWidth,
+      rowHeight,
+      headerHeight,
+      taskListWidth,
+      includeTaskList: options?.includeTaskList ?? showTaskList,
+      includeChart: options?.includeChart ?? showChart,
+      title: options?.title,
+      header: options?.header,
+      viewMode,
+      customDays,
+      isWeekend,
+      businessDays,
+      taskFilter,
+      filterMode,
+      collapsedParentIds,
+      highlightedTaskIds: taskListHighlightedTaskIds,
+      highlightExpiredTasks,
+    });
 
     await printGanttChart({
       sourceDocument: document,
-      sourceContainer,
-      printContent,
+      printMarkup: svgMarkup,
       header: options?.header,
       title: options?.title,
       fileName: options?.fileName,
       orientation: options?.orientation ?? 'landscape',
     });
-  }, [showTaskList, showChart]);
+  }, [tasks, dayWidth, rowHeight, headerHeight, taskListWidth, showTaskList, showChart, viewMode, customDays, isWeekend, businessDays, taskFilter, filterMode, collapsedParentIds, taskListHighlightedTaskIds, highlightExpiredTasks]);
+
+  const exportToSvg = useCallback((options?: GanttSvgExportOptions) => {
+    return renderGanttToSvg(tasks, {
+      dayWidth,
+      rowHeight,
+      headerHeight,
+      taskListWidth,
+      includeTaskList: showTaskList,
+      includeChart: showChart,
+      viewMode,
+      customDays,
+      isWeekend,
+      businessDays,
+      taskFilter,
+      filterMode,
+      collapsedParentIds,
+      highlightedTaskIds: taskListHighlightedTaskIds,
+      highlightExpiredTasks,
+      ...options,
+    });
+  }, [tasks, dayWidth, rowHeight, headerHeight, taskListWidth, showTaskList, showChart, viewMode, customDays, isWeekend, businessDays, taskFilter, filterMode, collapsedParentIds, taskListHighlightedTaskIds, highlightExpiredTasks]);
+
+  const downloadSvg = useCallback((options?: DownloadGanttSvgOptions) => {
+    const svgMarkup = exportToSvg(options);
+    downloadSvgString(svgMarkup, options?.fileName);
+  }, [exportToSvg]);
 
   // Expose collapse/expand methods via ref (must be after handlers are defined)
   useImperativeHandle(
@@ -773,9 +796,11 @@ function GanttChartInner<TTask extends Task = Task>(
       scrollToRow,
       collapseAll: handleCollapseAll,
       expandAll: handleExpandAll,
+      exportToSvg,
+      downloadSvg,
       exportToPdf,
     }),
-    [scrollToToday, scrollToTask, scrollToRow, handleCollapseAll, handleExpandAll, exportToPdf]
+    [scrollToToday, scrollToTask, scrollToRow, handleCollapseAll, handleExpandAll, exportToSvg, downloadSvg, exportToPdf]
   );
 
   /**

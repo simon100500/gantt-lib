@@ -9,7 +9,33 @@ interface GanttChartHandle {
   scrollToRow: (taskId: string) => void;
   collapseAll: () => void;
   expandAll: () => void;
+  exportToSvg: (options?: GanttSvgExportOptions) => string;
+  downloadSvg: (options?: DownloadGanttSvgOptions) => void;
   exportToPdf: (options?: ExportToPdfOptions) => Promise<void>;
+}
+
+interface DownloadGanttSvgOptions extends GanttSvgExportOptions {
+  fileName?: string;
+}
+
+interface GanttSvgExportOptions {
+  width?: number;
+  dayWidth?: number;
+  rowHeight?: number;
+  headerHeight?: number;
+  taskListWidth?: number;
+  includeTaskList?: boolean;
+  includeChart?: boolean;
+  padding?: number;
+  title?: string;
+  subtitle?: string;
+  header?: ExportToPdfHeaderOptions;
+  viewMode?: 'day' | 'week' | 'month';
+  businessDays?: boolean;
+  collapsedParentIds?: Set<string>;
+  highlightedTaskIds?: Set<string>;
+  highlightExpiredTasks?: boolean;
+  showTodayIndicator?: boolean;
 }
 
 interface ExportToPdfOptions {
@@ -79,7 +105,39 @@ function App() {
 | `scrollToRow(taskId)` | `void` | Scrolls the task list vertically to the row for the given `taskId` using the current visible row order. If the task ID is not visible, no action is taken. |
 | `collapseAll()` | `void` | Collapses all parent tasks in the chart. Hides all child tasks from both the task list and the chart. |
 | `expandAll()` | `void` | Expands all parent tasks in the chart. Shows all child tasks in both the task list and the chart. |
+| `exportToSvg(options?)` | `string` | Returns a standalone SVG string for vector export. The SVG contains the task list, chart grid, bars, milestones, dependency lines, text labels, collapsed state, and current view mode. |
+| `downloadSvg(options?)` | `void` | Immediately downloads the generated SVG file in the browser without opening the print dialog. |
 | `exportToPdf(options?)` | `Promise<void>` | Opens the browser print dialog with the chart rendered for PDF export. Accepts optional [`ExportToPdfOptions`](#exporttopdfoptions). |
+
+## GanttSvgExportOptions
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `width` | `number` | natural content width | Total SVG width. When set together with chart export, the timeline scales to fit. |
+| `dayWidth` | `number` | current chart config | Width of each day column in pixels. |
+| `rowHeight` | `number` | current chart config | Height of each row in pixels. |
+| `headerHeight` | `number` | current chart config | Height of the timeline header in pixels. |
+| `taskListWidth` | `number` | current chart config | Width of the task-list area in pixels. |
+| `includeTaskList` | `boolean` | mirrors current config | Whether to include the task list area. |
+| `includeChart` | `boolean` | mirrors current config | Whether to include the timeline/chart area. |
+| `padding` | `number` | `24` | Outer padding around the exported document. |
+| `title` | `string` | `undefined` | Main export title rendered in the SVG header block. |
+| `subtitle` | `string` | `undefined` | Secondary line rendered under the title. |
+| `header` | `ExportToPdfHeaderOptions` | `undefined` | Shared branding/header block data for SVG and PDF export. |
+| `viewMode` | `'day' \| 'week' \| 'month'` | current chart config | Timeline header mode used in the exported SVG. |
+| `businessDays` | `boolean` | current chart config | Whether durations are rendered in business days. |
+| `collapsedParentIds` | `Set<string>` | current chart state | Collapsed hierarchy state used to determine visible rows and virtual dependency routing. |
+| `highlightedTaskIds` | `Set<string>` | current chart state | Highlighted rows included in the export. |
+| `highlightExpiredTasks` | `boolean` | current chart config | Whether overdue tasks use expired styling in the export. |
+| `showTodayIndicator` | `boolean` | `true` | Whether to draw the vertical today line when today is inside the visible range. |
+
+## DownloadGanttSvgOptions
+
+All [`GanttSvgExportOptions`](#ganttsvgexportoptions) plus:
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `fileName` | `string` | `'gantt-chart.svg'` | Downloaded SVG file name. `.svg` is added automatically when missing. |
 
 ## ExportToPdfOptions
 

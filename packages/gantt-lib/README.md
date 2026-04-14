@@ -65,6 +65,25 @@ export default function App() {
 
 ## API
 
+### Vector Export
+
+```tsx
+import { renderGanttToSvg, downloadGanttSvg } from 'gantt-lib';
+
+const svg = renderGanttToSvg(tasks, {
+  title: 'Project Plan',
+  includeTaskList: true,
+  includeChart: true,
+});
+
+downloadGanttSvg(tasks, {
+  fileName: 'project-plan.svg',
+  title: 'Project Plan',
+});
+```
+
+`GanttChart` ref also exposes `exportToSvg(options?)` and `downloadSvg(options?)`. `exportToPdf()` now prints the generated SVG instead of cloning the DOM tree.
+
 ### GanttChart
 
 Main component that renders the interactive Gantt chart.

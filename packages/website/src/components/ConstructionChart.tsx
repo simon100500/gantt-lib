@@ -164,6 +164,23 @@ export default function ConstructionChart() {
         >
           Export PDF
         </button>
+        <button
+          className="demo-btn demo-btn-secondary"
+          onClick={() => ganttChartRef.current?.downloadSvg({
+            fileName: 'construction-project.svg',
+            title: 'Construction Project',
+            header: {
+              logoUrl: PDF_LOGO_DATA_URL,
+              serviceName: 'gantt-lib',
+              projectName: 'Construction Project',
+              exportDate: new Date(),
+            },
+            includeTaskList: showTaskList,
+            includeChart: showChart,
+          })}
+        >
+          Download SVG
+        </button>
         <button className="demo-btn demo-btn-secondary" onClick={() => ganttChartRef.current?.collapseAll()}>▲ Collapse All</button>
         <button className="demo-btn demo-btn-secondary" onClick={() => ganttChartRef.current?.expandAll()}>▼ Expand All</button>
         <button className={`demo-btn ${disableTaskNameEditing ? "demo-btn-muted" : "demo-btn-active"}`} onClick={() => setDisableTaskNameEditing(!disableTaskNameEditing)}>{disableTaskNameEditing ? "Enable Name Editing" : "Disable Name Editing"}</button>

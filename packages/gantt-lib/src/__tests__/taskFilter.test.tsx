@@ -1,7 +1,7 @@
 import React, { createRef } from 'react';
 import { act, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { GanttChart, type GanttChartHandle, type Task } from '../components/GanttChart';
+import { GanttChart, renderGanttToSvg, type GanttChartHandle, type Task } from '../components/GanttChart';
 import { withoutDeps } from '../filters';
 
 vi.mock('../components/ui/DatePicker', () => ({
@@ -205,5 +205,80 @@ describe('GanttChart taskFilter', () => {
     expect(frameWindow.focus).toHaveBeenCalled();
     expect(frameWindow.print).toHaveBeenCalled();
     expect(frameWindow.document.title).toBe('Project Plan');
+    expect(frameWindow.document.body.querySelector('svg')).toBeTruthy();
+  });
+
+  it('exposes exportToSvg on the public handle and returns svg markup', () => {
+    const tasks: Task[] = [
+      { id: 'a', name: 'Alpha task', startDate: '2026-02-01', endDate: '2026-02-03' },
+    ];
+
+    const ref = createRef<GanttChartHandle>();
+    render(<GanttChart ref={ref} tasks={tasks} showTaskList rowHeight={36} headerHeight={40} />);
+
+    const svg = ref.current?.exportToSvg({ title: 'Plan' }) ?? '';
+
+    expect(ref.current?.exportToSvg).toBeTypeOf('function');
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('Alpha task');
+    expect(svg).toContain('data-export-layer="task-list"');
+  });
+
+  it('downloads svg from the public handle without opening print', () => {
+    const tasks: Task[] = [
+      { id: 'a', name: 'Alpha task', startDate: '2026-02-01', endDate: '2026-02-03' },
+    ];
+
+    const ref = createRef<GanttChartHandle>();
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:test'),
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    render(<GanttChart ref={ref} tasks={tasks} showTaskList rowHeight={36} headerHeight={40} />);
+
+    expect(ref.current?.downloadSvg).toBeTypeOf('function');
+
+    act(() => {
+      ref.current?.downloadSvg({ fileName: 'plan.svg', title: 'Plan' });
+    });
+
+    const downloadLink = document.body.querySelector('a[download="plan.svg"]') as HTMLAnchorElement | null;
+    expect(URL.createObjectURL).toHaveBeenCalled();
+    expect(downloadLink).toBeNull();
+  });
+
+  it('renders svg via the pure export function', () => {
+    const svg = renderGanttToSvg([
+      {
+        id: 'a',
+        name: 'Alpha task',
+        startDate: '2026-02-01',
+        endDate: '2026-02-03',
+        progress: 50,
+      },
+      {
+        id: 'b',
+        name: 'Milestone',
+        startDate: '2026-02-04',
+        endDate: '2026-02-04',
+        type: 'milestone',
+        dependencies: [{ taskId: 'a', type: 'FS', lag: 0 }],
+      },
+    ], {
+      includeTaskList: true,
+      includeChart: true,
+      title: 'Plan',
+      showTodayIndicator: false,
+    });
+
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('Milestone');
+    expect(svg).toContain('marker');
+    expect(svg).toContain('data-export-layer="chart"');
   });
 });

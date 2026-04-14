@@ -9,6 +9,7 @@ describe('Export contract: core/scheduling', () => {
     const mod = await import('../index');
     expect(mod.GanttChart).toBeDefined();
     expect(mod.TaskList).toBeDefined();
+    expect(mod.renderGanttToSvg).toBeDefined();
   });
 
   it('exports command-level API from execute.ts', async () => {
