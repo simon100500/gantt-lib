@@ -7,7 +7,7 @@ interface PrintGanttChartParams {
   header?: ExportToPdfHeaderOptions;
   title?: ExportToPdfOptions['title'];
   fileName?: ExportToPdfOptions['fileName'];
-  orientation: NonNullable<ExportToPdfOptions['orientation']>;
+  orientation?: ExportToPdfOptions['orientation'];
 }
 
 function getPrintDocumentTitle({ header, title, fileName }: Pick<PrintGanttChartParams, 'header' | 'title' | 'fileName'>): string {
@@ -142,11 +142,11 @@ async function copyDocumentStyles(sourceDocument: Document, targetDocument: Docu
   await Promise.all(pendingLoads);
 }
 
-function createPrintStyle(targetDocument: Document, orientation: PrintGanttChartParams['orientation']) {
+function createPrintStyle(targetDocument: Document, orientation?: PrintGanttChartParams['orientation']) {
   const style = targetDocument.createElement('style');
   style.textContent = `
     @page {
-      size: ${orientation};
+      ${orientation ? `size: ${orientation};` : ''}
       margin: 12mm;
     }
 

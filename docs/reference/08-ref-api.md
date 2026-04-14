@@ -88,7 +88,7 @@ function App() {
 | `header` | `ExportToPdfHeaderOptions` | `undefined` | Structured header block rendered above the chart in the exported document. |
 | `fileName` | `string` | `undefined` | Suggested file name used as the browser print/PDF document title. |
 | `title` | `string` | `undefined` | Human-readable document title rendered above the exported chart. |
-| `orientation` | `'portrait' \| 'landscape'` | `'landscape'` | PDF page orientation used for the browser print layout. |
+| `orientation` | `'portrait' \| 'landscape'` | `undefined` | Optional PDF page orientation hint for the browser print layout. If omitted, the browser print dialog keeps orientation under user control. |
 | `includeTaskList` | `boolean` | mirrors current config | Whether to include the task list area in the exported document. |
 | `includeChart` | `boolean` | mirrors current config | Whether to include the timeline/chart area in the exported document. |
 

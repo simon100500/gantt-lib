@@ -205,5 +205,10 @@ describe('GanttChart taskFilter', () => {
     expect(frameWindow.focus).toHaveBeenCalled();
     expect(frameWindow.print).toHaveBeenCalled();
     expect(frameWindow.document.title).toBe('Project Plan');
+    const printStyles = Array.from(frameWindow.document.head.querySelectorAll('style'))
+      .map(node => node.textContent ?? '')
+      .join('\n');
+    expect(printStyles).not.toContain('size: landscape;');
+    expect(printStyles).not.toContain('size: portrait;');
   });
 });

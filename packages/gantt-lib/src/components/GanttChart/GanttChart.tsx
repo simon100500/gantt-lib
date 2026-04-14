@@ -171,7 +171,7 @@ export interface ExportToPdfOptions {
   fileName?: string;
   /** Human-readable document title rendered above the exported chart */
   title?: string;
-  /** PDF page orientation used for the browser print layout */
+  /** Optional PDF page orientation hint for the browser print layout */
   orientation?: 'portrait' | 'landscape';
   /** Include the task list area in the exported document (default: mirrors current chart config) */
   includeTaskList?: boolean;
@@ -760,7 +760,7 @@ function GanttChartInner<TTask extends Task = Task>(
       header: options?.header,
       title: options?.title,
       fileName: options?.fileName,
-      orientation: options?.orientation ?? 'landscape',
+      orientation: options?.orientation,
     });
   }, [showTaskList, showChart]);
 

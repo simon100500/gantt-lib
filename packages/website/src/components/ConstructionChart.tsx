@@ -157,7 +157,6 @@ export default function ConstructionChart() {
               projectName: 'Construction Project',
               exportDate: new Date(),
             },
-            orientation: 'landscape',
             includeTaskList: showTaskList,
             includeChart: showChart,
           })}
