@@ -3,12 +3,31 @@
 The `GanttChart` component supports an imperative handle via `ref` for programmatic control.
 
 ```typescript
-interface GanttChartRef {
+interface GanttChartHandle {
   scrollToToday: () => void;
   scrollToTask: (taskId: string) => void;
   scrollToRow: (taskId: string) => void;
   collapseAll: () => void;
   expandAll: () => void;
+  exportToPdf: (options?: ExportToPdfOptions) => Promise<void>;
+}
+
+interface ExportToPdfOptions {
+  header?: ExportToPdfHeaderOptions;
+  fileName?: string;
+  title?: string;
+  orientation?: 'portrait' | 'landscape';
+  includeTaskList?: boolean;
+  includeChart?: boolean;
+}
+
+interface ExportToPdfHeaderOptions {
+  logoUrl?: string;
+  logoHref?: string;
+  serviceName?: string;
+  serviceHref?: string;
+  projectName?: string;
+  exportDate?: string | Date;
 }
 ```
 
@@ -16,10 +35,10 @@ Usage example:
 
 ```tsx
 import { useRef } from 'react';
-import { GanttChart } from 'gantt-lib';
+import { GanttChart, type GanttChartHandle } from 'gantt-lib';
 
 function App() {
-  const ganttRef = useRef<{ scrollToToday: () => void; scrollToTask: (taskId: string) => void; scrollToRow: (taskId: string) => void; collapseAll: () => void; expandAll: () => void }>(null);
+  const ganttRef = useRef<GanttChartHandle>(null);
 
   const handleTodayClick = () => {
     ganttRef.current?.scrollToToday();
@@ -60,6 +79,29 @@ function App() {
 | `scrollToRow(taskId)` | `void` | Scrolls the task list vertically to the row for the given `taskId` using the current visible row order. If the task ID is not visible, no action is taken. |
 | `collapseAll()` | `void` | Collapses all parent tasks in the chart. Hides all child tasks from both the task list and the chart. |
 | `expandAll()` | `void` | Expands all parent tasks in the chart. Shows all child tasks in both the task list and the chart. |
+| `exportToPdf(options?)` | `Promise<void>` | Opens the browser print dialog with the chart rendered for PDF export. Accepts optional [`ExportToPdfOptions`](#exporttopdfoptions). |
+
+## ExportToPdfOptions
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `header` | `ExportToPdfHeaderOptions` | `undefined` | Structured header block rendered above the chart in the exported document. |
+| `fileName` | `string` | `undefined` | Suggested file name used as the browser print/PDF document title. |
+| `title` | `string` | `undefined` | Human-readable document title rendered above the exported chart. |
+| `orientation` | `'portrait' \| 'landscape'` | `'landscape'` | PDF page orientation used for the browser print layout. |
+| `includeTaskList` | `boolean` | mirrors current config | Whether to include the task list area in the exported document. |
+| `includeChart` | `boolean` | mirrors current config | Whether to include the timeline/chart area in the exported document. |
+
+## ExportToPdfHeaderOptions
+
+| Option | Type | Description |
+|---|---|---|
+| `logoUrl` | `string` | Logo image URL or data URI displayed on the left of the header. |
+| `logoHref` | `string` | Optional link for the logo. |
+| `serviceName` | `string` | Service/product name displayed in the header. |
+| `serviceHref` | `string` | Optional link for the service name. |
+| `projectName` | `string` | Project/document name displayed in the header. |
+| `exportDate` | `string \| Date` | Export date shown on the right; a `Date` is formatted automatically, a `string` is rendered as-is. |
 
 ---
 

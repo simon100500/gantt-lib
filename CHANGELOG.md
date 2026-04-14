@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.72.0] - 2026-04-15
+
+### Features
+
+- Add `exportToPdf` method to `GanttChartHandle` ref API for exporting the chart to PDF via the browser print dialog
+- Introduce `ExportToPdfOptions` and `ExportToPdfHeaderOptions` types for customizing PDF export (title, orientation, logo, project name, export date)
+
 ## [0.71.2] - 2026-04-14
 
 ### Fixes
