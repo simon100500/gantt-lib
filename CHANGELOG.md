@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.72.1] - 2026-04-15
+
+### Fixes
+
+- Make `orientation` in `ExportToPdfOptions` truly optional — omitting it now leaves page orientation under user control in the browser print dialog
+
 ## [0.72.0] - 2026-04-15
 
 ### Features
