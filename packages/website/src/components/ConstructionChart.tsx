@@ -16,6 +16,14 @@ import {
   createSampleTasks,
 } from "@/data/sampleTasks";
 
+const PDF_LOGO_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+    <rect width="48" height="48" rx="12" fill="#111827"/>
+    <path d="M11 31V17h6.5c4.8 0 7.8 2.7 7.8 7s-3 7-7.8 7H11zm6.1-3.1c2.7 0 4.4-1.5 4.4-3.9s-1.7-3.9-4.4-3.9h-2.3v7.8h2.3z" fill="#fff"/>
+    <path d="M30 15h7v18h-3.7V18.4H30V15z" fill="#60a5fa"/>
+  </svg>`
+)}`;
+
 export default function ConstructionChart() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
@@ -137,6 +145,25 @@ export default function ConstructionChart() {
         <button className={`demo-btn ${!showTaskList && showChart ? "demo-btn-active" : "demo-btn-muted"}`} onClick={() => { setShowTaskList(false); setShowChart(true); }}>Только календарь</button>
         <button className={`demo-btn ${showTaskList ? "demo-btn-danger" : "demo-btn-primary"}`} onClick={() => setShowTaskList(!showTaskList)}>{showTaskList ? "Hide Task List" : "Show Task List"}</button>
         <button className="demo-btn demo-btn-purple" onClick={() => ganttChartRef.current?.scrollToToday()}>Today</button>
+        <button
+          className="demo-btn demo-btn-primary"
+          onClick={() => ganttChartRef.current?.exportToPdf({
+            fileName: 'construction-project.pdf',
+            header: {
+              logoUrl: PDF_LOGO_DATA_URL,
+              logoHref: 'https://github.com/simon100500/gantt-lib',
+              serviceName: 'gantt-lib',
+              serviceHref: 'https://github.com/simon100500/gantt-lib',
+              projectName: 'Construction Project',
+              exportDate: new Date(),
+            },
+            orientation: 'landscape',
+            includeTaskList: showTaskList,
+            includeChart: showChart,
+          })}
+        >
+          Export PDF
+        </button>
         <button className="demo-btn demo-btn-secondary" onClick={() => ganttChartRef.current?.collapseAll()}>▲ Collapse All</button>
         <button className="demo-btn demo-btn-secondary" onClick={() => ganttChartRef.current?.expandAll()}>▼ Expand All</button>
         <button className={`demo-btn ${disableTaskNameEditing ? "demo-btn-muted" : "demo-btn-active"}`} onClick={() => setDisableTaskNameEditing(!disableTaskNameEditing)}>{disableTaskNameEditing ? "Enable Name Editing" : "Disable Name Editing"}</button>

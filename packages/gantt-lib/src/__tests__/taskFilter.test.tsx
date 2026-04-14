@@ -138,4 +138,72 @@ describe('GanttChart taskFilter', () => {
 
     expect(scrollToSpy).toHaveBeenCalledWith({ top: 36, behavior: 'smooth' });
   });
+
+  it('exposes exportToPdf on the public handle and opens the browser print flow', async () => {
+    const tasks: Task[] = [
+      {
+        id: 'a',
+        name: 'Alpha task',
+        startDate: '2026-02-01',
+        endDate: '2026-02-03',
+      },
+    ];
+
+    const ref = createRef<GanttChartHandle>();
+    const frameWindow = {
+      document: document.implementation.createHTMLDocument('print'),
+      print: vi.fn(),
+      focus: vi.fn(),
+      close: vi.fn(),
+      requestAnimationFrame: (callback: FrameRequestCallback) => {
+        callback(0);
+        return 1;
+      },
+      setTimeout: ((callback: TimerHandler) => {
+        if (typeof callback === 'function') {
+          callback();
+        }
+        return 1;
+      }) as Window['setTimeout'],
+    } as unknown as Window;
+
+    const appendChildOriginal = document.body.appendChild.bind(document.body);
+    const appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation((node: Node) => {
+      if (node instanceof HTMLIFrameElement) {
+        Object.defineProperty(node, 'contentWindow', {
+          configurable: true,
+          value: frameWindow,
+        });
+        Object.defineProperty(node, 'contentDocument', {
+          configurable: true,
+          value: frameWindow.document,
+        });
+      }
+      return appendChildOriginal(node);
+    });
+
+    render(
+      <GanttChart
+        ref={ref}
+        tasks={tasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+      />
+    );
+
+    expect(ref.current?.exportToPdf).toBeTypeOf('function');
+
+    await act(async () => {
+      await ref.current?.exportToPdf({
+        title: 'Project Plan',
+        fileName: 'project-plan.pdf',
+      });
+    });
+
+    expect(appendChildSpy).toHaveBeenCalled();
+    expect(frameWindow.focus).toHaveBeenCalled();
+    expect(frameWindow.print).toHaveBeenCalled();
+    expect(frameWindow.document.title).toBe('Project Plan');
+  });
 });

@@ -35,3 +35,23 @@
 .gantt-chart-hidden {
   display: none;
 }
+
+.gantt-chartSurface {
+  display: block;
+}
+
+@media print {
+  .gantt-container,
+  .gantt-scrollContainer,
+  .gantt-scrollContent,
+  .gantt-chartSurface,
+  .gantt-taskArea {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .gantt-container {
+    border-radius: 0;
+  }
+}
