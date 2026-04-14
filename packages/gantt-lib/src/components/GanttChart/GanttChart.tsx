@@ -165,6 +165,8 @@ export interface GanttChartProps<TTask extends Task = Task> {
 }
 
 export interface ExportToPdfOptions {
+  /** Structured header displayed above the exported chart */
+  header?: ExportToPdfHeaderOptions;
   /** Suggested file name for the print document title (browser may use it for PDF default name) */
   fileName?: string;
   /** Human-readable document title rendered above the exported chart */
@@ -175,6 +177,21 @@ export interface ExportToPdfOptions {
   includeTaskList?: boolean;
   /** Include the timeline/chart area in the exported document (default: mirrors current chart config) */
   includeChart?: boolean;
+}
+
+export interface ExportToPdfHeaderOptions {
+  /** Optional logo image URL or data URI displayed on the left */
+  logoUrl?: string;
+  /** Optional link for the logo */
+  logoHref?: string;
+  /** Service/product name displayed in the header */
+  serviceName?: string;
+  /** Optional link for the service name */
+  serviceHref?: string;
+  /** Project/document name displayed under or next to the service name */
+  projectName?: string;
+  /** Export date shown on the right; string is rendered as-is */
+  exportDate?: string | Date;
 }
 
 /**
@@ -740,6 +757,7 @@ function GanttChartInner<TTask extends Task = Task>(
       sourceDocument: document,
       sourceContainer,
       printContent,
+      header: options?.header,
       title: options?.title,
       fileName: options?.fileName,
       orientation: options?.orientation ?? 'landscape',
