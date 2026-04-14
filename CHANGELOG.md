@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.71.1] - 2026-04-14
+
+### Fixes
+
+- Correct hierarchy line color assignment for improved visual consistency
+
 ## [0.71.0] - 2026-04-13
 
 ### Features
