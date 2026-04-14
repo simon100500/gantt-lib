@@ -137,6 +137,18 @@ export default function ConstructionChart() {
         <button className={`demo-btn ${!showTaskList && showChart ? "demo-btn-active" : "demo-btn-muted"}`} onClick={() => { setShowTaskList(false); setShowChart(true); }}>Только календарь</button>
         <button className={`demo-btn ${showTaskList ? "demo-btn-danger" : "demo-btn-primary"}`} onClick={() => setShowTaskList(!showTaskList)}>{showTaskList ? "Hide Task List" : "Show Task List"}</button>
         <button className="demo-btn demo-btn-purple" onClick={() => ganttChartRef.current?.scrollToToday()}>Today</button>
+        <button
+          className="demo-btn demo-btn-primary"
+          onClick={() => ganttChartRef.current?.exportToPdf({
+            fileName: 'construction-project.pdf',
+            title: 'Construction Project',
+            orientation: 'landscape',
+            includeTaskList: showTaskList,
+            includeChart: showChart,
+          })}
+        >
+          Export PDF
+        </button>
         <button className="demo-btn demo-btn-secondary" onClick={() => ganttChartRef.current?.collapseAll()}>▲ Collapse All</button>
         <button className="demo-btn demo-btn-secondary" onClick={() => ganttChartRef.current?.expandAll()}>▼ Expand All</button>
         <button className={`demo-btn ${disableTaskNameEditing ? "demo-btn-muted" : "demo-btn-active"}`} onClick={() => setDisableTaskNameEditing(!disableTaskNameEditing)}>{disableTaskNameEditing ? "Enable Name Editing" : "Disable Name Editing"}</button>

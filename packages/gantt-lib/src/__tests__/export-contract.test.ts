@@ -5,6 +5,12 @@
 import { describe, it, expect } from 'vitest';
 
 describe('Export contract: core/scheduling', () => {
+  it('root package exports the public gantt chart API without runtime regressions', async () => {
+    const mod = await import('../index');
+    expect(mod.GanttChart).toBeDefined();
+    expect(mod.TaskList).toBeDefined();
+  });
+
   it('exports command-level API from execute.ts', async () => {
     const mod = await import('../core/scheduling');
     expect(mod.moveTaskWithCascade).toBeDefined();

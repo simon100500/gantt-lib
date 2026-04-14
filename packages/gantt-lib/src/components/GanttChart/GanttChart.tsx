@@ -15,6 +15,7 @@ import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
 import { TaskList } from '../TaskList';
+import { printGanttChart } from './print';
 import './GanttChart.css';
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
@@ -163,6 +164,19 @@ export interface GanttChartProps<TTask extends Task = Task> {
   additionalColumns?: TaskListColumn<TTask>[];
 }
 
+export interface ExportToPdfOptions {
+  /** Suggested file name for the print document title (browser may use it for PDF default name) */
+  fileName?: string;
+  /** Human-readable document title rendered above the exported chart */
+  title?: string;
+  /** PDF page orientation used for the browser print layout */
+  orientation?: 'portrait' | 'landscape';
+  /** Include the task list area in the exported document (default: mirrors current chart config) */
+  includeTaskList?: boolean;
+  /** Include the timeline/chart area in the exported document (default: mirrors current chart config) */
+  includeChart?: boolean;
+}
+
 /**
  * Ref handle type for GanttChart — exposes imperative scroll methods.
  */
@@ -172,6 +186,7 @@ export interface GanttChartHandle {
   scrollToRow: (taskId: string) => void;
   collapseAll: () => void;
   expandAll: () => void;
+  exportToPdf: (options?: ExportToPdfOptions) => Promise<void>;
 }
 
 /**
@@ -238,7 +253,9 @@ function GanttChartInner<TTask extends Task = Task>(
     showChart = true,
     additionalColumns,
   } = props;
+  const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContentRef = useRef<HTMLDivElement>(null);
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -688,6 +705,47 @@ function GanttChartInner<TTask extends Task = Task>(
     setInternalCollapsedParentIds(new Set());
   }, [externalCollapsedParentIds]);
 
+  const exportToPdf = useCallback(async (options?: ExportToPdfOptions) => {
+    const sourceContainer = containerRef.current;
+    const sourceContent = scrollContentRef.current;
+
+    if (!sourceContainer || !sourceContent || typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    const includeTaskList = options?.includeTaskList ?? showTaskList;
+    const includeChart = options?.includeChart ?? showChart;
+
+    if (!includeTaskList && !includeChart) {
+      return;
+    }
+
+    const printContent = sourceContent.cloneNode(true) as HTMLDivElement;
+    const taskListClone = printContent.querySelector('.gantt-tl-overlay') as HTMLDivElement | null;
+    const chartClone = printContent.querySelector('.gantt-chartSurface') as HTMLDivElement | null;
+
+    if (includeTaskList) {
+      taskListClone?.classList.remove('gantt-tl-hidden', 'gantt-tl-overlay-shadowed');
+    } else {
+      taskListClone?.remove();
+    }
+
+    if (includeChart) {
+      chartClone?.classList.remove('gantt-chart-hidden');
+    } else {
+      chartClone?.remove();
+    }
+
+    await printGanttChart({
+      sourceDocument: document,
+      sourceContainer,
+      printContent,
+      title: options?.title,
+      fileName: options?.fileName,
+      orientation: options?.orientation ?? 'landscape',
+    });
+  }, [showTaskList, showChart]);
+
   // Expose collapse/expand methods via ref (must be after handlers are defined)
   useImperativeHandle(
     ref,
@@ -697,8 +755,9 @@ function GanttChartInner<TTask extends Task = Task>(
       scrollToRow,
       collapseAll: handleCollapseAll,
       expandAll: handleExpandAll,
+      exportToPdf,
     }),
-    [scrollToToday, scrollToTask, scrollToRow, handleCollapseAll, handleExpandAll]
+    [scrollToToday, scrollToTask, scrollToRow, handleCollapseAll, handleExpandAll, exportToPdf]
   );
 
   /**
@@ -878,7 +937,7 @@ function GanttChartInner<TTask extends Task = Task>(
   }, []);
 
   return (
-    <div className="gantt-container">
+    <div ref={containerRef} className="gantt-container">
       <div
         ref={scrollContainerRef}
         className="gantt-scrollContainer"
@@ -886,7 +945,7 @@ function GanttChartInner<TTask extends Task = Task>(
         onMouseDown={handlePanStart}
       >
         {/* Content wrapper - enables TaskList to scroll with chart horizontally */}
-        <div className="gantt-scrollContent">
+        <div ref={scrollContentRef} className="gantt-scrollContent">
           {/* TaskList - sticky left, scrolls with content horizontally */}
           <TaskList
             tasks={normalizedTasks}
@@ -923,7 +982,7 @@ function GanttChartInner<TTask extends Task = Task>(
           />
 
           {/* Chart area */}
-          <div className={showChart ? '' : 'gantt-chart-hidden'} style={{ minWidth: `${gridWidth}px`, flex: 1 }}>
+          <div className={showChart ? 'gantt-chartSurface' : 'gantt-chartSurface gantt-chart-hidden'} style={{ minWidth: `${gridWidth}px`, flex: 1 }}>
             {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
             <div className="gantt-stickyHeader" style={{ width: `${gridWidth}px` }}>
               <TimeScaleHeader
