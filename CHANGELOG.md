@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.73.0] - 2026-04-17
+
+### Features
+
+- Add `onUngroupTask` callback for handling task ungrouping with UI interactions
+- Introduce `taskListMenuCommands` prop for custom actions in TaskList row menu (`...` button) with scope filtering by task type
+
+### Refactor
+
+- Update SVG paths for UngroupIcon to improve visual representation
+
 ## [0.72.2] - 2026-04-17
 
 ### Features
