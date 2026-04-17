@@ -5,13 +5,19 @@ interface PrintGanttChartParams {
   sourceContainer: HTMLElement;
   printContent: HTMLElement;
   header?: ExportToPdfHeaderOptions;
+  documentTitle?: ExportToPdfOptions['documentTitle'];
   title?: ExportToPdfOptions['title'];
   fileName?: ExportToPdfOptions['fileName'];
   orientation?: ExportToPdfOptions['orientation'];
 }
 
-function getPrintDocumentTitle({ header, title, fileName }: Pick<PrintGanttChartParams, 'header' | 'title' | 'fileName'>): string {
-  return header?.projectName || title || header?.serviceName || fileName || 'Gantt chart';
+function getPrintDocumentTitle({
+  header,
+  documentTitle,
+  title,
+  fileName,
+}: Pick<PrintGanttChartParams, 'header' | 'documentTitle' | 'title' | 'fileName'>): string {
+  return documentTitle || fileName || title || header?.projectName || header?.serviceName || 'Gantt chart';
 }
 
 function formatHeaderExportDate(exportDate?: ExportToPdfHeaderOptions['exportDate']): string | null {
@@ -332,6 +338,7 @@ export async function printGanttChart({
   sourceContainer,
   printContent,
   header,
+  documentTitle,
   title,
   fileName,
   orientation,
@@ -346,7 +353,7 @@ export async function printGanttChart({
       throw new Error('Unable to create print frame');
     }
 
-    const printTitle = getPrintDocumentTitle({ header, title, fileName });
+    const printTitle = getPrintDocumentTitle({ header, documentTitle, title, fileName });
 
     printDocument.open();
     printDocument.write('<!doctype html><html><head><meta charset="utf-8" /></head><body></body></html>');

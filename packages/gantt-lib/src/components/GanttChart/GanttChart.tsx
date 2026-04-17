@@ -169,6 +169,8 @@ export interface ExportToPdfOptions {
   header?: ExportToPdfHeaderOptions;
   /** Suggested file name for the print document title (browser may use it for PDF default name) */
   fileName?: string;
+  /** Explicit print document title used for the browser print/PDF window title */
+  documentTitle?: string;
   /** Human-readable document title rendered above the exported chart */
   title?: string;
   /** Optional PDF page orientation hint for the browser print layout */
@@ -749,6 +751,7 @@ function GanttChartInner<TTask extends Task = Task>(
 
     if (includeChart) {
       chartClone?.classList.remove('gantt-chart-hidden');
+      if (chartClone) chartClone.style.display = '';
     } else {
       chartClone?.remove();
     }
@@ -758,6 +761,7 @@ function GanttChartInner<TTask extends Task = Task>(
       sourceContainer,
       printContent,
       header: options?.header,
+      documentTitle: options?.documentTitle,
       title: options?.title,
       fileName: options?.fileName,
       orientation: options?.orientation,
@@ -1000,7 +1004,10 @@ function GanttChartInner<TTask extends Task = Task>(
           />
 
           {/* Chart area */}
-          <div className={showChart ? 'gantt-chartSurface' : 'gantt-chartSurface gantt-chart-hidden'} style={{ minWidth: `${gridWidth}px`, flex: 1 }}>
+          <div
+            className={showChart ? 'gantt-chartSurface' : 'gantt-chartSurface gantt-chart-hidden'}
+            style={{ minWidth: `${gridWidth}px`, flex: 1, display: showChart ? undefined : 'none' }}
+          >
             {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
             <div className="gantt-stickyHeader" style={{ width: `${gridWidth}px` }}>
               <TimeScaleHeader

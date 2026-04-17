@@ -31,13 +31,13 @@
   background-color: var(--gantt-cell-background, #ffffff);
 }
 
-/* Hide chart area while keeping TaskList visible */
-.gantt-chart-hidden {
-  display: none;
-}
-
 .gantt-chartSurface {
   display: block;
+}
+
+/* Hide chart area while keeping TaskList visible */
+.gantt-chartSurface.gantt-chart-hidden {
+  display: none;
 }
 
 @media print {

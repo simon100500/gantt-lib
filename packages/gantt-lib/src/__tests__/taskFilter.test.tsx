@@ -1,6 +1,6 @@
 import React, { createRef } from 'react';
 import { act, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GanttChart, type GanttChartHandle, type Task } from '../components/GanttChart';
 import { withoutDeps } from '../filters';
 
@@ -13,6 +13,34 @@ vi.mock('../components/ui/Popover', () => ({
   PopoverTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   PopoverContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
+
+function createMockPrintWindow(): Window {
+  const printDocument = document.implementation.createHTMLDocument('print');
+  printDocument.open = vi.fn(() => printDocument) as Document['open'];
+  printDocument.write = vi.fn();
+  printDocument.close = vi.fn();
+
+  return {
+    document: printDocument,
+    print: vi.fn(),
+    focus: vi.fn(),
+    close: vi.fn(),
+    requestAnimationFrame: (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    },
+    setTimeout: ((callback: TimerHandler) => {
+      if (typeof callback === 'function') {
+        callback();
+      }
+      return 1;
+    }) as Window['setTimeout'],
+  } as unknown as Window;
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('GanttChart taskFilter', () => {
   it('highlights matching task list and chart rows without hiding other tasks', () => {
@@ -150,22 +178,7 @@ describe('GanttChart taskFilter', () => {
     ];
 
     const ref = createRef<GanttChartHandle>();
-    const frameWindow = {
-      document: document.implementation.createHTMLDocument('print'),
-      print: vi.fn(),
-      focus: vi.fn(),
-      close: vi.fn(),
-      requestAnimationFrame: (callback: FrameRequestCallback) => {
-        callback(0);
-        return 1;
-      },
-      setTimeout: ((callback: TimerHandler) => {
-        if (typeof callback === 'function') {
-          callback();
-        }
-        return 1;
-      }) as Window['setTimeout'],
-    } as unknown as Window;
+    const frameWindow = createMockPrintWindow();
 
     const appendChildOriginal = document.body.appendChild.bind(document.body);
     const appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation((node: Node) => {
@@ -204,11 +217,68 @@ describe('GanttChart taskFilter', () => {
     expect(appendChildSpy).toHaveBeenCalled();
     expect(frameWindow.focus).toHaveBeenCalled();
     expect(frameWindow.print).toHaveBeenCalled();
-    expect(frameWindow.document.title).toBe('Project Plan');
+    expect(frameWindow.document.title).toBe('project-plan.pdf');
     const printStyles = Array.from(frameWindow.document.head.querySelectorAll('style'))
       .map(node => node.textContent ?? '')
       .join('\n');
     expect(printStyles).not.toContain('size: landscape;');
     expect(printStyles).not.toContain('size: portrait;');
+  });
+
+  it('uses documentTitle for printWindow.document.title without changing the visual header', async () => {
+    const tasks: Task[] = [
+      {
+        id: 'a',
+        name: 'Alpha task',
+        startDate: '2026-02-01',
+        endDate: '2026-02-03',
+      },
+    ];
+
+    const ref = createRef<GanttChartHandle>();
+    const frameWindow = createMockPrintWindow();
+
+    const appendChildOriginal = document.body.appendChild.bind(document.body);
+    const appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation((node: Node) => {
+      if (node instanceof HTMLIFrameElement) {
+        Object.defineProperty(node, 'contentWindow', {
+          configurable: true,
+          value: frameWindow,
+        });
+        Object.defineProperty(node, 'contentDocument', {
+          configurable: true,
+          value: frameWindow.document,
+        });
+      }
+      return appendChildOriginal(node);
+    });
+
+    render(
+      <GanttChart
+        ref={ref}
+        tasks={tasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+      />
+    );
+
+    await act(async () => {
+      await ref.current?.exportToPdf({
+        documentTitle: 'GetGantt - Проект A - 2026-04-15 14-30.pdf',
+        fileName: 'GetGantt - Проект A - 2026-04-15 14-30.pdf',
+        title: 'Проект A',
+        header: {
+          serviceName: 'GetGantt.ru',
+          projectName: 'Проект A',
+          exportDate: new Date('2026-04-15T14:30:00Z'),
+        },
+      });
+    });
+
+    expect(appendChildSpy).toHaveBeenCalled();
+    expect(frameWindow.document.title).toBe('GetGantt - Проект A - 2026-04-15 14-30.pdf');
+    expect(frameWindow.document.body.textContent).toContain('GetGantt.ru');
+    expect(frameWindow.document.body.textContent).toContain('Проект A');
   });
 });
