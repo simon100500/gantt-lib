@@ -163,6 +163,25 @@ const CopyIcon = () => (
   </svg>
 );
 
+const UngroupIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 12H11" />
+    <path d="M18 9l3 3-3 3" />
+    <path d="M3 6h8" />
+    <path d="M3 18h8" />
+  </svg>
+);
+
 const TASK_COLOR_PALETTE = [
   // { label: "Палисандр", value: "#A61E4D" },
   // { label: "Киноварь", value: "#E8590C" },
@@ -739,6 +758,8 @@ export interface TaskListRowProps {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when task is demoted (parentId set to previous task) */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
+  /** Callback when parent task is ungrouped (removed while direct children move one level up) */
+  onUngroupTask?: (taskId: string) => void;
   /** Callback when task or task group should be duplicated */
   onDuplicateTask?: (taskId: string) => void;
   /** Whether demote action should be shown for this row */
@@ -811,6 +832,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onToggleCollapse,
     onPromoteTask,
     onDemoteTask,
+    onUngroupTask,
     onDuplicateTask,
     canDemoteTask = true,
     isLastChild = true,
@@ -1504,6 +1526,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [allTasks, isParent, onTasksChange, task],
     );
 
+    const handleUngroup = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setContextMenuOpen(false);
+        onUngroupTask?.(task.id);
+      },
+      [onUngroupTask, task.id],
+    );
+
     // Dependency handlers
     const handleAddClick = useCallback(
       (e: React.MouseEvent) => {
@@ -1957,7 +1988,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             aria-hidden="true"
           />
         )}
-        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onDuplicateTask || onTasksChange) && (
+        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onUngroupTask || onDuplicateTask || onTasksChange) && (
           <div className="gantt-tl-name-actions">
             {onInsertAfter && (
               <button
@@ -2005,7 +2036,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onPromote={onPromoteTask ? handlePromote : undefined}
               onDemote={onDemoteTask ? handleDemote : undefined}
             />
-            {(onDuplicateTask || onDelete || onTasksChange) && (
+            {(onDuplicateTask || onDelete || onTasksChange || (isParent && onUngroupTask)) && (
               <Popover open={contextMenuOpen} onOpenChange={(open) => {
                 setContextMenuOpen(open);
                 if (!open) setColorMenuOpen(false);
@@ -2091,6 +2122,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                     >
                       <CopyIcon />
                       Дублировать
+                    </button>
+                  )}
+                  {isParent && onUngroupTask && (
+                    <button
+                      type="button"
+                      className="gantt-tl-context-menu-item"
+                      onClick={handleUngroup}
+                    >
+                      <UngroupIcon />
+                      Разгруппировать
                     </button>
                   )}
                   {onDelete && (

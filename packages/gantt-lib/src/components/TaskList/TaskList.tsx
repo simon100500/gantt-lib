@@ -186,6 +186,8 @@ export interface TaskListProps {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when task is demoted (parentId set to previous task) */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
+  /** Callback when parent task is ungrouped (removed while direct children move one level up) */
+  onUngroupTask?: (taskId: string) => void;
   /** Custom day configurations for date picker */
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate for date picker */
@@ -243,6 +245,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onToggleCollapse: externalOnToggleCollapse,
   onPromoteTask,
   onDemoteTask,
+  onUngroupTask,
   customDays,
   isWeekend,
   businessDays,
@@ -1152,6 +1155,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onToggleCollapse={handleToggleCollapse}
                   onPromoteTask={onPromoteTask}
                   onDemoteTask={onDemoteTask ? handleDemoteWrapper : undefined}
+                  onUngroupTask={onUngroupTask}
                   onDuplicateTask={onReorder ? handleDuplicateTask : undefined}
                   canDemoteTask={canDemoteTask}
                   isLastChild={lastChildIds.has(task.id)}

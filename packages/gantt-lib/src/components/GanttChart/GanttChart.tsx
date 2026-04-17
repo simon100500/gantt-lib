@@ -132,6 +132,8 @@ export interface GanttChartProps<TTask extends Task = Task> {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when a task is demoted (parentId set). If not provided, default internal logic is used. */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
+  /** Callback when a parent task is ungrouped (removed while direct children move one level up). */
+  onUngroupTask?: (taskId: string) => void;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
   /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days, 'month' renders one column per month (default: 'day') */
@@ -258,6 +260,7 @@ function GanttChartInner<TTask extends Task = Task>(
     onReorder,
     onPromoteTask,
     onDemoteTask,
+    onUngroupTask,
     enableAddTask = true,
     viewMode = 'day',
     customDays,
@@ -903,6 +906,42 @@ function GanttChartInner<TTask extends Task = Task>(
     onTasksChange?.([updatedDemotedTask] as TTask[]);
   }, [tasks, onTasksChange, onDemoteTask]);
 
+  const handleUngroupTask = useCallback((taskId: string) => {
+    if (onUngroupTask) {
+      onUngroupTask(taskId);
+      return;
+    }
+
+    const parentTask = tasks.find(task => task.id === taskId);
+    if (!parentTask) return;
+
+    const hasDirectChildren = tasks.some(task => task.parentId === taskId);
+    if (!hasDirectChildren) return;
+
+    const changedTasks: Task[] = [];
+
+    for (const task of tasks) {
+      if (task.id === taskId) continue;
+
+      const nextParentId = task.parentId === taskId ? parentTask.parentId : task.parentId;
+      const nextDependencies = task.dependencies?.filter(dep => dep.taskId !== taskId);
+
+      if (nextParentId !== task.parentId || nextDependencies?.length !== task.dependencies?.length) {
+        changedTasks.push({
+          ...task,
+          parentId: nextParentId,
+          dependencies: nextDependencies,
+        });
+      }
+    }
+
+    if (changedTasks.length > 0) {
+      onTasksChange?.(changedTasks as TTask[]);
+    }
+
+    onDelete?.(taskId);
+  }, [tasks, onTasksChange, onDelete, onUngroupTask]);
+
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
 
@@ -993,6 +1032,7 @@ function GanttChartInner<TTask extends Task = Task>(
             onToggleCollapse={handleToggleCollapse}
             onPromoteTask={onPromoteTask ?? handlePromoteTask}
             onDemoteTask={onDemoteTask ?? handleDemoteTask}
+            onUngroupTask={onUngroupTask ?? handleUngroupTask}
             highlightedTaskIds={taskListHighlightedTaskIds}
             customDays={customDays}
             isWeekend={isWeekend}
