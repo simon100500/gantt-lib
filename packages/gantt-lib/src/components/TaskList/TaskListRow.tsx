@@ -175,10 +175,10 @@ const UngroupIcon = () => (
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    <path d="M21 12H11" />
-    <path d="M18 9l3 3-3 3" />
-    <path d="M3 6h8" />
-    <path d="M3 18h8" />
+    <path d="M3 12h10" />
+    <path d="m6 9-3 3 3 3" />
+    <path d="M13 6h8" />
+    <path d="M13 18h8" />
   </svg>
 );
 
