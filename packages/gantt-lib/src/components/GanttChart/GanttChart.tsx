@@ -89,6 +89,27 @@ export interface TaskDependency {
   lag: number;
 }
 
+export interface TaskListMenuCommand<TTask extends Task = Task> {
+  /** Stable command id for React keys and consumer bookkeeping */
+  id: string;
+  /** Visible label in the three-dots menu */
+  label: string;
+  /** Optional icon rendered before the label */
+  icon?: React.ReactNode;
+  /** Command handler receives the current task row */
+  onSelect: (row: TTask) => void;
+  /** Optional per-row visibility predicate */
+  isVisible?: (row: TTask) => boolean;
+  /** Optional per-row disabled predicate */
+  isDisabled?: (row: TTask) => boolean;
+  /** Scope of the command in the hierarchy: all rows, parent/group rows, regular linear rows, or milestones */
+  scope?: 'all' | 'group' | 'linear' | 'milestone';
+  /** Marks the command with danger styling */
+  danger?: boolean;
+  /** Close the menu after click (default: true) */
+  closeOnSelect?: boolean;
+}
+
 export interface GanttChartProps<TTask extends Task = Task> {
   /** Array of tasks to display */
   tasks: TTask[];
@@ -164,6 +185,8 @@ export interface GanttChartProps<TTask extends Task = Task> {
   showChart?: boolean;
   /** Additional custom columns to render in the TaskList after built-in columns */
   additionalColumns?: TaskListColumn<TTask>[];
+  /** Additional commands rendered in the TaskList row three-dots menu */
+  taskListMenuCommands?: TaskListMenuCommand<TTask>[];
 }
 
 export interface ExportToPdfOptions {
@@ -274,6 +297,7 @@ function GanttChartInner<TTask extends Task = Task>(
     disableTaskDrag = false,
     showChart = true,
     additionalColumns,
+    taskListMenuCommands,
   } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1041,6 +1065,7 @@ function GanttChartInner<TTask extends Task = Task>(
             filteredTaskIds={matchedTaskIds}
             isFilterActive={!!taskFilter}
             additionalColumns={additionalColumns}
+            taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
           />
 
           {/* Chart area */}

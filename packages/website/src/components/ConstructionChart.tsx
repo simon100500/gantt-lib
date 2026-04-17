@@ -5,11 +5,13 @@ import {
   GanttChart,
   type Task,
   type GanttChartHandle,
+  type TaskListMenuCommand,
   withoutDeps, expired, inDateRange, progressInRange, nameContains, or,
   type TaskPredicate,
   reflowTasksOnModeSwitch,
 } from "gantt-lib";
 import { isTaskParent, getAllDescendants } from "gantt-lib";
+import Modal from "@/components/Modal/Modal";
 import {
   MAIN_CHART_CUSTOM_DAYS,
   MAIN_CHART_WEEKEND_PREDICATE,
@@ -23,6 +25,58 @@ const PDF_LOGO_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComponent(
     <path d="M30 15h7v18h-3.7V18.4H30V15z" fill="#60a5fa"/>
   </svg>`
 )}`;
+
+const GroupCommandIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="3" y="4" width="18" height="6" rx="2" />
+    <path d="M7 14h10" />
+    <path d="M7 18h6" />
+  </svg>
+);
+
+const TaskCommandIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 7h16" />
+    <path d="M4 12h16" />
+    <path d="M4 17h10" />
+  </svg>
+);
+
+const MilestoneCommandIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m12 3 7 9-7 9-7-9 7-9Z" />
+  </svg>
+);
 
 export default function ConstructionChart() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
@@ -39,6 +93,8 @@ export default function ConstructionChart() {
   const [filterMode, setFilterMode] = useState<'highlight' | 'hide'>('highlight');
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearchResultIndex, setActiveSearchResultIndex] = useState(0);
+  const [menuDialogTask, setMenuDialogTask] = useState<Task | null>(null);
+  const [menuDialogName, setMenuDialogName] = useState("");
 
   useEffect(() => {
     setTasks((prev) => reflowTasksOnModeSwitch(prev, businessDays, MAIN_CHART_WEEKEND_PREDICATE));
@@ -115,6 +171,28 @@ export default function ConstructionChart() {
     setTasks(reorderedTasks);
   }, []);
 
+  const openRenameModal = useCallback((task: Task) => {
+    setMenuDialogTask(task);
+    setMenuDialogName(task.name);
+  }, []);
+
+  const closeRenameModal = useCallback(() => {
+    setMenuDialogTask(null);
+    setMenuDialogName("");
+  }, []);
+
+  const handleRenameSave = useCallback(() => {
+    const nextName = menuDialogName.trim();
+    if (!menuDialogTask || !nextName) return;
+
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === menuDialogTask.id ? { ...task, name: nextName } : task,
+      ),
+    );
+    closeRenameModal();
+  }, [closeRenameModal, menuDialogName, menuDialogTask]);
+
   const handleSearchResultStep = useCallback((direction: -1 | 1) => {
     if (searchResultIds.length === 0) return;
     setActiveSearchResultIndex((prev) => {
@@ -135,6 +213,33 @@ export default function ConstructionChart() {
     color: active ? '#ffffff' : '#374151',
     borderColor: active ? (color || '#1f2937') : '#d1d5db',
   });
+
+  const taskListMenuCommands = useMemo<TaskListMenuCommand<Task>[]>(
+    () => [
+      {
+        id: 'rename-group',
+        label: 'Переименовать группу',
+        icon: <GroupCommandIcon />,
+        scope: 'group',
+        onSelect: openRenameModal,
+      },
+      {
+        id: 'rename-linear',
+        label: 'Переименовать задачу',
+        icon: <TaskCommandIcon />,
+        scope: 'linear',
+        onSelect: openRenameModal,
+      },
+      {
+        id: 'rename-milestone',
+        label: 'Переименовать веху',
+        icon: <MilestoneCommandIcon />,
+        scope: 'milestone',
+        onSelect: openRenameModal,
+      },
+    ],
+    [openRenameModal],
+  );
 
   return (
     <section className="demo-section">
@@ -234,8 +339,62 @@ export default function ConstructionChart() {
           highlightedTaskIds={highlightedSearchTaskIds}
           disableTaskDrag={disableTaskDrag}
           filterMode={filterMode}
+          taskListMenuCommands={taskListMenuCommands}
         />
       </div>
+
+      <Modal isOpen={menuDialogTask !== null} onClose={closeRenameModal}>
+        <div style={{ maxWidth: '520px', margin: '48px auto 0', display: 'grid', gap: '16px' }}>
+          <div>
+            <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', color: '#111827' }}>
+              {menuDialogTask?.type === 'milestone'
+                ? 'Переименовать веху'
+                : menuDialogTask && isTaskParent(menuDialogTask.id, tasks)
+                  ? 'Переименовать группу'
+                  : 'Переименовать задачу'}
+            </h3>
+            <p style={{ margin: 0, color: '#6b7280', fontSize: '0.95rem' }}>
+              Тестовая команда из меню строки. Меняет название выбранного пункта.
+            </p>
+          </div>
+
+          <label style={{ display: 'grid', gap: '8px', color: '#374151', fontWeight: 500 }}>
+            Название
+            <input
+              value={menuDialogName}
+              onChange={(e) => setMenuDialogName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleRenameSave();
+                }
+              }}
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                border: '1px solid #d1d5db',
+                fontSize: '1rem',
+              }}
+            />
+          </label>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <button type="button" className="demo-btn demo-btn-neutral" onClick={closeRenameModal}>
+              Отмена
+            </button>
+            <button
+              type="button"
+              className="demo-btn demo-btn-primary"
+              onClick={handleRenameSave}
+              disabled={!menuDialogName.trim()}
+            >
+              Сохранить
+            </button>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }

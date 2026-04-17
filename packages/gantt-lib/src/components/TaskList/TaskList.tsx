@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import type { Task, TaskDependency } from '../GanttChart';
+import type { Task, TaskDependency, TaskListMenuCommand } from '../GanttChart';
 import type { LinkType } from '../../types';
 import type { CustomDayConfig } from '../../utils/dateUtils';
 import { createCustomDayPredicate } from '../../utils/dateUtils';
@@ -204,6 +204,8 @@ export interface TaskListProps {
   isFilterActive?: boolean;
   /** Additional columns to display after built-in columns */
   additionalColumns?: TaskListColumn<any>[];
+  /** Additional commands rendered in each row three-dots menu */
+  taskListMenuCommands?: TaskListMenuCommand<Task>[];
 }
 
 interface PendingInsertState {
@@ -254,6 +256,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   filteredTaskIds = new Set(),
   isFilterActive = false,
   additionalColumns,
+  taskListMenuCommands,
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
@@ -1168,6 +1171,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}
                   isFilterHideMode={filterMode === 'hide' && isFilterActive}
                   resolvedColumns={resolvedColumns}
+                  taskListMenuCommands={taskListMenuCommands}
                 />
                 {pendingInsertDisplayTaskId === task.id && (
                   <NewTaskRow

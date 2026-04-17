@@ -35,6 +35,7 @@ interface GanttChartProps<TTask extends Task = Task> {
   isWeekend?: (date: Date) => boolean;
   businessDays?: boolean;
   additionalColumns?: TaskListColumn<TTask>[];
+  taskListMenuCommands?: TaskListMenuCommand<TTask>[];
 }
 ```
 
@@ -76,10 +77,63 @@ interface GanttChartProps<TTask extends Task = Task> {
 | `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Checked BEFORE customDays overrides** — use for base patterns, then override specific dates with `customDays`. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
 | `businessDays` | `boolean` | `true` | Когда `true` (default), длительность задачи (duration) считается в рабочих днях, исключая выходные. Когда `false`, длительность считается в календарных днях. Влияет на расчёт зависимостей, перетаскивание задач и отображение длительности. См. раздел 7.5. |
 | `additionalColumns` | `TaskListColumn<TTask>[]` | `undefined` | Additional TaskList columns resolved together with the built-in columns. Use `renderCell` / `renderEditor` and place them with `before` / `after`. See [TaskList Columns](./13-tasklist-columns.md). |
+| `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Additional commands for the TaskList three-dots menu. Each command receives the current row in `onSelect(row)`, can render an `icon`, and may be restricted by `scope`: `'group'`, `'linear'`, `'milestone'`, or `'all'`. When `scope` is omitted, the command is shown for all task types. |
 
 **Important — calendar range:** The visible date range is calculated automatically from the earliest `startDate` to the latest `endDate` across all tasks. The chart always shows complete calendar months. For example, if tasks span March 25 to May 5, the chart renders March 1 through May 31. There is no `month` prop.
 
 **Milestone note:** If a task uses `type: 'milestone'`, the chart renders it as a single-date diamond (14px) and TaskList editing keeps `startDate` and `endDate` synchronized. Milestone drag is move-only (resize disabled). Dependency lines attach to diamond edges. With `enableAutoSchedule`, milestone predecessors with `lag: 0` schedule successors on the same day. Duration column shows `0`; editing duration to `>0` converts milestone to task and vice versa. See [Task Interface — Milestones](./02-task-interface.md#milestones-v0700).
+
+## TaskList Menu Commands
+
+Use `taskListMenuCommands` to add custom actions to the standard TaskList row menu (`...`).
+
+```typescript
+type TaskListMenuCommand<TTask extends Task = Task> = {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  onSelect: (row: TTask) => void;
+  isVisible?: (row: TTask) => boolean;
+  isDisabled?: (row: TTask) => boolean;
+  scope?: 'all' | 'group' | 'linear' | 'milestone';
+  danger?: boolean;
+  closeOnSelect?: boolean;
+};
+```
+
+- `scope` is optional. Omit it to show the command for all rows.
+- `scope: 'group'` shows the command only for parent/group rows.
+- `scope: 'linear'` shows the command only for regular non-parent, non-milestone rows.
+- `scope: 'milestone'` shows the command only for tasks with `type: 'milestone'`.
+- `isVisible` and `isDisabled` run per row and can be combined with `scope`.
+
+Example:
+
+```tsx
+<GanttChart
+  tasks={tasks}
+  showTaskList={true}
+  taskListMenuCommands={[
+    {
+      id: 'expand-with-ai',
+      label: 'Expand with AI',
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z" />
+        </svg>
+      ),
+      scope: 'group',
+      onSelect: (row) => openPromptModal(row),
+    },
+    {
+      id: 'rename-milestone',
+      label: 'Rename milestone',
+      scope: 'milestone',
+      onSelect: (row) => openRenameDialog(row),
+    },
+  ]}
+/>
+```
 
 ## TaskList Columns
 

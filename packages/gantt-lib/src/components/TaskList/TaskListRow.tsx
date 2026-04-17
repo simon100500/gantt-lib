@@ -7,7 +7,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import type { Task } from "../GanttChart";
+import type { Task, TaskListMenuCommand } from "../GanttChart";
 import type { LinkType } from "../../types";
 import type { CustomDayConfig } from "../../utils/dateUtils";
 import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate } from "../../utils/dateUtils";
@@ -784,6 +784,8 @@ export interface TaskListRowProps {
   isFilterHideMode?: boolean;
   /** Resolved columns (built-in + custom) for unified rendering */
   resolvedColumns?: NewTaskListColumn<Task>[];
+  /** Additional commands rendered in the three-dots row menu */
+  taskListMenuCommands?: TaskListMenuCommand<Task>[];
 }
 
 const toISODate = (value: string | Date): string => {
@@ -845,6 +847,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     isFilterMatch = false,
     isFilterHideMode = false,
     resolvedColumns,
+    taskListMenuCommands = [],
   }) => {
     const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
     const editingName = editingColumnId === 'name';
@@ -881,6 +884,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [task.id, allTasks],
     );
     const isChild = task.parentId !== undefined;
+    const isMilestoneRow = normalizedTask.type === "milestone";
 
     // Create custom weekend predicate from props (memoized for performance)
     const weekendPredicate = useMemo(
@@ -1535,6 +1539,40 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [onUngroupTask, task.id],
     );
 
+    const visibleCustomMenuCommands = useMemo(
+      () =>
+        taskListMenuCommands.filter(
+          (command) => {
+            const scope = command.scope ?? "all";
+            if (scope === "group" && !isParent) return false;
+            if (scope === "linear" && (isParent || isMilestoneRow)) return false;
+            if (scope === "milestone" && !isMilestoneRow) return false;
+            return command.isVisible?.(task) ?? true;
+          },
+        ),
+      [taskListMenuCommands, task, isParent, isMilestoneRow],
+    );
+
+    const hasContextMenu =
+      visibleCustomMenuCommands.length > 0 ||
+      !!onDuplicateTask ||
+      !!onDelete ||
+      !!onTasksChange ||
+      (isParent && !!onUngroupTask);
+
+    const handleCustomMenuCommandClick = useCallback(
+      (command: TaskListMenuCommand<Task>) =>
+        (e: React.MouseEvent<HTMLButtonElement>) => {
+          e.stopPropagation();
+          if (command.closeOnSelect !== false) {
+            setContextMenuOpen(false);
+            setColorMenuOpen(false);
+          }
+          command.onSelect(task);
+        },
+      [task],
+    );
+
     // Dependency handlers
     const handleAddClick = useCallback(
       (e: React.MouseEvent) => {
@@ -1988,7 +2026,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             aria-hidden="true"
           />
         )}
-        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onUngroupTask || onDuplicateTask || onTasksChange) && (
+        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onUngroupTask || onDuplicateTask || onTasksChange || hasContextMenu) && (
           <div className="gantt-tl-name-actions">
             {onInsertAfter && (
               <button
@@ -2036,7 +2074,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               onPromote={onPromoteTask ? handlePromote : undefined}
               onDemote={onDemoteTask ? handleDemote : undefined}
             />
-            {(onDuplicateTask || onDelete || onTasksChange || (isParent && onUngroupTask)) && (
+            {hasContextMenu && (
               <Popover open={contextMenuOpen} onOpenChange={(open) => {
                 setContextMenuOpen(open);
                 if (!open) setColorMenuOpen(false);
@@ -2124,6 +2162,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                       Дублировать
                     </button>
                   )}
+                  {visibleCustomMenuCommands.map((command) => (
+                    <button
+                      key={command.id}
+                      type="button"
+                      className={`gantt-tl-context-menu-item${command.danger ? " gantt-tl-context-menu-item-danger" : ""}`}
+                      onClick={handleCustomMenuCommandClick(command)}
+                      disabled={command.isDisabled?.(task) ?? false}
+                    >
+                      {command.icon}
+                      {command.label}
+                    </button>
+                  ))}
                   {isParent && onUngroupTask && (
                     <button
                       type="button"
