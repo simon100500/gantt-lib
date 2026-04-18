@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   cascadeByLinks,
   getSuccessorChain,
-  reflowTasksOnModeSwitch,
 } from '../cascade';
+import { reflowTasksOnModeSwitch } from '../modeSwitch';
 import type { Task } from '../../types';
 
 const isWeekend = (d: Date) => d.getUTCDay() === 0 || d.getUTCDay() === 6;
@@ -60,6 +60,32 @@ describe('cascade', () => {
       expect(result).toHaveLength(1);
       // With 5 business days from Mon Jan 6: Mon,Tue,Wed,Thu,Fri = Jan 10
       expect(result[0].startDate).toBe('2025-01-06');
+    });
+
+    it('recalculates FS successors against business-day rules after mode switch', () => {
+      const tasks: Task[] = [
+        makeTask('A', '2025-01-06', '2025-01-10'),
+        makeTask('B', '2025-01-11', '2025-01-11', [{ taskId: 'A', type: 'FS', lag: 0 }]),
+      ];
+
+      const result = reflowTasksOnModeSwitch(tasks, true, isWeekend);
+      const successor = result.find(task => task.id === 'B');
+
+      expect(successor?.startDate).toBe('2025-01-13');
+      expect(successor?.endDate).toBe('2025-01-13');
+    });
+
+    it('recalculates FS successors against calendar-day rules after mode switch', () => {
+      const tasks: Task[] = [
+        makeTask('A', '2025-01-06', '2025-01-10'),
+        makeTask('B', '2025-01-13', '2025-01-13', [{ taskId: 'A', type: 'FS', lag: 0 }]),
+      ];
+
+      const result = reflowTasksOnModeSwitch(tasks, false, isWeekend);
+      const successor = result.find(task => task.id === 'B');
+
+      expect(successor?.startDate).toBe('2025-01-11');
+      expect(successor?.endDate).toBe('2025-01-11');
     });
   });
 });
