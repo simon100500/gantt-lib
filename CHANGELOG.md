@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.73.1] - 2026-04-19
+
+### Refactor
+
+- Extract `reflowTasksOnModeSwitch` from `cascade.ts` into dedicated `modeSwitch.ts` module; update imports and tests
+
 ## [0.73.0] - 2026-04-17
 
 ### Features
