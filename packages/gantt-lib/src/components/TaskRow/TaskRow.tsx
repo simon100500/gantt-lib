@@ -169,8 +169,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     );
     const baselineGeometry = useMemo(() => {
       if (!baselineStartDate || !baselineEndDate) return null;
+      if (milestone) {
+        return calculateTaskBar(baselineStartDate, baselineStartDate, monthStart, dayWidth);
+      }
       return calculateTaskBar(baselineStartDate, baselineEndDate, monthStart, dayWidth);
-    }, [baselineStartDate, baselineEndDate, monthStart, dayWidth]);
+    }, [baselineStartDate, baselineEndDate, milestone, monthStart, dayWidth]);
 
     // Determine task bar color
     const barColor = isExpired
@@ -350,8 +353,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             <div
               className={`gantt-tr-baseline ${isParent ? 'gantt-tr-baseline-parent' : ''} ${milestone ? 'gantt-tr-baseline-milestone' : ''}`}
               style={{
-                left: `${baselineGeometry!.left}px`,
-                width: `${milestone ? Math.max(baselineGeometry!.width, 12) : baselineGeometry!.width}px`,
+                left: `${milestone ? baselineGeometry!.left + (dayWidth / 2) : baselineGeometry!.left}px`,
+                width: `${milestone ? 0 : baselineGeometry!.width}px`,
               }}
             />
           )}

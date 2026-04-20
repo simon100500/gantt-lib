@@ -162,6 +162,10 @@
 
 .gantt-tr-baseline-milestone {
   top: calc(50% + 10px + var(--gantt-baseline-offset, 0px));
+  width: var(--gantt-baseline-milestone-size, 12px) !important;
+  height: var(--gantt-baseline-milestone-size, 8px);
+  /* border-radius: 999px; */
+  /* transform: translateX(calc(var(--gantt-baseline-milestone-size, 8px) / -2)); */
 }
 
 .gantt-tr-leftLabels {

@@ -102,7 +102,10 @@ describe('baseline rendering', () => {
       />
     );
 
-    expect(container.querySelector('.gantt-tr-baseline-milestone')).not.toBeNull();
+    const baseline = container.querySelector('.gantt-tr-baseline-milestone') as HTMLElement | null;
+    expect(baseline).not.toBeNull();
+    expect(baseline?.style.left).toBe('60px');
+    expect(baseline?.style.width).toBe('0px');
   });
 
   it('renders parent baseline with parent-specific class', () => {
