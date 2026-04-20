@@ -149,10 +149,10 @@
   z-index: 2;
   height: var(--gantt-baseline-thickness, 6px);
   /* border-radius: 4px; */
-  border-right: 1px solid rgba(255, 255, 255, 0.7);
-  border-left: 1px solid rgb(255, 255, 255, 0.7);
+  border-right: 3px solid rgba(255, 255, 255, 0.8);
+  border-left: 3px solid rgb(255, 255, 255, 0.8);
   /* border: 1px solid rgba(255, 255, 255, 0.689); */
-  background-color: var(--gantt-baseline-color, rgba(0, 0, 255, 0.6));
+  background-color: var(--gantt-baseline-color, rgba(0, 187, 212, 1));
   pointer-events: none;
 }
 

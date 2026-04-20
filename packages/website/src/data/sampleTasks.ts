@@ -17,8 +17,20 @@ export const reflowTasksForBusinessDays = (sourceTasks: Task[], weekendPredicate
   return reflowTasksOnModeSwitch(sourceTasks, true, weekendPredicate);
 };
 
+const shiftIsoDate = (value: string | Date, days: number): string => {
+  const source = typeof value === 'string'
+    ? new Date(`${value}T00:00:00.000Z`)
+    : new Date(value);
+  const shifted = new Date(Date.UTC(
+    source.getUTCFullYear(),
+    source.getUTCMonth(),
+    source.getUTCDate() + days
+  ));
+  return shifted.toISOString().slice(0, 10);
+};
+
 export const createSampleTasks = (): Task[] => {
-  return [
+  const tasks: Task[] = [
     // GROUP 1 — Подготовительные работы
     {
       id: 'g1',
@@ -566,4 +578,10 @@ export const createSampleTasks = (): Task[] => {
       dependencies: [{ taskId: 'g8-ms-1', type: 'FS' as const, lag: 2 }],
     },
   ];
+
+  return tasks.map((task) => ({
+    ...task,
+    baselineStartDate: task.baselineStartDate ?? shiftIsoDate(task.startDate, -2),
+    baselineEndDate: task.baselineEndDate ?? shiftIsoDate(task.endDate, -2),
+  }));
 };
