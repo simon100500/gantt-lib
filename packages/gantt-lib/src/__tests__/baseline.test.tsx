@@ -105,6 +105,36 @@ describe('baseline rendering', () => {
     expect(container.querySelector('.gantt-tr-baseline')).toBeNull();
   });
 
+  it('renders parent baseline with parent-specific class', () => {
+    const parent: Task = {
+      ...taskWithBaseline,
+      id: 'parent-1',
+      name: 'Parent',
+    };
+    const child: Task = {
+      id: 'child-1',
+      name: 'Child',
+      startDate: '2026-02-04',
+      endDate: '2026-02-05',
+      parentId: 'parent-1',
+    };
+
+    const { container } = render(
+      <TaskRow
+        task={parent}
+        monthStart={new Date(Date.UTC(2026, 1, 1))}
+        dayWidth={40}
+        rowHeight={40}
+        allTasks={[parent, child]}
+        onTasksChange={vi.fn()}
+        showBaseline
+      />
+    );
+
+    const baseline = container.querySelector('.gantt-tr-baseline-parent');
+    expect(baseline).not.toBeNull();
+  });
+
   it('renders no baseline elements in chart when showBaseline is false', () => {
     const { container } = render(
       <GanttChart

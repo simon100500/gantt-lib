@@ -29,6 +29,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 1;
   border-radius: var(--gantt-task-bar-border-radius);
   display: flex;
   align-items: center;
@@ -144,10 +145,14 @@
 
 .gantt-tr-baseline {
   position: absolute;
-  top: calc(50% + var(--gantt-task-bar-height, 28px) / 2 + var(--gantt-baseline-offset, 0px));
-  height: var(--gantt-baseline-thickness, 4px);
-  border-radius: 6px;
-  background-color: var(--gantt-baseline-color, rgb(49, 79, 122));
+  top: calc(50% + var(--gantt-task-bar-height, 28px) / 2 + var(--gantt-baseline-offset, -6px));
+  z-index: 2;
+  height: var(--gantt-baseline-thickness, 6px);
+  /* border-radius: 4px; */
+  border-right: 1px solid rgba(255, 255, 255, 0.7);
+  border-left: 1px solid rgb(255, 255, 255, 0.7);
+  /* border: 1px solid rgba(255, 255, 255, 0.689); */
+  background-color: var(--gantt-baseline-color, rgba(0, 0, 255, 0.6));
   pointer-events: none;
 }
 
