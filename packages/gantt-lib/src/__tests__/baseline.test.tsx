@@ -81,7 +81,7 @@ describe('baseline rendering', () => {
     expect(container.querySelector('.gantt-tr-baseline')).toBeNull();
   });
 
-  it('does not render milestone baseline in v1', () => {
+  it('renders milestone baseline when baseline dates are present', () => {
     const milestone: Task = {
       ...taskWithBaseline,
       id: 'm1',
@@ -102,7 +102,7 @@ describe('baseline rendering', () => {
       />
     );
 
-    expect(container.querySelector('.gantt-tr-baseline')).toBeNull();
+    expect(container.querySelector('.gantt-tr-baseline-milestone')).not.toBeNull();
   });
 
   it('renders parent baseline with parent-specific class', () => {

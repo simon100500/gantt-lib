@@ -289,7 +289,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     }, [displayLeft, dayWidth, milestoneGeometry.size]);
     const visualLeft = milestone ? displayMilestoneGeometry.left : displayLeft;
     const visualWidth = milestone ? displayMilestoneGeometry.size : displayWidth;
-    const shouldRenderBaseline = showBaseline && !milestone && baselineGeometry !== null;
+    const shouldRenderBaseline = showBaseline && baselineGeometry !== null;
 
     // Format date labels for display - update in real-time during drag
     const currentStartDate = isDragging
@@ -348,10 +348,10 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         <div className="gantt-tr-taskContainer">
           {shouldRenderBaseline && (
             <div
-              className={`gantt-tr-baseline ${isParent ? 'gantt-tr-baseline-parent' : ''}`}
+              className={`gantt-tr-baseline ${isParent ? 'gantt-tr-baseline-parent' : ''} ${milestone ? 'gantt-tr-baseline-milestone' : ''}`}
               style={{
                 left: `${baselineGeometry!.left}px`,
-                width: `${baselineGeometry!.width}px`,
+                width: `${milestone ? Math.max(baselineGeometry!.width, 12) : baselineGeometry!.width}px`,
               }}
             />
           )}

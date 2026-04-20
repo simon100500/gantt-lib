@@ -157,7 +157,11 @@
 }
 
 .gantt-tr-baseline-parent {
-  top: calc(50% + 11px + var(--gantt-baseline-offset, 2px));
+  top: calc(50% + 8px + var(--gantt-baseline-offset, 0px));
+}
+
+.gantt-tr-baseline-milestone {
+  top: calc(50% + 10px + var(--gantt-baseline-offset, 0px));
 }
 
 .gantt-tr-leftLabels {
