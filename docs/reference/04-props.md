@@ -21,6 +21,7 @@ interface GanttChartProps<TTask extends Task = Task> {
   onCascade?: (tasks: Task[]) => void;
   showTaskList?: boolean;
   showChart?: boolean;
+  showBaseline?: boolean;
   taskListWidth?: number;
   disableTaskNameEditing?: boolean;
   disableDependencyEditing?: boolean;
@@ -60,6 +61,7 @@ interface GanttChartProps<TTask extends Task = Task> {
 | `onCascade` | `(tasks: Task[]) => void` | `undefined` | Called when a cascade drag completes in hard mode (`enableAutoSchedule={true}`). Receives all affected tasks including the dragged task. **When `onCascade` fires, `onTasksChange` does NOT fire for that drag.** Use `onCascade` to update state in hard mode. |
 | `showTaskList` | `boolean` | `false` | When `true`, displays the TaskList panel on the left side of the chart. Built-in columns are resolved through the same pipeline as `additionalColumns`. The task list supports inline editing, hierarchy actions, and synchronized scrolling. |
 | `showChart` | `boolean` | `true` | When `false`, hides the calendar chart area (timeline grid, task bars, dependencies). Useful for displaying only the task list. Combine with `showTaskList={false}` to show only the calendar. |
+| `showBaseline` | `boolean` | `false` | When `true`, renders a thin baseline line below task bars for tasks that provide both `baselineStartDate` and `baselineEndDate`. Baseline is visual-only and does not participate in drag, resize, dependencies, or auto-scheduling. |
 | `taskListWidth` | `number` | `660` | Requested width of the task list panel in pixels. Only effective when `showTaskList={true}`. Actual width grows automatically when resolved built-in + custom columns require more space. |
 | `disableTaskNameEditing` | `boolean` | `false` | When `true`, task names cannot be edited in the task list. Date editing is also disabled for locked tasks (see `task.locked` property). |
 | `disableDependencyEditing` | `boolean` | `false` | When `true`, dependency editing is disabled in the task list. Users cannot add, remove, or modify dependencies via the UI. |

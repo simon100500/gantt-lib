@@ -32,6 +32,10 @@ export interface Task {
   startDate: string | Date;
   /** Task end date (ISO string or Date object) */
   endDate: string | Date;
+  /** Optional baseline start date for planned schedule visualization */
+  baselineStartDate?: string | Date;
+  /** Optional baseline end date for planned schedule visualization */
+  baselineEndDate?: string | Date;
   /** Optional color for task bar visualization */
   color?: string;
   /**
@@ -141,6 +145,8 @@ export interface GanttChartProps<TTask extends Task = Task> {
   disableDependencyEditing?: boolean;
   /** Highlight expired/overdue tasks with red background (default: false) */
   highlightExpiredTasks?: boolean;
+  /** Show baseline lines below task bars when baseline dates are present (default: false) */
+  showBaseline?: boolean;
   /** Callback when a new task is added via the task list */
   onAdd?: (task: TTask) => void;
   /** Callback when a task is deleted via the task list */
@@ -277,6 +283,7 @@ function GanttChartInner<TTask extends Task = Task>(
     disableTaskNameEditing = false,
     disableDependencyEditing = false,
     highlightExpiredTasks = false,
+    showBaseline = false,
     onAdd,
     onDelete,
     onInsertAfter,
@@ -1152,6 +1159,7 @@ function GanttChartInner<TTask extends Task = Task>(
                   onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                   onCascade={handleCascade as (cascadedTasks: Task[]) => void}
                   highlightExpiredTasks={highlightExpiredTasks}
+                  showBaseline={showBaseline}
                   isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
                   businessDays={businessDays}
                   customDays={customDays}

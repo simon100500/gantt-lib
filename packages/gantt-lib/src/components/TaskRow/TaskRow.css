@@ -142,6 +142,19 @@
   align-items: center;
 }
 
+.gantt-tr-baseline {
+  position: absolute;
+  top: calc(50% + var(--gantt-task-bar-height, 28px) / 2 + var(--gantt-baseline-offset, 0px));
+  height: var(--gantt-baseline-thickness, 4px);
+  border-radius: 6px;
+  background-color: var(--gantt-baseline-color, rgb(49, 79, 122));
+  pointer-events: none;
+}
+
+.gantt-tr-baseline-parent {
+  top: calc(50% + 11px + var(--gantt-baseline-offset, 2px));
+}
+
 .gantt-tr-leftLabels {
   position: absolute;
   top: 50%;
