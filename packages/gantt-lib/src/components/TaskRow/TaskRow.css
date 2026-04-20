@@ -165,7 +165,7 @@
   width: var(--gantt-baseline-milestone-size, 12px) !important;
   height: var(--gantt-baseline-milestone-size, 8px);
   /* border-radius: 999px; */
-  /* transform: translateX(calc(var(--gantt-baseline-milestone-size, 8px) / -2)); */
+  transform: translateX(calc(var(--gantt-baseline-milestone-size, 12px) / -2));
 }
 
 .gantt-tr-leftLabels {
