@@ -1,6 +1,7 @@
 import type { Preview } from '@storybook/react';
 import 'gantt-lib/styles.css';
 import '../src/preview.css';
+import { capabilitySections } from '../src/stories/capabilities/catalog';
 
 const preview: Preview = {
   parameters: {
@@ -13,7 +14,7 @@ const preview: Preview = {
     },
     options: {
       storySort: {
-        order: ['Overview'],
+        order: ['Overview', '*', ['Scaffold', 'Workspace Smoke Test'], 'Capabilities', [...capabilitySections]],
       },
     },
   },

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { capabilityCatalog } from './stories/capabilities/catalog';
 
 const packageRoot = resolve(import.meta.dirname, '..');
 
@@ -32,7 +33,12 @@ describe('storybook workspace boundaries', () => {
       resolve(packageRoot, '.storybook/preview.ts'),
       resolve(packageRoot, 'src/stories/Scaffold.stories.tsx'),
       resolve(packageRoot, 'src/stories/StorybookScaffold.tsx'),
+      resolve(packageRoot, 'src/stories/CapabilityStoryHarness.tsx'),
       resolve(packageRoot, 'src/stories/fixtures/createStorybookTasks.ts'),
+      resolve(packageRoot, 'src/stories/fixtures/createCapabilityTasks.ts'),
+      ...capabilityCatalog.map((entry) =>
+        resolve(packageRoot, 'src/stories/capabilities', entry.storyFile),
+      ),
     ];
 
     const forbiddenPatterns = [
@@ -66,4 +72,20 @@ describe('storybook workspace boundaries', () => {
     }
   });
 
+  it('tracks the capability contract files that boundary checks should cover', () => {
+    const trackedFiles = [
+      resolve(packageRoot, 'src/stories/CapabilityStoryHarness.tsx'),
+      resolve(packageRoot, 'src/stories/fixtures/createCapabilityTasks.ts'),
+      resolve(packageRoot, 'src/__tests__/capabilityCatalog.test.ts'),
+      ...capabilityCatalog.map((entry) =>
+        resolve(packageRoot, 'src/stories/capabilities', entry.storyFile),
+      ),
+    ];
+
+    for (const filePath of trackedFiles) {
+      expect(existsSync(filePath), `Expected tracked capability file ${filePath} to exist.`).toBe(
+        true,
+      );
+    }
+  });
 });
