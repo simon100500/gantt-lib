@@ -5,6 +5,14 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.74.0] - 2026-04-22
+
+### Новые возможности
+
+- Добавлена визуализация baseline для задач с `baselineStartDate` и `baselineEndDate`, если на `GanttChart` включён `showBaseline={true}`
+- Добавлен рендеринг baseline для родительских задач и milestone с уточнённым позиционированием и стилями
+- Добавлены тесты baseline и обновлены demo-данные для визуализации планового графика
+
 ## [0.71.2] - 2026-04-14
 
 ### Исправления

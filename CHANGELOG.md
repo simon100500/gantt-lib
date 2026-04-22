@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.74.0] - 2026-04-22
+
+### Features
+
+- Add baseline visualization for tasks with `baselineStartDate` and `baselineEndDate` when `showBaseline={true}` on `GanttChart`
+- Support baseline rendering for parent tasks and milestones with refined positioning and styling
+- Add baseline test coverage and demo sample data updates for planned schedule visualization
+
 ## [0.73.1] - 2026-04-19
 
 ### Refactor
