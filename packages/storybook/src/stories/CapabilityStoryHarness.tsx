@@ -172,8 +172,7 @@ export function CapabilityStoryHarness({
     >
       <div
         style={{
-          maxWidth: '1320px',
-          margin: '0 auto',
+          width: '100%',
           display: 'grid',
           gap: '16px',
         }}

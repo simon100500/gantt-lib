@@ -74,3 +74,4 @@ vendor/
 coverage/
 .cache/
 tmp/
+packages/storybook/storybook-static/*
