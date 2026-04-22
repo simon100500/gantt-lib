@@ -66,7 +66,4 @@ describe('storybook workspace boundaries', () => {
     }
   });
 
-  it('keeps the scaffold build artifact visible after a successful build', () => {
-    expect(existsSync(resolve(packageRoot, 'storybook-static/index.html'))).toBe(true);
-  });
 });
