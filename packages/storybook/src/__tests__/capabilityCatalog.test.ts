@@ -79,7 +79,10 @@ describe('capability catalog contract', () => {
       'createChartOnlyCapabilityTasks',
       'createTaskListOnlyCapabilityTasks',
       'createDependencyFocusedCapabilityTasks',
+      'createInvalidDependencyCapabilityTasks',
       'createFilteringCapabilityTasks',
+      'createTaskStateCapabilityTasks',
+      'createBusinessDayCapabilityTasks',
     ]) {
       expect(fixtureContents).toContain(exportName);
     }
@@ -89,7 +92,7 @@ describe('capability catalog contract', () => {
     expect(fixtureContents).not.toMatch(/from\s+['"]@\//);
   });
 
-  it('keeps the shared harness merge-by-id and extension/ref hooks in source', () => {
+  it('keeps the shared harness merge-by-id and interaction observability hooks in source', () => {
     const harnessContents = readFileSync(
       resolve(packageRoot, 'src', 'stories', 'CapabilityStoryHarness.tsx'),
       'utf8',
@@ -99,8 +102,49 @@ describe('capability catalog contract', () => {
     expect(harnessContents).toContain('changedTaskMap');
     expect(harnessContents).toContain('TaskListColumn');
     expect(harnessContents).toContain('GanttChartHandle');
+    expect(harnessContents).toContain('ValidationResult');
+    expect(harnessContents).toContain('onCascade');
+    expect(harnessContents).toContain('collapsedParentIds');
+    expect(harnessContents).toContain('Dependency validation');
     expect(harnessContents).toContain('nameContains');
     expect(harnessContents).not.toMatch(/packages[\\/]website/);
     expect(harnessContents).not.toMatch(/gantt-lib\/src\//);
+  });
+
+  it('covers the planned layout, task-state, interaction, and dependency surfaces', () => {
+    const layoutContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'capabilities', 'Layout.stories.tsx'),
+      'utf8',
+    );
+    expect(layoutContents).toContain('showTaskList: false');
+    expect(layoutContents).toContain('showChart: false');
+    expect(layoutContents).toContain("viewMode: 'month'");
+    expect(layoutContents).toContain("viewMode: 'week'");
+    expect(layoutContents).toContain("initiallyCollapsedParentIds: ['cap-program']");
+
+    const taskStateContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'capabilities', 'TaskStates.stories.tsx'),
+      'utf8',
+    );
+    expect(taskStateContents).toContain('showBaseline: false');
+    expect(taskStateContents).toContain("highlightedTaskIds: new Set(['cap-states', 'cap-deps'])");
+
+    const interactionContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'capabilities', 'Interaction.stories.tsx'),
+      'utf8',
+    );
+    expect(interactionContents).toContain('disableTaskNameEditing: true');
+    expect(interactionContents).toContain('disableTaskDrag: true');
+    expect(interactionContents).toContain('businessDays: true');
+    expect(interactionContents).toContain('businessDays: false');
+
+    const dependencyContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'capabilities', 'Dependencies.stories.tsx'),
+      'utf8',
+    );
+    expect(dependencyContents).toContain('enableAutoSchedule: true');
+    expect(dependencyContents).toContain('disableConstraints: false');
+    expect(dependencyContents).toContain('disableConstraints: true');
+    expect(dependencyContents).toContain('createInvalidDependencyCapabilityTasks');
   });
 });

@@ -158,13 +158,48 @@ export const createDependencyFocusedCapabilityTasks = (
   options?: CapabilityFixtureOptions,
 ): CapabilityTask[] =>
   createCapabilityTasks(options).map((task) => {
+    if (task.id === 'cap-states') {
+      return {
+        ...task,
+        dependencies: [{ taskId: 'cap-layout', type: 'FS', lag: 0 }],
+      };
+    }
+
+    if (task.id === 'cap-interaction') {
+      return {
+        ...task,
+        dependencies: [{ taskId: 'cap-states', type: 'SS', lag: 1 }],
+      };
+    }
+
     if (task.id === 'cap-deps') {
       return {
         ...task,
         dependencies: [
-          { taskId: 'cap-layout', type: 'SS', lag: 2 },
-          { taskId: 'cap-interaction', type: 'FF', lag: -1 },
+          { taskId: 'cap-layout', type: 'FF', lag: -1 },
+          { taskId: 'cap-interaction', type: 'SF', lag: 0 },
         ],
+      };
+    }
+
+    if (task.id === 'cap-launch') {
+      return {
+        ...task,
+        dependencies: [{ taskId: 'cap-deps', type: 'FS', lag: 0 }],
+      };
+    }
+
+    return task;
+  });
+
+export const createInvalidDependencyCapabilityTasks = (
+  options?: CapabilityFixtureOptions,
+): CapabilityTask[] =>
+  createCapabilityTasks(options).map((task) => {
+    if (task.id === 'cap-deps') {
+      return {
+        ...task,
+        dependencies: [{ taskId: 'missing-predecessor', type: 'FS', lag: 0 }],
       };
     }
 
@@ -196,11 +231,85 @@ export const createFilteringCapabilityTasks = (
     return task;
   });
 
+export const createTaskStateCapabilityTasks = (
+  options?: CapabilityFixtureOptions,
+): CapabilityTask[] =>
+  createCapabilityTasks(options).map((task) => {
+    if (task.id === 'cap-layout') {
+      return {
+        ...task,
+        progress: 100,
+        accepted: true,
+        statusLabel: 'Accepted',
+      };
+    }
+
+    if (task.id === 'cap-states') {
+      return {
+        ...task,
+        progress: 55,
+        accepted: false,
+        statusLabel: 'Review',
+        baselineEndDate: shiftDate(String(task.endDate), 2),
+      };
+    }
+
+    if (task.id === 'cap-interaction') {
+      return {
+        ...task,
+        locked: true,
+        statusLabel: 'Locked',
+      };
+    }
+
+    if (task.id === 'cap-deps') {
+      return {
+        ...task,
+        progress: 10,
+        statusLabel: 'Blocked',
+      };
+    }
+
+    return task;
+  });
+
+export const createBusinessDayCapabilityTasks = (
+  options?: CapabilityFixtureOptions,
+): CapabilityTask[] =>
+  createCapabilityTasks({
+    anchorDate: options?.anchorDate ?? '2026-04-24',
+  }).map((task) => {
+    if (task.id === 'cap-interaction') {
+      return {
+        ...task,
+        startDate: '2026-04-24',
+        endDate: '2026-04-29',
+        baselineStartDate: '2026-04-24',
+        baselineEndDate: '2026-04-28',
+        statusLabel: 'Weekday-only',
+      };
+    }
+
+    if (task.id === 'cap-deps') {
+      return {
+        ...task,
+        startDate: '2026-04-29',
+        endDate: '2026-05-02',
+        dependencies: [{ taskId: 'cap-interaction', type: 'FS', lag: 0 }],
+      };
+    }
+
+    return task;
+  });
+
 export const capabilityFixtureVariantNames = [
   'default',
   'empty',
   'chart-only',
   'task-list-only',
   'dependency-focused',
+  'invalid-dependency',
   'filtering-focused',
+  'task-state-focused',
+  'business-days',
 ] as const;
