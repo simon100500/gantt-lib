@@ -49,3 +49,7 @@ nul
 .vercel
 .npmrc
 CLAUDE.md
+.gsd/*
+packages/storybook/storybook-static/*
+.bg-shell/*
+.gsd-id
