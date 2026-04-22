@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   GanttChart,
   type GanttChartHandle,
   type TaskListColumn,
+  type TaskListMenuCommand,
   type ValidationResult,
 } from 'gantt-lib';
 import { nameContains } from 'gantt-lib/filters';
@@ -13,9 +14,11 @@ import {
 
 export interface CapabilityToolbarContext {
   chartHandle: GanttChartHandle | null;
+  tasks: CapabilityTask[];
   collapsedParentIds: Set<string>;
   dependencyValidation: ValidationResult;
   lastEvent: string;
+  announce: (message: string) => void;
 }
 
 export interface CapabilityStoryHarnessProps {
@@ -34,10 +37,12 @@ export interface CapabilityStoryHarnessProps {
   disableConstraints?: boolean;
   enableAutoSchedule?: boolean;
   enableAddTask?: boolean;
+  filterMode?: 'highlight' | 'hide';
   highlightedTaskIds?: Set<string>;
   taskFilterQuery?: string;
   initiallyCollapsedParentIds?: string[];
   additionalColumns?: TaskListColumn<CapabilityTask>[];
+  taskListMenuCommands?: TaskListMenuCommand<CapabilityTask>[];
   renderToolbar?: (context: CapabilityToolbarContext) => ReactNode;
 }
 
@@ -92,10 +97,12 @@ export function CapabilityStoryHarness({
   disableConstraints = false,
   enableAutoSchedule = false,
   enableAddTask = true,
+  filterMode = 'highlight',
   highlightedTaskIds,
   taskFilterQuery,
   initiallyCollapsedParentIds,
   additionalColumns,
+  taskListMenuCommands,
   renderToolbar,
 }: CapabilityStoryHarnessProps) {
   const [tasks, setTasks] = useState(initialTasks);
@@ -105,7 +112,13 @@ export function CapabilityStoryHarness({
   const [lastEvent, setLastEvent] = useState('Ready for interaction.');
   const [dependencyValidation, setDependencyValidation] =
     useState<ValidationResult>(EMPTY_VALIDATION);
-  const chartRef = useRef<GanttChartHandle>(null);
+  const chartRef = useRef<GanttChartHandle | null>(null);
+  const [chartHandle, setChartHandle] = useState<GanttChartHandle | null>(null);
+
+  const attachChartHandle = useCallback((instance: GanttChartHandle | null) => {
+    chartRef.current = instance;
+    setChartHandle(instance);
+  }, []);
 
   const sortedTasks = useMemo(() => tasks, [tasks]);
   const taskFilter = useMemo(
@@ -118,12 +131,14 @@ export function CapabilityStoryHarness({
   );
   const toolbarContext = useMemo<CapabilityToolbarContext>(
     () => ({
-      chartHandle: chartRef.current,
+      chartHandle,
+      tasks,
       collapsedParentIds,
       dependencyValidation,
       lastEvent,
+      announce: setLastEvent,
     }),
-    [collapsedParentIds, dependencyValidation, lastEvent],
+    [chartHandle, collapsedParentIds, dependencyValidation, lastEvent, tasks],
   );
 
   return (
@@ -203,6 +218,7 @@ export function CapabilityStoryHarness({
           />
           <StatusBadge label="Baseline" value={showBaseline ? 'visible' : 'hidden'} />
           <StatusBadge label="Business days" value={businessDays ? 'on' : 'calendar'} />
+          <StatusBadge label="Filter mode" value={taskFilter ? filterMode : 'inactive'} />
           <StatusBadge label="Last event" value={lastEvent} />
           <StatusBadge
             label="Validation"
@@ -233,7 +249,7 @@ export function CapabilityStoryHarness({
         ) : null}
 
         <GanttChart<CapabilityTask>
-          ref={chartRef}
+          ref={attachChartHandle}
           tasks={sortedTasks}
           dayWidth={44}
           rowHeight={40}
@@ -245,7 +261,9 @@ export function CapabilityStoryHarness({
           taskListWidth={taskListWidth}
           viewMode={viewMode}
           additionalColumns={resolvedColumns}
+          taskListMenuCommands={taskListMenuCommands}
           taskFilter={taskFilter}
+          filterMode={filterMode}
           highlightedTaskIds={highlightedTaskIds}
           businessDays={businessDays}
           disableTaskNameEditing={disableTaskNameEditing}

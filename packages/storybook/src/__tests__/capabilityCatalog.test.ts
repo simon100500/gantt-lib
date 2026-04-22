@@ -101,8 +101,12 @@ describe('capability catalog contract', () => {
     expect(harnessContents).toContain('export const mergeChangedTasks');
     expect(harnessContents).toContain('changedTaskMap');
     expect(harnessContents).toContain('TaskListColumn');
+    expect(harnessContents).toContain('TaskListMenuCommand');
     expect(harnessContents).toContain('GanttChartHandle');
     expect(harnessContents).toContain('ValidationResult');
+    expect(harnessContents).toContain('filterMode');
+    expect(harnessContents).toContain('chartHandle');
+    expect(harnessContents).toContain('taskListMenuCommands');
     expect(harnessContents).toContain('onCascade');
     expect(harnessContents).toContain('collapsedParentIds');
     expect(harnessContents).toContain('Dependency validation');
@@ -111,7 +115,7 @@ describe('capability catalog contract', () => {
     expect(harnessContents).not.toMatch(/gantt-lib\/src\//);
   });
 
-  it('covers the planned layout, task-state, interaction, and dependency surfaces', () => {
+  it('covers the planned layout, task-state, interaction, dependency, filtering, extension, and ref surfaces', () => {
     const layoutContents = readFileSync(
       resolve(packageRoot, 'src', 'stories', 'capabilities', 'Layout.stories.tsx'),
       'utf8',
@@ -146,5 +150,38 @@ describe('capability catalog contract', () => {
     expect(dependencyContents).toContain('disableConstraints: false');
     expect(dependencyContents).toContain('disableConstraints: true');
     expect(dependencyContents).toContain('createInvalidDependencyCapabilityTasks');
+
+    const filteringContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'capabilities', 'Filtering.stories.tsx'),
+      'utf8',
+    );
+    expect(filteringContents).toContain("filterMode: 'highlight'");
+    expect(filteringContents).toContain("filterMode: 'hide'");
+    expect(filteringContents).toContain("taskFilterQuery: 'Critical'");
+    expect(filteringContents).toContain("taskFilterQuery: 'No such task'");
+    expect(filteringContents).toContain("taskFilterQuery: ''");
+
+    const extensionsContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'capabilities', 'Extensions.stories.tsx'),
+      'utf8',
+    );
+    expect(extensionsContents).toContain('TaskListColumn');
+    expect(extensionsContents).toContain('TaskListMenuCommand');
+    expect(extensionsContents).toContain('renderEditor');
+    expect(extensionsContents).toContain("scope: 'group'");
+    expect(extensionsContents).toContain("scope: 'linear'");
+    expect(extensionsContents).toContain("scope: 'milestone'");
+    expect(extensionsContents).toContain('mergeChangedTasks');
+
+    const imperativeContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'capabilities', 'ImperativeControls.stories.tsx'),
+      'utf8',
+    );
+    expect(imperativeContents).toContain('scrollToToday');
+    expect(imperativeContents).toContain('scrollToTask');
+    expect(imperativeContents).toContain('scrollToRow');
+    expect(imperativeContents).toContain('collapseAll');
+    expect(imperativeContents).toContain('expandAll');
+    expect(imperativeContents).not.toContain('exportToPdf');
   });
 });

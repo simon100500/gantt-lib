@@ -77,6 +77,7 @@ describe('storybook workspace boundaries', () => {
       resolve(packageRoot, 'src/stories/CapabilityStoryHarness.tsx'),
       resolve(packageRoot, 'src/stories/fixtures/createCapabilityTasks.ts'),
       resolve(packageRoot, 'src/__tests__/capabilityCatalog.test.ts'),
+      resolve(packageRoot, 'src/workspace-boundaries.test.ts'),
       ...capabilityCatalog.map((entry) =>
         resolve(packageRoot, 'src/stories/capabilities', entry.storyFile),
       ),
@@ -87,5 +88,39 @@ describe('storybook workspace boundaries', () => {
         true,
       );
     }
+  });
+
+  it('covers final filtering, extension, and imperative boundary contracts in source', () => {
+    const filteringContents = readFileSync(
+      resolve(packageRoot, 'src/stories/capabilities/Filtering.stories.tsx'),
+      'utf8',
+    );
+    expect(filteringContents).toContain("title: 'Capabilities/Filtering'");
+    expect(filteringContents).toContain("filterMode: 'highlight'");
+    expect(filteringContents).toContain("filterMode: 'hide'");
+    expect(filteringContents).toContain('No such task');
+
+    const extensionsContents = readFileSync(
+      resolve(packageRoot, 'src/stories/capabilities/Extensions.stories.tsx'),
+      'utf8',
+    );
+    expect(extensionsContents).toContain("title: 'Capabilities/Extensions'");
+    expect(extensionsContents).toContain('TaskListColumn');
+    expect(extensionsContents).toContain('TaskListMenuCommand');
+    expect(extensionsContents).toContain("scope: 'group'");
+    expect(extensionsContents).toContain("scope: 'linear'");
+    expect(extensionsContents).toContain("scope: 'milestone'");
+
+    const imperativeContents = readFileSync(
+      resolve(packageRoot, 'src/stories/capabilities/ImperativeControls.stories.tsx'),
+      'utf8',
+    );
+    expect(imperativeContents).toContain("title: 'Capabilities/Imperative controls'");
+    expect(imperativeContents).toContain('scrollToToday');
+    expect(imperativeContents).toContain('scrollToTask');
+    expect(imperativeContents).toContain('scrollToRow');
+    expect(imperativeContents).toContain('collapseAll');
+    expect(imperativeContents).toContain('expandAll');
+    expect(imperativeContents).not.toContain('exportToPdf');
   });
 });

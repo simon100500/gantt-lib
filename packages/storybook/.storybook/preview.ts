@@ -3,6 +3,8 @@ import 'gantt-lib/styles.css';
 import '../src/preview.css';
 import { capabilitySections } from '../src/stories/capabilities/catalog';
 
+const capabilityOrder = capabilitySections.slice();
+
 const preview: Preview = {
   parameters: {
     layout: 'fullscreen',
@@ -14,7 +16,7 @@ const preview: Preview = {
     },
     options: {
       storySort: {
-        order: ['Overview', '*', ['Scaffold', 'Workspace Smoke Test'], 'Capabilities', [...capabilitySections]],
+        order: ['Overview', '*', ['Scaffold', 'Workspace Smoke Test'], 'Capabilities', capabilityOrder],
       },
     },
   },
