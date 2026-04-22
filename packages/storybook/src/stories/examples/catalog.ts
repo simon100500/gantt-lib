@@ -1,7 +1,8 @@
 export const exampleSections = [
-  'Program workspace',
-  'Search and highlight',
-  'Dependency control center',
+  'Management overview',
+  'Searchable triage',
+  'Extension workspace',
+  'Operations review',
 ] as const;
 
 export type ExampleSection = (typeof exampleSections)[number];
@@ -14,19 +15,24 @@ export interface ExampleCatalogEntry {
 
 export const exampleCatalog: ExampleCatalogEntry[] = [
   {
-    section: 'Program workspace',
-    storyFile: 'ProgramWorkspace.stories.tsx',
-    title: 'Examples/Program workspace',
+    section: 'Management overview',
+    storyFile: 'ManagementOverview.stories.tsx',
+    title: 'Examples/Management overview',
   },
   {
-    section: 'Search and highlight',
-    storyFile: 'SearchAndHighlight.stories.tsx',
-    title: 'Examples/Search and highlight',
+    section: 'Searchable triage',
+    storyFile: 'SearchableTriage.stories.tsx',
+    title: 'Examples/Searchable triage',
   },
   {
-    section: 'Dependency control center',
-    storyFile: 'DependencyControlCenter.stories.tsx',
-    title: 'Examples/Dependency control center',
+    section: 'Extension workspace',
+    storyFile: 'ExtensionWorkspace.stories.tsx',
+    title: 'Examples/Extension workspace',
+  },
+  {
+    section: 'Operations review',
+    storyFile: 'OperationsReview.stories.tsx',
+    title: 'Examples/Operations review',
   },
 ] as const;
 

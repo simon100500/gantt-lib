@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ExampleScenarioHarness } from './ExampleScenarioHarness';
-import { createSearchAndHighlightScenario } from '../fixtures/createExampleScenarioTasks';
+import { createSearchableTriageScenario } from '../fixtures/createExampleScenarioTasks';
 
 const meta = {
-  title: 'Examples/Search and highlight',
+  title: 'Examples/Searchable triage',
   component: ExampleScenarioHarness,
   tags: ['autodocs'],
   parameters: {
@@ -11,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Search-focused example that routes host query/highlight state through the shared wrapper so visible diagnostics stay consistent across scenarios.',
+          'Search-oriented triage flow that keeps the active query, highlighted ids, and no-match status visible through Storybook-local host chrome.',
       },
     },
   },
@@ -20,19 +20,19 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const SearchTriageWorkspace: Story = {
+export const HighlightDrivenQueue: Story = {
   args: {
-    title: 'Examples / search triage workspace',
+    title: 'Examples / searchable triage',
     description:
-      'Simulates a host search workflow with deterministic local query state, tracked highlight ids, no-match messaging, and visible dependency diagnostics.',
-    scenario: createSearchAndHighlightScenario(),
+      'Simulates a searchable triage queue with tracked query state, highlight diagnostics, and explicit malformed-input coverage via the host query controls.',
+    scenario: createSearchableTriageScenario(),
     extraToolbarContent: (
       <>
         <span>taskFilterQuery: 'Critical'</span>
         <span>filterMode: 'highlight'</span>
         <span>highlightedTaskIds: new Set(['cap-interaction', 'cap-deps'])</span>
         <span>businessDays: true</span>
-        <span>Announce triage focus</span>
+        <span>Clear query for no-match coverage</span>
       </>
     ),
   },

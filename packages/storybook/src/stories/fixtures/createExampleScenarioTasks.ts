@@ -8,7 +8,11 @@ import {
 } from './createCapabilityTasks';
 
 export interface ExampleScenarioDescriptor {
-  id: 'program-workspace' | 'search-and-highlight' | 'dependency-control-center' | 'dependency-business-days';
+  id:
+    | 'management-overview'
+    | 'searchable-triage'
+    | 'extension-workspace'
+    | 'operations-review';
   title: string;
   query: string;
   filterMode: 'highlight' | 'hide';
@@ -45,7 +49,7 @@ const createTrackedFilterIds = (tasks: CapabilityTask[], query: string): Set<str
   );
 };
 
-export const programWorkspaceColumns: TaskListColumn<CapabilityTask>[] = [
+export const managementOverviewColumns: TaskListColumn<CapabilityTask>[] = [
   {
     id: 'risk',
     header: 'Risk',
@@ -62,7 +66,7 @@ export const programWorkspaceColumns: TaskListColumn<CapabilityTask>[] = [
   },
 ];
 
-export const programWorkspaceCommands: TaskListMenuCommand<CapabilityTask>[] = [
+export const managementOverviewCommands: TaskListMenuCommand<CapabilityTask>[] = [
   {
     id: 'promote-risk-review',
     label: 'Promote risk review',
@@ -83,7 +87,52 @@ export const programWorkspaceCommands: TaskListMenuCommand<CapabilityTask>[] = [
   },
 ];
 
-const createProgramWorkspaceTasks = (): CapabilityTask[] =>
+export const extensionWorkspaceColumns: TaskListColumn<CapabilityTask>[] = [
+  {
+    id: 'risk',
+    header: 'Risk',
+    width: 96,
+    after: 'status',
+    renderCell: ({ task }) => task.risk ?? 'low',
+  },
+  {
+    id: 'owner-notes',
+    header: 'Owner notes',
+    width: 190,
+    after: 'risk',
+    renderCell: ({ task }) => `${task.owner ?? 'Unassigned'} / ${task.statusLabel ?? 'Pending'}`,
+  },
+  {
+    id: 'handoff-state',
+    header: 'Handoff',
+    width: 150,
+    after: 'owner-notes',
+    renderCell: ({ task }) => (task.accepted ? 'Ready for sign-off' : 'Needs host follow-up'),
+  },
+];
+
+export const extensionWorkspaceCommands: TaskListMenuCommand<CapabilityTask>[] = [
+  {
+    id: 'group-checkpoint',
+    label: 'Mark group checkpoint',
+    scope: 'group',
+    onSelect: () => undefined,
+  },
+  {
+    id: 'linear-review',
+    label: 'Request linear review',
+    scope: 'linear',
+    onSelect: () => undefined,
+  },
+  {
+    id: 'milestone-signoff',
+    label: 'Prepare milestone sign-off',
+    scope: 'milestone',
+    onSelect: () => undefined,
+  },
+];
+
+const createManagementOverviewTasks = (): CapabilityTask[] =>
   createFilteringCapabilityTasks().map((task) => {
     if (task.id === 'cap-program') {
       return {
@@ -115,13 +164,40 @@ const createProgramWorkspaceTasks = (): CapabilityTask[] =>
     return task;
   });
 
-export const createProgramWorkspaceScenario = (): ExampleScenarioDescriptor => {
-  const tasks = createProgramWorkspaceTasks();
+const createExtensionWorkspaceTasks = (): CapabilityTask[] =>
+  createDependencyFocusedCapabilityTasks().map((task) => {
+    if (task.id === 'cap-program') {
+      return {
+        ...task,
+        statusLabel: 'Extension host',
+      };
+    }
+
+    if (task.id === 'cap-interaction') {
+      return {
+        ...task,
+        owner: 'Integrations',
+        statusLabel: 'Awaiting host command',
+      };
+    }
+
+    if (task.id === 'cap-launch') {
+      return {
+        ...task,
+        statusLabel: 'Pending sign-off',
+      };
+    }
+
+    return task;
+  });
+
+export const createManagementOverviewScenario = (): ExampleScenarioDescriptor => {
+  const tasks = createManagementOverviewTasks();
   const query = 'Capability';
 
   return {
-    id: 'program-workspace',
-    title: 'Examples / management review workspace',
+    id: 'management-overview',
+    title: 'Examples / management overview',
     query,
     filterMode: 'highlight',
     highlightedTaskIds: new Set(HIGHLIGHTED_TASK_IDS),
@@ -130,22 +206,22 @@ export const createProgramWorkspaceScenario = (): ExampleScenarioDescriptor => {
     businessDays: true,
     enableAutoSchedule: false,
     tasks,
-    additionalColumns: programWorkspaceColumns,
-    taskListMenuCommands: programWorkspaceCommands,
-    diagnosticsLabel: 'Workspace review chrome',
-    emptyStateLabel: 'No rows match the management review query.',
+    additionalColumns: managementOverviewColumns,
+    taskListMenuCommands: managementOverviewCommands,
+    diagnosticsLabel: 'Management overview chrome',
+    emptyStateLabel: 'No rows match the management overview query.',
     unsupportedCommandLabel: 'Queue exec brief is unsupported for non-milestone rows.',
-    dependencyExpectation: 'Validation should stay clean while review chrome tracks menu/ref feedback.',
+    dependencyExpectation: 'Management overview keeps dependencies stable while filters, highlights, columns, and menu feedback stay visible.',
   };
 };
 
-export const createSearchAndHighlightScenario = (): ExampleScenarioDescriptor => {
+export const createSearchableTriageScenario = (): ExampleScenarioDescriptor => {
   const tasks = createFilteringCapabilityTasks();
   const query = 'Critical';
 
   return {
-    id: 'search-and-highlight',
-    title: 'Examples / search triage workspace',
+    id: 'searchable-triage',
+    title: 'Examples / searchable triage',
     query,
     filterMode: 'highlight',
     highlightedTaskIds: new Set(HIGHLIGHTED_TASK_IDS),
@@ -154,20 +230,20 @@ export const createSearchAndHighlightScenario = (): ExampleScenarioDescriptor =>
     businessDays: true,
     enableAutoSchedule: false,
     tasks,
-    diagnosticsLabel: 'Search triage chrome',
-    emptyStateLabel: 'No rows match the active search query.',
+    diagnosticsLabel: 'Searchable triage chrome',
+    emptyStateLabel: 'No rows match the active triage query.',
     unsupportedCommandLabel: 'This scenario exposes search state only; menu commands are intentionally absent.',
-    dependencyExpectation: 'Critical search keeps all rows visible while highlighting tracked ids.',
+    dependencyExpectation: 'Critical search keeps all rows visible while highlighting tracked ids and surfacing no-match feedback.',
   };
 };
 
-export const createDependencyControlCenterScenario = (): ExampleScenarioDescriptor => {
-  const tasks = createDependencyFocusedCapabilityTasks();
+export const createExtensionWorkspaceScenario = (): ExampleScenarioDescriptor => {
+  const tasks = createExtensionWorkspaceTasks();
   const query = 'dependency';
 
   return {
-    id: 'dependency-control-center',
-    title: 'Examples / dependency control center',
+    id: 'extension-workspace',
+    title: 'Examples / extension workspace',
     query,
     filterMode: 'hide',
     highlightedTaskIds: new Set(HIGHLIGHTED_TASK_IDS),
@@ -176,22 +252,40 @@ export const createDependencyControlCenterScenario = (): ExampleScenarioDescript
     businessDays: false,
     enableAutoSchedule: true,
     tasks,
-    diagnosticsLabel: 'Dependency control chrome',
-    emptyStateLabel: 'No dependency rows are visible for the current query.',
+    additionalColumns: extensionWorkspaceColumns,
+    taskListMenuCommands: extensionWorkspaceCommands,
+    diagnosticsLabel: 'Extension workspace chrome',
+    emptyStateLabel: 'No extension rows are visible for the current query.',
     unsupportedCommandLabel: 'Linear-only recovery actions reject milestone and group rows.',
     focusTaskId: 'cap-deps',
     initialRefActionLabel: 'Ready to focus dependency audit via scrollToTask().',
-    dependencyExpectation: 'Auto-schedule is active and hide mode should reveal only dependency-related rows.',
+    dependencyExpectation: 'Extension workspace combines additional columns, scoped menu commands, hide mode, and dependency-focused auto-schedule review.',
   };
 };
 
-export const createBusinessDayReviewScenario = (): ExampleScenarioDescriptor => {
-  const tasks = createBusinessDayCapabilityTasks();
+export const createOperationsReviewScenario = (): ExampleScenarioDescriptor => {
+  const tasks = createBusinessDayCapabilityTasks().map((task) => {
+    if (task.id === 'cap-program') {
+      return {
+        ...task,
+        statusLabel: 'Operations board',
+      };
+    }
+
+    if (task.id === 'cap-deps') {
+      return {
+        ...task,
+        statusLabel: 'Weekend handoff',
+      };
+    }
+
+    return task;
+  });
   const query = 'Weekday';
 
   return {
-    id: 'dependency-business-days',
-    title: 'Examples / business-day review view',
+    id: 'operations-review',
+    title: 'Examples / operations review',
     query,
     filterMode: 'highlight',
     highlightedTaskIds: new Set(HIGHLIGHTED_TASK_IDS),
@@ -200,9 +294,11 @@ export const createBusinessDayReviewScenario = (): ExampleScenarioDescriptor => 
     businessDays: true,
     enableAutoSchedule: true,
     tasks,
-    diagnosticsLabel: 'Business-day chrome',
+    diagnosticsLabel: 'Operations review chrome',
     emptyStateLabel: 'No weekday-focused rows matched the current query.',
-    dependencyExpectation: 'Business-day mode should stay deterministic while ref state remains visible.',
+    focusTaskId: 'missing-task-id',
+    initialRefActionLabel: 'Ready to verify that missing ref targets remain safe no-ops.',
+    dependencyExpectation: 'Operations review keeps business-day scheduling on while making ref feedback and dependency expectations explicit.',
   };
 };
 
@@ -210,8 +306,8 @@ export const createInvalidDependencyExampleTasks = (): CapabilityTask[] =>
   createInvalidDependencyCapabilityTasks();
 
 export const exampleScenarioCatalog = [
-  createProgramWorkspaceScenario,
-  createSearchAndHighlightScenario,
-  createDependencyControlCenterScenario,
-  createBusinessDayReviewScenario,
+  createManagementOverviewScenario,
+  createSearchableTriageScenario,
+  createExtensionWorkspaceScenario,
+  createOperationsReviewScenario,
 ] as const;

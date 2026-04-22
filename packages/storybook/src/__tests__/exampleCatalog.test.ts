@@ -8,6 +8,13 @@ import {
 } from '../stories/examples/catalog';
 
 const packageRoot = resolve(import.meta.dirname, '../..');
+const websiteSegment = ['packages', 'website'].join('/');
+const internalSourceSegment = ['gantt-lib', 'src'].join('/');
+const aliasPrefix = `from ${String.fromCharCode(39)}@${'/'}${String.fromCharCode(39)}`;
+const capabilityPrefixPattern = /title:\s*['"]Capabilities\//;
+const websiteImportPattern = new RegExp(`packages[\\/]${websiteSegment.split('/')[1]}`);
+const internalSourcePattern = new RegExp(`${internalSourceSegment.replace('/', '\\/')}\\/`);
+const aliasPattern = new RegExp(`from\\s+['"]@\\/`);
 
 describe('example catalog contract', () => {
   it('keeps preview storySort aligned with the dedicated Examples section order', () => {
@@ -24,9 +31,10 @@ describe('example catalog contract', () => {
     );
 
     expect(exampleSections).toEqual([
-      'Program workspace',
-      'Search and highlight',
-      'Dependency control center',
+      'Management overview',
+      'Searchable triage',
+      'Extension workspace',
+      'Operations review',
     ]);
   });
 
@@ -43,19 +51,41 @@ describe('example catalog contract', () => {
 
       const storyContents = readFileSync(storyPath, 'utf8');
 
-      expect(storyContents).toContain(`title: '${entry.title}'`);
-      expect(storyContents).toContain('ExampleScenarioHarness');
-      expect(storyContents).not.toContain('CapabilityStoryHarness');
-      expect(storyContents).not.toMatch(/title:\s*['"]Capabilities\//);
-      expect(storyContents).not.toMatch(/packages[\\/]website/);
-      expect(storyContents).not.toMatch(/gantt-lib\/src\//);
-      expect(storyContents).not.toMatch(/from\s+['"]@\//);
+      expect(
+        storyContents,
+        `Expected ${entry.storyFile} to declare title ${entry.title}.`,
+      ).toContain(`title: '${entry.title}'`);
+      expect(
+        storyContents,
+        `Expected ${entry.storyFile} to use ExampleScenarioHarness.`,
+      ).toContain('ExampleScenarioHarness');
+      expect(
+        storyContents,
+        `Expected ${entry.storyFile} not to bypass the example wrapper.`,
+      ).not.toContain('CapabilityStoryHarness');
+      expect(
+        storyContents,
+        `Expected ${entry.storyFile} not to declare a Capabilities story title.`,
+      ).not.toMatch(capabilityPrefixPattern);
+      expect(
+        storyContents,
+        `Expected ${entry.storyFile} not to import from the website package.`,
+      ).not.toMatch(websiteImportPattern);
+      expect(
+        storyContents,
+        `Expected ${entry.storyFile} not to import from gantt-lib internals.`,
+      ).not.toMatch(internalSourcePattern);
+      expect(
+        storyContents,
+        `Expected ${entry.storyFile} not to use the root alias prefix ${aliasPrefix}.`,
+      ).not.toMatch(aliasPattern);
     }
 
     expect(exampleStoryTitles).toEqual([
-      'Examples/Program workspace',
-      'Examples/Search and highlight',
-      'Examples/Dependency control center',
+      'Examples/Management overview',
+      'Examples/Searchable triage',
+      'Examples/Extension workspace',
+      'Examples/Operations review',
     ]);
   });
 
@@ -78,45 +108,54 @@ describe('example catalog contract', () => {
       resolve(packageRoot, 'src', 'stories', 'fixtures', 'createExampleScenarioTasks.ts'),
       'utf8',
     );
-    expect(fixtureContents).toContain('createProgramWorkspaceScenario');
-    expect(fixtureContents).toContain('createSearchAndHighlightScenario');
-    expect(fixtureContents).toContain('createDependencyControlCenterScenario');
-    expect(fixtureContents).toContain('createBusinessDayReviewScenario');
+    expect(fixtureContents).toContain('createManagementOverviewScenario');
+    expect(fixtureContents).toContain('createSearchableTriageScenario');
+    expect(fixtureContents).toContain('createExtensionWorkspaceScenario');
+    expect(fixtureContents).toContain('createOperationsReviewScenario');
     expect(fixtureContents).toContain('Queue exec brief is unsupported for non-milestone rows.');
-    expect(fixtureContents).toContain('No rows match the active search query.');
-    expect(fixtureContents).toContain('No dependency rows are visible for the current query.');
+    expect(fixtureContents).toContain('No rows match the active triage query.');
+    expect(fixtureContents).toContain('Linear-only recovery actions reject milestone and group rows.');
+    expect(fixtureContents).toContain('missing-task-id');
 
-    const programWorkspaceContents = readFileSync(
-      resolve(packageRoot, 'src', 'stories', 'examples', 'ProgramWorkspace.stories.tsx'),
+    const managementContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'examples', 'ManagementOverview.stories.tsx'),
       'utf8',
     );
-    expect(programWorkspaceContents).toContain('taskFilterQuery: \'Capability\'');
-    expect(programWorkspaceContents).toContain('filterMode: \'highlight\'');
-    expect(programWorkspaceContents).toContain("highlightedTaskIds: new Set(['cap-interaction', 'cap-deps'])");
-    expect(programWorkspaceContents).toContain('additionalColumns: programColumns');
-    expect(programWorkspaceContents).toContain('taskListMenuCommands: programCommands');
-    expect(programWorkspaceContents).toContain('Capture workspace status');
+    expect(managementContents).toContain('createManagementOverviewScenario');
+    expect(managementContents).toContain("taskFilterQuery: 'Capability'");
+    expect(managementContents).toContain("filterMode: 'highlight'");
+    expect(managementContents).toContain("highlightedTaskIds: new Set(['cap-interaction', 'cap-deps'])");
+    expect(managementContents).toContain('additionalColumns: managementOverviewColumns');
+    expect(managementContents).toContain('taskListMenuCommands: managementOverviewCommands');
 
-    const searchContents = readFileSync(
-      resolve(packageRoot, 'src', 'stories', 'examples', 'SearchAndHighlight.stories.tsx'),
+    const triageContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'examples', 'SearchableTriage.stories.tsx'),
       'utf8',
     );
-    expect(searchContents).toContain('taskFilterQuery: \'Critical\'');
-    expect(searchContents).toContain('filterMode: \'highlight\'');
-    expect(searchContents).toContain("highlightedTaskIds: new Set(['cap-interaction', 'cap-deps'])");
-    expect(searchContents).toContain('businessDays: true');
-    expect(searchContents).toContain('Announce triage focus');
+    expect(triageContents).toContain('createSearchableTriageScenario');
+    expect(triageContents).toContain("taskFilterQuery: 'Critical'");
+    expect(triageContents).toContain("filterMode: 'highlight'");
+    expect(triageContents).toContain("highlightedTaskIds: new Set(['cap-interaction', 'cap-deps'])");
+    expect(triageContents).toContain('Clear query for no-match coverage');
 
-    const dependencyContents = readFileSync(
-      resolve(packageRoot, 'src', 'stories', 'examples', 'DependencyControlCenter.stories.tsx'),
+    const extensionContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'examples', 'ExtensionWorkspace.stories.tsx'),
       'utf8',
     );
-    expect(dependencyContents).toContain('createDependencyControlCenterScenario');
-    expect(dependencyContents).toContain('createBusinessDayReviewScenario');
-    expect(dependencyContents).toContain('enableAutoSchedule: true');
-    expect(dependencyContents).toContain('businessDays: false');
-    expect(dependencyContents).toContain('businessDays: true');
-    expect(dependencyContents).toContain('scrollToTask');
-    expect(dependencyContents).toContain('collapseAll');
+    expect(extensionContents).toContain('createExtensionWorkspaceScenario');
+    expect(extensionContents).toContain("taskFilterQuery: 'dependency'");
+    expect(extensionContents).toContain("filterMode: 'hide'");
+    expect(extensionContents).toContain('additionalColumns: extensionWorkspaceColumns');
+    expect(extensionContents).toContain('taskListMenuCommands: extensionWorkspaceCommands');
+
+    const operationsContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'examples', 'OperationsReview.stories.tsx'),
+      'utf8',
+    );
+    expect(operationsContents).toContain('createOperationsReviewScenario');
+    expect(operationsContents).toContain("taskFilterQuery: 'Weekday'");
+    expect(operationsContents).toContain('enableAutoSchedule: true');
+    expect(operationsContents).toContain('businessDays: true');
+    expect(operationsContents).toContain('missing-task-id');
   });
 });

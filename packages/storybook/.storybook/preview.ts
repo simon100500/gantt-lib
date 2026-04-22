@@ -31,9 +31,10 @@ const preview: Preview = {
           ],
           'Examples',
           [
-            'Program workspace',
-            'Search and highlight',
-            'Dependency control center',
+            'Management overview',
+            'Searchable triage',
+            'Extension workspace',
+            'Operations review',
           ],
         ],
       },

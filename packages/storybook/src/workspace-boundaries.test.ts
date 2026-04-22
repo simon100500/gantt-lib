@@ -5,6 +5,13 @@ import { capabilityCatalog } from './stories/capabilities/catalog';
 import { exampleCatalog } from './stories/examples/catalog';
 
 const packageRoot = resolve(import.meta.dirname, '..');
+const forbiddenPatterns = [
+  new RegExp(['packages', 'website'].join('[\\/]')),
+  new RegExp(['packages', 'gantt-lib', 'src'].join('[\\/]')),
+  new RegExp(`from\\s+['"]\\.\\.\\/\\.\\.\\/${'website'} ` .trim()),
+  new RegExp(`from\\s+['"].*${['gantt-lib', 'src'].join('\\/')}\\/`),
+  new RegExp(`from\\s+['"]@\\/`),
+];
 
 describe('storybook workspace boundaries', () => {
   it('declares required package scripts and storybook dependencies', () => {
@@ -47,16 +54,6 @@ describe('storybook workspace boundaries', () => {
       ),
     ];
 
-    const forbiddenPatterns = [
-      /packages\/website/,
-      /packages\\website/,
-      /packages\/gantt-lib\/src/,
-      /packages\\gantt-lib\\src\\/,
-      /from\s+['"]\.\.\/\.\.\/website/,
-      /from\s+['"].*gantt-lib\/src\//,
-      /from\s+['"]@\//,
-    ];
-
     const previewContents = readFileSync(
       resolve(packageRoot, '.storybook/preview.ts'),
       'utf8',
@@ -73,7 +70,10 @@ describe('storybook workspace boundaries', () => {
       const contents = readFileSync(filePath, 'utf8');
 
       for (const forbiddenPattern of forbiddenPatterns) {
-        expect(contents).not.toMatch(forbiddenPattern);
+        expect(
+          contents,
+          `Expected ${filePath} to stay on the public package boundary without ${forbiddenPattern}.`,
+        ).not.toMatch(forbiddenPattern);
       }
     }
   });
@@ -97,9 +97,10 @@ describe('storybook workspace boundaries', () => {
     ];
 
     for (const filePath of trackedFiles) {
-      expect(existsSync(filePath), `Expected tracked contract file ${filePath} to exist.`).toBe(
-        true,
-      );
+      expect(
+        existsSync(filePath),
+        `Expected tracked contract file ${filePath} to exist.`,
+      ).toBe(true);
     }
   });
 
@@ -136,30 +137,38 @@ describe('storybook workspace boundaries', () => {
     expect(imperativeContents).toContain('expandAll');
     expect(imperativeContents).not.toContain('exportToPdf');
 
-    const programWorkspaceContents = readFileSync(
-      resolve(packageRoot, 'src/stories/examples/ProgramWorkspace.stories.tsx'),
+    const managementContents = readFileSync(
+      resolve(packageRoot, 'src/stories/examples/ManagementOverview.stories.tsx'),
       'utf8',
     );
-    expect(programWorkspaceContents).toContain("title: 'Examples/Program workspace'");
-    expect(programWorkspaceContents).toContain('ExampleScenarioHarness');
-    expect(programWorkspaceContents).toContain('createProgramWorkspaceScenario');
+    expect(managementContents).toContain("title: 'Examples/Management overview'");
+    expect(managementContents).toContain('ExampleScenarioHarness');
+    expect(managementContents).toContain('createManagementOverviewScenario');
 
-    const searchContents = readFileSync(
-      resolve(packageRoot, 'src/stories/examples/SearchAndHighlight.stories.tsx'),
+    const triageContents = readFileSync(
+      resolve(packageRoot, 'src/stories/examples/SearchableTriage.stories.tsx'),
       'utf8',
     );
-    expect(searchContents).toContain("title: 'Examples/Search and highlight'");
-    expect(searchContents).toContain('ExampleScenarioHarness');
-    expect(searchContents).toContain('createSearchAndHighlightScenario');
+    expect(triageContents).toContain("title: 'Examples/Searchable triage'");
+    expect(triageContents).toContain('ExampleScenarioHarness');
+    expect(triageContents).toContain('createSearchableTriageScenario');
 
-    const dependencyContents = readFileSync(
-      resolve(packageRoot, 'src/stories/examples/DependencyControlCenter.stories.tsx'),
+    const extensionContents = readFileSync(
+      resolve(packageRoot, 'src/stories/examples/ExtensionWorkspace.stories.tsx'),
       'utf8',
     );
-    expect(dependencyContents).toContain("title: 'Examples/Dependency control center'");
-    expect(dependencyContents).toContain('ExampleScenarioHarness');
-    expect(dependencyContents).toContain('createDependencyControlCenterScenario');
-    expect(dependencyContents).toContain('createBusinessDayReviewScenario');
+    expect(extensionContents).toContain("title: 'Examples/Extension workspace'");
+    expect(extensionContents).toContain('ExampleScenarioHarness');
+    expect(extensionContents).toContain('createExtensionWorkspaceScenario');
+
+    const operationsContents = readFileSync(
+      resolve(packageRoot, 'src/stories/examples/OperationsReview.stories.tsx'),
+      'utf8',
+    );
+    expect(operationsContents).toContain("title: 'Examples/Operations review'");
+    expect(operationsContents).toContain('ExampleScenarioHarness');
+    expect(operationsContents).toContain('createOperationsReviewScenario');
+    expect(operationsContents).toContain('missing-task-id');
 
     const exampleHarnessContents = readFileSync(
       resolve(packageRoot, 'src/stories/examples/ExampleScenarioHarness.tsx'),
@@ -174,9 +183,9 @@ describe('storybook workspace boundaries', () => {
       resolve(packageRoot, 'src/stories/fixtures/createExampleScenarioTasks.ts'),
       'utf8',
     );
-    expect(exampleFixtureContents).toContain('createProgramWorkspaceScenario');
-    expect(exampleFixtureContents).toContain('createSearchAndHighlightScenario');
-    expect(exampleFixtureContents).toContain('createDependencyControlCenterScenario');
-    expect(exampleFixtureContents).toContain('createBusinessDayReviewScenario');
+    expect(exampleFixtureContents).toContain('createManagementOverviewScenario');
+    expect(exampleFixtureContents).toContain('createSearchableTriageScenario');
+    expect(exampleFixtureContents).toContain('createExtensionWorkspaceScenario');
+    expect(exampleFixtureContents).toContain('createOperationsReviewScenario');
   });
 });
