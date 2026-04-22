@@ -29,6 +29,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 1;
   border-radius: var(--gantt-task-bar-border-radius);
   display: flex;
   align-items: center;
@@ -140,6 +141,31 @@
   height: 100%;
   display: flex;
   align-items: center;
+}
+
+.gantt-tr-baseline {
+  position: absolute;
+  top: calc(50% + var(--gantt-task-bar-height, 28px) / 2 + var(--gantt-baseline-offset, -6px));
+  z-index: 2;
+  height: var(--gantt-baseline-thickness, 6px);
+  /* border-radius: 4px; */
+  border-right: 3px solid rgba(255, 255, 255, 0.8);
+  border-left: 3px solid rgb(255, 255, 255, 0.8);
+  /* border: 1px solid rgba(255, 255, 255, 0.689); */
+  background-color: var(--gantt-baseline-color, rgba(0, 187, 212, 1));
+  pointer-events: none;
+}
+
+.gantt-tr-baseline-parent {
+  top: calc(50% + 8px + var(--gantt-baseline-offset, 0px));
+}
+
+.gantt-tr-baseline-milestone {
+  top: calc(50% + 10px + var(--gantt-baseline-offset, 0px));
+  width: var(--gantt-baseline-milestone-size, 12px) !important;
+  height: var(--gantt-baseline-milestone-size, 8px);
+  /* border-radius: 999px; */
+  transform: translateX(calc(var(--gantt-baseline-milestone-size, 12px) / -2));
 }
 
 .gantt-tr-leftLabels {

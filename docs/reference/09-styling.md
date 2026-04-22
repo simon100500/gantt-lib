@@ -35,6 +35,9 @@ Override these in any global CSS file to customize the chart appearance. All ove
 | `--gantt-parent-ear-depth` | `6px` | Depth of trapezoid "ear" extensions on parent bars |
 | `--gantt-parent-ear-width` | `8px` | Width of trapezoid "ear" extensions on parent bars |
 | `--gantt-parent-row-bg` | `rgba(99, 102, 241, 0.05)` | Background color of parent rows in task list (subtle indigo tint) |
+| `--gantt-baseline-color` | `rgba(71, 85, 105, 0.65)` | Color of the baseline line rendered below task bars |
+| `--gantt-baseline-thickness` | `3px` | Thickness of the baseline line |
+| `--gantt-baseline-offset` | `2px` | Vertical gap between the task bar and the baseline line |
 
 ---
 

@@ -49,6 +49,8 @@ export interface TaskRowProps {
   divider?: 'top' | 'bottom';
   /** Highlight expired/overdue tasks with red background */
   highlightExpiredTasks?: boolean;
+  /** Show baseline line below the task bar */
+  showBaseline?: boolean;
   /** Whether this row matches the active filter highlight */
   isFilterMatch?: boolean;
   /** Calculate duration in business days (excluding weekends) */
@@ -87,6 +89,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.name === nextProps.task.name &&
     prevProps.task.startDate === nextProps.task.startDate &&
     prevProps.task.endDate === nextProps.task.endDate &&
+    prevProps.task.baselineStartDate === nextProps.task.baselineStartDate &&
+    prevProps.task.baselineEndDate === nextProps.task.baselineEndDate &&
     prevProps.task.type === nextProps.task.type &&
     prevProps.task.color === nextProps.task.color &&
     prevProps.task.progress === nextProps.task.progress &&
@@ -101,6 +105,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.locked === nextProps.task.locked &&
     prevProps.task.divider === nextProps.task.divider &&
     prevProps.highlightExpiredTasks === nextProps.highlightExpiredTasks &&
+    prevProps.showBaseline === nextProps.showBaseline &&
     prevProps.isFilterMatch === nextProps.isFilterMatch &&
     prevProps.businessDays === nextProps.businessDays &&
     prevProps.customDays === nextProps.customDays &&
@@ -117,7 +122,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false }) => {
     const defaultParentBarColor = '#782FC4';
     // Extract divider from task prop
     const { divider: taskDivider } = task;
@@ -128,6 +133,14 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Parse dates as UTC
     const taskStartDate = useMemo(() => parseUTCDate(normalizedTask.startDate), [normalizedTask.startDate]);
     const taskEndDate = useMemo(() => parseUTCDate(normalizedTask.endDate), [normalizedTask.endDate]);
+    const baselineStartDate = useMemo(
+      () => (task.baselineStartDate ? parseUTCDate(task.baselineStartDate) : null),
+      [task.baselineStartDate]
+    );
+    const baselineEndDate = useMemo(
+      () => (task.baselineEndDate ? parseUTCDate(task.baselineEndDate) : null),
+      [task.baselineEndDate]
+    );
 
     // Hierarchy: compute isParent and childCount
     const isParent = useMemo(() => {
@@ -154,6 +167,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       () => calculateMilestoneGeometry(taskStartDate, monthStart, dayWidth),
       [taskStartDate, monthStart, dayWidth]
     );
+    const baselineGeometry = useMemo(() => {
+      if (!baselineStartDate || !baselineEndDate) return null;
+      if (milestone) {
+        return calculateTaskBar(baselineStartDate, baselineStartDate, monthStart, dayWidth);
+      }
+      return calculateTaskBar(baselineStartDate, baselineEndDate, monthStart, dayWidth);
+    }, [baselineStartDate, baselineEndDate, milestone, monthStart, dayWidth]);
 
     // Determine task bar color
     const barColor = isExpired
@@ -272,6 +292,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     }, [displayLeft, dayWidth, milestoneGeometry.size]);
     const visualLeft = milestone ? displayMilestoneGeometry.left : displayLeft;
     const visualWidth = milestone ? displayMilestoneGeometry.size : displayWidth;
+    const shouldRenderBaseline = showBaseline && baselineGeometry !== null;
 
     // Format date labels for display - update in real-time during drag
     const currentStartDate = isDragging
@@ -328,6 +349,15 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       >
         {taskDivider === 'top' && <div className="gantt-tr-divider gantt-tr-divider-top" />}
         <div className="gantt-tr-taskContainer">
+          {shouldRenderBaseline && (
+            <div
+              className={`gantt-tr-baseline ${isParent ? 'gantt-tr-baseline-parent' : ''} ${milestone ? 'gantt-tr-baseline-milestone' : ''}`}
+              style={{
+                left: `${milestone ? baselineGeometry!.left + (dayWidth / 2) : baselineGeometry!.left}px`,
+                width: `${milestone ? 0 : baselineGeometry!.width}px`,
+              }}
+            />
+          )}
           <div
             data-taskbar
             className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${isParent ? 'gantt-tr-parentBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''}`}

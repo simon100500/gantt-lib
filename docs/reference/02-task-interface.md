@@ -6,6 +6,8 @@ interface Task {
   name: string;
   startDate: string | Date;
   endDate: string | Date;
+  baselineStartDate?: string | Date;
+  baselineEndDate?: string | Date;
   type?: 'task' | 'milestone';
   color?: string;
   progress?: number;
@@ -23,6 +25,8 @@ interface Task {
 | `name` | `string` | yes | — | Displayed as text label on the task bar. No length limit enforced, but very long names may overflow the bar visually. |
 | `startDate` | `string \| Date` | yes | — | ISO string (`'2026-02-01'`) or `Date` object. All arithmetic is UTC. Prefer ISO strings to avoid local timezone off-by-one errors. |
 | `endDate` | `string \| Date` | yes | — | Same format rules as `startDate`. **endDate is inclusive:** a task where `startDate === endDate` occupies exactly 1 day column. |
+| `baselineStartDate` | `string \| Date` | no | `undefined` | Optional baseline start for planned schedule visualization. Only used when `showBaseline={true}` on `GanttChart`. Does not affect scheduling, drag, or dependencies. |
+| `baselineEndDate` | `string \| Date` | no | `undefined` | Optional baseline end for planned schedule visualization. Rendered as a thin line under the main bar when both baseline dates are present. |
 | `type` | `'task' \| 'milestone'` | no | `'task'` | Explicit task subtype. `type: 'milestone'` renders the item as a diamond, keeps it single-date, and synchronizes `endDate` with `startDate`. Omitting the field keeps existing regular task behavior, including for same-day tasks. |
 | `color` | `string` | no | `'#3b82f6'` | Any valid CSS color value (hex, rgb, named color). Applied as the task bar background color. |
 | `progress` | `number` | no | `undefined` | Range: 0–100. Decimal values are rounded for display. `0` or `undefined` means no progress bar is rendered. Progress is purely visual — it does not restrict drag behavior. |

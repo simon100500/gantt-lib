@@ -17,8 +17,20 @@ export const reflowTasksForBusinessDays = (sourceTasks: Task[], weekendPredicate
   return reflowTasksOnModeSwitch(sourceTasks, true, weekendPredicate);
 };
 
+const shiftIsoDate = (value: string | Date, days: number): string => {
+  const source = typeof value === 'string'
+    ? new Date(`${value}T00:00:00.000Z`)
+    : new Date(value);
+  const shifted = new Date(Date.UTC(
+    source.getUTCFullYear(),
+    source.getUTCMonth(),
+    source.getUTCDate() + days
+  ));
+  return shifted.toISOString().slice(0, 10);
+};
+
 export const createSampleTasks = (): Task[] => {
-  return [
+  const tasks: Task[] = [
     // GROUP 1 — Подготовительные работы
     {
       id: 'g1',
@@ -35,6 +47,8 @@ export const createSampleTasks = (): Task[] => {
       name: 'Геодезическая разбивка',
       startDate: '2026-02-01',
       endDate: '2026-02-03',
+      baselineStartDate: '2026-01-30',
+      baselineEndDate: '2026-02-02',
       progress: 100,
       accepted: true,
       parentId: 'g1',
@@ -127,6 +141,8 @@ export const createSampleTasks = (): Task[] => {
       name: 'Песчаная подушка',
       startDate: '2026-02-25',
       endDate: '2026-02-27',
+      baselineStartDate: '2026-02-24',
+      baselineEndDate: '2026-02-26',
       progress: 100,
       accepted: true,
       color: '#4ade80',
@@ -201,6 +217,8 @@ export const createSampleTasks = (): Task[] => {
       name: 'Уход за бетоном',
       startDate: '2026-03-15',
       endDate: '2026-03-22',
+      baselineStartDate: '2026-03-13',
+      baselineEndDate: '2026-03-20',
       progress: 80,
       accepted: false,
       parentId: 'g3',
@@ -254,6 +272,8 @@ export const createSampleTasks = (): Task[] => {
       name: 'Монтаж балок перекрытия',
       startDate: '2026-04-03',
       endDate: '2026-04-12',
+      baselineStartDate: '2026-04-01',
+      baselineEndDate: '2026-04-10',
       progress: 70,
       accepted: false,
       parentId: 'g4',
@@ -408,6 +428,8 @@ export const createSampleTasks = (): Task[] => {
       name: 'Финишная отделка фасада',
       startDate: '2026-06-12',
       endDate: '2026-06-20',
+      baselineStartDate: '2026-06-08',
+      baselineEndDate: '2026-06-18',
       progress: 0,
       accepted: false,
       color: '#a78bfa',
@@ -556,4 +578,10 @@ export const createSampleTasks = (): Task[] => {
       dependencies: [{ taskId: 'g8-ms-1', type: 'FS' as const, lag: 2 }],
     },
   ];
+
+  return tasks.map((task) => ({
+    ...task,
+    baselineStartDate: task.baselineStartDate ?? shiftIsoDate(task.startDate, -2),
+    baselineEndDate: task.baselineEndDate ?? shiftIsoDate(task.endDate, -2),
+  }));
 };

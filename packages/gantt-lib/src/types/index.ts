@@ -55,6 +55,10 @@ export interface Task {
   startDate: string | Date;
   /** Task end date (ISO string or Date object) */
   endDate: string | Date;
+  /** Optional baseline start date for planned schedule visualization */
+  baselineStartDate?: string | Date;
+  /** Optional baseline end date for planned schedule visualization */
+  baselineEndDate?: string | Date;
   /** Optional color for task bar visualization */
   color?: string;
   /**
