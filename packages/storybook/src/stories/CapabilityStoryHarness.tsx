@@ -6,7 +6,6 @@ import {
   type TaskListMenuCommand,
   type ValidationResult,
 } from 'gantt-lib';
-import { nameContains } from 'gantt-lib/filters';
 import {
   createCapabilityTasks,
   type CapabilityTask,
@@ -81,6 +80,17 @@ const EMPTY_VALIDATION: ValidationResult = {
   errors: [],
 };
 
+const createNameContainsFilter = (substring: string) => {
+  const normalizedQuery = substring.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return undefined;
+  }
+
+  return (task?: { name?: string }) =>
+    typeof task?.name === 'string' && task.name.toLowerCase().includes(normalizedQuery);
+};
+
 export function CapabilityStoryHarness({
   title = 'Capability harness',
   description = 'Reusable Storybook surface for layout, state, interaction, dependency, filtering, extension, and ref-oriented stories.',
@@ -122,7 +132,7 @@ export function CapabilityStoryHarness({
 
   const sortedTasks = useMemo(() => tasks, [tasks]);
   const taskFilter = useMemo(
-    () => (taskFilterQuery ? nameContains(taskFilterQuery) : undefined),
+    () => createNameContainsFilter(taskFilterQuery ?? ''),
     [taskFilterQuery],
   );
   const resolvedColumns = useMemo(

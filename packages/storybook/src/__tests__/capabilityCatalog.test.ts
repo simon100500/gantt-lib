@@ -110,7 +110,7 @@ describe('capability catalog contract', () => {
     expect(harnessContents).toContain('onCascade');
     expect(harnessContents).toContain('collapsedParentIds');
     expect(harnessContents).toContain('Dependency validation');
-    expect(harnessContents).toContain('nameContains');
+    expect(harnessContents).toContain('createNameContainsFilter');
     expect(harnessContents).not.toMatch(/packages[\\/]website/);
     expect(harnessContents).not.toMatch(/gantt-lib\/src\//);
   });

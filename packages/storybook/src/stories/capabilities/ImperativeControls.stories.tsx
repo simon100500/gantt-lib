@@ -11,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Imperative control stories focus on the documented safe GanttChartHandle subset — scrolling and hierarchy controls — and intentionally avoid mandatory PDF side effects.',
+          'Imperative control stories focus on the documented safe GanttChartHandle subset — scrolling and hierarchy controls — and intentionally avoid mandatory document-export side effects.',
       },
     },
   },
@@ -113,11 +113,14 @@ export const RefReadyHarness: Story = {
   args: {
     title: 'Imperative controls / ref-ready wrapper',
     description:
-      'Reference harness keeps the ref surface visible for reviewer inspection while deliberately excluding `exportToPdf` from the default control set.',
+      'Reference harness keeps the ref surface visible for reviewer inspection while deliberately excluding document export from the default control set.',
     initialTasks: createCapabilityTasks(),
     renderToolbar: ({ announce }) => (
-      <button type="button" onClick={() => announce('PDF export intentionally left out of the default safe controls.') }>
-        Why no PDF action?
+      <button
+        type="button"
+        onClick={() => announce('Document export is intentionally left out of the default safe controls.')}
+      >
+        Why no export action?
       </button>
     ),
   },

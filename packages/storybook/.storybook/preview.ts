@@ -1,9 +1,8 @@
 import type { Preview } from '@storybook/react';
 import 'gantt-lib/styles.css';
 import '../src/preview.css';
-import { capabilitySections } from '../src/stories/capabilities/catalog';
-
-const capabilityOrder = capabilitySections.slice();
+// Keep this preview order aligned with capabilitySections in ../src/stories/capabilities/catalog
+// and exampleSections in ../src/stories/examples/catalog.
 
 const preview: Preview = {
   parameters: {
@@ -16,7 +15,27 @@ const preview: Preview = {
     },
     options: {
       storySort: {
-        order: ['Overview', '*', ['Scaffold', 'Workspace Smoke Test'], 'Capabilities', capabilityOrder],
+        order: [
+          'Overview',
+          '*',
+          ['Scaffold', 'Workspace Smoke Test'],
+          'Capabilities',
+          [
+            'Layout',
+            'Task states',
+            'Interaction',
+            'Dependencies',
+            'Filtering',
+            'Extensions',
+            'Imperative controls',
+          ],
+          'Examples',
+          [
+            'Program workspace',
+            'Search and highlight',
+            'Dependency control center',
+          ],
+        ],
       },
     },
   },

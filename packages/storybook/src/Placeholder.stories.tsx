@@ -31,7 +31,6 @@ const meta = {
     rowHeight: 40,
     headerHeight: 44,
     containerHeight: 320,
-    onChange: () => undefined,
   },
   parameters: {
     docs: {

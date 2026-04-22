@@ -14,8 +14,6 @@
       "cache": true,
       "outputs": ["coverage/**"]
     },
-    "lint": {
-      "dependsOn": ["^lint"]
-    }
+    "lint": {}
   }
 }

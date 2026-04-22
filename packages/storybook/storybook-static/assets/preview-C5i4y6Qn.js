@@ -1,0 +1,1 @@
+const e={parameters:{layout:"fullscreen",controls:{matchers:{color:/(background|color)$/i,date:/Date$/i}},options:{storySort:{order:["Overview","*",["Scaffold","Workspace Smoke Test"],"Capabilities",["Layout","Task states","Interaction","Dependencies","Filtering","Extensions","Imperative controls"]]}}}};export{e as default};

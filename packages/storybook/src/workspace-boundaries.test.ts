@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { capabilityCatalog } from './stories/capabilities/catalog';
+import { exampleCatalog } from './stories/examples/catalog';
 
 const packageRoot = resolve(import.meta.dirname, '..');
 
@@ -39,6 +40,9 @@ describe('storybook workspace boundaries', () => {
       ...capabilityCatalog.map((entry) =>
         resolve(packageRoot, 'src/stories/capabilities', entry.storyFile),
       ),
+      ...exampleCatalog.map((entry) =>
+        resolve(packageRoot, 'src/stories/examples', entry.storyFile),
+      ),
     ];
 
     const forbiddenPatterns = [
@@ -72,25 +76,30 @@ describe('storybook workspace boundaries', () => {
     }
   });
 
-  it('tracks the capability contract files that boundary checks should cover', () => {
+  it('tracks the capability and example contract files that boundary checks should cover', () => {
     const trackedFiles = [
       resolve(packageRoot, 'src/stories/CapabilityStoryHarness.tsx'),
       resolve(packageRoot, 'src/stories/fixtures/createCapabilityTasks.ts'),
       resolve(packageRoot, 'src/__tests__/capabilityCatalog.test.ts'),
+      resolve(packageRoot, 'src/__tests__/exampleCatalog.test.ts'),
+      resolve(packageRoot, 'src/stories/examples/catalog.ts'),
       resolve(packageRoot, 'src/workspace-boundaries.test.ts'),
       ...capabilityCatalog.map((entry) =>
         resolve(packageRoot, 'src/stories/capabilities', entry.storyFile),
       ),
+      ...exampleCatalog.map((entry) =>
+        resolve(packageRoot, 'src/stories/examples', entry.storyFile),
+      ),
     ];
 
     for (const filePath of trackedFiles) {
-      expect(existsSync(filePath), `Expected tracked capability file ${filePath} to exist.`).toBe(
+      expect(existsSync(filePath), `Expected tracked contract file ${filePath} to exist.`).toBe(
         true,
       );
     }
   });
 
-  it('covers final filtering, extension, and imperative boundary contracts in source', () => {
+  it('covers final filtering, extension, imperative, and example boundary contracts in source', () => {
     const filteringContents = readFileSync(
       resolve(packageRoot, 'src/stories/capabilities/Filtering.stories.tsx'),
       'utf8',
@@ -122,5 +131,30 @@ describe('storybook workspace boundaries', () => {
     expect(imperativeContents).toContain('collapseAll');
     expect(imperativeContents).toContain('expandAll');
     expect(imperativeContents).not.toContain('exportToPdf');
+
+    const programWorkspaceContents = readFileSync(
+      resolve(packageRoot, 'src/stories/examples/ProgramWorkspace.stories.tsx'),
+      'utf8',
+    );
+    expect(programWorkspaceContents).toContain("title: 'Examples/Program workspace'");
+    expect(programWorkspaceContents).toContain('taskListMenuCommands: programCommands');
+    expect(programWorkspaceContents).toContain('additionalColumns: programColumns');
+
+    const searchContents = readFileSync(
+      resolve(packageRoot, 'src/stories/examples/SearchAndHighlight.stories.tsx'),
+      'utf8',
+    );
+    expect(searchContents).toContain("title: 'Examples/Search and highlight'");
+    expect(searchContents).toContain("taskFilterQuery: 'Critical'");
+    expect(searchContents).toContain('businessDays: true');
+
+    const dependencyContents = readFileSync(
+      resolve(packageRoot, 'src/stories/examples/DependencyControlCenter.stories.tsx'),
+      'utf8',
+    );
+    expect(dependencyContents).toContain("title: 'Examples/Dependency control center'");
+    expect(dependencyContents).toContain('enableAutoSchedule: true');
+    expect(dependencyContents).toContain('collapseAll');
+    expect(dependencyContents).toContain('scrollToTask');
   });
 });
