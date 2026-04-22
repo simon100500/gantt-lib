@@ -1,21 +1,21 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { CapabilityStoryHarness } from '../CapabilityStoryHarness';
-import { createFilteringCapabilityTasks } from '../fixtures/createCapabilityTasks';
+import { ExampleScenarioHarness } from './ExampleScenarioHarness';
+import { createSearchAndHighlightScenario } from '../fixtures/createExampleScenarioTasks';
 
 const meta = {
   title: 'Examples/Search and highlight',
-  component: CapabilityStoryHarness,
+  component: ExampleScenarioHarness,
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
     docs: {
       description: {
         component:
-          'Search-focused example that keeps the current query, filter mode, highlight set, and business-day mode visible so state changes are reviewable from the canvas alone.',
+          'Search-focused example that routes host query/highlight state through the shared wrapper so visible diagnostics stay consistent across scenarios.',
       },
     },
   },
-} satisfies Meta<typeof CapabilityStoryHarness>;
+} satisfies Meta<typeof ExampleScenarioHarness>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -24,23 +24,15 @@ export const SearchTriageWorkspace: Story = {
   args: {
     title: 'Examples / search triage workspace',
     description:
-      'Combines search-like filtering, explicit highlight state, business-day scheduling, and reviewer-facing toolbar copy to simulate triage workflows in a host application.',
-    initialTasks: createFilteringCapabilityTasks(),
-    taskFilterQuery: 'Critical',
-    filterMode: 'highlight',
-    highlightedTaskIds: new Set(['cap-interaction', 'cap-deps']),
-    businessDays: true,
-    renderToolbar: ({ collapsedParentIds, dependencyValidation, announce }) => (
+      'Simulates a host search workflow with deterministic local query state, tracked highlight ids, no-match messaging, and visible dependency diagnostics.',
+    scenario: createSearchAndHighlightScenario(),
+    extraToolbarContent: (
       <>
-        <span>Query: Critical</span>
-        <span>Filter mode: highlight</span>
-        <span>Highlights: 2 tracked ids</span>
-        <span>Business days: on</span>
-        <span>Collapsed groups: {collapsedParentIds.size}</span>
-        <span>Dependency validation: {dependencyValidation.isValid ? 'clean' : 'issues'}</span>
-        <button type="button" onClick={() => announce('Search triage note: focus remains on critical tasks.') }>
-          Announce triage focus
-        </button>
+        <span>taskFilterQuery: 'Critical'</span>
+        <span>filterMode: 'highlight'</span>
+        <span>highlightedTaskIds: new Set(['cap-interaction', 'cap-deps'])</span>
+        <span>businessDays: true</span>
+        <span>Announce triage focus</span>
       </>
     ),
   },

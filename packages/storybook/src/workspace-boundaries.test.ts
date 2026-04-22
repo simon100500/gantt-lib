@@ -35,8 +35,10 @@ describe('storybook workspace boundaries', () => {
       resolve(packageRoot, 'src/stories/Scaffold.stories.tsx'),
       resolve(packageRoot, 'src/stories/StorybookScaffold.tsx'),
       resolve(packageRoot, 'src/stories/CapabilityStoryHarness.tsx'),
+      resolve(packageRoot, 'src/stories/examples/ExampleScenarioHarness.tsx'),
       resolve(packageRoot, 'src/stories/fixtures/createStorybookTasks.ts'),
       resolve(packageRoot, 'src/stories/fixtures/createCapabilityTasks.ts'),
+      resolve(packageRoot, 'src/stories/fixtures/createExampleScenarioTasks.ts'),
       ...capabilityCatalog.map((entry) =>
         resolve(packageRoot, 'src/stories/capabilities', entry.storyFile),
       ),
@@ -79,7 +81,9 @@ describe('storybook workspace boundaries', () => {
   it('tracks the capability and example contract files that boundary checks should cover', () => {
     const trackedFiles = [
       resolve(packageRoot, 'src/stories/CapabilityStoryHarness.tsx'),
+      resolve(packageRoot, 'src/stories/examples/ExampleScenarioHarness.tsx'),
       resolve(packageRoot, 'src/stories/fixtures/createCapabilityTasks.ts'),
+      resolve(packageRoot, 'src/stories/fixtures/createExampleScenarioTasks.ts'),
       resolve(packageRoot, 'src/__tests__/capabilityCatalog.test.ts'),
       resolve(packageRoot, 'src/__tests__/exampleCatalog.test.ts'),
       resolve(packageRoot, 'src/stories/examples/catalog.ts'),
@@ -137,24 +141,42 @@ describe('storybook workspace boundaries', () => {
       'utf8',
     );
     expect(programWorkspaceContents).toContain("title: 'Examples/Program workspace'");
-    expect(programWorkspaceContents).toContain('taskListMenuCommands: programCommands');
-    expect(programWorkspaceContents).toContain('additionalColumns: programColumns');
+    expect(programWorkspaceContents).toContain('ExampleScenarioHarness');
+    expect(programWorkspaceContents).toContain('createProgramWorkspaceScenario');
 
     const searchContents = readFileSync(
       resolve(packageRoot, 'src/stories/examples/SearchAndHighlight.stories.tsx'),
       'utf8',
     );
     expect(searchContents).toContain("title: 'Examples/Search and highlight'");
-    expect(searchContents).toContain("taskFilterQuery: 'Critical'");
-    expect(searchContents).toContain('businessDays: true');
+    expect(searchContents).toContain('ExampleScenarioHarness');
+    expect(searchContents).toContain('createSearchAndHighlightScenario');
 
     const dependencyContents = readFileSync(
       resolve(packageRoot, 'src/stories/examples/DependencyControlCenter.stories.tsx'),
       'utf8',
     );
     expect(dependencyContents).toContain("title: 'Examples/Dependency control center'");
-    expect(dependencyContents).toContain('enableAutoSchedule: true');
-    expect(dependencyContents).toContain('collapseAll');
-    expect(dependencyContents).toContain('scrollToTask');
+    expect(dependencyContents).toContain('ExampleScenarioHarness');
+    expect(dependencyContents).toContain('createDependencyControlCenterScenario');
+    expect(dependencyContents).toContain('createBusinessDayReviewScenario');
+
+    const exampleHarnessContents = readFileSync(
+      resolve(packageRoot, 'src/stories/examples/ExampleScenarioHarness.tsx'),
+      'utf8',
+    );
+    expect(exampleHarnessContents).toContain('filteredTaskIds');
+    expect(exampleHarnessContents).toContain('No menu command selected yet.');
+    expect(exampleHarnessContents).toContain('Run focus ref action');
+    expect(exampleHarnessContents).toContain('Collapse groups');
+
+    const exampleFixtureContents = readFileSync(
+      resolve(packageRoot, 'src/stories/fixtures/createExampleScenarioTasks.ts'),
+      'utf8',
+    );
+    expect(exampleFixtureContents).toContain('createProgramWorkspaceScenario');
+    expect(exampleFixtureContents).toContain('createSearchAndHighlightScenario');
+    expect(exampleFixtureContents).toContain('createDependencyControlCenterScenario');
+    expect(exampleFixtureContents).toContain('createBusinessDayReviewScenario');
   });
 });

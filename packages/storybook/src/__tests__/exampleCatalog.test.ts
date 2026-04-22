@@ -44,7 +44,8 @@ describe('example catalog contract', () => {
       const storyContents = readFileSync(storyPath, 'utf8');
 
       expect(storyContents).toContain(`title: '${entry.title}'`);
-      expect(storyContents).toContain('CapabilityStoryHarness');
+      expect(storyContents).toContain('ExampleScenarioHarness');
+      expect(storyContents).not.toContain('CapabilityStoryHarness');
       expect(storyContents).not.toMatch(/title:\s*['"]Capabilities\//);
       expect(storyContents).not.toMatch(/packages[\\/]website/);
       expect(storyContents).not.toMatch(/gantt-lib\/src\//);
@@ -59,6 +60,32 @@ describe('example catalog contract', () => {
   });
 
   it('covers the planned host-like scenario surfaces in source', () => {
+    const exampleHarnessContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'examples', 'ExampleScenarioHarness.tsx'),
+      'utf8',
+    );
+    expect(exampleHarnessContents).toContain('Host query control');
+    expect(exampleHarnessContents).toContain('Clear query');
+    expect(exampleHarnessContents).toContain('Reset query');
+    expect(exampleHarnessContents).toContain('Run focus ref action');
+    expect(exampleHarnessContents).toContain('Collapse groups');
+    expect(exampleHarnessContents).toContain('Expand groups');
+    expect(exampleHarnessContents).toContain('No menu command selected yet.');
+    expect(exampleHarnessContents).toContain('No ref action triggered yet.');
+    expect(exampleHarnessContents).toContain('visible match(es)');
+
+    const fixtureContents = readFileSync(
+      resolve(packageRoot, 'src', 'stories', 'fixtures', 'createExampleScenarioTasks.ts'),
+      'utf8',
+    );
+    expect(fixtureContents).toContain('createProgramWorkspaceScenario');
+    expect(fixtureContents).toContain('createSearchAndHighlightScenario');
+    expect(fixtureContents).toContain('createDependencyControlCenterScenario');
+    expect(fixtureContents).toContain('createBusinessDayReviewScenario');
+    expect(fixtureContents).toContain('Queue exec brief is unsupported for non-milestone rows.');
+    expect(fixtureContents).toContain('No rows match the active search query.');
+    expect(fixtureContents).toContain('No dependency rows are visible for the current query.');
+
     const programWorkspaceContents = readFileSync(
       resolve(packageRoot, 'src', 'stories', 'examples', 'ProgramWorkspace.stories.tsx'),
       'utf8',
@@ -84,8 +111,8 @@ describe('example catalog contract', () => {
       resolve(packageRoot, 'src', 'stories', 'examples', 'DependencyControlCenter.stories.tsx'),
       'utf8',
     );
-    expect(dependencyContents).toContain('createDependencyFocusedCapabilityTasks');
-    expect(dependencyContents).toContain('createBusinessDayCapabilityTasks');
+    expect(dependencyContents).toContain('createDependencyControlCenterScenario');
+    expect(dependencyContents).toContain('createBusinessDayReviewScenario');
     expect(dependencyContents).toContain('enableAutoSchedule: true');
     expect(dependencyContents).toContain('businessDays: false');
     expect(dependencyContents).toContain('businessDays: true');

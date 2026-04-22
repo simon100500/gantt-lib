@@ -135,6 +135,17 @@ export function CapabilityStoryHarness({
     () => createNameContainsFilter(taskFilterQuery ?? ''),
     [taskFilterQuery],
   );
+  const derivedHighlightedTaskIds = useMemo(() => {
+    if (highlightedTaskIds) {
+      return highlightedTaskIds;
+    }
+
+    if (!taskFilter || filterMode !== 'highlight') {
+      return undefined;
+    }
+
+    return new Set(tasks.filter(taskFilter).map((task) => task.id));
+  }, [filterMode, highlightedTaskIds, taskFilter, tasks]);
   const resolvedColumns = useMemo(
     () => [...capabilityColumns, ...(additionalColumns ?? [])],
     [additionalColumns],
@@ -274,7 +285,7 @@ export function CapabilityStoryHarness({
           taskListMenuCommands={taskListMenuCommands}
           taskFilter={taskFilter}
           filterMode={filterMode}
-          highlightedTaskIds={highlightedTaskIds}
+          highlightedTaskIds={derivedHighlightedTaskIds}
           businessDays={businessDays}
           disableTaskNameEditing={disableTaskNameEditing}
           disableDependencyEditing={disableDependencyEditing}
