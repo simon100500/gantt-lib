@@ -49,8 +49,13 @@ describe('heavy data catalog contract', () => {
       expect(
         existsSync(storyPath),
         `Expected heavy-data story file ${entry.storyFile} to exist.`,
-      ).toBe(false);
+      ).toBe(true);
       expect(entry.title.startsWith('Heavy data/')).toBe(true);
+
+      const storyContents = readFileSync(storyPath, 'utf8');
+      expect(storyContents).toContain(`title: '${entry.title}'`);
+      expect(storyContents).toContain('HeavyDataReviewHarness');
+      expect(storyContents).toContain(`tier: '${entry.tier}'`);
     }
   });
 

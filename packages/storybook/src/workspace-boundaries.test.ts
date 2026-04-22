@@ -84,7 +84,7 @@ describe('storybook workspace boundaries', () => {
     }
   });
 
-  it('tracks the capability and example contract files that boundary checks should cover', () => {
+  it('tracks the capability, example, and heavy-data contract files that boundary checks should cover', () => {
     const trackedFiles = [
       resolve(packageRoot, 'src/stories/CapabilityStoryHarness.tsx'),
       resolve(packageRoot, 'src/stories/examples/ExampleScenarioHarness.tsx'),
@@ -103,6 +103,9 @@ describe('storybook workspace boundaries', () => {
       ),
       ...exampleCatalog.map((entry) =>
         resolve(packageRoot, 'src/stories/examples', entry.storyFile),
+      ),
+      ...heavyDataCatalog.map((entry) =>
+        resolve(packageRoot, 'src/stories/heavy-data', entry.storyFile),
       ),
     ];
 
@@ -207,6 +210,30 @@ describe('storybook workspace boundaries', () => {
     expect(heavyDataHarnessContents).toContain('Collapsed groups');
     expect(heavyDataHarnessContents).toContain('Rendered task totals');
     expect(heavyDataHarnessContents).toContain('Review focus');
+
+    const heavyData100Contents = readFileSync(
+      resolve(packageRoot, 'src/stories/heavy-data/Review100Rows.stories.tsx'),
+      'utf8',
+    );
+    expect(heavyData100Contents).toContain("title: 'Heavy data/~100 rows'");
+    expect(heavyData100Contents).toContain('HeavyDataReviewHarness');
+    expect(heavyData100Contents).toContain("tier: 'around-100'");
+
+    const heavyData500Contents = readFileSync(
+      resolve(packageRoot, 'src/stories/heavy-data/Review500Rows.stories.tsx'),
+      'utf8',
+    );
+    expect(heavyData500Contents).toContain("title: 'Heavy data/~500 rows'");
+    expect(heavyData500Contents).toContain('HeavyDataReviewHarness');
+    expect(heavyData500Contents).toContain("tier: 'around-500'");
+
+    const heavyData1000Contents = readFileSync(
+      resolve(packageRoot, 'src/stories/heavy-data/Review1000Rows.stories.tsx'),
+      'utf8',
+    );
+    expect(heavyData1000Contents).toContain("title: 'Heavy data/~1000 rows'");
+    expect(heavyData1000Contents).toContain('HeavyDataReviewHarness');
+    expect(heavyData1000Contents).toContain("tier: 'around-1000'");
 
     const heavyDataFixtureContents = readFileSync(
       resolve(packageRoot, 'src/stories/fixtures/createHeavyDataTasks.ts'),

@@ -12,19 +12,19 @@ export interface HeavyDataCatalogEntry {
 export const heavyDataCatalog: HeavyDataCatalogEntry[] = [
   {
     section: '~100 rows',
-    storyFile: 'Around100Rows.stories.tsx',
+    storyFile: 'Review100Rows.stories.tsx',
     title: 'Heavy data/~100 rows',
     tier: 'around-100',
   },
   {
     section: '~500 rows',
-    storyFile: 'Around500Rows.stories.tsx',
+    storyFile: 'Review500Rows.stories.tsx',
     title: 'Heavy data/~500 rows',
     tier: 'around-500',
   },
   {
     section: '~1000 rows',
-    storyFile: 'Around1000Rows.stories.tsx',
+    storyFile: 'Review1000Rows.stories.tsx',
     title: 'Heavy data/~1000 rows',
     tier: 'around-1000',
   },
