@@ -1,8 +1,9 @@
 import type { Preview } from '@storybook/react';
 import 'gantt-lib/styles.css';
 import '../src/preview.css';
-// Keep this preview order aligned with capabilitySections in ../src/stories/capabilities/catalog
-// and exampleSections in ../src/stories/examples/catalog.
+// Keep this preview order aligned with capabilitySections in ../src/stories/capabilities/catalog,
+// exampleSections in ../src/stories/examples/catalog, and heavyDataSections in
+// ../src/stories/heavy-data/catalog.
 
 const preview: Preview = {
   parameters: {
@@ -36,6 +37,8 @@ const preview: Preview = {
             'Extension workspace',
             'Operations review',
           ],
+          'Heavy data',
+          ['~100 rows', '~500 rows', '~1000 rows'],
         ],
       },
     },

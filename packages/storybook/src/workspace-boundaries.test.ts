@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { capabilityCatalog } from './stories/capabilities/catalog';
 import { exampleCatalog } from './stories/examples/catalog';
+import { heavyDataCatalog } from './stories/heavy-data/catalog';
 
 const packageRoot = resolve(import.meta.dirname, '..');
 const forbiddenPatterns = [
@@ -43,14 +44,19 @@ describe('storybook workspace boundaries', () => {
       resolve(packageRoot, 'src/stories/StorybookScaffold.tsx'),
       resolve(packageRoot, 'src/stories/CapabilityStoryHarness.tsx'),
       resolve(packageRoot, 'src/stories/examples/ExampleScenarioHarness.tsx'),
+      resolve(packageRoot, 'src/stories/heavy-data/HeavyDataReviewHarness.tsx'),
       resolve(packageRoot, 'src/stories/fixtures/createStorybookTasks.ts'),
       resolve(packageRoot, 'src/stories/fixtures/createCapabilityTasks.ts'),
       resolve(packageRoot, 'src/stories/fixtures/createExampleScenarioTasks.ts'),
+      resolve(packageRoot, 'src/stories/fixtures/createHeavyDataTasks.ts'),
       ...capabilityCatalog.map((entry) =>
         resolve(packageRoot, 'src/stories/capabilities', entry.storyFile),
       ),
       ...exampleCatalog.map((entry) =>
         resolve(packageRoot, 'src/stories/examples', entry.storyFile),
+      ),
+      ...heavyDataCatalog.map((entry) =>
+        resolve(packageRoot, 'src/stories/heavy-data', entry.storyFile),
       ),
     ];
 
@@ -82,11 +88,15 @@ describe('storybook workspace boundaries', () => {
     const trackedFiles = [
       resolve(packageRoot, 'src/stories/CapabilityStoryHarness.tsx'),
       resolve(packageRoot, 'src/stories/examples/ExampleScenarioHarness.tsx'),
+      resolve(packageRoot, 'src/stories/heavy-data/HeavyDataReviewHarness.tsx'),
       resolve(packageRoot, 'src/stories/fixtures/createCapabilityTasks.ts'),
       resolve(packageRoot, 'src/stories/fixtures/createExampleScenarioTasks.ts'),
+      resolve(packageRoot, 'src/stories/fixtures/createHeavyDataTasks.ts'),
       resolve(packageRoot, 'src/__tests__/capabilityCatalog.test.ts'),
       resolve(packageRoot, 'src/__tests__/exampleCatalog.test.ts'),
+      resolve(packageRoot, 'src/__tests__/heavyDataCatalog.test.ts'),
       resolve(packageRoot, 'src/stories/examples/catalog.ts'),
+      resolve(packageRoot, 'src/stories/heavy-data/catalog.ts'),
       resolve(packageRoot, 'src/workspace-boundaries.test.ts'),
       ...capabilityCatalog.map((entry) =>
         resolve(packageRoot, 'src/stories/capabilities', entry.storyFile),
@@ -187,5 +197,26 @@ describe('storybook workspace boundaries', () => {
     expect(exampleFixtureContents).toContain('createSearchableTriageScenario');
     expect(exampleFixtureContents).toContain('createExtensionWorkspaceScenario');
     expect(exampleFixtureContents).toContain('createOperationsReviewScenario');
+
+    const heavyDataHarnessContents = readFileSync(
+      resolve(packageRoot, 'src/stories/heavy-data/HeavyDataReviewHarness.tsx'),
+      'utf8',
+    );
+    expect(heavyDataHarnessContents).toContain('Density tier');
+    expect(heavyDataHarnessContents).toContain('Visible rows');
+    expect(heavyDataHarnessContents).toContain('Collapsed groups');
+    expect(heavyDataHarnessContents).toContain('Rendered task totals');
+    expect(heavyDataHarnessContents).toContain('Review focus');
+
+    const heavyDataFixtureContents = readFileSync(
+      resolve(packageRoot, 'src/stories/fixtures/createHeavyDataTasks.ts'),
+      'utf8',
+    );
+    expect(heavyDataFixtureContents).toContain('createHeavyDataTasks');
+    expect(heavyDataFixtureContents).toContain('createHeavyDataFixture');
+    expect(heavyDataFixtureContents).toContain('assertHeavyDataTaskIntegrity');
+    expect(heavyDataFixtureContents).toContain('around-100');
+    expect(heavyDataFixtureContents).toContain('around-500');
+    expect(heavyDataFixtureContents).toContain('around-1000');
   });
 });
