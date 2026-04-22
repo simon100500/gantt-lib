@@ -15,5 +15,6 @@ body {
 }
 
 .sb-story {
+  width: 100%;
   padding: 24px;
 }
