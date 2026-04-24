@@ -1,7 +1,17 @@
 # GanttChart Props
 
+`GanttChart` supports two modes:
+
+- Omitted `mode` or `mode="gantt"` renders the task Gantt chart and requires `tasks`.
+- `mode="resource-planner"` renders the resource planner and requires `resources`.
+
 ```typescript
-interface GanttChartProps<TTask extends Task = Task> {
+type GanttChartProps<TTask extends Task = Task, TItem extends ResourceTimelineItem = ResourceTimelineItem> =
+  | GanttModeProps<TTask>
+  | ResourcePlannerChartProps<TItem>;
+
+interface GanttModeProps<TTask extends Task = Task> {
+  mode?: 'gantt';
   tasks: TTask[];
   dayWidth?: number;
   rowHeight?: number;
@@ -37,6 +47,39 @@ interface GanttChartProps<TTask extends Task = Task> {
   businessDays?: boolean;
   additionalColumns?: TaskListColumn<TTask>[];
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
+}
+
+interface ResourceTimelineItem {
+  id: string;
+  resourceId: string;
+  taskId?: string;
+  title: string;
+  subtitle?: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  color?: string;
+  locked?: boolean;
+  metadata?: unknown;
+}
+
+interface ResourceTimelineResource<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
+  id: string;
+  name: string;
+  items: TItem[];
+}
+
+interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
+  mode: 'resource-planner';
+  resources: Array<ResourceTimelineResource<TItem>>;
+  dayWidth?: number;
+  rowHeaderWidth?: number;
+  laneHeight?: number;
+  headerHeight?: number;
+  maxRenderedDays?: number;
+  readonly?: boolean;
+  renderItem?: (item: TItem) => React.ReactNode;
+  getItemClassName?: (item: TItem) => string | undefined;
+  onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
 }
 ```
 
@@ -80,6 +123,48 @@ interface GanttChartProps<TTask extends Task = Task> {
 | `businessDays` | `boolean` | `true` | Когда `true` (default), длительность задачи (duration) считается в рабочих днях, исключая выходные. Когда `false`, длительность считается в календарных днях. Влияет на расчёт зависимостей, перетаскивание задач и отображение длительности. См. раздел 7.5. |
 | `additionalColumns` | `TaskListColumn<TTask>[]` | `undefined` | Additional TaskList columns resolved together with the built-in columns. Use `renderCell` / `renderEditor` and place them with `before` / `after`. See [TaskList Columns](./13-tasklist-columns.md). |
 | `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Additional commands for the TaskList three-dots menu. Each command receives the current row in `onSelect(row)`, can render an `icon`, and may be restricted by `scope`: `'group'`, `'linear'`, `'milestone'`, or `'all'`. When `scope` is omitted, the command is shown for all task types. |
+
+## Resource Planner Props
+
+Use the default `GanttChart` entry point for resource mode:
+
+```tsx
+import { GanttChart, type ResourceTimelineResource } from 'gantt-lib';
+
+const resources: ResourceTimelineResource[] = [
+  {
+    id: 'team-a',
+    name: 'Team A',
+    items: [
+      {
+        id: 'booking-1',
+        resourceId: 'team-a',
+        title: 'Implementation',
+        startDate: '2026-04-01',
+        endDate: '2026-04-05',
+      },
+    ],
+  },
+];
+
+<GanttChart mode="resource-planner" resources={resources} />;
+```
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `mode` | `'resource-planner'` | required | Selects the resource planner branch. Omit `mode` for the task Gantt chart. |
+| `resources` | `ResourceTimelineResource[]` | required | Resource rows and their scheduled items. Resource mode does not require `tasks`. |
+| `dayWidth` | `number` | `40` | Width of one day column in pixels. Horizontal drag snaps to this value. |
+| `rowHeaderWidth` | `number` | `240` | Width of the left resource-name column. |
+| `laneHeight` | `number` | `40` | Height of one item lane inside each resource row. Overlapping items add lanes. |
+| `headerHeight` | `number` | `40` | Height of the time-scale header. |
+| `maxRenderedDays` | `number` | `undefined` | Optional cap for rendered day columns. |
+| `readonly` | `boolean` | `false` | Prevents resource item dragging when true. |
+| `renderItem` | `(item) => ReactNode` | `undefined` | Custom inner content for a resource item bar. Geometry remains controlled by the renderer. |
+| `getItemClassName` | `(item) => string \| undefined` | `undefined` | Adds a custom class to a resource item bar. |
+| `onResourceItemMove` | `(move: ResourceTimelineMove) => void` | `undefined` | Fires on mouseup after a valid drag. Consumers validate authorization/conflicts and update their own resource state. |
+
+Resource mode intentionally does not render dependency lines, task list editing, hierarchy/cascade scheduling, or task reorder behavior.
 
 **Important — calendar range:** The visible date range is calculated automatically from the earliest `startDate` to the latest `endDate` across all tasks. The chart always shows complete calendar months. For example, if tasks span March 25 to May 5, the chart renders March 1 through May 31. There is no `month` prop.
 

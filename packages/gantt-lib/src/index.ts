@@ -26,6 +26,7 @@ export { default as GridBackground } from './components/GridBackground';
 export { default as TodayIndicator } from './components/TodayIndicator';
 export { default as DragGuideLines } from './components/DragGuideLines/DragGuideLines';
 export { TaskList, type TaskListProps } from './components/TaskList';
+export { ResourceTimelineChart } from './components/ResourceTimelineChart';
 
 // UI Components
 export { Input, type InputProps } from './components/ui/Input';

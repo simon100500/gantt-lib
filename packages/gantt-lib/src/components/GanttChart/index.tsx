@@ -1,4 +1,5 @@
 export { GanttChart } from './GanttChart';
+export { ResourceTimelineChart } from '../ResourceTimelineChart';
 export type {
   Task,
   TaskDependency,

@@ -63,6 +63,52 @@ export default function App() {
 }
 ```
 
+## Resource Planner Mode
+
+Use `mode="resource-planner"` when the primary rows are people, equipment, rooms, or other resources instead of tasks. Omitted `mode` still renders the default task Gantt chart.
+
+```tsx
+import {
+  GanttChart,
+  ResourceTimelineChart,
+  type ResourceTimelineResource,
+} from "gantt-lib";
+import "gantt-lib/styles.css";
+
+const resources: ResourceTimelineResource[] = [
+  {
+    id: "designer",
+    name: "Designer",
+    items: [
+      {
+        id: "assignment-1",
+        resourceId: "designer",
+        title: "Landing page",
+        subtitle: "Client A",
+        startDate: "2026-04-01",
+        endDate: "2026-04-03",
+        color: "#2563eb",
+      },
+    ],
+  },
+];
+
+export default function Planner() {
+  return (
+    <GanttChart
+      mode="resource-planner"
+      resources={resources}
+      onResourceItemMove={(move) => {
+        // Validate authorization/conflicts, then update your resource state.
+        console.log(move.itemId, move.fromResourceId, move.toResourceId);
+      }}
+    />
+  );
+}
+```
+
+`ResourceTimelineChart` is also exported for consumers who want the specialized renderer directly. Resource mode does not render task list editing, dependency lines, hierarchy/cascade scheduling, or task reorder behavior.
+
 ## API
 
 ### GanttChart
