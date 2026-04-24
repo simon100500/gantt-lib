@@ -212,3 +212,43 @@ body {
   border-color: #8b5cf6;
   box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
 }
+
+.demo-resource-item-content {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.demo-resource-item-title,
+.demo-resource-item-subtitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.demo-resource-item-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.demo-resource-item-subtitle {
+  font-size: 0.6875rem;
+  opacity: 0.85;
+}
+
+.gantt-resourceTimeline-item.demo-resource-item-planned {
+  box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.28);
+}
+
+.gantt-resourceTimeline-item.demo-resource-item-active {
+  box-shadow: inset 0 -3px 0 rgba(16, 185, 129, 0.8);
+}
+
+.gantt-resourceTimeline-item.demo-resource-item-blocked {
+  box-shadow: inset 0 -3px 0 rgba(251, 191, 36, 0.9);
+}

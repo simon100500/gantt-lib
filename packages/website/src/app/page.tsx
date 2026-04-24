@@ -2,6 +2,7 @@
 
 import ConstructionChart from "@/components/ConstructionChart";
 import AdditionalColumnsChart from "@/components/AdditionalColumnsChart";
+import ResourcePlannerExample from "@/components/ResourcePlannerExample";
 
 export default function Home() {
   return (
@@ -15,6 +16,7 @@ export default function Home() {
 
         <ConstructionChart />
         <AdditionalColumnsChart />
+        <ResourcePlannerExample />
       </div>
     </main>
   );
