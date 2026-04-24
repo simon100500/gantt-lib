@@ -5,7 +5,13 @@ import { getMultiMonthDays, createCustomDayPredicate, type CustomDayConfig, type
 import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, universalCascade, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../core/scheduling';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
-import type { ValidationResult } from '../../types';
+import type {
+  ResourcePlannerChartProps,
+  ResourceTimelineItem,
+  ResourceTimelineMove,
+  ResourceTimelineResource,
+  ValidationResult,
+} from '../../types';
 import { TaskPredicate } from '../../filters';
 import type { TaskListColumn } from '../TaskList/columns/types';
 import TimeScaleHeader from '../TimeScaleHeader';
@@ -19,6 +25,14 @@ import { printGanttChart } from './print';
 import './GanttChart.css';
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
+
+export type {
+  GanttChartMode,
+  ResourcePlannerChartProps,
+  ResourceTimelineItem,
+  ResourceTimelineMove,
+  ResourceTimelineResource,
+} from '../../types';
 
 /**
  * Task data structure for Gantt chart
@@ -114,7 +128,9 @@ export interface TaskListMenuCommand<TTask extends Task = Task> {
   closeOnSelect?: boolean;
 }
 
-export interface GanttChartProps<TTask extends Task = Task> {
+export interface GanttModeProps<TTask extends Task = Task> {
+  /** Omitted mode keeps the historical task-based gantt behavior. */
+  mode?: 'gantt';
   /** Array of tasks to display */
   tasks: TTask[];
   /** Width of each day column in pixels (default: 40) */
@@ -195,6 +211,11 @@ export interface GanttChartProps<TTask extends Task = Task> {
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
 }
 
+export type GanttChartProps<
+  TTask extends Task = Task,
+  TItem extends ResourceTimelineItem = ResourceTimelineItem,
+> = GanttModeProps<TTask> | ResourcePlannerChartProps<TItem>;
+
 export interface ExportToPdfOptions {
   /** Structured header displayed above the exported chart */
   header?: ExportToPdfHeaderOptions;
@@ -263,8 +284,41 @@ export interface GanttChartHandle {
  * />
  * ```
  */
-function GanttChartInner<TTask extends Task = Task>(
-  props: GanttChartProps<TTask>,
+function ResourcePlannerPlaceholder<TItem extends ResourceTimelineItem = ResourceTimelineItem>({
+  resources,
+}: ResourcePlannerChartProps<TItem>) {
+  return (
+    <div className="gantt-container gantt-resourceTimeline">
+      {resources.map((resource) => (
+        <div key={resource.id} className="gantt-resourceTimeline-row">
+          {resource.name}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GanttChartInner<
+  TTask extends Task = Task,
+  TItem extends ResourceTimelineItem = ResourceTimelineItem,
+>(
+  props: GanttChartProps<TTask, TItem>,
+  ref: React.ForwardedRef<GanttChartHandle>
+) {
+  if (props.mode === 'resource-planner') {
+    return <ResourcePlannerPlaceholder {...props} />;
+  }
+
+  return (
+    <TaskGanttChart
+      {...props}
+      ref={ref}
+    />
+  );
+}
+
+function TaskGanttChartInner<TTask extends Task = Task>(
+  props: GanttModeProps<TTask>,
   ref: React.ForwardedRef<GanttChartHandle>
 ) {
   const {
@@ -1175,8 +1229,15 @@ function GanttChartInner<TTask extends Task = Task>(
   );
 }
 
-export const GanttChart = forwardRef(GanttChartInner) as <TTask extends Task = Task>(
-  props: GanttChartProps<TTask> & { ref?: React.Ref<GanttChartHandle> }
+const TaskGanttChart = forwardRef(TaskGanttChartInner) as <TTask extends Task = Task>(
+  props: GanttModeProps<TTask> & { ref?: React.Ref<GanttChartHandle> }
+) => React.ReactElement;
+
+export const GanttChart = forwardRef(GanttChartInner) as <
+  TTask extends Task = Task,
+  TItem extends ResourceTimelineItem = ResourceTimelineItem,
+>(
+  props: GanttChartProps<TTask, TItem> & { ref?: React.Ref<GanttChartHandle> }
 ) => React.ReactElement;
 
 (GanttChart as React.FC).displayName = 'GanttChart';

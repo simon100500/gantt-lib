@@ -1,3 +1,49 @@
+import type { ReactNode } from 'react';
+
+export type GanttChartMode = 'gantt' | 'resource-planner';
+
+export interface ResourceTimelineItem {
+  id: string;
+  resourceId: string;
+  taskId?: string;
+  title: string;
+  subtitle?: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  color?: string;
+  locked?: boolean;
+  metadata?: unknown;
+}
+
+export interface ResourceTimelineResource<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
+  id: string;
+  name: string;
+  items: TItem[];
+}
+
+export interface ResourceTimelineMove<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
+  item: TItem;
+  itemId: string;
+  fromResourceId: string;
+  toResourceId: string;
+  startDate: Date;
+  endDate: Date;
+}
+
+export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
+  mode: 'resource-planner';
+  resources: Array<ResourceTimelineResource<TItem>>;
+  dayWidth?: number;
+  rowHeaderWidth?: number;
+  laneHeight?: number;
+  headerHeight?: number;
+  maxRenderedDays?: number;
+  readonly?: boolean;
+  renderItem?: (item: TItem) => ReactNode;
+  getItemClassName?: (item: TItem) => string | undefined;
+  onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
+}
+
 /**
  * Dependency link types following PM standard
  * - FS (Finish-to-Start): Predecessor must finish before successor starts
