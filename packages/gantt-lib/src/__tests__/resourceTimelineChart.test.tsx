@@ -1,4 +1,5 @@
 import React from 'react';
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ResourceTimelineChart } from '../components/ResourceTimelineChart';
@@ -40,7 +41,7 @@ describe('ResourceTimelineChart', () => {
 
     expect(screen.getByText('Discovery')).toBeInTheDocument();
     expect(screen.getByText('Client work')).toBeInTheDocument();
-    expect(screen.getByText('3-5 апр')).toBeInTheDocument();
+    expect(screen.getByText('3–5 апр')).toBeInTheDocument();
   });
 
   it('keeps empty resources visible with one-lane height', () => {
