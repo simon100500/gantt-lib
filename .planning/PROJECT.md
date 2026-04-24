@@ -37,6 +37,7 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - **Headless scheduling core** (Phase 27) — `src/core/scheduling/` with 7 modules, zero React/DOM deps, backward-compat barrels
 - **Scheduling core hardening** (Phase 28) — command-level API (execute.ts), UI adapters separation, 92 tests, documentation
 - **Milestone task support** (Phase 29) — explicit `Task.type`, diamond chart rendering, move-only milestone drag, TaskList milestone editing, samples and docs
+- **Resource planner mode** (Phase 30) — `mode="resource-planner"`, `ResourceTimelineChart`, resource lane layout, controlled item drag/reassignment, public exports and docs
 - shadcn/ui components (DatePicker, Input)
 
 **Tech stack:** React 18+, TypeScript, date-fns, @radix-ui
@@ -62,13 +63,14 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - ✅ Headless scheduling core — runtime-agnostic core/scheduling module with zero React/DOM deps — v0.53.0 (Phase 27)
 - ✅ Scheduling core hardening — command-level API (execute.ts), UI adapter separation, boundary tests, documentation — v0.53.0 (Phase 28)
 - ✅ Milestone tasks — explicit `type: 'milestone'`, diamond rendering, move-only interaction, single-date TaskList editing — v0.64.1 (Phase 29)
+- ✅ Resource planner mode — resource rows/items, lane layout, read-only renderer, controlled move/reassignment callback, public exports — Phase 30
 
 ### Out of Scope
 
 - Multiple zoom levels (day/week/year) — month only
 - Built-in state management — controlled component pattern
 - Critical path calculations
-- Resource management
+- Advanced resource management beyond planner visualization (capacity optimization, conflict resolution, utilization analytics)
 - Export to PDF/PNG — browser print sufficient
 
 ## Context
@@ -105,4 +107,4 @@ The library is published as `gantt-lib` v0.22.0 on npm with the following featur
 - **Browser**: Modern browsers — No IE11 requirement
 
 ---
-*Last updated: 2026-04-11 after Phase 29 (milestones-type-tasks) completed*
+*Last updated: 2026-04-25 after Phase 30 (resource-mode) completed*
