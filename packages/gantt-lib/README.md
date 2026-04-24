@@ -98,6 +98,7 @@ export default function Planner() {
     <GanttChart
       mode="resource-planner"
       resources={resources}
+      disableResourceReassignment
       onResourceItemMove={(move) => {
         // Validate authorization/conflicts, then update your resource state.
         console.log(move.itemId, move.fromResourceId, move.toResourceId);
@@ -108,6 +109,8 @@ export default function Planner() {
 ```
 
 `ResourceTimelineChart` is also exported for consumers who want the specialized renderer directly. Resource mode does not render task list editing, dependency lines, hierarchy/cascade scheduling, or task reorder behavior.
+
+See the full guide: [Resource Planner Mode](../../docs/reference/15-resource-planner.md).
 
 ## API
 

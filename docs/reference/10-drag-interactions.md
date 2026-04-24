@@ -19,6 +19,8 @@
 
 ## Resource Planner Drag
 
+For a complete resource planner guide, see [Resource Planner Mode](./15-resource-planner.md).
+
 Resource planner mode uses `onResourceItemMove`, not `onTasksChange`.
 
 | User Action | Result |
@@ -28,6 +30,7 @@ Resource planner mode uses `onResourceItemMove`, not `onTasksChange`.
 | Drop outside all resource rows | Cancels the drag and emits no callback. |
 | Set `readonly={true}` | Prevents all resource item drag starts. |
 | Set `item.locked === true` | Prevents drag for that item only. |
+| Set `disableResourceReassignment={true}` | Locks drag to the X axis. The item can move by dates, but stays on its source resource. |
 
 `onResourceItemMove` fires once on `mouseup`, never during `mousemove`. The payload contains `item`, `itemId`, `fromResourceId`, `toResourceId`, `startDate`, and `endDate`.
 

@@ -48,6 +48,7 @@ export interface UseResourceItemDragOptions<TItem extends ResourceTimelineItem =
   rows: Array<ResourceDragRow<TItem>>;
   gridElementRef?: RefObject<HTMLElement | null>;
   readonly?: boolean;
+  disableResourceReassignment?: boolean;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
 }
 
@@ -76,6 +77,7 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
   rows,
   gridElementRef,
   readonly,
+  disableResourceReassignment,
   onResourceItemMove,
 }: UseResourceItemDragOptions<TItem>) => {
   const activeDragRef = useRef<ActiveResourceDrag<TItem> | null>(null);
@@ -120,7 +122,9 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
         }
 
         const nextLeft = latestDrag.initialLeft + snapToDay(event.clientX - latestDrag.startX, latestDrag.dayWidth);
-        const nextTop = latestDrag.initialTop + (event.clientY - latestDrag.startY);
+        const nextTop = disableResourceReassignment
+          ? latestDrag.initialTop
+          : latestDrag.initialTop + (event.clientY - latestDrag.startY);
         latestDrag.currentLeft = nextLeft;
         latestDrag.currentTop = nextTop;
         setPreview({
@@ -142,7 +146,9 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
       setPreview(null);
 
       const gridTop = gridElementRef?.current?.getBoundingClientRect().top ?? 0;
-      const targetResource = resolveTargetResource(rowsRef.current, event.clientY, gridTop);
+      const targetResource = disableResourceReassignment
+        ? rowsRef.current.find((row) => row.resourceId === activeDrag.fromResourceId)?.resource ?? null
+        : resolveTargetResource(rowsRef.current, event.clientY, gridTop);
       if (!targetResource) {
         return;
       }
@@ -166,7 +172,7 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
       window.removeEventListener('mouseup', handleMouseUp);
       cancelDrag();
     };
-  }, [cancelDrag, clearRaf, gridElementRef]);
+  }, [cancelDrag, clearRaf, disableResourceReassignment, gridElementRef]);
 
   const startDrag = useCallback((
     event: ReactMouseEvent<HTMLElement>,

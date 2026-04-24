@@ -44,6 +44,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   headerHeight = DEFAULT_HEADER_HEIGHT,
   maxRenderedDays,
   readonly,
+  disableResourceReassignment,
   renderItem,
   getItemClassName,
   onResourceItemMove,
@@ -87,6 +88,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     rows: layout.rows,
     gridElementRef: gridRef,
     readonly,
+    disableResourceReassignment,
     onResourceItemMove,
   });
 

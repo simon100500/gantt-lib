@@ -109,7 +109,7 @@ export default function ResourcePlannerExample() {
       <h2 className="demo-section-title">Resource Planner Mode</h2>
       <p className="demo-section-desc">
         <strong>Resource rows:</strong> drag an item horizontally to shift dates, or vertically to reassign it to another resource.
-        Empty resources stay visible, and overlapping items are stacked into lanes.
+        Empty resources stay visible, and this example locks reassignment so items move only by date.
       </p>
       <div className="demo-chart-card">
         <GanttChart<never, PlannerItem>
@@ -119,6 +119,7 @@ export default function ResourcePlannerExample() {
           laneHeight={42}
           rowHeaderWidth={180}
           maxRenderedDays={35}
+          disableResourceReassignment
           onResourceItemMove={handleMove}
           getItemClassName={(item) => item.status ? `demo-resource-item-${item.status}` : undefined}
           renderItem={(item) => (

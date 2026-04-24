@@ -77,6 +77,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
   headerHeight?: number;
   maxRenderedDays?: number;
   readonly?: boolean;
+  disableResourceReassignment?: boolean;
   renderItem?: (item: TItem) => React.ReactNode;
   getItemClassName?: (item: TItem) => string | undefined;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
@@ -126,6 +127,8 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 
 ## Resource Planner Props
 
+For a complete guide with examples, state updates, X-only drag, and limitations, see [Resource Planner Mode](./15-resource-planner.md).
+
 Use the default `GanttChart` entry point for resource mode:
 
 ```tsx
@@ -160,6 +163,7 @@ const resources: ResourceTimelineResource[] = [
 | `headerHeight` | `number` | `40` | Height of the time-scale header. |
 | `maxRenderedDays` | `number` | `undefined` | Optional cap for rendered day columns. |
 | `readonly` | `boolean` | `false` | Prevents resource item dragging when true. |
+| `disableResourceReassignment` | `boolean` | `false` | Locks resource item drag to the X axis. Dates can change, but `toResourceId` stays equal to `fromResourceId`. |
 | `renderItem` | `(item) => ReactNode` | `undefined` | Custom inner content for a resource item bar. Geometry remains controlled by the renderer. |
 | `getItemClassName` | `(item) => string \| undefined` | `undefined` | Adds a custom class to a resource item bar. |
 | `onResourceItemMove` | `(move: ResourceTimelineMove) => void` | `undefined` | Fires on mouseup after a valid drag. Consumers validate authorization/conflicts and update their own resource state. |

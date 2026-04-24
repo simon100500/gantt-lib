@@ -41,6 +41,8 @@ Override these in any global CSS file to customize the chart appearance. All ove
 
 ## Resource Planner Variables
 
+For full resource planner usage examples, see [Resource Planner Mode](./15-resource-planner.md).
+
 These variables apply to `mode="resource-planner"` and the direct `ResourceTimelineChart` export.
 
 | Variable | Default | Controls |

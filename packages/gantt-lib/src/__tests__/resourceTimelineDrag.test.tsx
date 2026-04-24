@@ -255,4 +255,40 @@ describe('ResourceTimelineChart drag interactions', () => {
     });
     expect(onResourceItemMove.mock.calls[0][0].toResourceId).toBe('qa');
   });
+
+  it('keeps moves on the source resource when reassignment is disabled', async () => {
+    const onResourceItemMove = vi.fn<[ResourceTimelineMove]>();
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        dayWidth={40}
+        laneHeight={40}
+        disableResourceReassignment
+        onResourceItemMove={onResourceItemMove}
+      />
+    );
+
+    const item = screen.getByText('Discovery').closest('[data-resource-item-id="item-1"]') as HTMLElement;
+
+    fireEvent.mouseDown(item, { clientX: 100, clientY: 20, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 140, clientY: 60 });
+
+    await waitFor(() => {
+      expect(item).toHaveClass('gantt-resourceTimeline-itemDragging');
+    });
+    expect(item.style.top).toBe('0px');
+
+    fireEvent.mouseUp(window, { clientX: 140, clientY: 60 });
+
+    await waitFor(() => {
+      expect(onResourceItemMove).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onResourceItemMove.mock.calls[0][0]).toMatchObject({
+      fromResourceId: 'design',
+      toResourceId: 'design',
+    });
+    expect(onResourceItemMove.mock.calls[0][0].startDate.toISOString()).toBe('2026-04-04T00:00:00.000Z');
+  });
 });
