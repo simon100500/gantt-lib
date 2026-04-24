@@ -3,6 +3,7 @@
 import React, { useMemo, useRef } from 'react';
 import { getMultiMonthDays, parseUTCDate, formatDateRangeLabel } from '../../utils/dateUtils';
 import { layoutResourceTimelineItems } from '../../utils/resourceTimelineLayout';
+import { useResourceItemDrag } from '../../hooks/useResourceItemDrag';
 import type { ResourcePlannerChartProps, ResourceTimelineItem } from '../../types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import GridBackground from '../GridBackground';
@@ -42,8 +43,10 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   laneHeight = DEFAULT_LANE_HEIGHT,
   headerHeight = DEFAULT_HEADER_HEIGHT,
   maxRenderedDays,
+  readonly,
   renderItem,
   getItemClassName,
+  onResourceItemMove,
 }: ResourcePlannerChartProps<TItem>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const validItems = useMemo(() => collectValidItems(resources), [resources]);
@@ -77,6 +80,13 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     }
     return map;
   }, [layout.items]);
+
+  const { preview, startDrag } = useResourceItemDrag({
+    dayWidth,
+    rows: layout.rows,
+    readonly,
+    onResourceItemMove,
+  });
 
   return (
     <div className="gantt-container gantt-resourceTimeline">
@@ -137,17 +147,24 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   const customClassName = getItemClassName?.(layoutItem.item);
                   const className = [
                     'gantt-resourceTimeline-item',
+                    preview?.itemId === layoutItem.itemId && 'gantt-resourceTimeline-itemDragging',
+                    (readonly || layoutItem.item.locked) && 'gantt-resourceTimeline-itemDisabled',
                     customClassName,
                   ].filter(Boolean).join(' ');
+                  const previewStyle = preview?.itemId === layoutItem.itemId
+                    ? { left: `${preview.left}px`, top: `${preview.top}px` }
+                    : undefined;
 
                   return (
                     <div
                       key={layoutItem.itemId}
                       className={className}
                       data-resource-item-id={layoutItem.itemId}
+                      onMouseDown={(event) => startDrag(event, layoutItem)}
                       style={{
                         left: `${layoutItem.left}px`,
                         top: `${layoutItem.top}px`,
+                        ...previewStyle,
                         width: `${layoutItem.width}px`,
                         height: `${layoutItem.height}px`,
                         backgroundColor: layoutItem.item.color ?? 'var(--gantt-task-bar-default-color, #3b82f6)',

@@ -81,6 +81,19 @@
   color: var(--gantt-task-bar-text-color, #ffffff);
   border-radius: var(--gantt-resource-bar-radius, 4px);
   overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.gantt-resourceTimeline-itemDragging {
+  z-index: 5;
+  cursor: grabbing;
+  opacity: 0.85;
+  box-shadow: 0 4px 12px rgba(31, 41, 55, 0.2);
+}
+
+.gantt-resourceTimeline-itemDisabled {
+  cursor: default;
 }
 
 .gantt-resourceTimeline-itemInner {
