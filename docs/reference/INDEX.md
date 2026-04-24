@@ -18,6 +18,7 @@
 - [Task Filtering](./05-filtering.md) — Predicate-based filtering API
 - [Custom Weekends](./06-custom-days.md) — Holidays, working Saturdays, isWeekend
 - [Business Days](./07-business-days.md) — Режим рабочих дней
+- [Resource Planner Mode](./15-resource-planner.md) — Resource rows, assignments, X-only drag, reassignment callbacks
 
 ## Advanced
 

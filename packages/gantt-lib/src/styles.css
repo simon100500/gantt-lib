@@ -22,6 +22,12 @@
   --gantt-task-bar-border-radius: 4px;
   --gantt-task-bar-height: 24px;
 
+  /* Resource Timeline */
+  --gantt-resource-row-header-width: 240px;
+  --gantt-resource-lane-height: 40px;
+  --gantt-resource-bar-radius: 4px;
+  --gantt-resource-bar-conflict-color: #ef4444;
+
   /* Today Indicator */
   --gantt-today-indicator-color: rgba(255, 0, 0, 0.6);
   --gantt-today-indicator-width: 2px;

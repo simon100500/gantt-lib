@@ -36,6 +36,22 @@ Requirements for adding extensibility features — custom weekend calendar and a
 - [x] **MIG-06**: Один поддерживаемый стиль авторинга
 - [x] **MIG-07**: Тесты проходят после удаления legacy support
 
+## Current Extension Requirements
+
+### Resource Planner Mode
+
+- [x] **RP-01**: Existing `GanttChart` task mode remains backward compatible when `mode` is omitted
+- [x] **RP-02**: `mode="resource-planner"` renders resource timeline without `tasks`
+- [x] **RP-03**: Non-overlapping items in one resource occupy one lane
+- [x] **RP-04**: Overlapping items occupy multiple lanes
+- [x] **RP-05**: Resource row height grows with lane count and empty resources stay visible
+- [x] **RP-06**: Horizontal drag emits changed dates and same resource id
+- [x] **RP-07**: Vertical drag onto another resource emits new target resource id
+- [x] **RP-08**: Drop outside resource rows emits no move
+- [x] **RP-09**: `readonly` and `item.locked` disable resource drag
+- [x] **RP-10**: `renderItem` and `getItemClassName` customize item content and classes
+- [x] **RP-11**: Resource mode does not render dependency lines, hierarchy/cascade, task list editing, or task reorder behavior
+
 ## Future Requirements
 
 Deferred to future release.
@@ -85,12 +101,24 @@ Deferred to future release.
 | MIG-05 | Phase 26 | Complete |
 | MIG-06 | Phase 26 | Complete |
 | MIG-07 | Phase 26 | Complete |
+| RP-01 | Phase 30 | Complete |
+| RP-02 | Phase 30 | Complete |
+| RP-03 | Phase 30 | Complete |
+| RP-04 | Phase 30 | Complete |
+| RP-05 | Phase 30 | Complete |
+| RP-06 | Phase 30 | Complete |
+| RP-07 | Phase 30 | Complete |
+| RP-08 | Phase 30 | Complete |
+| RP-09 | Phase 30 | Complete |
+| RP-10 | Phase 30 | Complete |
+| RP-11 | Phase 30 | Complete |
 
 **Coverage:**
 - v0.50.0 requirements: 20 total
-- Mapped to phases: 20
+- Resource planner requirements: 11 total
+- Mapped to phases: 31
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-17*
-*Last updated: 2026-03-29 after Phase 26 completion*
+*Last updated: 2026-04-25 after Phase 30 completion*

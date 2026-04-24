@@ -4,13 +4,29 @@
 import './styles.css';
 
 // Components
-export { GanttChart, type Task, type TaskDependency, type TaskListMenuCommand, type GanttChartProps, type GanttChartHandle, type ExportToPdfOptions, type ExportToPdfHeaderOptions } from './components/GanttChart';
+export {
+  GanttChart,
+  type Task,
+  type TaskDependency,
+  type TaskListMenuCommand,
+  type GanttChartMode,
+  type GanttModeProps,
+  type GanttChartProps,
+  type ResourcePlannerChartProps,
+  type ResourceTimelineItem,
+  type ResourceTimelineMove,
+  type ResourceTimelineResource,
+  type GanttChartHandle,
+  type ExportToPdfOptions,
+  type ExportToPdfHeaderOptions,
+} from './components/GanttChart';
 export { default as TaskRow } from './components/TaskRow';
 export { default as TimeScaleHeader } from './components/TimeScaleHeader';
 export { default as GridBackground } from './components/GridBackground';
 export { default as TodayIndicator } from './components/TodayIndicator';
 export { default as DragGuideLines } from './components/DragGuideLines/DragGuideLines';
 export { TaskList, type TaskListProps } from './components/TaskList';
+export { ResourceTimelineChart } from './components/ResourceTimelineChart';
 
 // UI Components
 export { Input, type InputProps } from './components/ui/Input';

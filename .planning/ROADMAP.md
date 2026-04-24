@@ -5,10 +5,11 @@
 - ✅ **v0.18.0 Gantt Library MVP** — Phases 1-20 (shipped 2026-03-17)
   — See `.planning/milestones/v0.18.0-ROADMAP.md`
 - ✅ **v0.50.0 Adding Tools** — Phases 21-29 (complete)
+- ✅ **Current Extension** — Phase 30 (complete)
 
 ## Current Status
 
-✅ **Phase 29 complete** — Milestones type tasks
+✅ **Phase 30 complete** — resource-mode (4/4 plans complete)
 
 ## Phases
 
@@ -22,6 +23,7 @@
 - [x] **Phase 27: core-refactor** - Extract scheduling logic into headless runtime-agnostic core module
 - [x] **Phase 28: scheduling-core-hardening** - Domain/UI boundary separation, command-level API, documentation
 - [x] **Phase 29: milestones-type-tasks** - Explicit milestone task type, diamond rendering, move-only interaction, samples and docs
+- [x] **Phase 30: resource-mode** - resource-mode
 
 ### Phase 21: Custom Weekend Calendar
 
@@ -232,8 +234,9 @@
 | 27 | v0.50.0 | 2/2 | Complete    | 2026-03-30 |
 | 28 | v0.50.0 | 3/3 | Complete    | 2026-03-30 |
 | 29 | v0.50.0 | 3/3 | Complete    | 2026-04-11 |
+| 30 | Current Extension | 2/4 | In Progress | |
 
-**Overall:** 67/72 plans complete (93%)
+**Overall:** 69/76 plans complete (91%)
 
 <details>
 <summary>v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -318,8 +321,24 @@ Plans:
 
 ---
 
+### Phase 30: resource-mode
+
+**Goal:** resource-mode
+
+**Depends on:** Phase 29
+
+**Plans:** 4 plans
+
+Plans:
+- [x] 30-01-PLAN.md — Foundation: public types, discriminated props, pure layout utility, Wave 0 tests
+- [x] 30-02-PLAN.md — Read-only ResourceTimelineChart renderer, CSS, facade branch, resource headers/bars/custom renderers
+- [x] 30-03-PLAN.md — Resource drag/drop interactions: horizontal date moves, vertical reassignment, readonly/locked/drop-outside behavior
+- [x] 30-04-PLAN.md — Public exports, docs, regression coverage, build/full-suite verification
+
+---
+
 **Phase Numbering:**
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-**Roadmap updated:** 2026-04-11
+**Roadmap updated:** 2026-04-25

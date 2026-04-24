@@ -3,12 +3,45 @@
  * and its backward-compatibility chain through dependencyUtils.
  */
 import { describe, it, expect } from 'vitest';
+import type {
+  GanttChartMode,
+  ResourcePlannerChartProps,
+  ResourceTimelineItem,
+  ResourceTimelineMove,
+  ResourceTimelineResource,
+} from '../index';
 
 describe('Export contract: core/scheduling', () => {
   it('root package exports the public gantt chart API without runtime regressions', async () => {
     const mod = await import('../index');
     expect(mod.GanttChart).toBeDefined();
+    expect(mod.ResourceTimelineChart).toBeDefined();
     expect(mod.TaskList).toBeDefined();
+  }, 10000);
+
+  it('keeps resource planner public types usable from the root package', () => {
+    const mode: GanttChartMode = 'resource-planner';
+    const item: ResourceTimelineItem = {
+      id: 'assignment-1',
+      resourceId: 'resource-1',
+      title: 'Assignment',
+      startDate: '2026-04-01',
+      endDate: '2026-04-03',
+    };
+    const resource: ResourceTimelineResource = {
+      id: 'resource-1',
+      name: 'Resource 1',
+      items: [item],
+    };
+    const props: ResourcePlannerChartProps = {
+      mode,
+      resources: [resource],
+      onResourceItemMove: (move: ResourceTimelineMove) => {
+        expect(move.fromResourceId).toBeDefined();
+      },
+    };
+
+    expect(props.resources[0].items[0].id).toBe('assignment-1');
   });
 
   it('exports command-level API from execute.ts', async () => {

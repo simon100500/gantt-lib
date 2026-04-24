@@ -39,6 +39,21 @@ Override these in any global CSS file to customize the chart appearance. All ove
 | `--gantt-baseline-thickness` | `3px` | Thickness of the baseline line |
 | `--gantt-baseline-offset` | `2px` | Vertical gap between the task bar and the baseline line |
 
+## Resource Planner Variables
+
+For full resource planner usage examples, see [Resource Planner Mode](./15-resource-planner.md).
+
+These variables apply to `mode="resource-planner"` and the direct `ResourceTimelineChart` export.
+
+| Variable | Default | Controls |
+|---|---|---|
+| `--gantt-resource-row-header-width` | `240px` | Width of the left resource-name column. Match the `rowHeaderWidth` prop when overriding structurally. |
+| `--gantt-resource-lane-height` | `40px` | Visual lane height for resource item rows. Match the `laneHeight` prop when overriding structurally. |
+| `--gantt-resource-bar-radius` | `4px` | Corner radius of resource item bars. |
+| `--gantt-resource-bar-conflict-color` | `#ef4444` | Reserved conflict color for consumer-rendered or future conflict states. The built-in resource planner does not reject overlaps. |
+
+Resource item bars also reuse `--gantt-task-bar-default-color` and `--gantt-task-bar-text-color` for default fill and text color.
+
 ---
 
 [← Back to API Reference](./INDEX.md)
