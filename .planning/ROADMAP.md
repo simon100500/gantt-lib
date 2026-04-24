@@ -5,11 +5,11 @@
 - ✅ **v0.18.0 Gantt Library MVP** — Phases 1-20 (shipped 2026-03-17)
   — See `.planning/milestones/v0.18.0-ROADMAP.md`
 - ✅ **v0.50.0 Adding Tools** — Phases 21-29 (complete)
-- 🚧 **Current Extension** — Phase 30 (in progress)
+- ✅ **Current Extension** — Phase 30 (complete)
 
 ## Current Status
 
-🚧 **Phase 30 in progress** — resource-mode (2/4 plans complete)
+✅ **Phase 30 complete** — resource-mode (4/4 plans complete)
 
 ## Phases
 
@@ -23,7 +23,7 @@
 - [x] **Phase 27: core-refactor** - Extract scheduling logic into headless runtime-agnostic core module
 - [x] **Phase 28: scheduling-core-hardening** - Domain/UI boundary separation, command-level API, documentation
 - [x] **Phase 29: milestones-type-tasks** - Explicit milestone task type, diamond rendering, move-only interaction, samples and docs
-- [ ] **Phase 30: resource-mode** - resource-mode
+- [x] **Phase 30: resource-mode** - resource-mode
 
 ### Phase 21: Custom Weekend Calendar
 
@@ -332,8 +332,8 @@ Plans:
 Plans:
 - [x] 30-01-PLAN.md — Foundation: public types, discriminated props, pure layout utility, Wave 0 tests
 - [x] 30-02-PLAN.md — Read-only ResourceTimelineChart renderer, CSS, facade branch, resource headers/bars/custom renderers
-- [ ] 30-03-PLAN.md — Resource drag/drop interactions: horizontal date moves, vertical reassignment, readonly/locked/drop-outside behavior
-- [ ] 30-04-PLAN.md — Public exports, docs, regression coverage, build/full-suite verification
+- [x] 30-03-PLAN.md — Resource drag/drop interactions: horizontal date moves, vertical reassignment, readonly/locked/drop-outside behavior
+- [x] 30-04-PLAN.md — Public exports, docs, regression coverage, build/full-suite verification
 
 ---
 
@@ -341,4 +341,4 @@ Plans:
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-**Roadmap updated:** 2026-04-24
+**Roadmap updated:** 2026-04-25

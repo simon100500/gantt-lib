@@ -61,7 +61,7 @@ completed: 2026-04-25
 
 1. **Task 1: Publish resource exports and export-contract tests** - `42eeb87` (docs/test)
 2. **Task 2: Update README and reference docs** - `42eeb87` (docs/test)
-3. **Task 3: Close phase with regression and full package verification** - `b17b2a4` (test)
+3. **Task 3: Close phase with regression and full package verification** - `b17b2a4` (test), `c3d039f` (fix)
 
 ## Files Created/Modified
 
@@ -103,6 +103,7 @@ None - no external service configuration required.
 - Docs checks for `mode="resource-planner"`, `ResourceTimelineResource`, resource CSS variables, and drag terms - passed.
 - Isolation check: `rg -e "DependencyLines|TaskList|core/scheduling|useTaskDrag" packages/gantt-lib/src/components/ResourceTimelineChart packages/gantt-lib/src/hooks/useResourceItemDrag.ts` - no matches.
 - `cd packages/gantt-lib && npm test -- --run src/__tests__/resourceTimelineLayout.test.ts src/__tests__/resourceTimelineChart.test.tsx src/__tests__/resourceTimelineDrag.test.tsx src/__tests__/resourceModeRegression.test.tsx src/__tests__/export-contract.test.ts src/__tests__/dependencyLines.test.tsx` - passed, 26 tests.
+- `cd packages/gantt-lib && npm test -- --run src/__tests__/resourceTimelineDrag.test.tsx src/__tests__/resourceTimelineChart.test.tsx src/__tests__/resourceModeRegression.test.tsx` - passed after grid-offset fix, 14 tests.
 - `cd packages/gantt-lib && npm test` - failed in pre-existing non-resource suites listed above.
 
 ## Next Phase Readiness

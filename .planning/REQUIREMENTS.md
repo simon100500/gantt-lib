@@ -45,10 +45,10 @@ Requirements for adding extensibility features — custom weekend calendar and a
 - [x] **RP-03**: Non-overlapping items in one resource occupy one lane
 - [x] **RP-04**: Overlapping items occupy multiple lanes
 - [x] **RP-05**: Resource row height grows with lane count and empty resources stay visible
-- [ ] **RP-06**: Horizontal drag emits changed dates and same resource id
-- [ ] **RP-07**: Vertical drag onto another resource emits new target resource id
-- [ ] **RP-08**: Drop outside resource rows emits no move
-- [ ] **RP-09**: `readonly` and `item.locked` disable resource drag
+- [x] **RP-06**: Horizontal drag emits changed dates and same resource id
+- [x] **RP-07**: Vertical drag onto another resource emits new target resource id
+- [x] **RP-08**: Drop outside resource rows emits no move
+- [x] **RP-09**: `readonly` and `item.locked` disable resource drag
 - [x] **RP-10**: `renderItem` and `getItemClassName` customize item content and classes
 - [x] **RP-11**: Resource mode does not render dependency lines, hierarchy/cascade, task list editing, or task reorder behavior
 
@@ -106,10 +106,10 @@ Deferred to future release.
 | RP-03 | Phase 30 | Complete |
 | RP-04 | Phase 30 | Complete |
 | RP-05 | Phase 30 | Complete |
-| RP-06 | Phase 30 | Pending |
-| RP-07 | Phase 30 | Pending |
-| RP-08 | Phase 30 | Pending |
-| RP-09 | Phase 30 | Pending |
+| RP-06 | Phase 30 | Complete |
+| RP-07 | Phase 30 | Complete |
+| RP-08 | Phase 30 | Complete |
+| RP-09 | Phase 30 | Complete |
 | RP-10 | Phase 30 | Complete |
 | RP-11 | Phase 30 | Complete |
 
@@ -121,4 +121,4 @@ Deferred to future release.
 
 ---
 *Requirements defined: 2026-03-17*
-*Last updated: 2026-04-24 after Phase 30 Plan 30-02*
+*Last updated: 2026-04-25 after Phase 30 completion*

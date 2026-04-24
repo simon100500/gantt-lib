@@ -75,7 +75,20 @@ completed: 2026-04-25
 
 ## Deviations from Plan
 
-None - plan executed within the intended resource-mode interaction scope.
+### Auto-fixed Issues
+
+**1. Resource row hit testing needed viewport offset compensation**
+- **Found during:** Phase-level review
+- **Issue:** Initial vertical drop target resolution compared raw `clientY` against resource row layout offsets. That only worked when the grid started at viewport Y=0.
+- **Fix:** Passed the resource grid ref into `useResourceItemDrag`, subtracted `getBoundingClientRect().top`, and added regression coverage with a mocked grid offset.
+- **Files modified:** `packages/gantt-lib/src/hooks/useResourceItemDrag.ts`, `packages/gantt-lib/src/components/ResourceTimelineChart/ResourceTimelineChart.tsx`, `packages/gantt-lib/src/__tests__/resourceTimelineDrag.test.tsx`
+- **Verification:** `npm test -- --run src/__tests__/resourceTimelineDrag.test.tsx src/__tests__/resourceTimelineChart.test.tsx src/__tests__/resourceModeRegression.test.tsx`; `npm run build`
+- **Committed in:** `c3d039f`
+
+---
+
+**Total deviations:** 1 auto-fixed correctness issue.
+**Impact on plan:** No scope change; this makes vertical reassignment work when the chart is not positioned at the top of the viewport.
 
 ## Issues Encountered
 

@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.18.0
 milestone_name: milestone
-status: Ready to execute
-last_updated: "2026-04-24T00:00:00.000Z"
-last_activity: 2026-04-24
+status: Phase complete
+last_updated: "2026-04-25T01:44:00.000+03:00"
+last_activity: 2026-04-25
 progress:
   total_phases: 11
   completed_phases: 10
   total_plans: 30
-  completed_plans: 28
+  completed_plans: 30
 ---
 
 ## Current Position
 
 Phase: 30
-Plan: 30-03 ready (2/4 complete)
+Plan: 4/4 complete
 
 ## Project Reference
 
@@ -118,17 +118,19 @@ None yet — no external users (library in active development)
 - ✓ 25-03: Editor unification — single editingColumnId replaces 4 separate states
 - ✓ 25-04: Generic tightening — (source changes superseded by Waves 1-3 architecture)
 
-**Next:** Phase 30 Plan 30-03 — resource drag/drop interactions
+**Next:** Phase 30 verification complete — choose next roadmap action
 
 - ✓ 28-01: Domain types + command-level API (execute.ts, ScheduleTask, 22 tests)
 - ✓ 28-02: UI adapter extraction (adapters/scheduling/drag.ts, clean domain boundary)
 - ✓ 28-03: Boundary tests + documentation (5 boundary + 4 export-contract tests, docs rewrite)
 - ✓ 30-01: Resource public contracts, discriminated GanttChart props, pure layout utility
 - ✓ 30-02: Read-only ResourceTimelineChart renderer and facade routing
+- ✓ 30-03: Resource drag/drop interactions with date shifts, reassignment, readonly/locked/outside-drop gates
+- ✓ 30-04: Public exports, README/reference docs, export contract and final targeted regression coverage
 
 ---
 
-Last activity: 2026-04-24
+Last activity: 2026-04-25
 
-**State updated:** 2026-04-24
+**State updated:** 2026-04-25
 **Milestone:** v0.50.0 Adding Tools
