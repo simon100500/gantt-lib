@@ -4,4 +4,5 @@ export * from './dependencyUtils';
 export * from './expired';
 export * from './geometry';
 export * from './hierarchyOrder';
+export * from './resourceTimelineLayout';
 export * from './taskListReorder';

@@ -53,14 +53,9 @@ export type {
 // Types
 export type {
   GanttDateRange,
-  GanttChartMode,
   TaskBarGeometry,
   GridConfig,
   MonthSpan,
   GridLine,
   WeekendBlock,
-  ResourcePlannerChartProps,
-  ResourceTimelineItem,
-  ResourceTimelineMove,
-  ResourceTimelineResource,
 } from './types';
