@@ -14,6 +14,9 @@ const DEFAULT_DAY_WIDTH = 40;
 const DEFAULT_HEADER_HEIGHT = 40;
 const DEFAULT_LANE_HEIGHT = 40;
 const DEFAULT_ROW_HEADER_WIDTH = 240;
+const ITEM_OUTER_VERTICAL_INSET = 2;
+const ITEM_INNER_VERTICAL_INSET = 1;
+const ITEM_HORIZONTAL_INSET = 1;
 
 const isValidDate = (date: Date): boolean => !Number.isNaN(date.getTime());
 
@@ -34,6 +37,22 @@ const collectValidItems = <TItem extends ResourceTimelineItem>(resources: Resour
       }
     })
   );
+};
+
+const getVisualItemGeometry = (
+  geometry: { left: number; top: number; width: number; height: number },
+  laneIndex: number,
+  laneCount: number
+) => {
+  const topInset = laneIndex === 0 ? ITEM_OUTER_VERTICAL_INSET : ITEM_INNER_VERTICAL_INSET;
+  const bottomInset = laneIndex === laneCount - 1 ? ITEM_OUTER_VERTICAL_INSET : ITEM_INNER_VERTICAL_INSET;
+
+  return {
+    left: geometry.left + ITEM_HORIZONTAL_INSET,
+    top: geometry.top + topInset,
+    width: Math.max(0, geometry.width - ITEM_HORIZONTAL_INSET * 2),
+    height: Math.max(0, geometry.height - topInset - bottomInset),
+  };
 };
 
 export function ResourceTimelineChart<TItem extends ResourceTimelineItem = ResourceTimelineItem>({
@@ -156,9 +175,21 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                     (readonly || layoutItem.item.locked) && 'gantt-resourceTimeline-itemDisabled',
                     customClassName,
                   ].filter(Boolean).join(' ');
+                  const laneCount = Math.max(1, Math.round(layoutItem.resourceRowHeight / layoutItem.height));
                   const previewStyle = preview?.itemId === layoutItem.itemId
-                    ? { left: `${preview.left}px`, top: `${preview.top}px` }
+                    ? getVisualItemGeometry({
+                        left: preview.left,
+                        top: preview.top,
+                        width: layoutItem.width,
+                        height: layoutItem.height,
+                      }, layoutItem.laneIndex, laneCount)
                     : undefined;
+                  const itemGeometry = getVisualItemGeometry({
+                    left: layoutItem.left,
+                    top: layoutItem.top,
+                    width: layoutItem.width,
+                    height: layoutItem.height,
+                  }, layoutItem.laneIndex, laneCount);
 
                   return (
                     <div
@@ -167,11 +198,11 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                       data-resource-item-id={layoutItem.itemId}
                       onMouseDown={(event) => startDrag(event, layoutItem)}
                       style={{
-                        left: `${layoutItem.left}px`,
-                        top: `${layoutItem.top}px`,
+                        left: `${itemGeometry.left}px`,
+                        top: `${itemGeometry.top}px`,
                         ...previewStyle,
-                        width: `${layoutItem.width}px`,
-                        height: `${layoutItem.height}px`,
+                        width: `${itemGeometry.width}px`,
+                        height: `${itemGeometry.height}px`,
                         backgroundColor: layoutItem.item.color ?? 'var(--gantt-task-bar-default-color, #3b82f6)',
                       }}
                     >

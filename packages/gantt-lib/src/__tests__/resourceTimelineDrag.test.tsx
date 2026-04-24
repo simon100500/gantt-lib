@@ -277,7 +277,7 @@ describe('ResourceTimelineChart drag interactions', () => {
     await waitFor(() => {
       expect(item).toHaveClass('gantt-resourceTimeline-itemDragging');
     });
-    expect(item.style.top).toBe('0px');
+    expect(item.style.top).toBe('2px');
 
     fireEvent.mouseUp(window, { clientX: 140, clientY: 60 });
 

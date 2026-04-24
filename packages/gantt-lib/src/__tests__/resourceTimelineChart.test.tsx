@@ -44,6 +44,18 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByText('3–5 апр')).toBeInTheDocument();
   });
 
+  it('renders resource item bars with fixed visual spacing inside lanes', () => {
+    const { container } = render(
+      <ResourceTimelineChart mode="resource-planner" resources={resources} dayWidth={40} laneHeight={40} />
+    );
+
+    const item = container.querySelector('[data-resource-item-id="discovery"]') as HTMLElement;
+    expect(item.style.left).toBe('81px');
+    expect(item.style.top).toBe('2px');
+    expect(item.style.width).toBe('118px');
+    expect(item.style.height).toBe('36px');
+  });
+
   it('keeps empty resources visible with one-lane height', () => {
     const { container } = render(<ResourceTimelineChart mode="resource-planner" resources={resources} laneHeight={36} />);
 
@@ -70,6 +82,30 @@ describe('ResourceTimelineChart', () => {
 
     const devRow = container.querySelector('[data-resource-row-id="dev"]') as HTMLElement;
     expect(devRow.style.height).toBe('68px');
+  });
+
+  it('keeps a two-pixel vertical gap between bars in adjacent lanes', () => {
+    const overlapping: ResourceTimelineResource[] = [
+      {
+        id: 'dev',
+        name: 'Development',
+        items: [
+          { id: 'a', resourceId: 'dev', title: 'A', startDate: '2026-04-01', endDate: '2026-04-03' },
+          { id: 'b', resourceId: 'dev', title: 'B', startDate: '2026-04-03', endDate: '2026-04-06' },
+        ],
+      },
+    ];
+
+    const { container } = render(
+      <ResourceTimelineChart mode="resource-planner" resources={overlapping} laneHeight={40} />
+    );
+
+    const firstItem = container.querySelector('[data-resource-item-id="a"]') as HTMLElement;
+    const secondItem = container.querySelector('[data-resource-item-id="b"]') as HTMLElement;
+    expect(firstItem.style.top).toBe('2px');
+    expect(firstItem.style.height).toBe('37px');
+    expect(secondItem.style.top).toBe('41px');
+    expect(secondItem.style.height).toBe('37px');
   });
 
   it('allows custom item content and appends per-item classes', () => {
