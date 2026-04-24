@@ -21,6 +21,7 @@ import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
 import { TaskList } from '../TaskList';
+import { ResourceTimelineChart } from '../ResourceTimelineChart';
 import { printGanttChart } from './print';
 import './GanttChart.css';
 
@@ -284,20 +285,6 @@ export interface GanttChartHandle {
  * />
  * ```
  */
-function ResourcePlannerPlaceholder<TItem extends ResourceTimelineItem = ResourceTimelineItem>({
-  resources,
-}: ResourcePlannerChartProps<TItem>) {
-  return (
-    <div className="gantt-container gantt-resourceTimeline">
-      {resources.map((resource) => (
-        <div key={resource.id} className="gantt-resourceTimeline-row">
-          {resource.name}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function GanttChartInner<
   TTask extends Task = Task,
   TItem extends ResourceTimelineItem = ResourceTimelineItem,
@@ -306,7 +293,7 @@ function GanttChartInner<
   ref: React.ForwardedRef<GanttChartHandle>
 ) {
   if (props.mode === 'resource-planner') {
-    return <ResourcePlannerPlaceholder {...props} />;
+    return <ResourceTimelineChart {...props} />;
   }
 
   return (
