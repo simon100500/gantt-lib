@@ -9,13 +9,13 @@ progress:
   total_phases: 11
   completed_phases: 10
   total_plans: 30
-  completed_plans: 26
+  completed_plans: 28
 ---
 
 ## Current Position
 
 Phase: 30
-Plan: 4 plans ready
+Plan: 30-03 ready (2/4 complete)
 
 ## Project Reference
 
@@ -47,6 +47,8 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 | Type alias intersection for union types | TypeScript doesn't support interface extends union (TS2312) | ✓ Good — used `type X = Union & { ... }` pattern |
 | Tracked insertion positions per anchor | Prevents same-anchor column order reversal | ✓ Good — Map<string, number> tracks last insert index |
 | Single editingColumnId state | One state for all editors, derived booleans for compat | ✓ Good — eliminates multi-editor race condition (Phase 25-03) |
+| Resource renderer split | Keeps task-mode dependency/list/hierarchy systems out of resource planner mode | ✓ Good — `GanttChart` routes `mode="resource-planner"` before task-mode internals |
+| Fixed item shell for custom resource content | Prevents consumer `renderItem` from changing bar geometry or row height | ✓ Good — custom content renders only inside the positioned item shell |
 
 ### Technical Constraints
 
@@ -109,18 +111,20 @@ None yet — no external users (library in active development)
 
 **Previous session:** Completed v0.18.0 (Phases 1-20), released 2026-03-17
 
-**Current focus:** Phase 29 — milestones-type-tasks
+**Current focus:** Phase 30 — resource-mode
 
 - ✓ 25-01: Structural foundations — new types, resolver with TDD, backward-compatible bridge
 - ✓ 25-02: Render unification — createBuiltInColumns factory, header/body via resolvedColumns.map()
 - ✓ 25-03: Editor unification — single editingColumnId replaces 4 separate states
 - ✓ 25-04: Generic tightening — (source changes superseded by Waves 1-3 architecture)
 
-**Next:** Phase 28 complete — ready for verification
+**Next:** Phase 30 Plan 30-03 — resource drag/drop interactions
 
 - ✓ 28-01: Domain types + command-level API (execute.ts, ScheduleTask, 22 tests)
 - ✓ 28-02: UI adapter extraction (adapters/scheduling/drag.ts, clean domain boundary)
 - ✓ 28-03: Boundary tests + documentation (5 boundary + 4 export-contract tests, docs rewrite)
+- ✓ 30-01: Resource public contracts, discriminated GanttChart props, pure layout utility
+- ✓ 30-02: Read-only ResourceTimelineChart renderer and facade routing
 
 ---
 

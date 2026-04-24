@@ -5,11 +5,11 @@
 - ✅ **v0.18.0 Gantt Library MVP** — Phases 1-20 (shipped 2026-03-17)
   — See `.planning/milestones/v0.18.0-ROADMAP.md`
 - ✅ **v0.50.0 Adding Tools** — Phases 21-29 (complete)
-- 🚧 **Current Extension** — Phase 30 (ready to execute)
+- 🚧 **Current Extension** — Phase 30 (in progress)
 
 ## Current Status
 
-🚧 **Phase 30 planned** — resource-mode (ready to execute)
+🚧 **Phase 30 in progress** — resource-mode (2/4 plans complete)
 
 ## Phases
 
@@ -234,9 +234,9 @@
 | 27 | v0.50.0 | 2/2 | Complete    | 2026-03-30 |
 | 28 | v0.50.0 | 3/3 | Complete    | 2026-03-30 |
 | 29 | v0.50.0 | 3/3 | Complete    | 2026-04-11 |
-| 30 | Current Extension | 0/4 | Ready to execute | |
+| 30 | Current Extension | 2/4 | In Progress | |
 
-**Overall:** 67/76 plans complete (88%)
+**Overall:** 69/76 plans complete (91%)
 
 <details>
 <summary>v0.18.0 Gantt Library MVP (Phases 1-20) — SHIPPED 2026-03-17</summary>
@@ -330,8 +330,8 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 30-01-PLAN.md — Foundation: public types, discriminated props, pure layout utility, Wave 0 tests
-- [ ] 30-02-PLAN.md — Read-only ResourceTimelineChart renderer, CSS, facade branch, resource headers/bars/custom renderers
+- [x] 30-01-PLAN.md — Foundation: public types, discriminated props, pure layout utility, Wave 0 tests
+- [x] 30-02-PLAN.md — Read-only ResourceTimelineChart renderer, CSS, facade branch, resource headers/bars/custom renderers
 - [ ] 30-03-PLAN.md — Resource drag/drop interactions: horizontal date moves, vertical reassignment, readonly/locked/drop-outside behavior
 - [ ] 30-04-PLAN.md — Public exports, docs, regression coverage, build/full-suite verification
 
