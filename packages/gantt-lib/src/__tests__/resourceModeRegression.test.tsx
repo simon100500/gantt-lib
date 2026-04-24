@@ -1,4 +1,5 @@
 import React from 'react';
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { GanttChart, type ResourceTimelineResource, type Task } from '../components/GanttChart';
@@ -47,7 +48,12 @@ describe('GanttChart mode boundary', () => {
     );
 
     expect(container.querySelector('.gantt-resourceTimeline')).toBeTruthy();
+    expect(screen.getByText('Resource Alpha')).toBeInTheDocument();
+    expect(screen.getByText('Assignment Alpha')).toBeInTheDocument();
     expect(container.querySelector('.gantt-tl-overlay')).toBeNull();
-    expect(container.querySelector('.gantt-dependencyLines')).toBeNull();
+    expect(container.querySelector('.gantt-tl-table')).toBeNull();
+    expect(container.querySelector('.gantt-dependencies-svg')).toBeNull();
+    expect(container.querySelector('[data-testid="dependency-lines-svg"]')).toBeNull();
+    expect(container.querySelector('[data-taskbar]')).toBeNull();
   });
 });
