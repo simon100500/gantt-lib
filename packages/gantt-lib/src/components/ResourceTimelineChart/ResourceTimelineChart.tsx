@@ -49,6 +49,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   onResourceItemMove,
 }: ResourcePlannerChartProps<TItem>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const validItems = useMemo(() => collectValidItems(resources), [resources]);
   const dateRange = useMemo(() => {
     const days = getMultiMonthDays(validItems);
@@ -84,6 +85,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const { preview, startDrag } = useResourceItemDrag({
     dayWidth,
     rows: layout.rows,
+    gridElementRef: gridRef,
     readonly,
     onResourceItemMove,
   });
@@ -124,6 +126,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
             </div>
 
             <div
+              ref={gridRef}
               className="gantt-resourceTimeline-grid"
               style={{ width: `${gridWidth}px`, height: `${layout.totalHeight}px` }}
             >

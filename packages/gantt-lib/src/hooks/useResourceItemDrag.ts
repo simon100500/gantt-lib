@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, RefObject } from 'react';
 import type { ResourceTimelineItem, ResourceTimelineMove, ResourceTimelineResource } from '../types';
 
 interface ResourceDragRow<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
@@ -46,6 +46,7 @@ export interface ResourceItemDragPreview {
 export interface UseResourceItemDragOptions<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   dayWidth: number;
   rows: Array<ResourceDragRow<TItem>>;
+  gridElementRef?: RefObject<HTMLElement | null>;
   readonly?: boolean;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
 }
@@ -60,17 +61,20 @@ const addUTCDays = (date: Date, days: number): Date => {
 
 const resolveTargetResource = <TItem extends ResourceTimelineItem>(
   rows: Array<ResourceDragRow<TItem>>,
-  clientY: number
+  clientY: number,
+  gridTop: number
 ): ResourceTimelineResource<TItem> | null => {
+  const localY = clientY - gridTop;
   return rows.find((row) =>
-    clientY >= row.resourceRowTop &&
-    clientY < row.resourceRowTop + row.resourceRowHeight
+    localY >= row.resourceRowTop &&
+    localY < row.resourceRowTop + row.resourceRowHeight
   )?.resource ?? null;
 };
 
 export const useResourceItemDrag = <TItem extends ResourceTimelineItem = ResourceTimelineItem>({
   dayWidth,
   rows,
+  gridElementRef,
   readonly,
   onResourceItemMove,
 }: UseResourceItemDragOptions<TItem>) => {
@@ -137,7 +141,8 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
       activeDragRef.current = null;
       setPreview(null);
 
-      const targetResource = resolveTargetResource(rowsRef.current, event.clientY);
+      const gridTop = gridElementRef?.current?.getBoundingClientRect().top ?? 0;
+      const targetResource = resolveTargetResource(rowsRef.current, event.clientY, gridTop);
       if (!targetResource) {
         return;
       }
@@ -161,7 +166,7 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
       window.removeEventListener('mouseup', handleMouseUp);
       cancelDrag();
     };
-  }, [cancelDrag, clearRaf]);
+  }, [cancelDrag, clearRaf, gridElementRef]);
 
   const startDrag = useCallback((
     event: ReactMouseEvent<HTMLElement>,

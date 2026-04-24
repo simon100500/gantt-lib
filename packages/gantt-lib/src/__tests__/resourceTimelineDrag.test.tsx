@@ -84,7 +84,7 @@ describe('ResourceTimelineChart drag interactions', () => {
 
   it('emits a target resource id when dropped on another resource row', async () => {
     const onResourceItemMove = vi.fn<[ResourceTimelineMove]>();
-    render(
+    const { container } = render(
       <ResourceTimelineChart
         mode="resource-planner"
         resources={resources}
@@ -94,14 +94,27 @@ describe('ResourceTimelineChart drag interactions', () => {
       />
     );
 
+    const grid = container.querySelector('.gantt-resourceTimeline-grid') as HTMLElement;
+    vi.spyOn(grid, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 100,
+      top: 100,
+      left: 0,
+      right: 400,
+      bottom: 180,
+      width: 400,
+      height: 80,
+      toJSON: () => ({}),
+    });
+
     const item = screen.getByText('Discovery').closest('[data-resource-item-id="item-1"]') as HTMLElement;
 
-    fireEvent.mouseDown(item, { clientX: 100, clientY: 20, button: 0 });
-    fireEvent.mouseMove(window, { clientX: 100, clientY: 60 });
+    fireEvent.mouseDown(item, { clientX: 100, clientY: 120, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 100, clientY: 160 });
 
     expect(onResourceItemMove).not.toHaveBeenCalled();
 
-    fireEvent.mouseUp(window, { clientX: 100, clientY: 60 });
+    fireEvent.mouseUp(window, { clientX: 100, clientY: 160 });
 
     await waitFor(() => {
       expect(onResourceItemMove).toHaveBeenCalledTimes(1);
