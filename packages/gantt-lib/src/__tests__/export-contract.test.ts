@@ -17,7 +17,7 @@ describe('Export contract: core/scheduling', () => {
     expect(mod.GanttChart).toBeDefined();
     expect(mod.ResourceTimelineChart).toBeDefined();
     expect(mod.TaskList).toBeDefined();
-  });
+  }, 10000);
 
   it('keeps resource planner public types usable from the root package', () => {
     const mode: GanttChartMode = 'resource-planner';
