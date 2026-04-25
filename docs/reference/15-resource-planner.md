@@ -22,7 +22,7 @@ Use the default Gantt mode for:
 - Task list editing
 - Reordering project tasks
 
-Resource planner mode intentionally does not render dependency lines, task list editing, hierarchy, cascade scheduling, resize handles, or task reorder behavior.
+Resource planner mode intentionally does not render dependency lines, task list editing, hierarchy, cascade scheduling, or task reorder behavior.
 
 ## Basic Example
 
@@ -150,14 +150,18 @@ The payload is:
 type ResourceTimelineMove = {
   item: ResourceTimelineItem;
   itemId: string;
+  taskId?: string;
   fromResourceId: string;
   toResourceId: string;
   startDate: Date;
   endDate: Date;
+  changeType?: 'move' | 'resize-start' | 'resize-end';
 };
 ```
 
 Validate the move before applying it if your app has permissions, capacity limits, resource availability, or conflict rules.
+
+`changeType` identifies whether the user moved the whole assignment or resized one edge. `taskId` is copied from the item when present, so consumers can forward `{ id: taskId, startDate, endDate }` into a task schedule update pipeline.
 
 ## X-Only Drag
 

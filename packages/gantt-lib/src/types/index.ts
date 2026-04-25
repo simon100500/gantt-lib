@@ -24,10 +24,12 @@ export interface ResourceTimelineResource<TItem extends ResourceTimelineItem = R
 export interface ResourceTimelineMove<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   item: TItem;
   itemId: string;
+  taskId?: string;
   fromResourceId: string;
   toResourceId: string;
   startDate: Date;
   endDate: Date;
+  changeType?: 'move' | 'resize-start' | 'resize-end';
 }
 
 export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = ResourceTimelineItem> {

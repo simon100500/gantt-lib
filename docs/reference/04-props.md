@@ -170,7 +170,7 @@ const resources: ResourceTimelineResource[] = [
 | `disableResourceReassignment` | `boolean` | `false` | Locks resource item drag to the X axis. Dates can change, but `toResourceId` stays equal to `fromResourceId`. |
 | `renderItem` | `(item) => ReactNode` | `undefined` | Custom inner content for a resource item bar. Geometry remains controlled by the renderer. |
 | `getItemClassName` | `(item) => string \| undefined` | `undefined` | Adds a custom class to a resource item bar. |
-| `onResourceItemMove` | `(move: ResourceTimelineMove) => void` | `undefined` | Fires on mouseup after a valid drag. Consumers validate authorization/conflicts and update their own resource state. |
+| `onResourceItemMove` | `(move: ResourceTimelineMove) => void` | `undefined` | Fires on mouseup after a valid move or resize. Includes `startDate`, `endDate`, optional `taskId`, and `changeType: 'move' \| 'resize-start' \| 'resize-end'`. |
 
 Resource mode intentionally does not render dependency lines, task list editing, hierarchy/cascade scheduling, or task reorder behavior.
 

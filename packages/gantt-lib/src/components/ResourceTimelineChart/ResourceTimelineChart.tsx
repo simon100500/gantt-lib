@@ -397,6 +397,12 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                         backgroundColor: layoutItem.item.color ?? 'var(--gantt-task-bar-default-color, #3b82f6)',
                       }}
                     >
+                      {!readonly && !layoutItem.item.locked && (
+                        <>
+                          <span className="gantt-resourceTimeline-resizeHandle gantt-resourceTimeline-resizeHandleStart" />
+                          <span className="gantt-resourceTimeline-resizeHandle gantt-resourceTimeline-resizeHandleEnd" />
+                        </>
+                      )}
                       {weekendOverlaySegments.map((segment, index) => (
                         <span
                           key={`weekend-overlay-${index}`}

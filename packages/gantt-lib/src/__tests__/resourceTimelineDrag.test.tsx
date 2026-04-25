@@ -13,6 +13,7 @@ const resources: ResourceTimelineResource[] = [
       {
         id: 'item-1',
         resourceId: 'design',
+        taskId: 'task-1',
         title: 'Discovery',
         startDate: '2026-04-03',
         endDate: '2026-04-05',
@@ -72,6 +73,8 @@ describe('ResourceTimelineChart drag interactions', () => {
 
     const move = onResourceItemMove.mock.calls[0][0];
     expect(move.itemId).toBe('item-1');
+    expect(move.taskId).toBe('task-1');
+    expect(move.changeType).toBe('move');
     expect(move.fromResourceId).toBe('design');
     expect(move.toResourceId).toBe('design');
     expect(move.startDate.toISOString()).toBe('2026-04-04T00:00:00.000Z');
@@ -297,6 +300,91 @@ describe('ResourceTimelineChart drag interactions', () => {
       toResourceId: 'design',
     });
     expect(onResourceItemMove.mock.calls[0][0].startDate.toISOString()).toBe('2026-04-04T00:00:00.000Z');
+  });
+
+  it('resizes the resource item end date from the right edge', async () => {
+    const onResourceItemMove = vi.fn<[ResourceTimelineMove]>();
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        dayWidth={40}
+        laneHeight={40}
+        businessDays={false}
+        onResourceItemMove={onResourceItemMove}
+      />
+    );
+
+    const item = screen.getByText('Discovery').closest('[data-resource-item-id="item-1"]') as HTMLElement;
+    const handle = item.querySelector('.gantt-resourceTimeline-resizeHandleEnd') as HTMLElement;
+
+    fireEvent.mouseDown(handle, { clientX: 200, clientY: 20, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 240, clientY: 80 });
+
+    await waitFor(() => {
+      expect(item).toHaveClass('gantt-resourceTimeline-itemDragging');
+      expect(item.style.width).toBe('158px');
+      expect(item.style.top).toBe('2px');
+    });
+
+    fireEvent.mouseUp(window, { clientX: 240, clientY: 80 });
+
+    await waitFor(() => {
+      expect(onResourceItemMove).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onResourceItemMove.mock.calls[0][0]).toMatchObject({
+      itemId: 'item-1',
+      taskId: 'task-1',
+      fromResourceId: 'design',
+      toResourceId: 'design',
+      changeType: 'resize-end',
+    });
+    expect(onResourceItemMove.mock.calls[0][0].startDate.toISOString()).toBe('2026-04-03T00:00:00.000Z');
+    expect(onResourceItemMove.mock.calls[0][0].endDate.toISOString()).toBe('2026-04-06T00:00:00.000Z');
+  });
+
+  it('resizes the resource item start date from the left edge', async () => {
+    const onResourceItemMove = vi.fn<[ResourceTimelineMove]>();
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        dayWidth={40}
+        laneHeight={40}
+        businessDays={false}
+        onResourceItemMove={onResourceItemMove}
+      />
+    );
+
+    const item = screen.getByText('Discovery').closest('[data-resource-item-id="item-1"]') as HTMLElement;
+    const handle = item.querySelector('.gantt-resourceTimeline-resizeHandleStart') as HTMLElement;
+
+    fireEvent.mouseDown(handle, { clientX: 80, clientY: 20, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 40, clientY: 80 });
+
+    await waitFor(() => {
+      expect(item).toHaveClass('gantt-resourceTimeline-itemDragging');
+      expect(item.style.left).toBe('41px');
+      expect(item.style.width).toBe('158px');
+      expect(item.style.top).toBe('2px');
+    });
+
+    fireEvent.mouseUp(window, { clientX: 40, clientY: 80 });
+
+    await waitFor(() => {
+      expect(onResourceItemMove).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onResourceItemMove.mock.calls[0][0]).toMatchObject({
+      itemId: 'item-1',
+      taskId: 'task-1',
+      fromResourceId: 'design',
+      toResourceId: 'design',
+      changeType: 'resize-start',
+    });
+    expect(onResourceItemMove.mock.calls[0][0].startDate.toISOString()).toBe('2026-04-02T00:00:00.000Z');
+    expect(onResourceItemMove.mock.calls[0][0].endDate.toISOString()).toBe('2026-04-05T00:00:00.000Z');
   });
 
   it('snaps resource item moves to working days and preserves business-day duration', async () => {

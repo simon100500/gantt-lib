@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react';
 import type { ResourceTimelineItem, ResourceTimelineMove, ResourceTimelineResource } from '../types';
-import { moveTaskRange } from '../core/scheduling';
+import { buildTaskRangeFromEnd, buildTaskRangeFromStart, getBusinessDaysCount, moveTaskRange } from '../core/scheduling';
 
 interface ResourceDragRow<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   resource: ResourceTimelineResource<TItem>;
@@ -26,11 +26,13 @@ interface ResourceDragItem<TItem extends ResourceTimelineItem = ResourceTimeline
 interface ActiveResourceDrag<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   item: TItem;
   itemId: string;
+  mode: ResourceTimelineChangeType;
   fromResourceId: string;
   startX: number;
   startY: number;
   initialLeft: number;
   initialTop: number;
+  initialWidth: number;
   currentLeft: number;
   currentTop: number;
   currentWidth: number;
@@ -41,6 +43,8 @@ interface ActiveResourceDrag<TItem extends ResourceTimelineItem = ResourceTimeli
   businessDays: boolean;
   weekendPredicate?: (date: Date) => boolean;
 }
+
+type ResourceTimelineChangeType = NonNullable<ResourceTimelineMove['changeType']>;
 
 export interface ResourceItemDragPreview {
   itemId: string;
@@ -81,30 +85,48 @@ const getDayOffset = (date: Date, monthStart: Date): number => {
 
 const resolveResourceMoveRange = (
   activeDrag: ActiveResourceDrag,
-  nextLeft: number
+  nextLeft: number,
+  nextWidth: number
 ): { startDate: Date; endDate: Date; left: number; width: number } => {
-  const dayDelta = Math.round((nextLeft - activeDrag.initialLeft) / activeDrag.dayWidth);
-  const rawStartDate = addUTCDays(activeDrag.startDate, dayDelta);
-  const rawEndDate = addUTCDays(activeDrag.endDate, dayDelta);
+  const dayOffset = Math.round(nextLeft / activeDrag.dayWidth);
+  const durationDays = Math.round(nextWidth / activeDrag.dayWidth);
+  const rawStartDate = addUTCDays(activeDrag.monthStart, dayOffset);
+  const rawEndDate = addUTCDays(rawStartDate, durationDays - 1);
 
   if (!activeDrag.businessDays || !activeDrag.weekendPredicate) {
     return {
       startDate: rawStartDate,
       endDate: rawEndDate,
       left: nextLeft,
-      width: activeDrag.currentWidth,
+      width: nextWidth,
     };
   }
 
-  const snapDirection: 1 | -1 = rawStartDate.getTime() >= activeDrag.startDate.getTime() ? 1 : -1;
-  const range = moveTaskRange(
-    activeDrag.startDate,
-    activeDrag.endDate,
-    rawStartDate,
-    true,
-    activeDrag.weekendPredicate,
-    snapDirection
-  );
+  const range = (() => {
+    if (activeDrag.mode === 'resize-start') {
+      const snapDirection: 1 | -1 = rawStartDate.getTime() >= activeDrag.startDate.getTime() ? 1 : -1;
+      const duration = getBusinessDaysCount(rawStartDate, activeDrag.endDate, activeDrag.weekendPredicate!);
+      return buildTaskRangeFromEnd(activeDrag.endDate, duration, true, activeDrag.weekendPredicate, snapDirection);
+    }
+
+    if (activeDrag.mode === 'resize-end') {
+      const snapDirection: 1 | -1 = rawEndDate.getTime() >= activeDrag.endDate.getTime() ? 1 : -1;
+      const duration = getBusinessDaysCount(activeDrag.startDate, rawEndDate, activeDrag.weekendPredicate!);
+      return buildTaskRangeFromStart(activeDrag.startDate, duration, true, activeDrag.weekendPredicate, snapDirection);
+    }
+
+    const dayDelta = Math.round((nextLeft - activeDrag.initialLeft) / activeDrag.dayWidth);
+    const proposedStartDate = addUTCDays(activeDrag.startDate, dayDelta);
+    const snapDirection: 1 | -1 = proposedStartDate.getTime() >= activeDrag.startDate.getTime() ? 1 : -1;
+    return moveTaskRange(
+      activeDrag.startDate,
+      activeDrag.endDate,
+      proposedStartDate,
+      true,
+      activeDrag.weekendPredicate,
+      snapDirection
+    );
+  })();
   const startOffset = getDayOffset(range.start, activeDrag.monthStart);
   const endOffset = getDayOffset(range.end, activeDrag.monthStart);
 
@@ -180,9 +202,20 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
           return;
         }
 
-        const snappedLeft = latestDrag.initialLeft + snapToDay(event.clientX - latestDrag.startX, latestDrag.dayWidth);
-        const nextRange = resolveResourceMoveRange(latestDrag, snappedLeft);
-        const nextTop = disableResourceReassignment
+        const snappedDelta = snapToDay(event.clientX - latestDrag.startX, latestDrag.dayWidth);
+        const rightEdge = latestDrag.initialLeft + latestDrag.initialWidth;
+        const nextGeometry = (() => {
+          if (latestDrag.mode === 'resize-start') {
+            const left = Math.min(latestDrag.initialLeft + snappedDelta, rightEdge - latestDrag.dayWidth);
+            return { left, width: rightEdge - left };
+          }
+          if (latestDrag.mode === 'resize-end') {
+            return { left: latestDrag.initialLeft, width: Math.max(latestDrag.dayWidth, latestDrag.initialWidth + snappedDelta) };
+          }
+          return { left: latestDrag.initialLeft + snappedDelta, width: latestDrag.initialWidth };
+        })();
+        const nextRange = resolveResourceMoveRange(latestDrag, nextGeometry.left, nextGeometry.width);
+        const nextTop = disableResourceReassignment || latestDrag.mode !== 'move'
           ? latestDrag.initialTop
           : latestDrag.initialTop + (event.clientY - latestDrag.startY);
         latestDrag.currentLeft = nextRange.left;
@@ -210,21 +243,23 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
       setPreview(null);
 
       const gridTop = gridElementRef?.current?.getBoundingClientRect().top ?? 0;
-      const targetResource = disableResourceReassignment
+      const targetResource = disableResourceReassignment || activeDrag.mode !== 'move'
         ? rowsRef.current.find((row) => row.resourceId === activeDrag.fromResourceId)?.resource ?? null
         : resolveTargetResource(rowsRef.current, event.clientY, gridTop);
       if (!targetResource) {
         return;
       }
 
-      const nextRange = resolveResourceMoveRange(activeDrag, activeDrag.currentLeft);
+      const nextRange = resolveResourceMoveRange(activeDrag, activeDrag.currentLeft, activeDrag.currentWidth);
       onResourceItemMoveRef.current?.({
         item: activeDrag.item,
         itemId: activeDrag.itemId,
+        taskId: activeDrag.item.taskId,
         fromResourceId: activeDrag.fromResourceId,
         toResourceId: targetResource.id,
         startDate: nextRange.startDate,
         endDate: nextRange.endDate,
+        changeType: activeDrag.mode,
       });
     };
 
@@ -246,15 +281,24 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
       return;
     }
 
+    const target = event.target as HTMLElement;
+    const mode: ResourceTimelineChangeType = target.closest('.gantt-resourceTimeline-resizeHandleStart')
+      ? 'resize-start'
+      : target.closest('.gantt-resourceTimeline-resizeHandleEnd')
+        ? 'resize-end'
+        : 'move';
+
     event.preventDefault();
     activeDragRef.current = {
       item: layoutItem.item,
       itemId: layoutItem.itemId,
+      mode,
       fromResourceId: layoutItem.resourceId,
       startX: event.clientX,
       startY: event.clientY,
       initialLeft: layoutItem.left,
       initialTop: layoutItem.top,
+      initialWidth: layoutItem.width,
       currentLeft: layoutItem.left,
       currentTop: layoutItem.top,
       currentWidth: layoutItem.width,
