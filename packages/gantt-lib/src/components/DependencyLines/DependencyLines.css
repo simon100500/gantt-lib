@@ -51,13 +51,14 @@
   stroke-width: 2;
 }
 
-/* Hover highlight: red line with a soft red glow */
+/* Hover highlight: sharp red highlighter-style backing */
+.gantt-dependency-line:hover .gantt-dependency-hit-area {
+  stroke: var(--gantt-dependency-hover-background, rgba(239, 68, 68, 0.22));
+}
+
 .gantt-dependency-line:hover .gantt-dependency-path {
   stroke: var(--gantt-dependency-hover-color, #ef4444);
   stroke-width: 2;
-  filter:
-    drop-shadow(0 0 2px rgba(239, 68, 68, 0.95))
-    drop-shadow(0 0 7px rgba(239, 68, 68, 0.55));
   marker-end: url(#arrowhead-hover);
 }
 
