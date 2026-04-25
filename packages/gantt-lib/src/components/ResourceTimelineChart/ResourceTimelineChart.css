@@ -33,6 +33,7 @@
 .gantt-resourceTimeline-resourceHeader {
   display: flex;
   align-items: center;
+  gap: 8px;
   padding: 0 12px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
@@ -43,9 +44,27 @@
 }
 
 .gantt-resourceTimeline-resourceName {
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.gantt-resourceTimeline-conflictBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
 }
 
 .gantt-resourceTimeline-chartSurface {
@@ -98,6 +117,26 @@
     transparent 5px
   );
   mix-blend-mode: screen;
+}
+
+.gantt-resourceTimeline-itemConflict {
+  outline: 2px solid rgba(239, 68, 68, 0.9);
+  outline-offset: -2px;
+}
+
+.gantt-resourceTimeline-conflictOverlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  background-color: rgba(239, 68, 68, 0.26);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(127, 29, 29, 0.34) 0,
+    rgba(127, 29, 29, 0.34) 2px,
+    transparent 2px,
+    transparent 5px
+  );
 }
 
 .gantt-resourceTimeline-resizeHandle {

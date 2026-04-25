@@ -44,6 +44,13 @@ describe('layoutResourceTimelineItems', () => {
       ['a', 0],
       ['b', 1],
     ]);
+    expect(result.rows[0].conflictCount).toBe(2);
+    expect(result.items.map((item) => [item.itemId, item.conflictsWith])).toEqual([
+      ['a', ['b']],
+      ['b', ['a']],
+    ]);
+    expect(result.items[0].conflictRanges[0].startDate.toISOString()).toBe('2026-04-03T00:00:00.000Z');
+    expect(result.items[0].conflictRanges[0].endDate.toISOString()).toBe('2026-04-03T00:00:00.000Z');
   });
 
   it('sorts equal-date items stably by id', () => {

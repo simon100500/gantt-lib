@@ -131,6 +131,30 @@ const getWeekendOverlaySegments = (
   return segments;
 };
 
+const getRangeOverlaySegments = (
+  itemStartDate: Date,
+  ranges: Array<{ startDate: Date; endDate: Date }>,
+  dayWidth: number
+) => {
+  return ranges.map((range) => {
+    const startOffset = Math.max(0, Math.round(
+      (Date.UTC(range.startDate.getUTCFullYear(), range.startDate.getUTCMonth(), range.startDate.getUTCDate()) -
+        Date.UTC(itemStartDate.getUTCFullYear(), itemStartDate.getUTCMonth(), itemStartDate.getUTCDate())) /
+        (24 * 60 * 60 * 1000)
+    ));
+    const endOffset = Math.max(startOffset, Math.round(
+      (Date.UTC(range.endDate.getUTCFullYear(), range.endDate.getUTCMonth(), range.endDate.getUTCDate()) -
+        Date.UTC(itemStartDate.getUTCFullYear(), itemStartDate.getUTCMonth(), itemStartDate.getUTCDate())) /
+        (24 * 60 * 60 * 1000)
+    ));
+
+    return {
+      left: Math.round(startOffset * dayWidth),
+      width: Math.round((endOffset - startOffset + 1) * dayWidth),
+    };
+  });
+};
+
 const getDurationValue = (
   startDate: Date,
   endDate: Date,
@@ -296,6 +320,14 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                 style={{ height: `${row.resourceRowHeight}px` }}
               >
                 <span className="gantt-resourceTimeline-resourceName">{row.resource.name}</span>
+                {row.conflictCount > 0 && (
+                  <span
+                    className="gantt-resourceTimeline-conflictBadge"
+                    aria-label={`${row.conflictCount} конфликтов`}
+                  >
+                    {row.conflictCount}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -345,6 +377,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   const className = [
                     'gantt-resourceTimeline-item',
                     isDraggingItem && 'gantt-resourceTimeline-itemDragging',
+                    layoutItem.conflictsWith.length > 0 && 'gantt-resourceTimeline-itemConflict',
                     (readonly || layoutItem.item.locked) && 'gantt-resourceTimeline-itemDisabled',
                     customClassName,
                   ].filter(Boolean).join(' ');
@@ -372,6 +405,11 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   const weekendOverlaySegments = businessDays
                     ? getWeekendOverlaySegments(overlayStartDate, overlayEndDate, dayWidth, weekendPredicate)
                     : [];
+                  const conflictOverlaySegments = getRangeOverlaySegments(
+                    overlayStartDate,
+                    isDraggingItem ? [] : layoutItem.conflictRanges,
+                    dayWidth
+                  );
                   const durationValue = getDurationValue(
                     overlayStartDate,
                     overlayEndDate,
@@ -411,6 +449,17 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                           key={`weekend-overlay-${index}`}
                           className="gantt-resourceTimeline-weekendOverlay"
                           data-resource-weekend-overlay="true"
+                          style={{
+                            left: `${segment.left}px`,
+                            width: `${segment.width}px`,
+                          }}
+                        />
+                      ))}
+                      {conflictOverlaySegments.map((segment, index) => (
+                        <span
+                          key={`conflict-overlay-${index}`}
+                          className="gantt-resourceTimeline-conflictOverlay"
+                          data-resource-conflict-overlay="true"
                           style={{
                             left: `${segment.left}px`,
                             width: `${segment.width}px`,

@@ -12,8 +12,15 @@ export interface ResourceTimelineLayoutRow<TItem extends ResourceTimelineItem = 
   resource: ResourceTimelineResource<TItem>;
   resourceId: string;
   laneCount: number;
+  conflictCount: number;
   resourceRowTop: number;
   resourceRowHeight: number;
+}
+
+export interface ResourceTimelineConflictRange {
+  startDate: Date;
+  endDate: Date;
+  itemIds: string[];
 }
 
 export interface ResourceTimelineLayoutItem<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
@@ -29,6 +36,8 @@ export interface ResourceTimelineLayoutItem<TItem extends ResourceTimelineItem =
   height: number;
   startDate: Date;
   endDate: Date;
+  conflictRanges: ResourceTimelineConflictRange[];
+  conflictsWith: string[];
 }
 
 export interface ResourceTimelineLayoutDiagnostic {
@@ -73,6 +82,100 @@ const compareParsedItems = <TItem extends ResourceTimelineItem>(
   return a.item.id.localeCompare(b.item.id);
 };
 
+const getOverlapRange = <TItem extends ResourceTimelineItem>(
+  left: ParsedResourceItem<TItem>,
+  right: ParsedResourceItem<TItem>
+): ResourceTimelineConflictRange | null => {
+  const startDay = Math.max(getUTCDayNumber(left.startDate), getUTCDayNumber(right.startDate));
+  const endDay = Math.min(getUTCDayNumber(left.endDate), getUTCDayNumber(right.endDate));
+
+  if (startDay > endDay) {
+    return null;
+  }
+
+  return {
+    startDate: new Date(startDay * 86400000),
+    endDate: new Date(endDay * 86400000),
+    itemIds: [left.item.id, right.item.id],
+  };
+};
+
+const mergeConflictRanges = (ranges: ResourceTimelineConflictRange[]): ResourceTimelineConflictRange[] => {
+  const sortedRanges = [...ranges].sort((left, right) =>
+    getUTCDayNumber(left.startDate) - getUTCDayNumber(right.startDate) ||
+    getUTCDayNumber(left.endDate) - getUTCDayNumber(right.endDate)
+  );
+  const merged: ResourceTimelineConflictRange[] = [];
+
+  for (const range of sortedRanges) {
+    const previous = merged[merged.length - 1];
+    const rangeStartDay = getUTCDayNumber(range.startDate);
+    const rangeEndDay = getUTCDayNumber(range.endDate);
+    if (!previous || rangeStartDay > getUTCDayNumber(previous.endDate) + 1) {
+      merged.push({
+        startDate: range.startDate,
+        endDate: range.endDate,
+        itemIds: [...range.itemIds],
+      });
+      continue;
+    }
+
+    if (rangeEndDay > getUTCDayNumber(previous.endDate)) {
+      previous.endDate = range.endDate;
+    }
+    previous.itemIds = Array.from(new Set([...previous.itemIds, ...range.itemIds])).sort();
+  }
+
+  return merged;
+};
+
+const calculateConflictInfo = <TItem extends ResourceTimelineItem>(
+  parsedItems: Array<ParsedResourceItem<TItem>>
+): Map<string, { conflictRanges: ResourceTimelineConflictRange[]; conflictsWith: string[] }> => {
+  const conflictRangesByItemId = new Map<string, ResourceTimelineConflictRange[]>();
+  const conflictsWithByItemId = new Map<string, Set<string>>();
+
+  for (let i = 0; i < parsedItems.length; i++) {
+    for (let j = i + 1; j < parsedItems.length; j++) {
+      const left = parsedItems[i];
+      const right = parsedItems[j];
+
+      if (getUTCDayNumber(right.startDate) > getUTCDayNumber(left.endDate)) {
+        break;
+      }
+
+      const overlap = getOverlapRange(left, right);
+      if (!overlap) {
+        continue;
+      }
+
+      const leftRanges = conflictRangesByItemId.get(left.item.id) ?? [];
+      const rightRanges = conflictRangesByItemId.get(right.item.id) ?? [];
+      leftRanges.push(overlap);
+      rightRanges.push(overlap);
+      conflictRangesByItemId.set(left.item.id, leftRanges);
+      conflictRangesByItemId.set(right.item.id, rightRanges);
+
+      const leftConflicts = conflictsWithByItemId.get(left.item.id) ?? new Set<string>();
+      const rightConflicts = conflictsWithByItemId.get(right.item.id) ?? new Set<string>();
+      leftConflicts.add(right.item.id);
+      rightConflicts.add(left.item.id);
+      conflictsWithByItemId.set(left.item.id, leftConflicts);
+      conflictsWithByItemId.set(right.item.id, rightConflicts);
+    }
+  }
+
+  const result = new Map<string, { conflictRanges: ResourceTimelineConflictRange[]; conflictsWith: string[] }>();
+  for (const parsedItem of parsedItems) {
+    result.set(parsedItem.item.id, {
+      conflictRanges: mergeConflictRanges(conflictRangesByItemId.get(parsedItem.item.id) ?? []),
+      conflictsWith: Array.from(conflictsWithByItemId.get(parsedItem.item.id) ?? []).sort(),
+    });
+  }
+
+  return result;
+};
+
 export const layoutResourceTimelineItems = <
   TItem extends ResourceTimelineItem = ResourceTimelineItem,
 >(
@@ -108,6 +211,7 @@ export const layoutResourceTimelineItems = <
 
     parsedItems.sort(compareParsedItems);
 
+    const conflictInfoByItemId = calculateConflictInfo(parsedItems);
     const laneEndDays: number[] = [];
     const laidOutItems: Array<ResourceTimelineLayoutItem<TItem>> = [];
 
@@ -124,6 +228,7 @@ export const layoutResourceTimelineItems = <
       }
 
       const { left, width } = calculateTaskBar(parsed.startDate, parsed.endDate, options.monthStart, options.dayWidth);
+      const conflictInfo = conflictInfoByItemId.get(parsed.item.id);
       laidOutItems.push({
         item: parsed.item,
         itemId: parsed.item.id,
@@ -137,15 +242,19 @@ export const layoutResourceTimelineItems = <
         height: options.laneHeight,
         startDate: parsed.startDate,
         endDate: parsed.endDate,
+        conflictRanges: conflictInfo?.conflictRanges ?? [],
+        conflictsWith: conflictInfo?.conflictsWith ?? [],
       });
     }
 
     const laneCount = Math.max(1, laneEndDays.length);
     const resourceRowHeight = laneCount * options.laneHeight;
+    const conflictCount = laidOutItems.filter((item) => item.conflictsWith.length > 0).length;
     const row: ResourceTimelineLayoutRow<TItem> = {
       resource,
       resourceId: resource.id,
       laneCount,
+      conflictCount,
       resourceRowTop: currentTop,
       resourceRowHeight,
     };

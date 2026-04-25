@@ -85,6 +85,36 @@ describe('ResourceTimelineChart', () => {
     expect(devRow.style.height).toBe('68px');
   });
 
+  it('highlights concrete overlap ranges for conflicting resource items', () => {
+    const overlapping: ResourceTimelineResource[] = [
+      {
+        id: 'dev',
+        name: 'Development',
+        items: [
+          { id: 'a', resourceId: 'dev', title: 'A', startDate: '2026-04-01', endDate: '2026-04-04' },
+          { id: 'b', resourceId: 'dev', title: 'B', startDate: '2026-04-03', endDate: '2026-04-06' },
+        ],
+      },
+    ];
+
+    const { container } = render(
+      <ResourceTimelineChart mode="resource-planner" resources={overlapping} dayWidth={40} businessDays={false} />
+    );
+
+    expect(screen.getByLabelText('2 конфликтов')).toHaveTextContent('2');
+    const firstItem = container.querySelector('[data-resource-item-id="a"]') as HTMLElement;
+    const secondItem = container.querySelector('[data-resource-item-id="b"]') as HTMLElement;
+    expect(firstItem).toHaveClass('gantt-resourceTimeline-itemConflict');
+    expect(secondItem).toHaveClass('gantt-resourceTimeline-itemConflict');
+
+    const firstOverlay = firstItem.querySelector('[data-resource-conflict-overlay="true"]') as HTMLElement;
+    const secondOverlay = secondItem.querySelector('[data-resource-conflict-overlay="true"]') as HTMLElement;
+    expect(firstOverlay.style.left).toBe('80px');
+    expect(firstOverlay.style.width).toBe('80px');
+    expect(secondOverlay.style.left).toBe('0px');
+    expect(secondOverlay.style.width).toBe('80px');
+  });
+
   it('keeps a two-pixel vertical gap between bars in adjacent lanes', () => {
     const overlapping: ResourceTimelineResource[] = [
       {
