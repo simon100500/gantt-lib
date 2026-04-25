@@ -47,12 +47,13 @@ describe('ResourceTimelineChart', () => {
   });
 
   it('renders default item bars with demo-style duration, title, and subtitle', () => {
-    render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
+    const { container } = render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
 
     expect(screen.getByLabelText('1 д')).toHaveTextContent('1');
     expect(screen.getByText('Discovery')).toBeInTheDocument();
     expect(screen.getByText('Client work')).toBeInTheDocument();
     expect(screen.queryByText('3–5 апр')).toBeNull();
+    expect(container.querySelector('[data-resource-item-id="discovery"]')).toHaveAttribute('title', 'Discovery');
   });
 
   it('calls onResourceItemClick from mouse and keyboard activation', () => {
