@@ -32,9 +32,9 @@
 
 .gantt-resourceTimeline-resourceHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  padding: 0 12px;
+  padding: 10px 12px 0;
   box-sizing: border-box;
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   color: #1f2937;
