@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo, useRef } from 'react';
-import { getMultiMonthDays, parseUTCDate, formatDateRangeLabel } from '../../utils/dateUtils';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { getMonthDays, parseUTCDate, formatDateRangeLabel } from '../../utils/dateUtils';
 import { layoutResourceTimelineItems } from '../../utils/resourceTimelineLayout';
 import { useResourceItemDrag } from '../../hooks/useResourceItemDrag';
 import type { ResourcePlannerChartProps, ResourceTimelineItem } from '../../types';
@@ -19,6 +19,43 @@ const ITEM_INNER_VERTICAL_INSET = 1;
 const ITEM_HORIZONTAL_INSET = 1;
 
 const isValidDate = (date: Date): boolean => !Number.isNaN(date.getTime());
+
+const getResourceTimelineDays = (items: Array<{ startDate: string | Date; endDate: string | Date }>): Date[] => {
+  if (items.length === 0) {
+    return getMonthDays(new Date());
+  }
+
+  let minDate: Date | null = null;
+  let maxDate: Date | null = null;
+
+  for (const item of items) {
+    const startDate = parseUTCDate(item.startDate);
+    const endDate = parseUTCDate(item.endDate);
+
+    if (!minDate || startDate.getTime() < minDate.getTime()) {
+      minDate = startDate;
+    }
+    if (!maxDate || endDate.getTime() > maxDate.getTime()) {
+      maxDate = endDate;
+    }
+  }
+
+  if (!minDate || !maxDate) {
+    return getMonthDays(new Date());
+  }
+
+  const startOfMonth = new Date(Date.UTC(minDate.getUTCFullYear(), minDate.getUTCMonth(), 1));
+  const endOfMonth = new Date(Date.UTC(maxDate.getUTCFullYear(), maxDate.getUTCMonth() + 1, 0));
+  const days: Date[] = [];
+  const current = new Date(startOfMonth);
+
+  while (current.getTime() <= endOfMonth.getTime()) {
+    days.push(new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate())));
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+
+  return days;
+};
 
 const collectValidItems = <TItem extends ResourceTimelineItem>(resources: ResourcePlannerChartProps<TItem>['resources']) => {
   return resources.flatMap((resource) =>
@@ -61,7 +98,6 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   rowHeaderWidth = DEFAULT_ROW_HEADER_WIDTH,
   laneHeight = DEFAULT_LANE_HEIGHT,
   headerHeight = DEFAULT_HEADER_HEIGHT,
-  maxRenderedDays,
   readonly,
   disableResourceReassignment,
   renderItem,
@@ -70,11 +106,11 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
 }: ResourcePlannerChartProps<TItem>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
   const validItems = useMemo(() => collectValidItems(resources), [resources]);
   const dateRange = useMemo(() => {
-    const days = getMultiMonthDays(validItems);
-    return maxRenderedDays ? days.slice(0, maxRenderedDays) : days;
-  }, [validItems, maxRenderedDays]);
+    return getResourceTimelineDays(validItems);
+  }, [validItems]);
   const monthStart = useMemo(() => {
     const firstDay = dateRange[0] ?? new Date();
     return new Date(Date.UTC(firstDay.getUTCFullYear(), firstDay.getUTCMonth(), 1));
@@ -111,11 +147,79 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     onResourceItemMove,
   });
 
+  const handlePanStart = useCallback((event: React.MouseEvent) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const target = event.target as HTMLElement;
+    if (target.closest('[data-resource-item-id]')) {
+      return;
+    }
+    if (target.closest('input, button, textarea, [contenteditable]')) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    panStateRef.current = {
+      active: true,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollX: container.scrollLeft,
+      scrollY: container.scrollTop,
+    };
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    container.style.cursor = 'grabbing';
+    event.preventDefault();
+  }, []);
+
+  useEffect(() => {
+    const handlePanMove = (event: MouseEvent) => {
+      const pan = panStateRef.current;
+      const container = scrollContainerRef.current;
+      if (!pan?.active || !container) {
+        return;
+      }
+
+      container.scrollLeft = pan.scrollX - (event.clientX - pan.startX);
+      container.scrollTop = pan.scrollY - (event.clientY - pan.startY);
+    };
+
+    const handlePanEnd = () => {
+      if (!panStateRef.current?.active) {
+        return;
+      }
+
+      panStateRef.current = null;
+      const container = scrollContainerRef.current;
+      if (container) {
+        container.style.cursor = '';
+      }
+    };
+
+    window.addEventListener('mousemove', handlePanMove);
+    window.addEventListener('mouseup', handlePanEnd);
+    return () => {
+      window.removeEventListener('mousemove', handlePanMove);
+      window.removeEventListener('mouseup', handlePanEnd);
+    };
+  }, []);
+
   return (
     <div className="gantt-container gantt-resourceTimeline">
       <div
         ref={scrollContainerRef}
         className="gantt-resourceTimeline-scrollContainer"
+        style={{ cursor: 'grab' }}
+        onMouseDown={handlePanStart}
       >
         <div className="gantt-resourceTimeline-scrollContent">
           <div

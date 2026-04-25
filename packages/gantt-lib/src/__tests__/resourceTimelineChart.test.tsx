@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ResourceTimelineChart } from '../components/ResourceTimelineChart';
 import type { ResourceTimelineResource } from '../types';
@@ -121,5 +121,63 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByText('Custom Discovery')).toBeInTheDocument();
     expect(screen.queryByText('Client work')).toBeNull();
     expect(container.querySelector('.gantt-resourceTimeline-item.custom-discovery')).toBeTruthy();
+  });
+
+  it('renders only full months that contain resource work and aligns header/body separators', () => {
+    const multiMonthResources: ResourceTimelineResource[] = [
+      {
+        id: 'design',
+        name: 'Design',
+        items: [
+          { id: 'march', resourceId: 'design', title: 'March', startDate: '2026-03-30', endDate: '2026-04-02' },
+          { id: 'april', resourceId: 'design', title: 'April', startDate: '2026-04-10', endDate: '2026-04-12' },
+        ],
+      },
+    ];
+
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={multiMonthResources}
+        dayWidth={10}
+      />
+    );
+
+    const grid = container.querySelector('.gantt-resourceTimeline-grid') as HTMLElement;
+    const stickyHeader = container.querySelector('.gantt-resourceTimeline-stickyHeader') as HTMLElement;
+    const monthCells = Array.from(container.querySelectorAll('.gantt-tsh-monthCell')) as HTMLElement[];
+    const headerSeparators = Array.from(container.querySelectorAll('.gantt-tsh-separator')) as HTMLElement[];
+    const gridMonthSeparators = Array.from(container.querySelectorAll('.gantt-gb-monthSeparator')) as HTMLElement[];
+
+    expect(grid.style.width).toBe('610px');
+    expect(stickyHeader.style.width).toBe('610px');
+    expect(monthCells.map((cell) => cell.style.width)).toEqual(['310px', '300px']);
+    expect(headerSeparators.map((separator) => separator.style.left)).toEqual(['310px']);
+    expect(gridMonthSeparators.map((separator) => separator.style.left)).toEqual(['310px']);
+  });
+
+  it('pans the resource timeline when dragging empty grid space', () => {
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        dayWidth={40}
+      />
+    );
+
+    const scrollContainer = container.querySelector('.gantt-resourceTimeline-scrollContainer') as HTMLElement;
+    const grid = container.querySelector('.gantt-resourceTimeline-grid') as HTMLElement;
+    scrollContainer.scrollLeft = 120;
+    scrollContainer.scrollTop = 30;
+
+    fireEvent.mouseDown(grid, { clientX: 200, clientY: 100, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 150, clientY: 80 });
+
+    expect(scrollContainer.scrollLeft).toBe(170);
+    expect(scrollContainer.scrollTop).toBe(50);
+    expect(scrollContainer.style.cursor).toBe('grabbing');
+
+    fireEvent.mouseUp(window);
+    expect(scrollContainer.style.cursor).toBe('');
   });
 });

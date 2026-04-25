@@ -36,6 +36,16 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
         color: "#0f766e",
         status: "planned",
       },
+      {
+        id: "design-review2",
+        resourceId: "design",
+        title: "Lbpfqy-pflfxf",
+        subtitle: "Marketing",
+        startDate: "2026-04-06",
+        endDate: "2026-04-20",
+        color: "#0f766e",
+        status: "planned",
+      },
     ],
   },
   {
@@ -118,7 +128,6 @@ export default function ResourcePlannerExample() {
           dayWidth={34}
           laneHeight={42}
           rowHeaderWidth={180}
-          maxRenderedDays={35}
           disableResourceReassignment
           onResourceItemMove={handleMove}
           getItemClassName={(item) => item.status ? `demo-resource-item-${item.status}` : undefined}

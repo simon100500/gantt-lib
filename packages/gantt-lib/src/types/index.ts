@@ -37,7 +37,6 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   rowHeaderWidth?: number;
   laneHeight?: number;
   headerHeight?: number;
-  maxRenderedDays?: number;
   readonly?: boolean;
   disableResourceReassignment?: boolean;
   renderItem?: (item: TItem) => ReactNode;

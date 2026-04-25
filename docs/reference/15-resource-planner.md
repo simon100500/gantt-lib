@@ -253,7 +253,6 @@ Keep custom content compact. It renders inside a fixed bar shell, so long text s
 | `rowHeaderWidth` | `240` | Width of the resource-name column. |
 | `laneHeight` | `40` | Height of one item lane. |
 | `headerHeight` | `40` | Height of the time scale header. |
-| `maxRenderedDays` | `undefined` | Optional cap for rendered days. |
 
 Use smaller `dayWidth` for dense schedules and larger `laneHeight` when custom item content needs more vertical space.
 
