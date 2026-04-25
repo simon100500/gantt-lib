@@ -39,6 +39,7 @@ describe('ResourceTimelineChart', () => {
   it('renders default item bars with title, subtitle, and date label', () => {
     render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
 
+    expect(screen.getByText('1 д')).toBeInTheDocument();
     expect(screen.getByText('Discovery')).toBeInTheDocument();
     expect(screen.getByText('Client work')).toBeInTheDocument();
     expect(screen.getByText('3–5 апр')).toBeInTheDocument();

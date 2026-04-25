@@ -124,6 +124,7 @@
   pointer-events: auto;
 }
 
+.gantt-resourceTimeline-itemDuration,
 .gantt-resourceTimeline-itemTitle,
 .gantt-resourceTimeline-itemSubtitle,
 .gantt-resourceTimeline-itemDates {
@@ -133,6 +134,12 @@
   white-space: nowrap;
   font-size: 12px;
   line-height: 1;
+}
+
+.gantt-resourceTimeline-itemDuration {
+  flex: 0 0 auto;
+  font-weight: 700;
+  opacity: 0.92;
 }
 
 .gantt-resourceTimeline-itemTitle {

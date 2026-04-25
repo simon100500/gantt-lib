@@ -5,6 +5,7 @@ import { createCustomDayPredicate, getMonthDays, parseUTCDate, formatDateRangeLa
 import { layoutResourceTimelineItems } from '../../utils/resourceTimelineLayout';
 import { useResourceItemDrag } from '../../hooks/useResourceItemDrag';
 import type { ResourcePlannerChartProps, ResourceTimelineItem } from '../../types';
+import { getBusinessDaysCount } from '../../core/scheduling';
 import TimeScaleHeader from '../TimeScaleHeader';
 import GridBackground from '../GridBackground';
 import TodayIndicator from '../TodayIndicator';
@@ -128,6 +129,19 @@ const getWeekendOverlaySegments = (
   }
 
   return segments;
+};
+
+const getDurationLabel = (
+  startDate: Date,
+  endDate: Date,
+  businessDays: boolean,
+  weekendPredicate: (date: Date) => boolean
+): string => {
+  const durationDays = businessDays
+    ? getBusinessDaysCount(startDate, endDate, weekendPredicate)
+    : Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1);
+
+  return `${durationDays} д`;
 };
 
 export function ResourceTimelineChart<TItem extends ResourceTimelineItem = ResourceTimelineItem>({
@@ -361,6 +375,12 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   const weekendOverlaySegments = businessDays
                     ? getWeekendOverlaySegments(overlayStartDate, overlayEndDate, dayWidth, weekendPredicate)
                     : [];
+                  const durationLabel = getDurationLabel(
+                    overlayStartDate,
+                    overlayEndDate,
+                    businessDays,
+                    weekendPredicate
+                  );
 
                   return (
                     <div
@@ -393,6 +413,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                           renderItem(layoutItem.item)
                         ) : (
                           <>
+                            <span className="gantt-resourceTimeline-itemDuration">{durationLabel}</span>
                             <span className="gantt-resourceTimeline-itemTitle">{layoutItem.item.title}</span>
                             {layoutItem.item.subtitle && (
                               <span className="gantt-resourceTimeline-itemSubtitle">{layoutItem.item.subtitle}</span>

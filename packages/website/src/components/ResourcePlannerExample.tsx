@@ -89,6 +89,25 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
 
 const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
 
+const isWeekendDay = (date: Date) => {
+  const day = date.getUTCDay();
+  return day === 0 || day === 6;
+};
+
+const getDurationLabel = (item: PlannerItem, businessDays: boolean) => {
+  const start = new Date(`${String(item.startDate).split("T")[0]}T00:00:00Z`);
+  const end = new Date(`${String(item.endDate).split("T")[0]}T00:00:00Z`);
+  let days = 0;
+  const current = new Date(start);
+  while (current.getTime() <= end.getTime()) {
+    if (!businessDays || !isWeekendDay(current)) {
+      days += 1;
+    }
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+  return `${days} д`;
+};
+
 export default function ResourcePlannerExample() {
   const [resources, setResources] = useState(initialResources);
   const [businessDays, setBusinessDays] = useState(true);
@@ -143,7 +162,7 @@ export default function ResourcePlannerExample() {
           getItemClassName={(item) => item.status ? `demo-resource-item-${item.status}` : undefined}
           renderItem={(item) => (
             <div className="demo-resource-item-content">
-              <span className="demo-resource-item-title">{item.title}</span>
+              <span className="demo-resource-item-title">{getDurationLabel(item, businessDays)} - {item.title}</span>
               {item.subtitle && <span className="demo-resource-item-subtitle">{item.subtitle}</span>}
             </div>
           )}
