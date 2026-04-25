@@ -575,7 +575,7 @@ const DepChip: React.FC<DepChipProps> = ({
     <Popover open={popoverOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <span
-          className={`gantt-tl-dep-chip${isSelected ? " gantt-tl-dep-chip-selected" : ""}`}
+          className="gantt-tl-dep-chip-with-number"
           onClick={handleClick}
           title={`[${LINK_TYPE_LABELS_RU[dep.type]}] ${formatTaskNumberLabel(predecessorTaskNumber)}${depName}`}
         >
@@ -584,12 +584,14 @@ const DepChip: React.FC<DepChipProps> = ({
               {predecessorTaskNumber}
             </span>
           )}
-          <Icon />
-          {effectiveLag !== 0 && (
-            <span className="gantt-tl-dep-chip-lag">
-              {effectiveLag > 0 ? `+${effectiveLag}` : `${effectiveLag}`}
-            </span>
-          )}
+          <span className={`gantt-tl-dep-chip${isSelected ? " gantt-tl-dep-chip-selected" : ""}`}>
+            <Icon />
+            {effectiveLag !== 0 && (
+              <span className="gantt-tl-dep-chip-lag">
+                {effectiveLag > 0 ? `+${effectiveLag}` : `${effectiveLag}`}
+              </span>
+            )}
+          </span>
         </span>
       </PopoverTrigger>
       <PopoverContent

@@ -754,14 +754,27 @@
   white-space: nowrap;
   line-height: 14px;
   cursor: pointer;
-  min-width: 58px;
+  min-width: 42px;
   justify-content: flex-start;
+}
+
+.gantt-tl-dep-chip-with-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.gantt-tl-dep-chip-with-number:hover {
+  background-color: rgba(107, 114, 128, 0.14);
 }
 
 .gantt-tl-dep-chip-task-number {
   color: #1d4ed8;
   font-weight: 400;
-  margin-right: 3px;
+  line-height: 14px;
 }
 
 .gantt-tl-dep-chip svg {
@@ -770,6 +783,11 @@
 
 .gantt-tl-dep-chip-lag {
   color: #1d4ed8;
+}
+
+.gantt-tl-dep-chip-selected svg,
+.gantt-tl-dep-chip-selected .gantt-tl-dep-chip-lag {
+  color: #fff;
 }
 
 /* Selected chip visual highlight — inverted */
