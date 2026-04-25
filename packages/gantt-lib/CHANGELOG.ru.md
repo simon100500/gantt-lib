@@ -5,6 +5,20 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.75.0] - 2026-04-25
+
+### Новые возможности
+
+- Режим Resource Planner — визуализация ресурсов на таймлайне (строки = ресурсы, полосы = назначения)
+- Drag-взаимодействия для resource items — перетаскивание задач между ресурсами
+- Prop `disableResourceReassignment` для запрета переназначения ресурсов при перетаскивании
+- Визуальные отступы для resource item bars с улучшенной обработкой дат и панорамированием
+- Demo-стили resource items и компонент ResourcePlannerExample
+
+### Исправления
+
+- Учёт grid offset при позиционировании resource drops
+
 ## [0.74.0] - 2026-04-22
 
 ### Новые возможности

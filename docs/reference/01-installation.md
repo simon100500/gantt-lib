@@ -1,13 +1,13 @@
 # Installation
 
-**Version:** 0.74.0
+**Version:** 0.75.0
 
 ## Package Identity
 
 | Property | Value |
 |---|---|
 | Package name | `gantt-lib` |
-| Version | `0.74.0` |
+| Version | `0.75.0` |
 | NPM install | `npm install gantt-lib` |
 | Peer dependencies | `react >= 18`, `react-dom >= 18` |
 | CSS import (REQUIRED) | `import 'gantt-lib/styles.css'` |

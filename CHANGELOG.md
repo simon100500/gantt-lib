@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.75.0] - 2026-04-25
+
+### Features
+
+- Add Resource Planner mode with timeline-based resource visualization (rows = resources, bars = assignments)
+- Add resource item drag interactions — reassign tasks between resources via drag-and-drop
+- Add `disableResourceReassignment` prop to prevent resource reassignment during drag
+- Add visual spacing for resource item bars with improved date handling and panning
+- Add demo resource item styles and ResourcePlannerExample component
+
+### Fixes
+
+- Account for grid offset in resource drop positioning
+
 ## [0.74.0] - 2026-04-22
 
 ### Features
