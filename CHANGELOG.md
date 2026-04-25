@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.79.0] - 2026-04-26
+
+### Features
+
+- Add tooltip support for resource item bars via `data-resource-item-tooltip` attribute
+- Add interactive hover effects and improved hit area to dependency lines
+- Add child task filtering support in `withoutDeps` function
+
+### Style
+
+- Enhance dependency chip design and hover effects in TaskList component
+
 ## [0.78.0] - 2026-04-25
 
 ### Features
