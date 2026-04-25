@@ -37,6 +37,9 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   rowHeaderWidth?: number;
   laneHeight?: number;
   headerHeight?: number;
+  customDays?: Array<{ date: Date; type: 'weekend' | 'workday' }>;
+  isWeekend?: (date: Date) => boolean;
+  businessDays?: boolean;
   readonly?: boolean;
   disableResourceReassignment?: boolean;
   renderItem?: (item: TItem) => ReactNode;

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { getMonthDays, parseUTCDate, formatDateRangeLabel } from '../../utils/dateUtils';
+import { createCustomDayPredicate, getMonthDays, parseUTCDate, formatDateRangeLabel } from '../../utils/dateUtils';
 import { layoutResourceTimelineItems } from '../../utils/resourceTimelineLayout';
 import { useResourceItemDrag } from '../../hooks/useResourceItemDrag';
 import type { ResourcePlannerChartProps, ResourceTimelineItem } from '../../types';
@@ -98,6 +98,9 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   rowHeaderWidth = DEFAULT_ROW_HEADER_WIDTH,
   laneHeight = DEFAULT_LANE_HEIGHT,
   headerHeight = DEFAULT_HEADER_HEIGHT,
+  customDays,
+  isWeekend,
+  businessDays = true,
   readonly,
   disableResourceReassignment,
   renderItem,
@@ -115,6 +118,10 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     const firstDay = dateRange[0] ?? new Date();
     return new Date(Date.UTC(firstDay.getUTCFullYear(), firstDay.getUTCMonth(), 1));
   }, [dateRange]);
+  const weekendPredicate = useMemo(
+    () => createCustomDayPredicate({ customDays, isWeekend }),
+    [customDays, isWeekend]
+  );
   const gridWidth = useMemo(() => Math.round(dateRange.length * dayWidth), [dateRange.length, dayWidth]);
 
   const layout = useMemo(
@@ -140,10 +147,13 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
 
   const { preview, startDrag } = useResourceItemDrag({
     dayWidth,
+    monthStart,
     rows: layout.rows,
     gridElementRef: gridRef,
     readonly,
     disableResourceReassignment,
+    businessDays,
+    weekendPredicate,
     onResourceItemMove,
   });
 
@@ -247,7 +257,12 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
             style={{ minWidth: `${gridWidth}px` }}
           >
             <div className="gantt-resourceTimeline-stickyHeader" style={{ width: `${gridWidth}px` }}>
-              <TimeScaleHeader days={dateRange} dayWidth={dayWidth} headerHeight={headerHeight} />
+              <TimeScaleHeader
+                days={dateRange}
+                dayWidth={dayWidth}
+                headerHeight={headerHeight}
+                isCustomWeekend={weekendPredicate}
+              />
             </div>
 
             <div
@@ -255,7 +270,12 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
               className="gantt-resourceTimeline-grid"
               style={{ width: `${gridWidth}px`, height: `${layout.totalHeight}px` }}
             >
-              <GridBackground dateRange={dateRange} dayWidth={dayWidth} totalHeight={layout.totalHeight} />
+              <GridBackground
+                dateRange={dateRange}
+                dayWidth={dayWidth}
+                totalHeight={layout.totalHeight}
+                isCustomWeekend={weekendPredicate}
+              />
               {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
 
               {layout.rows.map((row) => (
@@ -284,7 +304,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                     ? getVisualItemGeometry({
                         left: preview.left,
                         top: preview.top,
-                        width: layoutItem.width,
+                        width: preview.width,
                         height: layoutItem.height,
                       }, layoutItem.laneIndex, laneCount)
                     : undefined;
@@ -304,9 +324,9 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                       style={{
                         left: `${itemGeometry.left}px`,
                         top: `${itemGeometry.top}px`,
-                        ...previewStyle,
                         width: `${itemGeometry.width}px`,
                         height: `${itemGeometry.height}px`,
+                        ...previewStyle,
                         backgroundColor: layoutItem.item.color ?? 'var(--gantt-task-bar-default-color, #3b82f6)',
                       }}
                     >

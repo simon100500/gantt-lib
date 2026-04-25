@@ -75,6 +75,9 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
   rowHeaderWidth?: number;
   laneHeight?: number;
   headerHeight?: number;
+  customDays?: CustomDayConfig[];
+  isWeekend?: (date: Date) => boolean;
+  businessDays?: boolean;
   readonly?: boolean;
   disableResourceReassignment?: boolean;
   renderItem?: (item: TItem) => React.ReactNode;
@@ -160,6 +163,9 @@ const resources: ResourceTimelineResource[] = [
 | `rowHeaderWidth` | `number` | `240` | Width of the left resource-name column. |
 | `laneHeight` | `number` | `40` | Height of one item lane inside each resource row. Overlapping items add lanes. |
 | `headerHeight` | `number` | `40` | Height of the time-scale header. |
+| `customDays` | `CustomDayConfig[]` | `undefined` | Custom workday/weekend overrides, shared with task mode. |
+| `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate, shared with task mode. |
+| `businessDays` | `boolean` | `true` | When true, resource item drag snaps to working days and preserves working-day duration. |
 | `readonly` | `boolean` | `false` | Prevents resource item dragging when true. |
 | `disableResourceReassignment` | `boolean` | `false` | Locks resource item drag to the X axis. Dates can change, but `toResourceId` stays equal to `fromResourceId`. |
 | `renderItem` | `(item) => ReactNode` | `undefined` | Custom inner content for a resource item bar. Geometry remains controlled by the renderer. |

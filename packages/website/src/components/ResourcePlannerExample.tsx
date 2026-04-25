@@ -91,6 +91,7 @@ const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
 
 export default function ResourcePlannerExample() {
   const [resources, setResources] = useState(initialResources);
+  const [businessDays, setBusinessDays] = useState(true);
 
   const handleMove = (move: ResourceTimelineMove<PlannerItem>) => {
     setResources((current) => {
@@ -121,6 +122,14 @@ export default function ResourcePlannerExample() {
         <strong>Resource rows:</strong> drag an item horizontally to shift dates, or vertically to reassign it to another resource.
         Empty resources stay visible, and this example locks reassignment so items move only by date.
       </p>
+      <div className="demo-controls">
+        <button
+          className={`demo-btn ${businessDays ? "demo-btn-active" : "demo-btn-muted"}`}
+          onClick={() => setBusinessDays((value) => !value)}
+        >
+          {businessDays ? "Рабочие дни: ON" : "Рабочие дни: OFF"}
+        </button>
+      </div>
       <div className="demo-chart-card">
         <GanttChart<never, PlannerItem>
           mode="resource-planner"
@@ -128,6 +137,7 @@ export default function ResourcePlannerExample() {
           dayWidth={34}
           laneHeight={42}
           rowHeaderWidth={180}
+          businessDays={businessDays}
           disableResourceReassignment
           onResourceItemMove={handleMove}
           getItemClassName={(item) => item.status ? `demo-resource-item-${item.status}` : undefined}

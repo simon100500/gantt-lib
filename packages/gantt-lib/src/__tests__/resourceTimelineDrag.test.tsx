@@ -48,6 +48,7 @@ describe('ResourceTimelineChart drag interactions', () => {
         resources={resources}
         dayWidth={40}
         laneHeight={40}
+        businessDays={false}
         onResourceItemMove={onResourceItemMove}
       />
     );
@@ -90,6 +91,7 @@ describe('ResourceTimelineChart drag interactions', () => {
         resources={resources}
         dayWidth={40}
         laneHeight={40}
+        businessDays={false}
         onResourceItemMove={onResourceItemMove}
       />
     );
@@ -135,6 +137,7 @@ describe('ResourceTimelineChart drag interactions', () => {
         resources={resources}
         dayWidth={40}
         laneHeight={40}
+        businessDays={false}
         onResourceItemMove={onResourceItemMove}
       />
     );
@@ -159,6 +162,7 @@ describe('ResourceTimelineChart drag interactions', () => {
         resources={resources}
         dayWidth={40}
         laneHeight={40}
+        businessDays={false}
         readonly
         onResourceItemMove={onResourceItemMove}
       />
@@ -200,6 +204,7 @@ describe('ResourceTimelineChart drag interactions', () => {
         resources={lockedResources}
         dayWidth={40}
         laneHeight={40}
+        businessDays={false}
         onResourceItemMove={onResourceItemMove}
       />
     );
@@ -240,6 +245,7 @@ describe('ResourceTimelineChart drag interactions', () => {
         resources={occupiedResources}
         dayWidth={40}
         laneHeight={40}
+        businessDays={false}
         onResourceItemMove={onResourceItemMove}
       />
     );
@@ -264,6 +270,7 @@ describe('ResourceTimelineChart drag interactions', () => {
         resources={resources}
         dayWidth={40}
         laneHeight={40}
+        businessDays={false}
         disableResourceReassignment
         onResourceItemMove={onResourceItemMove}
       />
@@ -290,5 +297,57 @@ describe('ResourceTimelineChart drag interactions', () => {
       toResourceId: 'design',
     });
     expect(onResourceItemMove.mock.calls[0][0].startDate.toISOString()).toBe('2026-04-04T00:00:00.000Z');
+  });
+
+  it('snaps resource item moves to working days and preserves business-day duration', async () => {
+    const onResourceItemMove = vi.fn<[ResourceTimelineMove]>();
+    const businessResources: ResourceTimelineResource[] = [
+      {
+        id: 'design',
+        name: 'Design',
+        items: [
+          {
+            id: 'item-1',
+            resourceId: 'design',
+            title: 'Discovery',
+            startDate: '2026-04-03',
+            endDate: '2026-04-06',
+          },
+        ],
+      },
+    ];
+
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={businessResources}
+        dayWidth={40}
+        laneHeight={40}
+        businessDays
+        disableResourceReassignment
+        onResourceItemMove={onResourceItemMove}
+      />
+    );
+
+    const item = screen.getByText('Discovery').closest('[data-resource-item-id="item-1"]') as HTMLElement;
+
+    fireEvent.mouseDown(item, { clientX: 100, clientY: 20, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 140, clientY: 20 });
+
+    await waitFor(() => {
+      expect(item).toHaveClass('gantt-resourceTimeline-itemDragging');
+      expect(item.style.left).toBe('201px');
+      expect(item.style.width).toBe('78px');
+    });
+
+    fireEvent.mouseUp(window, { clientX: 140, clientY: 20 });
+
+    await waitFor(() => {
+      expect(onResourceItemMove).toHaveBeenCalledTimes(1);
+    });
+
+    const move = onResourceItemMove.mock.calls[0][0];
+    expect(move.startDate.toISOString()).toBe('2026-04-06T00:00:00.000Z');
+    expect(move.endDate.toISOString()).toBe('2026-04-07T00:00:00.000Z');
   });
 });

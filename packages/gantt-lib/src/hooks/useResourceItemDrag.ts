@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react';
 import type { ResourceTimelineItem, ResourceTimelineMove, ResourceTimelineResource } from '../types';
+import { moveTaskRange } from '../core/scheduling';
 
 interface ResourceDragRow<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   resource: ResourceTimelineResource<TItem>;
@@ -32,23 +33,31 @@ interface ActiveResourceDrag<TItem extends ResourceTimelineItem = ResourceTimeli
   initialTop: number;
   currentLeft: number;
   currentTop: number;
+  currentWidth: number;
   dayWidth: number;
   startDate: Date;
   endDate: Date;
+  monthStart: Date;
+  businessDays: boolean;
+  weekendPredicate?: (date: Date) => boolean;
 }
 
 export interface ResourceItemDragPreview {
   itemId: string;
   left: number;
   top: number;
+  width: number;
 }
 
 export interface UseResourceItemDragOptions<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   dayWidth: number;
+  monthStart: Date;
   rows: Array<ResourceDragRow<TItem>>;
   gridElementRef?: RefObject<HTMLElement | null>;
   readonly?: boolean;
   disableResourceReassignment?: boolean;
+  businessDays?: boolean;
+  weekendPredicate?: (date: Date) => boolean;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
 }
 
@@ -58,6 +67,51 @@ const snapToDay = (pixels: number, dayWidth: number): number => {
 
 const addUTCDays = (date: Date, days: number): Date => {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
+};
+
+const getDayOffset = (date: Date, monthStart: Date): number => {
+  return Math.round(
+    (Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) -
+      Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), monthStart.getUTCDate())) /
+      (24 * 60 * 60 * 1000)
+  );
+};
+
+const resolveResourceMoveRange = (
+  activeDrag: ActiveResourceDrag,
+  nextLeft: number
+): { startDate: Date; endDate: Date; left: number; width: number } => {
+  const dayDelta = Math.round((nextLeft - activeDrag.initialLeft) / activeDrag.dayWidth);
+  const rawStartDate = addUTCDays(activeDrag.startDate, dayDelta);
+  const rawEndDate = addUTCDays(activeDrag.endDate, dayDelta);
+
+  if (!activeDrag.businessDays || !activeDrag.weekendPredicate) {
+    return {
+      startDate: rawStartDate,
+      endDate: rawEndDate,
+      left: nextLeft,
+      width: activeDrag.currentWidth,
+    };
+  }
+
+  const snapDirection: 1 | -1 = rawStartDate.getTime() >= activeDrag.startDate.getTime() ? 1 : -1;
+  const range = moveTaskRange(
+    activeDrag.startDate,
+    activeDrag.endDate,
+    rawStartDate,
+    true,
+    activeDrag.weekendPredicate,
+    snapDirection
+  );
+  const startOffset = getDayOffset(range.start, activeDrag.monthStart);
+  const endOffset = getDayOffset(range.end, activeDrag.monthStart);
+
+  return {
+    startDate: range.start,
+    endDate: range.end,
+    left: Math.round(startOffset * activeDrag.dayWidth),
+    width: Math.round((endOffset - startOffset + 1) * activeDrag.dayWidth),
+  };
 };
 
 const resolveTargetResource = <TItem extends ResourceTimelineItem>(
@@ -74,10 +128,13 @@ const resolveTargetResource = <TItem extends ResourceTimelineItem>(
 
 export const useResourceItemDrag = <TItem extends ResourceTimelineItem = ResourceTimelineItem>({
   dayWidth,
+  monthStart,
   rows,
   gridElementRef,
   readonly,
   disableResourceReassignment,
+  businessDays = false,
+  weekendPredicate,
   onResourceItemMove,
 }: UseResourceItemDragOptions<TItem>) => {
   const activeDragRef = useRef<ActiveResourceDrag<TItem> | null>(null);
@@ -121,16 +178,19 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
           return;
         }
 
-        const nextLeft = latestDrag.initialLeft + snapToDay(event.clientX - latestDrag.startX, latestDrag.dayWidth);
+        const snappedLeft = latestDrag.initialLeft + snapToDay(event.clientX - latestDrag.startX, latestDrag.dayWidth);
+        const nextRange = resolveResourceMoveRange(latestDrag, snappedLeft);
         const nextTop = disableResourceReassignment
           ? latestDrag.initialTop
           : latestDrag.initialTop + (event.clientY - latestDrag.startY);
-        latestDrag.currentLeft = nextLeft;
+        latestDrag.currentLeft = nextRange.left;
+        latestDrag.currentWidth = nextRange.width;
         latestDrag.currentTop = nextTop;
         setPreview({
           itemId: latestDrag.itemId,
-          left: nextLeft,
+          left: nextRange.left,
           top: nextTop,
+          width: nextRange.width,
         });
       });
     };
@@ -153,14 +213,14 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
         return;
       }
 
-      const dayDelta = Math.round((activeDrag.currentLeft - activeDrag.initialLeft) / activeDrag.dayWidth);
+      const nextRange = resolveResourceMoveRange(activeDrag, activeDrag.currentLeft);
       onResourceItemMoveRef.current?.({
         item: activeDrag.item,
         itemId: activeDrag.itemId,
         fromResourceId: activeDrag.fromResourceId,
         toResourceId: targetResource.id,
-        startDate: addUTCDays(activeDrag.startDate, dayDelta),
-        endDate: addUTCDays(activeDrag.endDate, dayDelta),
+        startDate: nextRange.startDate,
+        endDate: nextRange.endDate,
       });
     };
 
@@ -193,16 +253,21 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
       initialTop: layoutItem.top,
       currentLeft: layoutItem.left,
       currentTop: layoutItem.top,
+      currentWidth: layoutItem.width,
       dayWidth,
       startDate: layoutItem.startDate,
       endDate: layoutItem.endDate,
+      monthStart,
+      businessDays,
+      weekendPredicate,
     };
     setPreview({
       itemId: layoutItem.itemId,
       left: layoutItem.left,
       top: layoutItem.top,
+      width: layoutItem.width,
     });
-  }, [dayWidth, readonly]);
+  }, [businessDays, dayWidth, monthStart, readonly, weekendPredicate]);
 
   return {
     preview,

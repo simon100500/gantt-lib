@@ -253,8 +253,19 @@ Keep custom content compact. It renders inside a fixed bar shell, so long text s
 | `rowHeaderWidth` | `240` | Width of the resource-name column. |
 | `laneHeight` | `40` | Height of one item lane. |
 | `headerHeight` | `40` | Height of the time scale header. |
+| `businessDays` | `true` | When true, horizontal drag snaps to working days and preserves working-day duration. |
+| `customDays` | `undefined` | Custom workday/weekend overrides, shared with task mode. |
+| `isWeekend` | `undefined` | Optional base weekend predicate, shared with task mode. |
 
 Use smaller `dayWidth` for dense schedules and larger `laneHeight` when custom item content needs more vertical space.
+
+## Calendar Behavior
+
+Resource mode uses the same workday calendar controls as task mode for drag movement.
+
+With `businessDays={true}`, dropping an item on a weekend snaps it to the nearest working day in the drag direction and keeps the item duration measured in working days. With `businessDays={false}`, horizontal drag shifts by raw calendar days.
+
+Weekend highlighting in the header and grid follows the same `customDays` and `isWeekend` configuration.
 
 ## Styling
 
