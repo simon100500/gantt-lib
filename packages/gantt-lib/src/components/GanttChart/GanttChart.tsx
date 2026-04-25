@@ -180,6 +180,8 @@ export interface GanttModeProps<TTask extends Task = Task> {
   onUngroupTask?: (taskId: string) => void;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
+  /** Default duration for newly created tasks, interpreted in the active day mode (default: 5). */
+  defaultTaskDurationDays?: number;
   /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days, 'month' renders one column per month (default: 'day') */
   viewMode?: 'day' | 'week' | 'month';
   /** Custom day configurations with explicit type (weekend or workday) */
@@ -333,6 +335,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onDemoteTask,
     onUngroupTask,
     enableAddTask = true,
+    defaultTaskDurationDays,
     viewMode = 'day',
     customDays,
     isWeekend,
@@ -1100,6 +1103,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             onReorder={handleReorder as ((tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void) | undefined}
             editingTaskId={editingTaskId}
             enableAddTask={enableAddTask}
+            defaultTaskDurationDays={defaultTaskDurationDays}
             collapsedParentIds={collapsedParentIds}
             onToggleCollapse={handleToggleCollapse}
             onPromoteTask={onPromoteTask ?? handlePromoteTask}

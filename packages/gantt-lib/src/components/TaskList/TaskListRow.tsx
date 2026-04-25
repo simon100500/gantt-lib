@@ -33,6 +33,7 @@ import { DatePicker } from "../ui/DatePicker";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
 import { LINK_TYPE_ICONS } from "./DepIcons";
 import type { TaskListColumn as NewTaskListColumn } from "./columns/types";
+import { DEFAULT_TASK_DURATION_DAYS, buildDefaultTaskDateRange, getTodayISODate } from "./defaultTaskDates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LINK_TYPE_ORDER: LinkType[] = ["FS", "SS", "FF", "SF"];
@@ -778,6 +779,8 @@ export interface TaskListRowProps {
   isWeekend?: (date: Date) => boolean;
   /** Считать duration в рабочих днях */
   businessDays?: boolean;
+  /** Default duration for newly created tasks, interpreted in the active day mode. */
+  defaultTaskDurationDays?: number;
   /** Whether this row matches the active filter highlight */
   isFilterMatch?: boolean;
   /** Whether filter is in hide mode (simplifies hierarchy rendering to avoid confusion) */
@@ -844,6 +847,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     customDays,
     isWeekend,
     businessDays,
+    defaultTaskDurationDays = DEFAULT_TASK_DURATION_DAYS,
     isFilterMatch = false,
     isFilterHideMode = false,
     resolvedColumns,
@@ -2034,30 +2038,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 className="gantt-tl-name-action-btn gantt-tl-action-insert"
                 onClick={(e) => {
                   e.stopPropagation();
-                  const now = new Date();
-                  const todayISO = new Date(
-                    Date.UTC(
-                      now.getUTCFullYear(),
-                      now.getUTCMonth(),
-                      now.getUTCDate(),
-                    ),
-                  )
-                    .toISOString()
-                    .split("T")[0];
-                  const endISO = new Date(
-                    Date.UTC(
-                      now.getUTCFullYear(),
-                      now.getUTCMonth(),
-                      now.getUTCDate() + 7,
-                    ),
-                  )
-                    .toISOString()
-                    .split("T")[0];
+                  const range = buildDefaultTaskDateRange(getTodayISODate(), {
+                    businessDays,
+                    defaultTaskDurationDays,
+                    weekendPredicate,
+                  });
                   const newTask: Task = {
                     id: crypto.randomUUID(),
                     name: "Новая задача",
-                    startDate: todayISO,
-                    endDate: endISO,
+                    startDate: range.startDate,
+                    endDate: range.endDate,
                     parentId: task.parentId,
                   };
                   onInsertAfter(task.id, newTask);

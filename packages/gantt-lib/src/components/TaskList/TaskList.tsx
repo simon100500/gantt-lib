@@ -11,6 +11,7 @@ import { getVisibleReorderPosition } from '../../utils/taskListReorder';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
+import { DEFAULT_TASK_DURATION_DAYS, buildDefaultTaskDateRange, getTodayISODate } from './defaultTaskDates';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
 import type { TaskListColumn } from './columns/types';
 import { createBuiltInColumns, BUILT_IN_COLUMN_WIDTHS } from './columns/createBuiltInColumns';
@@ -178,6 +179,8 @@ export interface TaskListProps {
   editingTaskId?: string | null;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
+  /** Default duration for newly created tasks, interpreted in the active day mode (default: 5). */
+  defaultTaskDurationDays?: number;
   /** Set of collapsed parent task IDs */
   collapsedParentIds?: Set<string>;
   /** Callback when collapse/expand button is clicked */
@@ -243,6 +246,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onReorder,
   editingTaskId: propEditingTaskId,
   enableAddTask = true,
+  defaultTaskDurationDays = DEFAULT_TASK_DURATION_DAYS,
   collapsedParentIds: externalCollapsedParentIds,
   onToggleCollapse: externalOnToggleCollapse,
   onPromoteTask,
@@ -824,22 +828,20 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, []);
 
   const handleConfirmNewTask = useCallback((name: string) => {
-    const now = new Date();
-    const todayISO = new Date(Date.UTC(
-      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
-    )).toISOString().split('T')[0];
-    const endISO = new Date(Date.UTC(
-      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7
-    )).toISOString().split('T')[0];
+    const range = buildDefaultTaskDateRange(getTodayISODate(), {
+      businessDays,
+      defaultTaskDurationDays,
+      weekendPredicate,
+    });
     const newTask: Task = {
       id: crypto.randomUUID(),
       name,
-      startDate: todayISO,
-      endDate: endISO,
+      startDate: range.startDate,
+      endDate: range.endDate,
     };
     onAdd?.(newTask);
     setIsCreating(false);
-  }, [onAdd]);
+  }, [businessDays, defaultTaskDurationDays, onAdd, weekendPredicate]);
 
   const handleCancelNewTask = useCallback(() => setIsCreating(false), []);
 
@@ -1168,6 +1170,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   customDays={customDays}
                   isWeekend={isWeekend}
                   businessDays={businessDays}
+                  defaultTaskDurationDays={defaultTaskDurationDays}
                   isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}
                   isFilterHideMode={filterMode === 'hide' && isFilterActive}
                   resolvedColumns={resolvedColumns}
