@@ -141,7 +141,7 @@
   pointer-events: auto;
 }
 
-.gantt-resourceTimeline-itemDuration,
+.gantt-resourceTimeline-itemDurationChip,
 .gantt-resourceTimeline-itemTitle,
 .gantt-resourceTimeline-itemSubtitle,
 .gantt-resourceTimeline-itemDates {
@@ -153,10 +153,20 @@
   line-height: 1;
 }
 
-.gantt-resourceTimeline-itemDuration {
+.gantt-resourceTimeline-itemDurationChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
+  min-width: 16px;
+  height: 16px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.22);
+  color: inherit;
+  font-size: 0.6875rem;
   font-weight: 700;
-  opacity: 0.92;
+  line-height: 14px;
 }
 
 .gantt-resourceTimeline-itemTitle {

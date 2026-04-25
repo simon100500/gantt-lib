@@ -317,6 +317,7 @@ describe('ResourceTimelineChart drag interactions', () => {
 
     const item = screen.getByText('Discovery').closest('[data-resource-item-id="item-1"]') as HTMLElement;
     const handle = item.querySelector('.gantt-resourceTimeline-resizeHandleEnd') as HTMLElement;
+    expect(item.querySelector('.gantt-resourceTimeline-itemDurationChip')).toHaveTextContent('3');
 
     fireEvent.mouseDown(handle, { clientX: 200, clientY: 20, button: 0 });
     fireEvent.mouseMove(window, { clientX: 240, clientY: 80 });
@@ -325,6 +326,7 @@ describe('ResourceTimelineChart drag interactions', () => {
       expect(item).toHaveClass('gantt-resourceTimeline-itemDragging');
       expect(item.style.width).toBe('158px');
       expect(item.style.top).toBe('2px');
+      expect(item.querySelector('.gantt-resourceTimeline-itemDurationChip')).toHaveTextContent('4');
     });
 
     fireEvent.mouseUp(window, { clientX: 240, clientY: 80 });
@@ -342,6 +344,79 @@ describe('ResourceTimelineChart drag interactions', () => {
     });
     expect(onResourceItemMove.mock.calls[0][0].startDate.toISOString()).toBe('2026-04-03T00:00:00.000Z');
     expect(onResourceItemMove.mock.calls[0][0].endDate.toISOString()).toBe('2026-04-06T00:00:00.000Z');
+  });
+
+  it('updates custom renderItem duration context while resizing', async () => {
+    const onResourceItemMove = vi.fn<[ResourceTimelineMove]>();
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        dayWidth={40}
+        laneHeight={40}
+        businessDays={false}
+        onResourceItemMove={onResourceItemMove}
+        renderItem={(item, context) => (
+          <span data-testid={`duration-${item.id}`}>{context.durationDays}</span>
+        )}
+      />
+    );
+
+    const item = screen.getByTestId('duration-item-1').closest('[data-resource-item-id="item-1"]') as HTMLElement;
+    const handle = item.querySelector('.gantt-resourceTimeline-resizeHandleEnd') as HTMLElement;
+    expect(screen.getByTestId('duration-item-1')).toHaveTextContent('3');
+
+    fireEvent.mouseDown(handle, { clientX: 200, clientY: 20, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 240, clientY: 20 });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('duration-item-1')).toHaveTextContent('4');
+    });
+  });
+
+  it('updates custom renderItem duration context while moving in business-days mode', async () => {
+    const onResourceItemMove = vi.fn<[ResourceTimelineMove]>();
+    const businessResources: ResourceTimelineResource[] = [
+      {
+        id: 'design',
+        name: 'Design',
+        items: [
+          {
+            id: 'item-1',
+            resourceId: 'design',
+            title: 'Discovery',
+            startDate: '2026-04-03',
+            endDate: '2026-04-06',
+          },
+        ],
+      },
+    ];
+
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={businessResources}
+        dayWidth={40}
+        laneHeight={40}
+        businessDays
+        disableResourceReassignment
+        onResourceItemMove={onResourceItemMove}
+        renderItem={(item, context) => (
+          <span data-testid={`duration-${item.id}`}>{context.durationDays}</span>
+        )}
+      />
+    );
+
+    const item = screen.getByTestId('duration-item-1').closest('[data-resource-item-id="item-1"]') as HTMLElement;
+    expect(screen.getByTestId('duration-item-1')).toHaveTextContent('2');
+
+    fireEvent.mouseDown(item, { clientX: 100, clientY: 20, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 140, clientY: 20 });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('duration-item-1')).toHaveTextContent('2');
+      expect(item.style.left).toBe('201px');
+    });
   });
 
   it('resizes the resource item start date from the left edge', async () => {

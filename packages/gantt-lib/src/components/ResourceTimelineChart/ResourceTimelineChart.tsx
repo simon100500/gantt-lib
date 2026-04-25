@@ -131,18 +131,14 @@ const getWeekendOverlaySegments = (
   return segments;
 };
 
-const getDurationLabel = (
+const getDurationValue = (
   startDate: Date,
   endDate: Date,
   businessDays: boolean,
   weekendPredicate: (date: Date) => boolean
-): string => {
-  const durationDays = businessDays
-    ? getBusinessDaysCount(startDate, endDate, weekendPredicate)
-    : Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1);
-
-  return `${durationDays} д`;
-};
+): number => businessDays
+  ? getBusinessDaysCount(startDate, endDate, weekendPredicate)
+  : Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1);
 
 export function ResourceTimelineChart<TItem extends ResourceTimelineItem = ResourceTimelineItem>({
   resources,
@@ -345,14 +341,15 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
               {Array.from(itemsByResourceId.values()).flatMap((resourceItems) =>
                 resourceItems.map((layoutItem) => {
                   const customClassName = getItemClassName?.(layoutItem.item);
+                  const isDraggingItem = preview?.itemId === layoutItem.itemId;
                   const className = [
                     'gantt-resourceTimeline-item',
-                    preview?.itemId === layoutItem.itemId && 'gantt-resourceTimeline-itemDragging',
+                    isDraggingItem && 'gantt-resourceTimeline-itemDragging',
                     (readonly || layoutItem.item.locked) && 'gantt-resourceTimeline-itemDisabled',
                     customClassName,
                   ].filter(Boolean).join(' ');
                   const laneCount = Math.max(1, Math.round(layoutItem.resourceRowHeight / layoutItem.height));
-                  const previewStyle = preview?.itemId === layoutItem.itemId
+                  const previewStyle = isDraggingItem
                     ? getVisualItemGeometry({
                         left: preview.left,
                         top: preview.top,
@@ -366,21 +363,27 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                     width: layoutItem.width,
                     height: layoutItem.height,
                   }, layoutItem.laneIndex, laneCount);
-                  const overlayStartDate = preview?.itemId === layoutItem.itemId
+                  const overlayStartDate = isDraggingItem
                     ? preview.startDate
                     : layoutItem.startDate;
-                  const overlayEndDate = preview?.itemId === layoutItem.itemId
+                  const overlayEndDate = isDraggingItem
                     ? preview.endDate
                     : layoutItem.endDate;
                   const weekendOverlaySegments = businessDays
                     ? getWeekendOverlaySegments(overlayStartDate, overlayEndDate, dayWidth, weekendPredicate)
                     : [];
-                  const durationLabel = getDurationLabel(
+                  const durationValue = getDurationValue(
                     overlayStartDate,
                     overlayEndDate,
                     businessDays,
                     weekendPredicate
                   );
+                  const renderContext = {
+                    startDate: overlayStartDate,
+                    endDate: overlayEndDate,
+                    durationDays: durationValue,
+                    isDragging: isDraggingItem,
+                  };
 
                   return (
                     <div
@@ -416,10 +419,15 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                       ))}
                       <div className="gantt-resourceTimeline-itemInner">
                         {renderItem ? (
-                          renderItem(layoutItem.item)
+                          renderItem(layoutItem.item, renderContext)
                         ) : (
                           <>
-                            <span className="gantt-resourceTimeline-itemDuration">{durationLabel}</span>
+                            <span
+                              className="gantt-resourceTimeline-itemDurationChip"
+                              aria-label={`${durationValue} д`}
+                            >
+                              {durationValue}
+                            </span>
                             <span className="gantt-resourceTimeline-itemTitle">{layoutItem.item.title}</span>
                             {layoutItem.item.subtitle && (
                               <span className="gantt-resourceTimeline-itemSubtitle">{layoutItem.item.subtitle}</span>

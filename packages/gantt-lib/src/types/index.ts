@@ -32,6 +32,13 @@ export interface ResourceTimelineMove<TItem extends ResourceTimelineItem = Resou
   changeType?: 'move' | 'resize-start' | 'resize-end';
 }
 
+export interface ResourceTimelineRenderContext {
+  startDate: Date;
+  endDate: Date;
+  durationDays: number;
+  isDragging: boolean;
+}
+
 export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   mode: 'resource-planner';
   resources: Array<ResourceTimelineResource<TItem>>;
@@ -44,7 +51,7 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   businessDays?: boolean;
   readonly?: boolean;
   disableResourceReassignment?: boolean;
-  renderItem?: (item: TItem) => ReactNode;
+  renderItem?: (item: TItem, context: ResourceTimelineRenderContext) => ReactNode;
   getItemClassName?: (item: TItem) => string | undefined;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
 }

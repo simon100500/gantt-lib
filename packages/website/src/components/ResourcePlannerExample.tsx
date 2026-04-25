@@ -13,100 +13,254 @@ type PlannerItem = ResourceTimelineResource["items"][number] & {
 
 const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
   {
-    id: "design",
-    name: "Design",
+    id: "earthworks",
+    name: "Земляные работы",
     items: [
       {
-        id: "design-brief",
-        resourceId: "design",
-        title: "Brief + wireframes",
-        subtitle: "Client portal",
+        id: "earthworks-site-prep",
+        resourceId: "earthworks",
+        taskId: "task-earthworks-site-prep",
+        title: "Планировка участка",
+        subtitle: "Корпус А",
         startDate: "2026-04-01",
-        endDate: "2026-04-04",
+        endDate: "2026-04-03",
         color: "#2563eb",
         status: "active",
       },
       {
-        id: "design-review",
-        resourceId: "design",
-        title: "Visual review",
-        subtitle: "Marketing",
-        startDate: "2026-04-06",
-        endDate: "2026-04-08",
+        id: "earthworks-trench",
+        resourceId: "earthworks",
+        taskId: "task-earthworks-trench",
+        title: "Котлован под фундамент",
+        subtitle: "Секция 1",
+        startDate: "2026-04-03",
+        endDate: "2026-04-10",
         color: "#0f766e",
         status: "planned",
       },
       {
-        id: "design-review2",
-        resourceId: "design",
-        title: "Lbpfqy-pflfxf",
-        subtitle: "Marketing",
-        startDate: "2026-04-06",
-        endDate: "2026-04-20",
+        id: "earthworks-backfill",
+        resourceId: "earthworks",
+        taskId: "task-earthworks-backfill",
+        title: "Обратная засыпка",
+        subtitle: "Ось 3-5",
+        startDate: "2026-04-14",
+        endDate: "2026-04-18",
+        color: "#7c3aed",
+        status: "blocked",
+      },
+    ],
+  },
+  {
+    id: "concrete",
+    name: "Бетонная бригада",
+    items: [
+      {
+        id: "concrete-footing",
+        resourceId: "concrete",
+        taskId: "task-concrete-footing",
+        title: "Подбетонка",
+        subtitle: "Фундаментная плита",
+        startDate: "2026-04-07",
+        endDate: "2026-04-09",
+        color: "#2563eb",
+        status: "active",
+      },
+      {
+        id: "concrete-slab",
+        resourceId: "concrete",
+        taskId: "task-concrete-slab",
+        title: "Заливка плиты",
+        subtitle: "Захватка 1",
+        startDate: "2026-04-10",
+        endDate: "2026-04-15",
+        color: "#dc2626",
+        status: "blocked",
+      },
+      {
+        id: "concrete-columns",
+        resourceId: "concrete",
+        taskId: "task-concrete-columns",
+        title: "Колонны первого этажа",
+        subtitle: "Корпус А",
+        startDate: "2026-04-16",
+        endDate: "2026-04-23",
         color: "#0f766e",
         status: "planned",
       },
     ],
   },
   {
-    id: "frontend",
-    name: "Frontend",
+    id: "rebar",
+    name: "Арматурщики",
     items: [
       {
-        id: "frontend-shell",
-        resourceId: "frontend",
-        title: "App shell",
-        subtitle: "Sprint 12",
-        startDate: "2026-04-03",
-        endDate: "2026-04-10",
+        id: "rebar-slab",
+        resourceId: "rebar",
+        taskId: "task-rebar-slab",
+        title: "Армирование плиты",
+        subtitle: "Нижняя сетка",
+        startDate: "2026-04-08",
+        endDate: "2026-04-13",
         color: "#7c3aed",
+        status: "active",
+      },
+      {
+        id: "rebar-walls",
+        resourceId: "rebar",
+        taskId: "task-rebar-walls",
+        title: "Выпуски под стены",
+        subtitle: "Лестничный узел",
+        startDate: "2026-04-12",
+        endDate: "2026-04-17",
+        color: "#0f766e",
+        status: "planned",
+      },
+    ],
+  },
+  {
+    id: "masonry",
+    name: "Каменщики",
+    items: [
+      {
+        id: "masonry-walls-a",
+        resourceId: "masonry",
+        taskId: "task-masonry-walls-a",
+        title: "Кладка наружных стен",
+        subtitle: "1 этаж",
+        startDate: "2026-04-20",
+        endDate: "2026-04-30",
+        color: "#2563eb",
+        status: "planned",
+      },
+      {
+        id: "masonry-partitions",
+        resourceId: "masonry",
+        taskId: "task-masonry-partitions",
+        title: "Перегородки",
+        subtitle: "Секция Б",
+        startDate: "2026-04-24",
+        endDate: "2026-05-05",
+        color: "#7c3aed",
+        status: "blocked",
+      },
+    ],
+  },
+  {
+    id: "crane",
+    name: "Башенный кран",
+    items: [
+      {
+        id: "crane-rebar-delivery",
+        resourceId: "crane",
+        taskId: "task-crane-rebar-delivery",
+        title: "Подача арматуры",
+        subtitle: "Плита",
+        startDate: "2026-04-08",
+        endDate: "2026-04-11",
+        color: "#0f766e",
+        status: "active",
+      },
+      {
+        id: "crane-formwork",
+        resourceId: "crane",
+        taskId: "task-crane-formwork",
+        title: "Перестановка опалубки",
+        subtitle: "Колонны",
+        startDate: "2026-04-16",
+        endDate: "2026-04-22",
+        color: "#dc2626",
+        status: "blocked",
+      },
+      {
+        id: "crane-blocks",
+        resourceId: "crane",
+        taskId: "task-crane-blocks",
+        title: "Разгрузка блоков",
+        subtitle: "Склад 2",
+        startDate: "2026-04-24",
+        endDate: "2026-04-28",
+        color: "#2563eb",
+        status: "planned",
+      },
+    ],
+  },
+  {
+    id: "electrical",
+    name: "Электрики",
+    items: [
+      {
+        id: "electrical-grounding",
+        resourceId: "electrical",
+        taskId: "task-electrical-grounding",
+        title: "Контур заземления",
+        subtitle: "Фундамент",
+        startDate: "2026-04-06",
+        endDate: "2026-04-09",
+        color: "#7c3aed",
+        status: "planned",
+      },
+      {
+        id: "electrical-rough-in",
+        resourceId: "electrical",
+        taskId: "task-electrical-rough-in",
+        title: "Закладные под кабели",
+        subtitle: "Техпомещения",
+        startDate: "2026-04-18",
+        endDate: "2026-04-25",
+        color: "#0f766e",
         status: "active",
       },
     ],
   },
   {
-    id: "qa",
-    name: "QA",
+    id: "plumbing",
+    name: "Сантехники",
     items: [
       {
-        id: "qa-pass",
-        resourceId: "qa",
-        title: "Regression pass",
-        subtitle: "Release candidate",
-        startDate: "2026-04-11",
-        endDate: "2026-04-15",
+        id: "plumbing-sleeves",
+        resourceId: "plumbing",
+        taskId: "task-plumbing-sleeves",
+        title: "Гильзы в фундаменте",
+        subtitle: "Ввод воды",
+        startDate: "2026-04-09",
+        endDate: "2026-04-12",
+        color: "#2563eb",
+        status: "planned",
+      },
+      {
+        id: "plumbing-drainage",
+        resourceId: "plumbing",
+        taskId: "task-plumbing-drainage",
+        title: "Выпуски канализации",
+        subtitle: "Корпус А",
+        startDate: "2026-04-13",
+        endDate: "2026-04-18",
         color: "#dc2626",
         status: "blocked",
       },
     ],
   },
   {
-    id: "ops",
-    name: "Ops",
-    items: [],
+    id: "finishing",
+    name: "Отделочники",
+    items: [
+      {
+        id: "finishing-mockup",
+        resourceId: "finishing",
+        taskId: "task-finishing-mockup",
+        title: "Образец штукатурки",
+        subtitle: "Квартира 12",
+        startDate: "2026-05-01",
+        endDate: "2026-05-06",
+        color: "#7c3aed",
+        status: "planned",
+      },
+    ],
   },
 ];
 
 const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
-
-const isWeekendDay = (date: Date) => {
-  const day = date.getUTCDay();
-  return day === 0 || day === 6;
-};
-
-const getDurationLabel = (item: PlannerItem, businessDays: boolean) => {
-  const start = new Date(`${String(item.startDate).split("T")[0]}T00:00:00Z`);
-  const end = new Date(`${String(item.endDate).split("T")[0]}T00:00:00Z`);
-  let days = 0;
-  const current = new Date(start);
-  while (current.getTime() <= end.getTime()) {
-    if (!businessDays || !isWeekendDay(current)) {
-      days += 1;
-    }
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-  return `${days} д`;
-};
 
 export default function ResourcePlannerExample() {
   const [resources, setResources] = useState(initialResources);
@@ -138,8 +292,8 @@ export default function ResourcePlannerExample() {
     <section className="demo-section">
       <h2 className="demo-section-title">Resource Planner Mode</h2>
       <p className="demo-section-desc">
-        <strong>Resource rows:</strong> drag an item horizontally to shift dates, or vertically to reassign it to another resource.
-        Empty resources stay visible, and this example locks reassignment so items move only by date.
+        <strong>Ресурсный график строительства:</strong> сдвигайте работы по срокам, растягивайте границы и проверяйте накладки по бригадам и технике.
+        В этом примере переназначение между ресурсами заблокировано, чтобы корректировать только даты.
       </p>
       <div className="demo-controls">
         <button
@@ -153,16 +307,21 @@ export default function ResourcePlannerExample() {
         <GanttChart<never, PlannerItem>
           mode="resource-planner"
           resources={resources}
-          dayWidth={34}
+          dayWidth={30}
           laneHeight={42}
-          rowHeaderWidth={180}
+          rowHeaderWidth={220}
           businessDays={businessDays}
           disableResourceReassignment
           onResourceItemMove={handleMove}
           getItemClassName={(item) => item.status ? `demo-resource-item-${item.status}` : undefined}
-          renderItem={(item) => (
+          renderItem={(item, context) => (
             <div className="demo-resource-item-content">
-              <span className="demo-resource-item-title">{getDurationLabel(item, businessDays)} - {item.title}</span>
+              <div className="demo-resource-item-main">
+                <span className="demo-resource-item-duration" aria-label={`${context.durationDays} д`}>
+                  {context.durationDays}
+                </span>
+                <span className="demo-resource-item-title">{item.title}</span>
+              </div>
               {item.subtitle && <span className="demo-resource-item-subtitle">{item.subtitle}</span>}
             </div>
           )}
