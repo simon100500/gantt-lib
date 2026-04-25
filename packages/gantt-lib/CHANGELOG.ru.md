@@ -5,6 +5,12 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.75.1] - 2026-04-25
+
+### Новые возможности
+
+- Добавлен проп `defaultTaskDurationDays` в GanttChart и TaskList для управления длительностью новых задач
+
 ## [0.75.0] - 2026-04-25
 
 ### Новые возможности

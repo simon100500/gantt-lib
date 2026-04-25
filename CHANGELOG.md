@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.75.1] - 2026-04-25
+
+### Features
+
+- Add `defaultTaskDurationDays` prop to GanttChart and TaskList for improved task duration handling
+
 ## [0.75.0] - 2026-04-25
 
 ### Features

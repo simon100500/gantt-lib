@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.75.0
+**Version:** 0.75.1
 
 ## Getting Started
 
