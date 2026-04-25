@@ -92,6 +92,44 @@ const getVisualItemGeometry = (
   };
 };
 
+const getWeekendOverlaySegments = (
+  startDate: Date,
+  endDate: Date,
+  dayWidth: number,
+  weekendPredicate: (date: Date) => boolean
+) => {
+  const segments: Array<{ left: number; width: number }> = [];
+  const current = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
+  let activeStartOffset: number | null = null;
+  let offset = 0;
+
+  while (current.getTime() <= endDate.getTime()) {
+    const isWeekendDay = weekendPredicate(current);
+    if (isWeekendDay && activeStartOffset === null) {
+      activeStartOffset = offset;
+    }
+    if (!isWeekendDay && activeStartOffset !== null) {
+      segments.push({
+        left: Math.round(activeStartOffset * dayWidth),
+        width: Math.round((offset - activeStartOffset) * dayWidth),
+      });
+      activeStartOffset = null;
+    }
+
+    current.setUTCDate(current.getUTCDate() + 1);
+    offset += 1;
+  }
+
+  if (activeStartOffset !== null) {
+    segments.push({
+      left: Math.round(activeStartOffset * dayWidth),
+      width: Math.round((offset - activeStartOffset) * dayWidth),
+    });
+  }
+
+  return segments;
+};
+
 export function ResourceTimelineChart<TItem extends ResourceTimelineItem = ResourceTimelineItem>({
   resources,
   dayWidth = DEFAULT_DAY_WIDTH,
@@ -314,6 +352,9 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                     width: layoutItem.width,
                     height: layoutItem.height,
                   }, layoutItem.laneIndex, laneCount);
+                  const weekendOverlaySegments = businessDays
+                    ? getWeekendOverlaySegments(layoutItem.startDate, layoutItem.endDate, dayWidth, weekendPredicate)
+                    : [];
 
                   return (
                     <div
@@ -330,6 +371,17 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                         backgroundColor: layoutItem.item.color ?? 'var(--gantt-task-bar-default-color, #3b82f6)',
                       }}
                     >
+                      {weekendOverlaySegments.map((segment, index) => (
+                        <span
+                          key={`weekend-overlay-${index}`}
+                          className="gantt-resourceTimeline-weekendOverlay"
+                          data-resource-weekend-overlay="true"
+                          style={{
+                            left: `${segment.left}px`,
+                            width: `${segment.width}px`,
+                          }}
+                        />
+                      ))}
                       <div className="gantt-resourceTimeline-itemInner">
                         {renderItem ? (
                           renderItem(layoutItem.item)

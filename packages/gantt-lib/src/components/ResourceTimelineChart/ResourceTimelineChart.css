@@ -85,6 +85,21 @@
   user-select: none;
 }
 
+.gantt-resourceTimeline-weekendOverlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.26) 0,
+    rgba(255, 255, 255, 0.26) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  mix-blend-mode: screen;
+}
+
 .gantt-resourceTimeline-itemDragging {
   z-index: 5;
   cursor: grabbing;
@@ -97,6 +112,8 @@
 }
 
 .gantt-resourceTimeline-itemInner {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;

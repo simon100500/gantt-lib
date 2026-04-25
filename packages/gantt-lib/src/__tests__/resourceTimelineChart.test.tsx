@@ -180,4 +180,48 @@ describe('ResourceTimelineChart', () => {
     fireEvent.mouseUp(window);
     expect(scrollContainer.style.cursor).toBe('');
   });
+
+  it('renders light weekend overlays on resource items in business-days mode', () => {
+    const weekendResources: ResourceTimelineResource[] = [
+      {
+        id: 'design',
+        name: 'Design',
+        items: [
+          {
+            id: 'weekend-span',
+            resourceId: 'design',
+            title: 'Weekend span',
+            startDate: '2026-04-03',
+            endDate: '2026-04-06',
+          },
+        ],
+      },
+    ];
+
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={weekendResources}
+        dayWidth={40}
+        businessDays
+      />
+    );
+
+    const overlays = Array.from(container.querySelectorAll('[data-resource-weekend-overlay="true"]')) as HTMLElement[];
+    expect(overlays).toHaveLength(1);
+    expect(overlays[0].style.left).toBe('40px');
+    expect(overlays[0].style.width).toBe('80px');
+  });
+
+  it('does not render weekend overlays when business-days mode is disabled', () => {
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        businessDays={false}
+      />
+    );
+
+    expect(container.querySelector('[data-resource-weekend-overlay="true"]')).toBeNull();
+  });
 });
