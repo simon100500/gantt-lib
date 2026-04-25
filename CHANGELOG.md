@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.76.0] - 2026-04-25
+
+### Features
+
+- Add business days support with `customDays`, `isWeekend`, and `businessDays` props for resource planner
+- Add weekend overlay rendering in resource timeline
+- Enhance resource item drag with `startDate`, `endDate`, `taskId`, and `changeType` in move events
+- Add resize handles for resource items with `resize-start` and `resize-end` change types
+- Add duration label and duration context for custom resource item rendering
+- Add resource row gap with improved height calculations and z-index management
+
 ## [0.75.1] - 2026-04-25
 
 ### Features
