@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.78.0] - 2026-04-25
+
+### Features
+
+- Add `containerHeight` prop to ResourceTimelineChart for customizable scroll container height
+- Add `viewMode` prop to ResourcePlannerChart with day, week, and month time-scale views
+
 ## [0.77.0] - 2026-04-25
 
 ### Features
