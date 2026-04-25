@@ -586,12 +586,12 @@ const DepChip: React.FC<DepChipProps> = ({
           )}
           <span className={`gantt-tl-dep-chip${isSelected ? " gantt-tl-dep-chip-selected" : ""}`}>
             <Icon />
-            {effectiveLag !== 0 && (
-              <span className="gantt-tl-dep-chip-lag">
-                {effectiveLag > 0 ? `+${effectiveLag}` : `${effectiveLag}`}
-              </span>
-            )}
           </span>
+          {effectiveLag !== 0 && (
+            <span className="gantt-tl-dep-chip-lag">
+              {effectiveLag > 0 ? `+${effectiveLag}` : `${effectiveLag}`}
+            </span>
+          )}
         </span>
       </PopoverTrigger>
       <PopoverContent

@@ -754,8 +754,9 @@
   white-space: nowrap;
   line-height: 14px;
   cursor: pointer;
-  min-width: 42px;
-  justify-content: flex-start;
+  width: fit-content;
+  min-width: 22px;
+  justify-content: center;
 }
 
 .gantt-tl-dep-chip-with-number {
@@ -778,15 +779,15 @@
 }
 
 .gantt-tl-dep-chip svg {
-  color: #111827;
+  color: #1d4ed8;
 }
 
 .gantt-tl-dep-chip-lag {
   color: #1d4ed8;
+  line-height: 14px;
 }
 
-.gantt-tl-dep-chip-selected svg,
-.gantt-tl-dep-chip-selected .gantt-tl-dep-chip-lag {
+.gantt-tl-dep-chip-selected svg {
   color: #fff;
 }
 
