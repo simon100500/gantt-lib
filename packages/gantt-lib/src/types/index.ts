@@ -46,6 +46,7 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   rowHeaderWidth?: number;
   laneHeight?: number;
   headerHeight?: number;
+  allowVerticalPan?: boolean;
   customDays?: Array<{ date: Date; type: 'weekend' | 'workday' }>;
   isWeekend?: (date: Date) => boolean;
   businessDays?: boolean;
@@ -53,6 +54,7 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   disableResourceReassignment?: boolean;
   renderItem?: (item: TItem, context: ResourceTimelineRenderContext) => ReactNode;
   getItemClassName?: (item: TItem) => string | undefined;
+  onResourceItemClick?: (item: TItem) => void;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
 }
 

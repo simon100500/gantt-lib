@@ -313,18 +313,6 @@ export default function ResourcePlannerExample() {
           businessDays={businessDays}
           disableResourceReassignment
           onResourceItemMove={handleMove}
-          getItemClassName={(item) => item.status ? `demo-resource-item-${item.status}` : undefined}
-          renderItem={(item, context) => (
-            <div className="demo-resource-item-content">
-              <div className="demo-resource-item-main">
-                <span className="demo-resource-item-duration" aria-label={`${context.durationDays} д`}>
-                  {context.durationDays}
-                </span>
-                <span className="demo-resource-item-title">{item.title}</span>
-              </div>
-              {item.subtitle && <span className="demo-resource-item-subtitle">{item.subtitle}</span>}
-            </div>
-          )}
         />
       </div>
     </section>

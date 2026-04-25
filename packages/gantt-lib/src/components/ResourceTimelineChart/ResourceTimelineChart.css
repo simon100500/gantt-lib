@@ -2,11 +2,25 @@
   --gantt-resourceTimeline-row-header-width: var(--gantt-resource-row-header-width, 240px);
   --gantt-resourceTimeline-lane-height: var(--gantt-resource-lane-height, 40px);
   --gantt-resourceTimeline-bar-radius: var(--gantt-resource-bar-radius, 4px);
+  --gantt-resource-item-duration-chip-bg: rgba(255, 255, 255, 0.22);
+  --gantt-resource-item-title-font-size: 0.75rem;
+  --gantt-resource-item-title-font-weight: 700;
+  --gantt-resource-item-subtitle-font-size: 0.6875rem;
+  --gantt-resource-item-subtitle-opacity: 0.85;
+  --gantt-resource-item-content-gap: 2px;
+  --gantt-resource-item-main-gap: 6px;
   width: 100%;
 }
 
 .gantt-resourceTimeline-scrollContainer {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  touch-action: pan-x;
+}
+
+.gantt-resourceTimeline-scrollContainer[data-allow-vertical-pan="true"] {
+  overflow-y: auto;
+  touch-action: pan-x pan-y;
 }
 
 .gantt-resourceTimeline-scrollContent {
@@ -158,9 +172,6 @@
 .gantt-resourceTimeline-itemInner {
   position: relative;
   z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 8px;
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -168,16 +179,31 @@
   pointer-events: auto;
 }
 
+.gantt-resourceTimeline-defaultItemContent {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--gantt-resource-item-content-gap);
+  line-height: 1.1;
+}
+
+.gantt-resourceTimeline-defaultItemMain {
+  display: flex;
+  align-items: center;
+  gap: var(--gantt-resource-item-main-gap);
+  min-width: 0;
+}
+
 .gantt-resourceTimeline-itemDurationChip,
 .gantt-resourceTimeline-itemTitle,
-.gantt-resourceTimeline-itemSubtitle,
-.gantt-resourceTimeline-itemDates {
+.gantt-resourceTimeline-itemSubtitle {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  line-height: 1;
 }
 
 .gantt-resourceTimeline-itemDurationChip {
@@ -189,7 +215,7 @@
   height: 16px;
   padding: 1px 4px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--gantt-resource-item-duration-chip-bg);
   color: inherit;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -197,14 +223,11 @@
 }
 
 .gantt-resourceTimeline-itemTitle {
-  font-weight: 600;
+  font-size: var(--gantt-resource-item-title-font-size);
+  font-weight: var(--gantt-resource-item-title-font-weight);
 }
 
 .gantt-resourceTimeline-itemSubtitle {
-  opacity: 0.85;
-}
-
-.gantt-resourceTimeline-itemDates {
-  margin-left: auto;
-  opacity: 0.9;
+  font-size: var(--gantt-resource-item-subtitle-font-size);
+  opacity: var(--gantt-resource-item-subtitle-opacity);
 }

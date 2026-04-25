@@ -36,13 +36,34 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByText('QA')).toBeInTheDocument();
   });
 
-  it('renders default item bars with title, subtitle, and date label', () => {
+  it('renders default item bars with demo-style duration, title, and subtitle', () => {
     render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
 
     expect(screen.getByLabelText('1 д')).toHaveTextContent('1');
     expect(screen.getByText('Discovery')).toBeInTheDocument();
     expect(screen.getByText('Client work')).toBeInTheDocument();
-    expect(screen.getByText('3–5 апр')).toBeInTheDocument();
+    expect(screen.queryByText('3–5 апр')).toBeNull();
+  });
+
+  it('calls onResourceItemClick from mouse and keyboard activation', () => {
+    const onResourceItemClick = vi.fn();
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        onResourceItemClick={onResourceItemClick}
+      />
+    );
+
+    const item = container.querySelector('[data-resource-item-id="discovery"]') as HTMLElement;
+    fireEvent.click(item);
+    fireEvent.keyDown(item, { key: 'Enter' });
+    fireEvent.keyDown(item, { key: ' ' });
+
+    expect(item).toHaveAttribute('role', 'button');
+    expect(item).toHaveAttribute('tabindex', '0');
+    expect(onResourceItemClick).toHaveBeenCalledTimes(3);
+    expect(onResourceItemClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'discovery' }));
   });
 
   it('renders resource item bars with fixed visual spacing inside lanes', () => {
@@ -240,11 +261,33 @@ describe('ResourceTimelineChart', () => {
     fireEvent.mouseMove(window, { clientX: 150, clientY: 80 });
 
     expect(scrollContainer.scrollLeft).toBe(170);
-    expect(scrollContainer.scrollTop).toBe(50);
+    expect(scrollContainer.scrollTop).toBe(30);
     expect(scrollContainer.style.cursor).toBe('grabbing');
 
     fireEvent.mouseUp(window);
     expect(scrollContainer.style.cursor).toBe('');
+  });
+
+  it('can opt into vertical panning when allowVerticalPan is enabled', () => {
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        dayWidth={40}
+        allowVerticalPan
+      />
+    );
+
+    const scrollContainer = container.querySelector('.gantt-resourceTimeline-scrollContainer') as HTMLElement;
+    const grid = container.querySelector('.gantt-resourceTimeline-grid') as HTMLElement;
+    scrollContainer.scrollLeft = 120;
+    scrollContainer.scrollTop = 30;
+
+    fireEvent.mouseDown(grid, { clientX: 200, clientY: 100, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 150, clientY: 80 });
+
+    expect(scrollContainer.scrollLeft).toBe(170);
+    expect(scrollContainer.scrollTop).toBe(50);
   });
 
   it('renders light weekend overlays on resource items in business-days mode', () => {

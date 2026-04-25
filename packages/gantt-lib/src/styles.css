@@ -1,5 +1,14 @@
 /* Gantt Chart CSS Variables - User customizable theming */
 @import './components/ui/ui.css';
+@import './components/GanttChart/GanttChart.css';
+@import './components/TaskRow/TaskRow.css';
+@import './components/TaskList/TaskList.css';
+@import './components/TimeScaleHeader/TimeScaleHeader.css';
+@import './components/GridBackground/GridBackground.css';
+@import './components/TodayIndicator/TodayIndicator.css';
+@import './components/DependencyLines/DependencyLines.css';
+@import './components/DragGuideLines/DragGuideLines.css';
+@import './components/ResourceTimelineChart/ResourceTimelineChart.css';
 
 :root {
   /* Font */

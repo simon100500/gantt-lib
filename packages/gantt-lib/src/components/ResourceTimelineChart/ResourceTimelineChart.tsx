@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { createCustomDayPredicate, getMonthDays, parseUTCDate, formatDateRangeLabel } from '../../utils/dateUtils';
+import { createCustomDayPredicate, getMonthDays, parseUTCDate } from '../../utils/dateUtils';
 import { layoutResourceTimelineItems } from '../../utils/resourceTimelineLayout';
 import { useResourceItemDrag } from '../../hooks/useResourceItemDrag';
 import type { ResourcePlannerChartProps, ResourceTimelineItem } from '../../types';
@@ -171,6 +171,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   rowHeaderWidth = DEFAULT_ROW_HEADER_WIDTH,
   laneHeight = DEFAULT_LANE_HEIGHT,
   headerHeight = DEFAULT_HEADER_HEIGHT,
+  allowVerticalPan = false,
   customDays,
   isWeekend,
   businessDays = true,
@@ -178,6 +179,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   disableResourceReassignment,
   renderItem,
   getItemClassName,
+  onResourceItemClick,
   onResourceItemMove,
 }: ResourcePlannerChartProps<TItem>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -278,7 +280,9 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
       }
 
       container.scrollLeft = pan.scrollX - (event.clientX - pan.startX);
-      container.scrollTop = pan.scrollY - (event.clientY - pan.startY);
+      if (allowVerticalPan) {
+        container.scrollTop = pan.scrollY - (event.clientY - pan.startY);
+      }
     };
 
     const handlePanEnd = () => {
@@ -299,7 +303,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
       window.removeEventListener('mousemove', handlePanMove);
       window.removeEventListener('mouseup', handlePanEnd);
     };
-  }, []);
+  }, [allowVerticalPan]);
 
   return (
     <div className="gantt-container gantt-resourceTimeline">
@@ -307,6 +311,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
         ref={scrollContainerRef}
         className="gantt-resourceTimeline-scrollContainer"
         style={{ cursor: 'grab' }}
+        data-allow-vertical-pan={allowVerticalPan ? 'true' : 'false'}
         onMouseDown={handlePanStart}
       >
         <div className="gantt-resourceTimeline-scrollContent">
@@ -437,6 +442,18 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                       className={className}
                       data-resource-item-id={layoutItem.itemId}
                       onMouseDown={(event) => startDrag(event, layoutItem)}
+                      onClick={() => onResourceItemClick?.(layoutItem.item)}
+                      onKeyDown={(event) => {
+                        if (!onResourceItemClick) {
+                          return;
+                        }
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onResourceItemClick(layoutItem.item);
+                        }
+                      }}
+                      role={onResourceItemClick ? 'button' : undefined}
+                      tabIndex={onResourceItemClick ? 0 : undefined}
                       style={{
                         left: `${itemGeometry.left}px`,
                         top: `${itemGeometry.top}px`,
@@ -478,21 +495,20 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                         {renderItem ? (
                           renderItem(layoutItem.item, renderContext)
                         ) : (
-                          <>
-                            <span
-                              className="gantt-resourceTimeline-itemDurationChip"
-                              aria-label={`${durationValue} д`}
-                            >
-                              {durationValue}
-                            </span>
-                            <span className="gantt-resourceTimeline-itemTitle">{layoutItem.item.title}</span>
+                          <div className="gantt-resourceTimeline-defaultItemContent">
+                            <div className="gantt-resourceTimeline-defaultItemMain">
+                              <span
+                                className="gantt-resourceTimeline-itemDurationChip"
+                                aria-label={`${durationValue} д`}
+                              >
+                                {durationValue}
+                              </span>
+                              <span className="gantt-resourceTimeline-itemTitle">{layoutItem.item.title}</span>
+                            </div>
                             {layoutItem.item.subtitle && (
                               <span className="gantt-resourceTimeline-itemSubtitle">{layoutItem.item.subtitle}</span>
                             )}
-                            <span className="gantt-resourceTimeline-itemDates">
-                              {formatDateRangeLabel(layoutItem.startDate, layoutItem.endDate)}
-                            </span>
-                          </>
+                          </div>
                         )}
                       </div>
                     </div>
