@@ -9,6 +9,21 @@
   overflow: visible;
 }
 
+/* Interactive wrapper for one dependency line */
+.gantt-dependency-line {
+  pointer-events: visibleStroke;
+}
+
+/* Wide invisible stroke so thin dependency lines are easy to hover */
+.gantt-dependency-hit-area {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: stroke;
+}
+
 /* Dependency line path */
 .gantt-dependency-path {
   fill: none;
@@ -16,6 +31,7 @@
   stroke-width: 1;
   stroke-linecap: round;
   stroke-linejoin: round;
+  pointer-events: none;
 }
 
 /* Virtual dependency lines (for hidden tasks inside collapsed parents) */
@@ -33,6 +49,16 @@
 .gantt-dependency-selected {
   stroke: #ef4444;
   stroke-width: 2;
+}
+
+/* Hover highlight: red line with a soft red glow */
+.gantt-dependency-line:hover .gantt-dependency-path {
+  stroke: var(--gantt-dependency-hover-color, #ef4444);
+  stroke-width: 2;
+  filter:
+    drop-shadow(0 0 2px rgba(239, 68, 68, 0.95))
+    drop-shadow(0 0 7px rgba(239, 68, 68, 0.55));
+  marker-end: url(#arrowhead-hover);
 }
 
 /* Arrow markers */

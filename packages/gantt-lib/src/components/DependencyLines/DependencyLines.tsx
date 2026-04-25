@@ -375,6 +375,22 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
             fill="#ef4444"
           />
         </marker>
+
+        {/* Red arrow marker for hovered dependency */}
+        <marker
+          id="arrowhead-hover"
+          markerWidth="8"
+          markerHeight="6"
+          markerUnits="userSpaceOnUse"
+          refX="7"
+          refY="3"
+          orient="auto"
+        >
+          <polygon
+            points="0 0, 8 3, 0 6"
+            fill="var(--gantt-dependency-hover-color, #ef4444)"
+          />
+        </marker>
       </defs>
 
       {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual }) => {
@@ -400,11 +416,17 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
         return (
           <React.Fragment key={id}>
-            <path
-              d={path}
-              className={pathClassName}
-              markerEnd={markerEnd}
-            />
+            <g className="gantt-dependency-line">
+              <path
+                d={path}
+                className="gantt-dependency-hit-area"
+              />
+              <path
+                d={path}
+                className={pathClassName}
+                markerEnd={markerEnd}
+              />
+            </g>
             {lag !== 0 && (
               <text
                 className="gantt-dependency-lag-label"
