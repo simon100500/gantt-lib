@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.77.0] - 2026-04-25
+
+### Features
+
+- Add vertical panning support for ResourceTimelineChart
+- Add `onResourceItemClick` callback for resource item click handling
+
 ## [0.76.0] - 2026-04-25
 
 ### Features
