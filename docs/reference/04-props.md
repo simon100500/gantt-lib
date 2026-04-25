@@ -72,6 +72,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
   mode: 'resource-planner';
   resources: Array<ResourceTimelineResource<TItem>>;
   dayWidth?: number;
+  viewMode?: 'day' | 'week' | 'month';
   rowHeaderWidth?: number;
   laneHeight?: number;
   headerHeight?: number;
@@ -160,6 +161,7 @@ const resources: ResourceTimelineResource[] = [
 | `mode` | `'resource-planner'` | required | Selects the resource planner branch. Omit `mode` for the task Gantt chart. |
 | `resources` | `ResourceTimelineResource[]` | required | Resource rows and their scheduled items. Resource mode does not require `tasks`. |
 | `dayWidth` | `number` | `40` | Width of one day column in pixels. Horizontal drag snaps to this value. |
+| `viewMode` | `'day' \| 'week' \| 'month'` | `'day'` | Shared time-scale mode, identical to the main Gantt chart. Header, separators, and visible timeline range follow the same rules as task mode. |
 | `rowHeaderWidth` | `number` | `240` | Width of the left resource-name column. |
 | `laneHeight` | `number` | `40` | Height of one item lane inside each resource row. Overlapping items add lanes. |
 | `headerHeight` | `number` | `40` | Height of the time-scale header. |

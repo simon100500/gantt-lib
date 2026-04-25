@@ -43,6 +43,7 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   mode: 'resource-planner';
   resources: Array<ResourceTimelineResource<TItem>>;
   dayWidth?: number;
+  viewMode?: 'day' | 'week' | 'month';
   rowHeaderWidth?: number;
   laneHeight?: number;
   headerHeight?: number;

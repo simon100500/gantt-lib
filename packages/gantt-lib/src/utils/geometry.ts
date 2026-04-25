@@ -1,3 +1,5 @@
+import { getWeekBlocks } from './dateUtils';
+
 /**
  * Calculate day difference in UTC
  */
@@ -419,8 +421,6 @@ export const calculateWeekGridLines = (
   dateRange: Date[],
   dayWidth: number
 ): Array<{ x: number; isMonthStart: boolean }> => {
-  // Import getWeekBlocks locally to avoid circular dependency
-  const { getWeekBlocks } = require('./dateUtils');
   const blocks = getWeekBlocks(dateRange);
 
   const lines: Array<{ x: number; isMonthStart: boolean }> = [];

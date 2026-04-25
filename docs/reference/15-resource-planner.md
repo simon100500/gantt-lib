@@ -61,6 +61,7 @@ export function Schedule() {
       mode="resource-planner"
       resources={resources}
       dayWidth={36}
+      viewMode="week"
       laneHeight={40}
       rowHeaderWidth={180}
     />
@@ -254,6 +255,7 @@ Keep custom content compact. It renders inside a fixed bar shell, so long text s
 | Prop | Default | Purpose |
 |---|---:|---|
 | `dayWidth` | `40` | Width of one day column in pixels. Drag snaps to this grid. |
+| `viewMode` | `'day'` | Shared scale mode: `day`, `week`, or `month`, matching the main Gantt chart. |
 | `rowHeaderWidth` | `240` | Width of the resource-name column. |
 | `laneHeight` | `40` | Height of one item lane. |
 | `headerHeight` | `40` | Height of the time scale header. |
@@ -265,9 +267,11 @@ Use smaller `dayWidth` for dense schedules and larger `laneHeight` when custom i
 
 ## Calendar Behavior
 
-Resource mode uses the same workday calendar controls as task mode for drag movement.
+Resource mode uses the same time scale and workday calendar controls as task mode.
 
 With `businessDays={true}`, dropping an item on a weekend snaps it to the nearest working day in the drag direction and keeps the item duration measured in working days. With `businessDays={false}`, horizontal drag shifts by raw calendar days.
+
+`viewMode="day" | "week" | "month"` affects the resource header and grid exactly the same way as in the main Gantt chart, and the visible range uses the same month-expansion logic.
 
 Weekend highlighting in the header and grid follows the same `customDays` and `isWeekend` configuration.
 

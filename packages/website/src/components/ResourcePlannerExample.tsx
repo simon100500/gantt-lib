@@ -265,6 +265,8 @@ const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
 export default function ResourcePlannerExample() {
   const [resources, setResources] = useState(initialResources);
   const [businessDays, setBusinessDays] = useState(true);
+  const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
+  const dayWidth = viewMode === "month" ? 2.5 : viewMode === "week" ? 8 : 24;
 
   const handleMove = (move: ResourceTimelineMove<PlannerItem>) => {
     setResources((current) => {
@@ -302,12 +304,31 @@ export default function ResourcePlannerExample() {
         >
           {businessDays ? "Рабочие дни: ON" : "Рабочие дни: OFF"}
         </button>
+        <button
+          className={`demo-btn ${viewMode === "day" ? "demo-btn-active" : "demo-btn-muted"}`}
+          onClick={() => setViewMode("day")}
+        >
+          По дням
+        </button>
+        <button
+          className={`demo-btn ${viewMode === "week" ? "demo-btn-active" : "demo-btn-muted"}`}
+          onClick={() => setViewMode("week")}
+        >
+          По неделям
+        </button>
+        <button
+          className={`demo-btn ${viewMode === "month" ? "demo-btn-active" : "demo-btn-muted"}`}
+          onClick={() => setViewMode("month")}
+        >
+          По месяцам
+        </button>
       </div>
       <div className="demo-chart-card">
         <GanttChart<never, PlannerItem>
           mode="resource-planner"
           resources={resources}
-          dayWidth={30}
+          dayWidth={dayWidth}
+          viewMode={viewMode}
           laneHeight={42}
           rowHeaderWidth={220}
           businessDays={businessDays}

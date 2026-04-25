@@ -1,7 +1,7 @@
 import React from 'react';
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ResourceTimelineChart } from '../components/ResourceTimelineChart';
 import type { ResourceTimelineResource } from '../types';
 
@@ -236,11 +236,41 @@ describe('ResourceTimelineChart', () => {
     const headerSeparators = Array.from(container.querySelectorAll('.gantt-tsh-separator')) as HTMLElement[];
     const gridMonthSeparators = Array.from(container.querySelectorAll('.gantt-gb-monthSeparator')) as HTMLElement[];
 
-    expect(grid.style.width).toBe('610px');
-    expect(stickyHeader.style.width).toBe('610px');
-    expect(monthCells.map((cell) => cell.style.width)).toEqual(['310px', '300px']);
-    expect(headerSeparators.map((separator) => separator.style.left)).toEqual(['310px']);
-    expect(gridMonthSeparators.map((separator) => separator.style.left)).toEqual(['310px']);
+    expect(grid.style.width).toBe('1220px');
+    expect(stickyHeader.style.width).toBe('1220px');
+    expect(monthCells.map((cell) => cell.style.width)).toEqual(['310px', '300px', '310px', '300px']);
+    expect(headerSeparators.map((separator) => separator.style.left)).toEqual(['310px', '610px', '920px']);
+    expect(gridMonthSeparators.map((separator) => separator.style.left)).toEqual(['310px', '610px', '920px']);
+  });
+
+  it('passes viewMode through the shared time scale in resource mode', () => {
+    const { container, rerender } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        dayWidth={10}
+        viewMode="week"
+      />
+    );
+
+    expect(container.querySelectorAll('.gantt-tsh-weekCell').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.gantt-gb-weekSeparator').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.gantt-gb-dayLine')).toHaveLength(0);
+
+    rerender(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        dayWidth={10}
+        viewMode="month"
+      />
+    );
+
+    expect(container.querySelectorAll('.gantt-tsh-monthCell').length).toBeGreaterThan(0);
+    expect(
+      container.querySelectorAll('.gantt-gb-monthSeparator, .gantt-gb-weekSeparator').length
+    ).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.gantt-gb-dayLine')).toHaveLength(0);
   });
 
   it('pans the resource timeline when dragging empty grid space', () => {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { createCustomDayPredicate, getMonthDays, parseUTCDate } from '../../utils/dateUtils';
+import { createCustomDayPredicate, getMultiMonthDays, parseUTCDate } from '../../utils/dateUtils';
 import { layoutResourceTimelineItems } from '../../utils/resourceTimelineLayout';
 import { useResourceItemDrag } from '../../hooks/useResourceItemDrag';
 import type { ResourcePlannerChartProps, ResourceTimelineItem } from '../../types';
@@ -21,43 +21,6 @@ const ITEM_INNER_VERTICAL_INSET = 1;
 const ITEM_HORIZONTAL_INSET = 1;
 
 const isValidDate = (date: Date): boolean => !Number.isNaN(date.getTime());
-
-const getResourceTimelineDays = (items: Array<{ startDate: string | Date; endDate: string | Date }>): Date[] => {
-  if (items.length === 0) {
-    return getMonthDays(new Date());
-  }
-
-  let minDate: Date | null = null;
-  let maxDate: Date | null = null;
-
-  for (const item of items) {
-    const startDate = parseUTCDate(item.startDate);
-    const endDate = parseUTCDate(item.endDate);
-
-    if (!minDate || startDate.getTime() < minDate.getTime()) {
-      minDate = startDate;
-    }
-    if (!maxDate || endDate.getTime() > maxDate.getTime()) {
-      maxDate = endDate;
-    }
-  }
-
-  if (!minDate || !maxDate) {
-    return getMonthDays(new Date());
-  }
-
-  const startOfMonth = new Date(Date.UTC(minDate.getUTCFullYear(), minDate.getUTCMonth(), 1));
-  const endOfMonth = new Date(Date.UTC(maxDate.getUTCFullYear(), maxDate.getUTCMonth() + 1, 0));
-  const days: Date[] = [];
-  const current = new Date(startOfMonth);
-
-  while (current.getTime() <= endOfMonth.getTime()) {
-    days.push(new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate())));
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-
-  return days;
-};
 
 const collectValidItems = <TItem extends ResourceTimelineItem>(resources: ResourcePlannerChartProps<TItem>['resources']) => {
   return resources.flatMap((resource) =>
@@ -168,6 +131,7 @@ const getDurationValue = (
 export function ResourceTimelineChart<TItem extends ResourceTimelineItem = ResourceTimelineItem>({
   resources,
   dayWidth = DEFAULT_DAY_WIDTH,
+  viewMode = 'day',
   rowHeaderWidth = DEFAULT_ROW_HEADER_WIDTH,
   laneHeight = DEFAULT_LANE_HEIGHT,
   headerHeight = DEFAULT_HEADER_HEIGHT,
@@ -186,9 +150,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const gridRef = useRef<HTMLDivElement>(null);
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
   const validItems = useMemo(() => collectValidItems(resources), [resources]);
-  const dateRange = useMemo(() => {
-    return getResourceTimelineDays(validItems);
-  }, [validItems]);
+  const dateRange = useMemo(() => getMultiMonthDays(validItems), [validItems]);
   const monthStart = useMemo(() => {
     const firstDay = dateRange[0] ?? new Date();
     return new Date(Date.UTC(firstDay.getUTCFullYear(), firstDay.getUTCMonth(), 1));
@@ -355,6 +317,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                 days={dateRange}
                 dayWidth={dayWidth}
                 headerHeight={headerHeight}
+                viewMode={viewMode}
                 isCustomWeekend={weekendPredicate}
               />
             </div>
@@ -368,6 +331,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                 dateRange={dateRange}
                 dayWidth={dayWidth}
                 totalHeight={layout.totalHeight}
+                viewMode={viewMode}
                 isCustomWeekend={weekendPredicate}
               />
               {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
