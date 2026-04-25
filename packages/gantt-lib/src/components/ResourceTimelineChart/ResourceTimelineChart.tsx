@@ -377,7 +377,6 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   const className = [
                     'gantt-resourceTimeline-item',
                     isDraggingItem && 'gantt-resourceTimeline-itemDragging',
-                    layoutItem.conflictsWith.length > 0 && 'gantt-resourceTimeline-itemConflict',
                     (readonly || layoutItem.item.locked) && 'gantt-resourceTimeline-itemDisabled',
                     customClassName,
                   ].filter(Boolean).join(' ');

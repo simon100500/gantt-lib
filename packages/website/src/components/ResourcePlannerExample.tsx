@@ -74,7 +74,7 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
         subtitle: "Захватка 1",
         startDate: "2026-04-10",
         endDate: "2026-04-15",
-        color: "#dc2626",
+        color: "#0f766e",
         status: "blocked",
       },
       {
@@ -169,7 +169,7 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
         subtitle: "Колонны",
         startDate: "2026-04-16",
         endDate: "2026-04-22",
-        color: "#dc2626",
+        color: "#7c3aed",
         status: "blocked",
       },
       {
@@ -236,7 +236,7 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
         subtitle: "Корпус А",
         startDate: "2026-04-13",
         endDate: "2026-04-18",
-        color: "#dc2626",
+        color: "#0f766e",
         status: "blocked",
       },
     ],

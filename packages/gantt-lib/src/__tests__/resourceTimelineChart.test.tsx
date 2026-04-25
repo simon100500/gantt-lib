@@ -104,8 +104,6 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByLabelText('2 конфликтов')).toHaveTextContent('2');
     const firstItem = container.querySelector('[data-resource-item-id="a"]') as HTMLElement;
     const secondItem = container.querySelector('[data-resource-item-id="b"]') as HTMLElement;
-    expect(firstItem).toHaveClass('gantt-resourceTimeline-itemConflict');
-    expect(secondItem).toHaveClass('gantt-resourceTimeline-itemConflict');
 
     const firstOverlay = firstItem.querySelector('[data-resource-conflict-overlay="true"]') as HTMLElement;
     const secondOverlay = secondItem.querySelector('[data-resource-conflict-overlay="true"]') as HTMLElement;
