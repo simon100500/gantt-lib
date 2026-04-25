@@ -410,7 +410,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                       key={layoutItem.itemId}
                       className={className}
                       data-resource-item-id={layoutItem.itemId}
-                      title={layoutItem.item.title}
+                      data-resource-item-tooltip={layoutItem.item.title}
                       onMouseDown={(event) => startDrag(event, layoutItem)}
                       onClick={() => onResourceItemClick?.(layoutItem.item)}
                       onKeyDown={(event) => {

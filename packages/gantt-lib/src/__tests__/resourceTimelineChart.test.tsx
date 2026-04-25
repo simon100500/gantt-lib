@@ -53,7 +53,8 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByText('Discovery')).toBeInTheDocument();
     expect(screen.getByText('Client work')).toBeInTheDocument();
     expect(screen.queryByText('3–5 апр')).toBeNull();
-    expect(container.querySelector('[data-resource-item-id="discovery"]')).toHaveAttribute('title', 'Discovery');
+    expect(container.querySelector('[data-resource-item-id="discovery"]')).not.toHaveAttribute('title');
+    expect(container.querySelector('[data-resource-item-id="discovery"]')).toHaveAttribute('data-resource-item-tooltip', 'Discovery');
   });
 
   it('calls onResourceItemClick from mouse and keyboard activation', () => {

@@ -114,9 +114,46 @@
   padding: 4px;
   color: var(--gantt-task-bar-text-color, #ffffff);
   border-radius: var(--gantt-resource-bar-radius, 4px);
-  overflow: hidden;
+  overflow: visible;
   cursor: grab;
   user-select: none;
+}
+
+.gantt-resourceTimeline-item::after {
+  content: attr(data-resource-item-tooltip);
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  z-index: 20;
+  max-width: 360px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  transform: translate(-50%, calc(-100% + 2px));
+  transition: opacity 80ms ease-out, transform 80ms ease-out;
+  visibility: hidden;
+  white-space: normal;
+  width: max-content;
+  word-break: break-word;
+}
+
+.gantt-resourceTimeline-item:hover::after,
+.gantt-resourceTimeline-item:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, -100%);
+  visibility: visible;
+}
+
+.gantt-resourceTimeline-item:hover,
+.gantt-resourceTimeline-item:focus-visible {
+  z-index: 30;
 }
 
 .gantt-resourceTimeline-weekendOverlay {
