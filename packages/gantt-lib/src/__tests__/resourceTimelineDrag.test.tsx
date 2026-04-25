@@ -339,6 +339,8 @@ describe('ResourceTimelineChart drag interactions', () => {
       expect(item.style.left).toBe('201px');
       expect(item.style.width).toBe('78px');
     });
+    const overlay = item.querySelector('[data-resource-weekend-overlay="true"]') as HTMLElement;
+    expect(overlay).toBeNull();
 
     fireEvent.mouseUp(window, { clientX: 140, clientY: 20 });
 

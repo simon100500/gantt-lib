@@ -47,6 +47,8 @@ export interface ResourceItemDragPreview {
   left: number;
   top: number;
   width: number;
+  startDate: Date;
+  endDate: Date;
 }
 
 export interface UseResourceItemDragOptions<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
@@ -191,6 +193,8 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
           left: nextRange.left,
           top: nextTop,
           width: nextRange.width,
+          startDate: nextRange.startDate,
+          endDate: nextRange.endDate,
         });
       });
     };
@@ -266,6 +270,8 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
       left: layoutItem.left,
       top: layoutItem.top,
       width: layoutItem.width,
+      startDate: layoutItem.startDate,
+      endDate: layoutItem.endDate,
     });
   }, [businessDays, dayWidth, monthStart, readonly, weekendPredicate]);
 

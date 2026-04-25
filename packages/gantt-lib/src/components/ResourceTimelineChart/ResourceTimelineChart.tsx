@@ -352,8 +352,14 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                     width: layoutItem.width,
                     height: layoutItem.height,
                   }, layoutItem.laneIndex, laneCount);
+                  const overlayStartDate = preview?.itemId === layoutItem.itemId
+                    ? preview.startDate
+                    : layoutItem.startDate;
+                  const overlayEndDate = preview?.itemId === layoutItem.itemId
+                    ? preview.endDate
+                    : layoutItem.endDate;
                   const weekendOverlaySegments = businessDays
-                    ? getWeekendOverlaySegments(layoutItem.startDate, layoutItem.endDate, dayWidth, weekendPredicate)
+                    ? getWeekendOverlaySegments(overlayStartDate, overlayEndDate, dayWidth, weekendPredicate)
                     : [];
 
                   return (
