@@ -15,6 +15,7 @@ const DEFAULT_DAY_WIDTH = 40;
 const DEFAULT_HEADER_HEIGHT = 40;
 const DEFAULT_LANE_HEIGHT = 40;
 const DEFAULT_ROW_HEADER_WIDTH = 240;
+const DEFAULT_RESOURCE_ROW_GAP = 8;
 const ITEM_OUTER_VERTICAL_INSET = 2;
 const ITEM_INNER_VERTICAL_INSET = 1;
 const ITEM_HORIZONTAL_INSET = 1;
@@ -197,7 +198,12 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const gridWidth = useMemo(() => Math.round(dateRange.length * dayWidth), [dateRange.length, dayWidth]);
 
   const layout = useMemo(
-    () => layoutResourceTimelineItems(resources, { monthStart, dayWidth, laneHeight }),
+    () => layoutResourceTimelineItems(resources, {
+      monthStart,
+      dayWidth,
+      laneHeight,
+      rowGap: DEFAULT_RESOURCE_ROW_GAP,
+    }),
     [resources, monthStart, dayWidth, laneHeight]
   );
 
@@ -317,7 +323,10 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                 key={row.resourceId}
                 className="gantt-resourceTimeline-resourceHeader"
                 data-resource-row-id={row.resourceId}
-                style={{ height: `${row.resourceRowHeight}px` }}
+                style={{
+                  height: `${row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP}px`,
+                  paddingBottom: `${DEFAULT_RESOURCE_ROW_GAP}px`,
+                }}
               >
                 <span className="gantt-resourceTimeline-resourceName">{row.resource.name}</span>
                 {row.conflictCount > 0 && (
@@ -365,7 +374,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   data-resource-row-id={row.resourceId}
                   style={{
                     top: `${row.resourceRowTop}px`,
-                    height: `${row.resourceRowHeight}px`,
+                    height: `${row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP}px`,
                   }}
                 />
               ))}

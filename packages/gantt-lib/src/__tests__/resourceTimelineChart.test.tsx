@@ -62,7 +62,7 @@ describe('ResourceTimelineChart', () => {
 
     const qaRow = container.querySelector('[data-resource-row-id="qa"]') as HTMLElement;
     expect(qaRow).toBeTruthy();
-    expect(qaRow.style.height).toBe('36px');
+    expect(qaRow.style.height).toBe('44px');
   });
 
   it('grows resource row height when items overlap into multiple lanes', () => {
@@ -82,7 +82,7 @@ describe('ResourceTimelineChart', () => {
     );
 
     const devRow = container.querySelector('[data-resource-row-id="dev"]') as HTMLElement;
-    expect(devRow.style.height).toBe('68px');
+    expect(devRow.style.height).toBe('76px');
   });
 
   it('highlights concrete overlap ranges for conflicting resource items', () => {
@@ -113,7 +113,7 @@ describe('ResourceTimelineChart', () => {
     expect(secondOverlay.style.width).toBe('80px');
   });
 
-  it('keeps a two-pixel vertical gap between bars in adjacent lanes', () => {
+  it('keeps a two-pixel vertical gap between bars in adjacent lanes inside one resource row', () => {
     const overlapping: ResourceTimelineResource[] = [
       {
         id: 'dev',
@@ -135,6 +135,43 @@ describe('ResourceTimelineChart', () => {
     expect(firstItem.style.height).toBe('37px');
     expect(secondItem.style.top).toBe('41px');
     expect(secondItem.style.height).toBe('37px');
+  });
+
+  it('keeps an eight-pixel vertical gap after each resource row before the separator', () => {
+    const rowGapResources: ResourceTimelineResource[] = [
+      {
+        id: 'crew-a',
+        name: 'Crew A',
+        items: [
+          { id: 'a', resourceId: 'crew-a', title: 'A', startDate: '2026-04-01', endDate: '2026-04-03' },
+        ],
+      },
+      {
+        id: 'crew-b',
+        name: 'Crew B',
+        items: [
+          { id: 'b', resourceId: 'crew-b', title: 'B', startDate: '2026-04-01', endDate: '2026-04-03' },
+        ],
+      },
+    ];
+
+    const { container } = render(
+      <ResourceTimelineChart mode="resource-planner" resources={rowGapResources} laneHeight={40} />
+    );
+
+    const firstRow = container.querySelector('.gantt-resourceTimeline-row[data-resource-row-id="crew-a"]') as HTMLElement;
+    const secondRow = container.querySelector('.gantt-resourceTimeline-row[data-resource-row-id="crew-b"]') as HTMLElement;
+    const firstHeader = container.querySelector('.gantt-resourceTimeline-resourceHeader[data-resource-row-id="crew-a"]') as HTMLElement;
+    const firstItem = container.querySelector('[data-resource-item-id="a"]') as HTMLElement;
+    const secondItem = container.querySelector('[data-resource-item-id="b"]') as HTMLElement;
+
+    expect(firstRow.style.top).toBe('0px');
+    expect(firstRow.style.height).toBe('48px');
+    expect(secondRow.style.top).toBe('48px');
+    expect(firstHeader.style.height).toBe('48px');
+    expect(firstHeader.style.paddingBottom).toBe('8px');
+    expect(firstItem.style.top).toBe('2px');
+    expect(secondItem.style.top).toBe('50px');
   });
 
   it('allows custom item content and appends per-item classes', () => {

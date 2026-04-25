@@ -6,6 +6,7 @@ export interface ResourceTimelineLayoutOptions {
   monthStart: Date;
   dayWidth: number;
   laneHeight: number;
+  rowGap?: number;
 }
 
 export interface ResourceTimelineLayoutRow<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
@@ -186,8 +187,9 @@ export const layoutResourceTimelineItems = <
   const items: Array<ResourceTimelineLayoutItem<TItem>> = [];
   const diagnostics: ResourceTimelineLayoutDiagnostic[] = [];
   let currentTop = 0;
+  const rowGap = options.rowGap ?? 0;
 
-  for (const resource of resources) {
+  resources.forEach((resource, resourceIndex) => {
     const parsedItems: Array<ParsedResourceItem<TItem>> = [];
 
     for (const item of resource.items) {
@@ -264,8 +266,8 @@ export const layoutResourceTimelineItems = <
       ...item,
       resourceRowHeight,
     })));
-    currentTop += resourceRowHeight;
-  }
+    currentTop += resourceRowHeight + rowGap;
+  });
 
   return {
     rows,

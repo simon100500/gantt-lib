@@ -108,6 +108,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
+  z-index: 1;
   pointer-events: none;
   background-image: repeating-linear-gradient(135deg,
       rgba(255, 255, 255, 0.26) 0,
@@ -121,6 +122,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
+  z-index: 0;
   pointer-events: none;
   background-color: rgba(239, 68, 68, 1);
 }
@@ -129,7 +131,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  z-index: 2;
+  z-index: 3;
   width: 12px;
   cursor: ew-resize;
 }
@@ -155,7 +157,7 @@
 
 .gantt-resourceTimeline-itemInner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 8px;
