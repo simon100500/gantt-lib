@@ -43,6 +43,35 @@ afterEach(() => {
 });
 
 describe('GanttChart taskFilter', () => {
+  it('withoutDeps can match only child tasks', () => {
+    const filter = withoutDeps({ onlyChildren: true });
+    const rootWithoutDeps: Task = {
+      id: 'root',
+      name: 'Root without deps',
+      startDate: '2026-02-01',
+      endDate: '2026-02-03',
+    };
+    const childWithoutDeps: Task = {
+      id: 'child',
+      name: 'Child without deps',
+      startDate: '2026-02-01',
+      endDate: '2026-02-03',
+      parentId: 'root',
+    };
+    const childWithDeps: Task = {
+      id: 'child-linked',
+      name: 'Child with deps',
+      startDate: '2026-02-04',
+      endDate: '2026-02-06',
+      parentId: 'root',
+      dependencies: [{ taskId: 'child', type: 'FS', lag: 0 }],
+    };
+
+    expect(filter(rootWithoutDeps)).toBe(false);
+    expect(filter(childWithoutDeps)).toBe(true);
+    expect(filter(childWithDeps)).toBe(false);
+  });
+
   it('highlights matching task list and chart rows without hiding other tasks', () => {
     const tasks: Task[] = [
       {

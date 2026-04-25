@@ -33,12 +33,22 @@ export const or = (...predicates: TaskPredicate[]): TaskPredicate =>
 export const not = (predicate: TaskPredicate): TaskPredicate =>
   (task) => !predicate(task);
 
+export interface WithoutDepsOptions {
+  /** If true, only child tasks (tasks with parentId) can match. */
+  onlyChildren?: boolean;
+}
+
 /**
  * Filter tasks that have no dependencies
+ * @param options - Optional flags to narrow matching tasks
  * @returns Predicate that returns true for tasks without dependencies array or with empty array
  */
-export const withoutDeps = (): TaskPredicate =>
-  (task) => !!task && (!task.dependencies || task.dependencies.length === 0);
+export const withoutDeps = (options: WithoutDepsOptions = {}): TaskPredicate =>
+  (task) => {
+    if (!task) return false;
+    if (options.onlyChildren && !task.parentId) return false;
+    return !task.dependencies || task.dependencies.length === 0;
+  };
 
 /**
  * Filter expired (overdue) tasks

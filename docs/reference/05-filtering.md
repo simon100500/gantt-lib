@@ -69,6 +69,14 @@ import { withoutDeps } from 'gantt-lib/filters';
 
 **Use case:** Find root tasks that can start independently.
 
+To match only child tasks without dependencies, pass `onlyChildren`:
+
+```tsx
+const filter = withoutDeps({ onlyChildren: true });
+```
+
+**Use case:** Find leaf work items that are not linked to a predecessor, while ignoring parent/group rows.
+
 ---
 
 ### `expired(referenceDate?)`
