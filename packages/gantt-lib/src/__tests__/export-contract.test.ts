@@ -36,12 +36,14 @@ describe('Export contract: core/scheduling', () => {
     const props: ResourcePlannerChartProps = {
       mode,
       resources: [resource],
+      containerHeight: 'calc(100dvh - 132px)',
       onResourceItemMove: (move: ResourceTimelineMove) => {
         expect(move.fromResourceId).toBeDefined();
       },
     };
 
     expect(props.resources[0].items[0].id).toBe('assignment-1');
+    expect(props.containerHeight).toBe('calc(100dvh - 132px)');
   });
 
   it('exports command-level API from execute.ts', async () => {

@@ -47,6 +47,7 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   rowHeaderWidth?: number;
   laneHeight?: number;
   headerHeight?: number;
+  containerHeight?: number | string;
   allowVerticalPan?: boolean;
   customDays?: Array<{ date: Date; type: 'weekend' | 'workday' }>;
   isWeekend?: (date: Date) => boolean;

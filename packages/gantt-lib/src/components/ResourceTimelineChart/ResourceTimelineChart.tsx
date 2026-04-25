@@ -135,6 +135,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   rowHeaderWidth = DEFAULT_ROW_HEADER_WIDTH,
   laneHeight = DEFAULT_LANE_HEIGHT,
   headerHeight = DEFAULT_HEADER_HEIGHT,
+  containerHeight,
   allowVerticalPan = false,
   customDays,
   isWeekend,
@@ -272,7 +273,11 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
       <div
         ref={scrollContainerRef}
         className="gantt-resourceTimeline-scrollContainer"
-        style={{ cursor: 'grab' }}
+        style={{
+          cursor: 'grab',
+          height: containerHeight ?? 'auto',
+          overflowY: containerHeight === undefined ? undefined : 'auto',
+        }}
         data-allow-vertical-pan={allowVerticalPan ? 'true' : 'false'}
         onMouseDown={handlePanStart}
       >

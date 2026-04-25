@@ -36,6 +36,16 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByText('QA')).toBeInTheDocument();
   });
 
+  it('applies containerHeight to the scroll container', () => {
+    const { container } = render(
+      <ResourceTimelineChart mode="resource-planner" resources={resources} containerHeight="calc(100dvh - 132px)" />
+    );
+
+    const scrollContainer = container.querySelector('.gantt-resourceTimeline-scrollContainer') as HTMLElement;
+    expect(scrollContainer.style.height).toBe('calc(100dvh - 132px)');
+    expect(scrollContainer.style.overflowY).toBe('auto');
+  });
+
   it('renders default item bars with demo-style duration, title, and subtitle', () => {
     render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
 
