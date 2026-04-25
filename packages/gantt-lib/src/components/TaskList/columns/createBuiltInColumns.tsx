@@ -8,7 +8,7 @@ export const BUILT_IN_COLUMN_WIDTHS: Record<string, number> = {
   endDate: 90,
   duration: 60,
   progress: 50,
-  dependencies: 120,
+  dependencies: 128,
   actions: 80,
 };
 

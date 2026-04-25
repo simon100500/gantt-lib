@@ -517,7 +517,7 @@
 
 /* Dependencies column — header and data cells */
 .gantt-tl-cell-deps {
-  width: 90px;
+  width: 128px;
   flex-shrink: 0;
   flex-wrap: wrap;
   gap: 4px;
@@ -744,7 +744,7 @@
 .gantt-tl-dep-chip {
   display: inline-flex;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
   background-color: rgba(59, 130, 246, 0.12);
   /* border: 1px solid rgba(59, 130, 246, 0.3); */
   border-radius: 6px;
@@ -754,8 +754,22 @@
   white-space: nowrap;
   line-height: 14px;
   cursor: pointer;
-  min-width: 42px;
-  justify-content: center;
+  min-width: 58px;
+  justify-content: flex-start;
+}
+
+.gantt-tl-dep-chip-task-number {
+  color: #1d4ed8;
+  font-weight: 400;
+  margin-right: 3px;
+}
+
+.gantt-tl-dep-chip svg {
+  color: #111827;
+}
+
+.gantt-tl-dep-chip-lag {
+  color: #1d4ed8;
 }
 
 /* Selected chip visual highlight — inverted */

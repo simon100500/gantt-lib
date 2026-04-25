@@ -579,12 +579,17 @@ const DepChip: React.FC<DepChipProps> = ({
           onClick={handleClick}
           title={`[${LINK_TYPE_LABELS_RU[dep.type]}] ${formatTaskNumberLabel(predecessorTaskNumber)}${depName}`}
         >
+          {predecessorTaskNumber && (
+            <span className="gantt-tl-dep-chip-task-number">
+              {predecessorTaskNumber}
+            </span>
+          )}
           <Icon />
-          {effectiveLag !== 0
-            ? effectiveLag > 0
-              ? `+${effectiveLag}`
-              : `${effectiveLag}`
-            : ""}
+          {effectiveLag !== 0 && (
+            <span className="gantt-tl-dep-chip-lag">
+              {effectiveLag > 0 ? `+${effectiveLag}` : `${effectiveLag}`}
+            </span>
+          )}
         </span>
       </PopoverTrigger>
       <PopoverContent
