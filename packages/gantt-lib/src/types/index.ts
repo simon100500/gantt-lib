@@ -58,6 +58,8 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   getItemClassName?: (item: TItem) => string | undefined;
   onResourceItemClick?: (item: TItem) => void;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
+  onAddResource?: (resource: ResourceTimelineResource<TItem>) => void;
+  enableAddResource?: boolean;
 }
 
 /**

@@ -84,6 +84,8 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
   renderItem?: (item: TItem) => React.ReactNode;
   getItemClassName?: (item: TItem) => string | undefined;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
+  onAddResource?: (resource: ResourceTimelineResource<TItem>) => void;
+  enableAddResource?: boolean;
 }
 ```
 
@@ -173,6 +175,8 @@ const resources: ResourceTimelineResource[] = [
 | `renderItem` | `(item) => ReactNode` | `undefined` | Custom inner content for a resource item bar. Geometry remains controlled by the renderer. |
 | `getItemClassName` | `(item) => string \| undefined` | `undefined` | Adds a custom class to a resource item bar. |
 | `onResourceItemMove` | `(move: ResourceTimelineMove) => void` | `undefined` | Fires on mouseup after a valid move or resize. Includes `startDate`, `endDate`, optional `taskId`, and `changeType: 'move' \| 'resize-start' \| 'resize-end'`. |
+| `onAddResource` | `(resource: ResourceTimelineResource) => void` | `undefined` | Shows the "+ Добавить ресурс" row and fires when the user confirms a new resource name. The created resource has an auto-generated `id`, the entered `name`, and empty `items`. |
+| `enableAddResource` | `boolean` | `true` | When `true` and `onAddResource` is provided, shows the add-resource row. |
 
 Resource mode intentionally does not render dependency lines, task list editing, hierarchy/cascade scheduling, or task reorder behavior.
 

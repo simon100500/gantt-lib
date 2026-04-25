@@ -36,6 +36,36 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByText('QA')).toBeInTheDocument();
   });
 
+  it('renders an add-resource row only when onAddResource is provided', () => {
+    const { container, rerender } = render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
+
+    expect(screen.queryByText('+ Добавить ресурс')).toBeNull();
+    expect(container.querySelector('[data-resource-add-row="true"]')).toBeNull();
+
+    rerender(<ResourceTimelineChart mode="resource-planner" resources={resources} onAddResource={vi.fn()} />);
+
+    expect(screen.getByText('+ Добавить ресурс')).toBeInTheDocument();
+    expect(container.querySelector('[data-resource-add-row="true"]')).toBeTruthy();
+  });
+
+  it('confirms a new resource name from the add-resource row', () => {
+    const onAddResource = vi.fn();
+    render(<ResourceTimelineChart mode="resource-planner" resources={resources} onAddResource={onAddResource} />);
+
+    fireEvent.click(screen.getByText('+ Добавить ресурс'));
+    const input = screen.getByPlaceholderText('Название ресурса');
+    fireEvent.change(input, { target: { value: 'Install Crew' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onAddResource).toHaveBeenCalledTimes(1);
+    expect(onAddResource).toHaveBeenCalledWith({
+      id: expect.any(String),
+      name: 'Install Crew',
+      items: [],
+    });
+    expect(screen.getByText('+ Добавить ресурс')).toBeInTheDocument();
+  });
+
   it('applies containerHeight to the scroll container', () => {
     const { container } = render(
       <ResourceTimelineChart mode="resource-planner" resources={resources} containerHeight="calc(100dvh - 132px)" />

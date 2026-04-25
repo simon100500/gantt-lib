@@ -250,6 +250,22 @@ Use `getItemClassName` to add per-item classes:
 
 Keep custom content compact. It renders inside a fixed bar shell, so long text should truncate or wrap intentionally.
 
+## Adding Resources
+
+Resource planner mode can render an inline add-resource row when you provide `onAddResource`.
+
+```tsx
+<GanttChart
+  mode="resource-planner"
+  resources={resources}
+  onAddResource={(resource) => {
+    setResources((current) => [...current, resource]);
+  }}
+/>
+```
+
+The chart creates a resource object with an auto-generated `id`, the confirmed `name`, and an empty `items` array. Use `enableAddResource={false}` to hide the row while keeping the handler wired.
+
 ## Sizing Props
 
 | Prop | Default | Purpose |

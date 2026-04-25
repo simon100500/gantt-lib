@@ -290,6 +290,10 @@ export default function ResourcePlannerExample() {
     });
   };
 
+  const handleAddResource = (resource: ResourceTimelineResource<PlannerItem>) => {
+    setResources((current) => [...current, resource]);
+  };
+
   return (
     <section className="demo-section">
       <h2 className="demo-section-title">Resource Planner Mode</h2>
@@ -334,6 +338,7 @@ export default function ResourcePlannerExample() {
           businessDays={businessDays}
           disableResourceReassignment
           onResourceItemMove={handleMove}
+          onAddResource={handleAddResource}
         />
       </div>
     </section>

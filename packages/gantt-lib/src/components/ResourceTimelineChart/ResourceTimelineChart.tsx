@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createCustomDayPredicate, getMultiMonthDays, parseUTCDate } from '../../utils/dateUtils';
 import { layoutResourceTimelineItems } from '../../utils/resourceTimelineLayout';
 import { useResourceItemDrag } from '../../hooks/useResourceItemDrag';
@@ -9,6 +9,7 @@ import { getBusinessDaysCount } from '../../core/scheduling';
 import TimeScaleHeader from '../TimeScaleHeader';
 import GridBackground from '../GridBackground';
 import TodayIndicator from '../TodayIndicator';
+import { Input } from '../ui/Input';
 import './ResourceTimelineChart.css';
 
 const DEFAULT_DAY_WIDTH = 40;
@@ -152,6 +153,73 @@ const getDurationValue = (
   ? getBusinessDaysCount(startDate, endDate, weekendPredicate)
   : Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1);
 
+interface NewResourceRowProps {
+  height: number;
+  onConfirm: (name: string) => void;
+  onCancel: () => void;
+}
+
+const NewResourceRow: React.FC<NewResourceRowProps> = ({ height, onConfirm, onCancel }) => {
+  const [nameValue, setNameValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const confirmedRef = useRef(false);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  const handleCancel = () => {
+    confirmedRef.current = true;
+    onCancel();
+  };
+
+  const handleConfirm = () => {
+    const name = nameValue.trim();
+    if (!name) {
+      handleCancel();
+      return;
+    }
+
+    confirmedRef.current = true;
+    onConfirm(name);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleConfirm();
+    } else if (event.key === 'Escape') {
+      handleCancel();
+    }
+  };
+
+  const handleBlur = () => {
+    if (!confirmedRef.current) {
+      handleConfirm();
+    }
+  };
+
+  return (
+    <div
+      className="gantt-resourceTimeline-resourceHeader gantt-resourceTimeline-resourceHeaderNew"
+      style={{
+        height: `${height}px`,
+        paddingBottom: `${DEFAULT_RESOURCE_ROW_GAP}px`,
+      }}
+    >
+      <Input
+        ref={inputRef}
+        value={nameValue}
+        onChange={(event) => setNameValue(event.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        placeholder="Название ресурса"
+        className="gantt-resourceTimeline-resourceInput"
+      />
+    </div>
+  );
+};
+
 export function ResourceTimelineChart<TItem extends ResourceTimelineItem = ResourceTimelineItem>({
   resources,
   dayWidth = DEFAULT_DAY_WIDTH,
@@ -170,10 +238,13 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   getItemClassName,
   onResourceItemClick,
   onResourceItemMove,
+  onAddResource,
+  enableAddResource = true,
 }: ResourcePlannerChartProps<TItem>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
+  const [isCreatingResource, setIsCreatingResource] = useState(false);
   const validItems = useMemo(() => collectValidItems(resources), [resources]);
   const dateRange = useMemo(() => getMultiMonthDays(validItems), [validItems]);
   const monthStart = useMemo(() => {
@@ -211,6 +282,20 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     }
     return map;
   }, [layout.items]);
+
+  const canAddResource = enableAddResource && Boolean(onAddResource);
+  const resourceAddRowHeight = laneHeight + DEFAULT_RESOURCE_ROW_GAP;
+  const displayTotalHeight = layout.totalHeight + (canAddResource ? resourceAddRowHeight : 0);
+  const handleConfirmNewResource = useCallback((name: string) => {
+    onAddResource?.({
+      id: crypto.randomUUID(),
+      name,
+      items: [] as TItem[],
+    });
+    setIsCreatingResource(false);
+  }, [onAddResource]);
+
+  const handleCancelNewResource = useCallback(() => setIsCreatingResource(false), []);
 
   const { preview, startDrag } = useResourceItemDrag({
     dayWidth,
@@ -336,6 +421,24 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                 )}
               </div>
             ))}
+            {canAddResource && (
+              isCreatingResource ? (
+                <NewResourceRow
+                  height={resourceAddRowHeight}
+                  onConfirm={handleConfirmNewResource}
+                  onCancel={handleCancelNewResource}
+                />
+              ) : (
+                <button
+                  className="gantt-resourceTimeline-addResourceButton"
+                  type="button"
+                  style={{ height: `${resourceAddRowHeight}px` }}
+                  onClick={() => setIsCreatingResource(true)}
+                >
+                  + Добавить ресурс
+                </button>
+              )
+            )}
           </div>
 
           <div
@@ -355,12 +458,12 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
             <div
               ref={gridRef}
               className="gantt-resourceTimeline-grid"
-              style={{ width: `${gridWidth}px`, height: `${layout.totalHeight}px` }}
+              style={{ width: `${gridWidth}px`, height: `${displayTotalHeight}px` }}
             >
               <GridBackground
                 dateRange={dateRange}
                 dayWidth={dayWidth}
-                totalHeight={layout.totalHeight}
+                totalHeight={displayTotalHeight}
                 viewMode={viewMode}
                 isCustomWeekend={weekendPredicate}
               />
@@ -377,6 +480,17 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   }}
                 />
               ))}
+
+              {canAddResource && (
+                <div
+                  className="gantt-resourceTimeline-row gantt-resourceTimeline-rowNew"
+                  data-resource-add-row="true"
+                  style={{
+                    top: `${layout.totalHeight}px`,
+                    height: `${resourceAddRowHeight}px`,
+                  }}
+                />
+              )}
 
               {Array.from(itemsByResourceId.values()).flatMap((resourceItems) =>
                 resourceItems.map((layoutItem) => {
