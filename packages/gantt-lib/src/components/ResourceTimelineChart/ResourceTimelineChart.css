@@ -98,6 +98,10 @@
   position: relative;
 }
 
+.gantt-resourceTimeline .gantt-ti-indicator {
+  z-index: 4;
+}
+
 .gantt-resourceTimeline-row {
   position: absolute;
   left: 0;
@@ -162,6 +166,7 @@
   bottom: 0;
   z-index: 1;
   pointer-events: none;
+  border-radius: inherit;
   background-image: repeating-linear-gradient(135deg,
       rgba(255, 255, 255, 0.26) 0,
       rgba(255, 255, 255, 0.26) 2px,
@@ -176,6 +181,7 @@
   bottom: 0;
   z-index: 0;
   pointer-events: none;
+  border-radius: inherit;
   background-color: rgba(239, 68, 68, 1);
 }
 

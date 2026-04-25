@@ -324,7 +324,7 @@ describe('ResourceTimelineChart drag interactions', () => {
 
     await waitFor(() => {
       expect(item).toHaveClass('gantt-resourceTimeline-itemDragging');
-      expect(item.style.width).toBe('158px');
+      expect(item.style.width).toBe('157px');
       expect(item.style.top).toBe('2px');
       expect(item.querySelector('.gantt-resourceTimeline-itemDurationChip')).toHaveTextContent('4');
     });
@@ -415,7 +415,7 @@ describe('ResourceTimelineChart drag interactions', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('duration-item-1')).toHaveTextContent('2');
-      expect(item.style.left).toBe('201px');
+      expect(item.style.left).toBe('202px');
     });
   });
 
@@ -440,8 +440,8 @@ describe('ResourceTimelineChart drag interactions', () => {
 
     await waitFor(() => {
       expect(item).toHaveClass('gantt-resourceTimeline-itemDragging');
-      expect(item.style.left).toBe('41px');
-      expect(item.style.width).toBe('158px');
+      expect(item.style.left).toBe('42px');
+      expect(item.style.width).toBe('157px');
       expect(item.style.top).toBe('2px');
     });
 
@@ -499,8 +499,8 @@ describe('ResourceTimelineChart drag interactions', () => {
 
     await waitFor(() => {
       expect(item).toHaveClass('gantt-resourceTimeline-itemDragging');
-      expect(item.style.left).toBe('201px');
-      expect(item.style.width).toBe('78px');
+      expect(item.style.left).toBe('202px');
+      expect(item.style.width).toBe('77px');
     });
     const overlay = item.querySelector('[data-resource-weekend-overlay="true"]') as HTMLElement;
     expect(overlay).toBeNull();

@@ -16,6 +16,12 @@ export interface GridBackgroundProps {
   viewMode?: 'day' | 'week' | 'month';
   /** Optional predicate for custom weekend logic (e.g., holidays, shift patterns) */
   isCustomWeekend?: (date: Date) => boolean;
+  /** Optional extra class for layered rendering contexts. */
+  className?: string;
+  /** Whether to render weekend background blocks. */
+  showWeekendBlocks?: boolean;
+  /** Whether to render vertical grid lines. */
+  showGridLines?: boolean;
 }
 
 /**
@@ -51,7 +57,7 @@ const arePropsEqual = (prevProps: GridBackgroundProps, nextProps: GridBackground
  * - week: per-week grid lines only (no weekend blocks, lines every 7 days)
  */
 const GridBackground: React.FC<GridBackgroundProps> = React.memo(
-  ({ dateRange, dayWidth, totalHeight, viewMode = 'day', isCustomWeekend }) => {
+  ({ dateRange, dayWidth, totalHeight, viewMode = 'day', isCustomWeekend, className, showWeekendBlocks = true, showGridLines = true }) => {
     // Week-view: grid lines at each 7-day boundary
     const weekGridLines = useMemo(() => {
       if (viewMode !== 'week') return [];
@@ -83,14 +89,14 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
 
     return (
       <div
-        className="gantt-gb-gridBackground"
+        className={['gantt-gb-gridBackground', className].filter(Boolean).join(' ')}
         style={{
           width: `${gridWidth}px`,
           height: `${totalHeight}px`,
         }}
       >
         {/* Weekend backgrounds (rendered first, behind lines) — day-view only */}
-        {weekendBlocks.map((block, index) => (
+        {showWeekendBlocks && weekendBlocks.map((block, index) => (
           <div
             key={`weekend-${index}`}
             className="gantt-gb-weekendBlock"
@@ -102,7 +108,7 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
         ))}
 
         {/* Vertical grid lines */}
-        {viewMode === 'week' ? (
+        {showGridLines && (viewMode === 'week' ? (
           // Week-view: one line per week column boundary
           weekGridLines.map((line, index) => {
             const lineClass = line.isMonthStart
@@ -148,7 +154,7 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
               />
             );
           })
-        )}
+        ))}
       </div>
     );
   },

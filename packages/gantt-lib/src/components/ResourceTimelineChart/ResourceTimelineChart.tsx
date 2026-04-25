@@ -18,7 +18,8 @@ const DEFAULT_ROW_HEADER_WIDTH = 240;
 const DEFAULT_RESOURCE_ROW_GAP = 8;
 const ITEM_OUTER_VERTICAL_INSET = 2;
 const ITEM_INNER_VERTICAL_INSET = 1;
-const ITEM_HORIZONTAL_INSET = 1;
+const ITEM_START_HORIZONTAL_INSET = 2;
+const ITEM_END_HORIZONTAL_INSET = 1;
 
 const isValidDate = (date: Date): boolean => !Number.isNaN(date.getTime());
 
@@ -50,11 +51,23 @@ const getVisualItemGeometry = (
   const bottomInset = laneIndex === laneCount - 1 ? ITEM_OUTER_VERTICAL_INSET : ITEM_INNER_VERTICAL_INSET;
 
   return {
-    left: geometry.left + ITEM_HORIZONTAL_INSET,
+    left: geometry.left + ITEM_START_HORIZONTAL_INSET,
     top: geometry.top + topInset,
-    width: Math.max(0, geometry.width - ITEM_HORIZONTAL_INSET * 2),
+    width: Math.max(1, geometry.width - ITEM_START_HORIZONTAL_INSET - ITEM_END_HORIZONTAL_INSET),
     height: Math.max(0, geometry.height - topInset - bottomInset),
   };
+};
+
+const formatOverlapCount = (count: number): string => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  const word = mod10 === 1 && mod100 !== 11
+    ? 'наложение'
+    : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+      ? 'наложения'
+      : 'наложений';
+
+  return `${count} ${word}`;
 };
 
 const getWeekendOverlaySegments = (
@@ -118,6 +131,17 @@ const getRangeOverlaySegments = (
     };
   });
 };
+
+const clampOverlaySegments = (
+  segments: Array<{ left: number; width: number }>,
+  maxWidth: number
+) => segments.flatMap((segment) => {
+  const left = Math.max(0, Math.min(segment.left, maxWidth));
+  const right = Math.max(left, Math.min(segment.left + segment.width, maxWidth));
+  const width = right - left;
+
+  return width > 0 ? [{ left, width }] : [];
+});
 
 const getDurationValue = (
   startDate: Date,
@@ -304,7 +328,8 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                 {row.conflictCount > 0 && (
                   <span
                     className="gantt-resourceTimeline-conflictBadge"
-                    aria-label={`${row.conflictCount} конфликтов`}
+                    aria-label={formatOverlapCount(row.conflictCount)}
+                    title={formatOverlapCount(row.conflictCount)}
                   >
                     {row.conflictCount}
                   </span>
@@ -385,12 +410,18 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                     ? preview.endDate
                     : layoutItem.endDate;
                   const weekendOverlaySegments = businessDays
-                    ? getWeekendOverlaySegments(overlayStartDate, overlayEndDate, dayWidth, weekendPredicate)
+                    ? clampOverlaySegments(
+                        getWeekendOverlaySegments(overlayStartDate, overlayEndDate, dayWidth, weekendPredicate),
+                        itemGeometry.width
+                      )
                     : [];
-                  const conflictOverlaySegments = getRangeOverlaySegments(
-                    overlayStartDate,
-                    isDraggingItem ? [] : layoutItem.conflictRanges,
-                    dayWidth
+                  const conflictOverlaySegments = clampOverlaySegments(
+                    getRangeOverlaySegments(
+                      overlayStartDate,
+                      isDraggingItem ? [] : layoutItem.conflictRanges,
+                      dayWidth
+                    ),
+                    itemGeometry.width
                   );
                   const durationValue = getDurationValue(
                     overlayStartDate,

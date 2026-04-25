@@ -36,6 +36,10 @@ export const not = (predicate: TaskPredicate): TaskPredicate =>
 export interface WithoutDepsOptions {
   /** If true, only child tasks (tasks with parentId) can match. */
   onlyChildren?: boolean;
+  /** Full task list, required when excluding parent rows. */
+  tasks?: Task[];
+  /** If true, only non-parent regular tasks can match. Requires tasks. */
+  onlyLeafTasks?: boolean;
 }
 
 /**
@@ -47,6 +51,11 @@ export const withoutDeps = (options: WithoutDepsOptions = {}): TaskPredicate =>
   (task) => {
     if (!task) return false;
     if (options.onlyChildren && !task.parentId) return false;
+    if (options.onlyLeafTasks) {
+      const isParent = (options.tasks ?? []).some((candidate) => candidate.parentId === task.id);
+      const isRegularTask = task.type == null || task.type === 'task';
+      if (isParent || !isRegularTask) return false;
+    }
     return !task.dependencies || task.dependencies.length === 0;
   };
 

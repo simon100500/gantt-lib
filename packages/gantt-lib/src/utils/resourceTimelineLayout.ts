@@ -177,6 +177,43 @@ const calculateConflictInfo = <TItem extends ResourceTimelineItem>(
   return result;
 };
 
+const countConflictOverlaps = <TItem extends ResourceTimelineItem>(
+  items: Array<ResourceTimelineLayoutItem<TItem>>
+): number => {
+  const conflictsByItemId = new Map(items.map((item) => [item.itemId, item.conflictsWith]));
+  const visited = new Set<string>();
+  let overlapCount = 0;
+
+  for (const item of items) {
+    if (visited.has(item.itemId) || item.conflictsWith.length === 0) {
+      continue;
+    }
+
+    const stack = [item.itemId];
+    let componentSize = 0;
+
+    while (stack.length > 0) {
+      const itemId = stack.pop()!;
+      if (visited.has(itemId)) {
+        continue;
+      }
+
+      visited.add(itemId);
+      componentSize += 1;
+
+      for (const conflictId of conflictsByItemId.get(itemId) ?? []) {
+        if (!visited.has(conflictId)) {
+          stack.push(conflictId);
+        }
+      }
+    }
+
+    overlapCount += Math.max(0, componentSize - 1);
+  }
+
+  return overlapCount;
+};
+
 export const layoutResourceTimelineItems = <
   TItem extends ResourceTimelineItem = ResourceTimelineItem,
 >(
@@ -251,7 +288,7 @@ export const layoutResourceTimelineItems = <
 
     const laneCount = Math.max(1, laneEndDays.length);
     const resourceRowHeight = laneCount * options.laneHeight;
-    const conflictCount = laidOutItems.filter((item) => item.conflictsWith.length > 0).length;
+    const conflictCount = countConflictOverlaps(laidOutItems);
     const row: ResourceTimelineLayoutRow<TItem> = {
       resource,
       resourceId: resource.id,

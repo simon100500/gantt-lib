@@ -44,7 +44,7 @@ describe('layoutResourceTimelineItems', () => {
       ['a', 0],
       ['b', 1],
     ]);
-    expect(result.rows[0].conflictCount).toBe(2);
+    expect(result.rows[0].conflictCount).toBe(1);
     expect(result.items.map((item) => [item.itemId, item.conflictsWith])).toEqual([
       ['a', ['b']],
       ['b', ['a']],

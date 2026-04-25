@@ -303,7 +303,7 @@ export default function ConstructionChart() {
         </label>
         <button onClick={() => { setTaskFilter(undefined); setTaskFilterId(undefined); }} style={filterBtnStyle(!taskFilterId)}>Все</button>
         <button onClick={() => { setTaskFilter(() => withoutDeps()); setTaskFilterId('withoutDeps'); }} style={filterBtnStyle(taskFilterId === 'withoutDeps')}>Без зависимостей</button>
-        <button onClick={() => { setTaskFilter(() => withoutDeps({ onlyChildren: true })); setTaskFilterId('withoutDeps:onlyChildren'); }} style={filterBtnStyle(taskFilterId === 'withoutDeps:onlyChildren')}>Дочерние без связей</button>
+        <button onClick={() => { setTaskFilter(() => withoutDeps({ onlyChildren: true, onlyLeafTasks: true, tasks })); setTaskFilterId('withoutDeps:onlyChildren'); }} style={filterBtnStyle(taskFilterId === 'withoutDeps:onlyChildren')}>Дочерние без связей</button>
         <button onClick={() => { setTaskFilter(() => expired()); setTaskFilterId('expired'); }} style={filterBtnStyle(taskFilterId === 'expired', '#dc2626')}>Просроченные</button>
         <button onClick={() => { setTaskFilter(() => nameContains('Подготов')); setTaskFilterId('nameContains:Подготов'); }} style={filterBtnStyle()}>Содержит "Подготов"</button>
         <button onClick={() => { setTaskFilter(() => progressInRange(50, 100)); setTaskFilterId('progressInRange:50:100'); }} style={filterBtnStyle()}>Прогресс 50-100%</button>

@@ -43,8 +43,7 @@ afterEach(() => {
 });
 
 describe('GanttChart taskFilter', () => {
-  it('withoutDeps can match only child tasks', () => {
-    const filter = withoutDeps({ onlyChildren: true });
+  it('withoutDeps can match only child leaf tasks', () => {
     const rootWithoutDeps: Task = {
       id: 'root',
       name: 'Root without deps',
@@ -58,6 +57,28 @@ describe('GanttChart taskFilter', () => {
       endDate: '2026-02-03',
       parentId: 'root',
     };
+    const nestedParentWithoutDeps: Task = {
+      id: 'nested-parent',
+      name: 'Nested parent without deps',
+      startDate: '2026-02-01',
+      endDate: '2026-02-03',
+      parentId: 'root',
+    };
+    const grandchildWithoutDeps: Task = {
+      id: 'grandchild',
+      name: 'Grandchild without deps',
+      startDate: '2026-02-01',
+      endDate: '2026-02-03',
+      parentId: 'nested-parent',
+    };
+    const milestoneWithoutDeps: Task = {
+      id: 'milestone',
+      name: 'Milestone without deps',
+      startDate: '2026-02-01',
+      endDate: '2026-02-01',
+      parentId: 'root',
+      type: 'milestone',
+    };
     const childWithDeps: Task = {
       id: 'child-linked',
       name: 'Child with deps',
@@ -66,9 +87,21 @@ describe('GanttChart taskFilter', () => {
       parentId: 'root',
       dependencies: [{ taskId: 'child', type: 'FS', lag: 0 }],
     };
+    const tasks = [
+      rootWithoutDeps,
+      childWithoutDeps,
+      nestedParentWithoutDeps,
+      grandchildWithoutDeps,
+      milestoneWithoutDeps,
+      childWithDeps,
+    ];
+    const filter = withoutDeps({ onlyChildren: true, onlyLeafTasks: true, tasks });
 
     expect(filter(rootWithoutDeps)).toBe(false);
     expect(filter(childWithoutDeps)).toBe(true);
+    expect(filter(nestedParentWithoutDeps)).toBe(false);
+    expect(filter(grandchildWithoutDeps)).toBe(true);
+    expect(filter(milestoneWithoutDeps)).toBe(false);
     expect(filter(childWithDeps)).toBe(false);
   });
 
