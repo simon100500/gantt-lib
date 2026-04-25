@@ -770,7 +770,17 @@
 }
 
 .gantt-tl-dep-chip-with-number:hover {
-  background-color: rgba(107, 114, 128, 0.14);
+  background-color: rgba(59, 130, 246, 0.12);
+}
+
+.gantt-tl-dep-chip-with-number:hover .gantt-tl-dep-chip-task-number,
+.gantt-tl-dep-chip-with-number:hover .gantt-tl-dep-chip svg,
+.gantt-tl-dep-chip-with-number:hover .gantt-tl-dep-chip-lag {
+  color: #2563eb;
+}
+
+.gantt-tl-dep-chip-with-number:hover .gantt-tl-dep-chip {
+  background-color: rgba(59, 130, 246, 0.18);
 }
 
 .gantt-tl-dep-chip-task-number {
