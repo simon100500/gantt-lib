@@ -266,6 +266,33 @@ Resource planner mode can render an inline add-resource row when you provide `on
 
 The chart creates a resource object with an auto-generated `id`, the confirmed `name`, and an empty `items` array. Use `enableAddResource={false}` to hide the row while keeping the handler wired.
 
+## Resource Row Actions
+
+Use `resourceMenuCommands` to add a hover/focus three-dots menu to resource rows.
+
+```tsx
+<GanttChart
+  mode="resource-planner"
+  resources={resources}
+  resourceMenuCommands={[
+    {
+      id: 'rename',
+      label: 'Переименовать',
+      onSelect: (resource) => openRenameDialog(resource.id),
+    },
+    {
+      id: 'archive',
+      label: 'В архив',
+      danger: true,
+      isDisabled: (resource) => resource.items.length > 0,
+      onSelect: (resource) => archiveResource(resource.id),
+    },
+  ]}
+/>
+```
+
+Each command supports `icon`, `isVisible(resource)`, `isDisabled(resource)`, `danger`, and `closeOnSelect`.
+
 ## Sizing Props
 
 | Prop | Default | Purpose |

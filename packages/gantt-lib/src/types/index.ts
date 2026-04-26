@@ -39,6 +39,19 @@ export interface ResourceTimelineRenderContext {
   isDragging: boolean;
 }
 
+export interface ResourceTimelineResourceMenuCommand<
+  TItem extends ResourceTimelineItem = ResourceTimelineItem,
+> {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  onSelect: (resource: ResourceTimelineResource<TItem>) => void;
+  isVisible?: (resource: ResourceTimelineResource<TItem>) => boolean;
+  isDisabled?: (resource: ResourceTimelineResource<TItem>) => boolean;
+  danger?: boolean;
+  closeOnSelect?: boolean;
+}
+
 export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   mode: 'resource-planner';
   resources: Array<ResourceTimelineResource<TItem>>;
@@ -60,6 +73,7 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
   onAddResource?: (resource: ResourceTimelineResource<TItem>) => void;
   enableAddResource?: boolean;
+  resourceMenuCommands?: Array<ResourceTimelineResourceMenuCommand<TItem>>;
 }
 
 /**

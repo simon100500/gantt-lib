@@ -5,6 +5,7 @@ import {
   GanttChart,
   type ResourceTimelineMove,
   type ResourceTimelineResource,
+  type ResourceTimelineResourceMenuCommand,
 } from "gantt-lib";
 
 type PlannerItem = ResourceTimelineResource["items"][number] & {
@@ -294,6 +295,32 @@ export default function ResourcePlannerExample() {
     setResources((current) => [...current, resource]);
   };
 
+  const resourceMenuCommands: Array<ResourceTimelineResourceMenuCommand<PlannerItem>> = [
+    {
+      id: "rename-resource",
+      label: "Переименовать",
+      onSelect: (resource) => {
+        const nextName = window.prompt("Название ресурса", resource.name)?.trim();
+        if (!nextName) {
+          return;
+        }
+
+        setResources((current) =>
+          current.map((item) => item.id === resource.id ? { ...item, name: nextName } : item)
+        );
+      },
+    },
+    {
+      id: "delete-empty-resource",
+      label: "Удалить пустой ресурс",
+      danger: true,
+      isDisabled: (resource) => resource.items.length > 0,
+      onSelect: (resource) => {
+        setResources((current) => current.filter((item) => item.id !== resource.id));
+      },
+    },
+  ];
+
   return (
     <section className="demo-section">
       <h2 className="demo-section-title">Resource Planner Mode</h2>
@@ -339,6 +366,7 @@ export default function ResourcePlannerExample() {
           disableResourceReassignment
           onResourceItemMove={handleMove}
           onAddResource={handleAddResource}
+          resourceMenuCommands={resourceMenuCommands}
         />
       </div>
     </section>

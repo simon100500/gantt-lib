@@ -68,6 +68,17 @@ interface ResourceTimelineResource<TItem extends ResourceTimelineItem = Resource
   items: TItem[];
 }
 
+interface ResourceTimelineResourceMenuCommand<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  onSelect: (resource: ResourceTimelineResource<TItem>) => void;
+  isVisible?: (resource: ResourceTimelineResource<TItem>) => boolean;
+  isDisabled?: (resource: ResourceTimelineResource<TItem>) => boolean;
+  danger?: boolean;
+  closeOnSelect?: boolean;
+}
+
 interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   mode: 'resource-planner';
   resources: Array<ResourceTimelineResource<TItem>>;
@@ -86,6 +97,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
   onAddResource?: (resource: ResourceTimelineResource<TItem>) => void;
   enableAddResource?: boolean;
+  resourceMenuCommands?: Array<ResourceTimelineResourceMenuCommand<TItem>>;
 }
 ```
 
@@ -177,6 +189,7 @@ const resources: ResourceTimelineResource[] = [
 | `onResourceItemMove` | `(move: ResourceTimelineMove) => void` | `undefined` | Fires on mouseup after a valid move or resize. Includes `startDate`, `endDate`, optional `taskId`, and `changeType: 'move' \| 'resize-start' \| 'resize-end'`. |
 | `onAddResource` | `(resource: ResourceTimelineResource) => void` | `undefined` | Shows the "+ Добавить ресурс" row and fires when the user confirms a new resource name. The created resource has an auto-generated `id`, the entered `name`, and empty `items`. |
 | `enableAddResource` | `boolean` | `true` | When `true` and `onAddResource` is provided, shows the add-resource row. |
+| `resourceMenuCommands` | `ResourceTimelineResourceMenuCommand[]` | `undefined` | Adds a hover/focus three-dots menu to each resource row. Commands receive the resource in `onSelect(resource)` and support `icon`, `isVisible`, `isDisabled`, `danger`, and `closeOnSelect`. |
 
 Resource mode intentionally does not render dependency lines, task list editing, hierarchy/cascade scheduling, or task reorder behavior.
 

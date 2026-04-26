@@ -11,6 +11,7 @@ export type {
   ResourceTimelineItem,
   ResourceTimelineMove,
   ResourceTimelineResource,
+  ResourceTimelineResourceMenuCommand,
   GanttChartHandle,
   ExportToPdfOptions,
   ExportToPdfHeaderOptions,

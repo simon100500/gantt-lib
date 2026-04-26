@@ -66,6 +66,61 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByText('+ Добавить ресурс')).toBeInTheDocument();
   });
 
+  it('renders resource row action commands in a three-dots menu', () => {
+    const onSelect = vi.fn();
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        resourceMenuCommands={[
+          {
+            id: 'rename',
+            label: 'Переименовать',
+            onSelect,
+          },
+          {
+            id: 'hidden',
+            label: 'Скрытая команда',
+            isVisible: () => false,
+            onSelect: vi.fn(),
+          },
+        ]}
+      />
+    );
+
+    fireEvent.click(screen.getAllByLabelText('Действия ресурса')[0]);
+    fireEvent.click(screen.getByText('Переименовать'));
+
+    expect(screen.queryByText('Скрытая команда')).toBeNull();
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'design', name: 'Design' }));
+  });
+
+  it('disables resource row action commands when isDisabled returns true', () => {
+    const onSelect = vi.fn();
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        resourceMenuCommands={[
+          {
+            id: 'delete',
+            label: 'Удалить',
+            isDisabled: () => true,
+            onSelect,
+          },
+        ]}
+      />
+    );
+
+    fireEvent.click(screen.getAllByLabelText('Действия ресурса')[0]);
+    const command = screen.getByText('Удалить');
+
+    expect(command).toBeDisabled();
+    fireEvent.click(command);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it('applies containerHeight to the scroll container', () => {
     const { container } = render(
       <ResourceTimelineChart mode="resource-planner" resources={resources} containerHeight="calc(100dvh - 132px)" />

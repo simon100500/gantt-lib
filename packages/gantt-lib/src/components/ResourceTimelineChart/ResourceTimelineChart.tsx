@@ -4,12 +4,18 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createCustomDayPredicate, getMultiMonthDays, parseUTCDate } from '../../utils/dateUtils';
 import { layoutResourceTimelineItems } from '../../utils/resourceTimelineLayout';
 import { useResourceItemDrag } from '../../hooks/useResourceItemDrag';
-import type { ResourcePlannerChartProps, ResourceTimelineItem } from '../../types';
+import type {
+  ResourcePlannerChartProps,
+  ResourceTimelineItem,
+  ResourceTimelineResource,
+  ResourceTimelineResourceMenuCommand,
+} from '../../types';
 import { getBusinessDaysCount } from '../../core/scheduling';
 import TimeScaleHeader from '../TimeScaleHeader';
 import GridBackground from '../GridBackground';
 import TodayIndicator from '../TodayIndicator';
 import { Input } from '../ui/Input';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import './ResourceTimelineChart.css';
 
 const DEFAULT_DAY_WIDTH = 40;
@@ -153,6 +159,95 @@ const getDurationValue = (
   ? getBusinessDaysCount(startDate, endDate, weekendPredicate)
   : Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1);
 
+interface ResourceHeaderProps<TItem extends ResourceTimelineItem> {
+  resource: ResourceTimelineResource<TItem>;
+  resourceId: string;
+  conflictCount: number;
+  height: number;
+  paddingBottom: number;
+  menuCommands: Array<ResourceTimelineResourceMenuCommand<TItem>>;
+}
+
+const ResourceHeader = <TItem extends ResourceTimelineItem>({
+  resource,
+  resourceId,
+  conflictCount,
+  height,
+  paddingBottom,
+  menuCommands,
+}: ResourceHeaderProps<TItem>) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const visibleCommands = useMemo(
+    () => menuCommands.filter((command) => command.isVisible?.(resource) ?? true),
+    [menuCommands, resource]
+  );
+  const hasMenu = visibleCommands.length > 0;
+
+  const handleCommandClick = (
+    command: ResourceTimelineResourceMenuCommand<TItem>,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    event.stopPropagation();
+    if (command.closeOnSelect !== false) {
+      setMenuOpen(false);
+    }
+    command.onSelect(resource);
+  };
+
+  return (
+    <div
+      className={`gantt-resourceTimeline-resourceHeader${menuOpen ? ' gantt-resourceTimeline-resourceHeaderMenuOpen' : ''}`}
+      data-resource-row-id={resourceId}
+      style={{
+        height: `${height}px`,
+        paddingBottom: `${paddingBottom}px`,
+      }}
+    >
+      <span className="gantt-resourceTimeline-resourceName">{resource.name}</span>
+      {conflictCount > 0 && (
+        <span
+          className="gantt-resourceTimeline-conflictBadge"
+          aria-label={formatOverlapCount(conflictCount)}
+          title={formatOverlapCount(conflictCount)}
+        >
+          {conflictCount}
+        </span>
+      )}
+      {hasMenu && (
+        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className="gantt-resourceTimeline-resourceMenuButton"
+              type="button"
+              aria-label="Действия ресурса"
+              onClick={(event) => {
+                event.stopPropagation();
+                setMenuOpen((open) => !open);
+              }}
+            >
+              <span aria-hidden="true">⋮</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="gantt-resourceTimeline-resourceMenu" portal={true} align="end">
+            {visibleCommands.map((command) => (
+              <button
+                key={command.id}
+                type="button"
+                className={`gantt-resourceTimeline-resourceMenuItem${command.danger ? ' gantt-resourceTimeline-resourceMenuItemDanger' : ''}`}
+                disabled={command.isDisabled?.(resource) ?? false}
+                onClick={(event) => handleCommandClick(command, event)}
+              >
+                {command.icon}
+                {command.label}
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
+  );
+};
+
 interface NewResourceRowProps {
   height: number;
   onConfirm: (name: string) => void;
@@ -240,6 +335,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   onResourceItemMove,
   onAddResource,
   enableAddResource = true,
+  resourceMenuCommands = [],
 }: ResourcePlannerChartProps<TItem>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -400,26 +496,15 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
               style={{ height: `${headerHeight}px` }}
             />
             {layout.rows.map((row) => (
-              <div
+              <ResourceHeader
                 key={row.resourceId}
-                className="gantt-resourceTimeline-resourceHeader"
-                data-resource-row-id={row.resourceId}
-                style={{
-                  height: `${row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP}px`,
-                  paddingBottom: `${DEFAULT_RESOURCE_ROW_GAP}px`,
-                }}
-              >
-                <span className="gantt-resourceTimeline-resourceName">{row.resource.name}</span>
-                {row.conflictCount > 0 && (
-                  <span
-                    className="gantt-resourceTimeline-conflictBadge"
-                    aria-label={formatOverlapCount(row.conflictCount)}
-                    title={formatOverlapCount(row.conflictCount)}
-                  >
-                    {row.conflictCount}
-                  </span>
-                )}
-              </div>
+                resource={row.resource}
+                resourceId={row.resourceId}
+                conflictCount={row.conflictCount}
+                height={row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP}
+                paddingBottom={DEFAULT_RESOURCE_ROW_GAP}
+                menuCommands={resourceMenuCommands}
+              />
             ))}
             {canAddResource && (
               isCreatingResource ? (

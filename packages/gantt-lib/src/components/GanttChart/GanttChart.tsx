@@ -10,6 +10,7 @@ import type {
   ResourceTimelineItem,
   ResourceTimelineMove,
   ResourceTimelineResource,
+  ResourceTimelineResourceMenuCommand,
   ValidationResult,
 } from '../../types';
 import { TaskPredicate } from '../../filters';
@@ -33,6 +34,7 @@ export type {
   ResourceTimelineItem,
   ResourceTimelineMove,
   ResourceTimelineResource,
+  ResourceTimelineResourceMenuCommand,
 } from '../../types';
 
 /**
