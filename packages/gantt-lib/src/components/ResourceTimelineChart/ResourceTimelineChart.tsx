@@ -265,6 +265,17 @@ const ResourceTypeIcon: React.FC<{ type: string }> = ({ type }) => {
   );
 };
 
+function isInactiveResourceStatus(status: string | undefined): boolean {
+  return status?.trim().toLocaleLowerCase() === 'inactive';
+}
+
+const ResourceStatusLockIcon: React.FC = () => (
+  <svg className="gantt-resourceTimeline-resourceStatusIcon" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V8a4 4 0 1 1 8 0v3" />
+  </svg>
+);
+
 const ResourceHeader = <TItem extends ResourceTimelineItem>({
   resource,
   resourceId,
@@ -294,6 +305,7 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
   const type = resource.type ?? 'Другое';
   const scope = resource.scope ?? 'Project';
   const scopeLabel = RESOURCE_SCOPE_LABELS[scope] ?? scope;
+  const isInactive = isInactiveResourceStatus(resource.status);
 
   const applyResourcePatch = useCallback((patch: Partial<ResourceTimelineResource<TItem>>) => {
     onResourceChange?.({ ...resource, ...patch });
@@ -367,7 +379,7 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
 
   return (
     <div
-      className={`gantt-resourceTimeline-resourceHeader${menuOpen ? ' gantt-resourceTimeline-resourceHeaderMenuOpen' : ''}`}
+      className={`gantt-resourceTimeline-resourceHeader${menuOpen ? ' gantt-resourceTimeline-resourceHeaderMenuOpen' : ''}${isInactive ? ' gantt-resourceTimeline-resourceHeaderInactive' : ''}`}
       data-resource-row-id={resourceId}
       style={{
         height: `${height}px`,
@@ -435,7 +447,18 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
             }}
             onDoubleClick={handleNameDoubleClick}
           >
-            {resource.name}
+            <span className="gantt-resourceTimeline-resourceNameContent">
+              {isInactive && (
+                <span
+                  className="gantt-resourceTimeline-resourceStatusMarker"
+                  aria-label={`Ресурс ${resource.name} неактивен`}
+                  title="Неактивен"
+                >
+                  <ResourceStatusLockIcon />
+                </span>
+              )}
+              <span className="gantt-resourceTimeline-resourceNameText">{resource.name}</span>
+            </span>
           </button>
         )}
       </span>

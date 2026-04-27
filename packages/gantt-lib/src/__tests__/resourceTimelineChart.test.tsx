@@ -38,6 +38,25 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByRole('button', { name: 'Название ресурса QA' })).toHaveTextContent('QA');
   });
 
+  it('marks inactive resources in the row header', () => {
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={[
+          {
+            id: 'inactive-crew',
+            name: 'Dormant Crew',
+            status: 'Inactive',
+            items: [],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Название ресурса Dormant Crew' })).toHaveTextContent('Dormant Crew');
+    expect(screen.getByLabelText('Ресурс Dormant Crew неактивен')).toBeInTheDocument();
+  });
+
   it('keeps resource and calendar header layout heights identical', () => {
     const { container } = render(
       <ResourceTimelineChart

@@ -275,6 +275,14 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
       },
     ],
   },
+  {
+    id: "survey",
+    name: "Геодезисты",
+    type: "Люди",
+    scope: "Project",
+    status: "Inactive",
+    items: [],
+  },
 ];
 
 const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
@@ -323,6 +331,22 @@ export default function ResourcePlannerExample() {
   };
 
   const resourceMenuCommands: Array<ResourceTimelineResourceMenuCommand<PlannerItem>> = [
+    {
+      id: "deactivate-resource",
+      label: "Деактивировать",
+      isVisible: (resource) => resource.status !== "Inactive",
+      onSelect: (resource) => {
+        handleResourceChange({ ...resource, status: "Inactive" });
+      },
+    },
+    {
+      id: "activate-resource",
+      label: "Вернуть в пул",
+      isVisible: (resource) => resource.status === "Inactive",
+      onSelect: (resource) => {
+        handleResourceChange({ ...resource, status: "Active" });
+      },
+    },
     {
       id: "delete-empty-resource",
       label: "Удалить пустой ресурс",
