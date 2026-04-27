@@ -419,6 +419,7 @@
 
 .gantt-resourceTimeline-resourceMetricLabel {
   width: 22px;
+  padding-left: 2px;
   text-align: left;
 }
 
