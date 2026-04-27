@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.82.0] - 2026-04-27
+
+### Features
+
+- Add inline editing for resource properties (name, type, scope) with `onResourceChange` callback and `type`, `scope`, `status` optional fields on `ResourceTimelineResource`
+- Increase default `rowHeaderWidth` to 420 (min clamp) to accommodate built-in resource columns
+
+### Fixes
+
+- Fix resource type display and layout in ResourceTimelineChart tests
+
+### Style
+
+- Update color scheme and SVG icon styles for improved visual clarity
+- Adjust grid layout and text styles for better readability
+- Refine padding and text transformation in resource rows
+
 ## [0.81.0] - 2026-04-27
 
 ### Features
