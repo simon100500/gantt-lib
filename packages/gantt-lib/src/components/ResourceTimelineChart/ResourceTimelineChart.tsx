@@ -166,6 +166,13 @@ const RESOURCE_SCOPE_LABELS: Record<string, string> = {
   Project: 'Проект',
 };
 
+const RESOURCE_TYPE_CLASS_NAMES: Record<string, string> = {
+  Люди: 'People',
+  Оборудование: 'Equipment',
+  Материалы: 'Materials',
+  Другое: 'Other',
+};
+
 interface ResourceHeaderProps<TItem extends ResourceTimelineItem> {
   resource: ResourceTimelineResource<TItem>;
   resourceId: string;
@@ -302,7 +309,7 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="gantt-resourceTimeline-resourceTypeIconButton"
+              className={`gantt-resourceTimeline-resourceTypeIconButton gantt-resourceTimeline-resourceTypeIconButton${RESOURCE_TYPE_CLASS_NAMES[type] ?? 'Other'}`}
               disabled={!onResourceChange}
               aria-label={`Тип ресурса ${resource.name}: ${type}`}
               title={type}
@@ -781,7 +788,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
             >
               <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderNumber">#</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderName">Название</span>
-              <span className="gantt-resourceTimeline-resourceHeaderCell">Доступность</span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell" aria-label="Доступность" />
               <span className="gantt-resourceTimeline-resourceHeaderCell">Назначения</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderActions" aria-label="Действия" />
             </div>

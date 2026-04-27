@@ -62,7 +62,8 @@ describe('ResourceTimelineChart', () => {
 
     expect(screen.getByText('Название')).toBeInTheDocument();
     expect(screen.queryByText('Тип')).toBeNull();
-    expect(screen.getByText('Доступность')).toBeInTheDocument();
+    expect(screen.queryByText('Доступность')).toBeNull();
+    expect(screen.getByLabelText('Доступность')).toBeInTheDocument();
     expect(screen.getByText('Назначения')).toBeInTheDocument();
     expect(screen.getByLabelText('Тип ресурса Бригада 100 общ: Люди')).toHaveAttribute('title', 'Люди');
     expect(screen.getByLabelText('Тип ресурса Шум: Материалы')).toHaveAttribute('title', 'Материалы');
