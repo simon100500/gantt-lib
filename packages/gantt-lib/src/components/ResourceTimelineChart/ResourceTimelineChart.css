@@ -204,7 +204,7 @@
 }
 
 .gantt-resourceTimeline-resourceTypeIconMaterials {
-  color: #6554c0;
+  color: #b44a2b;
 }
 
 .gantt-resourceTimeline-resourceTypeIconOther {
@@ -306,11 +306,8 @@
 
 .gantt-resourceTimeline-resourceAssignmentIcon {
   flex: 0 0 auto;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
+  fill: currentColor;
+  stroke: none;
 }
 
 .gantt-resourceTimeline-resourceWorkedDays {
