@@ -2027,7 +2027,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           />
         )}
         {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onUngroupTask || onDuplicateTask || onTasksChange || hasContextMenu) && (
-          <div className="gantt-tl-name-actions">
+          <div className={`gantt-tl-name-actions${contextMenuOpen ? " gantt-tl-name-actions-open" : ""}`}>
             {onInsertAfter && (
               <button
                 type="button"

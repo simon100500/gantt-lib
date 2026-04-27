@@ -736,6 +736,32 @@
     width: 28px;
     height: 28px;
   }
+
+  .gantt-tl-cell-name:hover .gantt-tl-name-actions::before,
+  .gantt-tl-cell-name:has(.gantt-tl-name-action-btn:focus-visible) .gantt-tl-name-actions::before {
+    opacity: 0;
+  }
+
+  .gantt-tl-cell-name:hover .gantt-tl-name-action-btn:not(.gantt-tl-action-context),
+  .gantt-tl-cell-name:has(.gantt-tl-name-action-btn:focus-visible) .gantt-tl-name-action-btn:not(.gantt-tl-action-context) {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .gantt-tl-cell-name:hover .gantt-tl-action-context,
+  .gantt-tl-cell-name:has(.gantt-tl-action-context:focus-visible) .gantt-tl-action-context {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .gantt-tl-cell-name:has(.gantt-tl-name-actions-open) .gantt-tl-name-actions-open::before {
+    opacity: 1;
+  }
+
+  .gantt-tl-cell-name:has(.gantt-tl-name-actions-open) .gantt-tl-name-actions-open .gantt-tl-name-action-btn {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 /* Type switcher button in header */
