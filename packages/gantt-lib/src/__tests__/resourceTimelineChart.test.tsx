@@ -38,7 +38,7 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByDisplayValue('QA')).toBeInTheDocument();
   });
 
-  it('renders resource tasklist columns with type, availability, and worked-day count', () => {
+  it('renders resource tasklist columns with type icon, availability, and worked-day count', () => {
     const typedResources: ResourceTimelineResource[] = [
       {
         id: 'crew',
@@ -61,11 +61,11 @@ describe('ResourceTimelineChart', () => {
     render(<ResourceTimelineChart mode="resource-planner" resources={typedResources} />);
 
     expect(screen.getByText('Название')).toBeInTheDocument();
-    expect(screen.getByText('Тип')).toBeInTheDocument();
+    expect(screen.queryByText('Тип')).toBeNull();
     expect(screen.getByText('Доступность')).toBeInTheDocument();
     expect(screen.getByText('Дней')).toBeInTheDocument();
-    expect(screen.getByLabelText('Тип ресурса Бригада 100 общ')).toHaveTextContent('Люди');
-    expect(screen.getByLabelText('Тип ресурса Шум')).toHaveTextContent('Материалы');
+    expect(screen.getByLabelText('Тип ресурса Бригада 100 общ: Люди')).toHaveAttribute('title', 'Люди');
+    expect(screen.getByLabelText('Тип ресурса Шум: Материалы')).toHaveAttribute('title', 'Материалы');
     expect(screen.getByLabelText('Доступность ресурса Бригада 100 общ')).toHaveTextContent('Shared');
     expect(screen.getByLabelText('Доступность ресурса Шум')).toHaveTextContent('Project');
     expect(screen.getByText('2 дн.')).toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('ResourceTimelineChart', () => {
       name: 'UX Team',
     }));
 
-    const typeChip = screen.getByLabelText('Тип ресурса Design');
+    const typeChip = screen.getByLabelText('Тип ресурса Design: Другое');
     fireEvent.click(typeChip);
     fireEvent.click(screen.getByRole('button', { name: 'Оборудование' }));
     expect(onResourceChange).toHaveBeenCalledWith(expect.objectContaining({

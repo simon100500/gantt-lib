@@ -178,7 +178,7 @@ interface ResourceHeaderProps<TItem extends ResourceTimelineItem> {
 const ResourceTypeIcon: React.FC<{ type: string }> = ({ type }) => {
   if (type === 'Люди') {
     return (
-      <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconPeople" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+      <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconPeople" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
         <circle cx="9" cy="7" r="4" />
         <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -189,26 +189,26 @@ const ResourceTypeIcon: React.FC<{ type: string }> = ({ type }) => {
 
   if (type === 'Оборудование') {
     return (
-      <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconEquipment" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="m15 12-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9" />
-        <path d="m17.64 15 4.86-4.86a2.83 2.83 0 0 0-4-4L13.64 11" />
-        <path d="m20.5 7.5-4-4" />
+      <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconEquipment" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9" />
+        <path d="m18 15 4-4" />
+        <path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172v-.344a2 2 0 0 0-.586-1.414l-1.657-1.657A6 6 0 0 0 12.516 3H9l1.243 1.243A6 6 0 0 1 12 8.485V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" />
       </svg>
     );
   }
 
   if (type === 'Материалы') {
     return (
-      <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconMaterials" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="m21 16-9 5-9-5" />
-        <path d="m21 12-9 5-9-5" />
-        <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+      <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconMaterials" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10 22v-8" />
+        <path d="M2.336 8.89 10 14l11.715-7.029" />
+        <path d="M22 14a2 2 0 0 1-.971 1.715l-10 6a2 2 0 0 1-2.138-.05l-6-4A2 2 0 0 1 2 16v-6a2 2 0 0 1 .971-1.715l10-6a2 2 0 0 1 2.138.05l6 4A2 2 0 0 1 22 8z" />
       </svg>
     );
   }
 
   return (
-    <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconOther" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconOther" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 8v4" />
       <path d="M12 16h.01" />
@@ -290,34 +290,20 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
     >
       <span className="gantt-resourceTimeline-resourceNumber">{rowIndex + 1}</span>
       <span className="gantt-resourceTimeline-resourceName">
-        <input
-          className="gantt-resourceTimeline-resourceNameInput"
-          value={draftName}
-          disabled={!onResourceChange}
-          aria-label={`Название ресурса ${resource.name}`}
-          onChange={(event) => setDraftName(event.target.value)}
-          onBlur={handleNameCommit}
-          onKeyDown={handleNameKeyDown}
-          onClick={(event) => event.stopPropagation()}
-        />
-      </span>
-      <span className="gantt-resourceTimeline-resourceType">
-        <span className="gantt-resourceTimeline-resourceTypeIconWrap">
-          <ResourceTypeIcon type={type} />
-        </span>
         <Popover open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="gantt-resourceTimeline-resourceTypeChip"
+              className="gantt-resourceTimeline-resourceTypeIconButton"
               disabled={!onResourceChange}
-              aria-label={`Тип ресурса ${resource.name}`}
+              aria-label={`Тип ресурса ${resource.name}: ${type}`}
+              title={type}
               onClick={(event) => {
                 event.stopPropagation();
                 setTypeMenuOpen((open) => !open);
               }}
             >
-              <span>{type}</span>
+              <ResourceTypeIcon type={type} />
             </button>
           </PopoverTrigger>
           <PopoverContent className="gantt-resourceTimeline-resourceOptionMenu" portal={true} align="start">
@@ -340,6 +326,16 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
             ))}
           </PopoverContent>
         </Popover>
+        <input
+          className="gantt-resourceTimeline-resourceNameInput"
+          value={draftName}
+          disabled={!onResourceChange}
+          aria-label={`Название ресурса ${resource.name}`}
+          onChange={(event) => setDraftName(event.target.value)}
+          onBlur={handleNameCommit}
+          onKeyDown={handleNameKeyDown}
+          onClick={(event) => event.stopPropagation()}
+        />
       </span>
       <Popover open={scopeMenuOpen} onOpenChange={setScopeMenuOpen}>
         <PopoverTrigger asChild>
@@ -766,7 +762,6 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
             >
               <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderNumber">#</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell">Название</span>
-              <span className="gantt-resourceTimeline-resourceHeaderCell">Тип</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell">Доступность</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell">Дней</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderActions">Действия</span>
