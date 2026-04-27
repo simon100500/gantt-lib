@@ -166,6 +166,7 @@ interface ResourceHeaderProps<TItem extends ResourceTimelineItem> {
   height: number;
   paddingBottom: number;
   menuCommands: Array<ResourceTimelineResourceMenuCommand<TItem>>;
+  onConflictBadgeClick?: (resourceId: string) => void;
 }
 
 const ResourceHeader = <TItem extends ResourceTimelineItem>({
@@ -175,6 +176,7 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
   height,
   paddingBottom,
   menuCommands,
+  onConflictBadgeClick,
 }: ResourceHeaderProps<TItem>) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const visibleCommands = useMemo(
@@ -205,13 +207,18 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
     >
       <span className="gantt-resourceTimeline-resourceName">{resource.name}</span>
       {conflictCount > 0 && (
-        <span
+        <button
+          type="button"
           className="gantt-resourceTimeline-conflictBadge"
           aria-label={formatOverlapCount(conflictCount)}
           title={formatOverlapCount(conflictCount)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onConflictBadgeClick?.(resourceId);
+          }}
         >
           {conflictCount}
-        </span>
+        </button>
       )}
       {hasMenu && (
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
@@ -340,7 +347,10 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
+  const conflictNavigationIndexRef = useRef<Map<string, number>>(new Map());
+  const conflictHighlightTimeoutRef = useRef<number | null>(null);
   const [isCreatingResource, setIsCreatingResource] = useState(false);
+  const [activeConflictItemId, setActiveConflictItemId] = useState<string | null>(null);
   const validItems = useMemo(() => collectValidItems(resources), [resources]);
   const dateRange = useMemo(() => getMultiMonthDays(validItems), [validItems]);
   const monthStart = useMemo(() => {
@@ -379,6 +389,29 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     return map;
   }, [layout.items]);
 
+  const conflictItemsByResourceId = useMemo(() => {
+    const map = new Map<string, typeof layout.items>();
+    for (const item of layout.items) {
+      if (item.conflictRanges.length === 0) {
+        continue;
+      }
+
+      const next = map.get(item.resourceId) ?? [];
+      next.push(item);
+      map.set(item.resourceId, next);
+    }
+
+    for (const items of map.values()) {
+      items.sort((left, right) =>
+        left.top - right.top ||
+        left.left - right.left ||
+        left.itemId.localeCompare(right.itemId)
+      );
+    }
+
+    return map;
+  }, [layout.items]);
+
   const canAddResource = enableAddResource && Boolean(onAddResource);
   const resourceAddRowHeight = laneHeight + DEFAULT_RESOURCE_ROW_GAP;
   const displayTotalHeight = layout.totalHeight + (canAddResource ? resourceAddRowHeight : 0);
@@ -392,6 +425,35 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   }, [onAddResource]);
 
   const handleCancelNewResource = useCallback(() => setIsCreatingResource(false), []);
+
+  const handleConflictBadgeClick = useCallback((resourceId: string) => {
+    const conflictItems = conflictItemsByResourceId.get(resourceId) ?? [];
+    if (conflictItems.length === 0) {
+      return;
+    }
+
+    const currentIndex = conflictNavigationIndexRef.current.get(resourceId) ?? 0;
+    const target = conflictItems[currentIndex % conflictItems.length];
+    conflictNavigationIndexRef.current.set(resourceId, (currentIndex + 1) % conflictItems.length);
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTo({
+        left: Math.max(0, Math.round(target.left - dayWidth * 2)),
+        top: Math.max(0, Math.round(target.top - laneHeight)),
+        behavior: 'smooth',
+      });
+    }
+
+    setActiveConflictItemId(target.itemId);
+    if (conflictHighlightTimeoutRef.current) {
+      window.clearTimeout(conflictHighlightTimeoutRef.current);
+    }
+    conflictHighlightTimeoutRef.current = window.setTimeout(() => {
+      setActiveConflictItemId((current) => current === target.itemId ? null : current);
+      conflictHighlightTimeoutRef.current = null;
+    }, 1600);
+  }, [conflictItemsByResourceId, dayWidth, laneHeight]);
 
   const { preview, startDrag } = useResourceItemDrag({
     dayWidth,
@@ -473,6 +535,14 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     };
   }, [allowVerticalPan]);
 
+  useEffect(() => {
+    return () => {
+      if (conflictHighlightTimeoutRef.current) {
+        window.clearTimeout(conflictHighlightTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="gantt-container gantt-resourceTimeline">
       <div
@@ -504,6 +574,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                 height={row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP}
                 paddingBottom={DEFAULT_RESOURCE_ROW_GAP}
                 menuCommands={resourceMenuCommands}
+                onConflictBadgeClick={handleConflictBadgeClick}
               />
             ))}
             {canAddResource && (
@@ -584,6 +655,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   const className = [
                     'gantt-resourceTimeline-item',
                     isDraggingItem && 'gantt-resourceTimeline-itemDragging',
+                    activeConflictItemId === layoutItem.itemId && 'gantt-resourceTimeline-itemConflictActive',
                     (readonly || layoutItem.item.locked) && 'gantt-resourceTimeline-itemDisabled',
                     customClassName,
                   ].filter(Boolean).join(' ');

@@ -1,6 +1,8 @@
 import React from 'react';
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { ResourceTimelineChart } from '../components/ResourceTimelineChart';
 import type { ResourceTimelineResource } from '../types';
@@ -131,6 +133,18 @@ describe('ResourceTimelineChart', () => {
     expect(scrollContainer.style.overflowY).toBe('auto');
   });
 
+  it('keeps the sticky resource column above timeline overlays', () => {
+    const css = readFileSync(
+      resolve(process.cwd(), 'src/components/ResourceTimelineChart/ResourceTimelineChart.css'),
+      'utf8'
+    );
+
+    expect(css).toMatch(/\.gantt-resourceTimeline-resourceColumn\s*{[^}]*z-index:\s*3;/);
+    expect(css).toMatch(/\.gantt-resourceTimeline-chartSurface\s*{[^}]*position:\s*relative;[^}]*z-index:\s*0;/);
+    expect(css).toMatch(/\.gantt-resourceTimeline \.gantt-ti-indicator\s*{[^}]*z-index:\s*4;/);
+    expect(css).toMatch(/\.gantt-resourceTimeline-item:hover,\s*\.gantt-resourceTimeline-item:focus-visible\s*{[^}]*z-index:\s*30;/);
+  });
+
   it('renders default item bars with demo-style duration, title, and subtitle', () => {
     const { container } = render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
 
@@ -231,6 +245,39 @@ describe('ResourceTimelineChart', () => {
     expect(firstOverlay.style.width).toBe('77px');
     expect(secondOverlay.style.left).toBe('0px');
     expect(secondOverlay.style.width).toBe('80px');
+  });
+
+  it('scrolls through resource conflicts when clicking the conflict badge', () => {
+    const overlapping: ResourceTimelineResource[] = [
+      {
+        id: 'dev',
+        name: 'Development',
+        items: [
+          { id: 'a', resourceId: 'dev', title: 'A', startDate: '2026-04-05', endDate: '2026-04-08' },
+          { id: 'b', resourceId: 'dev', title: 'B', startDate: '2026-04-06', endDate: '2026-04-09' },
+          { id: 'c', resourceId: 'dev', title: 'C', startDate: '2026-04-15', endDate: '2026-04-18' },
+          { id: 'd', resourceId: 'dev', title: 'D', startDate: '2026-04-16', endDate: '2026-04-19' },
+        ],
+      },
+    ];
+
+    const { container } = render(
+      <ResourceTimelineChart mode="resource-planner" resources={overlapping} dayWidth={40} businessDays={false} />
+    );
+    const scrollContainer = container.querySelector('.gantt-resourceTimeline-scrollContainer') as HTMLElement;
+    const scrollTo = vi.fn();
+    scrollContainer.scrollTo = scrollTo;
+
+    const conflictBadge = screen.getByLabelText('2 наложения');
+    fireEvent.click(conflictBadge);
+
+    expect(scrollTo).toHaveBeenNthCalledWith(1, { left: 80, top: 0, behavior: 'smooth' });
+    expect(container.querySelector('[data-resource-item-id="a"]')).toHaveClass('gantt-resourceTimeline-itemConflictActive');
+
+    fireEvent.click(conflictBadge);
+
+    expect(scrollTo).toHaveBeenNthCalledWith(2, { left: 480, top: 0, behavior: 'smooth' });
+    expect(container.querySelector('[data-resource-item-id="c"]')).toHaveClass('gantt-resourceTimeline-itemConflictActive');
   });
 
   it('keeps adjacent same-lane resource bars separated when another item overlaps both', () => {
