@@ -10,13 +10,24 @@
   top: 0;
   z-index: 15;
   background-color: var(--gantt-cell-background, #ffffff);
-  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   pointer-events: auto;
   width: var(--tasklist-width);
   min-width: var(--tasklist-width);
+}
+
+.gantt-tl-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  width: 1px;
+  background: var(--gantt-grid-line-color, #e0e0e0);
+  pointer-events: none;
 }
 
 .gantt-tl-overlay.gantt-tl-overlay-shadowed {
