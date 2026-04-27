@@ -5,11 +5,13 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
-## [0.80.1] - 2026-04-27
+## [0.81.0] - 2026-04-27
 
 ### Новые возможности
 
 - Кнопка действий «три точки» для полос ресурсных назначений по hover/focus — пропы `onResourceItemMenuClick` и `activeResourceItemId` для открытия внешнего drawer и удержания active-состояния с тенью
+
+## [0.80.1] - 2026-04-27
 
 ### Стили
 
