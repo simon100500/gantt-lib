@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.83.0] - 2026-04-28
+
+### Features
+
+- Add resource grouping by type with `resourceGrouping` prop (`false | 'type'`) — renders group divider rows in tasklist and timeline grid
+- Add resource assignment cycling with improved scrolling behavior for navigating multiple assignments
+
+### Fixes
+
+- Fix display of resource worked days and assignment counts in resource planner UI
+
+### Style
+
+- Add padding to resource metric label for improved alignment
+- Remove border from TaskList and add overlay for improved visual separation
+
 ## [0.82.0] - 2026-04-27
 
 ### Features
