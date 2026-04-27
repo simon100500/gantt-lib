@@ -383,14 +383,15 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
         className="gantt-resourceTimeline-resourceAssignments"
         aria-label={`Назначения ресурса ${resource.name}: ${assignmentCount}, ${workedDays} дн.`}
       >
+        <span className="gantt-resourceTimeline-resourceWorkedDays">{workedDays} дн.</span>
         <span className="gantt-resourceTimeline-resourceAssignmentCount">
           <svg className="gantt-resourceTimeline-resourceAssignmentIcon" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-            <rect width="18" height="18" x="3" y="3" rx="2" />
-            <path d="m9 12 2 2 4-4" />
+            <rect width="9" height="6" x="6" y="14" rx="2" />
+            <rect width="16" height="6" x="6" y="4" rx="2" />
+            <path d="M2 2v20" />
           </svg>
           <span>{assignmentCount}</span>
         </span>
-        <span className="gantt-resourceTimeline-resourceWorkedDays">{workedDays} дн.</span>
       </span>
       <span className="gantt-resourceTimeline-resourceActions">
         {conflictCount > 0 && (
@@ -783,7 +784,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
               <span className="gantt-resourceTimeline-resourceHeaderCell">Название</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell">Доступность</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell">Назначения</span>
-              <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderActions">Действия</span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderActions" aria-label="Действия" />
             </div>
             {layout.rows.map((row, rowIndex) => (
               <ResourceHeader
