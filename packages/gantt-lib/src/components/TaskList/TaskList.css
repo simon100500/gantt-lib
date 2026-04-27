@@ -193,7 +193,7 @@
   position: relative;
 }
 
-/* Drag handle (hidden by default, reveal on row hover) */
+/* Drag handle (hidden by default, reveal on number cell hover) */
 .gantt-tl-drag-handle {
   position: absolute;
   top: 0;
@@ -211,12 +211,14 @@
   background: transparent;
 }
 
-.gantt-tl-row:hover .gantt-tl-drag-handle,
+.gantt-tl-cell-number:hover .gantt-tl-drag-handle,
+.gantt-tl-cell-number:focus-within .gantt-tl-drag-handle,
 .gantt-tl-row-dragging .gantt-tl-drag-handle {
   visibility: visible;
 }
 
-.gantt-tl-row:hover .gantt-tl-num-label {
+.gantt-tl-cell-number:hover .gantt-tl-num-label,
+.gantt-tl-cell-number:focus-within .gantt-tl-num-label {
   visibility: hidden;
 }
 
@@ -474,8 +476,9 @@
   transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
-/* Reveal buttons on row hover (any part of the row) */
-.gantt-tl-row:hover .gantt-tl-name-action-btn {
+/* Reveal buttons on name cell hover */
+.gantt-tl-cell-name:hover .gantt-tl-name-action-btn,
+.gantt-tl-cell-name:has(.gantt-tl-name-action-btn:focus-visible) .gantt-tl-name-action-btn {
   opacity: 1;
   pointer-events: auto;
 }
@@ -489,7 +492,8 @@
   pointer-events: none;
 }
 
-.gantt-tl-row:hover .gantt-tl-action-buttons {
+.gantt-tl-cell-name:hover .gantt-tl-action-buttons,
+.gantt-tl-cell-name:has(.gantt-tl-name-action-btn:focus-visible) .gantt-tl-action-buttons {
   opacity: 1;
   pointer-events: auto;
 }
@@ -1125,7 +1129,8 @@
   transition: opacity 0.15s ease;
 }
 
-.gantt-tl-row:hover .gantt-tl-dep-add-hover {
+.gantt-tl-cell-deps:hover .gantt-tl-dep-add-hover,
+.gantt-tl-cell-deps:focus-within .gantt-tl-dep-add-hover {
   opacity: 1;
   pointer-events: auto;
 }
