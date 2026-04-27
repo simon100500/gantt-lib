@@ -1803,21 +1803,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const isSelectedDependencyOwner =
       selectedChip != null && selectedChip.successorId === task.id;
 
-    // Delete the selected dependency from the predecessor row's "Удалить" button
-    const handleDeleteSelected = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!selectedChip) return;
-        onRemoveDependency?.(
-          selectedChip.successorId,
-          selectedChip.predecessorId,
-          selectedChip.linkType as LinkType,
-        );
-        onChipSelect?.(null);
-      },
-      [selectedChip?.successorId, selectedChip?.predecessorId, selectedChip?.linkType, onRemoveDependency, onChipSelect],
-    );
-
     const startDateISO = toISODate(normalizedTask.startDate);
     const endDateISO = editingDuration
       ? getEndDate(normalizedTask.startDate, durationValue)
@@ -2436,19 +2421,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             </span>
             {sourcePickerContent}
           </>
-        ) : isSelectedPredecessor && !disableDependencyEditing ? (
-          /* Full-replacement: "Зависит от [name]" → hover → "Удалить" */
-          <button
-            type="button"
-            className="gantt-tl-dep-delete-label"
-            onClick={handleDeleteSelected}
-            aria-label="Удалить связь"
-          >
-            <span className="gantt-tl-dep-delete-label-default">
-              Связано с
-            </span>
-            <span className="gantt-tl-dep-delete-label-hover">× удалить</span>
-          </button>
         ) : (
           <>
             {chips.length >= 2 ? (
