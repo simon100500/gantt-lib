@@ -376,6 +376,7 @@ export default function ResourcePlannerExample() {
           laneHeight={42}
           rowHeaderWidth={420}
           businessDays={businessDays}
+          resourceGrouping="type"
           disableResourceReassignment
           activeResourceItemId={activeItemId}
           onResourceItemMove={handleMove}

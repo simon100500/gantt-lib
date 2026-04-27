@@ -93,6 +93,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
   customDays?: CustomDayConfig[];
   isWeekend?: (date: Date) => boolean;
   businessDays?: boolean;
+  resourceGrouping?: false | 'type';
   readonly?: boolean;
   disableResourceReassignment?: boolean;
   renderItem?: (item: TItem) => React.ReactNode;
@@ -189,6 +190,7 @@ const resources: ResourceTimelineResource[] = [
 | `customDays` | `CustomDayConfig[]` | `undefined` | Custom workday/weekend overrides, shared with task mode. |
 | `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate, shared with task mode. |
 | `businessDays` | `boolean` | `true` | When true, resource item drag snaps to working days and preserves working-day duration. |
+| `resourceGrouping` | `false \| 'type'` | `false` | When set to `'type'`, groups resources by resource type and renders group divider rows in the tasklist and timeline grid. |
 | `readonly` | `boolean` | `false` | Prevents resource item dragging when true. |
 | `disableResourceReassignment` | `boolean` | `false` | Locks resource item drag to the X axis. Dates can change, but `toResourceId` stays equal to `fromResourceId`. |
 | `renderItem` | `(item) => ReactNode` | `undefined` | Custom inner content for a resource item bar. Geometry remains controlled by the renderer. |

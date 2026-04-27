@@ -73,6 +73,41 @@
   text-align: right;
 }
 
+.gantt-resourceTimeline-resourceGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  background: #f7f8fa;
+  color: #44546f;
+}
+
+.gantt-resourceTimeline-resourceGroupTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.gantt-resourceTimeline-resourceGroupCount {
+  flex: 0 0 auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #dfe1e6;
+  color: #42526e;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
 .gantt-resourceTimeline-resourceHeader {
   display: grid;
   grid-template-columns: 30px minmax(146px, 1fr) 80px 86px 32px;
@@ -542,6 +577,10 @@
   box-sizing: border-box;
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   pointer-events: none;
+}
+
+.gantt-resourceTimeline-groupRow {
+  background: #f7f8fa;
 }
 
 .gantt-resourceTimeline-item {

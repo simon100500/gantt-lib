@@ -107,6 +107,16 @@ The left resource tasklist renders `name`, `type`, `scope`, total worked days fr
 
 Worked days use the current calendar mode: with `businessDays={true}` the value excludes weekends and custom non-working days; with `businessDays={false}` it counts calendar days.
 
+Set `resourceGrouping="type"` to render simple type groups. The chart orders resources by the built-in type order (`Люди`, `Оборудование`, `Материалы`, `Другое`) and preserves the original order inside each group.
+
+```tsx
+<GanttChart
+  mode="resource-planner"
+  resources={resources}
+  resourceGrouping="type"
+/>
+```
+
 Dates use the same UTC-safe date conventions as task mode. Simple date strings such as `"2026-04-01"` are treated as calendar days.
 
 ## Controlled Movement
@@ -353,6 +363,7 @@ Each command supports `icon`, `isVisible(resource)`, `isDisabled(resource)`, `da
 | `laneHeight` | `40` | Height of one item lane. |
 | `headerHeight` | `40` | Height of the time scale header. |
 | `businessDays` | `true` | When true, horizontal drag snaps to working days and preserves working-day duration. |
+| `resourceGrouping` | `false` | Set to `'type'` to group resources by type. |
 | `customDays` | `undefined` | Custom workday/weekend overrides, shared with task mode. |
 | `isWeekend` | `undefined` | Optional base weekend predicate, shared with task mode. |
 

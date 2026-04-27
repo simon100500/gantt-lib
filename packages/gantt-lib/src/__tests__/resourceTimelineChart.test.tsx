@@ -109,6 +109,37 @@ describe('ResourceTimelineChart', () => {
     }));
   });
 
+  it('groups resources by type when resourceGrouping is type', () => {
+    const groupedResources: ResourceTimelineResource[] = [
+      { id: 'materials', name: 'Materials', type: 'Материалы', items: [] },
+      { id: 'crew', name: 'Crew', type: 'Люди', items: [] },
+      { id: 'equipment', name: 'Equipment', type: 'Оборудование', items: [] },
+      { id: 'qa', name: 'QA', items: [] },
+    ];
+
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={groupedResources}
+        resourceGrouping="type"
+      />
+    );
+
+    const groupTitles = Array.from(container.querySelectorAll('.gantt-resourceTimeline-resourceGroupTitle'))
+      .map((element) => element.textContent);
+    const resourceNames = screen.getAllByLabelText(/^Название ресурса /)
+      .map((element) => element.getAttribute('aria-label'));
+
+    expect(groupTitles).toEqual(['Люди', 'Оборудование', 'Материалы', 'Другое']);
+    expect(resourceNames).toEqual([
+      'Название ресурса Crew',
+      'Название ресурса Equipment',
+      'Название ресурса Materials',
+      'Название ресурса QA',
+    ]);
+    expect(container.querySelectorAll('[data-resource-group]')).toHaveLength(4);
+  });
+
   it('renders an add-resource row only when onAddResource is provided', () => {
     const { container, rerender } = render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
 

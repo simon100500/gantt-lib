@@ -23,6 +23,7 @@ const DEFAULT_HEADER_HEIGHT = 40;
 const DEFAULT_LANE_HEIGHT = 40;
 const DEFAULT_ROW_HEADER_WIDTH = 420;
 const DEFAULT_RESOURCE_ROW_GAP = 8;
+const DEFAULT_RESOURCE_GROUP_HEIGHT = 28;
 const ITEM_OUTER_VERTICAL_INSET = 2;
 const ITEM_INNER_VERTICAL_INSET = 1;
 const ITEM_START_HORIZONTAL_INSET = 2;
@@ -171,6 +172,34 @@ const RESOURCE_TYPE_CLASS_NAMES: Record<string, string> = {
   Оборудование: 'Equipment',
   Материалы: 'Materials',
   Другое: 'Other',
+};
+const RESOURCE_TYPE_ORDER: Record<string, number> = {
+  Люди: 0,
+  Оборудование: 1,
+  Материалы: 2,
+  Другое: 3,
+};
+
+const getResourceType = <TItem extends ResourceTimelineItem>(resource: ResourceTimelineResource<TItem>): string =>
+  resource.type ?? 'Другое';
+
+const orderResourcesByType = <TItem extends ResourceTimelineItem>(
+  resources: Array<ResourceTimelineResource<TItem>>
+): Array<ResourceTimelineResource<TItem>> => {
+  return resources
+    .map((resource, index) => ({ resource, index }))
+    .sort((left, right) => {
+      const leftType = getResourceType(left.resource);
+      const rightType = getResourceType(right.resource);
+      const typeDiff = (RESOURCE_TYPE_ORDER[leftType] ?? 99) - (RESOURCE_TYPE_ORDER[rightType] ?? 99);
+      if (typeDiff !== 0) {
+        return typeDiff;
+      }
+
+      const labelDiff = leftType.localeCompare(rightType, 'ru');
+      return labelDiff !== 0 ? labelDiff : left.index - right.index;
+    })
+    .map(({ resource }) => resource);
 };
 
 interface ResourceHeaderProps<TItem extends ResourceTimelineItem> {
@@ -530,6 +559,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   customDays,
   isWeekend,
   businessDays = true,
+  resourceGrouping = false,
   readonly,
   disableResourceReassignment,
   renderItem,
@@ -562,6 +592,10 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   );
   const gridWidth = useMemo(() => Math.round(dateRange.length * dayWidth), [dateRange.length, dayWidth]);
   const effectiveRowHeaderWidth = Math.max(rowHeaderWidth, DEFAULT_ROW_HEADER_WIDTH);
+  const orderedResources = useMemo(
+    () => resourceGrouping === 'type' ? orderResourcesByType(resources) : resources,
+    [resourceGrouping, resources]
+  );
   const workedDaysByResourceId = useMemo(() => {
     const map = new Map<string, number>();
     for (const resource of resources) {
@@ -583,14 +617,72 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   }, [businessDays, resources, weekendPredicate]);
 
   const layout = useMemo(
-    () => layoutResourceTimelineItems(resources, {
+    () => layoutResourceTimelineItems(orderedResources, {
       monthStart,
       dayWidth,
       laneHeight,
       rowGap: DEFAULT_RESOURCE_ROW_GAP,
     }),
-    [resources, monthStart, dayWidth, laneHeight]
+    [orderedResources, monthStart, dayWidth, laneHeight]
   );
+
+  const displayLayout = useMemo(() => {
+    if (resourceGrouping !== 'type') {
+      return {
+        rows: layout.rows,
+        items: layout.items,
+        groupHeaders: [] as Array<{ key: string; label: string; count: number; top: number; height: number }>,
+        totalHeight: layout.totalHeight,
+      };
+    }
+
+    const countsByType = new Map<string, number>();
+    for (const row of layout.rows) {
+      const type = getResourceType(row.resource);
+      countsByType.set(type, (countsByType.get(type) ?? 0) + 1);
+    }
+
+    let offset = 0;
+    let previousType: string | null = null;
+    const rowTopOffsets = new Map<string, number>();
+    const groupHeaders: Array<{ key: string; label: string; count: number; top: number; height: number }> = [];
+    const rows = layout.rows.map((row) => {
+      const type = getResourceType(row.resource);
+      if (type !== previousType) {
+        groupHeaders.push({
+          key: type,
+          label: type,
+          count: countsByType.get(type) ?? 0,
+          top: row.resourceRowTop + offset,
+          height: DEFAULT_RESOURCE_GROUP_HEIGHT,
+        });
+        offset += DEFAULT_RESOURCE_GROUP_HEIGHT;
+        previousType = type;
+      }
+
+      rowTopOffsets.set(row.resourceId, offset);
+      return {
+        ...row,
+        resourceRowTop: row.resourceRowTop + offset,
+      };
+    });
+
+    const items = layout.items.map((item) => {
+      const itemOffset = rowTopOffsets.get(item.resourceId) ?? 0;
+      return {
+        ...item,
+        resourceRowTop: item.resourceRowTop + itemOffset,
+        top: item.top + itemOffset,
+      };
+    });
+
+    return {
+      rows,
+      items,
+      groupHeaders,
+      totalHeight: layout.totalHeight + offset,
+    };
+  }, [layout, resourceGrouping]);
 
   const todayInRange = useMemo(() => {
     const now = new Date();
@@ -600,17 +692,17 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
 
   const itemsByResourceId = useMemo(() => {
     const map = new Map<string, typeof layout.items>();
-    for (const item of layout.items) {
+    for (const item of displayLayout.items) {
       const next = map.get(item.resourceId) ?? [];
       next.push(item);
       map.set(item.resourceId, next);
     }
     return map;
-  }, [layout.items]);
+  }, [displayLayout.items]);
 
   const conflictItemsByResourceId = useMemo(() => {
     const map = new Map<string, typeof layout.items>();
-    for (const item of layout.items) {
+    for (const item of displayLayout.items) {
       if (item.conflictRanges.length === 0) {
         continue;
       }
@@ -629,11 +721,11 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     }
 
     return map;
-  }, [layout.items]);
+  }, [displayLayout.items]);
 
   const canAddResource = enableAddResource && Boolean(onAddResource);
   const resourceAddRowHeight = laneHeight + DEFAULT_RESOURCE_ROW_GAP;
-  const displayTotalHeight = layout.totalHeight + (canAddResource ? resourceAddRowHeight : 0);
+  const displayTotalHeight = displayLayout.totalHeight + (canAddResource ? resourceAddRowHeight : 0);
   const handleConfirmNewResource = useCallback((name: string) => {
     onAddResource?.({
       id: crypto.randomUUID(),
@@ -679,7 +771,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const { preview, startDrag } = useResourceItemDrag({
     dayWidth,
     monthStart,
-    rows: layout.rows,
+    rows: displayLayout.rows,
     gridElementRef: gridRef,
     readonly,
     disableResourceReassignment,
@@ -792,22 +884,57 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
               <span className="gantt-resourceTimeline-resourceHeaderCell">Назначения</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderActions" aria-label="Действия" />
             </div>
-            {layout.rows.map((row, rowIndex) => (
-              <ResourceHeader
-                key={row.resourceId}
-                resource={row.resource}
-                resourceId={row.resourceId}
-                rowIndex={rowIndex}
-                conflictCount={row.conflictCount}
-                workedDays={workedDaysByResourceId.get(row.resourceId) ?? 0}
-                assignmentCount={row.resource.items.length}
-                height={row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP}
-                paddingBottom={DEFAULT_RESOURCE_ROW_GAP}
-                menuCommands={resourceMenuCommands}
-                onResourceChange={onResourceChange}
-                onConflictBadgeClick={handleConflictBadgeClick}
-              />
-            ))}
+            {displayLayout.groupHeaders.length > 0 ? (
+              displayLayout.groupHeaders.map((group) => (
+                <React.Fragment key={group.key}>
+                  <div
+                    className="gantt-resourceTimeline-resourceGroupHeader"
+                    style={{ height: `${group.height}px` }}
+                  >
+                    <span className="gantt-resourceTimeline-resourceGroupTitle">{group.label}</span>
+                    <span className="gantt-resourceTimeline-resourceGroupCount">{group.count}</span>
+                  </div>
+                  {displayLayout.rows
+                    .filter((row) => getResourceType(row.resource) === group.key)
+                    .map((row) => {
+                      const rowIndex = displayLayout.rows.findIndex((candidate) => candidate.resourceId === row.resourceId);
+                      return (
+                        <ResourceHeader
+                          key={row.resourceId}
+                          resource={row.resource}
+                          resourceId={row.resourceId}
+                          rowIndex={rowIndex}
+                          conflictCount={row.conflictCount}
+                          workedDays={workedDaysByResourceId.get(row.resourceId) ?? 0}
+                          assignmentCount={row.resource.items.length}
+                          height={row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP}
+                          paddingBottom={DEFAULT_RESOURCE_ROW_GAP}
+                          menuCommands={resourceMenuCommands}
+                          onResourceChange={onResourceChange}
+                          onConflictBadgeClick={handleConflictBadgeClick}
+                        />
+                      );
+                    })}
+                </React.Fragment>
+              ))
+            ) : (
+              displayLayout.rows.map((row, rowIndex) => (
+                <ResourceHeader
+                  key={row.resourceId}
+                  resource={row.resource}
+                  resourceId={row.resourceId}
+                  rowIndex={rowIndex}
+                  conflictCount={row.conflictCount}
+                  workedDays={workedDaysByResourceId.get(row.resourceId) ?? 0}
+                  assignmentCount={row.resource.items.length}
+                  height={row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP}
+                  paddingBottom={DEFAULT_RESOURCE_ROW_GAP}
+                  menuCommands={resourceMenuCommands}
+                  onResourceChange={onResourceChange}
+                  onConflictBadgeClick={handleConflictBadgeClick}
+                />
+              ))
+            )}
             {canAddResource && (
               isCreatingResource ? (
                 <NewResourceRow
@@ -856,7 +983,19 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
               />
               {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
 
-              {layout.rows.map((row) => (
+              {displayLayout.groupHeaders.map((group) => (
+                <div
+                  key={`group-row-${group.key}`}
+                  className="gantt-resourceTimeline-row gantt-resourceTimeline-groupRow"
+                  data-resource-group={group.key}
+                  style={{
+                    top: `${group.top}px`,
+                    height: `${group.height}px`,
+                  }}
+                />
+              ))}
+
+              {displayLayout.rows.map((row) => (
                 <div
                   key={row.resourceId}
                   className="gantt-resourceTimeline-row"
@@ -873,7 +1012,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   className="gantt-resourceTimeline-row gantt-resourceTimeline-rowNew"
                   data-resource-add-row="true"
                   style={{
-                    top: `${layout.totalHeight}px`,
+                    top: `${displayLayout.totalHeight}px`,
                     height: `${resourceAddRowHeight}px`,
                   }}
                 />
