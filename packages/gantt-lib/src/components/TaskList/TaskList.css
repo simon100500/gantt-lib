@@ -721,6 +721,23 @@
   background-color: #374151;
 }
 
+@media (max-width: 640px), (pointer: coarse) {
+  .gantt-tl-name-actions {
+    gap: 6px;
+    padding-left: 16px;
+  }
+
+  .gantt-tl-name-actions::before {
+    left: 16px;
+  }
+
+  .gantt-tl-name-action-btn,
+  .gantt-tl-action-hierarchy {
+    width: 28px;
+    height: 28px;
+  }
+}
+
 /* Type switcher button in header */
 .gantt-tl-dep-type-trigger {
   display: flex;
