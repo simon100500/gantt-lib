@@ -18,6 +18,9 @@ export interface ResourceTimelineItem {
 export interface ResourceTimelineResource<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   id: string;
   name: string;
+  type?: 'Люди' | 'Оборудование' | 'Материалы' | string;
+  scope?: 'Shared' | 'Project' | string;
+  status?: 'Active' | 'Inactive' | string;
   items: TItem[];
 }
 
@@ -73,6 +76,7 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   onResourceItemMenuClick?: (item: TItem) => void;
   activeResourceItemId?: string | null;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
+  onResourceChange?: (resource: ResourceTimelineResource<TItem>) => void;
   onAddResource?: (resource: ResourceTimelineResource<TItem>) => void;
   enableAddResource?: boolean;
   resourceMenuCommands?: Array<ResourceTimelineResourceMenuCommand<TItem>>;

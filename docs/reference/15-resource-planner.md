@@ -36,6 +36,8 @@ const resources: ResourceTimelineResource[] = [
   {
     id: 'crew-a',
     name: 'Crew A',
+    type: 'Люди',
+    scope: 'Shared',
     items: [
       {
         id: 'assignment-1',
@@ -63,7 +65,7 @@ export function Schedule() {
       dayWidth={36}
       viewMode="week"
       laneHeight={40}
-      rowHeaderWidth={180}
+      rowHeaderWidth={520}
     />
   );
 }
@@ -79,6 +81,9 @@ Resource planner data is a list of resource rows. Each row owns an `items` array
 type ResourceTimelineResource = {
   id: string;
   name: string;
+  type?: 'Люди' | 'Оборудование' | 'Материалы' | string;
+  scope?: 'Shared' | 'Project' | string;
+  status?: 'Active' | 'Inactive' | string;
   items: ResourceTimelineItem[];
 };
 
@@ -97,6 +102,10 @@ type ResourceTimelineItem = {
 ```
 
 `resourceId` on each item should match the row that contains it. When an item is moved, the callback gives you the new resource id so your state can move the item into the correct row.
+
+The left resource tasklist renders `name`, `type`, `scope`, total worked days from `items`, and the optional row action menu. Missing `type` values display as `Другое`; missing `scope` values display as `Project`.
+
+Worked days use the current calendar mode: with `businessDays={true}` the value excludes weekends and custom non-working days; with `businessDays={false}` it counts calendar days.
 
 Dates use the same UTC-safe date conventions as task mode. Simple date strings such as `"2026-04-01"` are treated as calendar days.
 
@@ -138,6 +147,11 @@ function Planner() {
       mode="resource-planner"
       resources={resources}
       onResourceItemMove={handleMove}
+      onResourceChange={(resource) => {
+        setResources((current) =>
+          current.map((item) => item.id === resource.id ? resource : item)
+        );
+      }}
     />
   );
 }
@@ -163,6 +177,28 @@ type ResourceTimelineMove = {
 Validate the move before applying it if your app has permissions, capacity limits, resource availability, or conflict rules.
 
 `changeType` identifies whether the user moved the whole assignment or resized one edge. `taskId` is copied from the item when present, so consumers can forward `{ id: taskId, startDate, endDate }` into a task schedule update pipeline.
+
+## Editing Resource Rows
+
+Pass `onResourceChange` to enable inline editing in the left resource tasklist.
+
+```tsx
+<GanttChart
+  mode="resource-planner"
+  resources={resources}
+  onResourceChange={(resource) => {
+    setResources((current) =>
+      current.map((item) => item.id === resource.id ? resource : item)
+    );
+  }}
+/>
+```
+
+The built-in editors update:
+
+- `name` from the inline text field
+- `type` from `Люди`, `Оборудование`, `Материалы`, or `Другое`
+- `scope` from `Shared` or `Project`
 
 ## X-Only Drag
 
@@ -282,22 +318,18 @@ Resource planner mode can render an inline add-resource row when you provide `on
 />
 ```
 
-The chart creates a resource object with an auto-generated `id`, the confirmed `name`, and an empty `items` array. Use `enableAddResource={false}` to hide the row while keeping the handler wired.
+The chart creates a resource object with an auto-generated `id`, the confirmed `name`, default `type: 'Другое'`, default `scope: 'Project'`, and an empty `items` array. Use `enableAddResource={false}` to hide the row while keeping the handler wired.
 
 ## Resource Row Actions
 
 Use `resourceMenuCommands` to add a hover/focus three-dots menu to resource rows.
+Built-in row editing for name, type, and availability is handled by `onResourceChange`; keep this menu for domain-specific commands such as archive, open details, or delete.
 
 ```tsx
 <GanttChart
   mode="resource-planner"
   resources={resources}
   resourceMenuCommands={[
-    {
-      id: 'rename',
-      label: 'Переименовать',
-      onSelect: (resource) => openRenameDialog(resource.id),
-    },
     {
       id: 'archive',
       label: 'В архив',
@@ -317,7 +349,7 @@ Each command supports `icon`, `isVisible(resource)`, `isDisabled(resource)`, `da
 |---|---:|---|
 | `dayWidth` | `40` | Width of one day column in pixels. Drag snaps to this grid. |
 | `viewMode` | `'day'` | Shared scale mode: `day`, `week`, or `month`, matching the main Gantt chart. |
-| `rowHeaderWidth` | `240` | Width of the resource-name column. |
+| `rowHeaderWidth` | `520` | Width of the resource tasklist. Smaller values are clamped to `520` so columns remain readable. |
 | `laneHeight` | `40` | Height of one item lane. |
 | `headerHeight` | `40` | Height of the time scale header. |
 | `businessDays` | `true` | When true, horizontal drag snaps to working days and preserves working-day duration. |
@@ -348,7 +380,7 @@ Resource-specific variables:
 
 ```css
 :root {
-  --gantt-resource-row-header-width: 240px;
+  --gantt-resource-row-header-width: 520px;
   --gantt-resource-lane-height: 40px;
   --gantt-resource-bar-radius: 4px;
   --gantt-resource-bar-conflict-color: #ef4444;

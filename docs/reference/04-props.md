@@ -65,6 +65,9 @@ interface ResourceTimelineItem {
 interface ResourceTimelineResource<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   id: string;
   name: string;
+  type?: 'Люди' | 'Оборудование' | 'Материалы' | string;
+  scope?: 'Shared' | 'Project' | string;
+  status?: 'Active' | 'Inactive' | string;
   items: TItem[];
 }
 
@@ -98,6 +101,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
   onResourceItemMenuClick?: (item: TItem) => void;
   activeResourceItemId?: string | null;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
+  onResourceChange?: (resource: ResourceTimelineResource<TItem>) => void;
   onAddResource?: (resource: ResourceTimelineResource<TItem>) => void;
   enableAddResource?: boolean;
   resourceMenuCommands?: Array<ResourceTimelineResourceMenuCommand<TItem>>;
@@ -179,7 +183,7 @@ const resources: ResourceTimelineResource[] = [
 | `resources` | `ResourceTimelineResource[]` | required | Resource rows and their scheduled items. Resource mode does not require `tasks`. |
 | `dayWidth` | `number` | `40` | Width of one day column in pixels. Horizontal drag snaps to this value. |
 | `viewMode` | `'day' \| 'week' \| 'month'` | `'day'` | Shared time-scale mode, identical to the main Gantt chart. Header, separators, and visible timeline range follow the same rules as task mode. |
-| `rowHeaderWidth` | `number` | `240` | Width of the left resource-name column. |
+| `rowHeaderWidth` | `number` | `520` | Width of the left resource tasklist. Values below `520` are clamped so the built-in columns remain readable. |
 | `laneHeight` | `number` | `40` | Height of one item lane inside each resource row. Overlapping items add lanes. |
 | `headerHeight` | `number` | `40` | Height of the time-scale header. |
 | `customDays` | `CustomDayConfig[]` | `undefined` | Custom workday/weekend overrides, shared with task mode. |
@@ -193,7 +197,8 @@ const resources: ResourceTimelineResource[] = [
 | `onResourceItemMenuClick` | `(item) => void` | `undefined` | Adds a hover/focus three-dots button to each resource item bar and fires when it is clicked. Use this to open an external drawer or menu. |
 | `activeResourceItemId` | `string \| null` | `undefined` | Applies the active resource item shadow state to the matching item. Intended for keeping the bar visually active while an external drawer/menu is open. |
 | `onResourceItemMove` | `(move: ResourceTimelineMove) => void` | `undefined` | Fires on mouseup after a valid move or resize. Includes `startDate`, `endDate`, optional `taskId`, and `changeType: 'move' \| 'resize-start' \| 'resize-end'`. |
-| `onAddResource` | `(resource: ResourceTimelineResource) => void` | `undefined` | Shows the "+ Добавить ресурс" row and fires when the user confirms a new resource name. The created resource has an auto-generated `id`, the entered `name`, and empty `items`. |
+| `onResourceChange` | `(resource: ResourceTimelineResource) => void` | `undefined` | Enables inline editing for resource name, type, and availability. Receives the full updated resource row; merge it into your `resources` state. |
+| `onAddResource` | `(resource: ResourceTimelineResource) => void` | `undefined` | Shows the "+ Добавить ресурс" row and fires when the user confirms a new resource name. The created resource has an auto-generated `id`, the entered `name`, default `type: 'Другое'`, default `scope: 'Project'`, and empty `items`. |
 | `enableAddResource` | `boolean` | `true` | When `true` and `onAddResource` is provided, shows the add-resource row. |
 | `resourceMenuCommands` | `ResourceTimelineResourceMenuCommand[]` | `undefined` | Adds a hover/focus three-dots menu to each resource row. Commands receive the resource in `onSelect(resource)` and support `icon`, `isVisible`, `isDisabled`, `danger`, and `closeOnSelect`. |
 

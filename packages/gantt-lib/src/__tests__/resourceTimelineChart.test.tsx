@@ -34,8 +34,78 @@ describe('ResourceTimelineChart', () => {
   it('renders resource headers from resource names', () => {
     render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
 
-    expect(screen.getByText('Design')).toBeInTheDocument();
-    expect(screen.getByText('QA')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Design')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('QA')).toBeInTheDocument();
+  });
+
+  it('renders resource tasklist columns with type, availability, and worked-day count', () => {
+    const typedResources: ResourceTimelineResource[] = [
+      {
+        id: 'crew',
+        name: 'Бригада 100 общ',
+        type: 'Люди',
+        scope: 'Shared',
+        items: [
+          { id: 'a', resourceId: 'crew', title: 'A', startDate: '2026-04-01', endDate: '2026-04-02' },
+        ],
+      },
+      {
+        id: 'materials',
+        name: 'Шум',
+        type: 'Материалы',
+        scope: 'Project',
+        items: [],
+      },
+    ];
+
+    render(<ResourceTimelineChart mode="resource-planner" resources={typedResources} />);
+
+    expect(screen.getByText('Название')).toBeInTheDocument();
+    expect(screen.getByText('Тип')).toBeInTheDocument();
+    expect(screen.getByText('Доступность')).toBeInTheDocument();
+    expect(screen.getByText('Дней')).toBeInTheDocument();
+    expect(screen.getByLabelText('Тип ресурса Бригада 100 общ')).toHaveTextContent('Люди');
+    expect(screen.getByLabelText('Тип ресурса Шум')).toHaveTextContent('Материалы');
+    expect(screen.getByLabelText('Доступность ресурса Бригада 100 общ')).toHaveTextContent('Shared');
+    expect(screen.getByLabelText('Доступность ресурса Шум')).toHaveTextContent('Project');
+    expect(screen.getByText('2 дн.')).toBeInTheDocument();
+    expect(screen.getByText('0 дн.')).toBeInTheDocument();
+  });
+
+  it('edits resource name, type, and availability inline', () => {
+    const onResourceChange = vi.fn();
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        onResourceChange={onResourceChange}
+      />
+    );
+
+    const nameInput = screen.getByLabelText('Название ресурса Design');
+    fireEvent.change(nameInput, { target: { value: 'UX Team' } });
+    fireEvent.blur(nameInput);
+
+    expect(onResourceChange).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'design',
+      name: 'UX Team',
+    }));
+
+    const typeChip = screen.getByLabelText('Тип ресурса Design');
+    fireEvent.click(typeChip);
+    fireEvent.click(screen.getByRole('button', { name: 'Оборудование' }));
+    expect(onResourceChange).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'design',
+      type: 'Оборудование',
+    }));
+
+    const scopeChip = screen.getByLabelText('Доступность ресурса Design');
+    fireEvent.click(scopeChip);
+    fireEvent.click(screen.getByRole('button', { name: 'Shared' }));
+    expect(onResourceChange).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'design',
+      scope: 'Shared',
+    }));
   });
 
   it('renders an add-resource row only when onAddResource is provided', () => {
@@ -63,6 +133,8 @@ describe('ResourceTimelineChart', () => {
     expect(onAddResource).toHaveBeenCalledWith({
       id: expect.any(String),
       name: 'Install Crew',
+      type: 'Другое',
+      scope: 'Project',
       items: [],
     });
     expect(screen.getByText('+ Добавить ресурс')).toBeInTheDocument();

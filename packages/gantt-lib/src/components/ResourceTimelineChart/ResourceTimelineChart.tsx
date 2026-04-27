@@ -21,7 +21,7 @@ import './ResourceTimelineChart.css';
 const DEFAULT_DAY_WIDTH = 40;
 const DEFAULT_HEADER_HEIGHT = 40;
 const DEFAULT_LANE_HEIGHT = 40;
-const DEFAULT_ROW_HEADER_WIDTH = 240;
+const DEFAULT_ROW_HEADER_WIDTH = 520;
 const DEFAULT_RESOURCE_ROW_GAP = 8;
 const ITEM_OUTER_VERTICAL_INSET = 2;
 const ITEM_INNER_VERTICAL_INSET = 1;
@@ -159,31 +159,114 @@ const getDurationValue = (
   ? getBusinessDaysCount(startDate, endDate, weekendPredicate)
   : Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1);
 
+const RESOURCE_TYPE_OPTIONS = ['Люди', 'Оборудование', 'Материалы', 'Другое'] as const;
+const RESOURCE_SCOPE_OPTIONS = ['Shared', 'Project'] as const;
+
 interface ResourceHeaderProps<TItem extends ResourceTimelineItem> {
   resource: ResourceTimelineResource<TItem>;
   resourceId: string;
+  rowIndex: number;
   conflictCount: number;
+  workedDays: number;
   height: number;
   paddingBottom: number;
   menuCommands: Array<ResourceTimelineResourceMenuCommand<TItem>>;
+  onResourceChange?: (resource: ResourceTimelineResource<TItem>) => void;
   onConflictBadgeClick?: (resourceId: string) => void;
 }
+
+const ResourceTypeIcon: React.FC<{ type: string }> = ({ type }) => {
+  if (type === 'Люди') {
+    return (
+      <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconPeople" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    );
+  }
+
+  if (type === 'Оборудование') {
+    return (
+      <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconEquipment" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m15 12-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9" />
+        <path d="m17.64 15 4.86-4.86a2.83 2.83 0 0 0-4-4L13.64 11" />
+        <path d="m20.5 7.5-4-4" />
+      </svg>
+    );
+  }
+
+  if (type === 'Материалы') {
+    return (
+      <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconMaterials" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m21 16-9 5-9-5" />
+        <path d="m21 12-9 5-9-5" />
+        <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="gantt-resourceTimeline-resourceTypeIcon gantt-resourceTimeline-resourceTypeIconOther" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v4" />
+      <path d="M12 16h.01" />
+    </svg>
+  );
+};
 
 const ResourceHeader = <TItem extends ResourceTimelineItem>({
   resource,
   resourceId,
+  rowIndex,
   conflictCount,
+  workedDays,
   height,
   paddingBottom,
   menuCommands,
+  onResourceChange,
   onConflictBadgeClick,
 }: ResourceHeaderProps<TItem>) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const [scopeMenuOpen, setScopeMenuOpen] = useState(false);
+  const [draftName, setDraftName] = useState(resource.name);
   const visibleCommands = useMemo(
     () => menuCommands.filter((command) => command.isVisible?.(resource) ?? true),
     [menuCommands, resource]
   );
   const hasMenu = visibleCommands.length > 0;
+  const type = resource.type ?? 'Другое';
+  const scope = resource.scope ?? 'Project';
+
+  useEffect(() => {
+    setDraftName(resource.name);
+  }, [resource.name]);
+
+  const applyResourcePatch = useCallback((patch: Partial<ResourceTimelineResource<TItem>>) => {
+    onResourceChange?.({ ...resource, ...patch });
+  }, [onResourceChange, resource]);
+
+  const handleNameCommit = useCallback(() => {
+    const nextName = draftName.trim();
+    if (!nextName) {
+      setDraftName(resource.name);
+      return;
+    }
+    if (nextName !== resource.name) {
+      applyResourcePatch({ name: nextName } as Partial<ResourceTimelineResource<TItem>>);
+    }
+  }, [applyResourcePatch, draftName, resource.name]);
+
+  const handleNameKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.currentTarget.blur();
+    } else if (event.key === 'Escape') {
+      setDraftName(resource.name);
+      event.currentTarget.blur();
+    }
+  }, [resource.name]);
 
   const handleCommandClick = (
     command: ResourceTimelineResourceMenuCommand<TItem>,
@@ -205,24 +288,113 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
         paddingBottom: `${paddingBottom}px`,
       }}
     >
-      <span className="gantt-resourceTimeline-resourceName">{resource.name}</span>
-      {conflictCount > 0 && (
-        <button
-          type="button"
-          className="gantt-resourceTimeline-conflictBadge"
-          aria-label={formatOverlapCount(conflictCount)}
-          title={formatOverlapCount(conflictCount)}
-          onClick={(event) => {
-            event.stopPropagation();
-            onConflictBadgeClick?.(resourceId);
-          }}
-        >
-          {conflictCount}
-        </button>
-      )}
-      {hasMenu && (
-        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+      <span className="gantt-resourceTimeline-resourceNumber">{rowIndex + 1}</span>
+      <span className="gantt-resourceTimeline-resourceName">
+        <input
+          className="gantt-resourceTimeline-resourceNameInput"
+          value={draftName}
+          disabled={!onResourceChange}
+          aria-label={`Название ресурса ${resource.name}`}
+          onChange={(event) => setDraftName(event.target.value)}
+          onBlur={handleNameCommit}
+          onKeyDown={handleNameKeyDown}
+          onClick={(event) => event.stopPropagation()}
+        />
+      </span>
+      <span className="gantt-resourceTimeline-resourceType">
+        <span className="gantt-resourceTimeline-resourceTypeIconWrap">
+          <ResourceTypeIcon type={type} />
+        </span>
+        <Popover open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
           <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="gantt-resourceTimeline-resourceTypeChip"
+              disabled={!onResourceChange}
+              aria-label={`Тип ресурса ${resource.name}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                setTypeMenuOpen((open) => !open);
+              }}
+            >
+              <span>{type}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="gantt-resourceTimeline-resourceOptionMenu" portal={true} align="start">
+            {RESOURCE_TYPE_OPTIONS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={`gantt-resourceTimeline-resourceOption${type === option ? ' gantt-resourceTimeline-resourceOptionActive' : ''}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setTypeMenuOpen(false);
+                  applyResourcePatch({ type: option } as Partial<ResourceTimelineResource<TItem>>);
+                }}
+              >
+                <span className="gantt-resourceTimeline-resourceOptionIcon">
+                  <ResourceTypeIcon type={option} />
+                </span>
+                {option}
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
+      </span>
+      <Popover open={scopeMenuOpen} onOpenChange={setScopeMenuOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={`gantt-resourceTimeline-resourceScopeChip gantt-resourceTimeline-resourceScope${scope === 'Shared' ? 'Shared' : 'Project'}`}
+            disabled={!onResourceChange}
+            aria-label={`Доступность ресурса ${resource.name}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              setScopeMenuOpen((open) => !open);
+            }}
+          >
+            <span>{scope}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="gantt-resourceTimeline-resourceOptionMenu" portal={true} align="start">
+          {RESOURCE_SCOPE_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`gantt-resourceTimeline-resourceOption${scope === option ? ' gantt-resourceTimeline-resourceOptionActive' : ''}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                setScopeMenuOpen(false);
+                applyResourcePatch({ scope: option } as Partial<ResourceTimelineResource<TItem>>);
+              }}
+            >
+              <span className={`gantt-resourceTimeline-resourceOptionScopeDot gantt-resourceTimeline-resourceScope${option}`} />
+              {option}
+            </button>
+          ))}
+        </PopoverContent>
+      </Popover>
+      <span className="gantt-resourceTimeline-resourceAssignments">
+        <span>{workedDays} дн.</span>
+      </span>
+      <span className="gantt-resourceTimeline-resourceActions">
+        {conflictCount > 0 && (
+          <button
+            type="button"
+            className="gantt-resourceTimeline-conflictBadge"
+            aria-label={formatOverlapCount(conflictCount)}
+            title={formatOverlapCount(conflictCount)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onConflictBadgeClick?.(resourceId);
+            }}
+          >
+            {conflictCount}
+          </button>
+        )}
+        {hasMenu && (
+          <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+            <PopoverTrigger asChild>
             <button
               className="gantt-resourceTimeline-resourceMenuButton"
               type="button"
@@ -234,23 +406,24 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
             >
               <span aria-hidden="true">⋮</span>
             </button>
-          </PopoverTrigger>
-          <PopoverContent className="gantt-resourceTimeline-resourceMenu" portal={true} align="end">
-            {visibleCommands.map((command) => (
-              <button
-                key={command.id}
-                type="button"
-                className={`gantt-resourceTimeline-resourceMenuItem${command.danger ? ' gantt-resourceTimeline-resourceMenuItemDanger' : ''}`}
-                disabled={command.isDisabled?.(resource) ?? false}
-                onClick={(event) => handleCommandClick(command, event)}
-              >
-                {command.icon}
-                {command.label}
-              </button>
-            ))}
-          </PopoverContent>
-        </Popover>
-      )}
+            </PopoverTrigger>
+            <PopoverContent className="gantt-resourceTimeline-resourceMenu" portal={true} align="end">
+              {visibleCommands.map((command) => (
+                <button
+                  key={command.id}
+                  type="button"
+                  className={`gantt-resourceTimeline-resourceMenuItem${command.danger ? ' gantt-resourceTimeline-resourceMenuItemDanger' : ''}`}
+                  disabled={command.isDisabled?.(resource) ?? false}
+                  onClick={(event) => handleCommandClick(command, event)}
+                >
+                  {command.icon}
+                  {command.label}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
+        )}
+      </span>
     </div>
   );
 };
@@ -309,6 +482,7 @@ const NewResourceRow: React.FC<NewResourceRowProps> = ({ height, onConfirm, onCa
         paddingBottom: `${DEFAULT_RESOURCE_ROW_GAP}px`,
       }}
     >
+      <span className="gantt-resourceTimeline-resourceNumber">+</span>
       <Input
         ref={inputRef}
         value={nameValue}
@@ -342,6 +516,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   onResourceItemMenuClick,
   activeResourceItemId,
   onResourceItemMove,
+  onResourceChange,
   onAddResource,
   enableAddResource = true,
   resourceMenuCommands = [],
@@ -364,6 +539,26 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     [customDays, isWeekend]
   );
   const gridWidth = useMemo(() => Math.round(dateRange.length * dayWidth), [dateRange.length, dayWidth]);
+  const effectiveRowHeaderWidth = Math.max(rowHeaderWidth, DEFAULT_ROW_HEADER_WIDTH);
+  const workedDaysByResourceId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const resource of resources) {
+      const workedDays = resource.items.reduce((sum, item) => {
+        try {
+          const startDate = parseUTCDate(item.startDate);
+          const endDate = parseUTCDate(item.endDate);
+          if (!isValidDate(startDate) || !isValidDate(endDate)) {
+            return sum;
+          }
+          return sum + getDurationValue(startDate, endDate, businessDays, weekendPredicate);
+        } catch {
+          return sum;
+        }
+      }, 0);
+      map.set(resource.id, workedDays);
+    }
+    return map;
+  }, [businessDays, resources, weekendPredicate]);
 
   const layout = useMemo(
     () => layoutResourceTimelineItems(resources, {
@@ -421,6 +616,8 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     onAddResource?.({
       id: crypto.randomUUID(),
       name,
+      type: 'Другое',
+      scope: 'Project',
       items: [] as TItem[],
     });
     setIsCreatingResource(false);
@@ -561,21 +758,31 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
         <div className="gantt-resourceTimeline-scrollContent">
           <div
             className="gantt-resourceTimeline-resourceColumn"
-            style={{ width: `${rowHeaderWidth}px`, minWidth: `${rowHeaderWidth}px` }}
+            style={{ width: `${effectiveRowHeaderWidth}px`, minWidth: `${effectiveRowHeaderWidth}px` }}
           >
             <div
               className="gantt-resourceTimeline-corner"
               style={{ height: `${headerHeight}px` }}
-            />
-            {layout.rows.map((row) => (
+            >
+              <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderNumber">#</span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell">Название</span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell">Тип</span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell">Доступность</span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell">Дней</span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderActions">Действия</span>
+            </div>
+            {layout.rows.map((row, rowIndex) => (
               <ResourceHeader
                 key={row.resourceId}
                 resource={row.resource}
                 resourceId={row.resourceId}
+                rowIndex={rowIndex}
                 conflictCount={row.conflictCount}
+                workedDays={workedDaysByResourceId.get(row.resourceId) ?? 0}
                 height={row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP}
                 paddingBottom={DEFAULT_RESOURCE_ROW_GAP}
                 menuCommands={resourceMenuCommands}
+                onResourceChange={onResourceChange}
                 onConflictBadgeClick={handleConflictBadgeClick}
               />
             ))}

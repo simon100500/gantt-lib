@@ -16,6 +16,8 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
   {
     id: "earthworks",
     name: "Земляные работы",
+    type: "Люди",
+    scope: "Shared",
     items: [
       {
         id: "earthworks-site-prep",
@@ -55,6 +57,8 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
   {
     id: "concrete",
     name: "Бетонная бригада",
+    type: "Люди",
+    scope: "Shared",
     items: [
       {
         id: "concrete-footing",
@@ -94,6 +98,8 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
   {
     id: "rebar",
     name: "Арматурщики",
+    type: "Люди",
+    scope: "Shared",
     items: [
       {
         id: "rebar-slab",
@@ -122,6 +128,8 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
   {
     id: "masonry",
     name: "Каменщики",
+    type: "Люди",
+    scope: "Shared",
     items: [
       {
         id: "masonry-walls-a",
@@ -150,6 +158,8 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
   {
     id: "crane",
     name: "Башенный кран",
+    type: "Оборудование",
+    scope: "Shared",
     items: [
       {
         id: "crane-rebar-delivery",
@@ -189,6 +199,8 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
   {
     id: "electrical",
     name: "Электрики",
+    type: "Люди",
+    scope: "Project",
     items: [
       {
         id: "electrical-grounding",
@@ -217,6 +229,8 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
   {
     id: "plumbing",
     name: "Сантехники",
+    type: "Люди",
+    scope: "Project",
     items: [
       {
         id: "plumbing-sleeves",
@@ -245,6 +259,8 @@ const initialResources: Array<ResourceTimelineResource<PlannerItem>> = [
   {
     id: "finishing",
     name: "Отделочники",
+    type: "Материалы",
+    scope: "Project",
     items: [
       {
         id: "finishing-mockup",
@@ -300,21 +316,13 @@ export default function ResourcePlannerExample() {
     setResources((current) => [...current, resource]);
   };
 
-  const resourceMenuCommands: Array<ResourceTimelineResourceMenuCommand<PlannerItem>> = [
-    {
-      id: "rename-resource",
-      label: "Переименовать",
-      onSelect: (resource) => {
-        const nextName = window.prompt("Название ресурса", resource.name)?.trim();
-        if (!nextName) {
-          return;
-        }
+  const handleResourceChange = (resource: ResourceTimelineResource<PlannerItem>) => {
+    setResources((current) =>
+      current.map((item) => item.id === resource.id ? resource : item)
+    );
+  };
 
-        setResources((current) =>
-          current.map((item) => item.id === resource.id ? { ...item, name: nextName } : item)
-        );
-      },
-    },
+  const resourceMenuCommands: Array<ResourceTimelineResourceMenuCommand<PlannerItem>> = [
     {
       id: "delete-empty-resource",
       label: "Удалить пустой ресурс",
@@ -366,12 +374,13 @@ export default function ResourcePlannerExample() {
           dayWidth={dayWidth}
           viewMode={viewMode}
           laneHeight={42}
-          rowHeaderWidth={220}
+          rowHeaderWidth={540}
           businessDays={businessDays}
           disableResourceReassignment
           activeResourceItemId={activeItemId}
           onResourceItemMove={handleMove}
           onResourceItemMenuClick={(item) => setActiveItemId(item.id)}
+          onResourceChange={handleResourceChange}
           onAddResource={handleAddResource}
           resourceMenuCommands={resourceMenuCommands}
         />
