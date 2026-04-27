@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.85.0] - 2026-04-28
+
+### Features
+
+- Add inactive resource visual indicator — lock icon and dimmed styling for resources with `status: 'Inactive'` in ResourceTimelineChart
+
 ## [0.84.0] - 2026-04-28
 
 ### Features

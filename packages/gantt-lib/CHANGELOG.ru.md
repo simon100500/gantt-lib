@@ -5,6 +5,12 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.85.0] - 2026-04-28
+
+### Новые возможности
+
+- Визуальная индикация неактивных ресурсов — иконка замка и приглушённая стилизация для ресурсов со `status: 'Inactive'` в ResourceTimelineChart
+
 ## [0.84.0] - 2026-04-28
 
 ### Новые возможности
