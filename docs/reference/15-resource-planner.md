@@ -65,7 +65,7 @@ export function Schedule() {
       dayWidth={36}
       viewMode="week"
       laneHeight={40}
-      rowHeaderWidth={520}
+      rowHeaderWidth={420}
     />
   );
 }
@@ -349,7 +349,7 @@ Each command supports `icon`, `isVisible(resource)`, `isDisabled(resource)`, `da
 |---|---:|---|
 | `dayWidth` | `40` | Width of one day column in pixels. Drag snaps to this grid. |
 | `viewMode` | `'day'` | Shared scale mode: `day`, `week`, or `month`, matching the main Gantt chart. |
-| `rowHeaderWidth` | `520` | Width of the resource tasklist. Smaller values are clamped to `520` so columns remain readable. |
+| `rowHeaderWidth` | `420` | Width of the resource tasklist. Smaller values are clamped to `420` so columns remain readable. |
 | `laneHeight` | `40` | Height of one item lane. |
 | `headerHeight` | `40` | Height of the time scale header. |
 | `businessDays` | `true` | When true, horizontal drag snaps to working days and preserves working-day duration. |
@@ -380,7 +380,7 @@ Resource-specific variables:
 
 ```css
 :root {
-  --gantt-resource-row-header-width: 520px;
+  --gantt-resource-row-header-width: 420px;
   --gantt-resource-lane-height: 40px;
   --gantt-resource-bar-radius: 4px;
   --gantt-resource-bar-conflict-color: #ef4444;

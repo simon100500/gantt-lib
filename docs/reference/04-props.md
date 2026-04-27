@@ -183,7 +183,7 @@ const resources: ResourceTimelineResource[] = [
 | `resources` | `ResourceTimelineResource[]` | required | Resource rows and their scheduled items. Resource mode does not require `tasks`. |
 | `dayWidth` | `number` | `40` | Width of one day column in pixels. Horizontal drag snaps to this value. |
 | `viewMode` | `'day' \| 'week' \| 'month'` | `'day'` | Shared time-scale mode, identical to the main Gantt chart. Header, separators, and visible timeline range follow the same rules as task mode. |
-| `rowHeaderWidth` | `number` | `520` | Width of the left resource tasklist. Values below `520` are clamped so the built-in columns remain readable. |
+| `rowHeaderWidth` | `number` | `420` | Width of the left resource tasklist. Values below `420` are clamped so the built-in columns remain readable. |
 | `laneHeight` | `number` | `40` | Height of one item lane inside each resource row. Overlapping items add lanes. |
 | `headerHeight` | `number` | `40` | Height of the time-scale header. |
 | `customDays` | `CustomDayConfig[]` | `undefined` | Custom workday/weekend overrides, shared with task mode. |

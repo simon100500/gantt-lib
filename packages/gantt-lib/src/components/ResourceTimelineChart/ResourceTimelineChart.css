@@ -41,7 +41,7 @@
   top: 0;
   z-index: 4;
   display: grid;
-  grid-template-columns: 34px minmax(156px, 0.72fr) 86px 96px 38px;
+  grid-template-columns: 30px minmax(146px, 1fr) 80px 86px 32px;
   align-items: center;
   background: var(--gantt-cell-background, #ffffff);
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
@@ -62,7 +62,7 @@
 }
 
 .gantt-resourceTimeline-resourceHeaderNumber {
-  padding-left: 12px;
+  padding-left: 10px;
 }
 
 .gantt-resourceTimeline-resourceHeaderName {
@@ -75,7 +75,7 @@
 
 .gantt-resourceTimeline-resourceHeader {
   display: grid;
-  grid-template-columns: 34px minmax(156px, 0.72fr) 86px 96px 38px;
+  grid-template-columns: 30px minmax(146px, 1fr) 80px 86px 32px;
   align-items: start;
   column-gap: 0;
   padding: 6px 0 0;
@@ -101,7 +101,7 @@
 
 .gantt-resourceTimeline-resourceNumber {
   min-width: 0;
-  padding: 1px 8px 0 12px;
+  padding: 1px 6px 0 10px;
   color: #8993a4;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
@@ -228,9 +228,9 @@
   justify-self: start;
   margin-top: 1px;
   max-width: calc(100% - 16px);
-  min-width: 64px;
+  min-width: 58px;
   height: 22px;
-  margin: 0 8px;
+  margin: 0 6px;
   border: 1px solid transparent;
   cursor: pointer;
   font-family: inherit;
@@ -286,9 +286,9 @@
   justify-self: start;
   margin-top: 0;
   max-width: calc(100% - 16px);
-  min-width: 54px;
+  min-width: 50px;
   min-height: 34px;
-  margin: 0 8px;
+  margin: 0 6px;
   overflow: hidden;
   color: #5e6c84;
   padding: 0;

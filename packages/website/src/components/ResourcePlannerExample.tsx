@@ -374,7 +374,7 @@ export default function ResourcePlannerExample() {
           dayWidth={dayWidth}
           viewMode={viewMode}
           laneHeight={42}
-          rowHeaderWidth={540}
+          rowHeaderWidth={420}
           businessDays={businessDays}
           disableResourceReassignment
           activeResourceItemId={activeItemId}
