@@ -203,11 +203,11 @@
 }
 
 .gantt-resourceTimeline-resourceTypeIconEquipment {
-  color: #de350b;
+  color: #172b4d;
 }
 
 .gantt-resourceTimeline-resourceTypeIconMaterials {
-  color: #b44a2b;
+  color: #de350b;
 }
 
 .gantt-resourceTimeline-resourceTypeIconOther {
@@ -386,8 +386,8 @@
   padding: 0 5px;
   border: 0;
   border-radius: 3px;
-  background: #fee2e2;
-  color: #b91c1c;
+  background: #de350b;
+  color: #ffffff;
   cursor: pointer;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -397,8 +397,8 @@
 
 .gantt-resourceTimeline-conflictBadge:hover,
 .gantt-resourceTimeline-conflictBadge:focus-visible {
-  background: #fecaca;
-  color: #991b1b;
+  background: #bf2600;
+  color: #ffffff;
   outline: none;
 }
 
