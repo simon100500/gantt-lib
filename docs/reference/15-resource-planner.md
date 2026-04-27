@@ -190,7 +190,7 @@ Validate the move before applying it if your app has permissions, capacity limit
 
 ## Editing Resource Rows
 
-Pass `onResourceChange` to enable inline editing in the left resource tasklist.
+Pass `onResourceChange` to enable inline editing of resource type and availability in the left resource tasklist.
 
 ```tsx
 <GanttChart
@@ -333,7 +333,7 @@ The chart creates a resource object with an auto-generated `id`, the confirmed `
 ## Resource Row Actions
 
 Use `resourceMenuCommands` to add a hover/focus three-dots menu to resource rows.
-Built-in row editing for name, type, and availability is handled by `onResourceChange`; keep this menu for domain-specific commands such as archive, open details, or delete.
+Built-in row editing for type and availability is handled by `onResourceChange`; keep this menu for domain-specific commands such as rename, archive, open details, or delete.
 
 ```tsx
 <GanttChart

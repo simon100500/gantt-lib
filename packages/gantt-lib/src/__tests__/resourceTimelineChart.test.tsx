@@ -34,8 +34,8 @@ describe('ResourceTimelineChart', () => {
   it('renders resource headers from resource names', () => {
     render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
 
-    expect(screen.getByDisplayValue('Design')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('QA')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Название ресурса Design' })).toHaveTextContent('Design');
+    expect(screen.getByRole('button', { name: 'Название ресурса QA' })).toHaveTextContent('QA');
   });
 
   it('renders resource tasklist columns with type icon, availability, and worked-day count', () => {
@@ -73,7 +73,7 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByLabelText('Назначения ресурса Шум: 0, 0 дн.')).toBeInTheDocument();
   });
 
-  it('edits resource name, type, and availability inline', () => {
+  it('edits resource type and availability inline', () => {
     const onResourceChange = vi.fn();
     render(
       <ResourceTimelineChart
@@ -82,15 +82,6 @@ describe('ResourceTimelineChart', () => {
         onResourceChange={onResourceChange}
       />
     );
-
-    const nameInput = screen.getByLabelText('Название ресурса Design');
-    fireEvent.change(nameInput, { target: { value: 'UX Team' } });
-    fireEvent.blur(nameInput);
-
-    expect(onResourceChange).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'design',
-      name: 'UX Team',
-    }));
 
     const typeChip = screen.getByLabelText('Тип ресурса Design: Другое');
     fireEvent.click(typeChip);
@@ -138,6 +129,19 @@ describe('ResourceTimelineChart', () => {
       'Название ресурса QA',
     ]);
     expect(container.querySelectorAll('[data-resource-group]')).toHaveLength(4);
+  });
+
+  it('scrolls to the first resource assignment when clicking the resource name', () => {
+    const { container } = render(
+      <ResourceTimelineChart mode="resource-planner" resources={resources} dayWidth={40} businessDays={false} />
+    );
+    const scrollContainer = container.querySelector('.gantt-resourceTimeline-scrollContainer') as HTMLElement;
+    const scrollTo = vi.fn();
+    scrollContainer.scrollTo = scrollTo;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Название ресурса Design' }));
+
+    expect(scrollTo).toHaveBeenCalledWith({ left: 0, top: 0, behavior: 'smooth' });
   });
 
   it('renders an add-resource row only when onAddResource is provided', () => {
@@ -246,7 +250,7 @@ describe('ResourceTimelineChart', () => {
     expect(css).toMatch(/\.gantt-resourceTimeline-resourceColumn\s*{[^}]*z-index:\s*3;/);
     expect(css).toMatch(/\.gantt-resourceTimeline-chartSurface\s*{[^}]*position:\s*relative;[^}]*z-index:\s*0;/);
     expect(css).toMatch(/\.gantt-resourceTimeline \.gantt-ti-indicator\s*{[^}]*z-index:\s*4;/);
-    expect(css).not.toMatch(/\.gantt-resourceTimeline-item:hover,\s*\.gantt-resourceTimeline-item:focus-visible\s*{[^}]*z-index:/);
+    expect(css).toMatch(/\.gantt-resourceTimeline-item:hover,\s*\.gantt-resourceTimeline-item:focus-visible\s*{[^}]*z-index:\s*30;/);
   });
 
   it('renders default item bars with demo-style duration, title, and subtitle', () => {

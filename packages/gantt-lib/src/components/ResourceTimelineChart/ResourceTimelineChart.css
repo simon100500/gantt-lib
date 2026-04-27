@@ -149,6 +149,7 @@
   align-items: flex-start;
   gap: 6px;
   min-height: 32px;
+  height: 100%;
   overflow: visible;
   font-size: 13px;
   line-height: 1.25;
@@ -156,14 +157,17 @@
   overflow-wrap: anywhere;
 }
 
-.gantt-resourceTimeline-resourceNameInput {
+.gantt-resourceTimeline-resourceNameButton {
+  display: flex;
+  align-self: stretch;
+  align-items: flex-start;
+  justify-content: flex-start;
   width: 100%;
   min-width: 0;
-  height: 34px;
-  min-height: 34px;
-  resize: none;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  height: 100%;
+  min-height: 32px;
+  border: 0;
+  border-radius: 0;
   background: transparent;
   color: #172b4d;
   font: inherit;
@@ -171,26 +175,21 @@
   font-weight: 500;
   line-height: 1.25;
   overflow: hidden;
-  padding: 2px 4px;
-  text-overflow: ellipsis;
+  padding: 2px 4px 0;
+  text-align: left;
+  vertical-align: top;
+  cursor: pointer;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
-.gantt-resourceTimeline-resourceNameInput:hover:not(:disabled) {
-  background: #ffffff;
-  border-color: #dfe1e6;
-}
-
-.gantt-resourceTimeline-resourceNameInput:focus {
-  background: #ffffff;
-  border-color: #4c9aff;
-  box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.22);
+.gantt-resourceTimeline-resourceNameButton:hover,
+.gantt-resourceTimeline-resourceNameButton:focus-visible {
   outline: none;
 }
 
-.gantt-resourceTimeline-resourceNameInput:disabled {
-  opacity: 1;
+.gantt-resourceTimeline-resourceNameButton:focus-visible {
+  box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.22);
 }
 
 .gantt-resourceTimeline-resourceTypeIconButton {
@@ -317,7 +316,7 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 1px;
+  gap: 3px;
   justify-self: start;
   margin-top: 0;
   max-width: calc(100% - 16px);
@@ -337,7 +336,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #6b778c;
+  color: #97a0af;
   font-size: 11px;
   font-weight: 500;
 }
@@ -346,12 +345,14 @@
   flex: 0 0 auto;
   fill: currentColor;
   stroke: none;
+  opacity: 0.72;
 }
 
 .gantt-resourceTimeline-resourceWorkedDays {
   color: #172b4d;
   font-size: 12px;
   font-weight: 700;
+  margin-bottom: 1px;
 }
 
 .gantt-resourceTimeline-resourceOptionMenu {
@@ -625,6 +626,11 @@
   opacity: 1;
   transform: translate(-50%, -100%);
   visibility: visible;
+}
+
+.gantt-resourceTimeline-item:hover,
+.gantt-resourceTimeline-item:focus-visible {
+  z-index: 30;
 }
 
 .gantt-resourceTimeline-itemActive {

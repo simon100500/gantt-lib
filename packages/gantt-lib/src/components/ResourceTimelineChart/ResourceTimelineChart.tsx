@@ -213,6 +213,7 @@ interface ResourceHeaderProps<TItem extends ResourceTimelineItem> {
   paddingBottom: number;
   menuCommands: Array<ResourceTimelineResourceMenuCommand<TItem>>;
   onResourceChange?: (resource: ResourceTimelineResource<TItem>) => void;
+  onResourceNameClick?: (resourceId: string) => void;
   onConflictBadgeClick?: (resourceId: string) => void;
 }
 
@@ -268,12 +269,12 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
   paddingBottom,
   menuCommands,
   onResourceChange,
+  onResourceNameClick,
   onConflictBadgeClick,
 }: ResourceHeaderProps<TItem>) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const [scopeMenuOpen, setScopeMenuOpen] = useState(false);
-  const [draftName, setDraftName] = useState(resource.name);
   const visibleCommands = useMemo(
     () => menuCommands.filter((command) => command.isVisible?.(resource) ?? true),
     [menuCommands, resource]
@@ -283,34 +284,9 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
   const scope = resource.scope ?? 'Project';
   const scopeLabel = RESOURCE_SCOPE_LABELS[scope] ?? scope;
 
-  useEffect(() => {
-    setDraftName(resource.name);
-  }, [resource.name]);
-
   const applyResourcePatch = useCallback((patch: Partial<ResourceTimelineResource<TItem>>) => {
     onResourceChange?.({ ...resource, ...patch });
   }, [onResourceChange, resource]);
-
-  const handleNameCommit = useCallback(() => {
-    const nextName = draftName.trim();
-    if (!nextName) {
-      setDraftName(resource.name);
-      return;
-    }
-    if (nextName !== resource.name) {
-      applyResourcePatch({ name: nextName } as Partial<ResourceTimelineResource<TItem>>);
-    }
-  }, [applyResourcePatch, draftName, resource.name]);
-
-  const handleNameKeyDown = useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      event.currentTarget.blur();
-    } else if (event.key === 'Escape') {
-      setDraftName(resource.name);
-      event.currentTarget.blur();
-    }
-  }, [resource.name]);
 
   const handleCommandClick = (
     command: ResourceTimelineResourceMenuCommand<TItem>,
@@ -370,17 +346,18 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
             ))}
           </PopoverContent>
         </Popover>
-        <textarea
-          className="gantt-resourceTimeline-resourceNameInput"
-          value={draftName}
-          disabled={!onResourceChange}
+        <button
+          type="button"
+          className="gantt-resourceTimeline-resourceNameButton"
           aria-label={`Название ресурса ${resource.name}`}
-          rows={2}
-          onChange={(event) => setDraftName(event.target.value)}
-          onBlur={handleNameCommit}
-          onKeyDown={handleNameKeyDown}
-          onClick={(event) => event.stopPropagation()}
-        />
+          title={resource.name}
+          onClick={(event) => {
+            event.stopPropagation();
+            onResourceNameClick?.(resourceId);
+          }}
+        >
+          {resource.name}
+        </button>
       </span>
       <Popover open={scopeMenuOpen} onOpenChange={setScopeMenuOpen}>
         <PopoverTrigger asChild>
@@ -768,6 +745,29 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     }, 1600);
   }, [conflictItemsByResourceId, dayWidth, laneHeight]);
 
+  const handleResourceNameClick = useCallback((resourceId: string) => {
+    const resourceItems = itemsByResourceId.get(resourceId) ?? [];
+    if (resourceItems.length === 0) {
+      return;
+    }
+
+    const firstItem = [...resourceItems].sort((left, right) =>
+      left.left - right.left ||
+      left.top - right.top ||
+      left.itemId.localeCompare(right.itemId)
+    )[0];
+    const container = scrollContainerRef.current;
+    if (!container || !firstItem) {
+      return;
+    }
+
+    container.scrollTo({
+      left: Math.max(0, Math.round(firstItem.left - dayWidth * 2)),
+      top: Math.max(0, Math.round(firstItem.top - laneHeight)),
+      behavior: 'smooth',
+    });
+  }, [dayWidth, itemsByResourceId, laneHeight]);
+
   const { preview, startDrag } = useResourceItemDrag({
     dayWidth,
     monthStart,
@@ -911,6 +911,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                           paddingBottom={DEFAULT_RESOURCE_ROW_GAP}
                           menuCommands={resourceMenuCommands}
                           onResourceChange={onResourceChange}
+                          onResourceNameClick={handleResourceNameClick}
                           onConflictBadgeClick={handleConflictBadgeClick}
                         />
                       );
@@ -931,6 +932,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   paddingBottom={DEFAULT_RESOURCE_ROW_GAP}
                   menuCommands={resourceMenuCommands}
                   onResourceChange={onResourceChange}
+                  onResourceNameClick={handleResourceNameClick}
                   onConflictBadgeClick={handleConflictBadgeClick}
                 />
               ))
