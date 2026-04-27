@@ -722,6 +722,18 @@
 }
 
 @media (max-width: 640px), (pointer: coarse) {
+  .gantt-tl-row,
+  .gantt-tl-cell,
+  .gantt-tl-name-trigger,
+  .gantt-tl-name-action-btn {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .gantt-tl-name-trigger:focus:not(:focus-visible),
+  .gantt-tl-name-action-btn:focus:not(:focus-visible) {
+    outline: none;
+  }
+
   .gantt-tl-name-actions {
     gap: 6px;
     padding-left: 16px;
