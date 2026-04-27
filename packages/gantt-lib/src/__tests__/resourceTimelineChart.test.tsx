@@ -105,7 +105,10 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByLabelText('Доступность ресурса Бригада 100 общ')).toHaveTextContent('Общий');
     expect(screen.getByLabelText('Доступность ресурса Шум')).toHaveTextContent('Проект');
     expect(screen.getByLabelText('Назначения ресурса Бригада 100 общ: 1, 2 дн.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Назначения ресурса Шум: 0, 0 дн.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Назначения ресурса Шум: 0, 0 дн.')).toHaveTextContent('-');
+    expect(screen.getByLabelText('Назначения ресурса Шум: 0, 0 дн.')).not.toHaveTextContent('дн.');
+    expect(screen.getByLabelText('Назначения ресурса Шум: 0, 0 дн.')).not.toHaveTextContent('0');
+    expect(screen.getByLabelText('Назначения ресурса Шум: 0, 0 дн.').querySelector('.gantt-resourceTimeline-resourceAssignmentIcon')).toBeNull();
   });
 
   it('edits resource type and availability inline', () => {

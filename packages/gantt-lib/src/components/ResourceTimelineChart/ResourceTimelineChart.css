@@ -380,26 +380,46 @@
 }
 
 .gantt-resourceTimeline-resourceAssignmentCount {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 28px 22px;
   align-items: center;
-  gap: 4px;
+  column-gap: 4px;
+  width: 100%;
   color: #97a0af;
   font-size: 11px;
   font-weight: 500;
 }
 
 .gantt-resourceTimeline-resourceAssignmentIcon {
-  flex: 0 0 auto;
+  justify-self: start;
+  width: 14px;
   fill: currentColor;
   stroke: none;
   opacity: 0.72;
 }
 
 .gantt-resourceTimeline-resourceWorkedDays {
+  display: grid;
+  grid-template-columns: 28px 22px;
+  align-items: center;
+  column-gap: 4px;
+  width: 100%;
   color: #172b4d;
   font-size: 12px;
   font-weight: 700;
   margin-bottom: 1px;
+}
+
+.gantt-resourceTimeline-resourceMetricValue {
+  display: inline-block;
+  width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.gantt-resourceTimeline-resourceMetricLabel {
+  width: 22px;
+  text-align: left;
 }
 
 .gantt-resourceTimeline-resourceOptionMenu {

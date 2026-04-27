@@ -476,13 +476,24 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
         className="gantt-resourceTimeline-resourceAssignments"
         aria-label={`Назначения ресурса ${resource.name}: ${assignmentCount}, ${workedDays} дн.`}
       >
-        <span className="gantt-resourceTimeline-resourceWorkedDays">{workedDays} дн.</span>
+        <span className="gantt-resourceTimeline-resourceWorkedDays">
+          <span className="gantt-resourceTimeline-resourceMetricValue">
+            {workedDays > 0 ? workedDays : '-'}
+          </span>
+          <span className="gantt-resourceTimeline-resourceMetricLabel">
+            {workedDays > 0 ? 'дн.' : ''}
+          </span>
+        </span>
         <span className="gantt-resourceTimeline-resourceAssignmentCount">
-          <svg className="gantt-resourceTimeline-resourceAssignmentIcon" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-            <rect width="15" height="5" x="4" y="5" rx="2" />
-            <rect width="10" height="5" x="4" y="14" rx="2" />
-          </svg>
-          <span>{assignmentCount}</span>
+          <span className="gantt-resourceTimeline-resourceMetricValue">
+            {assignmentCount > 0 ? assignmentCount : ''}
+          </span>
+          {assignmentCount > 0 && (
+            <svg className="gantt-resourceTimeline-resourceAssignmentIcon" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+              <rect width="15" height="5" x="4" y="5" rx="2" />
+              <rect width="10" height="5" x="4" y="14" rx="2" />
+            </svg>
+          )}
         </span>
       </span>
       <span className="gantt-resourceTimeline-resourceActions">
