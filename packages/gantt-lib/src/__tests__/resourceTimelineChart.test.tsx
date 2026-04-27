@@ -63,13 +63,13 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByText('Название')).toBeInTheDocument();
     expect(screen.queryByText('Тип')).toBeNull();
     expect(screen.getByText('Доступность')).toBeInTheDocument();
-    expect(screen.getByText('Дней')).toBeInTheDocument();
+    expect(screen.getByText('Назначения')).toBeInTheDocument();
     expect(screen.getByLabelText('Тип ресурса Бригада 100 общ: Люди')).toHaveAttribute('title', 'Люди');
     expect(screen.getByLabelText('Тип ресурса Шум: Материалы')).toHaveAttribute('title', 'Материалы');
-    expect(screen.getByLabelText('Доступность ресурса Бригада 100 общ')).toHaveTextContent('Shared');
-    expect(screen.getByLabelText('Доступность ресурса Шум')).toHaveTextContent('Project');
-    expect(screen.getByText('2 дн.')).toBeInTheDocument();
-    expect(screen.getByText('0 дн.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Доступность ресурса Бригада 100 общ')).toHaveTextContent('Общий');
+    expect(screen.getByLabelText('Доступность ресурса Шум')).toHaveTextContent('Проект');
+    expect(screen.getByLabelText('Назначения ресурса Бригада 100 общ: 1, 2 дн.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Назначения ресурса Шум: 0, 0 дн.')).toBeInTheDocument();
   });
 
   it('edits resource name, type, and availability inline', () => {
@@ -101,7 +101,7 @@ describe('ResourceTimelineChart', () => {
 
     const scopeChip = screen.getByLabelText('Доступность ресурса Design');
     fireEvent.click(scopeChip);
-    fireEvent.click(screen.getByRole('button', { name: 'Shared' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Общий' }));
     expect(onResourceChange).toHaveBeenCalledWith(expect.objectContaining({
       id: 'design',
       scope: 'Shared',

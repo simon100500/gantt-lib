@@ -161,6 +161,10 @@ const getDurationValue = (
 
 const RESOURCE_TYPE_OPTIONS = ['Люди', 'Оборудование', 'Материалы', 'Другое'] as const;
 const RESOURCE_SCOPE_OPTIONS = ['Shared', 'Project'] as const;
+const RESOURCE_SCOPE_LABELS: Record<string, string> = {
+  Shared: 'Общий',
+  Project: 'Проект',
+};
 
 interface ResourceHeaderProps<TItem extends ResourceTimelineItem> {
   resource: ResourceTimelineResource<TItem>;
@@ -168,6 +172,7 @@ interface ResourceHeaderProps<TItem extends ResourceTimelineItem> {
   rowIndex: number;
   conflictCount: number;
   workedDays: number;
+  assignmentCount: number;
   height: number;
   paddingBottom: number;
   menuCommands: Array<ResourceTimelineResourceMenuCommand<TItem>>;
@@ -222,6 +227,7 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
   rowIndex,
   conflictCount,
   workedDays,
+  assignmentCount,
   height,
   paddingBottom,
   menuCommands,
@@ -239,6 +245,7 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
   const hasMenu = visibleCommands.length > 0;
   const type = resource.type ?? 'Другое';
   const scope = resource.scope ?? 'Project';
+  const scopeLabel = RESOURCE_SCOPE_LABELS[scope] ?? scope;
 
   useEffect(() => {
     setDraftName(resource.name);
@@ -259,8 +266,9 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
     }
   }, [applyResourcePatch, draftName, resource.name]);
 
-  const handleNameKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleNameKeyDown = useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter') {
+      event.preventDefault();
       event.currentTarget.blur();
     } else if (event.key === 'Escape') {
       setDraftName(resource.name);
@@ -326,11 +334,12 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
             ))}
           </PopoverContent>
         </Popover>
-        <input
+        <textarea
           className="gantt-resourceTimeline-resourceNameInput"
           value={draftName}
           disabled={!onResourceChange}
           aria-label={`Название ресурса ${resource.name}`}
+          rows={2}
           onChange={(event) => setDraftName(event.target.value)}
           onBlur={handleNameCommit}
           onKeyDown={handleNameKeyDown}
@@ -349,7 +358,7 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
               setScopeMenuOpen((open) => !open);
             }}
           >
-            <span>{scope}</span>
+            <span>{scopeLabel}</span>
           </button>
         </PopoverTrigger>
         <PopoverContent className="gantt-resourceTimeline-resourceOptionMenu" portal={true} align="start">
@@ -365,13 +374,23 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
               }}
             >
               <span className={`gantt-resourceTimeline-resourceOptionScopeDot gantt-resourceTimeline-resourceScope${option}`} />
-              {option}
+              {RESOURCE_SCOPE_LABELS[option] ?? option}
             </button>
           ))}
         </PopoverContent>
       </Popover>
-      <span className="gantt-resourceTimeline-resourceAssignments">
-        <span>{workedDays} дн.</span>
+      <span
+        className="gantt-resourceTimeline-resourceAssignments"
+        aria-label={`Назначения ресурса ${resource.name}: ${assignmentCount}, ${workedDays} дн.`}
+      >
+        <span className="gantt-resourceTimeline-resourceAssignmentCount">
+          <svg className="gantt-resourceTimeline-resourceAssignmentIcon" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+            <rect width="18" height="18" x="3" y="3" rx="2" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+          <span>{assignmentCount}</span>
+        </span>
+        <span className="gantt-resourceTimeline-resourceWorkedDays">{workedDays} дн.</span>
       </span>
       <span className="gantt-resourceTimeline-resourceActions">
         {conflictCount > 0 && (
@@ -758,12 +777,12 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
           >
             <div
               className="gantt-resourceTimeline-corner"
-              style={{ height: `${headerHeight}px` }}
+              style={{ height: `${headerHeight + 0.5}px` }}
             >
               <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderNumber">#</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell">Название</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell">Доступность</span>
-              <span className="gantt-resourceTimeline-resourceHeaderCell">Дней</span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell">Назначения</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderActions">Действия</span>
             </div>
             {layout.rows.map((row, rowIndex) => (
@@ -774,6 +793,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                 rowIndex={rowIndex}
                 conflictCount={row.conflictCount}
                 workedDays={workedDaysByResourceId.get(row.resourceId) ?? 0}
+                assignmentCount={row.resource.items.length}
                 height={row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP}
                 paddingBottom={DEFAULT_RESOURCE_ROW_GAP}
                 menuCommands={resourceMenuCommands}
