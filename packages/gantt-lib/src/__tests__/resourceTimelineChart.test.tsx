@@ -38,6 +38,22 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByRole('button', { name: 'Название ресурса QA' })).toHaveTextContent('QA');
   });
 
+  it('keeps resource and calendar header layout heights identical', () => {
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        headerHeight={40}
+      />
+    );
+
+    const corner = container.querySelector('.gantt-resourceTimeline-corner') as HTMLElement;
+    const stickyHeader = container.querySelector('.gantt-resourceTimeline-stickyHeader') as HTMLElement;
+
+    expect(corner.style.height).toBe('41px');
+    expect(stickyHeader.style.height).toBe('41px');
+  });
+
   it('renders resource tasklist columns with type icon, availability, and worked-day count', () => {
     const typedResources: ResourceTimelineResource[] = [
       {

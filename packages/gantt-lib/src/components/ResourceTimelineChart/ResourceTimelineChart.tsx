@@ -704,6 +704,8 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const canAddResource = enableAddResource && Boolean(onAddResource);
   const resourceAddRowHeight = laneHeight + DEFAULT_RESOURCE_ROW_GAP;
   const displayTotalHeight = displayLayout.totalHeight + (canAddResource ? resourceAddRowHeight : 0);
+  // TimeScaleHeader is headerHeight tall; the wrapper owns the bottom grid border.
+  const timelineHeaderHeight = headerHeight + 1;
   const handleConfirmNewResource = useCallback((name: string) => {
     onAddResource?.({
       id: crypto.randomUUID(),
@@ -891,7 +893,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
           >
             <div
               className="gantt-resourceTimeline-corner"
-              style={{ height: `${headerHeight + 0.5}px` }}
+              style={{ height: `${timelineHeaderHeight}px` }}
             >
               <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderNumber">#</span>
               <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderName">Название</span>
@@ -976,7 +978,10 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
             className="gantt-resourceTimeline-chartSurface"
             style={{ minWidth: `${gridWidth}px` }}
           >
-            <div className="gantt-resourceTimeline-stickyHeader" style={{ width: `${gridWidth}px` }}>
+            <div
+              className="gantt-resourceTimeline-stickyHeader"
+              style={{ width: `${gridWidth}px`, height: `${timelineHeaderHeight}px` }}
+            >
               <TimeScaleHeader
                 days={dateRange}
                 dayWidth={dayWidth}
