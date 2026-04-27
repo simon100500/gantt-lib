@@ -70,6 +70,8 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   renderItem?: (item: TItem, context: ResourceTimelineRenderContext) => ReactNode;
   getItemClassName?: (item: TItem) => string | undefined;
   onResourceItemClick?: (item: TItem) => void;
+  onResourceItemMenuClick?: (item: TItem) => void;
+  activeResourceItemId?: string | null;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
   onAddResource?: (resource: ResourceTimelineResource<TItem>) => void;
   enableAddResource?: boolean;

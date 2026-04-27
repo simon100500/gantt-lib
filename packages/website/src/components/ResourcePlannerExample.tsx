@@ -267,7 +267,12 @@ export default function ResourcePlannerExample() {
   const [resources, setResources] = useState(initialResources);
   const [businessDays, setBusinessDays] = useState(true);
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const dayWidth = viewMode === "month" ? 2.5 : viewMode === "week" ? 8 : 24;
+  const activeItem = resources.flatMap((resource) => resource.items).find((item) => item.id === activeItemId);
+  const activeResource = activeItem
+    ? resources.find((resource) => resource.id === activeItem.resourceId)
+    : undefined;
 
   const handleMove = (move: ResourceTimelineMove<PlannerItem>) => {
     setResources((current) => {
@@ -364,11 +369,39 @@ export default function ResourcePlannerExample() {
           rowHeaderWidth={220}
           businessDays={businessDays}
           disableResourceReassignment
+          activeResourceItemId={activeItemId}
           onResourceItemMove={handleMove}
+          onResourceItemMenuClick={(item) => setActiveItemId(item.id)}
           onAddResource={handleAddResource}
           resourceMenuCommands={resourceMenuCommands}
         />
       </div>
+      {activeItem && (
+        <aside className="demo-resource-drawer" aria-label="Редактирование назначения">
+          <div>
+            <div className="demo-resource-drawer-kicker">{activeResource?.name ?? activeItem.resourceId}</div>
+            <h3>{activeItem.title}</h3>
+            {activeItem.subtitle && <p>{activeItem.subtitle}</p>}
+          </div>
+          <dl>
+            <div>
+              <dt>Старт</dt>
+              <dd>{String(activeItem.startDate)}</dd>
+            </div>
+            <div>
+              <dt>Финиш</dt>
+              <dd>{String(activeItem.endDate)}</dd>
+            </div>
+            <div>
+              <dt>Статус</dt>
+              <dd>{activeItem.status ?? "planned"}</dd>
+            </div>
+          </dl>
+          <button className="demo-btn demo-btn-neutral" type="button" onClick={() => setActiveItemId(null)}>
+            Закрыть
+          </button>
+        </aside>
+      )}
     </section>
   );
 }

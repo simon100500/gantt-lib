@@ -250,6 +250,24 @@ Use `getItemClassName` to add per-item classes:
 
 Keep custom content compact. It renders inside a fixed bar shell, so long text should truncate or wrap intentionally.
 
+## Resource Item Actions
+
+Use `onResourceItemMenuClick` to show a hover/focus three-dots button on each resource item bar. The callback receives the clicked item, so your app can open a drawer or custom menu. Keep `activeResourceItemId` set while that drawer is open to hold the active shadow state.
+
+```tsx
+const [activeItemId, setActiveItemId] = useState<string | null>(null);
+
+<GanttChart
+  mode="resource-planner"
+  resources={resources}
+  activeResourceItemId={activeItemId}
+  onResourceItemMenuClick={(item) => {
+    setActiveItemId(item.id);
+    openAssignmentDrawer(item);
+  }}
+/>
+```
+
 ## Adding Resources
 
 Resource planner mode can render an inline add-resource row when you provide `onAddResource`.

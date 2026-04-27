@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [0.80.1] - 2026-04-27
 
+### Features
+
+- Add hover/focus three-dots action button for resource item bars with `onResourceItemMenuClick` and controlled `activeResourceItemId` shadow state
+
 ### Style
 
 - Improve mobile usability with tap highlight color and focus visibility for action buttons in TaskList

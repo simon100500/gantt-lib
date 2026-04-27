@@ -91,6 +91,54 @@ body {
   overflow: hidden;
 }
 
+.demo-resource-drawer {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.demo-resource-drawer h3,
+.demo-resource-drawer p {
+  margin: 0;
+}
+
+.demo-resource-drawer h3 {
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.demo-resource-drawer p,
+.demo-resource-drawer-kicker {
+  color: var(--demo-text-muted);
+  font-size: 0.75rem;
+}
+
+.demo-resource-drawer dl {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.demo-resource-drawer dt {
+  color: #9ca3af;
+  font-size: 0.6875rem;
+}
+
+.demo-resource-drawer dd {
+  margin: 0;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
 .demo-calendar-wrapper {
   border-top: 1px solid var(--demo-border);
   padding: 1rem;

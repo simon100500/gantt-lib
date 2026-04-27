@@ -94,6 +94,9 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
   disableResourceReassignment?: boolean;
   renderItem?: (item: TItem) => React.ReactNode;
   getItemClassName?: (item: TItem) => string | undefined;
+  onResourceItemClick?: (item: TItem) => void;
+  onResourceItemMenuClick?: (item: TItem) => void;
+  activeResourceItemId?: string | null;
   onResourceItemMove?: (move: ResourceTimelineMove<TItem>) => void;
   onAddResource?: (resource: ResourceTimelineResource<TItem>) => void;
   enableAddResource?: boolean;
@@ -186,6 +189,9 @@ const resources: ResourceTimelineResource[] = [
 | `disableResourceReassignment` | `boolean` | `false` | Locks resource item drag to the X axis. Dates can change, but `toResourceId` stays equal to `fromResourceId`. |
 | `renderItem` | `(item) => ReactNode` | `undefined` | Custom inner content for a resource item bar. Geometry remains controlled by the renderer. |
 | `getItemClassName` | `(item) => string \| undefined` | `undefined` | Adds a custom class to a resource item bar. |
+| `onResourceItemClick` | `(item) => void` | `undefined` | Fires when a resource item bar is activated by mouse or keyboard. |
+| `onResourceItemMenuClick` | `(item) => void` | `undefined` | Adds a hover/focus three-dots button to each resource item bar and fires when it is clicked. Use this to open an external drawer or menu. |
+| `activeResourceItemId` | `string \| null` | `undefined` | Applies the active resource item shadow state to the matching item. Intended for keeping the bar visually active while an external drawer/menu is open. |
 | `onResourceItemMove` | `(move: ResourceTimelineMove) => void` | `undefined` | Fires on mouseup after a valid move or resize. Includes `startDate`, `endDate`, optional `taskId`, and `changeType: 'move' \| 'resize-start' \| 'resize-end'`. |
 | `onAddResource` | `(resource: ResourceTimelineResource) => void` | `undefined` | Shows the "+ Добавить ресурс" row and fires when the user confirms a new resource name. The created resource has an auto-generated `id`, the entered `name`, and empty `items`. |
 | `enableAddResource` | `boolean` | `true` | When `true` and `onAddResource` is provided, shows the add-resource row. |

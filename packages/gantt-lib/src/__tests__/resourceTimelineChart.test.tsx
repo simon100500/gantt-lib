@@ -142,7 +142,7 @@ describe('ResourceTimelineChart', () => {
     expect(css).toMatch(/\.gantt-resourceTimeline-resourceColumn\s*{[^}]*z-index:\s*3;/);
     expect(css).toMatch(/\.gantt-resourceTimeline-chartSurface\s*{[^}]*position:\s*relative;[^}]*z-index:\s*0;/);
     expect(css).toMatch(/\.gantt-resourceTimeline \.gantt-ti-indicator\s*{[^}]*z-index:\s*4;/);
-    expect(css).toMatch(/\.gantt-resourceTimeline-item:hover,\s*\.gantt-resourceTimeline-item:focus-visible\s*{[^}]*z-index:\s*30;/);
+    expect(css).not.toMatch(/\.gantt-resourceTimeline-item:hover,\s*\.gantt-resourceTimeline-item:focus-visible\s*{[^}]*z-index:/);
   });
 
   it('renders default item bars with demo-style duration, title, and subtitle', () => {
@@ -175,6 +175,31 @@ describe('ResourceTimelineChart', () => {
     expect(item).toHaveAttribute('tabindex', '0');
     expect(onResourceItemClick).toHaveBeenCalledTimes(3);
     expect(onResourceItemClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'discovery' }));
+  });
+
+  it('renders a resource item menu button and keeps its active state controlled', () => {
+    const onResourceItemClick = vi.fn();
+    const onResourceItemMenuClick = vi.fn();
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        onResourceItemClick={onResourceItemClick}
+        onResourceItemMenuClick={onResourceItemMenuClick}
+        activeResourceItemId="discovery"
+      />
+    );
+
+    const item = container.querySelector('[data-resource-item-id="discovery"]') as HTMLElement;
+    const menuButton = screen.getByLabelText('Действия назначения');
+    fireEvent.mouseDown(menuButton);
+    fireEvent.click(menuButton);
+
+    expect(item).toHaveClass('gantt-resourceTimeline-itemHasMenu');
+    expect(item).toHaveClass('gantt-resourceTimeline-itemActive');
+    expect(onResourceItemMenuClick).toHaveBeenCalledTimes(1);
+    expect(onResourceItemMenuClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'discovery' }));
+    expect(onResourceItemClick).not.toHaveBeenCalled();
   });
 
   it('renders resource item bars with fixed visual spacing inside lanes', () => {

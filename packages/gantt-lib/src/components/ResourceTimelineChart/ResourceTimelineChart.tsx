@@ -339,6 +339,8 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   renderItem,
   getItemClassName,
   onResourceItemClick,
+  onResourceItemMenuClick,
+  activeResourceItemId,
   onResourceItemMove,
   onAddResource,
   enableAddResource = true,
@@ -652,8 +654,12 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                 resourceItems.map((layoutItem) => {
                   const customClassName = getItemClassName?.(layoutItem.item);
                   const isDraggingItem = preview?.itemId === layoutItem.itemId;
+                  const hasItemMenu = Boolean(onResourceItemMenuClick);
+                  const isActiveItem = activeResourceItemId === layoutItem.itemId;
                   const className = [
                     'gantt-resourceTimeline-item',
+                    hasItemMenu && 'gantt-resourceTimeline-itemHasMenu',
+                    isActiveItem && 'gantt-resourceTimeline-itemActive',
                     isDraggingItem && 'gantt-resourceTimeline-itemDragging',
                     activeConflictItemId === layoutItem.itemId && 'gantt-resourceTimeline-itemConflictActive',
                     (readonly || layoutItem.item.locked) && 'gantt-resourceTimeline-itemDisabled',
@@ -763,6 +769,22 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                           }}
                         />
                       ))}
+                      {hasItemMenu && (
+                        <button
+                          type="button"
+                          className="gantt-resourceTimeline-itemMenuButton"
+                          aria-label="Действия назначения"
+                          onMouseDown={(event) => {
+                            event.stopPropagation();
+                          }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onResourceItemMenuClick?.(layoutItem.item);
+                          }}
+                        >
+                          <span aria-hidden="true">⋮</span>
+                        </button>
+                      )}
                       <div className="gantt-resourceTimeline-itemInner">
                         {renderItem ? (
                           renderItem(layoutItem.item, renderContext)
