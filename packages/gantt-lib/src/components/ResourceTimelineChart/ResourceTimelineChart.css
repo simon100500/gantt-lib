@@ -112,6 +112,39 @@
   text-align: center;
 }
 
+.gantt-resourceTimeline-resourceGroupAddButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #2563eb;
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  transition: background-color 120ms ease, color 120ms ease, opacity 120ms ease;
+}
+
+.gantt-resourceTimeline-resourceGroupHeader:hover .gantt-resourceTimeline-resourceGroupAddButton,
+.gantt-resourceTimeline-resourceGroupHeader:focus-within .gantt-resourceTimeline-resourceGroupAddButton {
+  opacity: 1;
+}
+
+.gantt-resourceTimeline-resourceGroupAddButton:hover,
+.gantt-resourceTimeline-resourceGroupAddButton:focus-visible {
+  background: #deebff;
+  color: #0747a6;
+  outline: none;
+}
+
 .gantt-resourceTimeline-resourceHeader {
   display: grid;
   grid-template-columns: 30px minmax(146px, 1fr) 80px 86px 32px;
@@ -148,6 +181,7 @@
 }
 
 .gantt-resourceTimeline-resourceName {
+  position: relative;
   min-width: 0;
   display: flex;
   align-items: flex-start;
@@ -194,6 +228,15 @@
 
 .gantt-resourceTimeline-resourceNameButton:focus-visible {
   box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.22);
+}
+
+.gantt-resourceTimeline-resourceNameInput {
+  top: 0;
+  left: 36px;
+  width: 100%;
+  min-width: 520px;
+  height: 32px;
+  font-size: 0.8rem;
 }
 
 .gantt-resourceTimeline-resourceTypeIconButton {
@@ -573,7 +616,7 @@
 }
 
 .gantt-resourceTimeline .gantt-ti-indicator {
-  z-index: 4;
+  z-index: 40;
 }
 
 .gantt-resourceTimeline-row {

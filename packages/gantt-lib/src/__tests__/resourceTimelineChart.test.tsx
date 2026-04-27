@@ -135,12 +135,57 @@ describe('ResourceTimelineChart', () => {
     }));
   });
 
+  it('edits resource name inline on double click', () => {
+    const onResourceChange = vi.fn();
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        onResourceChange={onResourceChange}
+      />
+    );
+
+    fireEvent.doubleClick(screen.getByRole('button', { name: 'Название ресурса Design' }));
+
+    const input = screen.getByLabelText('Новое название ресурса Design') as HTMLInputElement;
+    expect(input).toHaveFocus();
+    expect(input.value).toBe('Design');
+
+    fireEvent.change(input, { target: { value: 'Design Team' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onResourceChange).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'design',
+      name: 'Design Team',
+    }));
+  });
+
+  it('does not save an empty resource name edit', () => {
+    const onResourceChange = vi.fn();
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        onResourceChange={onResourceChange}
+      />
+    );
+
+    fireEvent.doubleClick(screen.getByRole('button', { name: 'Название ресурса Design' }));
+    const input = screen.getByLabelText('Новое название ресурса Design') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '   ' } });
+    fireEvent.blur(input);
+
+    expect(onResourceChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Название ресурса Design' })).toBeInTheDocument();
+  });
+
   it('groups resources by type when resourceGrouping is type', () => {
     const groupedResources: ResourceTimelineResource[] = [
       { id: 'materials', name: 'Materials', type: 'Материалы', items: [] },
-      { id: 'crew', name: 'Crew', type: 'Люди', items: [] },
+      { id: 'crew-project', name: 'Crew Project', type: 'Люди', scope: 'Project', items: [] },
       { id: 'equipment', name: 'Equipment', type: 'Оборудование', items: [] },
       { id: 'qa', name: 'QA', items: [] },
+      { id: 'crew-shared', name: 'Crew Shared', type: 'Люди', scope: 'Shared', items: [] },
     ];
 
     const { container } = render(
@@ -158,12 +203,55 @@ describe('ResourceTimelineChart', () => {
 
     expect(groupTitles).toEqual(['Люди', 'Оборудование', 'Материалы', 'Другое']);
     expect(resourceNames).toEqual([
-      'Название ресурса Crew',
+      'Название ресурса Crew Shared',
+      'Название ресурса Crew Project',
       'Название ресурса Equipment',
       'Название ресурса Materials',
       'Название ресурса QA',
     ]);
     expect(container.querySelectorAll('[data-resource-group]')).toHaveLength(4);
+  });
+
+  it('opens an inline group resource name editor before adding the typed resource', () => {
+    const onAddResource = vi.fn();
+    const groupedResources: ResourceTimelineResource[] = [
+      { id: 'crew', name: 'Crew', type: 'Люди', items: [] },
+      { id: 'equipment', name: 'Equipment', type: 'Оборудование', items: [] },
+    ];
+
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={groupedResources}
+        resourceGrouping="type"
+        onAddResource={onAddResource}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Добавить ресурс в группу Люди' }));
+
+    let input = screen.getByPlaceholderText('Название ресурса') as HTMLInputElement;
+    expect(input).toHaveFocus();
+    expect(container.querySelector('[data-resource-group-add-row="Люди"]')).toBeTruthy();
+    expect(onAddResource).not.toHaveBeenCalled();
+
+    fireEvent.blur(input);
+    expect(onAddResource).not.toHaveBeenCalled();
+    expect(screen.queryByPlaceholderText('Название ресурса')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Добавить ресурс в группу Люди' }));
+    input = screen.getByPlaceholderText('Название ресурса') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'Бригада 2' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onAddResource).toHaveBeenCalledTimes(1);
+    expect(onAddResource).toHaveBeenCalledWith({
+      id: expect.any(String),
+      name: 'Бригада 2',
+      type: 'Люди',
+      scope: 'Project',
+      items: [],
+    });
   });
 
   it('cycles through resource assignments when clicking the resource name', () => {
@@ -308,8 +396,18 @@ describe('ResourceTimelineChart', () => {
 
     expect(css).toMatch(/\.gantt-resourceTimeline-resourceColumn\s*{[^}]*z-index:\s*3;/);
     expect(css).toMatch(/\.gantt-resourceTimeline-chartSurface\s*{[^}]*position:\s*relative;[^}]*z-index:\s*0;/);
-    expect(css).toMatch(/\.gantt-resourceTimeline \.gantt-ti-indicator\s*{[^}]*z-index:\s*4;/);
+    expect(css).toMatch(/\.gantt-resourceTimeline \.gantt-ti-indicator\s*{[^}]*z-index:\s*40;/);
     expect(css).toMatch(/\.gantt-resourceTimeline-item:hover,\s*\.gantt-resourceTimeline-item:focus-visible\s*{[^}]*z-index:\s*30;/);
+  });
+
+  it('keeps the resource name editor constrained to the name cell', () => {
+    const css = readFileSync(
+      resolve(process.cwd(), 'src/components/ResourceTimelineChart/ResourceTimelineChart.css'),
+      'utf8'
+    );
+
+    expect(css).toMatch(/\.gantt-resourceTimeline-resourceName\s*{[^}]*position:\s*relative;/);
+    expect(css).toMatch(/\.gantt-resourceTimeline-resourceNameInput\s*{[^}]*min-width:\s*520px;[^}]*height:\s*32px;/);
   });
 
   it('renders default item bars with demo-style duration, title, and subtitle', () => {

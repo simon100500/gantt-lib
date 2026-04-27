@@ -179,9 +179,16 @@ const RESOURCE_TYPE_ORDER: Record<string, number> = {
   Материалы: 2,
   Другое: 3,
 };
+const RESOURCE_SCOPE_ORDER: Record<string, number> = {
+  Shared: 0,
+  Project: 1,
+};
 
 const getResourceType = <TItem extends ResourceTimelineItem>(resource: ResourceTimelineResource<TItem>): string =>
   resource.type ?? 'Другое';
+
+const getResourceScopeOrder = <TItem extends ResourceTimelineItem>(resource: ResourceTimelineResource<TItem>): number =>
+  RESOURCE_SCOPE_ORDER[resource.scope ?? 'Project'] ?? 99;
 
 const orderResourcesByType = <TItem extends ResourceTimelineItem>(
   resources: Array<ResourceTimelineResource<TItem>>
@@ -196,8 +203,8 @@ const orderResourcesByType = <TItem extends ResourceTimelineItem>(
         return typeDiff;
       }
 
-      const labelDiff = leftType.localeCompare(rightType, 'ru');
-      return labelDiff !== 0 ? labelDiff : left.index - right.index;
+      const scopeDiff = getResourceScopeOrder(left.resource) - getResourceScopeOrder(right.resource);
+      return scopeDiff !== 0 ? scopeDiff : left.index - right.index;
     })
     .map(({ resource }) => resource);
 };
@@ -275,6 +282,10 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
   const [menuOpen, setMenuOpen] = useState(false);
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const [scopeMenuOpen, setScopeMenuOpen] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(resource.name);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const nameConfirmedRef = useRef(false);
   const visibleCommands = useMemo(
     () => menuCommands.filter((command) => command.isVisible?.(resource) ?? true),
     [menuCommands, resource]
@@ -288,6 +299,19 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
     onResourceChange?.({ ...resource, ...patch });
   }, [onResourceChange, resource]);
 
+  useEffect(() => {
+    if (!editingName) {
+      setNameValue(resource.name);
+    }
+  }, [editingName, resource.name]);
+
+  useEffect(() => {
+    if (editingName && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
+    }
+  }, [editingName]);
+
   const handleCommandClick = (
     command: ResourceTimelineResourceMenuCommand<TItem>,
     event: React.MouseEvent<HTMLButtonElement>
@@ -298,6 +322,48 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
     }
     command.onSelect(resource);
   };
+
+  const handleNameDoubleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!onResourceChange) {
+      return;
+    }
+
+    event.stopPropagation();
+    nameConfirmedRef.current = false;
+    setNameValue(resource.name);
+    setEditingName(true);
+  }, [onResourceChange, resource.name]);
+
+  const handleNameSave = useCallback(() => {
+    if (nameConfirmedRef.current) {
+      nameConfirmedRef.current = false;
+      return;
+    }
+
+    const nextName = nameValue.trim();
+    if (nextName && nextName !== resource.name) {
+      applyResourcePatch({ name: nextName } as Partial<ResourceTimelineResource<TItem>>);
+    }
+    setEditingName(false);
+  }, [applyResourcePatch, nameValue, resource.name]);
+
+  const handleNameCancel = useCallback(() => {
+    setNameValue(resource.name);
+    setEditingName(false);
+  }, [resource.name]);
+
+  const handleNameKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      nameConfirmedRef.current = true;
+      const nextName = nameValue.trim();
+      if (nextName && nextName !== resource.name) {
+        applyResourcePatch({ name: nextName } as Partial<ResourceTimelineResource<TItem>>);
+      }
+      setEditingName(false);
+    } else if (event.key === 'Escape') {
+      handleNameCancel();
+    }
+  }, [applyResourcePatch, handleNameCancel, nameValue, resource.name]);
 
   return (
     <div
@@ -346,18 +412,32 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
             ))}
           </PopoverContent>
         </Popover>
-        <button
-          type="button"
-          className="gantt-resourceTimeline-resourceNameButton"
-          aria-label={`Название ресурса ${resource.name}`}
-          title={resource.name}
-          onClick={(event) => {
-            event.stopPropagation();
-            onResourceNameClick?.(resourceId);
-          }}
-        >
-          {resource.name}
-        </button>
+        {editingName ? (
+          <Input
+            ref={nameInputRef}
+            value={nameValue}
+            onChange={(event) => setNameValue(event.target.value)}
+            onBlur={handleNameSave}
+            onKeyDown={handleNameKeyDown}
+            onClick={(event) => event.stopPropagation()}
+            aria-label={`Новое название ресурса ${resource.name}`}
+            className="gantt-tl-name-input gantt-resourceTimeline-resourceNameInput"
+          />
+        ) : (
+          <button
+            type="button"
+            className="gantt-resourceTimeline-resourceNameButton"
+            aria-label={`Название ресурса ${resource.name}`}
+            title={resource.name}
+            onClick={(event) => {
+              event.stopPropagation();
+              onResourceNameClick?.(resourceId);
+            }}
+            onDoubleClick={handleNameDoubleClick}
+          >
+            {resource.name}
+          </button>
+        )}
       </span>
       <Popover open={scopeMenuOpen} onOpenChange={setScopeMenuOpen}>
         <PopoverTrigger asChild>
@@ -557,6 +637,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const resourceNavigationIndexRef = useRef<Map<string, number>>(new Map());
   const conflictHighlightTimeoutRef = useRef<number | null>(null);
   const [isCreatingResource, setIsCreatingResource] = useState(false);
+  const [creatingResourceGroupType, setCreatingResourceGroupType] = useState<string | null>(null);
   const [activeConflictItemId, setActiveConflictItemId] = useState<string | null>(null);
   const [resourceColumnHasRightShadow, setResourceColumnHasRightShadow] = useState(false);
   const validItems = useMemo(() => collectValidItems(resources), [resources]);
@@ -604,6 +685,8 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     }),
     [orderedResources, monthStart, dayWidth, laneHeight]
   );
+  const canAddResource = enableAddResource && Boolean(onAddResource);
+  const resourceAddRowHeight = laneHeight + DEFAULT_RESOURCE_ROW_GAP;
 
   const displayLayout = useMemo(() => {
     if (resourceGrouping !== 'type') {
@@ -611,6 +694,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
         rows: layout.rows,
         items: layout.items,
         groupHeaders: [] as Array<{ key: string; label: string; count: number; top: number; height: number }>,
+        groupAddRows: [] as Array<{ key: string; top: number; height: number }>,
         totalHeight: layout.totalHeight,
       };
     }
@@ -625,9 +709,19 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     let previousType: string | null = null;
     const rowTopOffsets = new Map<string, number>();
     const groupHeaders: Array<{ key: string; label: string; count: number; top: number; height: number }> = [];
+    const groupAddRows: Array<{ key: string; top: number; height: number }> = [];
     const rows = layout.rows.map((row) => {
       const type = getResourceType(row.resource);
       if (type !== previousType) {
+        if (previousType !== null && creatingResourceGroupType === previousType) {
+          groupAddRows.push({
+            key: previousType,
+            top: row.resourceRowTop + offset,
+            height: resourceAddRowHeight,
+          });
+          offset += resourceAddRowHeight;
+        }
+
         groupHeaders.push({
           key: type,
           label: type,
@@ -646,6 +740,15 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
       };
     });
 
+    if (previousType !== null && creatingResourceGroupType === previousType) {
+      groupAddRows.push({
+        key: previousType,
+        top: layout.totalHeight + offset,
+        height: resourceAddRowHeight,
+      });
+      offset += resourceAddRowHeight;
+    }
+
     const items = layout.items.map((item) => {
       const itemOffset = rowTopOffsets.get(item.resourceId) ?? 0;
       return {
@@ -659,9 +762,10 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
       rows,
       items,
       groupHeaders,
+      groupAddRows,
       totalHeight: layout.totalHeight + offset,
     };
-  }, [layout, resourceGrouping]);
+  }, [creatingResourceGroupType, layout, resourceAddRowHeight, resourceGrouping]);
 
   const todayInRange = useMemo(() => {
     const now = new Date();
@@ -702,8 +806,6 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     return map;
   }, [displayLayout.items]);
 
-  const canAddResource = enableAddResource && Boolean(onAddResource);
-  const resourceAddRowHeight = laneHeight + DEFAULT_RESOURCE_ROW_GAP;
   const displayTotalHeight = displayLayout.totalHeight + (canAddResource ? resourceAddRowHeight : 0);
   // TimeScaleHeader is headerHeight tall; the wrapper owns the bottom grid border.
   const timelineHeaderHeight = headerHeight + 1;
@@ -711,14 +813,23 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     onAddResource?.({
       id: crypto.randomUUID(),
       name,
-      type: 'Другое',
+      type: creatingResourceGroupType ?? 'Другое',
       scope: 'Project',
       items: [] as TItem[],
     });
     setIsCreatingResource(false);
-  }, [onAddResource]);
+    setCreatingResourceGroupType(null);
+  }, [creatingResourceGroupType, onAddResource]);
 
-  const handleCancelNewResource = useCallback(() => setIsCreatingResource(false), []);
+  const handleStartAddResourceToGroup = useCallback((type: string) => {
+    setIsCreatingResource(false);
+    setCreatingResourceGroupType(type);
+  }, []);
+
+  const handleCancelNewResource = useCallback(() => {
+    setIsCreatingResource(false);
+    setCreatingResourceGroupType(null);
+  }, []);
 
   const handleConflictBadgeClick = useCallback((resourceId: string) => {
     const conflictItems = conflictItemsByResourceId.get(resourceId) ?? [];
@@ -926,6 +1037,20 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   >
                     <span className="gantt-resourceTimeline-resourceGroupTitle">{group.label}</span>
                     <span className="gantt-resourceTimeline-resourceGroupCount">{group.count}</span>
+                    {canAddResource && (
+                      <button
+                        type="button"
+                        className="gantt-resourceTimeline-resourceGroupAddButton"
+                        aria-label={`Добавить ресурс в группу ${group.label}`}
+                        title={`Добавить ресурс в группу ${group.label}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleStartAddResourceToGroup(group.key);
+                        }}
+                      >
+                        +
+                      </button>
+                    )}
                   </div>
                   {displayLayout.rows
                     .filter((row) => getResourceType(row.resource) === group.key)
@@ -949,6 +1074,13 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                         />
                       );
                     })}
+                  {displayLayout.groupAddRows.some((row) => row.key === group.key) && (
+                    <NewResourceRow
+                      height={resourceAddRowHeight}
+                      onConfirm={handleConfirmNewResource}
+                      onCancel={handleCancelNewResource}
+                    />
+                  )}
                 </React.Fragment>
               ))
             ) : (
@@ -982,7 +1114,10 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   className="gantt-resourceTimeline-addResourceButton"
                   type="button"
                   style={{ height: `${resourceAddRowHeight}px` }}
-                  onClick={() => setIsCreatingResource(true)}
+                  onClick={() => {
+                    setCreatingResourceGroupType(null);
+                    setIsCreatingResource(true);
+                  }}
                 >
                   + Добавить ресурс
                 </button>
@@ -1055,6 +1190,18 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   }}
                 />
               )}
+
+              {displayLayout.groupAddRows.map((row) => (
+                <div
+                  key={`group-add-row-${row.key}`}
+                  className="gantt-resourceTimeline-row gantt-resourceTimeline-rowNew"
+                  data-resource-group-add-row={row.key}
+                  style={{
+                    top: `${row.top}px`,
+                    height: `${row.height}px`,
+                  }}
+                />
+              ))}
 
               {Array.from(itemsByResourceId.values()).flatMap((resourceItems) =>
                 resourceItems.map((layoutItem) => {
