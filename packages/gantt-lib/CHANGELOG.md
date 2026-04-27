@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.80.0] - 2026-04-27
+
+### Features
+
+- Add resource row action commands with `resourceMenuCommands` prop — customizable three-dots menu per resource row with icon, visibility, disabled state, and danger styling
+- Add resource addition functionality with `onAddResource` and `enableAddResource` props — inline "+ Добавить ресурс" row in resource planner mode
+- Enhance `withoutDeps` filter to support `onlyLeafTasks` option for filtering child leaf tasks without dependencies
+
 ## [0.75.1] - 2026-04-25
 
 ### Features
