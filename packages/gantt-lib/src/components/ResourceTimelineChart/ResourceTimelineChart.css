@@ -36,6 +36,10 @@
   border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
 }
 
+.gantt-resourceTimeline-resourceColumnShadowed {
+  box-shadow: 10px 0 18px -14px rgba(15, 23, 42, 0.45);
+}
+
 .gantt-resourceTimeline-corner {
   position: sticky;
   top: 0;

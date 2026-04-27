@@ -24,6 +24,7 @@
   z-index: 10;
   background-color: var(--gantt-cell-background, #ffffff);
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  box-sizing: border-box;
 }
 
 .gantt-taskArea {

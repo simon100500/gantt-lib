@@ -54,6 +54,25 @@ describe('ResourceTimelineChart', () => {
     expect(stickyHeader.style.height).toBe('41px');
   });
 
+  it('shows the resource column shadow after horizontal scroll', () => {
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+      />
+    );
+
+    const scrollContainer = container.querySelector('.gantt-resourceTimeline-scrollContainer') as HTMLElement;
+    const resourceColumn = container.querySelector('.gantt-resourceTimeline-resourceColumn') as HTMLElement;
+
+    expect(resourceColumn).not.toHaveClass('gantt-resourceTimeline-resourceColumnShadowed');
+
+    scrollContainer.scrollLeft = 24;
+    fireEvent.scroll(scrollContainer);
+
+    expect(resourceColumn).toHaveClass('gantt-resourceTimeline-resourceColumnShadowed');
+  });
+
   it('renders resource tasklist columns with type icon, availability, and worked-day count', () => {
     const typedResources: ResourceTimelineResource[] = [
       {

@@ -1041,6 +1041,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   );
 
   const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH, resolvedColumnWidthTotal);
+  const tableHeaderHeight = headerHeight + 1;
 
   return (
     <div
@@ -1049,8 +1050,8 @@ export const TaskList: React.FC<TaskListProps> = ({
       style={{ '--tasklist-width': `${effectiveTaskListWidth}px` } as React.CSSProperties}
     >
       <div className="gantt-tl-table">
-        {/* Header row - aligns with TimeScaleHeader, 1px taller for row alignment */}
-        <div className="gantt-tl-header" style={{ height: `${headerHeight + 0.5}px` }}>
+        {/* Header row includes the bottom grid border owned by the calendar header wrapper. */}
+        <div className="gantt-tl-header" style={{ height: `${tableHeaderHeight}px` }}>
           {resolvedColumns.map(col => {
             // Dependencies header has special Popover UI
             if (col.id === 'dependencies') {

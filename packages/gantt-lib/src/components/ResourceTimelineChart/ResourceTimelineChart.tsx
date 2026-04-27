@@ -558,6 +558,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const conflictHighlightTimeoutRef = useRef<number | null>(null);
   const [isCreatingResource, setIsCreatingResource] = useState(false);
   const [activeConflictItemId, setActiveConflictItemId] = useState<string | null>(null);
+  const [resourceColumnHasRightShadow, setResourceColumnHasRightShadow] = useState(false);
   const validItems = useMemo(() => collectValidItems(resources), [resources]);
   const dateRange = useMemo(() => getMultiMonthDays(validItems), [validItems]);
   const monthStart = useMemo(() => {
@@ -786,6 +787,21 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     onResourceItemMove,
   });
 
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const updateShadow = () => {
+      setResourceColumnHasRightShadow(container.scrollLeft > 0);
+    };
+
+    updateShadow();
+    container.addEventListener('scroll', updateShadow, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', updateShadow);
+    };
+  }, []);
+
   const handlePanStart = useCallback((event: React.MouseEvent) => {
     if (event.button !== 0) {
       return;
@@ -888,7 +904,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
       >
         <div className="gantt-resourceTimeline-scrollContent">
           <div
-            className="gantt-resourceTimeline-resourceColumn"
+            className={`gantt-resourceTimeline-resourceColumn${resourceColumnHasRightShadow ? ' gantt-resourceTimeline-resourceColumnShadowed' : ''}`}
             style={{ width: `${effectiveRowHeaderWidth}px`, minWidth: `${effectiveRowHeaderWidth}px` }}
           >
             <div

@@ -443,6 +443,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     () => visibleTasks.length * rowHeight,
     [visibleTasks.length, rowHeight]
   );
+  // TimeScaleHeader is headerHeight tall; the wrapper owns the bottom grid border.
+  const timelineHeaderHeight = headerHeight + 1;
 
   // Get month start for calculations (first day of date range)
   const monthStart = useMemo(() => {
@@ -1128,7 +1130,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             style={{ minWidth: `${gridWidth}px`, flex: 1, display: showChart ? undefined : 'none' }}
           >
             {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
-            <div className="gantt-stickyHeader" style={{ width: `${gridWidth}px` }}>
+            <div
+              className="gantt-stickyHeader"
+              style={{ width: `${gridWidth}px`, height: `${timelineHeaderHeight}px` }}
+            >
               <TimeScaleHeader
                 days={dateRange}
                 dayWidth={dayWidth}

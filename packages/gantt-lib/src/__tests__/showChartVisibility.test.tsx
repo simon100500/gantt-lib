@@ -14,16 +14,32 @@ vi.mock('../components/ui/Popover', () => ({
 }));
 
 describe('GanttChart showChart', () => {
-  it('hides the chart surface when showChart is false', () => {
-    const tasks: Task[] = [
-      {
-        id: 'task-1',
-        name: 'Task 1',
-        startDate: '2026-02-01',
-        endDate: '2026-02-03',
-      },
-    ];
+  const tasks: Task[] = [
+    {
+      id: 'task-1',
+      name: 'Task 1',
+      startDate: '2026-02-01',
+      endDate: '2026-02-03',
+    },
+  ];
 
+  it('keeps task list and calendar header layout heights identical', () => {
+    const { container } = render(
+      <GanttChart
+        tasks={tasks}
+        showTaskList
+        headerHeight={40}
+      />
+    );
+
+    const taskListHeader = container.querySelector('.gantt-tl-header') as HTMLElement;
+    const stickyHeader = container.querySelector('.gantt-stickyHeader') as HTMLElement;
+
+    expect(taskListHeader.style.height).toBe('41px');
+    expect(stickyHeader.style.height).toBe('41px');
+  });
+
+  it('hides the chart surface when showChart is false', () => {
     const { container } = render(
       <GanttChart
         tasks={tasks}
