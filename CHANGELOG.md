@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Features
+
+- Add `hiddenTaskListColumns` prop to hide built-in and custom TaskList columns through the shared column resolution pipeline
+
 ## [0.80.1] - 2026-04-27
 
 ### Style

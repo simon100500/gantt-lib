@@ -1,18 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { GanttChart, type Task, type TaskListColumn } from "gantt-lib";
+import { GanttChart, type Task, type TaskListColumn, type TaskListColumnId } from "gantt-lib";
+
+type AdditionalColumnsTask = Task & {
+  assignee?: string;
+  priority?: 'low' | 'medium' | 'high';
+};
+
+const columnToggleOptions: { id: TaskListColumnId; label: string }[] = [
+  { id: 'duration', label: 'Duration' },
+  { id: 'progress', label: 'Progress' },
+  { id: 'dependencies', label: 'Dependencies' },
+  { id: 'assignee', label: 'Assignee' },
+  { id: 'priority', label: 'Priority' },
+];
 
 export default function AdditionalColumnsChart() {
-  const [tasks, setTasks] = useState<(Task & { assignee?: string; priority?: 'low' | 'medium' | 'high' })[]>([
+  const [tasks, setTasks] = useState<AdditionalColumnsTask[]>([
     { id: 'ac-1', name: 'Design API', startDate: '2026-03-27', endDate: '2026-04-03', assignee: 'Alice', priority: 'high' },
     { id: 'ac-2', name: 'Backend impl', startDate: '2026-04-01', endDate: '2026-04-15', assignee: 'Bob', priority: 'high' },
     { id: 'ac-3', name: 'Frontend impl', startDate: '2026-04-10', endDate: '2026-04-20', assignee: 'Charlie', priority: 'medium' },
     { id: 'ac-4', name: 'Write tests', startDate: '2026-04-18', endDate: '2026-04-25', assignee: 'Alice', priority: 'low' },
     { id: 'ac-5', name: 'Deploy', startDate: '2026-04-25', endDate: '2026-04-28', priority: 'medium' },
   ]);
+  const [hiddenTaskListColumns, setHiddenTaskListColumns] = useState<TaskListColumnId[]>([
+    'dependencies',
+  ]);
 
-  const additionalColumns: TaskListColumn<Task & { assignee?: string; priority?: 'low' | 'medium' | 'high' }>[] = [
+  const additionalColumns: TaskListColumn<AdditionalColumnsTask>[] = [
     {
       id: 'assignee',
       header: 'Assignee',
@@ -55,15 +71,35 @@ export default function AdditionalColumnsChart() {
     },
   ];
 
+  const toggleHiddenColumn = (columnId: TaskListColumnId) => {
+    setHiddenTaskListColumns(prev =>
+      prev.includes(columnId)
+        ? prev.filter(id => id !== columnId)
+        : [...prev, columnId]
+    );
+  };
+
   return (
     <section className="demo-section">
       <h2 className="demo-section-title">Additional Columns</h2>
       <p className="demo-section-desc">
         <strong>Custom columns:</strong> Assignee (text) и Priority (select) — добавлены через <code>additionalColumns</code> проп.
-        Кликните на ячейку для редактирования.
+        Переключатели ниже скрывают системные и кастомные колонки через <code>hiddenTaskListColumns</code>.
       </p>
+      <div className="demo-controls" aria-label="Task list column visibility">
+        {columnToggleOptions.map(column => (
+          <label key={column.id} className="demo-checkbox-label">
+            <input
+              type="checkbox"
+              checked={!hiddenTaskListColumns.includes(column.id)}
+              onChange={() => toggleHiddenColumn(column.id)}
+            />
+            {column.label}
+          </label>
+        ))}
+      </div>
       <div className="demo-chart-card">
-        <GanttChart<Task & { assignee?: string; priority?: 'low' | 'medium' | 'high' }>
+        <GanttChart<AdditionalColumnsTask>
           tasks={tasks}
           dayWidth={30}
           rowHeight={40}
@@ -77,6 +113,7 @@ export default function AdditionalColumnsChart() {
             return [...map.values()];
           })}
           additionalColumns={additionalColumns}
+          hiddenTaskListColumns={hiddenTaskListColumns}
         />
       </div>
     </section>

@@ -226,6 +226,48 @@ describe('GanttChart additionalColumns', () => {
     expect(parseInt(overlayWidth)).toBeGreaterThan(660);
   });
 
+  it('hides built-in and custom columns with hiddenTaskListColumns', () => {
+    const { container } = render(
+      <GanttChart
+        tasks={extendedTasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+        taskListWidth={660}
+        additionalColumns={additionalColumns}
+        hiddenTaskListColumns={['duration', 'assignee']}
+      />
+    );
+
+    expect(screen.queryByText('Дн. (р)')).toBeNull();
+    expect(screen.queryByText('Исполнитель')).toBeNull();
+    expect(screen.queryByText('Статус')).toBeTruthy();
+
+    expect(container.querySelector('[data-column-id="duration"]')).toBeNull();
+    expect(container.querySelector('[data-custom-column-id="assignee"]')).toBeNull();
+    expect(container.querySelector('[data-custom-column-id="status"]')).not.toBeNull();
+  });
+
+  it('calculates task list width from visible columns only', () => {
+    const { container } = render(
+      <GanttChart
+        tasks={extendedTasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+        taskListWidth={1}
+        additionalColumns={additionalColumns}
+        hiddenTaskListColumns={['duration', 'assignee']}
+      />
+    );
+
+    const overlay = container.querySelector('.gantt-tl-overlay') as HTMLElement;
+    expect(overlay).not.toBeNull();
+
+    const overlayWidth = parseInt(overlay.style.getPropertyValue('--tasklist-width'));
+    expect(overlayWidth).toBe(694);
+  });
+
   it('opens a custom editor and saves a merged task patch through onTasksChange', () => {
     const onTasksChange = vi.fn();
 

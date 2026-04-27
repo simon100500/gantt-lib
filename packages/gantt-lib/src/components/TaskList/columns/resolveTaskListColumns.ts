@@ -1,9 +1,10 @@
 import type { Task } from '../../GanttChart';
-import type { TaskListColumn } from './types';
+import type { TaskListColumn, TaskListColumnId } from './types';
 
 export function resolveTaskListColumns<TTask extends Task>(
   builtIn: TaskListColumn<TTask>[],
   custom: TaskListColumn<TTask>[],
+  hiddenColumnIds: readonly TaskListColumnId[] = [],
 ): TaskListColumn<TTask>[] {
   // Dev-mode duplicate check
   if (process.env.NODE_ENV !== 'production') {
@@ -16,8 +17,12 @@ export function resolveTaskListColumns<TTask extends Task>(
     }
   }
 
+  const hiddenIds = new Set<string>(hiddenColumnIds);
+  const filterHiddenColumns = (columns: TaskListColumn<TTask>[]) =>
+    hiddenIds.size === 0 ? columns : columns.filter(col => !hiddenIds.has(col.id));
+
   if (custom.length === 0) {
-    return [...builtIn];
+    return filterHiddenColumns([...builtIn]);
   }
 
   const result = [...builtIn];
@@ -63,5 +68,5 @@ export function resolveTaskListColumns<TTask extends Task>(
     result.splice(insertAt, 0, col);
   }
 
-  return result;
+  return filterHiddenColumns(result);
 }

@@ -48,6 +48,7 @@ export * from './filters';
 // TaskList Column API
 export type {
   BuiltInTaskListColumnId,
+  TaskListColumnId,
   TaskListColumn,
   TaskListColumnContext,
 } from './components/TaskList/columns/types';

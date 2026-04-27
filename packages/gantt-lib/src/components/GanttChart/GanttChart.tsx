@@ -14,7 +14,7 @@ import type {
   ValidationResult,
 } from '../../types';
 import { TaskPredicate } from '../../filters';
-import type { TaskListColumn } from '../TaskList/columns/types';
+import type { TaskListColumn, TaskListColumnId } from '../TaskList/columns/types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
@@ -212,6 +212,8 @@ export interface GanttModeProps<TTask extends Task = Task> {
   showChart?: boolean;
   /** Additional custom columns to render in the TaskList after built-in columns */
   additionalColumns?: TaskListColumn<TTask>[];
+  /** Built-in or custom TaskList column IDs to hide after column placement is resolved */
+  hiddenTaskListColumns?: readonly TaskListColumnId[];
   /** Additional commands rendered in the TaskList row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
 }
@@ -350,6 +352,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     disableTaskDrag = false,
     showChart = true,
     additionalColumns,
+    hiddenTaskListColumns,
     taskListMenuCommands,
   } = props;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1121,6 +1124,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             filteredTaskIds={matchedTaskIds}
             isFilterActive={!!taskFilter}
             additionalColumns={additionalColumns}
+            hiddenTaskListColumns={hiddenTaskListColumns}
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
           />
 

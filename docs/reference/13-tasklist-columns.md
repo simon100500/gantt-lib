@@ -64,6 +64,8 @@ interface TaskListColumn<TTask extends Task> extends TaskListColumnAnchor {
   renderEditor?: (ctx: TaskListColumnContext<TTask>) => React.ReactNode;
   meta?: Record<string, unknown>;
 }
+
+type TaskListColumnId = BuiltInTaskListColumnId | string;
 ```
 
 ## Placement Rules
@@ -74,6 +76,31 @@ interface TaskListColumn<TTask extends Task> extends TaskListColumnAnchor {
 - If no anchor is provided, the column falls back to insertion after `name`.
 - If an anchor is invalid or missing, the column also falls back to after `name`.
 - Multiple columns with the same anchor preserve consumer-provided order.
+
+## Hiding Columns
+
+Use `hiddenTaskListColumns` to hide any resolved TaskList column by id. The prop works for both built-in columns and custom `additionalColumns`.
+
+Column placement is resolved first, then hidden columns are filtered out. This means custom columns can still anchor to a column that is hidden in a particular view without changing their relative order.
+
+```tsx
+<GanttChart
+  tasks={tasks}
+  showTaskList
+  additionalColumns={additionalColumns}
+  hiddenTaskListColumns={['duration', 'progress', 'assignee']}
+/>
+```
+
+Built-in column ids:
+
+- `number`
+- `name`
+- `startDate`
+- `endDate`
+- `duration`
+- `progress`
+- `dependencies`
 
 ## Example
 

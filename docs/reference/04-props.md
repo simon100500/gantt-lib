@@ -46,6 +46,7 @@ interface GanttModeProps<TTask extends Task = Task> {
   isWeekend?: (date: Date) => boolean;
   businessDays?: boolean;
   additionalColumns?: TaskListColumn<TTask>[];
+  hiddenTaskListColumns?: TaskListColumnId[];
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
 }
 
@@ -148,6 +149,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Checked BEFORE customDays overrides** — use for base patterns, then override specific dates with `customDays`. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
 | `businessDays` | `boolean` | `true` | Когда `true` (default), длительность задачи (duration) считается в рабочих днях, исключая выходные. Когда `false`, длительность считается в календарных днях. Влияет на расчёт зависимостей, перетаскивание задач и отображение длительности. См. раздел 7.5. |
 | `additionalColumns` | `TaskListColumn<TTask>[]` | `undefined` | Additional TaskList columns resolved together with the built-in columns. Use `renderCell` / `renderEditor` and place them with `before` / `after`. See [TaskList Columns](./13-tasklist-columns.md). |
+| `hiddenTaskListColumns` | `TaskListColumnId[]` | `undefined` | Built-in or custom TaskList column IDs to hide after column placement is resolved. Works for built-in columns such as `'duration'` and custom `additionalColumns` ids. |
 | `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Additional commands for the TaskList three-dots menu. Each command receives the current row in `onSelect(row)`, can render an `icon`, and may be restricted by `scope`: `'group'`, `'linear'`, `'milestone'`, or `'all'`. When `scope` is omitted, the command is shown for all task types. |
 
 ## Resource Planner Props

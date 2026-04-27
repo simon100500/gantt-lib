@@ -5,6 +5,8 @@ export type BuiltInTaskListColumnId =
   | 'number' | 'name' | 'startDate' | 'endDate'
   | 'duration' | 'progress' | 'dependencies' | 'actions';
 
+export type TaskListColumnId = BuiltInTaskListColumnId | (string & {});
+
 export type TaskListColumnAnchor =
   | { after: BuiltInTaskListColumnId | string }
   | { before: BuiltInTaskListColumnId | string }

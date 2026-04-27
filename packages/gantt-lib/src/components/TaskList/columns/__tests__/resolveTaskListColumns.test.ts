@@ -124,4 +124,39 @@ describe('resolveTaskListColumns', () => {
     expect(result).toHaveLength(builtIn.length);
     expect(result.map(c => c.id)).toEqual(builtIn.map(c => c.id));
   });
+
+  it('hides built-in columns by id after resolving placement', () => {
+    const result = resolveTaskListColumns(builtIn, [], ['duration', 'progress']);
+    const ids = result.map(c => c.id);
+
+    expect(ids).not.toContain('duration');
+    expect(ids).not.toContain('progress');
+    expect(ids).toContain('name');
+  });
+
+  it('hides custom columns by id after resolving placement', () => {
+    const custom: TaskListColumn<Task>[] = [
+      { id: 'assignee', header: 'Assignee', after: 'name', renderCell: () => null },
+      { id: 'status', header: 'Status', after: 'assignee', renderCell: () => null },
+    ];
+
+    const result = resolveTaskListColumns(builtIn, custom, ['assignee']);
+    const ids = result.map(c => c.id);
+
+    expect(ids).not.toContain('assignee');
+    expect(ids).toContain('status');
+    expect(ids.indexOf('status')).toBeGreaterThan(ids.indexOf('name'));
+  });
+
+  it('keeps custom column order stable when a hidden anchor column is filtered out', () => {
+    const custom: TaskListColumn<Task>[] = [
+      { id: 'assignee', header: 'Assignee', after: 'name', renderCell: () => null },
+      { id: 'status', header: 'Status', after: 'assignee', renderCell: () => null },
+    ];
+
+    const result = resolveTaskListColumns(builtIn, custom, ['assignee']);
+    const ids = result.map(c => c.id);
+
+    expect(ids.indexOf('status')).toBe(ids.indexOf('name') + 1);
+  });
 });

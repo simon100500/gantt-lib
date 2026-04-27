@@ -13,7 +13,7 @@ import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
 import { DEFAULT_TASK_DURATION_DAYS, buildDefaultTaskDateRange, getTodayISODate } from './defaultTaskDates';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
-import type { TaskListColumn } from './columns/types';
+import type { TaskListColumn, TaskListColumnId } from './columns/types';
 import { createBuiltInColumns, BUILT_IN_COLUMN_WIDTHS } from './columns/createBuiltInColumns';
 import { resolveTaskListColumns } from './columns/resolveTaskListColumns';
 import type { TaskListColumn as NewTaskListColumn } from './columns/types';
@@ -207,6 +207,8 @@ export interface TaskListProps {
   isFilterActive?: boolean;
   /** Additional columns to display after built-in columns */
   additionalColumns?: TaskListColumn<any>[];
+  /** Built-in or custom TaskList column IDs to hide after column placement is resolved */
+  hiddenTaskListColumns?: readonly TaskListColumnId[];
   /** Additional commands rendered in each row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
 }
@@ -260,6 +262,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   filteredTaskIds = new Set(),
   isFilterActive = false,
   additionalColumns,
+  hiddenTaskListColumns,
   taskListMenuCommands,
 }) => {
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
@@ -1032,8 +1035,12 @@ export const TaskList: React.FC<TaskListProps> = ({
   // ---- Column resolution ----
   const builtInColumns = useMemo(() => createBuiltInColumns<Task>({ businessDays }), [businessDays]);
   const resolvedColumns = useMemo(
-    () => resolveTaskListColumns(builtInColumns, (additionalColumns ?? []) as NewTaskListColumn<Task>[]),
-    [builtInColumns, additionalColumns]
+    () => resolveTaskListColumns(
+      builtInColumns,
+      (additionalColumns ?? []) as NewTaskListColumn<Task>[],
+      hiddenTaskListColumns,
+    ),
+    [builtInColumns, additionalColumns, hiddenTaskListColumns]
   );
   const resolvedColumnWidthTotal = useMemo(
     () => resolvedColumns.reduce((sum, col) => sum + (col.width ?? 120), 0),
