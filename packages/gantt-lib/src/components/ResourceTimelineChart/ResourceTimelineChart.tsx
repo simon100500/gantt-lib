@@ -554,6 +554,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const gridRef = useRef<HTMLDivElement>(null);
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
   const conflictNavigationIndexRef = useRef<Map<string, number>>(new Map());
+  const resourceNavigationIndexRef = useRef<Map<string, number>>(new Map());
   const conflictHighlightTimeoutRef = useRef<number | null>(null);
   const [isCreatingResource, setIsCreatingResource] = useState(false);
   const [activeConflictItemId, setActiveConflictItemId] = useState<string | null>(null);
@@ -751,19 +752,22 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
       return;
     }
 
-    const firstItem = [...resourceItems].sort((left, right) =>
+    const orderedItems = [...resourceItems].sort((left, right) =>
       left.left - right.left ||
       left.top - right.top ||
       left.itemId.localeCompare(right.itemId)
-    )[0];
+    );
+    const currentIndex = resourceNavigationIndexRef.current.get(resourceId) ?? 0;
+    const targetItem = orderedItems[currentIndex % orderedItems.length];
+    resourceNavigationIndexRef.current.set(resourceId, (currentIndex + 1) % orderedItems.length);
     const container = scrollContainerRef.current;
-    if (!container || !firstItem) {
+    if (!container || !targetItem) {
       return;
     }
 
     container.scrollTo({
-      left: Math.max(0, Math.round(firstItem.left - dayWidth * 2)),
-      top: Math.max(0, Math.round(firstItem.top - laneHeight)),
+      left: Math.max(0, Math.round(targetItem.left - dayWidth * 2)),
+      top: Math.max(0, Math.round(targetItem.top - laneHeight)),
       behavior: 'smooth',
     });
   }, [dayWidth, itemsByResourceId, laneHeight]);
@@ -847,6 +851,17 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
       window.removeEventListener('mouseup', handlePanEnd);
     };
   }, [allowVerticalPan]);
+
+  useEffect(() => {
+    const nextNavigation = new Map<string, number>();
+    for (const [resourceId, resourceItems] of itemsByResourceId.entries()) {
+      if (resourceItems.length === 0) {
+        continue;
+      }
+      nextNavigation.set(resourceId, (resourceNavigationIndexRef.current.get(resourceId) ?? 0) % resourceItems.length);
+    }
+    resourceNavigationIndexRef.current = nextNavigation;
+  }, [itemsByResourceId]);
 
   useEffect(() => {
     return () => {

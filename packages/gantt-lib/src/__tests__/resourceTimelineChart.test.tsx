@@ -131,17 +131,41 @@ describe('ResourceTimelineChart', () => {
     expect(container.querySelectorAll('[data-resource-group]')).toHaveLength(4);
   });
 
-  it('scrolls to the first resource assignment when clicking the resource name', () => {
+  it('cycles through resource assignments when clicking the resource name', () => {
+    const resourcesWithMultipleAssignments: ResourceTimelineResource[] = [
+      {
+        id: 'design',
+        name: 'Design',
+        items: [
+          {
+            id: 'discovery',
+            resourceId: 'design',
+            title: 'Discovery',
+            startDate: '2026-04-03',
+            endDate: '2026-04-05',
+          },
+          {
+            id: 'handoff',
+            resourceId: 'design',
+            title: 'Handoff',
+            startDate: '2026-04-10',
+            endDate: '2026-04-12',
+          },
+        ],
+      },
+    ];
     const { container } = render(
-      <ResourceTimelineChart mode="resource-planner" resources={resources} dayWidth={40} businessDays={false} />
+      <ResourceTimelineChart mode="resource-planner" resources={resourcesWithMultipleAssignments} dayWidth={40} businessDays={false} />
     );
     const scrollContainer = container.querySelector('.gantt-resourceTimeline-scrollContainer') as HTMLElement;
     const scrollTo = vi.fn();
     scrollContainer.scrollTo = scrollTo;
 
     fireEvent.click(screen.getByRole('button', { name: 'Название ресурса Design' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Название ресурса Design' }));
 
-    expect(scrollTo).toHaveBeenCalledWith({ left: 0, top: 0, behavior: 'smooth' });
+    expect(scrollTo).toHaveBeenNthCalledWith(1, { left: 0, top: 0, behavior: 'smooth' });
+    expect(scrollTo).toHaveBeenNthCalledWith(2, { left: 280, top: 0, behavior: 'smooth' });
   });
 
   it('renders an add-resource row only when onAddResource is provided', () => {
