@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.80.1] - 2026-04-27
+
+### Style
+
+- Improve mobile usability with tap highlight color and focus visibility for action buttons in TaskList
+- Enhance hover and focus interactions for action buttons in TaskList
+- Add responsive design adjustments for mobile devices (button sizing, padding)
+- Add background color variables for action buttons with improved hover effects
+- Update dependency chip colors for better visual distinction
+- Refine hover interactions for drag handle and action buttons
+
 ## [0.80.0] - 2026-04-27
 
 ### Features
