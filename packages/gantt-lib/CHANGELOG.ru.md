@@ -5,6 +5,12 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.84.0] - 2026-04-28
+
+### Новые возможности
+
+- Проп `hiddenTaskListColumns` для скрытия встроенных и пользовательских колонок TaskList по ID после разрешения placement
+
 ## [0.83.0] - 2026-04-28
 
 ### Новые возможности

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.84.0] - 2026-04-28
+
+### Features
+
+- Add `hiddenTaskListColumns` prop to hide built-in or custom TaskList columns by ID after placement is resolved
+
 ## [0.83.0] - 2026-04-28
 
 ### Features
