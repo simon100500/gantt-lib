@@ -58,12 +58,15 @@
   line-height: 1;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
 .gantt-resourceTimeline-resourceHeaderNumber {
   padding-left: 12px;
+}
+
+.gantt-resourceTimeline-resourceHeaderName {
+  padding-left: 40px;
 }
 
 .gantt-resourceTimeline-resourceHeaderActions {
