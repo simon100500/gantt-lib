@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.86.1] - 2026-04-30
+
+### Features
+
+- Enhanced row hover functionality in Gantt chart and task list
+
 ## [0.86.0] - 2026-04-30
 
 ### Features
