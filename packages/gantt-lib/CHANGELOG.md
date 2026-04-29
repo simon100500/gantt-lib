@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.86.0] - 2026-04-30
+
+### Features
+
+- Allow task list columns to shrink below minimum width
+
 ## [0.85.1] - 2026-04-30
 
 ### Fixes
