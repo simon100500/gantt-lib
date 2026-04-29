@@ -17,11 +17,13 @@
   background-color: rgba(250, 204, 21, 0.24);
 }
 
-.gantt-tr-row:hover {
-  background-color: rgba(59, 130, 246, 0.04);
+.gantt-tr-row:hover,
+.gantt-tr-row-hovered {
+  background-color: var(--gantt-row-hover-background, rgba(59, 130, 246, 0.04));
 }
 
-.gantt-tr-row.gantt-tr-row-filter-match:hover {
+.gantt-tr-row.gantt-tr-row-filter-match:hover,
+.gantt-tr-row.gantt-tr-row-filter-match.gantt-tr-row-hovered {
   background-color: rgba(250, 204, 21, 0.3);
 }
 

@@ -776,6 +776,49 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     setSelectedTaskId(taskId);
   }, []);
 
+  const hoveredRowElementsRef = useRef<HTMLElement[]>([]);
+
+  const clearHoveredRows = useCallback(() => {
+    for (const element of hoveredRowElementsRef.current) {
+      element.classList.remove('gantt-tl-row-hovered', 'gantt-tr-row-hovered');
+    }
+    hoveredRowElementsRef.current = [];
+  }, []);
+
+  const applyHoveredRows = useCallback((taskId: string) => {
+    const root = scrollContentRef.current;
+    if (!root) return;
+
+    clearHoveredRows();
+    const nextHoveredRows = Array.from(
+      root.querySelectorAll<HTMLElement>('[data-gantt-task-row-id]')
+    ).filter((element) => element.dataset.ganttTaskRowId === taskId);
+
+    for (const element of nextHoveredRows) {
+      if (element.classList.contains('gantt-tl-row')) {
+        element.classList.add('gantt-tl-row-hovered');
+      }
+      if (element.classList.contains('gantt-tr-row')) {
+        element.classList.add('gantt-tr-row-hovered');
+      }
+    }
+
+    hoveredRowElementsRef.current = nextHoveredRows;
+  }, [clearHoveredRows]);
+
+  const handleSharedRowHover = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    const row = target.closest<HTMLElement>('[data-gantt-task-row-id]');
+    const taskId = row?.dataset.ganttTaskRowId;
+    if (!taskId) return;
+
+    if (hoveredRowElementsRef.current.some((element) => element.dataset.ganttTaskRowId === taskId)) {
+      return;
+    }
+
+    applyHoveredRows(taskId);
+  }, [applyHoveredRows]);
+
   // Hierarchy callbacks
   // Use external onToggleCollapse if provided (controlled mode), otherwise use internal handler
   const handleToggleCollapse = externalOnToggleCollapse ?? useCallback((parentId: string) => {
@@ -1088,7 +1131,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         onMouseDown={handlePanStart}
       >
         {/* Content wrapper - enables TaskList to scroll with chart horizontally */}
-        <div ref={scrollContentRef} className="gantt-scrollContent">
+        <div
+          ref={scrollContentRef}
+          className="gantt-scrollContent"
+          onMouseOver={handleSharedRowHover}
+          onMouseLeave={clearHoveredRows}
+        >
           {/* TaskList - sticky left, scrolls with content horizontally */}
           <TaskList
             tasks={normalizedTasks}

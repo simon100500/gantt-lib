@@ -344,6 +344,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     return (
       <div
         data-filter-match={isFilterMatch ? 'true' : 'false'}
+        data-gantt-task-row-id={task.id}
         className={`gantt-tr-row ${isFilterMatch ? 'gantt-tr-row-filter-match' : ''}`}
         style={{ height: `${rowHeight}px` }}
       >

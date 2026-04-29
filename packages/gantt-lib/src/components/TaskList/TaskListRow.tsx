@@ -892,7 +892,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     ); // How editing was started
 
     const isSelected = selectedTaskId === task.id;
-
     // Hierarchy computed values
     const isParent = useMemo(
       () => isTaskParent(task.id, allTasks),
@@ -2538,6 +2537,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           .filter(Boolean)
           .join(" ")}
         style={{ minHeight: `${rowHeight}px`, position: "relative" }}
+        data-gantt-task-row-id={task.id}
         onClick={handleRowClickInternal}
         onKeyDown={handleRowKeyDown}
         onDragOver={(e) => onDragOver?.(rowIndex, e)}
