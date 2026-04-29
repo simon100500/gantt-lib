@@ -114,7 +114,7 @@ export interface ScheduleCommandOptions {
 | Функция | Описание |
 |---|---|
 | `getDependencyLag(dep)` | Возвращает lag или 0 |
-| `normalizeDependencyLag(linkType, lag, predStart, predEnd, businessDays?, weekendPredicate?)` | Нормализует lag: FS — clamp к >= -predecessorDuration (не >= 0). Остальные типы — без изменений |
+| `normalizeDependencyLag(linkType, lag, predStart, predEnd, businessDays?, weekendPredicate?)` | Нормализует lag: FS — clamp к >= 0. Остальные типы — без изменений |
 | `calculateSuccessorDate(predStart, predEnd, linkType, lag?, businessDays?, weekendPredicate?)` | Вычисляет дату successor. FS: predEnd + lag + 1; SS: predStart + lag; FF: predEnd + lag; SF: predStart + lag - 1 |
 | `computeLagFromDates(linkType, predStart, predEnd, succStart, succEnd, businessDays?, weekendPredicate?)` | Вычисляет lag из дат. FS: lag = succStart - predEnd - 1; SS: lag = succStart - predStart; FF: lag = succEnd - predEnd; SF: lag = succEnd - predStart + 1 |
 

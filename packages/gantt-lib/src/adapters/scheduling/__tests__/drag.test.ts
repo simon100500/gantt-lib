@@ -82,18 +82,17 @@ describe('clampDateRangeForIncomingFS', () => {
 
   it('clamps start for move mode when violating FS constraint', () => {
     // Task has FS dep on predecessor ending Jan 5, lag=0.
-    // calculateSuccessorDate(FS, -5) = Jan 5 + (-5+1) = Jan 1 → minAllowedStart = Jan 1.
-    // Range start=Jan 2 is after Jan 1 → not clamped. Verify range unchanged.
+    // Negative FS lag is not allowed, so minAllowedStart = Jan 6.
     const range = { start: new Date('2024-01-02'), end: new Date('2024-01-06') };
     const result = clampDateRangeForIncomingFS(task, range, allTasks, 'move');
-    expect(result.start.getUTCDate()).toBe(2);
-    expect(result.end.getUTCDate()).toBe(6);
+    expect(result.start.getUTCDate()).toBe(6);
+    expect(result.end.getUTCDate()).toBe(10);
   });
 
   it('clamps start when range starts before minimum allowed by FS constraint', () => {
-    // predecessor (Jan 10-15, 6 days), successor with FS lag=0
-    // calculateSuccessorDate(FS, -6) = Jan 15 + (-6+1) = Jan 10 → minAllowedStart = Jan 10
-    // Proposed range starts Jan 5 → should be clamped to Jan 10
+    // predecessor (Jan 10-15, 6 days), successor with FS lag=0.
+    // Negative FS lag is not allowed, so minAllowedStart = Jan 16.
+    // Proposed range starts Jan 5 → should be clamped to Jan 16.
     const shortPred: Task = { id: 'sp', name: 'ShortPred', startDate: '2024-01-10', endDate: '2024-01-15' };
     const constrainedTask: Task = {
       id: 'ct',
@@ -104,7 +103,7 @@ describe('clampDateRangeForIncomingFS', () => {
     };
     const range = { start: new Date('2024-01-05'), end: new Date('2024-01-09') };
     const result = clampDateRangeForIncomingFS(constrainedTask, range, [constrainedTask, shortPred], 'move');
-    expect(result.start.getUTCDate()).toBeGreaterThanOrEqual(10);
+    expect(result.start.getUTCDate()).toBe(16);
   });
 
   it('returns range unchanged when no dependencies', () => {

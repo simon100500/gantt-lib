@@ -161,14 +161,14 @@ Tasks can have dependencies on predecessor tasks using 4 link types following PM
 interface TaskDependency {
   taskId: string;      // ID of predecessor task
   type: 'FS' | 'SS' | 'FF' | 'SF';
-  lag?: number;        // Days delay (positive or negative, default: 0)
+  lag?: number;        // Days delay (default: 0); FS lag is clamped to >= 0
 }
 ```
 
 #### Lag
 
 - **Positive lag**: Delays the successor (e.g., lag: 2 means successor starts 2 days after constraint is satisfied)
-- **Negative lag**: Allows overlap (e.g., lag: -3 means successor starts 3 days before predecessor finishes)
+- **Negative lag**: Allowed for SS/FF/SF links. FS negative lag is reset to 0 to prevent predecessor/successor overlap.
 
 #### Example
 

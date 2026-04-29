@@ -13,6 +13,7 @@ import {
 import {
   calculateSuccessorDate,
   getDependencyLag,
+  normalizeTaskDependencyLags,
   normalizePredecessorDates,
 } from './dependencies';
 import { getChildren } from './hierarchy';
@@ -120,11 +121,11 @@ export function cascadeByLinks(
 
         visited.add(child.id);
         updatedDates.set(child.id, { start: newChildStart, end: newChildEnd });
-        result.push({
+        result.push(normalizeTaskDependencyLags({
           ...child,
           startDate: newChildStart.toISOString().split('T')[0],
           endDate: newChildEnd.toISOString().split('T')[0],
-        });
+        }));
         queue.push(child.id);
       }
     }
@@ -166,11 +167,11 @@ export function cascadeByLinks(
 
         visited.add(task.id);
         updatedDates.set(task.id, { start: newSuccStart, end: newSuccEnd });
-        result.push({
+        result.push(normalizeTaskDependencyLags({
           ...task,
           startDate: newSuccStart.toISOString().split('T')[0],
           endDate: newSuccEnd.toISOString().split('T')[0],
-        });
+        }));
         queue.push(task.id);
         break;
       }
@@ -259,11 +260,11 @@ export function universalCascade(
   updatedDates.set(movedTask.id, { start: newStart, end: newEnd });
 
   const resultMap = new Map<string, Task>();
-  resultMap.set(movedTask.id, {
+  resultMap.set(movedTask.id, normalizeTaskDependencyLags({
     ...movedTask,
     startDate: newStart.toISOString().split('T')[0],
     endDate: newEnd.toISOString().split('T')[0],
-  });
+  }));
 
   const queue: Array<[string, ArrivalMode]> = [[movedTask.id, 'direct']];
 
@@ -322,11 +323,11 @@ export function universalCascade(
         updatedDates.set(child.id, { start: childNewStart, end: childNewEnd });
         childShifted.add(child.id);
         queue.push([child.id, 'child-delta']);
-        resultMap.set(child.id, {
+        resultMap.set(child.id, normalizeTaskDependencyLags({
           ...child,
           startDate: childNewStart.toISOString().split('T')[0],
           endDate:   childNewEnd.toISOString().split('T')[0],
-        });
+        }));
       }
     }
 
@@ -349,11 +350,11 @@ export function universalCascade(
         if (!prev || prev.start.getTime() !== minStart.getTime() || prev.end.getTime() !== maxEnd.getTime()) {
           updatedDates.set(parentId, { start: minStart, end: maxEnd });
           queue.push([parentId, 'parent-recalc']);
-          resultMap.set(parentId, {
+          resultMap.set(parentId, normalizeTaskDependencyLags({
             ...parent,
             startDate: minStart.toISOString().split('T')[0],
             endDate:   maxEnd.toISOString().split('T')[0],
-          });
+          }));
         }
       }
     }
@@ -407,11 +408,11 @@ export function universalCascade(
 
       updatedDates.set(task.id, { start: succNewStart, end: succNewEnd });
       queue.push([task.id, 'dependency']);
-      resultMap.set(task.id, {
+      resultMap.set(task.id, normalizeTaskDependencyLags({
         ...task,
         startDate: succNewStart.toISOString().split('T')[0],
         endDate:   succNewEnd.toISOString().split('T')[0],
-      });
+      }));
     }
   }
 

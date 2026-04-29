@@ -17,7 +17,6 @@ import {
 import {
   calculateSuccessorDate,
   getDependencyLag,
-  normalizeDependencyLag,
   computeLagFromDates,
   normalizePredecessorDates,
 } from './dependencies';
@@ -129,17 +128,11 @@ export function clampTaskRangeForIncomingFS(
     }
 
     const { predStart: predecessorStart, predEnd: predecessorEnd } = normalizePredecessorDates(predecessor, parseDateOnly);
-    const predecessorDuration = getTaskDuration(
-      predecessorStart,
-      predecessorEnd,
-      businessDays,
-      weekendPredicate
-    );
     const candidateMinStart = calculateSuccessorDate(
       predecessorStart,
       predecessorEnd,
       'FS',
-      -predecessorDuration,
+      0,
       businessDays,
       weekendPredicate
     );

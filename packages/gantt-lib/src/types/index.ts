@@ -100,7 +100,7 @@ export interface TaskDependency {
   taskId: string;
   /** Type of link: FS (finish-to-start), SS, FF, SF */
   type: LinkType;
-  /** Lag in days (positive or negative integer) */
+  /** Lag in days. FS lag is clamped to zero. */
   lag: number;
 }
 

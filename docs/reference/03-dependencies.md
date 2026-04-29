@@ -14,7 +14,7 @@ interface TaskDependency {
 |---|---|---|---|---|
 | `taskId` | `string` | yes | — | ID of the **predecessor** task. Must match an `id` in the tasks array. A missing `taskId` reference is reported as a `'missing-task'` validation error. |
 | `type` | `'FS' \| 'SS' \| 'FF' \| 'SF'` | yes | — | Dependency link type. Determines which edges are constrained and how lag is calculated. See Section 6 for full semantics. |
-| `lag` | `number` | no | `0` | Days of offset. Positive = delay (gap between tasks). Negative = overlap (tasks overlap by that many days). **Do not set lag manually** after initial construction — the library recalculates lag automatically on every drag completion. |
+| `lag` | `number` | no | `0` | Days of offset. Positive = delay (gap between tasks). Negative values are allowed for some link types, but FS lag is clamped to `0`. **Do not set lag manually** after initial construction — the library recalculates lag automatically on every drag completion. |
 
 ---
 
@@ -34,11 +34,11 @@ Milestones do **not** change FS/SS/FF/SF scheduling rules. Milestone-specific be
 |---|---|
 | Full name | Finish-to-Start |
 | Rule | `B.startDate >= A.endDate + lag` |
-| Lag formula | `lag = startB - endA` (can be negative, meaning B starts before A ends) |
+| Lag formula | `lag = startB - endA`, clamped to `0` |
 | Constrained edge | Left edge (`startDate`) of successor B |
 | Example | `{ taskId: 'A', type: 'FS', lag: 0 }` — B starts on or after A ends |
 
-The most common link type. B cannot begin until A finishes. Negative lag creates deliberate overlap.
+The most common link type. B cannot begin until A finishes. Negative FS lag is treated as invalid and reset to `0`.
 
 ---
 

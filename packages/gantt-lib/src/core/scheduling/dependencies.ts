@@ -9,7 +9,6 @@ import {
   getBusinessDayOffset,
   shiftBusinessDayOffset,
   DAY_MS,
-  getTaskDuration,
 } from './dateMath';
 
 /**
@@ -38,7 +37,29 @@ export function getDependencyLag(dep: Pick<TaskDependency, 'lag'>): number {
 }
 
 /**
- * Normalize lag for FS links — clamp to >= -predecessorDuration.
+ * Return a copy of a task with impossible dependency lag values reset.
+ */
+export function normalizeTaskDependencyLags<TTask extends Pick<Task, 'dependencies'>>(task: TTask): TTask {
+  if (!task.dependencies?.length) {
+    return task;
+  }
+
+  let changed = false;
+  const dependencies = task.dependencies.map(dep => {
+    const lag = getDependencyLag(dep);
+    const normalizedLag = dep.type === 'FS' ? Math.max(0, lag) : lag;
+    if (normalizedLag === dep.lag) {
+      return dep;
+    }
+    changed = true;
+    return { ...dep, lag: normalizedLag };
+  });
+
+  return changed ? { ...task, dependencies } : task;
+}
+
+/**
+ * Normalize lag for links whose domain rules restrict negative offsets.
  */
 export function normalizeDependencyLag(
   linkType: LinkType,
@@ -52,14 +73,7 @@ export function normalizeDependencyLag(
     return lag;
   }
 
-  const predecessorDuration = getTaskDuration(
-    predecessorStart,
-    predecessorEnd,
-    businessDays,
-    weekendPredicate
-  );
-
-  return Math.max(-predecessorDuration, lag);
+  return Math.max(0, lag);
 }
 
 /**

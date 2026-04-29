@@ -22,6 +22,7 @@ export {
 
   // dependencies
   getDependencyLag,
+  normalizeTaskDependencyLags,
   normalizeDependencyLag,
   calculateSuccessorDate,
   computeLagFromDates,

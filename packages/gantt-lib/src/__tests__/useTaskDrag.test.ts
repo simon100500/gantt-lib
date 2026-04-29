@@ -1330,7 +1330,7 @@ describe('useTaskDrag', () => {
   });
 
   describe('Incoming lag edits during drag', () => {
-    it('clamps FS successor move when negative lag would exceed predecessor duration', async () => {
+    it('clamps FS successor move before the zero-lag successor date', async () => {
       const onDragEnd = vi.fn();
       const allTasks = [
         {
@@ -1375,7 +1375,7 @@ describe('useTaskDrag', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.currentLeft).toBe(360);
+        expect(result.current.currentLeft).toBe(480);
         expect(result.current.currentWidth).toBe(120);
       });
 
@@ -1383,11 +1383,7 @@ describe('useTaskDrag', () => {
         window.dispatchEvent(new MouseEvent('mouseup', {}));
       });
 
-      expect(onDragEnd).toHaveBeenCalledTimes(1);
-      const [{ startDate, endDate, updatedDependencies }] = onDragEnd.mock.calls[0];
-      expect(startDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 10)).toISOString());
-      expect(endDate.toISOString()).toBe(new Date(Date.UTC(2026, 1, 12)).toISOString());
-      expect(updatedDependencies?.[0]?.lag).toBe(-3);
+      expect(onDragEnd).not.toHaveBeenCalled();
     });
 
     it('allows reducing FS lag back to zero by moving successor left', async () => {

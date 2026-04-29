@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   getDependencyLag,
+  normalizeTaskDependencyLags,
   normalizeDependencyLag,
   calculateSuccessorDate,
   computeLagFromDates,
@@ -25,12 +26,11 @@ describe('dependencies', () => {
   });
 
   describe('normalizeDependencyLag', () => {
-    it('clamps FS lag to >= -predecessorDuration', () => {
+    it('clamps FS lag to >= 0', () => {
       const predStart = makeDate(2025, 0, 6); // Mon
       const predEnd = makeDate(2025, 0, 10);  // Fri
-      // Duration = 5 days, so lag >= -5
       const result = normalizeDependencyLag('FS', -10, predStart, predEnd);
-      expect(result).toBe(-5);
+      expect(result).toBe(0);
     });
 
     it('does not clamp non-FS link types', () => {
@@ -38,6 +38,28 @@ describe('dependencies', () => {
       const predEnd = makeDate(2025, 0, 10);
       const result = normalizeDependencyLag('SS', -10, predStart, predEnd);
       expect(result).toBe(-10);
+    });
+  });
+
+  describe('normalizeTaskDependencyLags', () => {
+    it('resets impossible negative FS lag and keeps the link', () => {
+      const task = {
+        id: 'B',
+        name: 'B',
+        startDate: '2025-01-01',
+        endDate: '2025-01-05',
+        dependencies: [
+          { taskId: 'A', type: 'FS' as const, lag: -5 },
+          { taskId: 'C', type: 'SS' as const, lag: -2 },
+        ],
+      };
+
+      const result = normalizeTaskDependencyLags(task);
+
+      expect(result.dependencies).toEqual([
+        { taskId: 'A', type: 'FS', lag: 0 },
+        { taskId: 'C', type: 'SS', lag: -2 },
+      ]);
     });
   });
 

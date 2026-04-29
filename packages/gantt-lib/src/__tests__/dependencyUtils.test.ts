@@ -112,14 +112,14 @@ describe('dependencyUtils', () => {
       expect(result.getUTCDate()).toBe(8); // lag=2 means 2 extra days after natural FS gap
     });
 
-    it('should calculate FS with negative lag', () => {
+    it('should reset FS negative lag to zero', () => {
       const result = calculateSuccessorDate(jan1, jan5, 'FS', -2);
-      expect(result.getUTCDate()).toBe(4); // lag=-2 means 2-day overlap
+      expect(result.getUTCDate()).toBe(6);
     });
 
-    it('should clamp FS negative lag to predecessor duration', () => {
+    it('should clamp large FS negative lag to zero', () => {
       const result = calculateSuccessorDate(jan1, jan5, 'FS', -10);
-      expect(result.getUTCDate()).toBe(1);
+      expect(result.getUTCDate()).toBe(6);
     });
 
     it('should calculate SS (start-to-start) with no lag', () => {
@@ -487,7 +487,7 @@ describe('dependencyUtils', () => {
       expect(updated[0]?.lag).toBe(3);
     });
 
-    it('clamps FS negative lag to predecessor duration when successor moves too far left', () => {
+    it('resets FS negative lag to zero when successor moves too far left', () => {
       const tasks = [
         createTask('pred', '2026-03-10', '2026-03-12'),
         createTask('succ', '2026-03-13', '2026-03-15', [{ taskId: 'pred', type: 'FS', lag: 0 }]),
@@ -500,7 +500,7 @@ describe('dependencyUtils', () => {
         tasks
       );
 
-      expect(updated[0]?.lag).toBe(-3);
+      expect(updated[0]?.lag).toBe(0);
     });
   });
 

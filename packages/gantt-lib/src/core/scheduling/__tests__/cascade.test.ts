@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   cascadeByLinks,
   getSuccessorChain,
+  universalCascade,
 } from '../cascade';
 import { reflowTasksOnModeSwitch } from '../modeSwitch';
 import type { Task } from '../../types';
@@ -47,6 +48,49 @@ describe('cascade', () => {
       expect(result[0].id).toBe('B');
       // B should start on Jan 18 (day after A ends on Jan 17)
       expect(result[0].startDate).toBe('2025-01-18');
+    });
+  });
+
+  describe('universalCascade', () => {
+    it.fails('keeps successor on the strongest incoming FS constraint when a weaker predecessor moves', () => {
+      const tasks: Task[] = [
+        makeTask('A', '2025-01-01', '2025-01-05'),
+        makeTask('B', '2025-01-01', '2025-01-05'),
+        makeTask('C', '2025-01-31', '2025-02-04', [
+          { taskId: 'A', type: 'FS', lag: 25 },
+          { taskId: 'B', type: 'FS', lag: -5 },
+        ]),
+      ];
+
+      const result = universalCascade(
+        { ...tasks[1], startDate: '2025-01-03', endDate: '2025-01-07' },
+        new Date(Date.UTC(2025, 0, 3)),
+        new Date(Date.UTC(2025, 0, 7)),
+        tasks
+      );
+
+      const cascadedC = result.find(task => task.id === 'C');
+
+      expect(cascadedC?.startDate).toBe('2025-01-31');
+      expect(cascadedC?.endDate).toBe('2025-02-04');
+    });
+
+    it('resets impossible negative FS lag in cascaded task output', () => {
+      const tasks: Task[] = [
+        makeTask('A', '2025-01-01', '2025-01-05'),
+        makeTask('B', '2025-01-04', '2025-01-08', [{ taskId: 'A', type: 'FS', lag: -2 }]),
+      ];
+
+      const result = universalCascade(
+        { ...tasks[0], startDate: '2025-01-03', endDate: '2025-01-07' },
+        new Date(Date.UTC(2025, 0, 3)),
+        new Date(Date.UTC(2025, 0, 7)),
+        tasks
+      );
+
+      const cascadedB = result.find(task => task.id === 'B');
+
+      expect(cascadedB?.dependencies).toEqual([{ taskId: 'A', type: 'FS', lag: 0 }]);
     });
   });
 
