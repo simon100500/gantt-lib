@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-### Features
+## [0.85.1] - 2026-04-30
 
-- Add `hiddenTaskListColumns` prop to hide built-in and custom TaskList columns through the shared column resolution pipeline
+### Fixes
+
+- Normalize FS lag behavior to prevent negative values and ensure proper task dependency handling
 
 ## [0.80.1] - 2026-04-27
 

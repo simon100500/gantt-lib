@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.85.1] - 2026-04-30
+
+### Fixes
+
+- Normalize FS lag behavior to prevent negative values and ensure proper task dependency handling
+
 ## [0.85.0] - 2026-04-28
 
 ### Features
