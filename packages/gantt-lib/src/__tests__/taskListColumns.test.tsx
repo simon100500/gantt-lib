@@ -268,6 +268,35 @@ describe('GanttChart additionalColumns', () => {
     expect(overlayWidth).toBe(694);
   });
 
+  it('allows visible columns to shrink below the legacy task list minimum', () => {
+    const { container } = render(
+      <GanttChart
+        tasks={extendedTasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+        taskListWidth={1}
+        additionalColumns={additionalColumns}
+        hiddenTaskListColumns={[
+          'number',
+          'startDate',
+          'endDate',
+          'duration',
+          'progress',
+          'dependencies',
+          'assignee',
+          'status',
+        ]}
+      />
+    );
+
+    const overlay = container.querySelector('.gantt-tl-overlay') as HTMLElement;
+    expect(overlay).not.toBeNull();
+
+    const overlayWidth = parseInt(overlay.style.getPropertyValue('--tasklist-width'));
+    expect(overlayWidth).toBe(200);
+  });
+
   it('opens a custom editor and saves a merged task patch through onTasksChange', () => {
     const onTasksChange = vi.fn();
 

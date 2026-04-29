@@ -147,7 +147,7 @@ export interface TaskListProps {
   rowHeight: number;
   /** Height of the header row in pixels (must match Gantt chart's headerHeight) */
   headerHeight: number;
-  /** Width of the task list overlay in pixels. Values below MIN_TASK_LIST_WIDTH are clamped. */
+  /** Width of the task list overlay in pixels. Values below the visible column width are clamped. */
   taskListWidth?: number;
   /** Callback when tasks are modified via inline edit. Receives array of changed tasks. */
   onTasksChange?: (tasks: Task[]) => void;
@@ -232,7 +232,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   rowHeight,
   headerHeight,
-  taskListWidth = MIN_TASK_LIST_WIDTH,
+  taskListWidth,
   onTasksChange,
   selectedTaskId,
   onTaskSelect,
@@ -1047,7 +1047,8 @@ export const TaskList: React.FC<TaskListProps> = ({
     [resolvedColumns]
   );
 
-  const effectiveTaskListWidth = Math.max(taskListWidth, MIN_TASK_LIST_WIDTH, resolvedColumnWidthTotal);
+  const requestedTaskListWidth = taskListWidth ?? Math.min(MIN_TASK_LIST_WIDTH, resolvedColumnWidthTotal);
+  const effectiveTaskListWidth = Math.max(requestedTaskListWidth, resolvedColumnWidthTotal);
   const tableHeaderHeight = headerHeight + 1;
 
   return (
