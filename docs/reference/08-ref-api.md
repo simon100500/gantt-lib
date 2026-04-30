@@ -6,10 +6,16 @@ The `GanttChart` component supports an imperative handle via `ref` for programma
 interface GanttChartHandle {
   scrollToToday: () => void;
   scrollToTask: (taskId: string) => void;
-  scrollToRow: (taskId: string) => void;
+  scrollToRow: (taskId: string, options?: ScrollToRowOptions) => void;
   collapseAll: () => void;
   expandAll: () => void;
   exportToPdf: (options?: ExportToPdfOptions) => Promise<void>;
+}
+
+interface ScrollToRowOptions {
+  select?: boolean;
+  behavior?: ScrollBehavior;
+  clearSelectionAfterMs?: number;
 }
 
 interface ExportToPdfOptions {
@@ -50,7 +56,7 @@ function App() {
   };
 
   const handleScrollToRow = (taskId: string) => {
-    ganttRef.current?.scrollToRow(taskId);
+    ganttRef.current?.scrollToRow(taskId, { clearSelectionAfterMs: 3000 });
   };
 
   const handleCollapseAll = () => {
@@ -77,7 +83,7 @@ function App() {
 |---|---|---|
 | `scrollToToday()` | `void` | Scrolls the chart horizontally so that today's date is centered in the viewport. If today is not within the visible date range, no action is taken. |
 | `scrollToTask(taskId)` | `void` | Scrolls the chart horizontally so that the task bar with the given `taskId` is visible in the grid. If the task ID is not found, no action is taken. |
-| `scrollToRow(taskId)` | `void` | Scrolls the task list vertically to the row for the given `taskId` using the current visible row order. If the task ID is not visible, no action is taken. |
+| `scrollToRow(taskId, options?)` | `void` | Scrolls the task list vertically to the row for the given `taskId` using the current visible row order. By default the built-in selected-row styling is applied; pass `select: false` to suppress it or `clearSelectionAfterMs` to auto-clear it. If the task ID is not visible, no action is taken. |
 | `collapseAll()` | `void` | Collapses all parent tasks in the chart. Hides all child tasks from both the task list and the chart. |
 | `expandAll()` | `void` | Expands all parent tasks in the chart. Shows all child tasks in both the task list and the chart. |
 | `exportToPdf(options?)` | `Promise<void>` | Opens the browser print dialog with the chart rendered for PDF export. Accepts optional [`ExportToPdfOptions`](#exporttopdfoptions). |

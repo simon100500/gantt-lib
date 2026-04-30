@@ -229,6 +229,64 @@ describe('GanttChart taskFilter', () => {
     expect(scrollToSpy).toHaveBeenCalledWith({ top: 36, behavior: 'smooth' });
   });
 
+  it('scrollToRow can clear built-in row selection after a timeout', () => {
+    vi.useFakeTimers();
+
+    const tasks: Task[] = [
+      {
+        id: 'a',
+        name: 'Alpha task',
+        startDate: '2026-02-01',
+        endDate: '2026-02-03',
+      },
+      {
+        id: 'b',
+        name: 'Beta task',
+        startDate: '2026-02-04',
+        endDate: '2026-02-06',
+      },
+      {
+        id: 'c',
+        name: 'Gamma task',
+        startDate: '2026-02-07',
+        endDate: '2026-02-09',
+      },
+      {
+        id: 'd',
+        name: 'Delta task',
+        startDate: '2026-02-10',
+        endDate: '2026-02-12',
+      },
+    ];
+
+    const ref = createRef<GanttChartHandle>();
+    const { container } = render(
+      <GanttChart
+        ref={ref}
+        tasks={tasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+      />
+    );
+
+    const scrollContainer = container.querySelector('.gantt-scrollContainer') as HTMLDivElement;
+    scrollContainer.scrollTo = vi.fn();
+
+    act(() => {
+      ref.current?.scrollToRow('d', { clearSelectionAfterMs: 3000 });
+    });
+
+    expect(container.querySelector('.gantt-tl-row.gantt-tl-row-selected[data-gantt-task-row-id="d"]')).toBeTruthy();
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(container.querySelector('.gantt-tl-row.gantt-tl-row-selected[data-gantt-task-row-id="d"]')).toBeNull();
+    vi.useRealTimers();
+  });
+
   it('exposes exportToPdf on the public handle and opens the browser print flow', async () => {
     const tasks: Task[] = [
       {

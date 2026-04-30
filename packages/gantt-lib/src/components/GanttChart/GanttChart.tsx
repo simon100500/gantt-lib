@@ -261,13 +261,22 @@ export interface ExportToPdfHeaderOptions {
   exportDate?: string | Date;
 }
 
+export interface ScrollToRowOptions {
+  /** Keep built-in row selection styling after scroll (default: true) */
+  select?: boolean;
+  /** Browser scroll behavior for the vertical scroll action (default: 'smooth') */
+  behavior?: ScrollBehavior;
+  /** Automatically clear built-in row selection after N milliseconds */
+  clearSelectionAfterMs?: number;
+}
+
 /**
  * Ref handle type for GanttChart — exposes imperative scroll methods.
  */
 export interface GanttChartHandle {
   scrollToToday: () => void;
   scrollToTask: (taskId: string) => void;
-  scrollToRow: (taskId: string) => void;
+  scrollToRow: (taskId: string, options?: ScrollToRowOptions) => void;
   collapseAll: () => void;
   expandAll: () => void;
   exportToPdf: (options?: ExportToPdfOptions) => Promise<void>;
@@ -367,6 +376,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
+  const clearSelectedTaskTimeoutRef = useRef<number | null>(null);
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -553,7 +563,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
   }, [tasks, dateRange, dayWidth]);
 
-  const scrollToRow = useCallback((taskId: string) => {
+  const scrollToRow = useCallback((taskId: string, options: ScrollToRowOptions = {}) => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
@@ -565,8 +575,28 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
     const paddedRowIndex = Math.max(0, rowIndex - SCROLL_TO_ROW_CONTEXT_ROWS);
     const scrollTop = Math.max(0, rowHeight * paddedRowIndex);
-    setSelectedTaskId(taskId);
-    container.scrollTo({ top: scrollTop, behavior: 'smooth' });
+    const {
+      select = true,
+      behavior = 'smooth',
+      clearSelectionAfterMs,
+    } = options;
+
+    if (clearSelectedTaskTimeoutRef.current !== null) {
+      window.clearTimeout(clearSelectedTaskTimeoutRef.current);
+      clearSelectedTaskTimeoutRef.current = null;
+    }
+
+    if (select) {
+      setSelectedTaskId(taskId);
+      if (typeof clearSelectionAfterMs === 'number' && clearSelectionAfterMs >= 0) {
+        clearSelectedTaskTimeoutRef.current = window.setTimeout(() => {
+          setSelectedTaskId((current) => (current === taskId ? null : current));
+          clearSelectedTaskTimeoutRef.current = null;
+        }, clearSelectionAfterMs);
+      }
+    }
+
+    container.scrollTo({ top: scrollTop, behavior });
   }, [tasks, visibleTasks, rowHeight]);
 
   // Track drag state for guide lines
@@ -587,6 +617,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     setValidationResult(result);
     onValidateDependencies?.(result);
   }, [tasks, onValidateDependencies]);
+
+  useEffect(() => () => {
+    if (clearSelectedTaskTimeoutRef.current !== null) {
+      window.clearTimeout(clearSelectedTaskTimeoutRef.current);
+    }
+  }, []);
 
   /**
    * Callback when tasks are modified.
