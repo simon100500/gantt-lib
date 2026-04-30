@@ -26,11 +26,11 @@ describe('dependencies', () => {
   });
 
   describe('normalizeDependencyLag', () => {
-    it('clamps FS lag to >= 0', () => {
+    it('clamps FS lag to >= -predecessorDuration', () => {
       const predStart = makeDate(2025, 0, 6); // Mon
       const predEnd = makeDate(2025, 0, 10);  // Fri
       const result = normalizeDependencyLag('FS', -10, predStart, predEnd);
-      expect(result).toBe(0);
+      expect(result).toBe(-5);
     });
 
     it('does not clamp non-FS link types', () => {
@@ -42,7 +42,7 @@ describe('dependencies', () => {
   });
 
   describe('normalizeTaskDependencyLags', () => {
-    it('resets impossible negative FS lag and keeps the link', () => {
+    it('leaves task dependencies unchanged without predecessor context', () => {
       const task = {
         id: 'B',
         name: 'B',
@@ -56,10 +56,7 @@ describe('dependencies', () => {
 
       const result = normalizeTaskDependencyLags(task);
 
-      expect(result.dependencies).toEqual([
-        { taskId: 'A', type: 'FS', lag: 0 },
-        { taskId: 'C', type: 'SS', lag: -2 },
-      ]);
+      expect(result.dependencies).toEqual(task.dependencies);
     });
   });
 

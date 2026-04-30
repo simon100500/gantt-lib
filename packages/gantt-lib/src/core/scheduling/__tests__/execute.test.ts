@@ -92,7 +92,7 @@ describe('moveTaskWithCascade', () => {
     expect(movedB).toBeDefined();
   });
 
-  it('5. Negative FS lag is reset to zero during cascade', () => {
+  it('5. Negative FS lag allows overlap', () => {
     const predecessor = makeTask({ id: 'A', startDate: '2024-01-01', endDate: '2024-01-05' });
     const successor = makeTask({
       id: 'B', startDate: '2024-01-04', endDate: '2024-01-08',
@@ -104,8 +104,9 @@ describe('moveTaskWithCascade', () => {
 
     const movedB = result.changedTasks.find(t => t.id === 'B')!;
     expect(movedB).toBeDefined();
-    expect(movedB.startDate).toBe('2024-01-08');
-    expect(movedB.endDate).toBe('2024-01-12');
+    // successor should be recalculated based on FS with lag=-2
+    expect(movedB.startDate).toBe('2024-01-06');
+    expect(movedB.endDate).toBe('2024-01-10');
   });
 
   it('6. Business days — cascade skips weekends', () => {

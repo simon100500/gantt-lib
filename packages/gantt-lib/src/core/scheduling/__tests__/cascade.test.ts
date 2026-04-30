@@ -75,7 +75,7 @@ describe('cascade', () => {
       expect(cascadedC?.endDate).toBe('2025-02-04');
     });
 
-    it('resets impossible negative FS lag in cascaded task output', () => {
+    it('preserves negative FS lag in cascaded task output', () => {
       const tasks: Task[] = [
         makeTask('A', '2025-01-01', '2025-01-05'),
         makeTask('B', '2025-01-04', '2025-01-08', [{ taskId: 'A', type: 'FS', lag: -2 }]),
@@ -90,7 +90,7 @@ describe('cascade', () => {
 
       const cascadedB = result.find(task => task.id === 'B');
 
-      expect(cascadedB?.dependencies).toEqual([{ taskId: 'A', type: 'FS', lag: 0 }]);
+      expect(cascadedB?.dependencies).toEqual([{ taskId: 'A', type: 'FS', lag: -2 }]);
     });
   });
 

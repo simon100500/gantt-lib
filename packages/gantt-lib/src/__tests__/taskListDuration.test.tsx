@@ -242,7 +242,7 @@ describe('TaskListRow duration editing', () => {
     }]);
   });
 
-  it('resets negative FS lag editing to zero', () => {
+  it('clamps FS lag editing to predecessor duration', () => {
     const onTasksChange = vi.fn();
     const predecessor: Task = {
       id: 'pred',
@@ -281,13 +281,13 @@ describe('TaskListRow duration editing', () => {
 
     expect(onTasksChange).toHaveBeenLastCalledWith([{
       ...task,
-      startDate: '2026-03-13',
-      endDate: '2026-03-13',
-      dependencies: [{ taskId: 'pred', type: 'FS', lag: 0 }],
+      startDate: '2026-03-10',
+      endDate: '2026-03-10',
+      dependencies: [{ taskId: 'pred', type: 'FS', lag: -3 }],
     }]);
   });
 
-  it('clamps FS range when start date picker would create negative lag', () => {
+  it('clamps FS range when start date picker would exceed predecessor duration overlap', () => {
     const onTasksChange = vi.fn();
     const predecessor: Task = {
       id: 'pred',
@@ -322,9 +322,9 @@ describe('TaskListRow duration editing', () => {
 
     expect(onTasksChange).toHaveBeenCalledWith([{
       ...task,
-      startDate: '2026-03-13',
-      endDate: '2026-03-13',
-      dependencies: [{ taskId: 'pred', type: 'FS', lag: 0 }],
+      startDate: '2026-03-10',
+      endDate: '2026-03-10',
+      dependencies: [{ taskId: 'pred', type: 'FS', lag: -3 }],
     }]);
   });
 

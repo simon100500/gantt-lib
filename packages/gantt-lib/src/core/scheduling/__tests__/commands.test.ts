@@ -87,12 +87,12 @@ describe('commands', () => {
         endDate: '2025-01-15',
         dependencies: [{ taskId: 'pred', type: 'FS', lag: 0 }],
       };
-      // FS lag cannot be negative, so minStart is Jan 11.
-      // proposedStart Jan 12 >= Jan 11, so no clamp
-      const proposedStart = makeDate(2025, 0, 12);
-      const proposedEnd = makeDate(2025, 0, 16);
+      // clamp uses lag=-predecessorDuration=-5, so minStart=Jan 6
+      // proposedStart Jan 8 >= Jan 6, so no clamp
+      const proposedStart = makeDate(2025, 0, 8);
+      const proposedEnd = makeDate(2025, 0, 12);
       const result = clampTaskRangeForIncomingFS(task, proposedStart, proposedEnd, [predecessor, task]);
-      expect(result.start.getUTCDate()).toBe(12);
+      expect(result.start.getUTCDate()).toBe(8);
     });
 
     it('clamps when proposed start is before minimum allowed', () => {
@@ -109,12 +109,12 @@ describe('commands', () => {
         endDate: '2025-01-15',
         dependencies: [{ taskId: 'pred', type: 'FS', lag: 0 }],
       };
-      // FS lag cannot be negative, so minStart is Jan 11.
-      // proposedStart Jan 3 < Jan 11, so clamped to Jan 11
+      // clamp uses lag=-5, minStart = Jan 6
+      // proposedStart Jan 3 < Jan 6, so clamped to Jan 6
       const proposedStart = makeDate(2025, 0, 3);
       const proposedEnd = makeDate(2025, 0, 7);
       const result = clampTaskRangeForIncomingFS(task, proposedStart, proposedEnd, [predecessor, task]);
-      expect(result.start.getUTCDate()).toBe(11);
+      expect(result.start.getUTCDate()).toBe(6);
     });
 
     it('returns unchanged when no FS dependencies', () => {
@@ -160,7 +160,7 @@ describe('commands', () => {
       expect(newDeps[0].lag).toBe(3);
     });
 
-    it('resets impossible negative FS lag to zero after date change', () => {
+    it('preserves negative FS lag up to predecessor duration after date change', () => {
       const predecessor: Task = {
         id: 'pred',
         name: 'Pred',
@@ -181,7 +181,7 @@ describe('commands', () => {
         [predecessor, task]
       );
 
-      expect(newDeps[0].lag).toBe(0);
+      expect(newDeps[0].lag).toBe(-3);
     });
   });
 });

@@ -80,7 +80,7 @@ export interface Task {
    * Optional array of task dependencies
    * - Each dependency references a predecessor task by ID
    * - Supports 4 link types: FS (finish-to-start), SS (start-to-start), FF (finish-to-finish), SF (start-to-finish)
-   * - Lag is required (positive = delay; FS lag is clamped to zero)
+   * - Lag is required (positive = delay, negative = overlap)
    */
   dependencies?: TaskDependency[];
   /**

@@ -233,7 +233,7 @@ function canMoveTask(
  * Recalculate lag values for incoming dependencies after drag completion.
  *
  * Lag formulas:
- * - FS: lag = startB - endA (clamped to zero)
+ * - FS: lag = startB - endA (can be negative)
  * - SS: lag = startB - startA (floor at 0)
  * - FF: lag = endB - endA (can be negative)
  * - SF: lag = endB - startA (ceiling at 0)

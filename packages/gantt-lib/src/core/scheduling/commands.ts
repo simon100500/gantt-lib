@@ -128,11 +128,17 @@ export function clampTaskRangeForIncomingFS(
     }
 
     const { predStart: predecessorStart, predEnd: predecessorEnd } = normalizePredecessorDates(predecessor, parseDateOnly);
+    const predecessorDuration = getTaskDuration(
+      predecessorStart,
+      predecessorEnd,
+      businessDays,
+      weekendPredicate
+    );
     const candidateMinStart = calculateSuccessorDate(
       predecessorStart,
       predecessorEnd,
       'FS',
-      0,
+      -predecessorDuration,
       businessDays,
       weekendPredicate
     );
