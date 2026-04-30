@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { getMultiMonthDays, createCustomDayPredicate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
+import { getMultiMonthDays, createCustomDayPredicate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, universalCascade, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../core/scheduling';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
@@ -402,8 +402,25 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     [customDays, isWeekend]
   );
 
+  // When baseline is visible, expand the visible range to include baseline dates too.
+  const dateRangeTasks = useMemo(() => {
+    if (!showBaseline) {
+      return normalizedTasks;
+    }
+
+    return normalizedTasks.map(task => ({
+      ...task,
+      startDate: task.baselineStartDate && parseUTCDate(task.baselineStartDate).getTime() < parseUTCDate(task.startDate).getTime()
+        ? task.baselineStartDate
+        : task.startDate,
+      endDate: task.baselineEndDate && parseUTCDate(task.baselineEndDate).getTime() > parseUTCDate(task.endDate).getTime()
+        ? task.baselineEndDate
+        : task.endDate,
+    }));
+  }, [normalizedTasks, showBaseline]);
+
   // Calculate multi-month date range from normalized tasks
-  const dateRange = useMemo(() => getMultiMonthDays(normalizedTasks), [normalizedTasks]);
+  const dateRange = useMemo(() => getMultiMonthDays(dateRangeTasks), [dateRangeTasks]);
 
   // Track dependency validation results
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);

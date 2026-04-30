@@ -159,4 +159,29 @@ describe('baseline rendering', () => {
 
     expect(container.querySelector('.gantt-tr-baseline')).not.toBeNull();
   });
+
+  it('expands chart range to baseline months when baseline starts before tasks', () => {
+    const taskWithEarlyBaseline: Task = {
+      id: 'task-early-baseline',
+      name: 'Task with early baseline',
+      startDate: '2026-03-10',
+      endDate: '2026-03-14',
+      baselineStartDate: '2026-01-05',
+      baselineEndDate: '2026-01-20',
+    };
+
+    const { container } = render(
+      <GanttChart
+        tasks={[taskWithEarlyBaseline]}
+        showBaseline
+      />
+    );
+
+    const header = container.querySelector('.gantt-tsh-header');
+    expect(header?.textContent).toContain('Январь 2026');
+
+    const baseline = container.querySelector('.gantt-tr-baseline') as HTMLElement | null;
+    expect(baseline).not.toBeNull();
+    expect(Number.parseFloat(baseline?.style.left ?? '-1')).toBeGreaterThanOrEqual(0);
+  });
 });
