@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.88.0] - 2026-04-30
+
+### Features
+
+- Enhance task drag functionality in Gantt chart
+- Implement global cursor locking during task resizing
+
 ## [0.87.0] - 2026-04-30
 
 ### Features
