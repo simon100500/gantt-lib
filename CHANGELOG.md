@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.88.2] - 2026-05-01
+
+### Refactor
+
+- Update FS lag handling in dependency calculations
+
 ## [0.88.1] - 2026-04-30
 
 ### Features
