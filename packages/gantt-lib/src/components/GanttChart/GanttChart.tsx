@@ -1281,6 +1281,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                   customDays={customDays}
                   isWeekend={isWeekend}
                   disableTaskDrag={disableTaskDrag}
+                  viewMode={viewMode}
                 />
               ))}
             </div>

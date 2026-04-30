@@ -61,6 +61,8 @@ export interface TaskRowProps {
   isWeekend?: (date: Date) => boolean;
   /** Disable task drag and resize (overrides task.locked) */
   disableTaskDrag?: boolean;
+  /** Active chart view mode */
+  viewMode?: 'day' | 'week' | 'month';
 }
 
 /**
@@ -110,7 +112,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.businessDays === nextProps.businessDays &&
     prevProps.customDays === nextProps.customDays &&
     prevProps.isWeekend === nextProps.isWeekend &&
-    prevProps.disableTaskDrag === nextProps.disableTaskDrag
+    prevProps.disableTaskDrag === nextProps.disableTaskDrag &&
+    prevProps.viewMode === nextProps.viewMode
     // onTasksChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
@@ -122,7 +125,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, viewMode = 'day' }) => {
     const defaultParentBarColor = '#782FC4';
     // Extract divider from task prop
     const { divider: taskDivider } = task;
@@ -273,6 +276,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       onCascade,
       businessDays,
       weekendPredicate,
+      viewMode,
     });
 
     // Use override position (for cascade preview) with fallback to drag or static position
@@ -340,7 +344,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Parent bars: child count label is longer — need more space
     const MIN_DURATION_WIDTH = isParent ? 80 : 50;
     const showDurationInside = !milestone && durationDays >= 2 && displayWidth > MIN_DURATION_WIDTH;
-
     return (
       <div
         data-filter-match={isFilterMatch ? 'true' : 'false'}
@@ -379,6 +382,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               userSelect: dragHandleProps.style.userSelect,
             }}
             onMouseDown={dragHandleProps.onMouseDown}
+            onMouseMove={dragHandleProps.onMouseMove}
+            onMouseLeave={dragHandleProps.onMouseLeave}
           >
             {!milestone && progressWidth > 0 && progressWidth < 100 && (
               <div

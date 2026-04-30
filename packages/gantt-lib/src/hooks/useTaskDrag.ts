@@ -477,6 +477,8 @@ export interface UseTaskDragOptions {
   businessDays?: boolean;
   /** Function that returns true for weekends (for businessDays mode) */
   weekendPredicate?: (date: Date) => boolean;
+  /** Active chart view mode */
+  viewMode?: 'day' | 'week' | 'month';
 }
 
 /**
@@ -494,6 +496,8 @@ export interface UseTaskDragReturn {
   /** Props to spread on the drag handle element */
   dragHandleProps: {
     onMouseDown: (e: React.MouseEvent) => void;
+    onMouseMove: (e: React.MouseEvent) => void;
+    onMouseLeave: () => void;
     style: React.CSSProperties;
   };
 }
@@ -525,6 +529,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     disableTaskDrag = false,
     businessDays = true,
     weekendPredicate,
+    viewMode = 'day',
   } = options;
   const rawHookTask = allTasks.find(t => t.id === taskId);
   const hookTask = rawHookTask ? normalizeTaskDatesForType(rawHookTask) : undefined;
@@ -539,6 +544,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   const [dragMode, setDragMode] = useState<'move' | 'resize-left' | 'resize-right' | null>(null);
   const [currentLeft, setCurrentLeft] = useState<number>(0);
   const [currentWidth, setCurrentWidth] = useState<number>(0);
+  const [hoverCursor, setHoverCursor] = useState<string>('grab');
 
   /**
    * Calculate initial pixel position from dates
@@ -785,31 +791,41 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   /**
    * Handle mouse down on drag handle
    */
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const startDrag = useCallback((e: React.MouseEvent) => {
     // Phase 11: locked tasks cannot be dragged or resized
     if (effectiveLocked) return;
 
     const target = e.currentTarget as HTMLElement;
-    const edgeZone = detectEdgeZone(e.clientX, target, edgeZoneWidth);
+    const currentTask = allTasks.find(t => t.id === taskId);
+    const isSingleDayTask = !!currentTask
+      && !isMilestoneTask(currentTask)
+      && !isTaskParent(taskId, allTasks)
+      && currentWidth <= dayWidth
+      && viewMode === 'day';
 
-    // Determine drag mode from edge zone
     let mode: 'move' | 'resize-left' | 'resize-right' | null = null;
-    switch (edgeZone) {
-      case 'left':
-        mode = 'resize-left';
-        break;
-      case 'right':
-        mode = 'resize-right';
-        break;
-      case 'move':
-        mode = 'move';
-        break;
+
+    if (isSingleDayTask) {
+      mode = 'move';
+    } else {
+      const edgeZone = detectEdgeZone(e.clientX, target, edgeZoneWidth);
+
+      switch (edgeZone) {
+        case 'left':
+          mode = 'resize-left';
+          break;
+        case 'right':
+          mode = 'resize-right';
+          break;
+        case 'move':
+          mode = 'move';
+          break;
+      }
     }
 
     // Phase 19: Parent tasks cannot be resized - their dates are computed from children
     // Force move mode for parent tasks to prevent resize operations
     if (mode === 'resize-left' || mode === 'resize-right') {
-      const currentTask = allTasks.find(t => t.id === taskId);
       if (currentTask && isTaskParent(taskId, allTasks)) {
         mode = 'move';
       }
@@ -849,11 +865,11 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     // Phase 19: Build hierarchy chain for real-time parent movement
     // When dragging a child: include parent so it moves with children
     // When dragging a parent: include all children so they move with parent
-    const currentTask = allTasks.find(t => t.id === taskId);
+    const dragTask = allTasks.find(t => t.id === taskId);
     let hierarchyChain: Task[] = [];
 
-    if (currentTask) {
-      const taskParentId = (currentTask as any).parentId;
+    if (dragTask) {
+      const taskParentId = (dragTask as any).parentId;
       if (taskParentId) {
         // Dragging a child - include parent for real-time updates
         const parentTask = allTasks.find(t => t.id === taskParentId);
@@ -899,7 +915,48 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       businessDays,
       weekendPredicate,
     };
-  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, effectiveLocked]);
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, effectiveLocked, viewMode]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    startDrag(e);
+  }, [startDrag]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (disableTaskDrag) {
+      setHoverCursor('grab');
+      return;
+    }
+
+    if (locked) {
+      setHoverCursor('not-allowed');
+      return;
+    }
+
+    if (isDragging) {
+      setHoverCursor('grabbing');
+      return;
+    }
+
+    const target = e.currentTarget as HTMLElement;
+    const currentTask = allTasks.find(t => t.id === taskId);
+    const isSingleDayTask = !!currentTask
+      && !isMilestoneTask(currentTask)
+      && !isTaskParent(taskId, allTasks)
+      && currentWidth <= dayWidth
+      && viewMode === 'day';
+
+    if (isSingleDayTask || (currentTask && (isTaskParent(taskId, allTasks) || isMilestoneTask(currentTask)))) {
+      setHoverCursor('grab');
+      return;
+    }
+
+    const edgeZone = detectEdgeZone(e.clientX, target, edgeZoneWidth);
+    setHoverCursor(edgeZone === 'move' ? 'grab' : 'ew-resize');
+  }, [disableTaskDrag, locked, isDragging, allTasks, taskId, currentWidth, dayWidth, viewMode, edgeZoneWidth]);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoverCursor(disableTaskDrag ? 'grab' : locked ? 'not-allowed' : isDragging ? 'grabbing' : 'grab');
+  }, [disableTaskDrag, locked, isDragging]);
 
   /**
    * Get cursor style based on current position
@@ -908,10 +965,10 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     if (disableTaskDrag) return 'grab'; // Global disable - allow pan
     if (locked) return 'not-allowed';   // Task-specific locked
     if (isDragging) {
-      return 'grabbing';
+      return dragMode === 'move' ? 'grabbing' : 'ew-resize';
     }
-    return 'grab';
-  }, [disableTaskDrag, locked, isDragging]);
+    return hoverCursor;
+  }, [disableTaskDrag, locked, isDragging, dragMode, hoverCursor]);
 
   return {
     isDragging,
@@ -920,6 +977,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     currentWidth,
     dragHandleProps: {
       onMouseDown: handleMouseDown,
+      onMouseMove: handleMouseMove,
+      onMouseLeave: handleMouseLeave,
       style: {
         cursor: getCursorStyle(),
         userSelect: 'none',

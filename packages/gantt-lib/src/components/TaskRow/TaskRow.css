@@ -116,7 +116,6 @@
   top: 0;
   width: 20px;
   height: 100%;
-  cursor: ew-resize;
   pointer-events: auto;
   z-index: 10;
 }

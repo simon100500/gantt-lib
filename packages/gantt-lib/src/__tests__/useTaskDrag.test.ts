@@ -123,6 +123,81 @@ describe('useTaskDrag', () => {
       expect(result.current.isDragging).toBe(true);
       expect(result.current.dragMode).toBe('move');
     });
+
+    it('should force move mode for a single-day task in day view even near the edge', () => {
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          taskId: 'task-1',
+          initialStartDate: new Date(Date.UTC(2026, 1, 10)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 10)),
+          monthStart: new Date(Date.UTC(2026, 1, 1)),
+          dayWidth: 40,
+          edgeZoneWidth: 20,
+          viewMode: 'day',
+          allTasks: [
+            { id: 'task-1', name: 'Task 1', startDate: '2026-02-10', endDate: '2026-02-10', type: 'task' },
+          ],
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 360,
+          width: 40,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 395,
+        } as unknown as React.MouseEvent);
+      });
+
+      expect(result.current.isDragging).toBe(true);
+      expect(result.current.dragMode).toBe('move');
+    });
+
+    it('should show ew-resize cursor on the edge of a wide task bar', () => {
+      const { result } = renderHook(() => useTaskDrag(mockOptions));
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 360,
+          width: 240,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseMove({
+          currentTarget: mockElement,
+          clientX: 365,
+        } as unknown as React.MouseEvent);
+      });
+
+      expect(result.current.dragHandleProps.style.cursor).toBe('ew-resize');
+    });
+
+    it('should keep ew-resize cursor during active resize', () => {
+      const { result } = renderHook(() => useTaskDrag(mockOptions));
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 360,
+          width: 240,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 365,
+        } as unknown as React.MouseEvent);
+      });
+
+      expect(result.current.dragMode).toBe('resize-left');
+      expect(result.current.dragHandleProps.style.cursor).toBe('ew-resize');
+    });
   });
 
   describe('Move operation', () => {
