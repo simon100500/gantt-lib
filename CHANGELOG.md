@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.90.0] - 2026-05-01
+
+### Features
+
+- Expand Gantt chart range to include baseline dates
+
+### Fixes
+
+- Update ungroup task behavior in Gantt chart
+
+### Refactor
+
+- Replace getChildren with getAllDescendants in TaskListRow
+
 ## [0.89.0] - 2026-05-01
 
 ### Features
