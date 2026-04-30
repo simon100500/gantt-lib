@@ -836,6 +836,10 @@
   right: 0;
 }
 
+.gantt-resourceTimeline-itemMoveOnly .gantt-resourceTimeline-resizeHandle {
+  cursor: inherit;
+}
+
 .gantt-resourceTimeline-itemDragging {
   z-index: 5;
   cursor: grabbing;

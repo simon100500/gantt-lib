@@ -923,6 +923,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const { preview, startDrag } = useResourceItemDrag({
     dayWidth,
     monthStart,
+    viewMode,
     rows: displayLayout.rows,
     gridElementRef: gridRef,
     readonly,
@@ -1241,10 +1242,12 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                 resourceItems.map((layoutItem) => {
                   const customClassName = getItemClassName?.(layoutItem.item);
                   const isDraggingItem = preview?.itemId === layoutItem.itemId;
+                  const isSingleDayMoveOnlyItem = viewMode === 'day' && layoutItem.width <= dayWidth;
                   const hasItemMenu = Boolean(onResourceItemMenuClick);
                   const isActiveItem = activeResourceItemId === layoutItem.itemId;
                   const className = [
                     'gantt-resourceTimeline-item',
+                    isSingleDayMoveOnlyItem && 'gantt-resourceTimeline-itemMoveOnly',
                     hasItemMenu && 'gantt-resourceTimeline-itemHasMenu',
                     isActiveItem && 'gantt-resourceTimeline-itemActive',
                     isDraggingItem && 'gantt-resourceTimeline-itemDragging',

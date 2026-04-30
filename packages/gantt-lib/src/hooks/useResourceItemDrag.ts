@@ -45,6 +45,47 @@ interface ActiveResourceDrag<TItem extends ResourceTimelineItem = ResourceTimeli
 }
 
 type ResourceTimelineChangeType = NonNullable<ResourceTimelineMove['changeType']>;
+const RESOURCE_CURSOR_STYLE_ID = 'gantt-resource-global-drag-cursor-style';
+
+function ensureResourceGlobalCursorStyle() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(RESOURCE_CURSOR_STYLE_ID)) return;
+
+  const style = document.createElement('style');
+  style.id = RESOURCE_CURSOR_STYLE_ID;
+  style.textContent = `
+    html.gantt-resource-global-cursor-grabbing,
+    html.gantt-resource-global-cursor-grabbing *,
+    html.gantt-resource-global-cursor-grabbing *::before,
+    html.gantt-resource-global-cursor-grabbing *::after {
+      cursor: grabbing !important;
+    }
+
+    html.gantt-resource-global-cursor-resize,
+    html.gantt-resource-global-cursor-resize *,
+    html.gantt-resource-global-cursor-resize *::before,
+    html.gantt-resource-global-cursor-resize *::after {
+      cursor: ew-resize !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function applyResourceGlobalCursor(cursor: 'grabbing' | 'ew-resize') {
+  if (typeof document === 'undefined') return;
+  ensureResourceGlobalCursorStyle();
+  document.documentElement.classList.remove('gantt-resource-global-cursor-grabbing', 'gantt-resource-global-cursor-resize');
+  document.documentElement.classList.add(cursor === 'grabbing' ? 'gantt-resource-global-cursor-grabbing' : 'gantt-resource-global-cursor-resize');
+  document.body.style.cursor = cursor;
+  document.documentElement.style.cursor = cursor;
+}
+
+function clearResourceGlobalCursor() {
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.remove('gantt-resource-global-cursor-grabbing', 'gantt-resource-global-cursor-resize');
+  document.body.style.cursor = '';
+  document.documentElement.style.cursor = '';
+}
 
 export interface ResourceItemDragPreview {
   itemId: string;
@@ -58,6 +99,7 @@ export interface ResourceItemDragPreview {
 export interface UseResourceItemDragOptions<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   dayWidth: number;
   monthStart: Date;
+  viewMode?: 'day' | 'week' | 'month';
   rows: Array<ResourceDragRow<TItem>>;
   gridElementRef?: RefObject<HTMLElement | null>;
   readonly?: boolean;
@@ -153,6 +195,7 @@ const resolveTargetResource = <TItem extends ResourceTimelineItem>(
 export const useResourceItemDrag = <TItem extends ResourceTimelineItem = ResourceTimelineItem>({
   dayWidth,
   monthStart,
+  viewMode = 'day',
   rows,
   gridElementRef,
   readonly,
@@ -184,6 +227,7 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
 
   const cancelDrag = useCallback(() => {
     clearRaf();
+    clearResourceGlobalCursor();
     activeDragRef.current = null;
     setPreview(null);
   }, [clearRaf]);
@@ -239,6 +283,7 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
       }
 
       clearRaf();
+      clearResourceGlobalCursor();
       activeDragRef.current = null;
       setPreview(null);
 
@@ -282,13 +327,17 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
     }
 
     const target = event.target as HTMLElement;
-    const mode: ResourceTimelineChangeType = target.closest('.gantt-resourceTimeline-resizeHandleStart')
-      ? 'resize-start'
-      : target.closest('.gantt-resourceTimeline-resizeHandleEnd')
-        ? 'resize-end'
-        : 'move';
+    const isSingleDayItem = viewMode === 'day' && layoutItem.width <= dayWidth;
+    const mode: ResourceTimelineChangeType = isSingleDayItem
+      ? 'move'
+      : target.closest('.gantt-resourceTimeline-resizeHandleStart')
+        ? 'resize-start'
+        : target.closest('.gantt-resourceTimeline-resizeHandleEnd')
+          ? 'resize-end'
+          : 'move';
 
     event.preventDefault();
+    applyResourceGlobalCursor(mode === 'move' ? 'grabbing' : 'ew-resize');
     activeDragRef.current = {
       item: layoutItem.item,
       itemId: layoutItem.itemId,
@@ -317,7 +366,7 @@ export const useResourceItemDrag = <TItem extends ResourceTimelineItem = Resourc
       startDate: layoutItem.startDate,
       endDate: layoutItem.endDate,
     });
-  }, [businessDays, dayWidth, monthStart, readonly, weekendPredicate]);
+  }, [businessDays, dayWidth, monthStart, readonly, weekendPredicate, viewMode]);
 
   return {
     preview,

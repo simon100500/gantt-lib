@@ -320,6 +320,8 @@ describe('ResourceTimelineChart drag interactions', () => {
     expect(item.querySelector('.gantt-resourceTimeline-itemDurationChip')).toHaveTextContent('3');
 
     fireEvent.mouseDown(handle, { clientX: 200, clientY: 20, button: 0 });
+    expect(document.documentElement.classList.contains('gantt-resource-global-cursor-resize')).toBe(true);
+    expect(document.body.style.cursor).toBe('ew-resize');
     fireEvent.mouseMove(window, { clientX: 240, clientY: 80 });
 
     await waitFor(() => {
@@ -334,6 +336,8 @@ describe('ResourceTimelineChart drag interactions', () => {
     await waitFor(() => {
       expect(onResourceItemMove).toHaveBeenCalledTimes(1);
     });
+    expect(document.documentElement.classList.contains('gantt-resource-global-cursor-resize')).toBe(false);
+    expect(document.body.style.cursor).toBe('');
 
     expect(onResourceItemMove.mock.calls[0][0]).toMatchObject({
       itemId: 'item-1',
@@ -344,6 +348,65 @@ describe('ResourceTimelineChart drag interactions', () => {
     });
     expect(onResourceItemMove.mock.calls[0][0].startDate.toISOString()).toBe('2026-04-03T00:00:00.000Z');
     expect(onResourceItemMove.mock.calls[0][0].endDate.toISOString()).toBe('2026-04-06T00:00:00.000Z');
+  });
+
+  it('treats a one-day resource item as move-only in day view even from the resize handle', async () => {
+    const onResourceItemMove = vi.fn<[ResourceTimelineMove]>();
+    const singleDayResources: ResourceTimelineResource[] = [
+      {
+        id: 'design',
+        name: 'Design',
+        items: [
+          {
+            id: 'item-1',
+            resourceId: 'design',
+            taskId: 'task-1',
+            title: 'One day',
+            startDate: '2026-04-03',
+            endDate: '2026-04-03',
+          },
+        ],
+      },
+    ];
+
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={singleDayResources}
+        dayWidth={40}
+        laneHeight={40}
+        viewMode="day"
+        businessDays={false}
+        onResourceItemMove={onResourceItemMove}
+      />
+    );
+
+    const item = screen.getByText('One day').closest('[data-resource-item-id="item-1"]') as HTMLElement;
+    const handle = item.querySelector('.gantt-resourceTimeline-resizeHandleEnd') as HTMLElement;
+    expect(item).toHaveClass('gantt-resourceTimeline-itemMoveOnly');
+
+    fireEvent.mouseDown(handle, { clientX: 120, clientY: 20, button: 0 });
+    expect(document.documentElement.classList.contains('gantt-resource-global-cursor-grabbing')).toBe(true);
+    expect(document.body.style.cursor).toBe('grabbing');
+    fireEvent.mouseMove(window, { clientX: 160, clientY: 20 });
+
+    await waitFor(() => {
+      expect(item).toHaveClass('gantt-resourceTimeline-itemDragging');
+      expect(item.style.left).toBe('122px');
+    });
+
+    fireEvent.mouseUp(window, { clientX: 160, clientY: 20 });
+
+    await waitFor(() => {
+      expect(onResourceItemMove).toHaveBeenCalledTimes(1);
+    });
+    expect(document.documentElement.classList.contains('gantt-resource-global-cursor-grabbing')).toBe(false);
+    expect(document.body.style.cursor).toBe('');
+
+    const move = onResourceItemMove.mock.calls[0][0];
+    expect(move.changeType).toBe('move');
+    expect(move.startDate.toISOString()).toBe('2026-04-04T00:00:00.000Z');
+    expect(move.endDate.toISOString()).toBe('2026-04-04T00:00:00.000Z');
   });
 
   it('updates custom renderItem duration context while resizing', async () => {
