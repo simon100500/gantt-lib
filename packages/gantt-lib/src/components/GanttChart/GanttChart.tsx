@@ -206,6 +206,12 @@ export interface GanttModeProps<TTask extends Task = Task> {
   onToggleCollapse?: (parentId: string) => void;
   /** Task IDs to highlight in the task list (for search results) */
   highlightedTaskIds?: Set<string>;
+  /** Enable a leading checkbox column for multi-selecting task rows (default: false) */
+  enableTaskMultiSelect?: boolean;
+  /** Controlled selected task IDs for multi-select mode */
+  selectedTaskIds?: Set<string>;
+  /** Callback when multi-selected task IDs change */
+  onSelectedTaskIdsChange?: (taskIds: Set<string>) => void;
   /** Disable task drag and resize on the calendar grid (default: false) */
   disableTaskDrag?: boolean;
   /** Show calendar chart area (default: true) */
@@ -349,6 +355,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     collapsedParentIds: externalCollapsedParentIds,
     onToggleCollapse: externalOnToggleCollapse,
     highlightedTaskIds,
+    enableTaskMultiSelect = false,
+    selectedTaskIds,
+    onSelectedTaskIdsChange,
     disableTaskDrag = false,
     showChart = true,
     additionalColumns,
@@ -1165,6 +1174,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             onDemoteTask={onDemoteTask ?? handleDemoteTask}
             onUngroupTask={onUngroupTask ?? handleUngroupTask}
             highlightedTaskIds={taskListHighlightedTaskIds}
+            enableTaskMultiSelect={enableTaskMultiSelect}
+            selectedTaskIds={selectedTaskIds}
+            onSelectedTaskIdsChange={onSelectedTaskIdsChange}
             customDays={customDays}
             isWeekend={isWeekend}
             businessDays={businessDays}

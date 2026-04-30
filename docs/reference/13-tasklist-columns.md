@@ -16,14 +16,15 @@ Do not use legacy deep imports.
 
 The built-in TaskList columns are resolved in this base order:
 
-1. `number`
-2. `name`
-3. `startDate`
-4. `endDate`
-5. `duration`
-6. `progress`
-7. `dependencies`
-8. `actions`
+1. `selection` (only when `enableTaskMultiSelect={true}`)
+2. `number`
+3. `name`
+4. `startDate`
+5. `endDate`
+6. `duration`
+7. `progress`
+8. `dependencies`
+9. `actions`
 
 Your custom columns are inserted relative to this order with `before` / `after`.
 
@@ -31,6 +32,7 @@ Your custom columns are inserted relative to this order with `before` / `after`.
 
 ```ts
 type BuiltInTaskListColumnId =
+  | 'selection'
   | 'number'
   | 'name'
   | 'startDate'
@@ -67,6 +69,8 @@ interface TaskListColumn<TTask extends Task> extends TaskListColumnAnchor {
 
 type TaskListColumnId = BuiltInTaskListColumnId | string;
 ```
+
+The `selection` column is only present when `enableTaskMultiSelect={true}`. It is placed before `number` and can still be hidden with `hiddenTaskListColumns={['selection']}`.
 
 ## Placement Rules
 

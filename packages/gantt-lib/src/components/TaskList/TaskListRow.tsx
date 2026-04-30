@@ -798,6 +798,10 @@ export interface TaskListRowProps {
   isFilterHideMode?: boolean;
   /** Resolved columns (built-in + custom) for unified rendering */
   resolvedColumns?: NewTaskListColumn<Task>[];
+  /** Whether this task is currently selected by the multi-select checkbox column */
+  isTaskSelected?: boolean;
+  /** Callback when this task's multi-select checkbox changes */
+  onTaskSelectionChange?: (taskId: string, checked: boolean) => void;
   /** Additional commands rendered in the three-dots row menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
 }
@@ -862,6 +866,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     isFilterMatch = false,
     isFilterHideMode = false,
     resolvedColumns,
+    isTaskSelected = false,
+    onTaskSelectionChange,
     taskListMenuCommands = [],
   }) => {
     const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
@@ -1808,6 +1814,21 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       : toISODate(normalizedTask.endDate);
 
     // --- Built-in cell JSX (referenced from resolvedColumns.map) ---
+    const selectionCell = (
+      <div
+        className="gantt-tl-cell gantt-tl-cell-selection"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <input
+          type="checkbox"
+          className="gantt-tl-selection-checkbox"
+          aria-label={`Выбрать задачу ${taskNumber ? `${taskNumber}. ` : ""}${task.name}`}
+          checked={isTaskSelected}
+          onChange={(event) => onTaskSelectionChange?.(task.id, event.target.checked)}
+        />
+      </div>
+    );
+
     const numberCell = (
       <div
         className="gantt-tl-cell gantt-tl-cell-number"
@@ -2509,6 +2530,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     );
 
     const builtInCells: Record<string, React.ReactNode> = {
+      selection: selectionCell,
       number: numberCell,
       name: nameCell,
       startDate: startDateCell,

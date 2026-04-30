@@ -42,6 +42,9 @@ interface GanttModeProps<TTask extends Task = Task> {
   enableAddTask?: boolean;
   taskFilter?: TaskPredicate;
   highlightedTaskIds?: Set<string>;
+  enableTaskMultiSelect?: boolean;
+  selectedTaskIds?: Set<string>;
+  onSelectedTaskIdsChange?: (taskIds: Set<string>) => void;
   customDays?: CustomDayConfig[];
   isWeekend?: (date: Date) => boolean;
   businessDays?: boolean;
@@ -142,6 +145,9 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `enableAddTask` | `boolean` | `true` | When `true`, shows the "+ Добавить задачу" button at the bottom of the task list for adding new tasks. |
 | `taskFilter` | `TaskPredicate` | `undefined` | Predicate function to filter tasks. Receives a `Task | undefined`, returns `true` to show the task, `false` to hide it. **Import:** `import { type TaskPredicate } from 'gantt-lib'`. See Section 7.3 for usage and ready-made filters. |
 | `highlightedTaskIds` | `Set<string>` | `undefined` | Task IDs to highlight in the task list. Useful for external search results or navigation state without hiding other rows. Used with `filterMode='highlight'`. |
+| `enableTaskMultiSelect` | `boolean` | `false` | When `true`, adds a leading TaskList checkbox column for multi-selecting rows. The header checkbox toggles all currently visible task rows. |
+| `selectedTaskIds` | `Set<string>` | `undefined` | Controlled selected task IDs for `enableTaskMultiSelect`. If omitted, the task list keeps its own internal selection state. |
+| `onSelectedTaskIdsChange` | `(taskIds: Set<string>) => void` | `undefined` | Called when a row checkbox or the header checkbox changes the selected task IDs. Receives a new `Set`. |
 | `filterMode` | `'highlight' \| 'hide'` | `'highlight'` | Filter display mode. `'highlight'` shows yellow highlight on matching tasks (default). `'hide'` hides non-matching tasks from view. Use with `filteredTaskIds` and `isFilterActive`. |
 | `filteredTaskIds` | `Set<string>` | `undefined` | Task IDs that match the filter. In `'hide'` mode with `isFilterActive={true}`, only these tasks are visible. In `'highlight'` mode, these tasks are highlighted with yellow background. |
 | `isFilterActive` | `boolean` | `false` | Whether filter is currently active. Needed to distinguish "no filter" from "filter with no matches". When `true` and `filterMode='hide'`, non-matching tasks are hidden. |

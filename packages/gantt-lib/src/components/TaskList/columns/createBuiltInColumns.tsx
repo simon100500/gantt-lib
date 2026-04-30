@@ -2,6 +2,7 @@ import type { Task } from '../../GanttChart';
 import type { TaskListColumn } from './types';
 
 export const BUILT_IN_COLUMN_WIDTHS: Record<string, number> = {
+  selection: 36,
   number: 40,
   name: 200,
   startDate: 90,
@@ -14,8 +15,9 @@ export const BUILT_IN_COLUMN_WIDTHS: Record<string, number> = {
 
 export function createBuiltInColumns<TTask extends Task>(opts?: {
   businessDays?: boolean;
+  enableTaskMultiSelect?: boolean;
 }): TaskListColumn<TTask>[] {
-  return [
+  const columns: TaskListColumn<TTask>[] = [
     { id: 'number', header: '\u2116', width: BUILT_IN_COLUMN_WIDTHS.number, renderCell: () => null },
     { id: 'name', header: '\u0418\u043C\u044F', width: BUILT_IN_COLUMN_WIDTHS.name, renderCell: () => null },
     { id: 'startDate', header: '\u041D\u0430\u0447\u0430\u043B\u043E', width: BUILT_IN_COLUMN_WIDTHS.startDate, renderCell: () => null },
@@ -24,4 +26,15 @@ export function createBuiltInColumns<TTask extends Task>(opts?: {
     { id: 'progress', header: '%', width: BUILT_IN_COLUMN_WIDTHS.progress, renderCell: () => null },
     { id: 'dependencies', header: null, width: BUILT_IN_COLUMN_WIDTHS.dependencies, renderCell: () => null },
   ];
+
+  if (opts?.enableTaskMultiSelect) {
+    columns.unshift({
+      id: 'selection',
+      header: null,
+      width: BUILT_IN_COLUMN_WIDTHS.selection,
+      renderCell: () => null,
+    });
+  }
+
+  return columns;
 }

@@ -26,6 +26,7 @@ type DependencyPickMode = 'predecessor' | 'successor';
 const MIN_TASK_LIST_WIDTH = 530;
 
 const BUILT_IN_CSS_CLASSES: Record<string, string> = {
+  selection: 'gantt-tl-cell-selection',
   number: 'gantt-tl-cell-number',
   name: 'gantt-tl-cell-name',
   startDate: 'gantt-tl-cell-date',
@@ -199,6 +200,12 @@ export interface TaskListProps {
   businessDays?: boolean;
   /** Task IDs highlighted by the active filter */
   highlightedTaskIds?: Set<string>;
+  /** Enable a leading checkbox column for multi-selecting task rows (default: false) */
+  enableTaskMultiSelect?: boolean;
+  /** Controlled selected task IDs for multi-select mode */
+  selectedTaskIds?: Set<string>;
+  /** Callback when multi-selected task IDs change */
+  onSelectedTaskIdsChange?: (taskIds: Set<string>) => void;
   /** Filter mode: 'highlight' shows yellow highlight on matches, 'hide' hides non-matching tasks */
   filterMode?: 'highlight' | 'hide';
   /** Task IDs that match the filter (used for hide mode). When undefined, no filtering is applied */
@@ -221,6 +228,38 @@ interface PendingInsertState {
   endDate: string | Date;
   nestingDepth: number;
 }
+
+interface SelectAllCheckboxProps {
+  checked: boolean;
+  indeterminate: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+const SelectAllCheckbox: React.FC<SelectAllCheckboxProps> = ({
+  checked,
+  indeterminate,
+  onChange,
+}) => {
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      className="gantt-tl-selection-checkbox"
+      aria-label="Выбрать все видимые задачи"
+      checked={checked}
+      onChange={(event) => onChange(event.target.checked)}
+      onClick={(event) => event.stopPropagation()}
+    />
+  );
+};
 
 /**
  * TaskList component - displays tasks in a table format as an overlay
@@ -258,6 +297,9 @@ export const TaskList: React.FC<TaskListProps> = ({
   isWeekend,
   businessDays,
   highlightedTaskIds = new Set(),
+  enableTaskMultiSelect = false,
+  selectedTaskIds,
+  onSelectedTaskIdsChange,
   filterMode = 'highlight',
   filteredTaskIds = new Set(),
   isFilterActive = false,
@@ -265,6 +307,16 @@ export const TaskList: React.FC<TaskListProps> = ({
   hiddenTaskListColumns,
   taskListMenuCommands,
 }) => {
+  const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
+  const effectiveSelectedTaskIds = selectedTaskIds ?? internalSelectedTaskIds;
+
+  const emitSelectedTaskIdsChange = useCallback((nextSelectedTaskIds: Set<string>) => {
+    if (!selectedTaskIds) {
+      setInternalSelectedTaskIds(nextSelectedTaskIds);
+    }
+    onSelectedTaskIdsChange?.(nextSelectedTaskIds);
+  }, [onSelectedTaskIdsChange, selectedTaskIds]);
+
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
 
@@ -328,6 +380,36 @@ export const TaskList: React.FC<TaskListProps> = ({
       ) as Record<string, string>,
     [visibleTasks]
   );
+
+  const visibleTaskIds = useMemo(() => visibleTasks.map(task => task.id), [visibleTasks]);
+  const selectedVisibleTaskCount = useMemo(
+    () => visibleTaskIds.filter(taskId => effectiveSelectedTaskIds.has(taskId)).length,
+    [effectiveSelectedTaskIds, visibleTaskIds]
+  );
+  const areAllVisibleTasksSelected = visibleTaskIds.length > 0 && selectedVisibleTaskCount === visibleTaskIds.length;
+  const areSomeVisibleTasksSelected = selectedVisibleTaskCount > 0 && !areAllVisibleTasksSelected;
+
+  const handleToggleTaskSelection = useCallback((taskId: string, checked: boolean) => {
+    const nextSelectedTaskIds = new Set(effectiveSelectedTaskIds);
+    if (checked) {
+      nextSelectedTaskIds.add(taskId);
+    } else {
+      nextSelectedTaskIds.delete(taskId);
+    }
+    emitSelectedTaskIdsChange(nextSelectedTaskIds);
+  }, [effectiveSelectedTaskIds, emitSelectedTaskIdsChange]);
+
+  const handleToggleAllVisibleTaskSelection = useCallback((checked: boolean) => {
+    const nextSelectedTaskIds = new Set(effectiveSelectedTaskIds);
+    for (const taskId of visibleTaskIds) {
+      if (checked) {
+        nextSelectedTaskIds.add(taskId);
+      } else {
+        nextSelectedTaskIds.delete(taskId);
+      }
+    }
+    emitSelectedTaskIdsChange(nextSelectedTaskIds);
+  }, [effectiveSelectedTaskIds, emitSelectedTaskIdsChange, visibleTaskIds]);
 
   // Оригинальные номера задач на основе полного списка (до фильтрации)
   // Используются для сохранения нумерации при скрытии задач
@@ -1033,7 +1115,10 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [orderedTasks, onReorder]);
 
   // ---- Column resolution ----
-  const builtInColumns = useMemo(() => createBuiltInColumns<Task>({ businessDays }), [businessDays]);
+  const builtInColumns = useMemo(
+    () => createBuiltInColumns<Task>({ businessDays, enableTaskMultiSelect }),
+    [businessDays, enableTaskMultiSelect]
+  );
   const resolvedColumns = useMemo(
     () => resolveTaskListColumns(
       builtInColumns,
@@ -1061,6 +1146,19 @@ export const TaskList: React.FC<TaskListProps> = ({
         {/* Header row includes the bottom grid border owned by the calendar header wrapper. */}
         <div className="gantt-tl-header" style={{ height: `${tableHeaderHeight}px` }}>
           {resolvedColumns.map(col => {
+            if (col.id === 'selection') {
+              return (
+                <div key={col.id}
+                     className="gantt-tl-headerCell gantt-tl-cell-selection"
+                     data-column-id="selection">
+                  <SelectAllCheckbox
+                    checked={areAllVisibleTasksSelected}
+                    indeterminate={areSomeVisibleTasksSelected}
+                    onChange={handleToggleAllVisibleTaskSelection}
+                  />
+                </div>
+              );
+            }
             // Dependencies header has special Popover UI
             if (col.id === 'dependencies') {
               return (
@@ -1183,6 +1281,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                   isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}
                   isFilterHideMode={filterMode === 'hide' && isFilterActive}
                   resolvedColumns={resolvedColumns}
+                  isTaskSelected={effectiveSelectedTaskIds.has(task.id)}
+                  onTaskSelectionChange={handleToggleTaskSelection}
                   taskListMenuCommands={taskListMenuCommands}
                 />
                 {pendingInsertDisplayTaskId === task.id && (

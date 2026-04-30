@@ -223,6 +223,24 @@ body {
   color: #9ca3af;
 }
 
+.demo-selection-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  max-width: 100%;
+  margin: -0.25rem 0 0.875rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 6px;
+  background: rgba(37, 99, 235, 0.06);
+  color: #1f2937;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Datepicker controls */
 .demo-datepicker {
   display: flex;

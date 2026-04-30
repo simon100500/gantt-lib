@@ -96,6 +96,9 @@ export default function App() {
 | `headerHeight` | `number`                                                | `40`            | Высота заголовка в пикселях                   |
 | `showTaskList` | `boolean`                                               | `false`         | Показывает левую панель TaskList              |
 | `taskListWidth`| `number`                                                | `660`           | Желаемая ширина TaskList в пикселях           |
+| `enableTaskMultiSelect` | `boolean`                                      | `false`         | Добавляет первый столбец с чекбоксами выбора строк |
+| `selectedTaskIds` | `Set<string>`                                       | —               | Controlled-набор выбранных задач              |
+| `onSelectedTaskIdsChange` | `(taskIds: Set<string>) => void`             | —               | Вызывается при изменении мультивыбора         |
 | `onTasksChange`| `(tasks: Task[]) => void`                               | —               | Вызывается с массивом изменённых задач        |
 
 Полный список актуальных пропсов смотрите в `docs/reference/04-props.md`.

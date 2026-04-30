@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { Task } from '../../GanttChart';
 
 export type BuiltInTaskListColumnId =
-  | 'number' | 'name' | 'startDate' | 'endDate'
+  | 'selection' | 'number' | 'name' | 'startDate' | 'endDate'
   | 'duration' | 'progress' | 'dependencies' | 'actions';
 
 export type TaskListColumnId = BuiltInTaskListColumnId | (string & {});

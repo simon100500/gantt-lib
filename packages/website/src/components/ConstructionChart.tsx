@@ -89,6 +89,8 @@ export default function ConstructionChart() {
   const [businessDays, setBusinessDays] = useState(true);
   const [disableTaskDrag, setDisableTaskDrag] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [enableTaskMultiSelect, setEnableTaskMultiSelect] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
   const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
   const [filterMode, setFilterMode] = useState<'highlight' | 'hide'>('highlight');
@@ -113,6 +115,10 @@ export default function ConstructionChart() {
 
   const highlightedSearchTaskIds = useMemo(() => new Set(searchResultIds), [searchResultIds]);
   const activeSearchTaskId = searchResultIds[activeSearchResultIndex] ?? searchResultIds[0];
+  const selectedTaskNames = useMemo(
+    () => tasks.filter((task) => selectedTaskIds.has(task.id)).map((task) => task.name),
+    [selectedTaskIds, tasks],
+  );
 
   useEffect(() => { setActiveSearchResultIndex(0); }, [searchQuery]);
 
@@ -204,6 +210,17 @@ export default function ConstructionChart() {
     });
   }, [searchResultIds]);
 
+  const handleToggleMultiSelect = useCallback(() => {
+    setEnableTaskMultiSelect((enabled) => {
+      const nextEnabled = !enabled;
+      if (!nextEnabled) {
+        setSelectedTaskIds(new Set());
+      }
+      return nextEnabled;
+    });
+    setShowTaskList(true);
+  }, []);
+
   const filterBtnStyle = (active?: boolean, color?: string) => ({
     padding: '4px 12px',
     fontSize: '0.875rem',
@@ -277,7 +294,23 @@ export default function ConstructionChart() {
         <button className={`demo-btn ${businessDays ? "demo-btn-active" : "demo-btn-muted"}`} onClick={() => setBusinessDays(!businessDays)}>{businessDays ? "Рабочие дни: ON" : "Рабочие дни: OFF"}</button>
         <button className={`demo-btn ${disableTaskDrag ? "demo-btn-danger" : "demo-btn-muted"}`} onClick={() => setDisableTaskDrag(!disableTaskDrag)}>{disableTaskDrag ? "Drag: OFF" : "Drag: ON"}</button>
         <button className={`demo-btn ${locked ? "demo-btn-danger" : "demo-btn-muted"}`} onClick={() => { setLocked(!locked); setDisableTaskNameEditing(!locked); setDisableTaskDrag(!locked); }}>{locked ? "🔓 Разблокировать" : "🔒 Заблокировать"}</button>
+        <button className={`demo-btn ${enableTaskMultiSelect ? "demo-btn-active" : "demo-btn-muted"}`} onClick={handleToggleMultiSelect}>
+          {enableTaskMultiSelect ? "Multi-select: ON" : "Multi-select: OFF"}
+        </button>
+        {enableTaskMultiSelect && selectedTaskIds.size > 0 && (
+          <button className="demo-btn demo-btn-neutral" onClick={() => setSelectedTaskIds(new Set())}>
+            Clear selection ({selectedTaskIds.size})
+          </button>
+        )}
       </div>
+
+      {enableTaskMultiSelect && (
+        <div className="demo-selection-status" aria-live="polite">
+          {selectedTaskIds.size === 0
+            ? "Выберите строки чекбоксами в первом столбце"
+            : `Выбрано: ${selectedTaskNames.join(", ")}`}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Поиск:</span>
@@ -342,6 +375,9 @@ export default function ConstructionChart() {
           customDays={MAIN_CHART_CUSTOM_DAYS}
           highlightedTaskIds={highlightedSearchTaskIds}
           disableTaskDrag={disableTaskDrag}
+          enableTaskMultiSelect={enableTaskMultiSelect}
+          selectedTaskIds={selectedTaskIds}
+          onSelectedTaskIdsChange={setSelectedTaskIds}
           filterMode={filterMode}
           taskListMenuCommands={taskListMenuCommands}
         />
