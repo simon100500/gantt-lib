@@ -5,6 +5,12 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.87.0] - 2026-04-30
+
+### Новые возможности
+
+- Поддержка мультивыбора задач через `enableTaskMultiSelect`, `selectedTaskIds` и `onSelectedTaskIdsChange`
+
 ## [0.86.1] - 2026-04-30
 
 ### Новые возможности
