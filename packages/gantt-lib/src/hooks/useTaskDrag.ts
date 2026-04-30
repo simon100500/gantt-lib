@@ -82,6 +82,50 @@ interface ActiveDragState {
 
 let globalActiveDrag: ActiveDragState | null = null;
 let globalRafId: number | null = null;
+let globalLockedCursor: string | null = null;
+const GLOBAL_CURSOR_STYLE_ID = 'gantt-global-drag-cursor-style';
+
+function ensureGlobalCursorStyle() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(GLOBAL_CURSOR_STYLE_ID)) return;
+
+  const style = document.createElement('style');
+  style.id = GLOBAL_CURSOR_STYLE_ID;
+  style.textContent = `
+    html.gantt-global-cursor-grabbing,
+    html.gantt-global-cursor-grabbing *,
+    html.gantt-global-cursor-grabbing *::before,
+    html.gantt-global-cursor-grabbing *::after {
+      cursor: grabbing !important;
+    }
+
+    html.gantt-global-cursor-resize,
+    html.gantt-global-cursor-resize *,
+    html.gantt-global-cursor-resize *::before,
+    html.gantt-global-cursor-resize *::after {
+      cursor: ew-resize !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function applyGlobalCursor(cursor: string) {
+  if (typeof document === 'undefined') return;
+  ensureGlobalCursorStyle();
+  globalLockedCursor = cursor;
+  document.documentElement.classList.remove('gantt-global-cursor-grabbing', 'gantt-global-cursor-resize');
+  document.documentElement.classList.add(cursor === 'grabbing' ? 'gantt-global-cursor-grabbing' : 'gantt-global-cursor-resize');
+  document.body.style.cursor = cursor;
+  document.documentElement.style.cursor = cursor;
+}
+
+function clearGlobalCursor() {
+  if (typeof document === 'undefined') return;
+  globalLockedCursor = null;
+  document.documentElement.classList.remove('gantt-global-cursor-grabbing', 'gantt-global-cursor-resize');
+  document.body.style.cursor = '';
+  document.documentElement.style.cursor = '';
+}
 
 function getDayOffsetFromMonthStart(date: Date, monthStart: Date): number {
   return Math.round(
@@ -100,6 +144,8 @@ function completeDrag() {
     globalRafId = null;
   }
 
+  clearGlobalCursor();
+
   if (globalActiveDrag) {
     // Clear cascade overrides before completing (avoids stale preview positions)
     globalActiveDrag.onCascadeProgress?.(new Map(), []);
@@ -117,6 +163,8 @@ function cancelDrag() {
     cancelAnimationFrame(globalRafId);
     globalRafId = null;
   }
+
+  clearGlobalCursor();
 
   if (globalActiveDrag) {
     const { onCancel } = globalActiveDrag;
@@ -848,6 +896,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     // Update display state
     setIsDragging(true);
     setDragMode(mode);
+    applyGlobalCursor(mode === 'move' ? 'grabbing' : 'ew-resize');
 
     // Notify parent of drag start
     if (onDragStateChange) {

@@ -198,6 +198,36 @@ describe('useTaskDrag', () => {
       expect(result.current.dragMode).toBe('resize-left');
       expect(result.current.dragHandleProps.style.cursor).toBe('ew-resize');
     });
+
+    it('should lock the global cursor until mouseup during resize', () => {
+      const { result } = renderHook(() => useTaskDrag(mockOptions));
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 360,
+          width: 240,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 365,
+        } as unknown as React.MouseEvent);
+      });
+
+      expect(document.body.style.cursor).toBe('ew-resize');
+      expect(document.documentElement.style.cursor).toBe('ew-resize');
+      expect(document.documentElement.classList.contains('gantt-global-cursor-resize')).toBe(true);
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      expect(document.body.style.cursor).toBe('');
+      expect(document.documentElement.style.cursor).toBe('');
+      expect(document.documentElement.classList.contains('gantt-global-cursor-resize')).toBe(false);
+    });
   });
 
   describe('Move operation', () => {
