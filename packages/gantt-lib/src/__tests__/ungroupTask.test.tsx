@@ -14,7 +14,7 @@ vi.mock('../components/ui/Popover', () => ({
 }));
 
 describe('GanttChart ungroup task', () => {
-  it('removes the parent and promotes its direct children by one level', () => {
+  it('keeps the parent and promotes its direct children by one level', () => {
     const onTasksChange = vi.fn();
     const onDelete = vi.fn();
 
@@ -70,7 +70,6 @@ describe('GanttChart ungroup task', () => {
       { ...secondChild, parentId: undefined, dependencies: undefined },
       { ...dependent, dependencies: [] },
     ]);
-    expect(onDelete).toHaveBeenCalledWith('parent');
-    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onDelete).not.toHaveBeenCalled();
   });
 });

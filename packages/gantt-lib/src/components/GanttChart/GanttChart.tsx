@@ -178,7 +178,7 @@ export interface GanttModeProps<TTask extends Task = Task> {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when a task is demoted (parentId set). If not provided, default internal logic is used. */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
-  /** Callback when a parent task is ungrouped (removed while direct children move one level up). */
+  /** Callback when a parent task is ungrouped while direct children move one level up and the parent remains. */
   onUngroupTask?: (taskId: string) => void;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
@@ -1108,8 +1108,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const changedTasks: Task[] = [];
 
     for (const task of tasks) {
-      if (task.id === taskId) continue;
-
       const nextParentId = task.parentId === taskId ? parentTask.parentId : task.parentId;
       const nextDependencies = task.dependencies?.filter(dep => dep.taskId !== taskId);
 
@@ -1125,9 +1123,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (changedTasks.length > 0) {
       onTasksChange?.(changedTasks as TTask[]);
     }
-
-    onDelete?.(taskId);
-  }, [tasks, onTasksChange, onDelete, onUngroupTask]);
+  }, [tasks, onTasksChange, onUngroupTask]);
 
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);

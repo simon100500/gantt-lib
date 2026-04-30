@@ -190,7 +190,7 @@ export interface TaskListProps {
   onPromoteTask?: (taskId: string) => void;
   /** Callback when task is demoted (parentId set to previous task) */
   onDemoteTask?: (taskId: string, newParentId: string) => void;
-  /** Callback when parent task is ungrouped (removed while direct children move one level up) */
+  /** Callback when a parent task is ungrouped while direct children move one level up and the parent remains */
   onUngroupTask?: (taskId: string) => void;
   /** Custom day configurations for date picker */
   customDays?: CustomDayConfig[];
