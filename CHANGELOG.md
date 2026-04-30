@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.88.1] - 2026-04-30
+
+### Features
+
+- Improve resource item drag interactions in Gantt chart
+
 ## [0.88.0] - 2026-04-30
 
 ### Features
