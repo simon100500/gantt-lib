@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.89.0] - 2026-05-01
+
+### Features
+
+- Enhance scrollToRow functionality in GanttChart
+
 ## [0.88.2] - 2026-05-01
 
 ### Refactor
