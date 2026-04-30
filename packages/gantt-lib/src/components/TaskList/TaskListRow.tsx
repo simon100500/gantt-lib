@@ -25,7 +25,7 @@ import {
   normalizeDependencyLag,
   isTaskParent,
   findParentId,
-  getChildren,
+  getAllDescendants,
   recalculateIncomingLags,
 } from "../../core/scheduling";
 import { Input } from "../ui/Input";
@@ -1246,10 +1246,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         (clampedValue === 100 || clampedValue === 0) &&
         isTaskParent(task.id, allTasks)
       ) {
-        const children = getChildren(task.id, allTasks);
+        const descendants = getAllDescendants(task.id, allTasks);
         const updatedTasks = [
           { ...task, progress: clampedValue },
-          ...children.map((child) => ({ ...child, progress: clampedValue })),
+          ...descendants.map((descendant) => ({
+            ...descendant,
+            progress: clampedValue,
+          })),
         ];
         onTasksChange?.(updatedTasks);
       } else {
@@ -1280,11 +1283,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             (clampedValue === 100 || clampedValue === 0) &&
             isTaskParent(task.id, allTasks)
           ) {
-            const children = getChildren(task.id, allTasks);
+            const descendants = getAllDescendants(task.id, allTasks);
             const updatedTasks = [
               { ...task, progress: clampedValue },
-              ...children.map((child) => ({
-                ...child,
+              ...descendants.map((descendant) => ({
+                ...descendant,
                 progress: clampedValue,
               })),
             ];
@@ -1525,16 +1528,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       (color?: string) => {
         if (!onTasksChange) return;
 
-        const descendantIds = new Set<string>();
-        if (isParent) {
-          const stack = getChildren(task.id, allTasks);
-          while (stack.length > 0) {
-            const current = stack.shift();
-            if (!current || descendantIds.has(current.id)) continue;
-            descendantIds.add(current.id);
-            stack.push(...getChildren(current.id, allTasks));
-          }
-        }
+        const descendantIds = new Set(
+          isParent ? getAllDescendants(task.id, allTasks).map(descendant => descendant.id) : []
+        );
 
         const updatedTasks: Task[] = [
           { ...task, color },
