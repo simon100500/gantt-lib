@@ -3,6 +3,7 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import type { Task, TaskDependency, TaskListMenuCommand } from '../GanttChart';
 import type { LinkType } from '../../types';
+import type { TaskDateChangeMode } from '../../types';
 import type { CustomDayConfig } from '../../utils/dateUtils';
 import { createCustomDayPredicate } from '../../utils/dateUtils';
 import { validateDependencies, calculateSuccessorDate, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration, isTaskParent, areTasksHierarchicallyRelated, getChildren } from '../../core/scheduling';
@@ -218,6 +219,10 @@ export interface TaskListProps {
   hiddenTaskListColumns?: readonly TaskListColumnId[];
   /** Additional commands rendered in each row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
+  /** How task-list date pickers apply start/end edits */
+  taskDateChangeMode?: TaskDateChangeMode;
+  /** Controlled callback for task-list date picker mode changes */
+  onTaskDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
 }
 
 interface PendingInsertState {
@@ -306,6 +311,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   additionalColumns,
   hiddenTaskListColumns,
   taskListMenuCommands,
+  taskDateChangeMode = 'preserve-duration',
+  onTaskDateChangeModeChange,
 }) => {
   const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
   const effectiveSelectedTaskIds = selectedTaskIds ?? internalSelectedTaskIds;
@@ -1284,6 +1291,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                   isTaskSelected={effectiveSelectedTaskIds.has(task.id)}
                   onTaskSelectionChange={handleToggleTaskSelection}
                   taskListMenuCommands={taskListMenuCommands}
+                  taskDateChangeMode={taskDateChangeMode}
+                  onTaskDateChangeModeChange={onTaskDateChangeModeChange}
                 />
                 {pendingInsertDisplayTaskId === task.id && (
                   <NewTaskRow

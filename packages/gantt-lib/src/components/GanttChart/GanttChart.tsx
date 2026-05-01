@@ -11,6 +11,7 @@ import type {
   ResourceTimelineMove,
   ResourceTimelineResource,
   ResourceTimelineResourceMenuCommand,
+  TaskDateChangeMode,
   ValidationResult,
 } from '../../types';
 import { TaskPredicate } from '../../filters';
@@ -222,6 +223,10 @@ export interface GanttModeProps<TTask extends Task = Task> {
   hiddenTaskListColumns?: readonly TaskListColumnId[];
   /** Additional commands rendered in the TaskList row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
+  /** How task-list date pickers apply start/end edits (default: preserve-duration) */
+  taskDateChangeMode?: TaskDateChangeMode;
+  /** Controlled callback for task-list date picker mode changes */
+  onTaskDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
 }
 
 export type GanttChartProps<
@@ -372,6 +377,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     additionalColumns,
     hiddenTaskListColumns,
     taskListMenuCommands,
+    taskDateChangeMode: externalTaskDateChangeMode,
+    onTaskDateChangeModeChange: externalOnTaskDateChangeModeChange,
   } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -381,6 +388,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
+  const [internalTaskDateChangeMode, setInternalTaskDateChangeMode] = useState<TaskDateChangeMode>('preserve-duration');
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
@@ -393,6 +401,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Track editing task ID for auto-edit mode after insert
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const taskDateChangeMode = externalTaskDateChangeMode ?? internalTaskDateChangeMode;
+  const handleTaskDateChangeMode = externalOnTaskDateChangeModeChange ?? setInternalTaskDateChangeMode;
 
   const normalizedTasks = useMemo(() => normalizeHierarchyTasks(tasks), [tasks]);
 
@@ -1235,6 +1245,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             additionalColumns={additionalColumns}
             hiddenTaskListColumns={hiddenTaskListColumns}
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
+            taskDateChangeMode={taskDateChangeMode}
+            onTaskDateChangeModeChange={handleTaskDateChangeMode}
           />
 
           {/* Chart area */}

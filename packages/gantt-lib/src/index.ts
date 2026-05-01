@@ -61,4 +61,5 @@ export type {
   MonthSpan,
   GridLine,
   WeekendBlock,
+  TaskDateChangeMode,
 } from './types';

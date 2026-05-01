@@ -8,7 +8,7 @@ import React, {
   useMemo,
 } from "react";
 import type { Task, TaskListMenuCommand } from "../GanttChart";
-import type { LinkType } from "../../types";
+import type { LinkType, TaskDateChangeMode } from "../../types";
 import type { CustomDayConfig } from "../../utils/dateUtils";
 import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate } from "../../utils/dateUtils";
 import { isMilestoneTask, normalizeTaskDatesForType } from "../../utils/taskType";
@@ -804,6 +804,10 @@ export interface TaskListRowProps {
   onTaskSelectionChange?: (taskId: string, checked: boolean) => void;
   /** Additional commands rendered in the three-dots row menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
+  /** How task-list date pickers apply start/end edits */
+  taskDateChangeMode?: TaskDateChangeMode;
+  /** Controlled callback for task-list date picker mode changes */
+  onTaskDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -869,6 +873,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     isTaskSelected = false,
     onTaskSelectionChange,
     taskListMenuCommands = [],
+    taskDateChangeMode = 'preserve-duration',
+    onTaskDateChangeModeChange,
   }) => {
     const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
     const editingName = editingColumnId === 'name';
@@ -1359,8 +1365,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       ]);
     }, [task, onTasksChange, allTasks, businessDays, weekendPredicate]);
 
-    // Both date pickers shift the whole task (preserving duration), same as drag-move
-    // Also normalizes dates to ensure startDate is always before or equal to endDate
     const handleStartDateChange = useCallback(
       (newDateISO: string) => {
         if (!newDateISO) return;
@@ -1368,29 +1372,31 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           emitMilestoneDateChange(newDateISO);
           return;
         }
-        let nextEndISO: string;
         const normalizedInputStart = businessDays
           ? alignToWorkingDay(new Date(`${newDateISO}T00:00:00.000Z`), 1, weekendPredicate)
           : new Date(`${newDateISO}T00:00:00.000Z`);
-
-        if (businessDays) {
-          const duration = getDuration(task.startDate, task.endDate);
-          nextEndISO = buildTaskRangeFromStart(
-            normalizedInputStart,
-            duration,
-            true,
-            weekendPredicate,
-            1
-          ).end.toISOString().split("T")[0];
-        } else {
-          const origStart = parseUTCDate(task.startDate);
-          const origEnd = parseUTCDate(task.endDate);
-          const durationMs = origEnd.getTime() - origStart.getTime();
-          nextEndISO = new Date(normalizedInputStart.getTime() + durationMs).toISOString().split("T")[0];
-        }
-
         const { startDate: normalizedStart, endDate: normalizedEnd } =
-          normalizeTaskDates(normalizedInputStart, nextEndISO);
+          taskDateChangeMode === 'free'
+            ? normalizeTaskDates(
+              normalizedInputStart,
+              normalizedInputStart.getTime() > parseUTCDate(task.endDate).getTime()
+                ? normalizedInputStart
+                : parseUTCDate(task.endDate)
+            )
+            : normalizeTaskDates(
+              normalizedInputStart,
+              businessDays
+                ? buildTaskRangeFromStart(
+                  normalizedInputStart,
+                  getDuration(task.startDate, task.endDate),
+                  true,
+                  weekendPredicate,
+                  1
+                ).end.toISOString().split("T")[0]
+                : new Date(
+                  normalizedInputStart.getTime() + (parseUTCDate(task.endDate).getTime() - parseUTCDate(task.startDate).getTime())
+                ).toISOString().split("T")[0]
+            );
         const clampedRange = clampTaskRangeForIncomingFS(
           task,
           new Date(`${normalizedStart}T00:00:00.000Z`),
@@ -1419,7 +1425,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           },
         ]);
       },
-      [task, onTasksChange, businessDays, getDuration, getEndDate, allTasks, weekendPredicate, isMilestone, emitMilestoneDateChange],
+      [task, onTasksChange, businessDays, getDuration, allTasks, weekendPredicate, isMilestone, emitMilestoneDateChange, taskDateChangeMode],
     );
 
     const handleEndDateChange = useCallback(
@@ -1429,29 +1435,31 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           emitMilestoneDateChange(newDateISO);
           return;
         }
-        let nextStartISO: string;
         const normalizedInputEnd = businessDays
           ? alignToWorkingDay(new Date(`${newDateISO}T00:00:00.000Z`), -1, weekendPredicate)
           : new Date(`${newDateISO}T00:00:00.000Z`);
-
-        if (businessDays) {
-          const duration = getDuration(task.startDate, task.endDate);
-          nextStartISO = buildTaskRangeFromEnd(
-            normalizedInputEnd,
-            duration,
-            true,
-            weekendPredicate,
-            -1
-          ).start.toISOString().split("T")[0];
-        } else {
-          const origStart = parseUTCDate(task.startDate);
-          const origEnd = parseUTCDate(task.endDate);
-          const durationMs = origEnd.getTime() - origStart.getTime();
-          nextStartISO = new Date(normalizedInputEnd.getTime() - durationMs).toISOString().split("T")[0];
-        }
-
         const { startDate: normalizedStart, endDate: normalizedEnd } =
-          normalizeTaskDates(nextStartISO, normalizedInputEnd);
+          taskDateChangeMode === 'free'
+            ? normalizeTaskDates(
+              normalizedInputEnd.getTime() < parseUTCDate(task.startDate).getTime()
+                ? normalizedInputEnd
+                : parseUTCDate(task.startDate),
+              normalizedInputEnd
+            )
+            : normalizeTaskDates(
+              businessDays
+                ? buildTaskRangeFromEnd(
+                  normalizedInputEnd,
+                  getDuration(task.startDate, task.endDate),
+                  true,
+                  weekendPredicate,
+                  -1
+                ).start.toISOString().split("T")[0]
+                : new Date(
+                  normalizedInputEnd.getTime() - (parseUTCDate(task.endDate).getTime() - parseUTCDate(task.startDate).getTime())
+                ).toISOString().split("T")[0],
+              normalizedInputEnd
+            );
         const clampedRange = clampTaskRangeForIncomingFS(
           task,
           new Date(`${normalizedStart}T00:00:00.000Z`),
@@ -1480,8 +1488,19 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           },
         ]);
       },
-      [task, onTasksChange, businessDays, getDuration, weekendPredicate, allTasks, isMilestone, emitMilestoneDateChange],
+      [task, onTasksChange, businessDays, getDuration, weekendPredicate, allTasks, isMilestone, emitMilestoneDateChange, taskDateChangeMode],
     );
+
+    const datePickerFooter = onTaskDateChangeModeChange ? (
+      <label className="gantt-datepicker-mode-checkbox">
+        <input
+          type="checkbox"
+          checked={taskDateChangeMode === 'preserve-duration'}
+          onChange={(event) => onTaskDateChangeModeChange(event.target.checked ? 'preserve-duration' : 'free')}
+        />
+        <span>Сохранять длительность</span>
+      </label>
+    ) : null;
 
     const handleRowClickInternal = useCallback(() => {
       onRowClick?.(task.id);
@@ -2221,6 +2240,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           disabled={task.locked}
           isWeekend={weekendPredicate}
           businessDays={businessDays}
+          footer={datePickerFooter}
         />
       </div>
     );
@@ -2238,6 +2258,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           disabled={task.locked}
           isWeekend={weekendPredicate}
           businessDays={businessDays}
+          footer={datePickerFooter}
         />
       </div>
     );

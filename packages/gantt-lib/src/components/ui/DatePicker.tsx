@@ -24,6 +24,8 @@ export interface DatePickerProps {
   isWeekend?: (date: Date) => boolean;
   /** Whether to use business days for +1/+7 buttons (default: true) */
   businessDays?: boolean;
+  /** Optional footer content rendered below the calendar popup */
+  footer?: React.ReactNode;
 }
 
 const segments = [
@@ -89,6 +91,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   disabled = false,
   isWeekend,
   businessDays = true,
+  footer,
 }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -400,6 +403,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           initialDate={activeDate}
           isWeekend={isWeekend}
         />
+        {footer ? <div className="gantt-datepicker-footer">{footer}</div> : null}
       </PopoverContent>
     </Popover>
   );

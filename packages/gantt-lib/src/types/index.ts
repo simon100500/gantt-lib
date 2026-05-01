@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 export type GanttChartMode = 'gantt' | 'resource-planner';
+export type TaskDateChangeMode = 'preserve-duration' | 'free';
 
 export interface ResourceTimelineItem {
   id: string;

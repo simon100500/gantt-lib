@@ -369,3 +369,23 @@
   background: var(--gantt-input-border, rgba(0,0,0,0.15));
 }
 
+.gantt-datepicker-footer {
+  padding: 8px;
+  border-top: 1px solid var(--gantt-input-border);
+}
+
+.gantt-datepicker-mode-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--gantt-calendar-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.gantt-datepicker-mode-checkbox input {
+  margin: 0;
+  cursor: pointer;
+}
+
