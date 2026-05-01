@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.91.0] - 2026-05-01
+
+### Features
+
+- Introduce TaskDateChangeMode for task date pickers
+
 ## [0.90.0] - 2026-05-01
 
 ### Features
