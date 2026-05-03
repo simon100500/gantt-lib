@@ -224,6 +224,7 @@ export default function TableMatrix<TTask extends Task = Task>({
                     key={`${task.id}:${column.id}`}
                     className={joinClasses(
                       'gantt-mx-cell',
+                      onCellClick && 'gantt-mx-cell-clickable',
                       `gantt-mx-cellAlign-${column.align ?? 'right'}`,
                       column.className,
                       resolvedCellClassName
