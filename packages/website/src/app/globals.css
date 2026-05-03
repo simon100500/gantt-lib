@@ -231,6 +231,13 @@ body {
   background: transparent;
 }
 
+.finance-money-value {
+  display: inline;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .demo-selection-status {
   display: inline-flex;
   align-items: center;

@@ -194,8 +194,30 @@ const monthGroups: TableMatrixColumnGroup[] = [
   { id: "2026-06", header: "Июнь 2026" },
 ];
 
+const moneyFormatter = new Intl.NumberFormat("ru-RU", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 function formatMoney(value: number) {
-  return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(value);
+  const formatted = moneyFormatter.format(value);
+  return formatted.endsWith(",00") ? formatted.slice(0, -3) : formatted;
+}
+
+function MoneyValue({
+  value,
+  color,
+  fontWeight,
+}: {
+  value: number;
+  color?: string;
+  fontWeight?: number;
+}) {
+  return (
+    <span className="finance-money-value" style={{ color, fontWeight }}>
+      {formatMoney(value)}
+    </span>
+  );
 }
 
 function getMatrixColumnWidth(view: MatrixView) {
@@ -370,9 +392,9 @@ function buildMatrixColumns(view: MatrixView): TableMatrixColumn<FinanceTask>[] 
       const showSecondaryLine = value > 0 && share >= 18;
       return (
         <div style={{ display: 'grid', gap: 2, justifyItems: 'end', width: '100%', padding: '2px 0' }}>
-          <span style={{ fontSize: 13, color: value > 0 ? '#0f172a' : '#94a3b8' }}>
-            {value > 0 ? formatMoney(value) : ''}
-          </span>
+          {value > 0 && (
+            <MoneyValue value={value} color="#0f172a" />
+          )}
           {showSecondaryLine && (
             <span style={{ fontSize: 11, color: '#64748b' }}>
               {share}% бюджета
@@ -406,7 +428,9 @@ export default function FinancePlanMatrixDemo() {
       align: 'right',
       after: 'owner',
       editable: true,
-      renderCell: ({ task }) => <span style={{ fontWeight: task.parentId ? 500 : 700 }}>{formatMoney(task.budget)}</span>,
+      renderCell: ({ task }) => (
+        <MoneyValue value={task.budget} fontWeight={task.parentId ? 500 : 700} />
+      ),
       renderEditor: ({ task, editStartValue, updateTask, closeEditor }) => {
         return (
           <BudgetCellEditor
@@ -425,9 +449,11 @@ export default function FinancePlanMatrixDemo() {
       align: 'right',
       after: 'budget',
       renderCell: ({ task }) => (
-        <span style={{ color: task.paid > 0 ? '#0f766e' : '#94a3b8', fontWeight: task.parentId ? 500 : 700 }}>
-          {formatMoney(task.paid)}
-        </span>
+        <MoneyValue
+          value={task.paid}
+          color={task.paid > 0 ? '#0f766e' : '#94a3b8'}
+          fontWeight={task.parentId ? 500 : 700}
+        />
       ),
     },
   ], []);
@@ -448,9 +474,9 @@ export default function FinancePlanMatrixDemo() {
 
         return (
           <div style={{ display: 'grid', gap: 2, justifyItems: 'end', width: '100%', padding: '2px 0' }}>
-            <span style={{ fontSize: 13, color: value > 0 ? '#0f172a' : '#94a3b8' }}>
-              {value > 0 ? formatMoney(value) : ''}
-            </span>
+            {value > 0 && (
+              <MoneyValue value={value} color="#0f172a" />
+            )}
             {showSecondaryLine && (
               <span style={{ fontSize: 11, color: '#64748b' }}>
                 {share}% бюджета
