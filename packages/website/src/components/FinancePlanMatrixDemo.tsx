@@ -396,13 +396,9 @@ const monthlyPeriods: PeriodDefinition[] = [
   { id: "2026-06", label: "Июнь" },
 ];
 
-const monthGroups: TableMatrixColumnGroup[] = [
-  { id: "2026-04", header: "Апрель 2026" },
-  { id: "2026-05", header: "Май 2026" },
-  { id: "2026-06", header: "Июнь 2026" },
-];
-
 const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_COLUMN_WIDTH = 98;
+const DAY_COLUMN_WIDTH = WEEK_COLUMN_WIDTH / 7;
 
 function utcDate(year: number, monthIndex: number, day: number) {
   return new Date(Date.UTC(year, monthIndex, day));
@@ -471,6 +467,46 @@ const weeklyPeriods: PeriodDefinition[] = buildMondayWeeksByMonthMajority(
   utcDate(2026, 6, 1)
 );
 
+function daysBetween(start: Date, end: Date) {
+  return Math.round((end.getTime() - start.getTime()) / DAY_MS);
+}
+
+function buildVisibleMonthGroups(startMonth: Date, endMonth: Date): TableMatrixColumnGroup[] {
+  const visibleStart = startOfMondayWeek(startMonth);
+  const visibleEnd = startOfMondayWeek(endMonth);
+  const groups: TableMatrixColumnGroup[] = [];
+  let cursor = new Date(startMonth);
+
+  while (cursor < endMonth) {
+    const nextMonth = utcDate(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1);
+    const monthId = getMonthId(cursor);
+    const start = groups.length === 0 ? visibleStart : cursor;
+    const end = nextMonth >= endMonth ? visibleEnd : nextMonth;
+    const header = monthGroupsById.get(monthId) ?? monthId;
+
+    groups.push({
+      id: monthId,
+      header,
+      width: daysBetween(start, end) * DAY_COLUMN_WIDTH,
+    });
+
+    cursor = nextMonth;
+  }
+
+  return groups;
+}
+
+const monthGroupsById = new Map([
+  ["2026-04", "Апрель 2026"],
+  ["2026-05", "Май 2026"],
+  ["2026-06", "Июнь 2026"],
+]);
+
+const monthGroups: TableMatrixColumnGroup[] = buildVisibleMonthGroups(
+  utcDate(2026, 3, 1),
+  utcDate(2026, 6, 1)
+);
+
 const moneyFormatter = new Intl.NumberFormat("ru-RU", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
@@ -498,7 +534,7 @@ function MoneyValue({
 }
 
 function getMatrixColumnWidth(view: MatrixView) {
-  return view === 'week' ? 96 : 108;
+  return view === 'week' ? WEEK_COLUMN_WIDTH : 108;
 }
 
 type BudgetEditorProps = {

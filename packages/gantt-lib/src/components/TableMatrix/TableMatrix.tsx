@@ -7,6 +7,7 @@ import './TableMatrix.css';
 export interface TableMatrixColumnGroup {
   id: string;
   header: React.ReactNode;
+  width?: number;
   className?: string;
 }
 
@@ -90,6 +91,15 @@ export default function TableMatrix<TTask extends Task = Task>({
 
   const headerSpans = useMemo<HeaderSpan[]>(() => {
     if (!hasGroupHeader) return [];
+
+    if (columnGroups?.some((group) => typeof group.width === 'number')) {
+      return columnGroups.map((group) => ({
+        id: group.id,
+        header: group.header,
+        width: group.width ?? 0,
+        className: group.className,
+      }));
+    }
 
     const spans: HeaderSpan[] = [];
     for (const column of columns) {
