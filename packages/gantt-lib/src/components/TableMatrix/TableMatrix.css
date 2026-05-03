@@ -73,16 +73,20 @@
   background: var(--gantt-parent-row-bg, #f1f5f9);
 }
 
-.gantt-mx-row.gantt-mx-row-selected {
-  background: rgba(37, 99, 235, 0.06);
-}
-
 .gantt-mx-row.gantt-mx-row-highlighted {
-  background: rgba(250, 204, 21, 0.12);
+  background-color: rgba(250, 204, 21, 0.24);
 }
 
 .gantt-mx-row.gantt-mx-row-hovered {
-  background: rgba(59, 130, 246, 0.08);
+  box-shadow: inset 0 0 0 9999px var(--gantt-row-hover-background, rgba(59, 130, 246, 0.04));
+}
+
+.gantt-mx-row.gantt-mx-row-highlighted.gantt-mx-row-hovered {
+  box-shadow: inset 0 0 0 9999px rgba(250, 204, 21, 0.3);
+}
+
+.gantt-mx-row.gantt-mx-row-selected {
+  box-shadow: inset 0 0 0 9999px rgba(17, 24, 39, 0.08);
 }
 
 .gantt-mx-cell {

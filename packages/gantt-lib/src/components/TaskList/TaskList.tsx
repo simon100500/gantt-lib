@@ -1156,7 +1156,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       className={`gantt-tl-overlay${show ? '' : ' gantt-tl-hidden'}${hasRightShadow ? ' gantt-tl-overlay-shadowed' : ''}`}
       style={{
         '--tasklist-width': `${effectiveTaskListWidth}px`,
-        '--gantt-row-content-lines': String(Math.max(1, Math.floor(rowContentLines))),
+        '--gantt-row-content-lines': String(Math.max(2, Math.floor(rowContentLines))),
       } as React.CSSProperties}
     >
       <div className="gantt-tl-table">
