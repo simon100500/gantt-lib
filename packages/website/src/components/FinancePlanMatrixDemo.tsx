@@ -418,12 +418,8 @@ function formatWeekLabel(start: Date) {
   const end = addDays(start, 6);
   const startDay = String(start.getUTCDate()).padStart(2, "0");
   const endDay = String(end.getUTCDate()).padStart(2, "0");
-  const startMonth = String(start.getUTCMonth() + 1).padStart(2, "0");
-  const endMonth = String(end.getUTCMonth() + 1).padStart(2, "0");
 
-  return start.getUTCMonth() === end.getUTCMonth()
-    ? `${startDay}-${endDay}`
-    : `${startDay}.${startMonth}-${endDay}.${endMonth}`;
+  return `${startDay}-${endDay}`;
 }
 
 function getMonthId(date: Date) {

@@ -52,18 +52,11 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   background: var(--gantt-cell-background, #ffffff);
+  border-right: 0;
 }
 
-.gantt-mx-groupCell:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: -1px;
-  bottom: 0;
-  z-index: 1;
-  width: 2px;
-  background: var(--gantt-month-separator-color, #64748b);
-  pointer-events: none;
+.gantt-mx-groupCell:not(:last-child) {
+  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
 }
 
 .gantt-mx-headerCell {
