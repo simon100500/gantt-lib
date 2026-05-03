@@ -149,28 +149,16 @@
 
 .gantt-tl-row-parent {
   font-weight: 600;
-  --gantt-tl-name-actions-bg: var(--gantt-parent-row-bg, #f1f5f9);
-  background-color: var(--gantt-parent-row-bg, #f1f5f9);
+  --gantt-tl-name-actions-bg: inherit;
 }
 
 .gantt-tl-row-level-0.gantt-tl-row-parent {
-  --gantt-tl-name-actions-bg: var(--gantt-row-fill-level-0, #fde68a);
-  background-color: var(--gantt-row-fill-level-0, #fde68a);
-}
-
-.gantt-tl-row-level-1.gantt-tl-row-parent {
-  --gantt-tl-name-actions-bg: var(--gantt-row-fill-level-1, #fef3c7);
-  background-color: var(--gantt-row-fill-level-1, #fef3c7);
-}
-
-.gantt-tl-row-level-2.gantt-tl-row-parent {
-  --gantt-tl-name-actions-bg: var(--gantt-row-fill-level-2, #fffbeb);
-  background-color: var(--gantt-row-fill-level-2, #fffbeb);
+  --gantt-tl-name-actions-bg: var(--gantt-row-fill-level-0, #e2e8f0);
+  background-color: var(--gantt-row-fill-level-0, #e2e8f0);
 }
 
 .gantt-tl-row-total {
-  --gantt-tl-name-actions-bg: var(--gantt-row-fill-total, #fcd34d);
-  background-color: var(--gantt-row-fill-total, #fcd34d);
+  --gantt-tl-name-actions-bg: inherit;
   font-weight: 700;
 }
 

@@ -70,23 +70,14 @@
 }
 
 .gantt-mx-row.gantt-mx-row-parent {
-  background: var(--gantt-parent-row-bg, #f1f5f9);
+  font-weight: 600;
 }
 
 .gantt-mx-row.gantt-mx-row-level-0.gantt-mx-row-parent {
-  background: var(--gantt-row-fill-level-0, #fde68a);
-}
-
-.gantt-mx-row.gantt-mx-row-level-1.gantt-mx-row-parent {
-  background: var(--gantt-row-fill-level-1, #fef3c7);
-}
-
-.gantt-mx-row.gantt-mx-row-level-2.gantt-mx-row-parent {
-  background: var(--gantt-row-fill-level-2, #fffbeb);
+  background: var(--gantt-row-fill-level-0, #e2e8f0);
 }
 
 .gantt-mx-row.gantt-mx-row-total {
-  background: var(--gantt-row-fill-total, #fcd34d);
   font-weight: 700;
 }
 
