@@ -3,5 +3,6 @@ export { default as TaskRow } from './TaskRow';
 export { default as TimeScaleHeader } from './TimeScaleHeader';
 export { default as GridBackground } from './GridBackground';
 export { default as TodayIndicator } from './TodayIndicator';
+export { TableMatrix } from './TableMatrix';
 export { DependencyLines } from './DependencyLines';
 export { DragGuideLines } from './DragGuideLines/DragGuideLines';

@@ -24,6 +24,7 @@ import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
 import { TaskList } from '../TaskList';
 import { ResourceTimelineChart } from '../ResourceTimelineChart';
+import { TableMatrix, type TableMatrixColumn, type TableMatrixColumnGroup } from '../TableMatrix';
 import { printGanttChart } from './print';
 import './GanttChart.css';
 
@@ -132,13 +133,9 @@ export interface TaskListMenuCommand<TTask extends Task = Task> {
   closeOnSelect?: boolean;
 }
 
-export interface GanttModeProps<TTask extends Task = Task> {
-  /** Omitted mode keeps the historical task-based gantt behavior. */
-  mode?: 'gantt';
+interface TaskChartSharedProps<TTask extends Task = Task> {
   /** Array of tasks to display */
   tasks: TTask[];
-  /** Width of each day column in pixels (default: 40) */
-  dayWidth?: number;
   /** Height of each task row in pixels (default: 40) */
   rowHeight?: number;
   /** Height of the header row in pixels (default: 40) */
@@ -223,16 +220,41 @@ export interface GanttModeProps<TTask extends Task = Task> {
   hiddenTaskListColumns?: readonly TaskListColumnId[];
   /** Additional commands rendered in the TaskList row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
+  /** Hide row action controls in the TaskList for table-like read/edit presentations. */
+  hideTaskListRowActions?: boolean;
   /** How task-list date pickers apply start/end edits (default: preserve-duration) */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
   onTaskDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
 }
 
+export interface GanttModeProps<TTask extends Task = Task> extends TaskChartSharedProps<TTask> {
+  /** Omitted mode keeps the historical task-based gantt behavior. */
+  mode?: 'gantt';
+  /** Width of each day column in pixels (default: 40) */
+  dayWidth?: number;
+  /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days, 'month' renders one column per month (default: 'day') */
+  viewMode?: 'day' | 'week' | 'month';
+  /** Custom day configurations with explicit type (weekend or workday) */
+  customDays?: CustomDayConfig[];
+  /** Optional base weekend predicate (checked before customDays overrides) */
+  isWeekend?: (date: Date) => boolean;
+  /** Считать duration в рабочих днях, исключая выходные (default: true) */
+  businessDays?: boolean;
+}
+
+export interface TableMatrixModeProps<TTask extends Task = Task> extends TaskChartSharedProps<TTask> {
+  mode: 'table-matrix';
+  /** Width of the arbitrary right-side matrix columns. */
+  matrixColumns: Array<TableMatrixColumn<TTask>>;
+  /** Optional grouped header row above matrix columns (e.g. months over weekly columns). */
+  matrixColumnGroups?: Array<TableMatrixColumnGroup>;
+}
+
 export type GanttChartProps<
   TTask extends Task = Task,
   TItem extends ResourceTimelineItem = ResourceTimelineItem,
-> = GanttModeProps<TTask> | ResourcePlannerChartProps<TItem>;
+> = GanttModeProps<TTask> | TableMatrixModeProps<TTask> | ResourcePlannerChartProps<TItem>;
 
 export interface ExportToPdfOptions {
   /** Structured header displayed above the exported chart */
@@ -331,12 +353,12 @@ function GanttChartInner<
 }
 
 function TaskGanttChartInner<TTask extends Task = Task>(
-  props: GanttModeProps<TTask>,
+  props: GanttModeProps<TTask> | TableMatrixModeProps<TTask>,
   ref: React.ForwardedRef<GanttChartHandle>
 ) {
+  const isTableMatrixMode = props.mode === 'table-matrix';
   const {
     tasks,
-    dayWidth = 40,
     rowHeight = 40,
     headerHeight = 40,
     containerHeight,
@@ -360,10 +382,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onUngroupTask,
     enableAddTask = true,
     defaultTaskDurationDays,
-    viewMode = 'day',
-    customDays,
-    isWeekend,
-    businessDays = true,
     taskFilter,
     filterMode = 'highlight',
     collapsedParentIds: externalCollapsedParentIds,
@@ -377,9 +395,17 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     additionalColumns,
     hiddenTaskListColumns,
     taskListMenuCommands,
+    hideTaskListRowActions = false,
     taskDateChangeMode: externalTaskDateChangeMode,
     onTaskDateChangeModeChange: externalOnTaskDateChangeModeChange,
   } = props;
+  const dayWidth = !isTableMatrixMode ? props.dayWidth ?? 40 : 40;
+  const viewMode = !isTableMatrixMode ? props.viewMode ?? 'day' : 'day';
+  const customDays = !isTableMatrixMode ? props.customDays : undefined;
+  const isWeekend = !isTableMatrixMode ? props.isWeekend : undefined;
+  const businessDays = !isTableMatrixMode ? props.businessDays ?? true : true;
+  const matrixColumns = isTableMatrixMode ? props.matrixColumns : [];
+  const matrixColumnGroups = isTableMatrixMode ? props.matrixColumnGroups : undefined;
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
@@ -442,6 +468,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const gridWidth = useMemo(
     () => Math.round(dateRange.length * dayWidth),
     [dateRange.length, dayWidth]
+  );
+  const matrixWidth = useMemo(
+    () => matrixColumns.reduce((sum, column) => sum + column.width, 0),
+    [matrixColumns]
   );
 
   // Visible tasks are determined by collapsed parent state and optionally by filter mode.
@@ -513,6 +543,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Center chart on today's date on initial mount
   useEffect(() => {
+    if (isTableMatrixMode) return;
     const container = scrollContainerRef.current;
     if (!container || dateRange.length === 0) return;
 
@@ -528,7 +559,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const scrollLeft = Math.round(todayOffset + (dayWidth / 2) - containerWidth * 0.3);
 
     container.scrollLeft = Math.max(0, scrollLeft);
-  }, []); // Empty deps array - run only on mount
+  }, [dateRange, dayWidth, isTableMatrixMode]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -549,6 +580,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
    * Scroll to today's date when the "Today" button is clicked
    */
   const scrollToToday = useCallback(() => {
+    if (isTableMatrixMode) return;
     const container = scrollContainerRef.current;
     if (!container || dateRange.length === 0) return;
 
@@ -564,12 +596,24 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const scrollLeft = Math.round(todayOffset + (dayWidth / 2) - containerWidth * 0.3);
 
     container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
-  }, [dateRange, dayWidth]);
+  }, [dateRange, dayWidth, isTableMatrixMode]);
 
   /**
    * Scroll to a specific task by ID, centering its start date horizontally in the grid.
    */
   const scrollToTask = useCallback((taskId: string) => {
+    if (isTableMatrixMode) {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      const rowIndex = visibleTasks.findIndex((visibleTask) => visibleTask.id === taskId);
+      if (rowIndex === -1) return;
+
+      const paddedRowIndex = Math.max(0, rowIndex - SCROLL_TO_ROW_CONTEXT_ROWS);
+      container.scrollTo({ top: Math.max(0, rowHeight * paddedRowIndex), behavior: 'smooth' });
+      setSelectedTaskId(taskId);
+      return;
+    }
     const container = scrollContainerRef.current;
     if (!container || dateRange.length === 0) return;
 
@@ -588,7 +632,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const taskOffset = taskIndex * dayWidth;
     const scrollLeft = Math.round(taskOffset - dayWidth * 2);
     container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
-  }, [tasks, dateRange, dayWidth]);
+  }, [dateRange, dayWidth, isTableMatrixMode, rowHeight, tasks, visibleTasks]);
 
   const scrollToRow = useCallback((taskId: string, options: ScrollToRowOptions = {}) => {
     const container = scrollContainerRef.current;
@@ -872,6 +916,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       }
       if (element.classList.contains('gantt-tr-row')) {
         element.classList.add('gantt-tr-row-hovered');
+      }
+      if (element.classList.contains('gantt-mx-row')) {
+        element.classList.add('gantt-mx-row-hovered');
       }
     }
 
@@ -1245,107 +1292,128 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             additionalColumns={additionalColumns}
             hiddenTaskListColumns={hiddenTaskListColumns}
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
+            hideTaskListRowActions={hideTaskListRowActions}
             taskDateChangeMode={taskDateChangeMode}
             onTaskDateChangeModeChange={handleTaskDateChangeMode}
           />
 
           {/* Chart area */}
           <div
-            className={showChart ? 'gantt-chartSurface' : 'gantt-chartSurface gantt-chart-hidden'}
-            style={{ minWidth: `${gridWidth}px`, flex: 1, display: showChart ? undefined : 'none' }}
+            className={isTableMatrixMode || showChart ? 'gantt-chartSurface' : 'gantt-chartSurface gantt-chart-hidden'}
+            style={{
+              minWidth: `${isTableMatrixMode ? matrixWidth : gridWidth}px`,
+              flex: 1,
+              display: isTableMatrixMode || showChart ? undefined : 'none',
+            }}
           >
-            {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
-            <div
-              className="gantt-stickyHeader"
-              style={{ width: `${gridWidth}px`, height: `${timelineHeaderHeight}px` }}
-            >
-              <TimeScaleHeader
-                days={dateRange}
-                dayWidth={dayWidth}
-                headerHeight={headerHeight}
-                viewMode={viewMode}
-                isCustomWeekend={isCustomWeekend}
-              />
-            </div>
-
-            {/* Task area */}
-            <div
-              className="gantt-taskArea"
-              style={{
-                position: 'relative',
-                width: `${gridWidth}px`,
-              }}
-            >
-              <GridBackground
-                dateRange={dateRange}
-                dayWidth={dayWidth}
-                totalHeight={totalGridHeight}
-                viewMode={viewMode}
-                isCustomWeekend={isCustomWeekend}
-              />
-
-              {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
-
-              {/* Dependency lines SVG overlay */}
-              <DependencyLines
-                tasks={previewVisibleTasks}
-                allTasks={previewNormalizedTasks}
-                collapsedParentIds={collapsedParentIds}
-                monthStart={monthStart}
-                dayWidth={dayWidth}
+            {isTableMatrixMode ? (
+              <TableMatrix
+                tasks={visibleTasks}
+                columns={matrixColumns}
+                columnGroups={matrixColumnGroups}
                 rowHeight={rowHeight}
-                gridWidth={gridWidth}
-                dragOverrides={dependencyOverrides}
-                selectedDep={selectedChip}
-                businessDays={businessDays}
-                weekendPredicate={isCustomWeekend}
+                headerHeight={timelineHeaderHeight}
+                selectedTaskId={selectedTaskId}
+                onTaskSelect={handleTaskSelect}
+                highlightedTaskIds={taskListHighlightedTaskIds}
+                filterMode={filterMode}
               />
+            ) : (
+              <>
+                {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
+                <div
+                  className="gantt-stickyHeader"
+                  style={{ width: `${gridWidth}px`, height: `${timelineHeaderHeight}px` }}
+                >
+                  <TimeScaleHeader
+                    days={dateRange}
+                    dayWidth={dayWidth}
+                    headerHeight={headerHeight}
+                    viewMode={viewMode}
+                    isCustomWeekend={isCustomWeekend}
+                  />
+                </div>
 
-              {dragGuideLines && (
-                <DragGuideLines
-                  isDragging={dragGuideLines.isDragging}
-                  dragMode={dragGuideLines.dragMode}
-                  left={dragGuideLines.left}
-                  width={dragGuideLines.width}
-                  totalHeight={totalGridHeight}
-                />
-              )}
-
-              {visibleTasks.map((task, index) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  monthStart={monthStart}
-                  dayWidth={dayWidth}
-                  rowHeight={rowHeight}
-                  onTasksChange={handleTaskChange as (tasks: Task[]) => void}
-                  onDragStateChange={(state) => {
-                    if (state.isDragging) {
-                      setDragGuideLines(state);
-                      setDraggedTaskOverride({ taskId: task.id, left: state.left, width: state.width });
-                    } else {
-                      setDragGuideLines(null);
-                      setDraggedTaskOverride(null);
-                    }
+                {/* Task area */}
+                <div
+                  className="gantt-taskArea"
+                  style={{
+                    position: 'relative',
+                    width: `${gridWidth}px`,
                   }}
-                  rowIndex={index}
-                  allTasks={normalizedTasks}
-                  enableAutoSchedule={enableAutoSchedule ?? false}
-                  disableConstraints={disableConstraints ?? false}
-                  overridePosition={cascadeOverrides.get(task.id)}
-                  onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
-                  onCascade={handleCascade as (cascadedTasks: Task[]) => void}
-                  highlightExpiredTasks={highlightExpiredTasks}
-                  showBaseline={showBaseline}
-                  isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
-                  businessDays={businessDays}
-                  customDays={customDays}
-                  isWeekend={isWeekend}
-                  disableTaskDrag={disableTaskDrag}
-                  viewMode={viewMode}
-                />
-              ))}
-            </div>
+                >
+                  <GridBackground
+                    dateRange={dateRange}
+                    dayWidth={dayWidth}
+                    totalHeight={totalGridHeight}
+                    viewMode={viewMode}
+                    isCustomWeekend={isCustomWeekend}
+                  />
+
+                  {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
+
+                  {/* Dependency lines SVG overlay */}
+                  <DependencyLines
+                    tasks={previewVisibleTasks}
+                    allTasks={previewNormalizedTasks}
+                    collapsedParentIds={collapsedParentIds}
+                    monthStart={monthStart}
+                    dayWidth={dayWidth}
+                    rowHeight={rowHeight}
+                    gridWidth={gridWidth}
+                    dragOverrides={dependencyOverrides}
+                    selectedDep={selectedChip}
+                    businessDays={businessDays}
+                    weekendPredicate={isCustomWeekend}
+                  />
+
+                  {dragGuideLines && (
+                    <DragGuideLines
+                      isDragging={dragGuideLines.isDragging}
+                      dragMode={dragGuideLines.dragMode}
+                      left={dragGuideLines.left}
+                      width={dragGuideLines.width}
+                      totalHeight={totalGridHeight}
+                    />
+                  )}
+
+                  {visibleTasks.map((task, index) => (
+                    <TaskRow
+                      key={task.id}
+                      task={task}
+                      monthStart={monthStart}
+                      dayWidth={dayWidth}
+                      rowHeight={rowHeight}
+                      onTasksChange={handleTaskChange as (tasks: Task[]) => void}
+                      onDragStateChange={(state) => {
+                        if (state.isDragging) {
+                          setDragGuideLines(state);
+                          setDraggedTaskOverride({ taskId: task.id, left: state.left, width: state.width });
+                        } else {
+                          setDragGuideLines(null);
+                          setDraggedTaskOverride(null);
+                        }
+                      }}
+                      rowIndex={index}
+                      allTasks={normalizedTasks}
+                      enableAutoSchedule={enableAutoSchedule ?? false}
+                      disableConstraints={disableConstraints ?? false}
+                      overridePosition={cascadeOverrides.get(task.id)}
+                      onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
+                      onCascade={handleCascade as (cascadedTasks: Task[]) => void}
+                      highlightExpiredTasks={highlightExpiredTasks}
+                      showBaseline={showBaseline}
+                      isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
+                      businessDays={businessDays}
+                      customDays={customDays}
+                      isWeekend={isWeekend}
+                      disableTaskDrag={disableTaskDrag}
+                      viewMode={viewMode}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -1354,7 +1422,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 }
 
 const TaskGanttChart = forwardRef(TaskGanttChartInner) as <TTask extends Task = Task>(
-  props: GanttModeProps<TTask> & { ref?: React.Ref<GanttChartHandle> }
+  props: (GanttModeProps<TTask> | TableMatrixModeProps<TTask>) & { ref?: React.Ref<GanttChartHandle> }
 ) => React.ReactElement;
 
 export const GanttChart = forwardRef(GanttChartInner) as <

@@ -11,6 +11,9 @@ export {
   type TaskListMenuCommand,
   type GanttChartMode,
   type GanttModeProps,
+  type TableMatrixModeProps,
+  type TableMatrixColumn,
+  type TableMatrixColumnGroup,
   type GanttChartProps,
   type ResourcePlannerChartProps,
   type ResourceTimelineItem,
@@ -28,6 +31,7 @@ export { default as TodayIndicator } from './components/TodayIndicator';
 export { default as DragGuideLines } from './components/DragGuideLines/DragGuideLines';
 export { TaskList, type TaskListProps } from './components/TaskList';
 export { ResourceTimelineChart } from './components/ResourceTimelineChart';
+export { TableMatrix } from './components/TableMatrix';
 
 // UI Components
 export { Input, type InputProps } from './components/ui/Input';

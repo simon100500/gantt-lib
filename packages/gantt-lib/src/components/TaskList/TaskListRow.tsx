@@ -804,6 +804,8 @@ export interface TaskListRowProps {
   onTaskSelectionChange?: (taskId: string, checked: boolean) => void;
   /** Additional commands rendered in the three-dots row menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
+  /** Hide row action controls such as insert, hierarchy action buttons, and context menu trigger. */
+  hideTaskListRowActions?: boolean;
   /** How task-list date pickers apply start/end edits */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
@@ -873,6 +875,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     isTaskSelected = false,
     onTaskSelectionChange,
     taskListMenuCommands = [],
+    hideTaskListRowActions = false,
     taskDateChangeMode = 'preserve-duration',
     onTaskDateChangeModeChange,
   }) => {
@@ -1589,11 +1592,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     );
 
     const hasContextMenu =
-      visibleCustomMenuCommands.length > 0 ||
-      !!onDuplicateTask ||
-      !!onDelete ||
-      !!onTasksChange ||
-      (isParent && !!onUngroupTask);
+      !hideTaskListRowActions && (
+        visibleCustomMenuCommands.length > 0 ||
+        !!onDuplicateTask ||
+        !!onDelete ||
+        !!onTasksChange ||
+        (isParent && !!onUngroupTask)
+      );
 
     const handleCustomMenuCommandClick = useCallback(
       (command: TaskListMenuCommand<Task>) =>
@@ -2061,7 +2066,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             aria-hidden="true"
           />
         )}
-        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onUngroupTask || onDuplicateTask || onTasksChange || hasContextMenu) && (
+        {!editingName && !hideTaskListRowActions && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onUngroupTask || onDuplicateTask || onTasksChange || hasContextMenu) && (
           <div className={`gantt-tl-name-actions${contextMenuOpen ? " gantt-tl-name-actions-open" : ""}`}>
             {onInsertAfter && (
               <button
@@ -2609,7 +2614,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           return (
             <div
               key={col.id}
-              className="gantt-tl-cell gantt-tl-cell-custom"
+              className={`gantt-tl-cell gantt-tl-cell-custom gantt-tl-cell-align-${col.align ?? 'left'}`}
               data-column-id={`custom:${col.id}`}
               data-custom-column-id={col.id}
               data-custom-column-editing={isEditing ? "true" : "false"}
@@ -2619,6 +2624,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             >
               {isEditing && editorFn ? (
                 <div
+                  className="gantt-tl-cell-custom-editor"
                   data-custom-column-editor={col.id}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
@@ -2626,7 +2632,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   {editorFn(columnContext)}
                 </div>
               ) : (
-                col.renderCell(columnContext)
+                <div className="gantt-tl-cell-custom-content">
+                  {col.renderCell(columnContext)}
+                </div>
               )}
             </div>
           );

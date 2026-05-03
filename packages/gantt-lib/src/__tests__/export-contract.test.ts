@@ -9,6 +9,8 @@ import type {
   ResourceTimelineItem,
   ResourceTimelineMove,
   ResourceTimelineResource,
+  TableMatrixModeProps,
+  Task,
 } from '../index';
 
 describe('Export contract: core/scheduling', () => {
@@ -44,6 +46,35 @@ describe('Export contract: core/scheduling', () => {
 
     expect(props.resources[0].items[0].id).toBe('assignment-1');
     expect(props.containerHeight).toBe('calc(100dvh - 132px)');
+  });
+
+  it('keeps table-matrix public types usable from the root package', () => {
+    type FinanceTask = Task & { values: Record<string, number> };
+    const props: TableMatrixModeProps<FinanceTask> = {
+      mode: 'table-matrix',
+      tasks: [{
+        id: 'task-1',
+        name: 'Финплан',
+        startDate: '2026-04-01',
+        endDate: '2026-04-07',
+        values: { week1: 150000 },
+      }],
+      matrixColumns: [
+        {
+          id: 'week1',
+          header: '01-07',
+          width: 120,
+          align: 'right',
+          renderCell: (task) => task.values.week1.toLocaleString('ru-RU'),
+        },
+      ],
+      hideTaskListRowActions: true,
+    };
+
+    const mode: GanttChartMode = props.mode;
+    expect(mode).toBe('table-matrix');
+    expect(props.matrixColumns[0].width).toBe(120);
+    expect(props.hideTaskListRowActions).toBe(true);
   });
 
   it('exports command-level API from execute.ts', async () => {

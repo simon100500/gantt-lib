@@ -219,6 +219,8 @@ export interface TaskListProps {
   hiddenTaskListColumns?: readonly TaskListColumnId[];
   /** Additional commands rendered in each row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
+  /** Hide row action controls such as insert, hierarchy action buttons, and the context menu trigger. */
+  hideTaskListRowActions?: boolean;
   /** How task-list date pickers apply start/end edits */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
@@ -311,6 +313,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   additionalColumns,
   hiddenTaskListColumns,
   taskListMenuCommands,
+  hideTaskListRowActions = false,
   taskDateChangeMode = 'preserve-duration',
   onTaskDateChangeModeChange,
 }) => {
@@ -1217,7 +1220,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             // Custom columns
             return (
               <div key={col.id}
-                   className="gantt-tl-headerCell gantt-tl-headerCell-custom"
+                   className={`gantt-tl-headerCell gantt-tl-headerCell-custom gantt-tl-cell-align-${col.align ?? 'left'}`}
                    data-column-id={`custom:${col.id}`}
                    data-custom-column-id={col.id}
                    style={{ width: col.width, minWidth: col.width, flexShrink: 0 }}>
@@ -1291,6 +1294,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   isTaskSelected={effectiveSelectedTaskIds.has(task.id)}
                   onTaskSelectionChange={handleToggleTaskSelection}
                   taskListMenuCommands={taskListMenuCommands}
+                  hideTaskListRowActions={hideTaskListRowActions}
                   taskDateChangeMode={taskDateChangeMode}
                   onTaskDateChangeModeChange={onTaskDateChangeModeChange}
                 />
