@@ -100,7 +100,7 @@ export default function TableMatrix<TTask extends Task = Task>({
     return spans;
   }, [columns, groupMap, hasGroupHeader]);
 
-  const headerContentHeight = Math.max(0, headerHeight - 1);
+  const headerContentHeight = Math.max(0, headerHeight - (hasGroupHeader ? 2 : 1));
   const topRowHeight = hasGroupHeader
     ? Math.ceil(headerContentHeight / 2)
     : headerContentHeight;

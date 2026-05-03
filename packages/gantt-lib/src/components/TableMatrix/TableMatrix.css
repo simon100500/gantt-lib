@@ -8,7 +8,7 @@
   top: 0;
   z-index: 2;
   background: var(--gantt-cell-background, #ffffff);
-  border-bottom: 1px solid var(--gantt-grid-line-color, #e5e7eb);
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
 }
 
 .gantt-mx-headerRow,
@@ -17,7 +17,7 @@
 }
 
 .gantt-mx-headerGroupRow {
-  border-bottom: 1px solid var(--gantt-grid-line-color, #e5e7eb);
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
 }
 
 .gantt-mx-headerCell,
@@ -27,7 +27,7 @@
   align-items: center;
   min-width: 0;
   padding: 0 12px;
-  border-right: 1px solid var(--gantt-grid-line-color, #e5e7eb);
+  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
 }
 
 .gantt-mx-headerCell:last-child,
@@ -55,11 +55,11 @@
 }
 
 .gantt-mx-row {
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
 }
 
 .gantt-mx-row.gantt-mx-row-parent {
-  background: var(--gantt-parent-row-bg, #f8fafc);
+  background: var(--gantt-parent-row-bg, #f1f5f9);
 }
 
 .gantt-mx-row.gantt-mx-row-selected {
