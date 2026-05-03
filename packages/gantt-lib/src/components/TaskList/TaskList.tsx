@@ -221,8 +221,8 @@ export interface TaskListProps {
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   /** Hide row action controls such as insert, hierarchy action buttons, and the context menu trigger. */
   hideTaskListRowActions?: boolean;
-  /** Optional explicit per-row heights used to synchronize with matrix-style views. */
-  rowHeightsByTaskId?: Record<string, number>;
+  /** Global number of visible content lines used to size every row consistently. */
+  rowContentLines?: number;
   /** How task-list date pickers apply start/end edits */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
@@ -316,7 +316,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   hiddenTaskListColumns,
   taskListMenuCommands,
   hideTaskListRowActions = false,
-  rowHeightsByTaskId,
+  rowContentLines = 1,
   taskDateChangeMode = 'preserve-duration',
   onTaskDateChangeModeChange,
 }) => {
@@ -383,8 +383,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [orderedTasks, collapsedParentIds, filterMode, filteredTaskIds, isFilterActive]);
 
   const totalHeight = useMemo(
-    () => visibleTasks.reduce((sum, task) => sum + (rowHeightsByTaskId?.[task.id] ?? rowHeight), 0),
-    [rowHeightsByTaskId, rowHeight, visibleTasks]
+    () => visibleTasks.length * rowHeight,
+    [visibleTasks.length, rowHeight]
   );
   const visibleTaskNumberMap = useMemo(
     () =>
@@ -1153,7 +1153,10 @@ export const TaskList: React.FC<TaskListProps> = ({
     <div
       ref={overlayRef}
       className={`gantt-tl-overlay${show ? '' : ' gantt-tl-hidden'}${hasRightShadow ? ' gantt-tl-overlay-shadowed' : ''}`}
-      style={{ '--tasklist-width': `${effectiveTaskListWidth}px` } as React.CSSProperties}
+      style={{
+        '--tasklist-width': `${effectiveTaskListWidth}px`,
+        '--gantt-row-content-lines': String(Math.max(1, Math.floor(rowContentLines))),
+      } as React.CSSProperties}
     >
       <div className="gantt-tl-table">
         {/* Header row includes the bottom grid border owned by the calendar header wrapper. */}
@@ -1298,7 +1301,6 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onTaskSelectionChange={handleToggleTaskSelection}
                   taskListMenuCommands={taskListMenuCommands}
                   hideTaskListRowActions={hideTaskListRowActions}
-                  explicitRowHeight={rowHeightsByTaskId?.[task.id]}
                   taskDateChangeMode={taskDateChangeMode}
                   onTaskDateChangeModeChange={onTaskDateChangeModeChange}
                 />

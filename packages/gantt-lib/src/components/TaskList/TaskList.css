@@ -10,6 +10,7 @@
   top: 0;
   z-index: 15;
   background-color: var(--gantt-cell-background, #ffffff);
+  --gantt-row-content-lines: 1;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -434,7 +435,7 @@
 .gantt-tl-name-trigger-text {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: var(--gantt-row-content-lines, 1);
   overflow: hidden;
   white-space: normal;
   word-break: break-word;

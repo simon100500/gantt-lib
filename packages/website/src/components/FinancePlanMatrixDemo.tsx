@@ -327,6 +327,7 @@ function buildMatrixColumns(view: MatrixView): TableMatrixColumn<FinanceTask>[] 
 export default function FinancePlanMatrixDemo() {
   const [baseTasks, setBaseTasks] = useState<FinanceTask[]>(financeTasks);
   const [view, setView] = useState<MatrixView>('week');
+  const [showShareLine, setShowShareLine] = useState(true);
   const tasks = useMemo(() => deriveHierarchyFinanceTasks(baseTasks), [baseTasks]);
 
   const additionalColumns = useMemo<TaskListColumn<FinanceTask>[]>(() => [
@@ -391,7 +392,35 @@ export default function FinancePlanMatrixDemo() {
     },
   ], []);
 
-  const matrixColumns = useMemo(() => buildMatrixColumns(view), [view]);
+  const matrixColumns = useMemo(() => {
+    const periods = view === 'week' ? weeklyPeriods : monthlyPeriods;
+
+    return periods.map((period) => ({
+      id: period.id,
+      header: period.label,
+      groupId: period.groupId,
+      width: view === 'week' ? 118 : 140,
+      cellClassName: (task: FinanceTask) => task.plannedByPeriod[period.id] ? 'finance-matrix-cell-active' : 'finance-matrix-cell-empty',
+      renderCell: (task: FinanceTask) => {
+        const value = task.plannedByPeriod[period.id] ?? 0;
+        const share = value > 0 ? Math.round((value / Math.max(task.budget, 1)) * 100) : 0;
+        const showSecondaryLine = showShareLine && value > 0 && share >= 18;
+
+        return (
+          <div style={{ display: 'grid', gap: 2, justifyItems: 'end', width: '100%', padding: '2px 0' }}>
+            <strong style={{ fontSize: 13, color: value > 0 ? '#0f172a' : '#94a3b8' }}>
+              {value > 0 ? `${formatMoney(value)} ₽` : '—'}
+            </strong>
+            {showSecondaryLine && (
+              <span style={{ fontSize: 11, color: '#64748b' }}>
+                {share}% бюджета
+              </span>
+            )}
+          </div>
+        );
+      },
+    }));
+  }, [showShareLine, view]);
 
   return (
     <section className="demo-section">
@@ -414,6 +443,13 @@ export default function FinancePlanMatrixDemo() {
         >
           По месяцам
         </button>
+        <button
+          type="button"
+          className={`demo-btn ${showShareLine ? 'demo-btn-primary' : 'demo-btn-neutral'}`}
+          onClick={() => setShowShareLine((current) => !current)}
+        >
+          {showShareLine ? 'Скрыть % строку' : 'Показать % строку'}
+        </button>
         <span className="demo-hint">Корневые строки показывают агрегат по фазе, дочерние строки раскрывают детализацию по статьям.</span>
       </div>
       <div className="demo-chart-card">
@@ -423,11 +459,11 @@ export default function FinancePlanMatrixDemo() {
           showTaskList={true}
           taskListWidth={620}
           rowHeight={36}
+          rowContentLines={showShareLine ? 2 : 1}
           headerHeight={52}
           containerHeight={420}
           matrixColumns={matrixColumns}
           matrixColumnGroups={view === 'week' ? monthGroups : undefined}
-          autoRowHeight={true}
           additionalColumns={additionalColumns}
           hiddenTaskListColumns={['dependencies', 'progress', 'duration', 'startDate', 'endDate']}
           disableDependencyEditing={true}
