@@ -430,19 +430,35 @@ function formatWeekLabel(start: Date) {
     : `${startDay}.${startMonth}-${endDay}.${endMonth}`;
 }
 
-function buildMondayMonthWeeks(year: number, monthIndex: number, nextMonthIndex: number): PeriodDefinition[] {
-  const monthId = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
-  const firstOfMonth = utcDate(year, monthIndex, 1);
-  const firstOfNextMonth = utcDate(year, nextMonthIndex, 1);
-  let cursor = startOfMondayWeek(firstOfMonth);
-  const nextGroupStart = startOfMondayWeek(firstOfNextMonth);
-  const periods: PeriodDefinition[] = [];
+function getMonthId(date: Date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
 
-  while (cursor < nextGroupStart) {
+function getWeekGroupMonthId(weekStart: Date) {
+  const weekEnd = addDays(weekStart, 6);
+  if (weekStart.getUTCMonth() === weekEnd.getUTCMonth()) {
+    return getMonthId(weekStart);
+  }
+
+  const nextMonthDays = weekEnd.getUTCDate();
+  return nextMonthDays > 3 ? getMonthId(weekEnd) : getMonthId(weekStart);
+}
+
+function buildMondayWeeksByMonthMajority(startMonth: Date, endMonth: Date): PeriodDefinition[] {
+  const firstWeekStart = startOfMondayWeek(startMonth);
+  const stopBefore = startOfMondayWeek(endMonth);
+  const weekCounters = new Map<string, number>();
+  const periods: PeriodDefinition[] = [];
+  let cursor = firstWeekStart;
+
+  while (cursor < stopBefore) {
+    const groupId = getWeekGroupMonthId(cursor);
+    const weekNumber = (weekCounters.get(groupId) ?? 0) + 1;
+    weekCounters.set(groupId, weekNumber);
     periods.push({
-      id: `${monthId}-w${periods.length + 1}`,
+      id: `${groupId}-w${weekNumber}`,
       label: formatWeekLabel(cursor),
-      groupId: monthId,
+      groupId,
     });
     cursor = addDays(cursor, 7);
   }
@@ -450,11 +466,10 @@ function buildMondayMonthWeeks(year: number, monthIndex: number, nextMonthIndex:
   return periods;
 }
 
-const weeklyPeriods: PeriodDefinition[] = [
-  ...buildMondayMonthWeeks(2026, 3, 4),
-  ...buildMondayMonthWeeks(2026, 4, 5),
-  ...buildMondayMonthWeeks(2026, 5, 6),
-];
+const weeklyPeriods: PeriodDefinition[] = buildMondayWeeksByMonthMajority(
+  utcDate(2026, 3, 1),
+  utcDate(2026, 6, 1)
+);
 
 const moneyFormatter = new Intl.NumberFormat("ru-RU", {
   minimumFractionDigits: 2,

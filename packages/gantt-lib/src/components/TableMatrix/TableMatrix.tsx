@@ -88,11 +88,6 @@ export default function TableMatrix<TTask extends Task = Task>({
     [columnGroups]
   );
 
-  const columnGroupIds = useMemo(
-    () => columns.map((column) => column.groupId ?? column.id),
-    [columns]
-  );
-
   const headerSpans = useMemo<HeaderSpan[]>(() => {
     if (!hasGroupHeader) return [];
 
@@ -181,13 +176,11 @@ export default function TableMatrix<TTask extends Task = Task>({
           className="gantt-mx-headerRow"
           style={{ gridTemplateColumns, height: `${hasGroupHeader ? bottomRowHeight : topRowHeight}px` }}
         >
-          {columns.map((column, columnIndex) => (
+          {columns.map((column) => (
             <div
               key={column.id}
               className={joinClasses(
                 'gantt-mx-headerCell',
-                columnGroupIds[columnIndex - 1] !== columnGroupIds[columnIndex] && 'gantt-mx-columnGroupStart',
-                columnGroupIds[columnIndex + 1] !== columnGroupIds[columnIndex] && 'gantt-mx-columnGroupEnd',
                 column.headerClassName
               )}
             >
@@ -238,8 +231,6 @@ export default function TableMatrix<TTask extends Task = Task>({
                     className={joinClasses(
                       'gantt-mx-cell',
                       onCellClick && 'gantt-mx-cell-clickable',
-                      columnGroupIds[columnIndex - 1] !== columnGroupIds[columnIndex] && 'gantt-mx-columnGroupStart',
-                      columnGroupIds[columnIndex + 1] !== columnGroupIds[columnIndex] && 'gantt-mx-columnGroupEnd',
                       `gantt-mx-cellAlign-${column.align ?? 'right'}`,
                       column.className,
                       resolvedCellClassName

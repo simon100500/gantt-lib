@@ -44,6 +44,7 @@
 }
 
 .gantt-mx-groupCell {
+  position: relative;
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
@@ -53,10 +54,16 @@
   background: var(--gantt-cell-background, #ffffff);
 }
 
-.gantt-mx-groupCell:not(:last-child),
-.gantt-mx-columnGroupEnd:not(:last-child) {
-  border-right-color: var(--gantt-month-separator-color, #94a3b8);
-  border-right-width: 2px;
+.gantt-mx-groupCell:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -1px;
+  bottom: 0;
+  z-index: 1;
+  width: 2px;
+  background: var(--gantt-month-separator-color, #64748b);
+  pointer-events: none;
 }
 
 .gantt-mx-headerCell {
