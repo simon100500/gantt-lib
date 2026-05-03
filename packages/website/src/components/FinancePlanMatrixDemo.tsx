@@ -390,21 +390,6 @@ const financeTasks: FinanceTask[] = [
   },
 ];
 
-const weeklyPeriods: PeriodDefinition[] = [
-  { id: "2026-04-w1", label: "01-07", groupId: "2026-04" },
-  { id: "2026-04-w2", label: "08-14", groupId: "2026-04" },
-  { id: "2026-04-w3", label: "15-21", groupId: "2026-04" },
-  { id: "2026-04-w4", label: "22-30", groupId: "2026-04" },
-  { id: "2026-05-w1", label: "01-07", groupId: "2026-05" },
-  { id: "2026-05-w2", label: "08-14", groupId: "2026-05" },
-  { id: "2026-05-w3", label: "15-21", groupId: "2026-05" },
-  { id: "2026-05-w4", label: "22-31", groupId: "2026-05" },
-  { id: "2026-06-w1", label: "01-07", groupId: "2026-06" },
-  { id: "2026-06-w2", label: "08-14", groupId: "2026-06" },
-  { id: "2026-06-w3", label: "15-21", groupId: "2026-06" },
-  { id: "2026-06-w4", label: "22-30", groupId: "2026-06" },
-];
-
 const monthlyPeriods: PeriodDefinition[] = [
   { id: "2026-04", label: "Апрель" },
   { id: "2026-05", label: "Май" },
@@ -415,6 +400,60 @@ const monthGroups: TableMatrixColumnGroup[] = [
   { id: "2026-04", header: "Апрель 2026" },
   { id: "2026-05", header: "Май 2026" },
   { id: "2026-06", header: "Июнь 2026" },
+];
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function utcDate(year: number, monthIndex: number, day: number) {
+  return new Date(Date.UTC(year, monthIndex, day));
+}
+
+function addDays(date: Date, days: number) {
+  return new Date(date.getTime() + days * DAY_MS);
+}
+
+function startOfMondayWeek(date: Date) {
+  const day = date.getUTCDay();
+  const offset = day === 0 ? -6 : 1 - day;
+  return addDays(date, offset);
+}
+
+function formatWeekLabel(start: Date) {
+  const end = addDays(start, 6);
+  const startDay = String(start.getUTCDate()).padStart(2, "0");
+  const endDay = String(end.getUTCDate()).padStart(2, "0");
+  const startMonth = String(start.getUTCMonth() + 1).padStart(2, "0");
+  const endMonth = String(end.getUTCMonth() + 1).padStart(2, "0");
+
+  return start.getUTCMonth() === end.getUTCMonth()
+    ? `${startDay}-${endDay}`
+    : `${startDay}.${startMonth}-${endDay}.${endMonth}`;
+}
+
+function buildMondayMonthWeeks(year: number, monthIndex: number, nextMonthIndex: number): PeriodDefinition[] {
+  const monthId = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+  const firstOfMonth = utcDate(year, monthIndex, 1);
+  const firstOfNextMonth = utcDate(year, nextMonthIndex, 1);
+  let cursor = startOfMondayWeek(firstOfMonth);
+  const nextGroupStart = startOfMondayWeek(firstOfNextMonth);
+  const periods: PeriodDefinition[] = [];
+
+  while (cursor < nextGroupStart) {
+    periods.push({
+      id: `${monthId}-w${periods.length + 1}`,
+      label: formatWeekLabel(cursor),
+      groupId: monthId,
+    });
+    cursor = addDays(cursor, 7);
+  }
+
+  return periods;
+}
+
+const weeklyPeriods: PeriodDefinition[] = [
+  ...buildMondayMonthWeeks(2026, 3, 4),
+  ...buildMondayMonthWeeks(2026, 4, 5),
+  ...buildMondayMonthWeeks(2026, 5, 6),
 ];
 
 const moneyFormatter = new Intl.NumberFormat("ru-RU", {
