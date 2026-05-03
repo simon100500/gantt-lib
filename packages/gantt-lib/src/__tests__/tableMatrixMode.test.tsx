@@ -100,4 +100,30 @@ describe('table-matrix mode', () => {
     expect(matrixParentRow?.classList.contains('gantt-mx-row-level-0')).toBe(true);
     expect(container.querySelector('.gantt-mx-row[data-gantt-task-row-id="child"]')).toBeNull();
   });
+
+  it('does not render task-list drag handles when task dragging is disabled', () => {
+    const tasks: FinanceTask[] = [
+      {
+        id: 'task-1',
+        name: 'Строка',
+        startDate: '2026-04-01',
+        endDate: '2026-04-20',
+        weeklyPlan: { w1: 100 },
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<FinanceTask>
+        mode="table-matrix"
+        tasks={tasks}
+        showTaskList={true}
+        disableTaskDrag={true}
+        matrixColumns={[
+          { id: 'w1', header: '01-07', width: 110, renderCell: (task) => task.weeklyPlan.w1?.toString() ?? '' },
+        ]}
+      />
+    );
+
+    expect(container.querySelector('.gantt-tl-drag-handle')).toBeNull();
+  });
 });

@@ -177,6 +177,8 @@ export interface TaskListProps {
   onInsertAfter?: (taskId: string, newTask: Task) => void;
   /** Callback when tasks are reordered via drag in the task list */
   onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
+  /** Disable task row drag/reorder in the task list (default: false) */
+  disableTaskDrag?: boolean;
   /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
   editingTaskId?: string | null;
   /** Enable add task button at bottom of task list (default: true) */
@@ -294,6 +296,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onDelete,
   onInsertAfter,
   onReorder,
+  disableTaskDrag = false,
   editingTaskId: propEditingTaskId,
   enableAddTask = true,
   defaultTaskDurationDays = DEFAULT_TASK_DURATION_DAYS,
@@ -1281,12 +1284,12 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onAdd={onAdd}
                   onInsertAfter={handleStartInsertAfter}
                   editingTaskId={propEditingTaskId}
-                  isDragging={draggingIndex === index}
-                  isDragOver={dragOverIndex === index}
-                  onDragStart={handleDragStart}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  onDragEnd={handleDragEnd}
+                  isDragging={!disableTaskDrag && draggingIndex === index}
+                  isDragOver={!disableTaskDrag && dragOverIndex === index}
+                  onDragStart={disableTaskDrag ? undefined : handleDragStart}
+                  onDragOver={disableTaskDrag ? undefined : handleDragOver}
+                  onDrop={disableTaskDrag ? undefined : handleDrop}
+                  onDragEnd={disableTaskDrag ? undefined : handleDragEnd}
                   collapsedParentIds={collapsedParentIds}
                   onToggleCollapse={handleToggleCollapse}
                   onPromoteTask={onPromoteTask}
@@ -1340,25 +1343,25 @@ export const TaskList: React.FC<TaskListProps> = ({
         {/* Add task button - also serves as drop target for moving tasks to end */}
         {enableAddTask && onAdd && !isCreating && !pendingInsert && (
           <button
-            className={`gantt-tl-add-btn${dragOverIndex === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
+            className={`gantt-tl-add-btn${!disableTaskDrag && dragOverIndex === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
             onClick={() => {
               setPendingInsert(null);
               setIsCreating(true);
             }}
-            onDragEnter={(e) => {
+            onDragEnter={disableTaskDrag ? undefined : (e) => {
               e.preventDefault();
               setDragOverIndex(visibleTasks.length);
             }}
-            onDragOver={(e) => {
+            onDragOver={disableTaskDrag ? undefined : (e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
               setDragOverIndex(visibleTasks.length);
             }}
-            onDragLeave={(e) => {
+            onDragLeave={disableTaskDrag ? undefined : (e) => {
               e.preventDefault();
               setDragOverIndex(null);
             }}
-            onDrop={(e) => {
+            onDrop={disableTaskDrag ? undefined : (e) => {
               e.preventDefault();
               handleDrop(visibleTasks.length, e);
             }}

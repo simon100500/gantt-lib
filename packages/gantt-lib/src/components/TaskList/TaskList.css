@@ -118,8 +118,7 @@
 }
 
 .gantt-tl-row-selected {
-  --gantt-tl-name-actions-bg: #ebedef;
-  box-shadow: inset 0 0 0 9999px rgba(17, 24, 39, 0.08);
+  --gantt-tl-name-actions-bg: inherit;
 }
 
 .gantt-tl-row-dependency-selected {
@@ -277,11 +276,6 @@
 .gantt-tl-cell-number:focus-within .gantt-tl-drag-handle,
 .gantt-tl-row-dragging .gantt-tl-drag-handle {
   visibility: visible;
-}
-
-.gantt-tl-cell-number:hover .gantt-tl-num-label,
-.gantt-tl-cell-number:focus-within .gantt-tl-num-label {
-  visibility: hidden;
 }
 
 .gantt-tl-num-label {

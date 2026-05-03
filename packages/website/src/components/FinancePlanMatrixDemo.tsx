@@ -778,6 +778,7 @@ export default function FinancePlanMatrixDemo() {
           hiddenTaskListColumns={['dependencies', 'progress', 'duration', 'startDate', 'endDate']}
           disableDependencyEditing={true}
           disableTaskNameEditing={true}
+          disableTaskDrag={true}
           enableAddTask={false}
           hideTaskListRowActions={true}
           onTasksChange={(changedTasks) => {

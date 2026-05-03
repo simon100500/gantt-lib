@@ -1864,18 +1864,20 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         className="gantt-tl-cell gantt-tl-cell-number"
         onClick={handleNumberClick}
       >
-        <span
-          className="gantt-tl-drag-handle"
-          draggable={true}
-          onDragStart={(e) => {
-            e.stopPropagation();
-            onDragStart?.(rowIndex, e);
-          }}
-          onDragEnd={(e) => onDragEnd?.(e)}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <DragHandleIcon />
-        </span>
+        {onDragStart && (
+          <span
+            className="gantt-tl-drag-handle"
+            draggable={true}
+            onDragStart={(e) => {
+              e.stopPropagation();
+              onDragStart(rowIndex, e);
+            }}
+            onDragEnd={(e) => onDragEnd?.(e)}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DragHandleIcon />
+          </span>
+        )}
         <span className="gantt-tl-num-label">
           {taskNumber || rowIndex + 1}
         </span>

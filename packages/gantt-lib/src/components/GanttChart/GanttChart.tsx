@@ -1279,6 +1279,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             onDelete={handleDelete}
             onInsertAfter={handleInsertAfter as ((taskId: string, newTask: Task) => void) | undefined}
             onReorder={handleReorder as ((tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void) | undefined}
+            disableTaskDrag={disableTaskDrag}
             editingTaskId={editingTaskId}
             enableAddTask={enableAddTask}
             defaultTaskDurationDays={defaultTaskDurationDays}
