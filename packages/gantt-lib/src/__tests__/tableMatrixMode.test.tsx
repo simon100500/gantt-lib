@@ -59,4 +59,45 @@ describe('table-matrix mode', () => {
     expect(container.querySelector('.gantt-tr-row')).toBeNull();
     expect(container.querySelector('.gantt-tsh-header')).toBeNull();
   });
+
+  it('keeps parent row fill classes when descendants are collapsed', () => {
+    const tasks: FinanceTask[] = [
+      {
+        id: 'parent',
+        name: 'Раздел',
+        startDate: '2026-04-01',
+        endDate: '2026-04-20',
+        weeklyPlan: { w1: 100 },
+      },
+      {
+        id: 'child',
+        name: 'Работа',
+        startDate: '2026-04-02',
+        endDate: '2026-04-05',
+        parentId: 'parent',
+        weeklyPlan: { w1: 50 },
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<FinanceTask>
+        mode="table-matrix"
+        tasks={tasks}
+        showTaskList={true}
+        collapsedParentIds={new Set(['parent'])}
+        matrixColumns={[
+          { id: 'w1', header: '01-07', width: 110, renderCell: (task) => task.weeklyPlan.w1?.toString() ?? '' },
+        ]}
+      />
+    );
+
+    const taskListParentRow = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="parent"]');
+    const matrixParentRow = container.querySelector('.gantt-mx-row[data-gantt-task-row-id="parent"]');
+
+    expect(taskListParentRow?.classList.contains('gantt-tl-row-parent')).toBe(true);
+    expect(taskListParentRow?.classList.contains('gantt-tl-row-level-0')).toBe(true);
+    expect(matrixParentRow?.classList.contains('gantt-mx-row-parent')).toBe(true);
+    expect(matrixParentRow?.classList.contains('gantt-mx-row-level-0')).toBe(true);
+    expect(container.querySelector('.gantt-mx-row[data-gantt-task-row-id="child"]')).toBeNull();
+  });
 });

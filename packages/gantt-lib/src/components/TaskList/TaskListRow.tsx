@@ -921,6 +921,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [task.id, allTasks],
     );
     const isChild = task.parentId !== undefined;
+    const rowFillLevel = Math.min(nestingDepth, 2);
+    const isTotalRow = Boolean((task as Task & { isTotal?: boolean }).isTotal);
     const isMilestoneRow = normalizedTask.type === "milestone";
 
     // Create custom weekend predicate from props (memoized for performance)
@@ -2641,6 +2643,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isDragOver ? "gantt-tl-row-drag-over" : "",
           isChild ? "gantt-tl-row-child" : "",
           isParent ? "gantt-tl-row-parent" : "",
+          `gantt-tl-row-level-${rowFillLevel}`,
+          isTotalRow ? "gantt-tl-row-total" : "",
         ]
           .filter(Boolean)
           .join(" ")}

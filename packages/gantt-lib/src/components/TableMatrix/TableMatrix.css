@@ -73,6 +73,23 @@
   background: var(--gantt-parent-row-bg, #f1f5f9);
 }
 
+.gantt-mx-row.gantt-mx-row-level-0.gantt-mx-row-parent {
+  background: var(--gantt-row-fill-level-0, #fde68a);
+}
+
+.gantt-mx-row.gantt-mx-row-level-1.gantt-mx-row-parent {
+  background: var(--gantt-row-fill-level-1, #fef3c7);
+}
+
+.gantt-mx-row.gantt-mx-row-level-2.gantt-mx-row-parent {
+  background: var(--gantt-row-fill-level-2, #fffbeb);
+}
+
+.gantt-mx-row.gantt-mx-row-total {
+  background: var(--gantt-row-fill-total, #fcd34d);
+  font-weight: 700;
+}
+
 .gantt-mx-row.gantt-mx-row-highlighted {
   background-color: rgba(250, 204, 21, 0.24);
 }

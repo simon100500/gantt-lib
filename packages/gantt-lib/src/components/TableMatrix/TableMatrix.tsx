@@ -24,6 +24,7 @@ export interface TableMatrixColumn<TTask extends Task = Task> {
 
 export interface TableMatrixProps<TTask extends Task = Task> {
   tasks: TTask[];
+  allTasks?: TTask[];
   columns: Array<TableMatrixColumn<TTask>>;
   columnGroups?: Array<TableMatrixColumnGroup>;
   rowHeight: number;
@@ -47,6 +48,7 @@ function joinClasses(...values: Array<string | false | null | undefined>) {
 
 export default function TableMatrix<TTask extends Task = Task>({
   tasks,
+  allTasks = tasks,
   columns,
   columnGroups,
   rowHeight,
@@ -109,13 +111,40 @@ export default function TableMatrix<TTask extends Task = Task>({
     : 0;
   const parentTaskIds = useMemo(() => {
     const ids = new Set<string>();
-    for (const task of tasks) {
+    for (const task of allTasks) {
       if (task.parentId) {
         ids.add(task.parentId);
       }
     }
     return ids;
-  }, [tasks]);
+  }, [allTasks]);
+
+  const nestingDepthMap = useMemo(() => {
+    const depthMap = new Map<string, number>();
+    const taskById = new Map(allTasks.map((task) => [task.id, task]));
+
+    const getDepth = (taskId: string, seen = new Set<string>()): number => {
+      if (depthMap.has(taskId)) return depthMap.get(taskId)!;
+      if (seen.has(taskId)) return 0;
+
+      const task = taskById.get(taskId);
+      if (!task?.parentId || !taskById.has(task.parentId)) {
+        depthMap.set(taskId, 0);
+        return 0;
+      }
+
+      seen.add(taskId);
+      const depth = getDepth(task.parentId, seen) + 1;
+      depthMap.set(taskId, depth);
+      return depth;
+    };
+
+    for (const task of allTasks) {
+      getDepth(task.id);
+    }
+
+    return depthMap;
+  }, [allTasks]);
 
   return (
     <div className="gantt-mx-root" style={{ width: `${totalWidth}px` }}>
@@ -152,6 +181,9 @@ export default function TableMatrix<TTask extends Task = Task>({
         {tasks.map((task, index) => {
           const isHighlighted = filterMode === 'highlight' && !!highlightedTaskIds?.has(task.id);
           const isParent = parentTaskIds.has(task.id);
+          const nestingDepth = nestingDepthMap.get(task.id) ?? 0;
+          const rowFillLevel = Math.min(nestingDepth, 2);
+          const isTotal = Boolean((task as Task & { isTotal?: boolean }).isTotal);
           return (
             <div
               key={task.id}
@@ -160,6 +192,8 @@ export default function TableMatrix<TTask extends Task = Task>({
                 'gantt-mx-row',
                 task.parentId && 'gantt-mx-row-child',
                 isParent && 'gantt-mx-row-parent',
+                `gantt-mx-row-level-${rowFillLevel}`,
+                isTotal && 'gantt-mx-row-total',
                 selectedTaskId === task.id && 'gantt-mx-row-selected',
                 isHighlighted && 'gantt-mx-row-highlighted'
               )}

@@ -1318,6 +1318,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             {isTableMatrixMode ? (
               <TableMatrix
                 tasks={visibleTasks}
+                allTasks={normalizedTasks}
                 columns={matrixColumns}
                 columnGroups={matrixColumnGroups}
                 rowHeight={effectiveRowHeight}
