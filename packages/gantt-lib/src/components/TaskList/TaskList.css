@@ -149,7 +149,8 @@
 
 .gantt-tl-row-parent {
   font-weight: 600;
-  /* background-color: var(--gantt-parent-row-bg, #f2ebf9); */
+  --gantt-tl-name-actions-bg: var(--gantt-parent-row-bg, #f8fafc);
+  background-color: var(--gantt-parent-row-bg, #f8fafc);
 }
 
 /* Bold dates in parent rows */

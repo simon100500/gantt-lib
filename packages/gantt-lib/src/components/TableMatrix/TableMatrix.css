@@ -58,6 +58,10 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
+.gantt-mx-row.gantt-mx-row-parent {
+  background: var(--gantt-parent-row-bg, #f8fafc);
+}
+
 .gantt-mx-row.gantt-mx-row-selected {
   background: rgba(37, 99, 235, 0.06);
 }

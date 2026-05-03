@@ -904,7 +904,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   const clearHoveredRows = useCallback(() => {
     for (const element of hoveredRowElementsRef.current) {
-      element.classList.remove('gantt-tl-row-hovered', 'gantt-tr-row-hovered');
+      element.classList.remove('gantt-tl-row-hovered', 'gantt-tr-row-hovered', 'gantt-mx-row-hovered');
     }
     hoveredRowElementsRef.current = [];
   }, []);

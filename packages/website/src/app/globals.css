@@ -224,11 +224,11 @@ body {
 }
 
 .finance-matrix-cell-active {
-  background: #ffffff;
+  background: transparent;
 }
 
 .finance-matrix-cell-empty {
-  background: #ffffff;
+  background: transparent;
 }
 
 .demo-selection-status {

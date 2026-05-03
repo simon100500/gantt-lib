@@ -102,6 +102,15 @@ export default function TableMatrix<TTask extends Task = Task>({
 
   const topRowHeight = hasGroupHeader ? headerHeight / 2 : headerHeight;
   const bottomRowHeight = hasGroupHeader ? headerHeight / 2 : 0;
+  const parentTaskIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const task of tasks) {
+      if (task.parentId) {
+        ids.add(task.parentId);
+      }
+    }
+    return ids;
+  }, [tasks]);
 
   return (
     <div className="gantt-mx-root" style={{ width: `${totalWidth}px` }}>
@@ -134,12 +143,15 @@ export default function TableMatrix<TTask extends Task = Task>({
       <div>
         {tasks.map((task) => {
           const isHighlighted = filterMode === 'highlight' && !!highlightedTaskIds?.has(task.id);
+          const isParent = parentTaskIds.has(task.id);
           return (
             <div
               key={task.id}
               data-gantt-task-row-id={task.id}
               className={joinClasses(
                 'gantt-mx-row',
+                task.parentId && 'gantt-mx-row-child',
+                isParent && 'gantt-mx-row-parent',
                 selectedTaskId === task.id && 'gantt-mx-row-selected',
                 isHighlighted && 'gantt-mx-row-highlighted'
               )}
