@@ -100,8 +100,13 @@ export default function TableMatrix<TTask extends Task = Task>({
     return spans;
   }, [columns, groupMap, hasGroupHeader]);
 
-  const topRowHeight = hasGroupHeader ? headerHeight / 2 : headerHeight;
-  const bottomRowHeight = hasGroupHeader ? headerHeight / 2 : 0;
+  const headerContentHeight = Math.max(0, headerHeight - 1);
+  const topRowHeight = hasGroupHeader
+    ? Math.ceil(headerContentHeight / 2)
+    : headerContentHeight;
+  const bottomRowHeight = hasGroupHeader
+    ? Math.floor(headerContentHeight / 2)
+    : 0;
   const parentTaskIds = useMemo(() => {
     const ids = new Set<string>();
     for (const task of tasks) {
