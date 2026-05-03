@@ -802,6 +802,10 @@ export interface TaskListRowProps {
   isTaskSelected?: boolean;
   /** Callback when this task's multi-select checkbox changes */
   onTaskSelectionChange?: (taskId: string, checked: boolean) => void;
+  /** Globally active custom cell in the task-list grid */
+  activeCustomCell?: { taskId: string; columnId: string } | null;
+  /** Updates the globally active custom cell */
+  onActiveCustomCellChange?: (cell: { taskId: string; columnId: string } | null) => void;
   /** Additional commands rendered in the three-dots row menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   /** Hide row action controls such as insert, hierarchy action buttons, and context menu trigger. */
@@ -874,12 +878,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     resolvedColumns,
     isTaskSelected = false,
     onTaskSelectionChange,
+    activeCustomCell,
+    onActiveCustomCellChange,
     taskListMenuCommands = [],
     hideTaskListRowActions = false,
     taskDateChangeMode = 'preserve-duration',
     onTaskDateChangeModeChange,
   }) => {
-    const [activeCustomColumnId, setActiveCustomColumnId] = useState<string | null>(null);
     const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
     const [editingColumnStartValue, setEditingColumnStartValue] = useState<string | undefined>(undefined);
     const editingName = editingColumnId === 'name';
@@ -907,6 +912,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const editTriggerRef = useRef<"keypress" | "doubleclick" | "autoedit">(
       "doubleclick",
     ); // How editing was started
+    const rowRef = useRef<HTMLDivElement>(null);
 
     const isSelected = selectedTaskId === task.id;
     // Hierarchy computed values
@@ -2564,8 +2570,64 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       dependencies: dependenciesCell,
     };
 
+    const focusCustomCell = useCallback((taskId: string, columnId: string) => {
+      const overlay = rowRef.current?.closest('.gantt-tl-overlay');
+      if (!overlay) {
+        return;
+      }
+
+      const selector = `[data-gantt-task-row-id="${taskId}"] [data-custom-column-id="${columnId}"]`;
+      const nextCell = overlay.querySelector<HTMLDivElement>(selector);
+      nextCell?.focus();
+    }, []);
+
+    const moveActiveCustomCell = useCallback((columnId: string, direction: 'left' | 'right' | 'up' | 'down') => {
+      const overlay = rowRef.current?.closest('.gantt-tl-overlay');
+      if (!overlay || !resolvedColumns) {
+        return;
+      }
+
+      const customColumnIds = resolvedColumns
+        .filter((column) => !['selection', 'number', 'name', 'startDate', 'endDate', 'duration', 'progress', 'dependencies'].includes(column.id))
+        .map((column) => column.id);
+      const columnIndex = customColumnIds.indexOf(columnId);
+      if (columnIndex === -1) {
+        return;
+      }
+
+      const rowElements = Array.from(
+        overlay.querySelectorAll<HTMLElement>('.gantt-tl-row[data-gantt-task-row-id]')
+      );
+      const rowIds = rowElements
+        .map((element) => element.dataset.ganttTaskRowId)
+        .filter((value): value is string => Boolean(value));
+      const rowIndex = rowIds.indexOf(task.id);
+      if (rowIndex === -1) {
+        return;
+      }
+
+      let nextRowIndex = rowIndex;
+      let nextColumnIndex = columnIndex;
+
+      if (direction === 'left') nextColumnIndex -= 1;
+      if (direction === 'right') nextColumnIndex += 1;
+      if (direction === 'up') nextRowIndex -= 1;
+      if (direction === 'down') nextRowIndex += 1;
+
+      if (nextRowIndex < 0 || nextRowIndex >= rowIds.length || nextColumnIndex < 0 || nextColumnIndex >= customColumnIds.length) {
+        return;
+      }
+
+      const nextCell = { taskId: rowIds[nextRowIndex], columnId: customColumnIds[nextColumnIndex] };
+      onActiveCustomCellChange?.(nextCell);
+      window.requestAnimationFrame(() => {
+        focusCustomCell(nextCell.taskId, nextCell.columnId);
+      });
+    }, [focusCustomCell, onActiveCustomCellChange, resolvedColumns, task.id]);
+
     return (
       <div
+        ref={rowRef}
         data-filter-match={isFilterMatch ? 'true' : 'false'}
         className={[
           "gantt-tl-row",
@@ -2597,10 +2659,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           // Custom column
           const isEditing = editingColumnId === col.id;
           const editorFn = col.renderEditor;
-          const isActiveCustomCell = activeCustomColumnId === col.id;
+          const isActiveCustomCell = activeCustomCell?.taskId === task.id && activeCustomCell?.columnId === col.id;
           const startEditingCustomCell = (startValue?: string) => {
             if (!editorFn) return;
-            setActiveCustomColumnId(col.id);
+            onActiveCustomCellChange?.({ taskId: task.id, columnId: col.id });
             setEditingColumnStartValue(startValue);
             setEditingColumnId(col.id);
           };
@@ -2616,14 +2678,20 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               if (editingColumnId === col.id) {
                 setEditingColumnId(null);
                 setEditingColumnStartValue(undefined);
-                setActiveCustomColumnId(null);
+                onActiveCustomCellChange?.({ taskId: task.id, columnId: col.id });
+                window.requestAnimationFrame(() => {
+                  focusCustomCell(task.id, col.id);
+                });
               }
             },
             updateTask: (patch: Partial<Task>) => {
               onTasksChange?.([{ ...task, ...patch } as Task]);
-              setActiveCustomColumnId(null);
+              onActiveCustomCellChange?.({ taskId: task.id, columnId: col.id });
               setEditingColumnStartValue(undefined);
               setEditingColumnId(null);
+              window.requestAnimationFrame(() => {
+                focusCustomCell(task.id, col.id);
+              });
             },
           };
 
@@ -2637,9 +2705,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               data-custom-column-editing={isEditing ? "true" : "false"}
               data-testid={`custom-cell-${col.id}`}
               tabIndex={editorFn ? 0 : -1}
+              onFocus={editorFn ? () => {
+                onActiveCustomCellChange?.({ taskId: task.id, columnId: col.id });
+              } : undefined}
               onClick={editorFn ? (e) => {
                 e.stopPropagation();
-                setActiveCustomColumnId(col.id);
+                onActiveCustomCellChange?.({ taskId: task.id, columnId: col.id });
                 if (isEditing) {
                   return;
                 }
@@ -2649,10 +2720,35 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 e.stopPropagation();
                 startEditingCustomCell();
               } : undefined}
-              onBlur={editorFn && !isEditing ? () => {
-                setActiveCustomColumnId((current) => current === col.id ? null : current);
-              } : undefined}
               onKeyDown={editorFn && !isEditing ? (e) => {
+                if (e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  moveActiveCustomCell(col.id, 'left');
+                  return;
+                }
+
+                if (e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  moveActiveCustomCell(col.id, 'right');
+                  return;
+                }
+
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  moveActiveCustomCell(col.id, 'up');
+                  return;
+                }
+
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  moveActiveCustomCell(col.id, 'down');
+                  return;
+                }
+
                 if (e.key === 'Enter' || e.key === 'F2') {
                   e.preventDefault();
                   e.stopPropagation();

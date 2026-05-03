@@ -321,6 +321,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onTaskDateChangeModeChange,
 }) => {
   const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [activeCustomCell, setActiveCustomCell] = useState<{ taskId: string; columnId: string } | null>(null);
   const effectiveSelectedTaskIds = selectedTaskIds ?? internalSelectedTaskIds;
 
   const emitSelectedTaskIdsChange = useCallback((nextSelectedTaskIds: Set<string>) => {
@@ -1299,6 +1300,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                   resolvedColumns={resolvedColumns}
                   isTaskSelected={effectiveSelectedTaskIds.has(task.id)}
                   onTaskSelectionChange={handleToggleTaskSelection}
+                  activeCustomCell={activeCustomCell}
+                  onActiveCustomCellChange={setActiveCustomCell}
                   taskListMenuCommands={taskListMenuCommands}
                   hideTaskListRowActions={hideTaskListRowActions}
                   taskDateChangeMode={taskDateChangeMode}
