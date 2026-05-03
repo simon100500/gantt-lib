@@ -27,6 +27,7 @@ export interface TableMatrixProps<TTask extends Task = Task> {
   columns: Array<TableMatrixColumn<TTask>>;
   columnGroups?: Array<TableMatrixColumnGroup>;
   rowHeight: number;
+  rowHeightsByTaskId?: Record<string, number>;
   headerHeight: number;
   selectedTaskId?: string | null;
   onTaskSelect?: (taskId: string | null) => void;
@@ -50,6 +51,7 @@ export default function TableMatrix<TTask extends Task = Task>({
   columns,
   columnGroups,
   rowHeight,
+  rowHeightsByTaskId,
   headerHeight,
   selectedTaskId,
   onTaskSelect,
@@ -143,7 +145,11 @@ export default function TableMatrix<TTask extends Task = Task>({
                 selectedTaskId === task.id && 'gantt-mx-row-selected',
                 isHighlighted && 'gantt-mx-row-highlighted'
               )}
-              style={{ gridTemplateColumns, height: `${rowHeight}px` }}
+              style={{
+                gridTemplateColumns,
+                minHeight: `${rowHeight}px`,
+                height: rowHeightsByTaskId?.[task.id] ? `${rowHeightsByTaskId[task.id]}px` : undefined,
+              }}
               onClick={() => onTaskSelect?.(task.id)}
             >
               {columns.map((column) => {

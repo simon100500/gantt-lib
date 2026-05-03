@@ -221,6 +221,8 @@ export interface TaskListProps {
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   /** Hide row action controls such as insert, hierarchy action buttons, and the context menu trigger. */
   hideTaskListRowActions?: boolean;
+  /** Optional explicit per-row heights used to synchronize with matrix-style views. */
+  rowHeightsByTaskId?: Record<string, number>;
   /** How task-list date pickers apply start/end edits */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
@@ -314,6 +316,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   hiddenTaskListColumns,
   taskListMenuCommands,
   hideTaskListRowActions = false,
+  rowHeightsByTaskId,
   taskDateChangeMode = 'preserve-duration',
   onTaskDateChangeModeChange,
 }) => {
@@ -380,8 +383,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [orderedTasks, collapsedParentIds, filterMode, filteredTaskIds, isFilterActive]);
 
   const totalHeight = useMemo(
-    () => visibleTasks.length * rowHeight,
-    [visibleTasks.length, rowHeight]
+    () => visibleTasks.reduce((sum, task) => sum + (rowHeightsByTaskId?.[task.id] ?? rowHeight), 0),
+    [rowHeightsByTaskId, rowHeight, visibleTasks]
   );
   const visibleTaskNumberMap = useMemo(
     () =>
@@ -1295,6 +1298,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onTaskSelectionChange={handleToggleTaskSelection}
                   taskListMenuCommands={taskListMenuCommands}
                   hideTaskListRowActions={hideTaskListRowActions}
+                  explicitRowHeight={rowHeightsByTaskId?.[task.id]}
                   taskDateChangeMode={taskDateChangeMode}
                   onTaskDateChangeModeChange={onTaskDateChangeModeChange}
                 />

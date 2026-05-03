@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useMemo, useCallback, useRef, useState, useEffect, useLayoutEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays, createCustomDayPredicate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, universalCascade, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../core/scheduling';
@@ -249,6 +249,8 @@ export interface TableMatrixModeProps<TTask extends Task = Task> extends TaskCha
   matrixColumns: Array<TableMatrixColumn<TTask>>;
   /** Optional grouped header row above matrix columns (e.g. months over weekly columns). */
   matrixColumnGroups?: Array<TableMatrixColumnGroup>;
+  /** Measure task-list and matrix rows by content and sync them to the tallest side. */
+  autoRowHeight?: boolean;
 }
 
 export type GanttChartProps<
@@ -406,6 +408,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const businessDays = !isTableMatrixMode ? props.businessDays ?? true : true;
   const matrixColumns = isTableMatrixMode ? props.matrixColumns : [];
   const matrixColumnGroups = isTableMatrixMode ? props.matrixColumnGroups : undefined;
+  const autoRowHeight = isTableMatrixMode ? props.autoRowHeight ?? false : false;
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
@@ -415,6 +418,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
   const [internalTaskDateChangeMode, setInternalTaskDateChangeMode] = useState<TaskDateChangeMode>('preserve-duration');
+  const [rowHeightsByTaskId, setRowHeightsByTaskId] = useState<Record<string, number>>({});
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
@@ -519,11 +523,105 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Calculate total grid height from currently visible rows.
   const totalGridHeight = useMemo(
-    () => visibleTasks.length * rowHeight,
-    [visibleTasks.length, rowHeight]
+    () => visibleTasks.reduce((sum, task) => sum + (rowHeightsByTaskId[task.id] ?? rowHeight), 0),
+    [rowHeight, rowHeightsByTaskId, visibleTasks]
   );
   // TimeScaleHeader is headerHeight tall; the wrapper owns the bottom grid border.
   const timelineHeaderHeight = headerHeight + 1;
+
+  useLayoutEffect(() => {
+    if (!isTableMatrixMode || !autoRowHeight) {
+      setRowHeightsByTaskId((current) => (Object.keys(current).length === 0 ? current : {}));
+      return;
+    }
+
+    const root = scrollContentRef.current;
+    if (!root) {
+      return;
+    }
+
+    let frameId = 0;
+    let disposed = false;
+    const mutationObserver = new MutationObserver(() => {
+      scheduleMeasure();
+    });
+
+    function scheduleMeasure() {
+      if (disposed || frameId !== 0) {
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(() => {
+        const measurementRoot = scrollContentRef.current;
+        if (!measurementRoot) {
+          frameId = 0;
+          return;
+        }
+
+        frameId = 0;
+
+        const taskListRows = new Map<string, HTMLElement>();
+        const matrixRows = new Map<string, HTMLElement>();
+        const rowElements = Array.from(
+          measurementRoot.querySelectorAll<HTMLElement>('.gantt-tl-row[data-gantt-task-row-id], .gantt-mx-row[data-gantt-task-row-id]')
+        );
+
+        for (const rowElement of rowElements) {
+          const taskId = rowElement.dataset.ganttTaskRowId;
+          if (!taskId) {
+            continue;
+          }
+
+          rowElement.style.height = '';
+          if (rowElement.classList.contains('gantt-tl-row')) {
+            taskListRows.set(taskId, rowElement);
+          }
+          if (rowElement.classList.contains('gantt-mx-row')) {
+            matrixRows.set(taskId, rowElement);
+          }
+        }
+
+        const nextRowHeights: Record<string, number> = {};
+        for (const task of visibleTasks) {
+          const taskListRowHeight = taskListRows.get(task.id)?.getBoundingClientRect().height ?? 0;
+          const matrixRowHeight = matrixRows.get(task.id)?.getBoundingClientRect().height ?? 0;
+          nextRowHeights[task.id] = Math.max(
+            rowHeight,
+            Math.ceil(taskListRowHeight),
+            Math.ceil(matrixRowHeight),
+          );
+        }
+
+        if (disposed) {
+          return;
+        }
+
+        setRowHeightsByTaskId((current) => {
+          const currentKeys = Object.keys(current);
+          const nextKeys = Object.keys(nextRowHeights);
+          if (currentKeys.length === nextKeys.length && nextKeys.every((taskId) => current[taskId] === nextRowHeights[taskId])) {
+            return current;
+          }
+          return nextRowHeights;
+        });
+      });
+    }
+
+    scheduleMeasure();
+    mutationObserver.observe(root, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+
+    return () => {
+      disposed = true;
+      if (frameId !== 0) {
+        window.cancelAnimationFrame(frameId);
+      }
+      mutationObserver.disconnect();
+    };
+  }, [autoRowHeight, isTableMatrixMode, rowHeight, visibleTasks]);
 
   // Get month start for calculations (first day of date range)
   const monthStart = useMemo(() => {
@@ -1293,6 +1391,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             hiddenTaskListColumns={hiddenTaskListColumns}
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
             hideTaskListRowActions={hideTaskListRowActions}
+            rowHeightsByTaskId={rowHeightsByTaskId}
             taskDateChangeMode={taskDateChangeMode}
             onTaskDateChangeModeChange={handleTaskDateChangeMode}
           />
@@ -1312,6 +1411,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 columns={matrixColumns}
                 columnGroups={matrixColumnGroups}
                 rowHeight={rowHeight}
+                rowHeightsByTaskId={rowHeightsByTaskId}
                 headerHeight={timelineHeaderHeight}
                 selectedTaskId={selectedTaskId}
                 onTaskSelect={handleTaskSelect}

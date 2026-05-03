@@ -306,14 +306,16 @@ function buildMatrixColumns(view: MatrixView): TableMatrixColumn<FinanceTask>[] 
     cellClassName: (task) => task.plannedByPeriod[period.id] ? 'finance-matrix-cell-active' : 'finance-matrix-cell-empty',
     renderCell: (task) => {
       const value = task.plannedByPeriod[period.id] ?? 0;
+      const share = value > 0 ? Math.round((value / Math.max(task.budget, 1)) * 100) : 0;
+      const showSecondaryLine = value > 0 && share >= 18;
       return (
-        <div style={{ display: 'grid', gap: 2, justifyItems: 'end', width: '100%' }}>
+        <div style={{ display: 'grid', gap: 2, justifyItems: 'end', width: '100%', padding: '2px 0' }}>
           <strong style={{ fontSize: 13, color: value > 0 ? '#0f172a' : '#94a3b8' }}>
             {value > 0 ? `${formatMoney(value)} ₽` : '—'}
           </strong>
-          {value > 0 && (
+          {showSecondaryLine && (
             <span style={{ fontSize: 11, color: '#64748b' }}>
-              {Math.round((value / Math.max(task.budget, 1)) * 100)}% бюджета
+              {share}% бюджета
             </span>
           )}
         </div>
@@ -395,7 +397,7 @@ export default function FinancePlanMatrixDemo() {
     <section className="demo-section">
       <h2 className="demo-section-title">Table Matrix Financial Plan</h2>
       <p className="demo-section-desc">
-        Слева обычный <code>TaskList</code> с иерархией фаз и статей, справа произвольная матрица ячеек. В демо верхний ряд группирует недели по месяцам, а в строках рендерятся рублёвые значения по периодам.
+        Слева обычный <code>TaskList</code> с иерархией фаз и статей, справа произвольная матрица ячеек. В этом примере строки в режиме <code>table-matrix</code> автоматически ужимаются по контенту: где есть только сумма, строка ниже, где появляется вторая строка, высота увеличивается ровно под содержимое.
       </p>
       <div className="demo-controls">
         <button
@@ -420,11 +422,12 @@ export default function FinancePlanMatrixDemo() {
           tasks={tasks}
           showTaskList={true}
           taskListWidth={620}
-          rowHeight={64}
+          rowHeight={36}
           headerHeight={52}
           containerHeight={420}
           matrixColumns={matrixColumns}
           matrixColumnGroups={view === 'week' ? monthGroups : undefined}
+          autoRowHeight={true}
           additionalColumns={additionalColumns}
           hiddenTaskListColumns={['dependencies', 'progress', 'duration', 'startDate', 'endDate']}
           disableDependencyEditing={true}

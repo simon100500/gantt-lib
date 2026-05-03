@@ -806,6 +806,8 @@ export interface TaskListRowProps {
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   /** Hide row action controls such as insert, hierarchy action buttons, and context menu trigger. */
   hideTaskListRowActions?: boolean;
+  /** Explicit row height used when the parent view synchronizes rows by measured content. */
+  explicitRowHeight?: number;
   /** How task-list date pickers apply start/end edits */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
@@ -876,6 +878,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onTaskSelectionChange,
     taskListMenuCommands = [],
     hideTaskListRowActions = false,
+    explicitRowHeight,
     taskDateChangeMode = 'preserve-duration',
     onTaskDateChangeModeChange,
   }) => {
@@ -2580,7 +2583,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         ]
           .filter(Boolean)
           .join(" ")}
-        style={{ minHeight: `${rowHeight}px`, position: "relative" }}
+        style={{
+          minHeight: `${rowHeight}px`,
+          height: explicitRowHeight ? `${explicitRowHeight}px` : undefined,
+          position: "relative",
+        }}
         data-gantt-task-row-id={task.id}
         onClick={handleRowClickInternal}
         onKeyDown={handleRowKeyDown}
