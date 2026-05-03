@@ -24,7 +24,7 @@ import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
 import { TaskList } from '../TaskList';
 import { ResourceTimelineChart } from '../ResourceTimelineChart';
-import { TableMatrix, type TableMatrixColumn, type TableMatrixColumnGroup } from '../TableMatrix';
+import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup } from '../TableMatrix';
 import { printGanttChart } from './print';
 import './GanttChart.css';
 
@@ -251,6 +251,8 @@ export interface TableMatrixModeProps<TTask extends Task = Task> extends TaskCha
   matrixColumns: Array<TableMatrixColumn<TTask>>;
   /** Optional grouped header row above matrix columns (e.g. months over weekly columns). */
   matrixColumnGroups?: Array<TableMatrixColumnGroup>;
+  /** Called when any data cell in the right-side matrix is clicked. */
+  onMatrixCellClick?: (context: TableMatrixCellClickContext<TTask>) => void;
 }
 
 export type GanttChartProps<
@@ -409,6 +411,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const businessDays = !isTableMatrixMode ? props.businessDays ?? true : true;
   const matrixColumns = isTableMatrixMode ? props.matrixColumns : [];
   const matrixColumnGroups = isTableMatrixMode ? props.matrixColumnGroups : undefined;
+  const onMatrixCellClick = isTableMatrixMode ? props.onMatrixCellClick : undefined;
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
@@ -1329,6 +1332,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 headerHeight={timelineHeaderHeight}
                 selectedTaskId={selectedTaskId}
                 onTaskSelect={handleTaskSelect}
+                onCellClick={onMatrixCellClick}
                 highlightedTaskIds={taskListHighlightedTaskIds}
                 filterMode={filterMode}
               />

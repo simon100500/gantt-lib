@@ -20,4 +20,5 @@ export type {
 export type {
   TableMatrixColumn,
   TableMatrixColumnGroup,
+  TableMatrixCellClickContext,
 } from '../TableMatrix';

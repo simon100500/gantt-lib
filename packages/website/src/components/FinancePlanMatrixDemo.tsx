@@ -19,6 +19,12 @@ type PeriodDefinition = {
   groupId?: string;
 };
 
+type MatrixCellModalState = {
+  taskName: string;
+  periodLabel: string;
+  value: number;
+} | null;
+
 const financeTasks: FinanceTask[] = [
   {
     id: "phase-1",
@@ -646,10 +652,15 @@ function buildMatrixColumns(view: MatrixView): TableMatrixColumn<FinanceTask>[] 
   }));
 }
 
+function getPeriodLabel(periodId: string) {
+  return [...weeklyPeriods, ...monthlyPeriods].find((period) => period.id === periodId)?.label ?? periodId;
+}
+
 export default function FinancePlanMatrixDemo() {
   const [baseTasks, setBaseTasks] = useState<FinanceTask[]>(financeTasks);
   const [view, setView] = useState<MatrixView>('week');
   const [showShareLine, setShowShareLine] = useState(true);
+  const [matrixCellModal, setMatrixCellModal] = useState<MatrixCellModalState>(null);
   const tasks = useMemo(() => deriveHierarchyFinanceTasks(baseTasks), [baseTasks]);
   const displayTasks = useMemo(() => [...tasks, buildTotalRow(tasks)], [tasks]);
 
@@ -781,6 +792,13 @@ export default function FinancePlanMatrixDemo() {
           disableTaskDrag={true}
           enableAddTask={false}
           hideTaskListRowActions={true}
+          onMatrixCellClick={({ task, column }) => {
+            setMatrixCellModal({
+              taskName: task.name,
+              periodLabel: getPeriodLabel(column.id),
+              value: task.plannedByPeriod[column.id] ?? 0,
+            });
+          }}
           onTasksChange={(changedTasks) => {
             setBaseTasks((current) => {
               let nextTasks = current;
@@ -805,6 +823,39 @@ export default function FinancePlanMatrixDemo() {
           }}
         />
       </div>
+      {matrixCellModal && (
+        <div className="finance-cell-modal-backdrop" onClick={() => setMatrixCellModal(null)}>
+          <div
+            className="finance-cell-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="finance-cell-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div>
+              <h3 id="finance-cell-modal-title">Сумма ячейки</h3>
+              <p>{matrixCellModal.taskName}</p>
+            </div>
+            <dl>
+              <div>
+                <dt>Период</dt>
+                <dd>{matrixCellModal.periodLabel}</dd>
+              </div>
+              <div>
+                <dt>Сумма</dt>
+                <dd>{formatMoney(matrixCellModal.value)}</dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              className="demo-btn demo-btn-neutral"
+              onClick={() => setMatrixCellModal(null)}
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

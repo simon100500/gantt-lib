@@ -22,6 +22,14 @@ export interface TableMatrixColumn<TTask extends Task = Task> {
   renderCell: (task: TTask) => React.ReactNode;
 }
 
+export interface TableMatrixCellClickContext<TTask extends Task = Task> {
+  task: TTask;
+  column: TableMatrixColumn<TTask>;
+  rowIndex: number;
+  columnIndex: number;
+  event: React.MouseEvent<HTMLDivElement>;
+}
+
 export interface TableMatrixProps<TTask extends Task = Task> {
   tasks: TTask[];
   allTasks?: TTask[];
@@ -31,6 +39,7 @@ export interface TableMatrixProps<TTask extends Task = Task> {
   headerHeight: number;
   selectedTaskId?: string | null;
   onTaskSelect?: (taskId: string | null) => void;
+  onCellClick?: (context: TableMatrixCellClickContext<TTask>) => void;
   highlightedTaskIds?: Set<string>;
   filterMode?: 'highlight' | 'hide';
 }
@@ -55,6 +64,7 @@ export default function TableMatrix<TTask extends Task = Task>({
   headerHeight,
   selectedTaskId,
   onTaskSelect,
+  onCellClick,
   highlightedTaskIds,
   filterMode = 'highlight',
 }: TableMatrixProps<TTask>) {
@@ -204,7 +214,7 @@ export default function TableMatrix<TTask extends Task = Task>({
               }}
               onClick={() => onTaskSelect?.(task.id)}
             >
-              {columns.map((column) => {
+              {columns.map((column, columnIndex) => {
                 const resolvedCellClassName = typeof column.cellClassName === 'function'
                   ? column.cellClassName(task)
                   : column.cellClassName;
@@ -218,6 +228,9 @@ export default function TableMatrix<TTask extends Task = Task>({
                       column.className,
                       resolvedCellClassName
                     )}
+                    onClick={(event) => {
+                      onCellClick?.({ task, column, rowIndex: index, columnIndex, event });
+                    }}
                   >
                     {column.renderCell(task)}
                   </div>

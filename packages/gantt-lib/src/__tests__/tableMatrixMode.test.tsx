@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { GanttChart, type Task } from '../index';
 
 type FinanceTask = Task & {
@@ -125,5 +125,41 @@ describe('table-matrix mode', () => {
     );
 
     expect(container.querySelector('.gantt-tl-drag-handle')).toBeNull();
+  });
+
+  it('calls matrix cell click handler with task and column context', () => {
+    const tasks: FinanceTask[] = [
+      {
+        id: 'task-1',
+        name: 'Строка',
+        startDate: '2026-04-01',
+        endDate: '2026-04-20',
+        weeklyPlan: { w1: 100 },
+      },
+    ];
+    const clicks: Array<{ taskId: string; columnId: string; rowIndex: number; columnIndex: number }> = [];
+
+    const { container } = render(
+      <GanttChart<FinanceTask>
+        mode="table-matrix"
+        tasks={tasks}
+        showTaskList={true}
+        matrixColumns={[
+          { id: 'w1', header: '01-07', width: 110, renderCell: (task) => task.weeklyPlan.w1?.toString() ?? '' },
+        ]}
+        onMatrixCellClick={({ task, column, rowIndex, columnIndex }) => {
+          clicks.push({ taskId: task.id, columnId: column.id, rowIndex, columnIndex });
+        }}
+      />
+    );
+
+    const cell = container.querySelector('.gantt-mx-cell');
+    expect(cell).not.toBeNull();
+
+    fireEvent.click(cell!);
+
+    expect(clicks).toEqual([
+      { taskId: 'task-1', columnId: 'w1', rowIndex: 0, columnIndex: 0 },
+    ]);
   });
 });
