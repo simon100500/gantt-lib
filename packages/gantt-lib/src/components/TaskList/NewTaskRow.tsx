@@ -53,7 +53,7 @@ export const NewTaskRow: React.FC<NewTaskRowProps> = ({
   };
 
   return (
-    <div className="gantt-tl-row gantt-tl-row-new" style={{ minHeight: `${rowHeight}px` }}>
+    <div className="gantt-tl-row gantt-tl-row-new" style={{ height: `${rowHeight}px` }}>
       <div className="gantt-tl-cell gantt-tl-cell-number" />
       <div className="gantt-tl-cell gantt-tl-cell-name gantt-tl-cell-new-name">
         <Input

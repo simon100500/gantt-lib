@@ -93,6 +93,7 @@
 .gantt-tl-row {
   --gantt-tl-name-actions-bg: var(--gantt-cell-background, #ffffff);
   display: flex;
+  flex: 0 0 auto;
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   box-sizing: border-box;
   cursor: pointer;

@@ -15,14 +15,15 @@
 .gantt-mx-headerRow,
 .gantt-mx-row {
   display: grid;
-}
-
-.gantt-mx-headerRow {
   box-sizing: border-box;
 }
 
 .gantt-mx-headerGroupRow {
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+}
+
+.gantt-mx-body {
+  position: relative;
 }
 
 .gantt-mx-headerCell,
@@ -33,6 +34,7 @@
   min-width: 0;
   padding: 0 12px;
   border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  box-sizing: border-box;
 }
 
 .gantt-mx-headerCell:last-child,
@@ -60,7 +62,11 @@
 }
 
 .gantt-mx-row {
+  position: absolute;
+  left: 0;
+  right: 0;
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  overflow: hidden;
 }
 
 .gantt-mx-row.gantt-mx-row-parent {

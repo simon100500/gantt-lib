@@ -2644,7 +2644,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         ]
           .filter(Boolean)
           .join(" ")}
-        style={{ minHeight: `${rowHeight}px`, position: "relative" }}
+        style={{ height: `${rowHeight}px`, position: "relative" }}
         data-gantt-task-row-id={task.id}
         onClick={handleRowClickInternal}
         onKeyDown={handleRowKeyDown}

@@ -119,7 +119,7 @@ export default function TableMatrix<TTask extends Task = Task>({
 
   return (
     <div className="gantt-mx-root" style={{ width: `${totalWidth}px` }}>
-      <div className="gantt-mx-header">
+      <div className="gantt-mx-header" style={{ height: `${headerHeight}px` }}>
         {hasGroupHeader && (
           <div
             className="gantt-mx-headerRow gantt-mx-headerGroupRow"
@@ -145,8 +145,11 @@ export default function TableMatrix<TTask extends Task = Task>({
         </div>
       </div>
 
-      <div>
-        {tasks.map((task) => {
+      <div
+        className="gantt-mx-body"
+        style={{ height: `${tasks.length * rowHeight}px` }}
+      >
+        {tasks.map((task, index) => {
           const isHighlighted = filterMode === 'highlight' && !!highlightedTaskIds?.has(task.id);
           const isParent = parentTaskIds.has(task.id);
           return (
@@ -160,7 +163,11 @@ export default function TableMatrix<TTask extends Task = Task>({
                 selectedTaskId === task.id && 'gantt-mx-row-selected',
                 isHighlighted && 'gantt-mx-row-highlighted'
               )}
-              style={{ gridTemplateColumns, height: `${rowHeight}px` }}
+              style={{
+                gridTemplateColumns,
+                top: `${index * rowHeight}px`,
+                height: `${rowHeight}px`,
+              }}
               onClick={() => onTaskSelect?.(task.id)}
             >
               {columns.map((column) => {
