@@ -371,7 +371,7 @@ function buildMatrixColumns(view: MatrixView): TableMatrixColumn<FinanceTask>[] 
       return (
         <div style={{ display: 'grid', gap: 2, justifyItems: 'end', width: '100%', padding: '2px 0' }}>
           <span style={{ fontSize: 13, color: value > 0 ? '#0f172a' : '#94a3b8' }}>
-            {value > 0 ? formatMoney(value) : '—'}
+            {value > 0 ? formatMoney(value) : ''}
           </span>
           {showSecondaryLine && (
             <span style={{ fontSize: 11, color: '#64748b' }}>
@@ -449,7 +449,7 @@ export default function FinancePlanMatrixDemo() {
         return (
           <div style={{ display: 'grid', gap: 2, justifyItems: 'end', width: '100%', padding: '2px 0' }}>
             <span style={{ fontSize: 13, color: value > 0 ? '#0f172a' : '#94a3b8' }}>
-              {value > 0 ? formatMoney(value) : '—'}
+              {value > 0 ? formatMoney(value) : ''}
             </span>
             {showSecondaryLine && (
               <span style={{ fontSize: 11, color: '#64748b' }}>

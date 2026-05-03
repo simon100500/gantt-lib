@@ -549,24 +549,31 @@ export const TaskList: React.FC<TaskListProps> = ({
     onSelectedChipChange?.(chip);
   }, [onSelectedChipChange]);
 
-  // Escape / outside-click cancel for picker mode, chip selection, and task row selection
+  // Escape / outside-click cancel for picker mode, chip selection, task row selection, and custom cell focus.
   useEffect(() => {
-    if (!selectingPredecessorFor && !selectedChip && !selectedTaskId) return;
+    if (!selectingPredecessorFor && !selectedChip && !selectedTaskId && !activeCustomCell) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSelectingPredecessorFor(null);
         setSelectedChip(null);
+        setActiveCustomCell(null);
         onSelectedChipChange?.(null);
         onTaskSelect?.(null);
       }
     };
     const handleMouseDown = (e: MouseEvent) => {
       const target = e.target as Element;
-      if (overlayRef.current?.contains(target)) return;
+      if (overlayRef.current?.contains(target)) {
+        if (activeCustomCell && !target.closest?.('[data-custom-column-id]')) {
+          setActiveCustomCell(null);
+        }
+        return;
+      }
       // Don't clear when clicking inside a floating portal (popover, date picker, etc.)
       if (target.closest?.('.gantt-popover')) return;
       setSelectingPredecessorFor(null);
       setSelectedChip(null);
+      setActiveCustomCell(null);
       onSelectedChipChange?.(null);
       onTaskSelect?.(null);
     };
@@ -576,7 +583,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handleMouseDown, true);
     };
-  }, [selectingPredecessorFor, selectedChip, selectedTaskId, onTaskSelect, onSelectedChipChange]);
+  }, [selectingPredecessorFor, selectedChip, selectedTaskId, activeCustomCell, onTaskSelect, onSelectedChipChange]);
 
   const handleAddDependency = useCallback((
     successorTaskId: string,
