@@ -231,6 +231,10 @@ body {
   background: transparent;
 }
 
+.finance-matrix-cell-total {
+  font-weight: 700;
+}
+
 .finance-money-value {
   display: inline;
   font-size: 13px;

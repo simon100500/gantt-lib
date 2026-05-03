@@ -8,6 +8,7 @@ type FinanceTask = Task & {
   budget: number;
   paid: number;
   plannedByPeriod: Record<string, number>;
+  isTotal?: boolean;
 };
 
 type MatrixView = 'week' | 'month';
@@ -130,6 +131,143 @@ const financeTasks: FinanceTask[] = [
     },
   },
   {
+    id: "fp-2-1",
+    name: "Земляные работы под фундамент",
+    startDate: "2026-04-08",
+    endDate: "2026-04-26",
+    parentId: "fp-2",
+    owner: "Монолит",
+    budget: 1740000,
+    paid: 510000,
+    plannedByPeriod: {
+      "2026-04-w2": 640000,
+      "2026-04-w3": 720000,
+      "2026-04-w4": 380000,
+      "2026-04": 1740000,
+    },
+  },
+  {
+    id: "fp-2-1-1",
+    name: "Разработка котлована",
+    startDate: "2026-04-08",
+    endDate: "2026-04-18",
+    parentId: "fp-2-1",
+    owner: "Монолит",
+    budget: 940000,
+    paid: 310000,
+    plannedByPeriod: {
+      "2026-04-w2": 640000,
+      "2026-04-w3": 300000,
+      "2026-04": 940000,
+    },
+  },
+  {
+    id: "fp-2-1-2",
+    name: "Щебеночная подготовка",
+    startDate: "2026-04-18",
+    endDate: "2026-04-26",
+    parentId: "fp-2-1",
+    owner: "Монолит",
+    budget: 800000,
+    paid: 200000,
+    plannedByPeriod: {
+      "2026-04-w3": 420000,
+      "2026-04-w4": 380000,
+      "2026-04": 800000,
+    },
+  },
+  {
+    id: "fp-2-2",
+    name: "Монолит плиты",
+    startDate: "2026-04-20",
+    endDate: "2026-05-18",
+    parentId: "fp-2",
+    owner: "Монолит",
+    budget: 3120000,
+    paid: 800000,
+    plannedByPeriod: {
+      "2026-04-w3": 190000,
+      "2026-04-w4": 800000,
+      "2026-05-w1": 820000,
+      "2026-05-w2": 690000,
+      "2026-05-w3": 620000,
+      "2026-04": 990000,
+      "2026-05": 2130000,
+    },
+  },
+  {
+    id: "fp-2-2-1",
+    name: "Армирование плиты",
+    startDate: "2026-04-20",
+    endDate: "2026-05-10",
+    parentId: "fp-2-2",
+    owner: "Монолит",
+    budget: 1250000,
+    paid: 420000,
+    plannedByPeriod: {
+      "2026-04-w3": 190000,
+      "2026-04-w4": 360000,
+      "2026-05-w1": 400000,
+      "2026-05-w2": 300000,
+      "2026-04": 550000,
+      "2026-05": 700000,
+    },
+  },
+  {
+    id: "fp-2-2-2",
+    name: "Бетонирование плиты",
+    startDate: "2026-04-27",
+    endDate: "2026-05-18",
+    parentId: "fp-2-2",
+    owner: "Монолит",
+    budget: 1870000,
+    paid: 380000,
+    plannedByPeriod: {
+      "2026-04-w4": 440000,
+      "2026-05-w1": 420000,
+      "2026-05-w2": 390000,
+      "2026-05-w3": 620000,
+      "2026-04": 440000,
+      "2026-05": 1430000,
+    },
+  },
+  {
+    id: "fp-3-1",
+    name: "Колонны и ядра",
+    startDate: "2026-05-01",
+    endDate: "2026-05-31",
+    parentId: "fp-3",
+    owner: "Монолит",
+    budget: 2060000,
+    paid: 0,
+    plannedByPeriod: {
+      "2026-05-w1": 420000,
+      "2026-05-w2": 560000,
+      "2026-05-w3": 520000,
+      "2026-05-w4": 560000,
+      "2026-05": 2060000,
+    },
+  },
+  {
+    id: "fp-3-2",
+    name: "Перекрытия типовых этажей",
+    startDate: "2026-05-12",
+    endDate: "2026-06-15",
+    parentId: "fp-3",
+    owner: "Монолит",
+    budget: 3260000,
+    paid: 0,
+    plannedByPeriod: {
+      "2026-05-w2": 200000,
+      "2026-05-w3": 410000,
+      "2026-05-w4": 490000,
+      "2026-06-w1": 1220000,
+      "2026-06-w2": 940000,
+      "2026-05": 1100000,
+      "2026-06": 2160000,
+    },
+  },
+  {
     id: "phase-3",
     name: "Инженерный контур",
     startDate: "2026-05-10",
@@ -166,6 +304,84 @@ const financeTasks: FinanceTask[] = [
       "2026-06": 2410000,
     },
   },
+  {
+    id: "phase-4",
+    name: "Отделка и сдача",
+    startDate: "2026-06-08",
+    endDate: "2026-06-30",
+    owner: "Финиш",
+    budget: 2400000,
+    paid: 0,
+    plannedByPeriod: {
+      "2026-06-w2": 460000,
+      "2026-06-w3": 850000,
+      "2026-06-w4": 1090000,
+      "2026-06": 2400000,
+    },
+  },
+  {
+    id: "fp-5",
+    name: "Чистовая отделка",
+    startDate: "2026-06-08",
+    endDate: "2026-06-30",
+    parentId: "phase-4",
+    owner: "Финиш",
+    budget: 2400000,
+    paid: 0,
+    plannedByPeriod: {
+      "2026-06-w2": 460000,
+      "2026-06-w3": 850000,
+      "2026-06-w4": 1090000,
+      "2026-06": 2400000,
+    },
+  },
+  {
+    id: "fp-5-1",
+    name: "МОП и лестничные клетки",
+    startDate: "2026-06-08",
+    endDate: "2026-06-24",
+    parentId: "fp-5",
+    owner: "Финиш",
+    budget: 1320000,
+    paid: 0,
+    plannedByPeriod: {
+      "2026-06-w2": 460000,
+      "2026-06-w3": 520000,
+      "2026-06-w4": 340000,
+      "2026-06": 1320000,
+    },
+  },
+  {
+    id: "fp-5-1-1",
+    name: "Плитка и окраска МОП",
+    startDate: "2026-06-08",
+    endDate: "2026-06-24",
+    parentId: "fp-5-1",
+    owner: "Финиш",
+    budget: 1320000,
+    paid: 0,
+    plannedByPeriod: {
+      "2026-06-w2": 460000,
+      "2026-06-w3": 520000,
+      "2026-06-w4": 340000,
+      "2026-06": 1320000,
+    },
+  },
+  {
+    id: "fp-5-2",
+    name: "Пусконаладка и передача",
+    startDate: "2026-06-22",
+    endDate: "2026-06-30",
+    parentId: "fp-5",
+    owner: "Финиш",
+    budget: 1080000,
+    paid: 0,
+    plannedByPeriod: {
+      "2026-06-w3": 330000,
+      "2026-06-w4": 750000,
+      "2026-06": 1080000,
+    },
+  },
 ];
 
 const weeklyPeriods: PeriodDefinition[] = [
@@ -180,6 +396,7 @@ const weeklyPeriods: PeriodDefinition[] = [
   { id: "2026-06-w1", label: "01-07", groupId: "2026-06" },
   { id: "2026-06-w2", label: "08-14", groupId: "2026-06" },
   { id: "2026-06-w3", label: "15-21", groupId: "2026-06" },
+  { id: "2026-06-w4", label: "22-30", groupId: "2026-06" },
 ];
 
 const monthlyPeriods: PeriodDefinition[] = [
@@ -378,6 +595,29 @@ function deriveHierarchyFinanceTasks(tasks: FinanceTask[]): FinanceTask[] {
   return tasks.map((task) => visit(task.id));
 }
 
+function buildTotalRow(tasks: FinanceTask[]): FinanceTask {
+  const rootTasks = tasks.filter((task) => !task.parentId && !task.isTotal);
+  const plannedByPeriod: Record<string, number> = {};
+
+  for (const task of rootTasks) {
+    for (const [periodId, value] of Object.entries(task.plannedByPeriod)) {
+      plannedByPeriod[periodId] = (plannedByPeriod[periodId] ?? 0) + value;
+    }
+  }
+
+  return {
+    id: "finance-total",
+    name: "ИТОГО",
+    startDate: rootTasks[0]?.startDate ?? "2026-04-01",
+    endDate: rootTasks[rootTasks.length - 1]?.endDate ?? "2026-06-30",
+    owner: "Все контуры",
+    budget: rootTasks.reduce((sum, task) => sum + task.budget, 0),
+    paid: rootTasks.reduce((sum, task) => sum + task.paid, 0),
+    plannedByPeriod,
+    isTotal: true,
+  };
+}
+
 function buildMatrixColumns(view: MatrixView): TableMatrixColumn<FinanceTask>[] {
   const periods = view === 'week' ? weeklyPeriods : monthlyPeriods;
   return periods.map((period) => ({
@@ -411,6 +651,7 @@ export default function FinancePlanMatrixDemo() {
   const [view, setView] = useState<MatrixView>('week');
   const [showShareLine, setShowShareLine] = useState(true);
   const tasks = useMemo(() => deriveHierarchyFinanceTasks(baseTasks), [baseTasks]);
+  const displayTasks = useMemo(() => [...tasks, buildTotalRow(tasks)], [tasks]);
 
   const additionalColumns = useMemo<TaskListColumn<FinanceTask>[]>(() => [
     {
@@ -419,7 +660,7 @@ export default function FinancePlanMatrixDemo() {
       width: 120,
       align: 'left',
       after: 'name',
-      renderCell: ({ task }) => <span style={{ fontWeight: task.parentId ? 500 : 700 }}>{task.owner}</span>,
+      renderCell: ({ task }) => <span style={{ fontWeight: task.parentId && !task.isTotal ? 500 : 700 }}>{task.owner}</span>,
     },
     {
       id: 'budget',
@@ -429,7 +670,7 @@ export default function FinancePlanMatrixDemo() {
       after: 'owner',
       editable: true,
       renderCell: ({ task }) => (
-        <MoneyValue value={task.budget} fontWeight={task.parentId ? 500 : 700} />
+        <MoneyValue value={task.budget} fontWeight={task.parentId && !task.isTotal ? 500 : 700} />
       ),
       renderEditor: ({ task, editStartValue, updateTask, closeEditor }) => {
         return (
@@ -452,7 +693,7 @@ export default function FinancePlanMatrixDemo() {
         <MoneyValue
           value={task.paid}
           color={task.paid > 0 ? '#0f766e' : '#94a3b8'}
-          fontWeight={task.parentId ? 500 : 700}
+          fontWeight={task.parentId && !task.isTotal ? 500 : 700}
         />
       ),
     },
@@ -466,7 +707,10 @@ export default function FinancePlanMatrixDemo() {
       header: period.label,
       groupId: period.groupId,
       width: getMatrixColumnWidth(view),
-      cellClassName: (task: FinanceTask) => task.plannedByPeriod[period.id] ? 'finance-matrix-cell-active' : 'finance-matrix-cell-empty',
+      cellClassName: (task: FinanceTask) => [
+        task.plannedByPeriod[period.id] ? 'finance-matrix-cell-active' : 'finance-matrix-cell-empty',
+        task.isTotal ? 'finance-matrix-cell-total' : '',
+      ].filter(Boolean).join(' '),
       renderCell: (task: FinanceTask) => {
         const value = task.plannedByPeriod[period.id] ?? 0;
         const share = value > 0 ? Math.round((value / Math.max(task.budget, 1)) * 100) : 0;
@@ -475,7 +719,7 @@ export default function FinancePlanMatrixDemo() {
         return (
           <div style={{ display: 'grid', gap: 2, justifyItems: 'end', width: '100%', padding: '2px 0' }}>
             {value > 0 && (
-              <MoneyValue value={value} color="#0f172a" />
+              <MoneyValue value={value} color="#0f172a" fontWeight={task.isTotal ? 700 : undefined} />
             )}
             {showSecondaryLine && (
               <span style={{ fontSize: 11, color: '#64748b' }}>
@@ -521,13 +765,13 @@ export default function FinancePlanMatrixDemo() {
       <div className="demo-chart-card">
         <GanttChart<FinanceTask>
           mode="table-matrix"
-          tasks={tasks}
+          tasks={displayTasks}
           showTaskList={true}
           taskListWidth={620}
           rowHeight={36}
           rowContentLines={showShareLine ? 2 : 1}
           headerHeight={52}
-          containerHeight={420}
+          containerHeight={640}
           matrixColumns={matrixColumns}
           matrixColumnGroups={view === 'week' ? monthGroups : undefined}
           additionalColumns={additionalColumns}
