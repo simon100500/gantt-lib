@@ -1246,7 +1246,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, []);
 
   return (
-    <div ref={containerRef} className="gantt-container">
+    <div
+      ref={containerRef}
+      className={isTableMatrixMode ? 'gantt-container gantt-container-tableMatrix' : 'gantt-container'}
+    >
       <div
         ref={scrollContainerRef}
         className="gantt-scrollContainer"

@@ -152,7 +152,7 @@
   --gantt-tl-name-actions-bg: inherit;
 }
 
-.gantt-tl-row-level-0.gantt-tl-row-parent {
+.gantt-container-tableMatrix .gantt-tl-row-level-0.gantt-tl-row-parent {
   --gantt-tl-name-actions-bg: var(--gantt-row-fill-level-0, #e2e8f0);
   background-color: var(--gantt-row-fill-level-0, #e2e8f0);
 }
