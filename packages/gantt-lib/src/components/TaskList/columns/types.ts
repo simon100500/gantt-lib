@@ -16,6 +16,7 @@ export interface TaskListColumnContext<TTask extends Task> {
   task: TTask;
   rowIndex: number;
   isEditing: boolean;
+  editStartValue?: string;
   openEditor: () => void;
   closeEditor: () => void;
   updateTask: (patch: Partial<TTask>) => void;

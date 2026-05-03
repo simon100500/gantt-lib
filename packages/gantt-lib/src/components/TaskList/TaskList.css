@@ -1572,6 +1572,21 @@
 
 .gantt-tl-cell-custom {
   padding: 0 8px;
+  position: relative;
+  outline: none;
+}
+
+.gantt-tl-cell-custom[data-custom-column-editing="true"] {
+  padding: 0;
+}
+
+.gantt-tl-cell-custom[data-custom-column-active="true"] {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #93c5fd;
+}
+
+.gantt-tl-cell-custom[data-custom-column-active="true"][data-custom-column-editing="true"] {
+  box-shadow: none;
 }
 
 .gantt-tl-cell-align-left {
@@ -1594,6 +1609,7 @@
   height: 100%;
   display: flex;
   align-items: center;
+  align-self: stretch;
 }
 
 .gantt-tl-cell-custom-content {
@@ -1607,23 +1623,23 @@
 
 .gantt-tl-inline-editor-input {
   width: 100%;
-  height: calc(100% - 8px);
-  min-height: 32px;
-  border: 1px solid #93c5fd;
-  border-radius: 6px;
+  height: 100%;
+  min-height: 100%;
+  border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  border-radius: 0;
   background: #ffffff;
   padding: 0 8px;
   font-size: 0.8125rem;
   line-height: 1;
   font-family: inherit;
   color: #0f172a;
-  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.25);
+  box-shadow: none;
 }
 
 .gantt-tl-inline-editor-input:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.18);
 }
 
 .gantt-tl-add-btn:hover {

@@ -879,7 +879,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     taskDateChangeMode = 'preserve-duration',
     onTaskDateChangeModeChange,
   }) => {
+    const [activeCustomColumnId, setActiveCustomColumnId] = useState<string | null>(null);
     const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+    const [editingColumnStartValue, setEditingColumnStartValue] = useState<string | undefined>(undefined);
     const editingName = editingColumnId === 'name';
     const editingDuration = editingColumnId === 'duration';
     const editingProgress = editingColumnId === 'progress';
@@ -2595,18 +2597,32 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           // Custom column
           const isEditing = editingColumnId === col.id;
           const editorFn = col.renderEditor;
+          const isActiveCustomCell = activeCustomColumnId === col.id;
+          const startEditingCustomCell = (startValue?: string) => {
+            if (!editorFn) return;
+            setActiveCustomColumnId(col.id);
+            setEditingColumnStartValue(startValue);
+            setEditingColumnId(col.id);
+          };
           const columnContext = {
             task,
             rowIndex,
             isEditing,
+            editStartValue: isEditing ? editingColumnStartValue : undefined,
             openEditor: () => {
-              if (editorFn) setEditingColumnId(col.id);
+              startEditingCustomCell();
             },
             closeEditor: () => {
-              if (editingColumnId === col.id) setEditingColumnId(null);
+              if (editingColumnId === col.id) {
+                setEditingColumnId(null);
+                setEditingColumnStartValue(undefined);
+                setActiveCustomColumnId(null);
+              }
             },
             updateTask: (patch: Partial<Task>) => {
               onTasksChange?.([{ ...task, ...patch } as Task]);
+              setActiveCustomColumnId(null);
+              setEditingColumnStartValue(undefined);
               setEditingColumnId(null);
             },
           };
@@ -2617,9 +2633,46 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               className={`gantt-tl-cell gantt-tl-cell-custom gantt-tl-cell-align-${col.align ?? 'left'}`}
               data-column-id={`custom:${col.id}`}
               data-custom-column-id={col.id}
+              data-custom-column-active={isActiveCustomCell ? "true" : "false"}
               data-custom-column-editing={isEditing ? "true" : "false"}
               data-testid={`custom-cell-${col.id}`}
-              onClick={editorFn && !isEditing ? (e) => { e.stopPropagation(); setEditingColumnId(col.id); } : undefined}
+              tabIndex={editorFn ? 0 : -1}
+              onClick={editorFn ? (e) => {
+                e.stopPropagation();
+                setActiveCustomColumnId(col.id);
+                if (isEditing) {
+                  return;
+                }
+                (e.currentTarget as HTMLDivElement).focus();
+              } : undefined}
+              onDoubleClick={editorFn && !isEditing ? (e) => {
+                e.stopPropagation();
+                startEditingCustomCell();
+              } : undefined}
+              onBlur={editorFn && !isEditing ? () => {
+                setActiveCustomColumnId((current) => current === col.id ? null : current);
+              } : undefined}
+              onKeyDown={editorFn && !isEditing ? (e) => {
+                if (e.key === 'Enter' || e.key === 'F2') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  startEditingCustomCell();
+                  return;
+                }
+
+                if (e.key === 'Backspace' || e.key === 'Delete') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  startEditingCustomCell('');
+                  return;
+                }
+
+                if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  startEditingCustomCell(e.key);
+                }
+              } : undefined}
               style={{ width: col.width ?? 120, minWidth: col.width ?? 120, flexShrink: 0 }}
             >
               {isEditing && editorFn ? (

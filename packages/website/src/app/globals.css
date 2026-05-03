@@ -224,11 +224,11 @@ body {
 }
 
 .finance-matrix-cell-active {
-  background: linear-gradient(180deg, rgba(239, 246, 255, 0.92), rgba(219, 234, 254, 0.92));
+  background: #ffffff;
 }
 
 .finance-matrix-cell-empty {
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .demo-selection-status {

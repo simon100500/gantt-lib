@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GanttChart, type Task, type TaskListColumn, type TableMatrixColumn, type TableMatrixColumnGroup } from "gantt-lib";
 
 type FinanceTask = Task & {
@@ -198,6 +198,62 @@ function formatMoney(value: number) {
   return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(value);
 }
 
+type BudgetEditorProps = {
+  value: number;
+  editStartValue?: string;
+  onCommit: (value: number) => void;
+  onCancel: () => void;
+};
+
+function BudgetCellEditor({ value, editStartValue, onCommit, onCancel }: BudgetEditorProps) {
+  const [draft, setDraft] = useState(editStartValue ?? String(value));
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    if (editStartValue === undefined) {
+      inputRef.current?.select();
+    } else {
+      const cursorPosition = editStartValue.length;
+      inputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
+    }
+  }, [editStartValue]);
+
+  const commit = () => {
+    const nextValue = parseMoneyInput(draft);
+    if (nextValue !== null) {
+      onCommit(nextValue);
+      return;
+    }
+    onCancel();
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      value={draft}
+      className="gantt-tl-inline-editor-input"
+      onChange={(event) => {
+        setDraft(event.target.value);
+      }}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          onCancel();
+          return;
+        }
+
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          commit();
+        }
+      }}
+      style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}
+    />
+  );
+}
+
 function parseMoneyInput(value: string): number | null {
   const normalized = value.replace(/\s+/g, "").replace(",", ".");
   const parsed = Number(normalized);
@@ -347,33 +403,13 @@ export default function FinancePlanMatrixDemo() {
       after: 'owner',
       editable: true,
       renderCell: ({ task }) => <span style={{ fontWeight: task.parentId ? 500 : 700 }}>{formatMoney(task.budget)} ₽</span>,
-      renderEditor: ({ task, updateTask, closeEditor }) => {
+      renderEditor: ({ task, editStartValue, updateTask, closeEditor }) => {
         return (
-          <input
-            autoFocus
-            defaultValue={String(task.budget)}
-            className="gantt-tl-inline-editor-input"
-            onBlur={(event) => {
-              const nextValue = parseMoneyInput(event.target.value);
-              if (nextValue !== null) {
-                updateTask({ budget: nextValue });
-              }
-              closeEditor();
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                closeEditor();
-                return;
-              }
-              if (event.key === 'Enter') {
-                const nextValue = parseMoneyInput((event.target as HTMLInputElement).value);
-                if (nextValue !== null) {
-                  updateTask({ budget: nextValue });
-                }
-                closeEditor();
-              }
-            }}
-            style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}
+          <BudgetCellEditor
+            value={task.budget}
+            editStartValue={editStartValue}
+            onCommit={(nextValue) => updateTask({ budget: nextValue })}
+            onCancel={closeEditor}
           />
         );
       },
