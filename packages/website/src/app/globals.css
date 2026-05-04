@@ -224,7 +224,7 @@ body {
 }
 
 .finance-matrix-cell-active {
-  background: transparent;
+  background: rgba(148, 163, 184, 0.16);
 }
 
 .finance-matrix-demo {
