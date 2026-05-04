@@ -1,5 +1,4 @@
 .gantt-mx-root {
-  min-width: 100%;
   background: var(--gantt-cell-background, #ffffff);
 }
 
@@ -37,9 +36,7 @@
   box-sizing: border-box;
 }
 
-.gantt-mx-headerCell:last-child,
-.gantt-mx-groupCell:last-child,
-.gantt-mx-cell:last-child {
+.gantt-mx-groupCell:last-child {
   border-right: 0;
 }
 

@@ -1330,7 +1330,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             className={isTableMatrixMode || showChart ? 'gantt-chartSurface' : 'gantt-chartSurface gantt-chart-hidden'}
             style={{
               minWidth: `${isTableMatrixMode ? matrixWidth : gridWidth}px`,
-              flex: 1,
+              width: isTableMatrixMode ? `${matrixWidth}px` : undefined,
+              flex: isTableMatrixMode ? '0 0 auto' : 1,
               display: isTableMatrixMode || showChart ? undefined : 'none',
             }}
           >

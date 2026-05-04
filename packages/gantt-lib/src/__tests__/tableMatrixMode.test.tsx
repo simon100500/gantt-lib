@@ -1,4 +1,6 @@
 import React from 'react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { GanttChart, type Task } from '../index';
@@ -90,6 +92,51 @@ describe('table-matrix mode', () => {
 
     expect(taskListBody?.style.minHeight).toBe('267px');
     expect(matrixBody?.style.minHeight).toBe('267px');
+  });
+
+  it('does not stretch the matrix root to the viewport width', () => {
+    const tasks: FinanceTask[] = [
+      {
+        id: 'task-1',
+        name: 'Строка',
+        startDate: '2026-04-01',
+        endDate: '2026-04-20',
+        weeklyPlan: { w1: 1250000, w2: 800000 },
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<FinanceTask>
+        mode="table-matrix"
+        tasks={tasks}
+        showTaskList={true}
+        taskListWidth={360}
+        containerHeight={320}
+        matrixColumns={[
+          { id: 'w1', header: '01-07', width: 110, renderCell: (task) => task.weeklyPlan.w1?.toLocaleString('ru-RU') ?? '—' },
+          { id: 'w2', header: '08-14', width: 130, renderCell: (task) => task.weeklyPlan.w2?.toLocaleString('ru-RU') ?? '—' },
+        ]}
+      />
+    );
+
+    const matrixRoot = container.querySelector('.gantt-mx-root') as HTMLDivElement | null;
+    const chartSurface = container.querySelector('.gantt-chartSurface') as HTMLDivElement | null;
+
+    expect(matrixRoot?.style.width).toBe('240px');
+    expect(getComputedStyle(matrixRoot!).minWidth).toBe('');
+    expect(chartSurface?.style.width).toBe('240px');
+    expect(chartSurface?.style.flex).toBe('0 0 auto');
+  });
+
+  it('keeps the right border on the last matrix column', () => {
+    const css = readFileSync(
+      resolve(process.cwd(), 'src/components/TableMatrix/TableMatrix.css'),
+      'utf8'
+    );
+
+    expect(css).toMatch(/\.gantt-mx-headerCell,\s*\.gantt-mx-groupCell,\s*\.gantt-mx-cell\s*{[^}]*border-right:\s*1px solid var\(--gantt-grid-line-color, #e0e0e0\);/);
+    expect(css).not.toMatch(/\.gantt-mx-headerCell:last-child/);
+    expect(css).not.toMatch(/\.gantt-mx-cell:last-child/);
   });
 
   it('keeps parent row fill classes when descendants are collapsed', () => {
