@@ -321,8 +321,8 @@ describe('GanttChart additionalColumns', () => {
     // Before click, no editor should be visible
     expect(container.querySelector('[data-custom-column-editor="status"]')).toBeNull();
 
-    // Click the editable cell to open editor
-    fireEvent.click(statusCell);
+    // Double-click the editable cell to open editor
+    fireEvent.doubleClick(statusCell);
 
     // Editor wrapper should appear
     const editorWrapper = container.querySelector('[data-custom-column-editor="status"]');
@@ -353,5 +353,59 @@ describe('GanttChart additionalColumns', () => {
     // Editor should be closed after save
     expect(container.querySelector('[data-custom-column-editor="status"]')).toBeNull();
     expect(statusCell.getAttribute('data-custom-column-editing')).toBe('false');
+  });
+
+  it('applies taskListColumnWidths overrides to built-in and custom columns', () => {
+    const { container } = render(
+      <GanttChart
+        tasks={extendedTasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+        taskListWidth={660}
+        additionalColumns={additionalColumns}
+        taskListColumnWidths={{
+          name: 280,
+          assignee: 180,
+        }}
+      />
+    );
+
+    const nameHeader = container.querySelector('[data-column-id="name"]') as HTMLElement;
+    const assigneeHeader = container.querySelector('[data-custom-column-id="assignee"]') as HTMLElement;
+
+    expect(nameHeader.style.width).toBe('280px');
+    expect(nameHeader.style.flex).toContain('280px');
+    expect(assigneeHeader.style.width).toBe('180px');
+    expect(assigneeHeader.style.flex).toContain('180px');
+  });
+
+  it('updates task list column widths through resize handles', () => {
+    const onTaskListColumnWidthsChange = vi.fn();
+
+    const { container } = render(
+      <GanttChart
+        tasks={extendedTasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+        taskListWidth={660}
+        additionalColumns={additionalColumns}
+        onTaskListColumnWidthsChange={onTaskListColumnWidthsChange}
+      />
+    );
+
+    const nameHeader = container.querySelector('[data-column-id="name"]') as HTMLElement;
+    const resizeHandle = screen.getByTestId('tasklist-resize-handle-name');
+
+    expect(nameHeader.style.width).toBe('200px');
+
+    fireEvent.mouseDown(resizeHandle, { clientX: 100 });
+    fireEvent.mouseMove(window, { clientX: 150 });
+    fireEvent.mouseUp(window);
+
+    expect(nameHeader.style.width).toBe('250px');
+    expect(onTaskListColumnWidthsChange).toHaveBeenCalled();
+    expect(onTaskListColumnWidthsChange.mock.calls.at(-1)?.[0]).toMatchObject({ name: 250 });
   });
 });

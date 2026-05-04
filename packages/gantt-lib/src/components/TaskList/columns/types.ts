@@ -7,6 +7,8 @@ export type BuiltInTaskListColumnId =
 
 export type TaskListColumnId = BuiltInTaskListColumnId | (string & {});
 
+export type TaskListColumnWidthMap = Partial<Record<TaskListColumnId, number>>;
+
 export type TaskListColumnAnchor =
   | { after: BuiltInTaskListColumnId | string }
   | { before: BuiltInTaskListColumnId | string }

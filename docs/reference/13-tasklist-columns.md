@@ -69,6 +69,8 @@ interface TaskListColumn<TTask extends Task> extends TaskListColumnAnchor {
 }
 
 type TaskListColumnId = BuiltInTaskListColumnId | string;
+
+type TaskListColumnWidthMap = Partial<Record<TaskListColumnId, number>>;
 ```
 
 The `selection` column is only present when `enableTaskMultiSelect={true}`. It is placed before `number` and can still be hidden with `hiddenTaskListColumns={['selection']}`.
@@ -236,6 +238,23 @@ renderEditor: ({ task, editStartValue, updateTask, closeEditor }) => (
 - `width` is numeric and interpreted as pixels.
 - String widths such as `'120px'` are not part of the supported API.
 - The task list width grows automatically when the sum of resolved columns exceeds the requested `taskListWidth`.
+- Built-in and custom widths can be overridden with `taskListColumnWidths`.
+- Each header cell has a drag handle for interactive resize; persist that state through `onTaskListColumnWidthsChange`.
+
+```tsx
+const [taskListColumnWidths, setTaskListColumnWidths] = useState({
+  name: 280,
+  assignee: 180,
+});
+
+<GanttChart
+  tasks={tasks}
+  showTaskList
+  additionalColumns={additionalColumns}
+  taskListColumnWidths={taskListColumnWidths}
+  onTaskListColumnWidthsChange={setTaskListColumnWidths}
+/>
+```
 
 ## Migration Note
 

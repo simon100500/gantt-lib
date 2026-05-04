@@ -15,7 +15,7 @@ import type {
   ValidationResult,
 } from '../../types';
 import { TaskPredicate } from '../../filters';
-import type { TaskListColumn, TaskListColumnId } from '../TaskList/columns/types';
+import type { TaskListColumn, TaskListColumnId, TaskListColumnWidthMap } from '../TaskList/columns/types';
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
@@ -218,6 +218,10 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   additionalColumns?: TaskListColumn<TTask>[];
   /** Built-in or custom TaskList column IDs to hide after column placement is resolved */
   hiddenTaskListColumns?: readonly TaskListColumnId[];
+  /** Initial or controlled TaskList column widths keyed by built-in/custom column id. */
+  taskListColumnWidths?: TaskListColumnWidthMap;
+  /** Called when the user resizes TaskList columns. */
+  onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   /** Additional commands rendered in the TaskList row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
   /** Hide row action controls in the TaskList for table-like read/edit presentations. */
@@ -400,6 +404,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     showChart = true,
     additionalColumns,
     hiddenTaskListColumns,
+    taskListColumnWidths,
+    onTaskListColumnWidthsChange,
     taskListMenuCommands,
     hideTaskListRowActions = false,
     rowContentLines = 1,
@@ -1323,6 +1329,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             isFilterActive={!!taskFilter}
             additionalColumns={additionalColumns}
             hiddenTaskListColumns={hiddenTaskListColumns}
+            taskListColumnWidths={taskListColumnWidths}
+            onTaskListColumnWidthsChange={onTaskListColumnWidthsChange}
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
             hideTaskListRowActions={hideTaskListRowActions}
             rowContentLines={resolvedRowContentLines}

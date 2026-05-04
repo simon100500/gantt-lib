@@ -57,6 +57,7 @@ export type {
   TaskListColumnId,
   TaskListColumn,
   TaskListColumnContext,
+  TaskListColumnWidthMap,
 } from './components/TaskList/columns/types';
 
 // Types

@@ -160,6 +160,7 @@ Main component that renders the interactive Gantt chart.
 | `showChart` | `boolean` | `true` | Hides the chart area when set to `false`. |
 | `showBaseline` | `boolean` | `false` | Renders baselines for tasks with `baselineStartDate` and `baselineEndDate`. |
 | `taskListWidth` | `number` | `660` | Requested width of the task list panel. |
+| `taskListColumnWidths` | `TaskListColumnWidthMap` | `undefined` | Width overrides for built-in and custom TaskList columns. |
 | `businessDays` | `boolean` | `true` | Uses working days instead of calendar days for duration and drag behavior. |
 | `disableTaskDrag` | `boolean` | `false` | Disables drag and resize interactions. |
 | `onTasksChange` | `(tasks: Task[]) => void` | `undefined` | Receives only changed tasks. Merge them into your state. |

@@ -890,6 +890,30 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const editingName = editingColumnId === 'name';
     const editingDuration = editingColumnId === 'duration';
     const editingProgress = editingColumnId === 'progress';
+    const columnWidthStyleMap = useMemo(() => {
+      return new Map(
+        (resolvedColumns ?? []).map((column) => {
+          const width = column.width ?? 120;
+          return [
+            column.id,
+            {
+              width,
+              minWidth: width,
+              maxWidth: width,
+              flex: `0 0 ${width}px`,
+            } as React.CSSProperties,
+          ];
+        })
+      );
+    }, [resolvedColumns]);
+    const getColumnStyle = useCallback((columnId: string, fallbackWidth: number) => {
+      return columnWidthStyleMap.get(columnId) ?? {
+        width: fallbackWidth,
+        minWidth: fallbackWidth,
+        maxWidth: fallbackWidth,
+        flex: `0 0 ${fallbackWidth}px`,
+      };
+    }, [columnWidthStyleMap]);
     const normalizedTask = useMemo(() => normalizeTaskDatesForType(task), [task]);
     const isMilestone = useMemo(() => isMilestoneTask(normalizedTask), [normalizedTask]);
     const [nameValue, setNameValue] = useState("");
@@ -1847,6 +1871,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const selectionCell = (
       <div
         className="gantt-tl-cell gantt-tl-cell-selection"
+        style={getColumnStyle('selection', 36)}
         onClick={(e) => e.stopPropagation()}
       >
         <input
@@ -1862,6 +1887,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const numberCell = (
       <div
         className="gantt-tl-cell gantt-tl-cell-number"
+        style={getColumnStyle('number', 40)}
         onClick={handleNumberClick}
       >
         {onDragStart && (
@@ -1895,7 +1921,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       nestingDepth > 0 ? `${nestingDepth * 20 + 8}px` : undefined;
 
     const nameCell = (
-      <div className="gantt-tl-cell gantt-tl-cell-name">
+      <div className="gantt-tl-cell gantt-tl-cell-name" style={getColumnStyle('name', 200)}>
         {isChild && !editingName && (
           <>
             {!isFilterHideMode && (
@@ -2247,6 +2273,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const startDateCell = (
       <div
         className="gantt-tl-cell gantt-tl-cell-date"
+        style={getColumnStyle('startDate', 90)}
         onClick={(e) => e.stopPropagation()}
       >
         <DatePicker
@@ -2265,6 +2292,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const endDateCell = (
       <div
         className="gantt-tl-cell gantt-tl-cell-date"
+        style={getColumnStyle('endDate', 90)}
         onClick={(e) => e.stopPropagation()}
       >
         <DatePicker
@@ -2283,6 +2311,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const durationCell = (
       <div
         className="gantt-tl-cell gantt-tl-cell-duration"
+        style={getColumnStyle('duration', 60)}
         onClick={handleDurationClick}
       >
         {editingDuration && (
@@ -2364,6 +2393,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const progressCell = (
       <div
         className="gantt-tl-cell gantt-tl-cell-progress"
+        style={getColumnStyle('progress', 50)}
         onClick={handleProgressClick}
       >
         {editingProgress && (
@@ -2457,6 +2487,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const dependenciesCell = (
       <div
         className="gantt-tl-cell gantt-tl-cell-deps"
+        style={getColumnStyle('dependencies', 128)}
         onClick={
           isSourceRow
             ? handleSourceCellClick

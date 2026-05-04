@@ -14,7 +14,7 @@ import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
 import { DEFAULT_TASK_DURATION_DAYS, buildDefaultTaskDateRange, getTodayISODate } from './defaultTaskDates';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
-import type { TaskListColumn, TaskListColumnId } from './columns/types';
+import type { TaskListColumn, TaskListColumnId, TaskListColumnWidthMap } from './columns/types';
 import { createBuiltInColumns, BUILT_IN_COLUMN_WIDTHS } from './columns/createBuiltInColumns';
 import { resolveTaskListColumns } from './columns/resolveTaskListColumns';
 import type { TaskListColumn as NewTaskListColumn } from './columns/types';
@@ -25,6 +25,18 @@ export { LINK_TYPE_ICONS };
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
 type DependencyPickMode = 'predecessor' | 'successor';
 const MIN_TASK_LIST_WIDTH = 530;
+const DEFAULT_COLUMN_MIN_WIDTH = 40;
+const BUILT_IN_COLUMN_MIN_WIDTHS: Record<string, number> = {
+  selection: 36,
+  number: 40,
+  name: 160,
+  startDate: 68,
+  endDate: 68,
+  duration: 60,
+  progress: 50,
+  dependencies: 128,
+  actions: 56,
+};
 
 const BUILT_IN_CSS_CLASSES: Record<string, string> = {
   selection: 'gantt-tl-cell-selection',
@@ -219,6 +231,10 @@ export interface TaskListProps {
   additionalColumns?: TaskListColumn<any>[];
   /** Built-in or custom TaskList column IDs to hide after column placement is resolved */
   hiddenTaskListColumns?: readonly TaskListColumnId[];
+  /** Initial or controlled TaskList column widths keyed by built-in/custom column id. */
+  taskListColumnWidths?: TaskListColumnWidthMap;
+  /** Called when the user resizes TaskList columns. */
+  onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   /** Additional commands rendered in each row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   /** Hide row action controls such as insert, hierarchy action buttons, and the context menu trigger. */
@@ -246,6 +262,30 @@ interface SelectAllCheckboxProps {
   checked: boolean;
   indeterminate: boolean;
   onChange: (checked: boolean) => void;
+}
+
+function normalizeColumnWidthMap(widths?: TaskListColumnWidthMap): TaskListColumnWidthMap {
+  if (!widths) {
+    return {};
+  }
+
+  return Object.entries(widths).reduce<TaskListColumnWidthMap>((acc, [columnId, width]) => {
+    if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) {
+      return acc;
+    }
+
+    acc[columnId as TaskListColumnId] = Math.round(width);
+    return acc;
+  }, {});
+}
+
+function getColumnMinWidth(column: NewTaskListColumn<Task>): number {
+  return Math.max(
+    typeof column.minWidth === 'number' && Number.isFinite(column.minWidth)
+      ? column.minWidth
+      : 0,
+    BUILT_IN_COLUMN_MIN_WIDTHS[column.id] ?? DEFAULT_COLUMN_MIN_WIDTH
+  );
 }
 
 const SelectAllCheckbox: React.FC<SelectAllCheckboxProps> = ({
@@ -319,6 +359,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   isFilterActive = false,
   additionalColumns,
   hiddenTaskListColumns,
+  taskListColumnWidths,
+  onTaskListColumnWidthsChange,
   taskListMenuCommands,
   hideTaskListRowActions = false,
   rowContentLines = 1,
@@ -328,6 +370,8 @@ export const TaskList: React.FC<TaskListProps> = ({
 }) => {
   const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
   const [activeCustomCell, setActiveCustomCell] = useState<{ taskId: string; columnId: string } | null>(null);
+  const [columnWidthOverrides, setColumnWidthOverrides] = useState<TaskListColumnWidthMap>(() => normalizeColumnWidthMap(taskListColumnWidths));
+  const resizeStateRef = useRef<{ columnId: TaskListColumnId; startX: number; startWidth: number } | null>(null);
   const effectiveSelectedTaskIds = selectedTaskIds ?? internalSelectedTaskIds;
 
   const emitSelectedTaskIdsChange = useCallback((nextSelectedTaskIds: Set<string>) => {
@@ -1146,13 +1190,25 @@ export const TaskList: React.FC<TaskListProps> = ({
     () => createBuiltInColumns<Task>({ businessDays, enableTaskMultiSelect }),
     [businessDays, enableTaskMultiSelect]
   );
+  useEffect(() => {
+    setColumnWidthOverrides(normalizeColumnWidthMap(taskListColumnWidths));
+  }, [taskListColumnWidths]);
   const resolvedColumns = useMemo(
     () => resolveTaskListColumns(
       builtInColumns,
       (additionalColumns ?? []) as NewTaskListColumn<Task>[],
       hiddenTaskListColumns,
-    ),
-    [builtInColumns, additionalColumns, hiddenTaskListColumns]
+    ).map((column) => {
+      const configuredWidth = columnWidthOverrides[column.id];
+      const baseWidth = configuredWidth ?? column.width ?? 120;
+      const width = Math.max(getColumnMinWidth(column), baseWidth);
+
+      return {
+        ...column,
+        width,
+      };
+    }),
+    [builtInColumns, additionalColumns, hiddenTaskListColumns, columnWidthOverrides]
   );
   const resolvedColumnWidthTotal = useMemo(
     () => resolvedColumns.reduce((sum, col) => sum + (col.width ?? 120), 0),
@@ -1162,6 +1218,88 @@ export const TaskList: React.FC<TaskListProps> = ({
   const requestedTaskListWidth = taskListWidth ?? Math.min(MIN_TASK_LIST_WIDTH, resolvedColumnWidthTotal);
   const effectiveTaskListWidth = Math.max(requestedTaskListWidth, resolvedColumnWidthTotal);
   const tableHeaderHeight = headerHeight + 1;
+  const updateColumnWidth = useCallback((columnId: TaskListColumnId, width: number) => {
+    setColumnWidthOverrides((prev) => {
+      if (prev[columnId] === width) {
+        return prev;
+      }
+
+      const next = { ...prev, [columnId]: width };
+      onTaskListColumnWidthsChange?.(next);
+      return next;
+    });
+  }, [onTaskListColumnWidthsChange]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      const resizeState = resizeStateRef.current;
+      if (!resizeState) {
+        return;
+      }
+
+      const column = resolvedColumns.find((item) => item.id === resizeState.columnId);
+      if (!column) {
+        return;
+      }
+
+      const nextWidth = Math.max(
+        getColumnMinWidth(column),
+        Math.round(resizeState.startWidth + event.clientX - resizeState.startX)
+      );
+
+      updateColumnWidth(column.id, nextWidth);
+    };
+
+    const handleMouseUp = () => {
+      if (!resizeStateRef.current) {
+        return;
+      }
+
+      resizeStateRef.current = null;
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+    };
+  }, [resolvedColumns, updateColumnWidth]);
+
+  const startColumnResize = useCallback((columnId: TaskListColumnId, event: React.MouseEvent<HTMLButtonElement>) => {
+    const column = resolvedColumns.find((item) => item.id === columnId);
+    if (!column) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    resizeStateRef.current = {
+      columnId,
+      startX: event.clientX,
+      startWidth: column.width ?? 120,
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [resolvedColumns]);
+
+  const renderResizeHandle = useCallback((columnId: TaskListColumnId) => (
+    <button
+      type="button"
+      className="gantt-tl-column-resize-handle"
+      data-testid={`tasklist-resize-handle-${columnId}`}
+      aria-label={`Resize ${columnId} column`}
+      onMouseDown={(event) => startColumnResize(columnId, event)}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    />
+  ), [startColumnResize]);
 
   return (
     <div
@@ -1180,12 +1318,14 @@ export const TaskList: React.FC<TaskListProps> = ({
               return (
                 <div key={col.id}
                      className="gantt-tl-headerCell gantt-tl-cell-selection"
-                     data-column-id="selection">
+                     data-column-id="selection"
+                     style={{ width: col.width, minWidth: col.width, maxWidth: col.width, flex: `0 0 ${col.width}px`, position: 'relative' }}>
                   <SelectAllCheckbox
                     checked={areAllVisibleTasksSelected}
                     indeterminate={areSomeVisibleTasksSelected}
                     onChange={handleToggleAllVisibleTaskSelection}
                   />
+                  {renderResizeHandle(col.id)}
                 </div>
               );
             }
@@ -1194,7 +1334,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               return (
                 <div key={col.id} className="gantt-tl-headerCell gantt-tl-cell-deps"
                      data-column-id="dependencies"
-                     style={{ position: 'relative' }}>
+                     style={{ width: col.width, minWidth: col.width, maxWidth: col.width, flex: `0 0 ${col.width}px`, position: 'relative' }}>
                   <Popover open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
                     <PopoverTrigger asChild>
                       <button
@@ -1223,6 +1363,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   {dependencyError && (
                     <div className="gantt-tl-dep-error">{dependencyError}</div>
                   )}
+                  {renderResizeHandle(col.id)}
                 </div>
               );
             }
@@ -1232,8 +1373,10 @@ export const TaskList: React.FC<TaskListProps> = ({
               return (
                 <div key={col.id}
                      className={`gantt-tl-headerCell ${builtInClass}`}
-                     data-column-id={col.id}>
+                     data-column-id={col.id}
+                     style={{ width: col.width, minWidth: col.width, maxWidth: col.width, flex: `0 0 ${col.width}px`, position: 'relative' }}>
                   {col.header}
+                  {renderResizeHandle(col.id)}
                 </div>
               );
             }
@@ -1243,8 +1386,9 @@ export const TaskList: React.FC<TaskListProps> = ({
                    className={`gantt-tl-headerCell gantt-tl-headerCell-custom gantt-tl-cell-align-${col.align ?? 'left'}`}
                    data-column-id={`custom:${col.id}`}
                    data-custom-column-id={col.id}
-                   style={{ width: col.width, minWidth: col.width, flexShrink: 0 }}>
+                   style={{ width: col.width, minWidth: col.width, maxWidth: col.width, flex: `0 0 ${col.width}px`, position: 'relative' }}>
                 {col.header}
+                {renderResizeHandle(col.id)}
               </div>
             );
           })}
