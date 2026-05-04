@@ -231,6 +231,10 @@ body {
   --gantt-matrix-cell-horizontal-padding: 8px;
 }
 
+.finance-matrix-demo .gantt-mx-dateOverlayEdge {
+  display: block;
+}
+
 .finance-matrix-cell-empty {
   background: transparent;
 }

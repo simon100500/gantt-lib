@@ -754,7 +754,9 @@ export default function FinancePlanMatrixDemo() {
   const [baseTasks, setBaseTasks] = useState<FinanceTask[]>(financeTasks);
   const [view, setView] = useState<MatrixView>('week');
   const [showShareLine, setShowShareLine] = useState(true);
-  const [showDateOverlay, setShowDateOverlay] = useState(true);
+  const [showDayFill, setShowDayFill] = useState(true);
+  const [showProgressLine, setShowProgressLine] = useState(true);
+  const [showProgressFill, setShowProgressFill] = useState(true);
   const [matrixCellModal, setMatrixCellModal] = useState<MatrixCellModalState>(null);
   const tasks = useMemo(() => deriveHierarchyFinanceTasks(baseTasks), [baseTasks]);
   const displayTasks = useMemo(() => [...tasks, buildTotalRow(tasks)], [tasks]);
@@ -816,7 +818,7 @@ export default function FinancePlanMatrixDemo() {
       periodEndDate: period.endDate,
       ...getMatrixColumnSizing(view),
       cellClassName: (task: FinanceTask) => [
-        task.plannedByPeriod[period.id] ? 'finance-matrix-cell-active' : 'finance-matrix-cell-empty',
+        showDayFill && (task.plannedByPeriod[period.id] ? 'finance-matrix-cell-active' : 'finance-matrix-cell-empty'),
         task.isTotal ? 'finance-matrix-cell-total' : '',
       ].filter(Boolean).join(' '),
       renderCell: (task: FinanceTask) => {
@@ -838,7 +840,19 @@ export default function FinancePlanMatrixDemo() {
         );
       },
     }));
-  }, [showShareLine, view]);
+  }, [showDayFill, showShareLine, view]);
+
+  const matrixDateOverlay = useMemo(() => {
+    if (!showProgressLine && !showProgressFill) return false;
+
+    return {
+      date: "2026-05-04",
+      edgeColor: showProgressLine ? undefined : 'transparent',
+      shouldRender: ({ task, column }: { task: FinanceTask; column: TableMatrixColumn<FinanceTask> }) => (
+        showProgressFill && (task.plannedByPeriod[column.id] ?? 0) > 0
+      ),
+    };
+  }, [showProgressFill, showProgressLine]);
 
   return (
     <section className="demo-section finance-matrix-demo">
@@ -870,10 +884,24 @@ export default function FinancePlanMatrixDemo() {
         </button>
         <button
           type="button"
-          className={`demo-btn ${showDateOverlay ? 'demo-btn-primary' : 'demo-btn-neutral'}`}
-          onClick={() => setShowDateOverlay((current) => !current)}
+          className={`demo-btn ${showDayFill ? 'demo-btn-primary' : 'demo-btn-neutral'}`}
+          onClick={() => setShowDayFill((current) => !current)}
         >
-          {showDateOverlay ? 'Скрыть факт дату' : 'Показать факт дату'}
+          {showDayFill ? 'Скрыть заливку дней' : 'Показать заливку дней'}
+        </button>
+        <button
+          type="button"
+          className={`demo-btn ${showProgressLine ? 'demo-btn-primary' : 'demo-btn-neutral'}`}
+          onClick={() => setShowProgressLine((current) => !current)}
+        >
+          {showProgressLine ? 'Скрыть полосу прогресса' : 'Показать полосу прогресса'}
+        </button>
+        <button
+          type="button"
+          className={`demo-btn ${showProgressFill ? 'demo-btn-primary' : 'demo-btn-neutral'}`}
+          onClick={() => setShowProgressFill((current) => !current)}
+        >
+          {showProgressFill ? 'Скрыть заливку прогресса' : 'Показать заливку прогресса'}
         </button>
         <span className="demo-hint">Корневые строки показывают агрегат по фазе, дочерние строки раскрывают детализацию по статьям.</span>
       </div>
@@ -889,10 +917,7 @@ export default function FinancePlanMatrixDemo() {
           containerHeight={640}
           matrixColumns={matrixColumns}
           matrixColumnGroups={view === 'week' ? monthGroups : undefined}
-          matrixDateOverlay={showDateOverlay ? {
-            date: "2026-05-04",
-            shouldRender: ({ task, column }) => (task.plannedByPeriod[column.id] ?? 0) > 0,
-          } : false}
+          matrixDateOverlay={matrixDateOverlay}
           additionalColumns={additionalColumns}
           hiddenTaskListColumns={['dependencies', 'progress', 'duration', 'startDate', 'endDate']}
           disableDependencyEditing={true}
