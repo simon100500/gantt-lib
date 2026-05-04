@@ -207,6 +207,7 @@ describe('table-matrix mode', () => {
     expect(css).toMatch(/\.gantt-mx-headerCell,\s*\.gantt-mx-groupCell,\s*\.gantt-mx-cell\s*{[^}]*border-right:\s*1px solid var\(--gantt-grid-line-color, #e0e0e0\);/);
     expect(css).toMatch(/padding:\s*var\(--gantt-matrix-cell-vertical-padding, 0\) var\(--gantt-matrix-cell-horizontal-padding, 12px\);/);
     expect(css).toMatch(/\.gantt-mx-headerCell,\s*\.gantt-mx-groupCell,\s*\.gantt-mx-cell\s*{[^}]*white-space:\s*nowrap;/);
+    expect(css).toMatch(/\.gantt-mx-body\s*{[^}]*z-index:\s*0;/);
     expect(css).not.toMatch(/\.gantt-mx-headerCell:last-child/);
     expect(css).not.toMatch(/\.gantt-mx-cell:last-child/);
   });

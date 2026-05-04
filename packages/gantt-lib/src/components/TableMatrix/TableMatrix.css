@@ -24,6 +24,7 @@
 
 .gantt-mx-body {
   position: relative;
+  z-index: 0;
 }
 
 .gantt-mx-measure {
