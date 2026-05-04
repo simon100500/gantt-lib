@@ -481,7 +481,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     [dateRange.length, dayWidth]
   );
   const matrixWidth = useMemo(
-    () => matrixColumns.reduce((sum, column) => sum + column.width, 0),
+    () => matrixColumns.reduce<number | undefined>((sum, column) => {
+      if (typeof column.width !== 'number') return undefined;
+      return sum !== undefined ? sum + column.width : undefined;
+    }, 0),
     [matrixColumns]
   );
 
@@ -1329,8 +1332,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
           <div
             className={isTableMatrixMode || showChart ? 'gantt-chartSurface' : 'gantt-chartSurface gantt-chart-hidden'}
             style={{
-              minWidth: `${isTableMatrixMode ? matrixWidth : gridWidth}px`,
-              width: isTableMatrixMode ? `${matrixWidth}px` : undefined,
+              minWidth: isTableMatrixMode
+                ? (matrixWidth !== undefined ? `${matrixWidth}px` : undefined)
+                : `${gridWidth}px`,
+              width: isTableMatrixMode
+                ? (matrixWidth !== undefined ? `${matrixWidth}px` : 'max-content')
+                : undefined,
               flex: isTableMatrixMode ? '0 0 auto' : 1,
               display: isTableMatrixMode || showChart ? undefined : 'none',
             }}

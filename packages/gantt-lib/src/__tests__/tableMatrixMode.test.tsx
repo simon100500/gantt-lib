@@ -128,6 +128,43 @@ describe('table-matrix mode', () => {
     expect(chartSurface?.style.flex).toBe('0 0 auto');
   });
 
+  it('supports content-sized matrix columns', () => {
+    const tasks: FinanceTask[] = [
+      {
+        id: 'task-1',
+        name: 'Строка',
+        startDate: '2026-04-01',
+        endDate: '2026-04-20',
+        weeklyPlan: { small: 10, large: 1234567890 },
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<FinanceTask>
+        mode="table-matrix"
+        tasks={tasks}
+        showTaskList={true}
+        matrixColumns={[
+          { id: 'small', header: 'Мал.', width: 'auto', minWidth: 72, maxWidth: 120, renderCell: (task) => task.weeklyPlan.small?.toLocaleString('ru-RU') ?? '—' },
+          { id: 'large', header: 'Большая сумма', width: 'auto', minWidth: 96, maxWidth: 220, renderCell: (task) => task.weeklyPlan.large?.toLocaleString('ru-RU') ?? '—' },
+        ]}
+      />
+    );
+
+    const chartSurface = container.querySelector('.gantt-chartSurface') as HTMLDivElement | null;
+    const matrixRoot = container.querySelector('.gantt-mx-root') as HTMLDivElement | null;
+    const headerRow = container.querySelector('.gantt-mx-headerRow') as HTMLDivElement | null;
+    const bodyRow = container.querySelector('.gantt-mx-row') as HTMLDivElement | null;
+    const headerCells = container.querySelectorAll('.gantt-mx-header > .gantt-mx-headerRow .gantt-mx-headerCell');
+
+    expect(chartSurface?.style.width).toBe('max-content');
+    expect(matrixRoot?.style.width).toBe('168px');
+    expect(headerRow?.style.gridTemplateColumns).toBe('72px 96px');
+    expect(bodyRow?.style.gridTemplateColumns).toBe('72px 96px');
+    expect((headerCells[0] as HTMLDivElement).style.minWidth).toBe('72px');
+    expect((headerCells[1] as HTMLDivElement).style.minWidth).toBe('96px');
+  });
+
   it('keeps the right border on the last matrix column', () => {
     const css = readFileSync(
       resolve(process.cwd(), 'src/components/TableMatrix/TableMatrix.css'),
@@ -135,6 +172,8 @@ describe('table-matrix mode', () => {
     );
 
     expect(css).toMatch(/\.gantt-mx-headerCell,\s*\.gantt-mx-groupCell,\s*\.gantt-mx-cell\s*{[^}]*border-right:\s*1px solid var\(--gantt-grid-line-color, #e0e0e0\);/);
+    expect(css).toMatch(/padding:\s*var\(--gantt-matrix-cell-vertical-padding, 0\) var\(--gantt-matrix-cell-horizontal-padding, 12px\);/);
+    expect(css).toMatch(/\.gantt-mx-headerCell,\s*\.gantt-mx-groupCell,\s*\.gantt-mx-cell\s*{[^}]*white-space:\s*nowrap;/);
     expect(css).not.toMatch(/\.gantt-mx-headerCell:last-child/);
     expect(css).not.toMatch(/\.gantt-mx-cell:last-child/);
   });

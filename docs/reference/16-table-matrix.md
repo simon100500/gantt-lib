@@ -61,14 +61,18 @@ const matrixColumns: TableMatrixColumn<FinanceTask>[] = [
     id: '2026-04-w1',
     header: '01-07',
     groupId: '2026-04',
-    width: 98,
+    width: 'auto',
+    minWidth: 92,
+    maxWidth: 160,
     renderCell: (task) => task.plannedByPeriod['2026-04-w1'] ?? '',
   },
   {
     id: '2026-04-w2',
     header: '08-14',
     groupId: '2026-04',
-    width: 98,
+    width: 'auto',
+    minWidth: 92,
+    maxWidth: 160,
     renderCell: (task) => task.plannedByPeriod['2026-04-w2'] ?? '',
   },
 ];
@@ -142,6 +146,43 @@ export default function FinanceMatrix() {
 | `hideTaskListRowActions` | `boolean` | `false` | Hides insert/delete/hierarchy buttons in the left panel. |
 
 All common task-mode props such as `tasks`, `showTaskList`, `taskListWidth`, `additionalColumns`, `hiddenTaskListColumns`, `taskFilter`, `highlightedTaskIds`, and `onTasksChange` still apply.
+
+## Matrix Column Widths
+
+Matrix columns support fixed pixel widths and content-sized widths:
+
+```tsx
+const matrixColumns: TableMatrixColumn<FinanceTask>[] = [
+  {
+    id: '2026-04',
+    header: 'Апрель',
+    width: 'auto',
+    minWidth: 104,
+    maxWidth: 220,
+    renderCell: (task) => task.plannedByPeriod['2026-04']?.toLocaleString('ru-RU') ?? '',
+  },
+  {
+    id: '2026-05',
+    header: 'Май',
+    width: 140,
+    renderCell: (task) => task.plannedByPeriod['2026-05']?.toLocaleString('ru-RU') ?? '',
+  },
+];
+```
+
+- `width: number` keeps the historical fixed-width behavior.
+- `width: 'auto'` sizes the column from its header and visible cell content.
+- `minWidth` prevents tiny columns for mostly-empty periods.
+- `maxWidth` caps unusually large values so one cell does not expand the whole matrix indefinitely.
+
+Matrix cell padding can be tuned with CSS variables:
+
+```css
+.finance-matrix {
+  --gantt-matrix-cell-horizontal-padding: 8px;
+  --gantt-matrix-cell-vertical-padding: 0;
+}
+```
 
 ## Clickable Cells
 

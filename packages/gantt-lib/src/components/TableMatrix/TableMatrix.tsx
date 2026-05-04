@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Task } from '../GanttChart';
 import './TableMatrix.css';
 
@@ -14,7 +14,9 @@ export interface TableMatrixColumnGroup {
 export interface TableMatrixColumn<TTask extends Task = Task> {
   id: string;
   header: React.ReactNode;
-  width: number;
+  width?: number | 'auto';
+  minWidth?: number;
+  maxWidth?: number;
   groupId?: string;
   align?: 'left' | 'center' | 'right';
   className?: string;
@@ -49,12 +51,28 @@ export interface TableMatrixProps<TTask extends Task = Task> {
 interface HeaderSpan {
   id: string;
   header: React.ReactNode;
-  width: number;
+  width?: number;
+  columnSpan?: number;
   className?: string;
 }
 
+const AUTO_COLUMN_MIN_WIDTH = 72;
+const AUTO_COLUMN_MAX_WIDTH = 180;
+
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
+}
+
+function clampWidth(width: number, minWidth: number, maxWidth: number) {
+  return Math.min(maxWidth, Math.max(minWidth, Math.ceil(width)));
+}
+
+function getAutoMinWidth<TTask extends Task>(column: TableMatrixColumn<TTask>) {
+  return column.minWidth ?? AUTO_COLUMN_MIN_WIDTH;
+}
+
+function getAutoMaxWidth<TTask extends Task>(column: TableMatrixColumn<TTask>) {
+  return column.maxWidth ?? AUTO_COLUMN_MAX_WIDTH;
 }
 
 export default function TableMatrix<TTask extends Task = Task>({
@@ -71,14 +89,68 @@ export default function TableMatrix<TTask extends Task = Task>({
   highlightedTaskIds,
   filterMode = 'highlight',
 }: TableMatrixProps<TTask>) {
-  const gridTemplateColumns = useMemo(
-    () => columns.map((column) => `${column.width}px`).join(' '),
+  const measureRef = useRef<HTMLDivElement | null>(null);
+  const [measuredAutoWidths, setMeasuredAutoWidths] = useState<Array<number | undefined>>([]);
+
+  const hasAutoWidthColumns = useMemo(
+    () => columns.some((column) => typeof column.width !== 'number'),
     [columns]
   );
 
+  useLayoutEffect(() => {
+    if (!hasAutoWidthColumns) {
+      setMeasuredAutoWidths([]);
+      return;
+    }
+
+    const measureRoot = measureRef.current;
+    if (!measureRoot) return;
+
+    const nextWidths = columns.map((column, columnIndex) => {
+      if (typeof column.width === 'number') return undefined;
+
+      const minWidth = getAutoMinWidth(column);
+      const maxWidth = getAutoMaxWidth(column);
+      const elements = measureRoot.querySelectorAll<HTMLElement>(`[data-gantt-mx-measure-column="${columnIndex}"]`);
+      let measuredWidth = minWidth;
+
+      elements.forEach((element) => {
+        measuredWidth = Math.max(
+          measuredWidth,
+          element.getBoundingClientRect().width,
+          element.scrollWidth
+        );
+      });
+
+      return clampWidth(measuredWidth, minWidth, maxWidth);
+    });
+
+    setMeasuredAutoWidths((previousWidths) => {
+      const changed = nextWidths.length !== previousWidths.length
+        || nextWidths.some((width, index) => width !== previousWidths[index]);
+      return changed ? nextWidths : previousWidths;
+    });
+  }, [columns, hasAutoWidthColumns, tasks]);
+
+  const resolvedColumnWidths = useMemo(
+    () => columns.map((column, index) => {
+      if (typeof column.width === 'number') return column.width;
+
+      const minWidth = getAutoMinWidth(column);
+      const maxWidth = getAutoMaxWidth(column);
+      return clampWidth(measuredAutoWidths[index] ?? minWidth, minWidth, maxWidth);
+    }),
+    [columns, measuredAutoWidths]
+  );
+
+  const gridTemplateColumns = useMemo(
+    () => resolvedColumnWidths.map((width) => `${width}px`).join(' '),
+    [resolvedColumnWidths]
+  );
+
   const totalWidth = useMemo(
-    () => columns.reduce((sum, column) => sum + column.width, 0),
-    [columns]
+    () => resolvedColumnWidths.reduce((sum, width) => sum + width, 0),
+    [resolvedColumnWidths]
   );
 
   const hasGroupHeader = useMemo(
@@ -94,7 +166,7 @@ export default function TableMatrix<TTask extends Task = Task>({
   const headerSpans = useMemo<HeaderSpan[]>(() => {
     if (!hasGroupHeader) return [];
 
-    if (columnGroups?.some((group) => typeof group.width === 'number')) {
+    if (!hasAutoWidthColumns && columnGroups?.some((group) => typeof group.width === 'number')) {
       return columnGroups.map((group) => ({
         id: group.id,
         header: group.header,
@@ -108,7 +180,8 @@ export default function TableMatrix<TTask extends Task = Task>({
       const groupId = column.groupId ?? column.id;
       const lastSpan = spans[spans.length - 1];
       if (lastSpan?.id === groupId) {
-        lastSpan.width += column.width;
+        lastSpan.width = (lastSpan.width ?? 0) + resolvedColumnWidths[columns.indexOf(column)];
+        lastSpan.columnSpan = (lastSpan.columnSpan ?? 1) + 1;
         continue;
       }
 
@@ -116,13 +189,14 @@ export default function TableMatrix<TTask extends Task = Task>({
       spans.push({
         id: groupId,
         header: group?.header ?? column.header,
-        width: column.width,
+        width: resolvedColumnWidths[columns.indexOf(column)],
+        columnSpan: 1,
         className: group?.className,
       });
     }
 
     return spans;
-  }, [columns, groupMap, hasGroupHeader]);
+  }, [columns, columnGroups, groupMap, hasAutoWidthColumns, hasGroupHeader, resolvedColumnWidths]);
 
   const headerContentHeight = Math.max(0, headerHeight - 1);
   const topRowHeight = hasGroupHeader
@@ -170,14 +244,51 @@ export default function TableMatrix<TTask extends Task = Task>({
 
   return (
     <div className="gantt-mx-root" style={{ width: `${totalWidth}px` }}>
+      {hasAutoWidthColumns && (
+        <div ref={measureRef} className="gantt-mx-measure" aria-hidden="true">
+          {columns.map((column, columnIndex) => (
+            typeof column.width === 'number' ? null : (
+              <div
+                key={`header:${column.id}`}
+                data-gantt-mx-measure-column={columnIndex}
+                className="gantt-mx-measureCell gantt-mx-headerCell"
+              >
+                {column.header}
+              </div>
+            )
+          ))}
+          {tasks.map((task) => (
+            columns.map((column, columnIndex) => (
+              typeof column.width === 'number' ? null : (
+                <div
+                  key={`${task.id}:${column.id}`}
+                  data-gantt-mx-measure-column={columnIndex}
+                  className="gantt-mx-measureCell gantt-mx-cell"
+                >
+                  {column.renderCell(task)}
+                </div>
+              )
+            ))
+          ))}
+        </div>
+      )}
       <div className="gantt-mx-header" style={{ height: `${headerHeight}px` }}>
         {hasGroupHeader && (
           <div
             className="gantt-mx-headerRow gantt-mx-headerGroupRow"
-            style={{ gridTemplateColumns: headerSpans.map((span) => `${span.width}px`).join(' '), height: `${topRowHeight}px` }}
+            style={{
+              gridTemplateColumns: hasAutoWidthColumns
+                ? gridTemplateColumns
+                : headerSpans.map((span) => `${span.width ?? 0}px`).join(' '),
+              height: `${topRowHeight}px`,
+            }}
           >
             {headerSpans.map((span) => (
-              <div key={span.id} className={joinClasses('gantt-mx-groupCell', span.className)}>
+              <div
+                key={span.id}
+                className={joinClasses('gantt-mx-groupCell', span.className)}
+                style={hasAutoWidthColumns ? { gridColumn: `span ${span.columnSpan ?? 1}` } : undefined}
+              >
                 {span.header}
               </div>
             ))}
@@ -195,6 +306,7 @@ export default function TableMatrix<TTask extends Task = Task>({
                 'gantt-mx-headerCell',
                 column.headerClassName
               )}
+              style={column.minWidth !== undefined ? { minWidth: `${column.minWidth}px` } : undefined}
             >
               {column.header}
             </div>
@@ -232,6 +344,7 @@ export default function TableMatrix<TTask extends Task = Task>({
                 gridTemplateColumns,
                 top: `${index * rowHeight}px`,
                 height: `${rowHeight}px`,
+                width: `${totalWidth}px`,
               }}
               onClick={() => onTaskSelect?.(task.id)}
             >
@@ -250,6 +363,7 @@ export default function TableMatrix<TTask extends Task = Task>({
                       column.className,
                       resolvedCellClassName
                     )}
+                    style={column.minWidth !== undefined ? { minWidth: `${column.minWidth}px` } : undefined}
                     onClick={(event) => {
                       onCellClick?.({ task, column, rowIndex: index, columnIndex, event });
                     }}

@@ -227,6 +227,10 @@ body {
   background: transparent;
 }
 
+.finance-matrix-demo {
+  --gantt-matrix-cell-horizontal-padding: 8px;
+}
+
 .finance-matrix-cell-empty {
   background: transparent;
 }

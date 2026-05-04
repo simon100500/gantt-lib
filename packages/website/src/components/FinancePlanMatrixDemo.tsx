@@ -211,11 +211,11 @@ const financeTasks: FinanceTask[] = [
     budget: 1250000,
     paid: 420000,
     plannedByPeriod: {
-      "2026-04-w3": 190000,
-      "2026-04-w4": 360000,
+      "2026-04-w3": 1000000000,
+      "2026-04-w4": 10000,
       "2026-05-w1": 400000,
       "2026-05-w2": 300000,
-      "2026-04": 550000,
+      "2026-04": 1000010000,
       "2026-05": 700000,
     },
   },
@@ -529,8 +529,10 @@ function MoneyValue({
   );
 }
 
-function getMatrixColumnWidth(view: MatrixView) {
-  return view === 'week' ? WEEK_COLUMN_WIDTH : 108;
+function getMatrixColumnSizing(view: MatrixView) {
+  return view === 'week'
+    ? { width: 'auto' as const, minWidth: 92, maxWidth: 300 }
+    : { width: 'auto' as const, minWidth: 104, maxWidth: 300 };
 }
 
 type BudgetEditorProps = {
@@ -716,14 +718,14 @@ function buildMatrixColumns(view: MatrixView): TableMatrixColumn<FinanceTask>[] 
     id: period.id,
     header: period.label,
     groupId: period.groupId,
-    width: getMatrixColumnWidth(view),
+    ...getMatrixColumnSizing(view),
     cellClassName: (task) => task.plannedByPeriod[period.id] ? 'finance-matrix-cell-active' : 'finance-matrix-cell-empty',
     renderCell: (task) => {
       const value = task.plannedByPeriod[period.id] ?? 0;
       const share = value > 0 ? Math.round((value / Math.max(task.budget, 1)) * 100) : 0;
       const showSecondaryLine = value > 0 && share >= 18;
       return (
-        <div style={{ display: 'grid', gap: 2, justifyItems: 'end', width: '100%', padding: '2px 0' }}>
+        <div style={{ display: 'grid', gap: 2, justifyItems: 'end', padding: '2px 0' }}>
           {value > 0 && (
             <MoneyValue value={value} color="#0f172a" />
           )}
@@ -803,7 +805,7 @@ export default function FinancePlanMatrixDemo() {
       id: period.id,
       header: period.label,
       groupId: period.groupId,
-      width: getMatrixColumnWidth(view),
+      ...getMatrixColumnSizing(view),
       cellClassName: (task: FinanceTask) => [
         task.plannedByPeriod[period.id] ? 'finance-matrix-cell-active' : 'finance-matrix-cell-empty',
         task.isTotal ? 'finance-matrix-cell-total' : '',
@@ -814,7 +816,7 @@ export default function FinancePlanMatrixDemo() {
         const showSecondaryLine = showShareLine && value > 0 && share >= 18;
 
         return (
-          <div style={{ display: 'grid', gap: 2, justifyItems: 'end', width: '100%', padding: '2px 0' }}>
+          <div style={{ display: 'grid', gap: 2, justifyItems: 'end', padding: '2px 0' }}>
             {value > 0 && (
               <MoneyValue value={value} color="#0f172a" fontWeight={task.isTotal ? 700 : undefined} />
             )}
@@ -830,7 +832,7 @@ export default function FinancePlanMatrixDemo() {
   }, [showShareLine, view]);
 
   return (
-    <section className="demo-section">
+    <section className="demo-section finance-matrix-demo">
       <h2 className="demo-section-title">Table Matrix Financial Plan</h2>
       <p className="demo-section-desc">
         Слева обычный <code>TaskList</code> с иерархией фаз и статей, справа произвольная матрица ячеек. В этом примере строки в режиме <code>table-matrix</code> автоматически ужимаются по контенту: где есть только сумма, строка ниже, где появляется вторая строка, высота увеличивается ровно под содержимое.

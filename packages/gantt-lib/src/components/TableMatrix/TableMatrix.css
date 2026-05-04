@@ -1,4 +1,5 @@
 .gantt-mx-root {
+  position: relative;
   background: var(--gantt-cell-background, #ffffff);
 }
 
@@ -25,15 +26,37 @@
   position: relative;
 }
 
+.gantt-mx-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  display: grid;
+  width: max-content;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.gantt-mx-measureCell {
+  width: max-content;
+  max-width: none;
+  height: auto;
+  min-height: 0;
+  white-space: nowrap;
+}
+
 .gantt-mx-headerCell,
 .gantt-mx-groupCell,
 .gantt-mx-cell {
   display: flex;
   align-items: center;
   min-width: 0;
-  padding: 0 12px;
+  padding: var(--gantt-matrix-cell-vertical-padding, 0) var(--gantt-matrix-cell-horizontal-padding, 12px);
   border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   box-sizing: border-box;
+  white-space: nowrap;
 }
 
 .gantt-mx-groupCell:last-child {
