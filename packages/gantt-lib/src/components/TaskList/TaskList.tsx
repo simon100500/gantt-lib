@@ -225,6 +225,8 @@ export interface TaskListProps {
   hideTaskListRowActions?: boolean;
   /** Global number of visible content lines used to size every row consistently. */
   rowContentLines?: number;
+  /** Optional minimum height for the data body area below the sticky header. */
+  bodyMinHeight?: number | string;
   /** How task-list date pickers apply start/end edits */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
@@ -320,6 +322,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   taskListMenuCommands,
   hideTaskListRowActions = false,
   rowContentLines = 1,
+  bodyMinHeight,
   taskDateChangeMode = 'preserve-duration',
   onTaskDateChangeModeChange,
 }) => {
@@ -1248,7 +1251,13 @@ export const TaskList: React.FC<TaskListProps> = ({
         </div>
 
         {/* Data rows */}
-        <div className="gantt-tl-body" style={{ height: `${totalHeight}px` }}>
+        <div
+          className="gantt-tl-body"
+          style={{
+            height: `${totalHeight}px`,
+            minHeight: bodyMinHeight,
+          }}
+        >
           {visibleTasks.map((task, index) => {
             const previousVisibleTask = index > 0 ? visibleTasks[index - 1] : undefined;
             const canDemoteTask = index === 0

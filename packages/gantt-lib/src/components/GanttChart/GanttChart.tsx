@@ -535,6 +535,17 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   );
   // TimeScaleHeader is headerHeight tall; the wrapper owns the bottom grid border.
   const timelineHeaderHeight = headerHeight + 1;
+  const tableBodyMinHeight = useMemo(() => {
+    if (!isTableMatrixMode || containerHeight === undefined) {
+      return undefined;
+    }
+
+    if (typeof containerHeight === 'number') {
+      return Math.max(0, containerHeight - timelineHeaderHeight);
+    }
+
+    return `calc(${containerHeight} - ${timelineHeaderHeight}px)`;
+  }, [containerHeight, isTableMatrixMode, timelineHeaderHeight]);
 
   // Get month start for calculations (first day of date range)
   const monthStart = useMemo(() => {
@@ -1309,6 +1320,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
             hideTaskListRowActions={hideTaskListRowActions}
             rowContentLines={resolvedRowContentLines}
+            bodyMinHeight={tableBodyMinHeight}
             taskDateChangeMode={taskDateChangeMode}
             onTaskDateChangeModeChange={handleTaskDateChangeMode}
           />
@@ -1330,6 +1342,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 columnGroups={matrixColumnGroups}
                 rowHeight={effectiveRowHeight}
                 headerHeight={timelineHeaderHeight}
+                bodyMinHeight={tableBodyMinHeight}
                 selectedTaskId={selectedTaskId}
                 onTaskSelect={handleTaskSelect}
                 onCellClick={onMatrixCellClick}

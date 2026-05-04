@@ -60,6 +60,38 @@ describe('table-matrix mode', () => {
     expect(container.querySelector('.gantt-tsh-header')).toBeNull();
   });
 
+  it('expands task-list and matrix bodies to the available container height', () => {
+    const tasks: FinanceTask[] = [
+      {
+        id: 'task-1',
+        name: 'Фундамент',
+        startDate: '2026-04-01',
+        endDate: '2026-04-20',
+        weeklyPlan: { w1: 1250000 },
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<FinanceTask>
+        mode="table-matrix"
+        tasks={tasks}
+        showTaskList={true}
+        headerHeight={52}
+        rowHeight={36}
+        containerHeight={320}
+        matrixColumns={[
+          { id: 'w1', header: '01-07', width: 110, renderCell: (task) => task.weeklyPlan.w1?.toLocaleString('ru-RU') ?? '—' },
+        ]}
+      />
+    );
+
+    const taskListBody = container.querySelector('.gantt-tl-body') as HTMLDivElement | null;
+    const matrixBody = container.querySelector('.gantt-mx-body') as HTMLDivElement | null;
+
+    expect(taskListBody?.style.minHeight).toBe('267px');
+    expect(matrixBody?.style.minHeight).toBe('267px');
+  });
+
   it('keeps parent row fill classes when descendants are collapsed', () => {
     const tasks: FinanceTask[] = [
       {

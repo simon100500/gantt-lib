@@ -38,6 +38,7 @@ export interface TableMatrixProps<TTask extends Task = Task> {
   columnGroups?: Array<TableMatrixColumnGroup>;
   rowHeight: number;
   headerHeight: number;
+  bodyMinHeight?: number | string;
   selectedTaskId?: string | null;
   onTaskSelect?: (taskId: string | null) => void;
   onCellClick?: (context: TableMatrixCellClickContext<TTask>) => void;
@@ -63,6 +64,7 @@ export default function TableMatrix<TTask extends Task = Task>({
   columnGroups,
   rowHeight,
   headerHeight,
+  bodyMinHeight,
   selectedTaskId,
   onTaskSelect,
   onCellClick,
@@ -202,7 +204,10 @@ export default function TableMatrix<TTask extends Task = Task>({
 
       <div
         className="gantt-mx-body"
-        style={{ height: `${tasks.length * rowHeight}px` }}
+        style={{
+          height: `${tasks.length * rowHeight}px`,
+          minHeight: bodyMinHeight,
+        }}
       >
         {tasks.map((task, index) => {
           const isHighlighted = filterMode === 'highlight' && !!highlightedTaskIds?.has(task.id);
