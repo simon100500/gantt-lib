@@ -223,6 +223,90 @@ body {
   color: #9ca3af;
 }
 
+.finance-matrix-cell-active {
+  background: transparent;
+}
+
+.finance-matrix-cell-empty {
+  background: transparent;
+}
+
+.finance-matrix-cell-total {
+  font-weight: 700;
+}
+
+.finance-money-value {
+  display: inline;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.finance-cell-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.32);
+}
+
+.finance-cell-modal {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+}
+
+.finance-cell-modal h3,
+.finance-cell-modal p,
+.finance-cell-modal dl {
+  margin: 0;
+}
+
+.finance-cell-modal h3 {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.finance-cell-modal p {
+  margin-top: 0.25rem;
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+.finance-cell-modal dl {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.finance-cell-modal dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.finance-cell-modal dt {
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.finance-cell-modal dd {
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: right;
+}
+
 .demo-selection-status {
   display: inline-flex;
   align-items: center;

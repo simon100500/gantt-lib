@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type GanttChartMode = 'gantt' | 'resource-planner';
+export type GanttChartMode = 'gantt' | 'table-matrix' | 'resource-planner';
 export type TaskDateChangeMode = 'preserve-duration' | 'free';
 
 export interface ResourceTimelineItem {

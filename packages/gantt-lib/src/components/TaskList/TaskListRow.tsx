@@ -802,8 +802,14 @@ export interface TaskListRowProps {
   isTaskSelected?: boolean;
   /** Callback when this task's multi-select checkbox changes */
   onTaskSelectionChange?: (taskId: string, checked: boolean) => void;
+  /** Globally active custom cell in the task-list grid */
+  activeCustomCell?: { taskId: string; columnId: string } | null;
+  /** Updates the globally active custom cell */
+  onActiveCustomCellChange?: (cell: { taskId: string; columnId: string } | null) => void;
   /** Additional commands rendered in the three-dots row menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
+  /** Hide row action controls such as insert, hierarchy action buttons, and context menu trigger. */
+  hideTaskListRowActions?: boolean;
   /** How task-list date pickers apply start/end edits */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
@@ -872,11 +878,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     resolvedColumns,
     isTaskSelected = false,
     onTaskSelectionChange,
+    activeCustomCell,
+    onActiveCustomCellChange,
     taskListMenuCommands = [],
+    hideTaskListRowActions = false,
     taskDateChangeMode = 'preserve-duration',
     onTaskDateChangeModeChange,
   }) => {
     const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+    const [editingColumnStartValue, setEditingColumnStartValue] = useState<string | undefined>(undefined);
     const editingName = editingColumnId === 'name';
     const editingDuration = editingColumnId === 'duration';
     const editingProgress = editingColumnId === 'progress';
@@ -902,6 +912,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const editTriggerRef = useRef<"keypress" | "doubleclick" | "autoedit">(
       "doubleclick",
     ); // How editing was started
+    const rowRef = useRef<HTMLDivElement>(null);
 
     const isSelected = selectedTaskId === task.id;
     // Hierarchy computed values
@@ -910,6 +921,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [task.id, allTasks],
     );
     const isChild = task.parentId !== undefined;
+    const rowFillLevel = Math.min(nestingDepth, 2);
+    const isTotalRow = Boolean((task as Task & { isTotal?: boolean }).isTotal);
     const isMilestoneRow = normalizedTask.type === "milestone";
 
     // Create custom weekend predicate from props (memoized for performance)
@@ -1589,11 +1602,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     );
 
     const hasContextMenu =
-      visibleCustomMenuCommands.length > 0 ||
-      !!onDuplicateTask ||
-      !!onDelete ||
-      !!onTasksChange ||
-      (isParent && !!onUngroupTask);
+      !hideTaskListRowActions && (
+        visibleCustomMenuCommands.length > 0 ||
+        !!onDuplicateTask ||
+        !!onDelete ||
+        !!onTasksChange ||
+        (isParent && !!onUngroupTask)
+      );
 
     const handleCustomMenuCommandClick = useCallback(
       (command: TaskListMenuCommand<Task>) =>
@@ -1849,18 +1864,20 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         className="gantt-tl-cell gantt-tl-cell-number"
         onClick={handleNumberClick}
       >
-        <span
-          className="gantt-tl-drag-handle"
-          draggable={true}
-          onDragStart={(e) => {
-            e.stopPropagation();
-            onDragStart?.(rowIndex, e);
-          }}
-          onDragEnd={(e) => onDragEnd?.(e)}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <DragHandleIcon />
-        </span>
+        {onDragStart && (
+          <span
+            className="gantt-tl-drag-handle"
+            draggable={true}
+            onDragStart={(e) => {
+              e.stopPropagation();
+              onDragStart(rowIndex, e);
+            }}
+            onDragEnd={(e) => onDragEnd?.(e)}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DragHandleIcon />
+          </span>
+        )}
         <span className="gantt-tl-num-label">
           {taskNumber || rowIndex + 1}
         </span>
@@ -2061,7 +2078,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             aria-hidden="true"
           />
         )}
-        {!editingName && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onUngroupTask || onDuplicateTask || onTasksChange || hasContextMenu) && (
+        {!editingName && !hideTaskListRowActions && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onUngroupTask || onDuplicateTask || onTasksChange || hasContextMenu) && (
           <div className={`gantt-tl-name-actions${contextMenuOpen ? " gantt-tl-name-actions-open" : ""}`}>
             {onInsertAfter && (
               <button
@@ -2557,8 +2574,64 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       dependencies: dependenciesCell,
     };
 
+    const focusCustomCell = useCallback((taskId: string, columnId: string) => {
+      const overlay = rowRef.current?.closest('.gantt-tl-overlay');
+      if (!overlay) {
+        return;
+      }
+
+      const selector = `[data-gantt-task-row-id="${taskId}"] [data-custom-column-id="${columnId}"]`;
+      const nextCell = overlay.querySelector<HTMLDivElement>(selector);
+      nextCell?.focus();
+    }, []);
+
+    const moveActiveCustomCell = useCallback((columnId: string, direction: 'left' | 'right' | 'up' | 'down') => {
+      const overlay = rowRef.current?.closest('.gantt-tl-overlay');
+      if (!overlay || !resolvedColumns) {
+        return;
+      }
+
+      const customColumnIds = resolvedColumns
+        .filter((column) => !['selection', 'number', 'name', 'startDate', 'endDate', 'duration', 'progress', 'dependencies'].includes(column.id))
+        .map((column) => column.id);
+      const columnIndex = customColumnIds.indexOf(columnId);
+      if (columnIndex === -1) {
+        return;
+      }
+
+      const rowElements = Array.from(
+        overlay.querySelectorAll<HTMLElement>('.gantt-tl-row[data-gantt-task-row-id]')
+      );
+      const rowIds = rowElements
+        .map((element) => element.dataset.ganttTaskRowId)
+        .filter((value): value is string => Boolean(value));
+      const rowIndex = rowIds.indexOf(task.id);
+      if (rowIndex === -1) {
+        return;
+      }
+
+      let nextRowIndex = rowIndex;
+      let nextColumnIndex = columnIndex;
+
+      if (direction === 'left') nextColumnIndex -= 1;
+      if (direction === 'right') nextColumnIndex += 1;
+      if (direction === 'up') nextRowIndex -= 1;
+      if (direction === 'down') nextRowIndex += 1;
+
+      if (nextRowIndex < 0 || nextRowIndex >= rowIds.length || nextColumnIndex < 0 || nextColumnIndex >= customColumnIds.length) {
+        return;
+      }
+
+      const nextCell = { taskId: rowIds[nextRowIndex], columnId: customColumnIds[nextColumnIndex] };
+      onActiveCustomCellChange?.(nextCell);
+      window.requestAnimationFrame(() => {
+        focusCustomCell(nextCell.taskId, nextCell.columnId);
+      });
+    }, [focusCustomCell, onActiveCustomCellChange, resolvedColumns, task.id]);
+
     return (
       <div
+        ref={rowRef}
         data-filter-match={isFilterMatch ? 'true' : 'false'}
         className={[
           "gantt-tl-row",
@@ -2572,10 +2645,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isDragOver ? "gantt-tl-row-drag-over" : "",
           isChild ? "gantt-tl-row-child" : "",
           isParent ? "gantt-tl-row-parent" : "",
+          `gantt-tl-row-level-${rowFillLevel}`,
+          isTotalRow ? "gantt-tl-row-total" : "",
         ]
           .filter(Boolean)
           .join(" ")}
-        style={{ minHeight: `${rowHeight}px`, position: "relative" }}
+        style={{ height: `${rowHeight}px`, position: "relative" }}
         data-gantt-task-row-id={task.id}
         onClick={handleRowClickInternal}
         onKeyDown={handleRowKeyDown}
@@ -2590,35 +2665,121 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           // Custom column
           const isEditing = editingColumnId === col.id;
           const editorFn = col.renderEditor;
+          const isActiveCustomCell = activeCustomCell?.taskId === task.id && activeCustomCell?.columnId === col.id;
+          const startEditingCustomCell = (startValue?: string) => {
+            if (!editorFn) return;
+            onActiveCustomCellChange?.({ taskId: task.id, columnId: col.id });
+            setEditingColumnStartValue(startValue);
+            setEditingColumnId(col.id);
+          };
           const columnContext = {
             task,
             rowIndex,
             isEditing,
+            editStartValue: isEditing ? editingColumnStartValue : undefined,
             openEditor: () => {
-              if (editorFn) setEditingColumnId(col.id);
+              startEditingCustomCell();
             },
             closeEditor: () => {
-              if (editingColumnId === col.id) setEditingColumnId(null);
+              if (editingColumnId === col.id) {
+                setEditingColumnId(null);
+                setEditingColumnStartValue(undefined);
+                onActiveCustomCellChange?.({ taskId: task.id, columnId: col.id });
+                window.requestAnimationFrame(() => {
+                  focusCustomCell(task.id, col.id);
+                });
+              }
             },
             updateTask: (patch: Partial<Task>) => {
               onTasksChange?.([{ ...task, ...patch } as Task]);
+              onActiveCustomCellChange?.({ taskId: task.id, columnId: col.id });
+              setEditingColumnStartValue(undefined);
               setEditingColumnId(null);
+              window.requestAnimationFrame(() => {
+                focusCustomCell(task.id, col.id);
+              });
             },
           };
 
           return (
             <div
               key={col.id}
-              className="gantt-tl-cell gantt-tl-cell-custom"
+              className={`gantt-tl-cell gantt-tl-cell-custom gantt-tl-cell-align-${col.align ?? 'left'}`}
               data-column-id={`custom:${col.id}`}
               data-custom-column-id={col.id}
+              data-custom-column-active={isActiveCustomCell ? "true" : "false"}
               data-custom-column-editing={isEditing ? "true" : "false"}
               data-testid={`custom-cell-${col.id}`}
-              onClick={editorFn && !isEditing ? (e) => { e.stopPropagation(); setEditingColumnId(col.id); } : undefined}
+              tabIndex={editorFn ? 0 : -1}
+              onFocus={editorFn ? () => {
+                onActiveCustomCellChange?.({ taskId: task.id, columnId: col.id });
+              } : undefined}
+              onClick={editorFn ? (e) => {
+                e.stopPropagation();
+                onActiveCustomCellChange?.({ taskId: task.id, columnId: col.id });
+                if (isEditing) {
+                  return;
+                }
+                (e.currentTarget as HTMLDivElement).focus();
+              } : undefined}
+              onDoubleClick={editorFn && !isEditing ? (e) => {
+                e.stopPropagation();
+                startEditingCustomCell();
+              } : undefined}
+              onKeyDown={editorFn && !isEditing ? (e) => {
+                if (e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  moveActiveCustomCell(col.id, 'left');
+                  return;
+                }
+
+                if (e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  moveActiveCustomCell(col.id, 'right');
+                  return;
+                }
+
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  moveActiveCustomCell(col.id, 'up');
+                  return;
+                }
+
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  moveActiveCustomCell(col.id, 'down');
+                  return;
+                }
+
+                if (e.key === 'Enter' || e.key === 'F2') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  startEditingCustomCell();
+                  return;
+                }
+
+                if (e.key === 'Backspace' || e.key === 'Delete') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  startEditingCustomCell('');
+                  return;
+                }
+
+                if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  startEditingCustomCell(e.key);
+                }
+              } : undefined}
               style={{ width: col.width ?? 120, minWidth: col.width ?? 120, flexShrink: 0 }}
             >
               {isEditing && editorFn ? (
                 <div
+                  className="gantt-tl-cell-custom-editor"
                   data-custom-column-editor={col.id}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
@@ -2626,7 +2787,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   {editorFn(columnContext)}
                 </div>
               ) : (
-                col.renderCell(columnContext)
+                <div className="gantt-tl-cell-custom-content">
+                  {col.renderCell(columnContext)}
+                </div>
               )}
             </div>
           );

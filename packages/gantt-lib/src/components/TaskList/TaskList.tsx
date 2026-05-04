@@ -177,6 +177,8 @@ export interface TaskListProps {
   onInsertAfter?: (taskId: string, newTask: Task) => void;
   /** Callback when tasks are reordered via drag in the task list */
   onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
+  /** Disable task row drag/reorder in the task list (default: false) */
+  disableTaskDrag?: boolean;
   /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
   editingTaskId?: string | null;
   /** Enable add task button at bottom of task list (default: true) */
@@ -219,6 +221,10 @@ export interface TaskListProps {
   hiddenTaskListColumns?: readonly TaskListColumnId[];
   /** Additional commands rendered in each row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
+  /** Hide row action controls such as insert, hierarchy action buttons, and the context menu trigger. */
+  hideTaskListRowActions?: boolean;
+  /** Global number of visible content lines used to size every row consistently. */
+  rowContentLines?: number;
   /** How task-list date pickers apply start/end edits */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
@@ -290,6 +296,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onDelete,
   onInsertAfter,
   onReorder,
+  disableTaskDrag = false,
   editingTaskId: propEditingTaskId,
   enableAddTask = true,
   defaultTaskDurationDays = DEFAULT_TASK_DURATION_DAYS,
@@ -311,10 +318,13 @@ export const TaskList: React.FC<TaskListProps> = ({
   additionalColumns,
   hiddenTaskListColumns,
   taskListMenuCommands,
+  hideTaskListRowActions = false,
+  rowContentLines = 1,
   taskDateChangeMode = 'preserve-duration',
   onTaskDateChangeModeChange,
 }) => {
   const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [activeCustomCell, setActiveCustomCell] = useState<{ taskId: string; columnId: string } | null>(null);
   const effectiveSelectedTaskIds = selectedTaskIds ?? internalSelectedTaskIds;
 
   const emitSelectedTaskIdsChange = useCallback((nextSelectedTaskIds: Set<string>) => {
@@ -542,24 +552,31 @@ export const TaskList: React.FC<TaskListProps> = ({
     onSelectedChipChange?.(chip);
   }, [onSelectedChipChange]);
 
-  // Escape / outside-click cancel for picker mode, chip selection, and task row selection
+  // Escape / outside-click cancel for picker mode, chip selection, task row selection, and custom cell focus.
   useEffect(() => {
-    if (!selectingPredecessorFor && !selectedChip && !selectedTaskId) return;
+    if (!selectingPredecessorFor && !selectedChip && !selectedTaskId && !activeCustomCell) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSelectingPredecessorFor(null);
         setSelectedChip(null);
+        setActiveCustomCell(null);
         onSelectedChipChange?.(null);
         onTaskSelect?.(null);
       }
     };
     const handleMouseDown = (e: MouseEvent) => {
       const target = e.target as Element;
-      if (overlayRef.current?.contains(target)) return;
+      if (overlayRef.current?.contains(target)) {
+        if (activeCustomCell && !target.closest?.('[data-custom-column-id]')) {
+          setActiveCustomCell(null);
+        }
+        return;
+      }
       // Don't clear when clicking inside a floating portal (popover, date picker, etc.)
       if (target.closest?.('.gantt-popover')) return;
       setSelectingPredecessorFor(null);
       setSelectedChip(null);
+      setActiveCustomCell(null);
       onSelectedChipChange?.(null);
       onTaskSelect?.(null);
     };
@@ -569,7 +586,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handleMouseDown, true);
     };
-  }, [selectingPredecessorFor, selectedChip, selectedTaskId, onTaskSelect, onSelectedChipChange]);
+  }, [selectingPredecessorFor, selectedChip, selectedTaskId, activeCustomCell, onTaskSelect, onSelectedChipChange]);
 
   const handleAddDependency = useCallback((
     successorTaskId: string,
@@ -1147,7 +1164,10 @@ export const TaskList: React.FC<TaskListProps> = ({
     <div
       ref={overlayRef}
       className={`gantt-tl-overlay${show ? '' : ' gantt-tl-hidden'}${hasRightShadow ? ' gantt-tl-overlay-shadowed' : ''}`}
-      style={{ '--tasklist-width': `${effectiveTaskListWidth}px` } as React.CSSProperties}
+      style={{
+        '--tasklist-width': `${effectiveTaskListWidth}px`,
+        '--gantt-row-content-lines': String(Math.max(2, Math.floor(rowContentLines))),
+      } as React.CSSProperties}
     >
       <div className="gantt-tl-table">
         {/* Header row includes the bottom grid border owned by the calendar header wrapper. */}
@@ -1217,7 +1237,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             // Custom columns
             return (
               <div key={col.id}
-                   className="gantt-tl-headerCell gantt-tl-headerCell-custom"
+                   className={`gantt-tl-headerCell gantt-tl-headerCell-custom gantt-tl-cell-align-${col.align ?? 'left'}`}
                    data-column-id={`custom:${col.id}`}
                    data-custom-column-id={col.id}
                    style={{ width: col.width, minWidth: col.width, flexShrink: 0 }}>
@@ -1264,12 +1284,12 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onAdd={onAdd}
                   onInsertAfter={handleStartInsertAfter}
                   editingTaskId={propEditingTaskId}
-                  isDragging={draggingIndex === index}
-                  isDragOver={dragOverIndex === index}
-                  onDragStart={handleDragStart}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  onDragEnd={handleDragEnd}
+                  isDragging={!disableTaskDrag && draggingIndex === index}
+                  isDragOver={!disableTaskDrag && dragOverIndex === index}
+                  onDragStart={disableTaskDrag ? undefined : handleDragStart}
+                  onDragOver={disableTaskDrag ? undefined : handleDragOver}
+                  onDrop={disableTaskDrag ? undefined : handleDrop}
+                  onDragEnd={disableTaskDrag ? undefined : handleDragEnd}
                   collapsedParentIds={collapsedParentIds}
                   onToggleCollapse={handleToggleCollapse}
                   onPromoteTask={onPromoteTask}
@@ -1290,7 +1310,10 @@ export const TaskList: React.FC<TaskListProps> = ({
                   resolvedColumns={resolvedColumns}
                   isTaskSelected={effectiveSelectedTaskIds.has(task.id)}
                   onTaskSelectionChange={handleToggleTaskSelection}
+                  activeCustomCell={activeCustomCell}
+                  onActiveCustomCellChange={setActiveCustomCell}
                   taskListMenuCommands={taskListMenuCommands}
+                  hideTaskListRowActions={hideTaskListRowActions}
                   taskDateChangeMode={taskDateChangeMode}
                   onTaskDateChangeModeChange={onTaskDateChangeModeChange}
                 />
@@ -1320,25 +1343,25 @@ export const TaskList: React.FC<TaskListProps> = ({
         {/* Add task button - also serves as drop target for moving tasks to end */}
         {enableAddTask && onAdd && !isCreating && !pendingInsert && (
           <button
-            className={`gantt-tl-add-btn${dragOverIndex === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
+            className={`gantt-tl-add-btn${!disableTaskDrag && dragOverIndex === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
             onClick={() => {
               setPendingInsert(null);
               setIsCreating(true);
             }}
-            onDragEnter={(e) => {
+            onDragEnter={disableTaskDrag ? undefined : (e) => {
               e.preventDefault();
               setDragOverIndex(visibleTasks.length);
             }}
-            onDragOver={(e) => {
+            onDragOver={disableTaskDrag ? undefined : (e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
               setDragOverIndex(visibleTasks.length);
             }}
-            onDragLeave={(e) => {
+            onDragLeave={disableTaskDrag ? undefined : (e) => {
               e.preventDefault();
               setDragOverIndex(null);
             }}
-            onDrop={(e) => {
+            onDrop={disableTaskDrag ? undefined : (e) => {
               e.preventDefault();
               handleDrop(visibleTasks.length, e);
             }}

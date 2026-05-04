@@ -6,6 +6,7 @@ export type {
   TaskListMenuCommand,
   GanttChartMode,
   GanttModeProps,
+  TableMatrixModeProps,
   GanttChartProps,
   ResourcePlannerChartProps,
   ResourceTimelineItem,
@@ -16,3 +17,8 @@ export type {
   ExportToPdfOptions,
   ExportToPdfHeaderOptions,
 } from './GanttChart';
+export type {
+  TableMatrixColumn,
+  TableMatrixColumnGroup,
+  TableMatrixCellClickContext,
+} from '../TableMatrix';

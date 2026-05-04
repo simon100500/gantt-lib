@@ -16,6 +16,7 @@ export interface TaskListColumnContext<TTask extends Task> {
   task: TTask;
   rowIndex: number;
   isEditing: boolean;
+  editStartValue?: string;
   openEditor: () => void;
   closeEditor: () => void;
   updateTask: (patch: Partial<TTask>) => void;
@@ -26,6 +27,7 @@ export type TaskListColumn<TTask extends Task> = TaskListColumnAnchor & {
   header: ReactNode;
   width?: number;
   minWidth?: number;
+  align?: 'left' | 'center' | 'right';
   editable?: boolean;
   renderCell: (ctx: TaskListColumnContext<TTask>) => ReactNode;
   renderEditor?: (ctx: TaskListColumnContext<TTask>) => ReactNode;
