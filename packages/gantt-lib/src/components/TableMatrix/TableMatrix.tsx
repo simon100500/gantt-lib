@@ -237,7 +237,7 @@ export default function TableMatrix<TTask extends Task = Task>({
   const headerSpans = useMemo<HeaderSpan[]>(() => {
     if (!hasGroupHeader) return [];
 
-    if (!hasAutoWidthColumns && columnGroups?.some((group) => typeof group.width === 'number')) {
+    if (columnGroups?.some((group) => typeof group.width === 'number')) {
       return columnGroups.map((group) => ({
         id: group.id,
         header: group.header,
@@ -348,9 +348,7 @@ export default function TableMatrix<TTask extends Task = Task>({
           <div
             className="gantt-mx-headerRow gantt-mx-headerGroupRow"
             style={{
-              gridTemplateColumns: hasAutoWidthColumns
-                ? gridTemplateColumns
-                : headerSpans.map((span) => `${span.width ?? 0}px`).join(' '),
+              gridTemplateColumns: headerSpans.map((span) => `${span.width ?? 0}px`).join(' '),
               height: `${topRowHeight}px`,
             }}
           >
@@ -358,7 +356,7 @@ export default function TableMatrix<TTask extends Task = Task>({
               <div
                 key={span.id}
                 className={joinClasses('gantt-mx-groupCell', span.className)}
-                style={hasAutoWidthColumns ? { gridColumn: `span ${span.columnSpan ?? 1}` } : undefined}
+                style={span.columnSpan !== undefined ? { gridColumn: `span ${span.columnSpan}` } : undefined}
               >
                 {span.header}
               </div>

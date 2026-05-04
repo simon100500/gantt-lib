@@ -231,7 +231,7 @@ const financeTasks: FinanceTask[] = [
     budget: 1870000,
     paid: 380000,
     plannedByPeriod: {
-      "2026-04-w4": 440000,
+      "2026-04-w5": 440000,
       "2026-05-w1": 420000,
       "2026-05-w2": 390000,
       "2026-05-w3": 620000,
@@ -535,7 +535,7 @@ function MoneyValue({
 
 function getMatrixColumnSizing(view: MatrixView) {
   return view === 'week'
-    ? { width: 'auto' as const, minWidth: 92, maxWidth: 300 }
+    ? { width: WEEK_COLUMN_WIDTH }
     : { width: 'auto' as const, minWidth: 104, maxWidth: 300 };
 }
 

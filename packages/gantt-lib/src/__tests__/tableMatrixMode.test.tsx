@@ -165,6 +165,39 @@ describe('table-matrix mode', () => {
     expect((headerCells[1] as HTMLDivElement).style.minWidth).toBe('96px');
   });
 
+  it('uses explicit group widths even when matrix columns are content-sized', () => {
+    const tasks: FinanceTask[] = [
+      {
+        id: 'task-1',
+        name: 'Строка',
+        startDate: '2026-04-01',
+        endDate: '2026-04-20',
+        weeklyPlan: { w1: 10, w2: 20, w3: 30 },
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<FinanceTask>
+        mode="table-matrix"
+        tasks={tasks}
+        headerHeight={52}
+        matrixColumnGroups={[
+          { id: 'apr', header: 'Апрель 2026', width: 128 },
+          { id: 'may', header: 'Май 2026', width: 68 },
+        ]}
+        matrixColumns={[
+          { id: 'w1', header: '30-05', width: 'auto', minWidth: 92, groupId: 'apr', renderCell: (task) => task.weeklyPlan.w1?.toString() ?? '' },
+          { id: 'w2', header: '06-12', width: 'auto', minWidth: 92, groupId: 'apr', renderCell: (task) => task.weeklyPlan.w2?.toString() ?? '' },
+          { id: 'w3', header: '13-19', width: 'auto', minWidth: 92, groupId: 'may', renderCell: (task) => task.weeklyPlan.w3?.toString() ?? '' },
+        ]}
+      />
+    );
+
+    const groupRow = container.querySelector('.gantt-mx-headerGroupRow') as HTMLDivElement | null;
+
+    expect(groupRow?.style.gridTemplateColumns).toBe('128px 68px');
+  });
+
   it('keeps the right border on the last matrix column', () => {
     const css = readFileSync(
       resolve(process.cwd(), 'src/components/TableMatrix/TableMatrix.css'),
