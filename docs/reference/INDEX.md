@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.75.1
+**Version:** 0.100.0
 
 ## Getting Started
 
@@ -19,6 +19,7 @@
 - [Custom Weekends](./06-custom-days.md) — Holidays, working Saturdays, isWeekend
 - [Business Days](./07-business-days.md) — Режим рабочих дней
 - [Resource Planner Mode](./15-resource-planner.md) — Resource rows, assignments, X-only drag, reassignment callbacks
+- [Table Matrix Mode](./16-table-matrix.md) — Spreadsheet-like matrix layout, grouped columns, clickable cells
 
 ## Advanced
 

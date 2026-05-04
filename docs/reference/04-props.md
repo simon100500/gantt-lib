@@ -1,13 +1,15 @@
 # GanttChart Props
 
-`GanttChart` supports two modes:
+`GanttChart` supports three modes:
 
 - Omitted `mode` or `mode="gantt"` renders the task Gantt chart and requires `tasks`.
+- `mode="table-matrix"` renders the standard `TaskList` on the left plus arbitrary matrix columns on the right.
 - `mode="resource-planner"` renders the resource planner and requires `resources`.
 
 ```typescript
 type GanttChartProps<TTask extends Task = Task, TItem extends ResourceTimelineItem = ResourceTimelineItem> =
   | GanttModeProps<TTask>
+  | TableMatrixModeProps<TTask>
   | ResourcePlannerChartProps<TItem>;
 
 interface GanttModeProps<TTask extends Task = Task> {
@@ -51,6 +53,51 @@ interface GanttModeProps<TTask extends Task = Task> {
   additionalColumns?: TaskListColumn<TTask>[];
   hiddenTaskListColumns?: TaskListColumnId[];
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
+  hideTaskListRowActions?: boolean;
+  rowContentLines?: number;
+}
+
+interface TableMatrixModeProps<TTask extends Task = Task> {
+  mode: 'table-matrix';
+  tasks: TTask[];
+  rowHeight?: number;
+  headerHeight?: number;
+  containerHeight?: number | string;
+  onTasksChange?: (tasks: TTask[]) => void;
+  onAdd?: (task: TTask) => void;
+  onDelete?: (taskId: string) => void;
+  onInsertAfter?: (taskId: string, newTask: TTask) => void;
+  onReorder?: (tasks: TTask[], movedTaskId?: string, inferredParentId?: string) => void;
+  onPromoteTask?: (taskId: string) => void;
+  onDemoteTask?: (taskId: string, newParentId: string) => void;
+  onValidateDependencies?: (result: ValidationResult) => void;
+  enableAutoSchedule?: boolean;
+  disableConstraints?: boolean;
+  onCascade?: (tasks: Task[]) => void;
+  showTaskList?: boolean;
+  showChart?: boolean;
+  showBaseline?: boolean;
+  taskListWidth?: number;
+  disableTaskNameEditing?: boolean;
+  disableDependencyEditing?: boolean;
+  disableTaskDrag?: boolean;
+  highlightExpiredTasks?: boolean;
+  collapsedParentIds?: Set<string>;
+  onToggleCollapse?: (parentId: string) => void;
+  enableAddTask?: boolean;
+  taskFilter?: TaskPredicate;
+  highlightedTaskIds?: Set<string>;
+  enableTaskMultiSelect?: boolean;
+  selectedTaskIds?: Set<string>;
+  onSelectedTaskIdsChange?: (taskIds: Set<string>) => void;
+  additionalColumns?: TaskListColumn<TTask>[];
+  hiddenTaskListColumns?: TaskListColumnId[];
+  taskListMenuCommands?: TaskListMenuCommand<TTask>[];
+  hideTaskListRowActions?: boolean;
+  rowContentLines?: number;
+  matrixColumns: Array<TableMatrixColumn<TTask>>;
+  matrixColumnGroups?: Array<TableMatrixColumnGroup>;
+  onMatrixCellClick?: (context: TableMatrixCellClickContext<TTask>) => void;
 }
 
 interface ResourceTimelineItem {
@@ -157,6 +204,89 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `additionalColumns` | `TaskListColumn<TTask>[]` | `undefined` | Additional TaskList columns resolved together with the built-in columns. Use `renderCell` / `renderEditor` and place them with `before` / `after`. See [TaskList Columns](./13-tasklist-columns.md). |
 | `hiddenTaskListColumns` | `TaskListColumnId[]` | `undefined` | Built-in or custom TaskList column IDs to hide after column placement is resolved. Works for built-in columns such as `'duration'` and custom `additionalColumns` ids. |
 | `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Additional commands for the TaskList three-dots menu. Each command receives the current row in `onSelect(row)`, can render an `icon`, and may be restricted by `scope`: `'group'`, `'linear'`, `'milestone'`, or `'all'`. When `scope` is omitted, the command is shown for all task types. |
+| `hideTaskListRowActions` | `boolean` | `false` | Hides row-level TaskList actions such as insert/delete/hierarchy buttons. Useful in spreadsheet-like or read-only table presentations. |
+| `rowContentLines` | `number` | `1` | Declares how many text lines each row should comfortably fit in table-like layouts. The effective row height is auto-expanded to at least `10 + rowContentLines * 18` pixels, keeping the left `TaskList` and the right chart/matrix row heights synchronized. |
+
+## Table Matrix Props
+
+For a complete guide with examples, grouped headers, and clickable cells, see [Table Matrix Mode](./16-table-matrix.md).
+
+Use the standard `GanttChart` entry point for table-matrix mode:
+
+```tsx
+import {
+  GanttChart,
+  type TableMatrixCellClickContext,
+  type TableMatrixColumn,
+  type TableMatrixColumnGroup,
+  type Task,
+} from 'gantt-lib';
+
+type FinanceTask = Task & {
+  plannedByPeriod: Record<string, number>;
+};
+
+const matrixColumns: TableMatrixColumn<FinanceTask>[] = [
+  {
+    id: '2026-04',
+    header: 'Апрель',
+    width: 108,
+    renderCell: (task) => task.plannedByPeriod['2026-04'] ?? 0,
+  },
+];
+
+<GanttChart
+  mode="table-matrix"
+  tasks={tasks}
+  showTaskList={true}
+  matrixColumns={matrixColumns}
+  onMatrixCellClick={(context) => {
+    console.log(context.task.id, context.column.id, context.rowIndex, context.columnIndex);
+  }}
+/>;
+```
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `mode` | `'table-matrix'` | required | Selects the table-matrix branch. |
+| `tasks` | `TTask[]` | required | Source rows. The left `TaskList` and right matrix stay vertically synchronized. |
+| `matrixColumns` | `TableMatrixColumn<TTask>[]` | required | Arbitrary right-side columns. Each column defines `id`, `header`, `width`, and `renderCell(task)`. |
+| `matrixColumnGroups` | `TableMatrixColumnGroup[]` | `undefined` | Optional grouped header row above `matrixColumns`. Useful for month groups over weekly columns. |
+| `onMatrixCellClick` | `(context: TableMatrixCellClickContext<TTask>) => void` | `undefined` | Called when a matrix cell is clicked. Receives the row task, full column config, `rowIndex`, `columnIndex`, and the original mouse event. When omitted, cells remain non-interactive. |
+| `rowContentLines` | `number` | `1` | Important for matrix layouts with multi-line cell content. Use `1`, `2`, etc. to keep row height consistent between `TaskList` and matrix cells. |
+| `disableTaskDrag` | `boolean` | `false` | Still supported in table-matrix mode. Commonly set to `true` to prevent accidental drag/resize while the user scrolls or works with cell-like UI. |
+| `hideTaskListRowActions` | `boolean` | `false` | Frequently used with table-matrix layouts to hide add/delete/hierarchy buttons and make the left side feel more like a spreadsheet row header. |
+
+### TableMatrix Types
+
+```ts
+interface TableMatrixColumnGroup {
+  id: string;
+  header: React.ReactNode;
+  width?: number;
+  className?: string;
+}
+
+interface TableMatrixColumn<TTask extends Task = Task> {
+  id: string;
+  header: React.ReactNode;
+  width: number;
+  groupId?: string;
+  align?: 'left' | 'center' | 'right';
+  className?: string;
+  headerClassName?: string;
+  cellClassName?: string | ((task: TTask) => string | undefined);
+  renderCell: (task: TTask) => React.ReactNode;
+}
+
+interface TableMatrixCellClickContext<TTask extends Task = Task> {
+  task: TTask;
+  column: TableMatrixColumn<TTask>;
+  rowIndex: number;
+  columnIndex: number;
+  event: React.MouseEvent<HTMLDivElement>;
+}
+```
 
 ## Resource Planner Props
 

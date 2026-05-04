@@ -51,6 +51,7 @@ interface TaskListColumnContext<TTask extends Task> {
   task: TTask;
   rowIndex: number;
   isEditing: boolean;
+  editStartValue?: string;
   openEditor: () => void;
   closeEditor: () => void;
   updateTask: (patch: Partial<TTask>) => void;
@@ -195,9 +196,40 @@ export function MyChart() {
 
 - Custom editors use `renderEditor`.
 - Only one editor is open per row at a time.
+- Only one custom cell is active globally at a time. Arrow keys move the active cell across custom columns and rows.
 - `openEditor()` and `closeEditor()` are provided in the column context.
 - `updateTask(patch)` emits a merged task object through `onTasksChange`.
 - `patch` is typed as `Partial<TTask>`, so extended task fields stay typed.
+
+## Active Custom Cell Management
+
+The TaskList now keeps a global "active custom cell" state for custom columns. This is internal behavior, but it affects how keyboard editing works.
+
+- Click a custom editable cell to make it active.
+- Double-click, `Enter`, or `F2` opens its editor.
+- `Backspace` or `Delete` opens the editor with an empty starting value.
+- Typing a printable character opens the editor and seeds it through `editStartValue`.
+- Arrow keys move focus between custom cells in the custom-column grid.
+- Clicking outside custom cells clears the active-cell state.
+
+This makes custom TaskList columns behave more like spreadsheet cells without exposing extra controlled props in the public API.
+
+### `editStartValue`
+
+`TaskListColumnContext` now includes `editStartValue?: string`. Use it when your editor should start with the typed key or with an explicit empty value after `Delete` / `Backspace`.
+
+```tsx
+renderEditor: ({ task, editStartValue, updateTask, closeEditor }) => (
+  <input
+    autoFocus
+    defaultValue={editStartValue ?? task.assignee ?? ''}
+    onBlur={(e) => {
+      updateTask({ assignee: e.target.value || undefined });
+      closeEditor();
+    }}
+  />
+)
+```
 
 ## Width Model
 
