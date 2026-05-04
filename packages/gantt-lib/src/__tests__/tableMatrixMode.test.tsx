@@ -185,7 +185,7 @@ describe('table-matrix mode', () => {
         name: 'Строка',
         startDate: '2026-04-01',
         endDate: '2026-04-20',
-        weeklyPlan: { past: 100, current: 200, future: 300 },
+        weeklyPlan: { past: 100, current: 200, emptyCurrent: 0, future: 300 },
       },
     ];
 
@@ -193,10 +193,14 @@ describe('table-matrix mode', () => {
       <GanttChart<FinanceTask>
         mode="table-matrix"
         tasks={tasks}
-        matrixDateOverlay={{ date: '2026-05-04' }}
+        matrixDateOverlay={{
+          date: '2026-05-04',
+          shouldRender: ({ task, column }) => (task.weeklyPlan[column.id] ?? 0) > 0,
+        }}
         matrixColumns={[
           { id: 'past', header: 'Апрель', width: 100, periodStartDate: '2026-04-01', periodEndDate: '2026-04-30', renderCell: (task) => task.weeklyPlan.past },
           { id: 'current', header: 'Май', width: 100, periodStartDate: '2026-05-01', periodEndDate: '2026-05-07', renderCell: (task) => task.weeklyPlan.current },
+          { id: 'emptyCurrent', header: 'Пустой май', width: 100, periodStartDate: '2026-05-01', periodEndDate: '2026-05-07', renderCell: () => '' },
           { id: 'future', header: 'Июнь', width: 100, periodStartDate: '2026-06-01', periodEndDate: '2026-06-30', renderCell: (task) => task.weeklyPlan.future },
         ]}
       />
@@ -208,7 +212,7 @@ describe('table-matrix mode', () => {
     expect(overlays).toHaveLength(2);
     expect((overlays[0] as HTMLSpanElement).style.width).toBe('100%');
     expect((overlays[1] as HTMLSpanElement).style.width).toBe('57.14285714285714%');
-    expect(cellContents).toHaveLength(3);
+    expect(cellContents).toHaveLength(4);
   });
 
   it('keeps parent row fill classes when descendants are collapsed', () => {

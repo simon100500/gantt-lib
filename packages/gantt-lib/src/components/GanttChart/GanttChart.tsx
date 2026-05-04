@@ -254,7 +254,7 @@ export interface TableMatrixModeProps<TTask extends Task = Task> extends TaskCha
   /** Called when any data cell in the right-side matrix is clicked. */
   onMatrixCellClick?: (context: TableMatrixCellClickContext<TTask>) => void;
   /** Optional actual-date overlay rendered under matrix cell content for date-ranged columns. */
-  matrixDateOverlay?: TableMatrixDateOverlay | false;
+  matrixDateOverlay?: TableMatrixDateOverlay<TTask> | false;
 }
 
 export type GanttChartProps<

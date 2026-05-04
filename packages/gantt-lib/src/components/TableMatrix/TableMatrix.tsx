@@ -35,10 +35,16 @@ export interface TableMatrixCellClickContext<TTask extends Task = Task> {
   event: React.MouseEvent<HTMLDivElement>;
 }
 
-export interface TableMatrixDateOverlay {
+export interface TableMatrixDateOverlay<TTask extends Task = Task> {
   date: string | Date;
   className?: string;
   color?: string;
+  shouldRender?: (context: {
+    task: TTask;
+    column: TableMatrixColumn<TTask>;
+    rowIndex: number;
+    columnIndex: number;
+  }) => boolean;
 }
 
 export interface TableMatrixProps<TTask extends Task = Task> {
@@ -52,7 +58,7 @@ export interface TableMatrixProps<TTask extends Task = Task> {
   selectedTaskId?: string | null;
   onTaskSelect?: (taskId: string | null) => void;
   onCellClick?: (context: TableMatrixCellClickContext<TTask>) => void;
-  dateOverlay?: TableMatrixDateOverlay | false;
+  dateOverlay?: TableMatrixDateOverlay<TTask> | false;
   highlightedTaskIds?: Set<string>;
   filterMode?: 'highlight' | 'hide';
 }
@@ -404,6 +410,11 @@ export default function TableMatrix<TTask extends Task = Task>({
                   ? column.cellClassName(task)
                   : column.cellClassName;
                 const overlayWidthPercent = getOverlayWidthPercent(column, overlayDateMs);
+                const shouldRenderOverlay = overlayWidthPercent > 0 && (
+                  !dateOverlay
+                  || !dateOverlay.shouldRender
+                  || dateOverlay.shouldRender({ task, column, rowIndex: index, columnIndex })
+                );
 
                 return (
                   <div
@@ -420,7 +431,7 @@ export default function TableMatrix<TTask extends Task = Task>({
                       onCellClick?.({ task, column, rowIndex: index, columnIndex, event });
                     }}
                   >
-                    {overlayWidthPercent > 0 && (
+                    {shouldRenderOverlay && (
                       <span
                         className={joinClasses('gantt-mx-dateOverlay', dateOverlay && dateOverlay.className)}
                         style={{

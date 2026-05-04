@@ -889,7 +889,10 @@ export default function FinancePlanMatrixDemo() {
           containerHeight={640}
           matrixColumns={matrixColumns}
           matrixColumnGroups={view === 'week' ? monthGroups : undefined}
-          matrixDateOverlay={showDateOverlay ? { date: "2026-05-04" } : false}
+          matrixDateOverlay={showDateOverlay ? {
+            date: "2026-05-04",
+            shouldRender: ({ task, column }) => (task.plannedByPeriod[column.id] ?? 0) > 0,
+          } : false}
           additionalColumns={additionalColumns}
           hiddenTaskListColumns={['dependencies', 'progress', 'duration', 'startDate', 'endDate']}
           disableDependencyEditing={true}
