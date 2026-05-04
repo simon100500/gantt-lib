@@ -178,6 +178,39 @@ describe('table-matrix mode', () => {
     expect(css).not.toMatch(/\.gantt-mx-cell:last-child/);
   });
 
+  it('renders an optional actual-date overlay for period columns', () => {
+    const tasks: FinanceTask[] = [
+      {
+        id: 'task-1',
+        name: 'Строка',
+        startDate: '2026-04-01',
+        endDate: '2026-04-20',
+        weeklyPlan: { past: 100, current: 200, future: 300 },
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<FinanceTask>
+        mode="table-matrix"
+        tasks={tasks}
+        matrixDateOverlay={{ date: '2026-05-04' }}
+        matrixColumns={[
+          { id: 'past', header: 'Апрель', width: 100, periodStartDate: '2026-04-01', periodEndDate: '2026-04-30', renderCell: (task) => task.weeklyPlan.past },
+          { id: 'current', header: 'Май', width: 100, periodStartDate: '2026-05-01', periodEndDate: '2026-05-07', renderCell: (task) => task.weeklyPlan.current },
+          { id: 'future', header: 'Июнь', width: 100, periodStartDate: '2026-06-01', periodEndDate: '2026-06-30', renderCell: (task) => task.weeklyPlan.future },
+        ]}
+      />
+    );
+
+    const overlays = container.querySelectorAll('.gantt-mx-dateOverlay');
+    const cellContents = container.querySelectorAll('.gantt-mx-cellContent');
+
+    expect(overlays).toHaveLength(2);
+    expect((overlays[0] as HTMLSpanElement).style.width).toBe('100%');
+    expect((overlays[1] as HTMLSpanElement).style.width).toBe('57.14285714285714%');
+    expect(cellContents).toHaveLength(3);
+  });
+
   it('keeps parent row fill classes when descendants are collapsed', () => {
     const tasks: FinanceTask[] = [
       {

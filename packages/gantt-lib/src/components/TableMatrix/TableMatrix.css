@@ -120,9 +120,24 @@
 }
 
 .gantt-mx-cell {
+  position: relative;
   font-size: 13px;
   color: #111827;
   background: inherit;
+}
+
+.gantt-mx-dateOverlay {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 0;
+  background: var(--gantt-matrix-date-overlay-color, rgba(239, 68, 68, 0.22));
+  pointer-events: none;
+}
+
+.gantt-mx-cellContent {
+  position: relative;
+  z-index: 1;
+  display: contents;
 }
 
 .gantt-mx-cell-clickable {

@@ -17,6 +17,8 @@ type PeriodDefinition = {
   id: string;
   label: string;
   groupId?: string;
+  startDate: string | Date;
+  endDate: string | Date;
 };
 
 type MatrixCellModalState = {
@@ -391,9 +393,9 @@ const financeTasks: FinanceTask[] = [
 ];
 
 const monthlyPeriods: PeriodDefinition[] = [
-  { id: "2026-04", label: "Апрель" },
-  { id: "2026-05", label: "Май" },
-  { id: "2026-06", label: "Июнь" },
+  { id: "2026-04", label: "Апрель", startDate: "2026-04-01", endDate: "2026-04-30" },
+  { id: "2026-05", label: "Май", startDate: "2026-05-01", endDate: "2026-05-31" },
+  { id: "2026-06", label: "Июнь", startDate: "2026-06-01", endDate: "2026-06-30" },
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -451,6 +453,8 @@ function buildMondayWeeksByMonthMajority(startMonth: Date, endMonth: Date): Peri
       id: `${groupId}-w${weekNumber}`,
       label: formatWeekLabel(cursor),
       groupId,
+      startDate: cursor,
+      endDate: addDays(cursor, 6),
     });
     cursor = addDays(cursor, 7);
   }
@@ -718,6 +722,8 @@ function buildMatrixColumns(view: MatrixView): TableMatrixColumn<FinanceTask>[] 
     id: period.id,
     header: period.label,
     groupId: period.groupId,
+    periodStartDate: period.startDate,
+    periodEndDate: period.endDate,
     ...getMatrixColumnSizing(view),
     cellClassName: (task) => task.plannedByPeriod[period.id] ? 'finance-matrix-cell-active' : 'finance-matrix-cell-empty',
     renderCell: (task) => {
@@ -748,6 +754,7 @@ export default function FinancePlanMatrixDemo() {
   const [baseTasks, setBaseTasks] = useState<FinanceTask[]>(financeTasks);
   const [view, setView] = useState<MatrixView>('week');
   const [showShareLine, setShowShareLine] = useState(true);
+  const [showDateOverlay, setShowDateOverlay] = useState(true);
   const [matrixCellModal, setMatrixCellModal] = useState<MatrixCellModalState>(null);
   const tasks = useMemo(() => deriveHierarchyFinanceTasks(baseTasks), [baseTasks]);
   const displayTasks = useMemo(() => [...tasks, buildTotalRow(tasks)], [tasks]);
@@ -805,6 +812,8 @@ export default function FinancePlanMatrixDemo() {
       id: period.id,
       header: period.label,
       groupId: period.groupId,
+      periodStartDate: period.startDate,
+      periodEndDate: period.endDate,
       ...getMatrixColumnSizing(view),
       cellClassName: (task: FinanceTask) => [
         task.plannedByPeriod[period.id] ? 'finance-matrix-cell-active' : 'finance-matrix-cell-empty',
@@ -859,6 +868,13 @@ export default function FinancePlanMatrixDemo() {
         >
           {showShareLine ? 'Скрыть % строку' : 'Показать % строку'}
         </button>
+        <button
+          type="button"
+          className={`demo-btn ${showDateOverlay ? 'demo-btn-primary' : 'demo-btn-neutral'}`}
+          onClick={() => setShowDateOverlay((current) => !current)}
+        >
+          {showDateOverlay ? 'Скрыть факт дату' : 'Показать факт дату'}
+        </button>
         <span className="demo-hint">Корневые строки показывают агрегат по фазе, дочерние строки раскрывают детализацию по статьям.</span>
       </div>
       <div className="demo-chart-card">
@@ -873,6 +889,7 @@ export default function FinancePlanMatrixDemo() {
           containerHeight={640}
           matrixColumns={matrixColumns}
           matrixColumnGroups={view === 'week' ? monthGroups : undefined}
+          matrixDateOverlay={showDateOverlay ? { date: "2026-05-04" } : false}
           additionalColumns={additionalColumns}
           hiddenTaskListColumns={['dependencies', 'progress', 'duration', 'startDate', 'endDate']}
           disableDependencyEditing={true}

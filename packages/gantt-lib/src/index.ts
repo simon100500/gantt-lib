@@ -15,6 +15,7 @@ export {
   type TableMatrixColumn,
   type TableMatrixColumnGroup,
   type TableMatrixCellClickContext,
+  type TableMatrixDateOverlay,
   type GanttChartProps,
   type ResourcePlannerChartProps,
   type ResourceTimelineItem,

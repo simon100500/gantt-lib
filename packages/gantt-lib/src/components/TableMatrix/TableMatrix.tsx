@@ -17,6 +17,8 @@ export interface TableMatrixColumn<TTask extends Task = Task> {
   width?: number | 'auto';
   minWidth?: number;
   maxWidth?: number;
+  periodStartDate?: string | Date;
+  periodEndDate?: string | Date;
   groupId?: string;
   align?: 'left' | 'center' | 'right';
   className?: string;
@@ -33,6 +35,12 @@ export interface TableMatrixCellClickContext<TTask extends Task = Task> {
   event: React.MouseEvent<HTMLDivElement>;
 }
 
+export interface TableMatrixDateOverlay {
+  date: string | Date;
+  className?: string;
+  color?: string;
+}
+
 export interface TableMatrixProps<TTask extends Task = Task> {
   tasks: TTask[];
   allTasks?: TTask[];
@@ -44,6 +52,7 @@ export interface TableMatrixProps<TTask extends Task = Task> {
   selectedTaskId?: string | null;
   onTaskSelect?: (taskId: string | null) => void;
   onCellClick?: (context: TableMatrixCellClickContext<TTask>) => void;
+  dateOverlay?: TableMatrixDateOverlay | false;
   highlightedTaskIds?: Set<string>;
   filterMode?: 'highlight' | 'hide';
 }
@@ -58,6 +67,7 @@ interface HeaderSpan {
 
 const AUTO_COLUMN_MIN_WIDTH = 72;
 const AUTO_COLUMN_MAX_WIDTH = 180;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
@@ -75,6 +85,42 @@ function getAutoMaxWidth<TTask extends Task>(column: TableMatrixColumn<TTask>) {
   return column.maxWidth ?? AUTO_COLUMN_MAX_WIDTH;
 }
 
+function parseDateOnlyMs(value: string | Date): number {
+  if (value instanceof Date) {
+    return Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+
+  const [year, month, day] = value.split('T')[0].split('-').map(Number);
+  if (!year || !month || !day) {
+    return Number.NaN;
+  }
+
+  return Date.UTC(year, month - 1, day);
+}
+
+function getOverlayWidthPercent<TTask extends Task>(
+  column: TableMatrixColumn<TTask>,
+  overlayDateMs: number | null
+): number {
+  if (overlayDateMs === null || column.periodStartDate === undefined || column.periodEndDate === undefined) {
+    return 0;
+  }
+
+  const startMs = parseDateOnlyMs(column.periodStartDate);
+  const endMs = parseDateOnlyMs(column.periodEndDate);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs || overlayDateMs < startMs) {
+    return 0;
+  }
+
+  if (overlayDateMs >= endMs) {
+    return 100;
+  }
+
+  const totalDays = Math.max(1, Math.round((endMs - startMs) / DAY_MS) + 1);
+  const elapsedDays = Math.min(totalDays, Math.max(0, Math.round((overlayDateMs - startMs) / DAY_MS) + 1));
+  return (elapsedDays / totalDays) * 100;
+}
+
 export default function TableMatrix<TTask extends Task = Task>({
   tasks,
   allTasks = tasks,
@@ -86,6 +132,7 @@ export default function TableMatrix<TTask extends Task = Task>({
   selectedTaskId,
   onTaskSelect,
   onCellClick,
+  dateOverlay,
   highlightedTaskIds,
   filterMode = 'highlight',
 }: TableMatrixProps<TTask>) {
@@ -151,6 +198,10 @@ export default function TableMatrix<TTask extends Task = Task>({
   const totalWidth = useMemo(
     () => resolvedColumnWidths.reduce((sum, width) => sum + width, 0),
     [resolvedColumnWidths]
+  );
+  const overlayDateMs = useMemo(
+    () => dateOverlay ? parseDateOnlyMs(dateOverlay.date) : null,
+    [dateOverlay]
   );
 
   const hasGroupHeader = useMemo(
@@ -352,6 +403,7 @@ export default function TableMatrix<TTask extends Task = Task>({
                 const resolvedCellClassName = typeof column.cellClassName === 'function'
                   ? column.cellClassName(task)
                   : column.cellClassName;
+                const overlayWidthPercent = getOverlayWidthPercent(column, overlayDateMs);
 
                 return (
                   <div
@@ -368,7 +420,18 @@ export default function TableMatrix<TTask extends Task = Task>({
                       onCellClick?.({ task, column, rowIndex: index, columnIndex, event });
                     }}
                   >
-                    {column.renderCell(task)}
+                    {overlayWidthPercent > 0 && (
+                      <span
+                        className={joinClasses('gantt-mx-dateOverlay', dateOverlay && dateOverlay.className)}
+                        style={{
+                          width: `${overlayWidthPercent}%`,
+                          background: dateOverlay && dateOverlay.color ? dateOverlay.color : undefined,
+                        }}
+                      />
+                    )}
+                    <div className="gantt-mx-cellContent">
+                      {column.renderCell(task)}
+                    </div>
                   </div>
                 );
               })}

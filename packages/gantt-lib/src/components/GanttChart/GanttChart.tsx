@@ -24,7 +24,7 @@ import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
 import { TaskList } from '../TaskList';
 import { ResourceTimelineChart } from '../ResourceTimelineChart';
-import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup } from '../TableMatrix';
+import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup, type TableMatrixDateOverlay } from '../TableMatrix';
 import { printGanttChart } from './print';
 import './GanttChart.css';
 
@@ -253,6 +253,8 @@ export interface TableMatrixModeProps<TTask extends Task = Task> extends TaskCha
   matrixColumnGroups?: Array<TableMatrixColumnGroup>;
   /** Called when any data cell in the right-side matrix is clicked. */
   onMatrixCellClick?: (context: TableMatrixCellClickContext<TTask>) => void;
+  /** Optional actual-date overlay rendered under matrix cell content for date-ranged columns. */
+  matrixDateOverlay?: TableMatrixDateOverlay | false;
 }
 
 export type GanttChartProps<
@@ -412,6 +414,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const matrixColumns = isTableMatrixMode ? props.matrixColumns : [];
   const matrixColumnGroups = isTableMatrixMode ? props.matrixColumnGroups : undefined;
   const onMatrixCellClick = isTableMatrixMode ? props.onMatrixCellClick : undefined;
+  const matrixDateOverlay = isTableMatrixMode ? props.matrixDateOverlay : undefined;
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
@@ -1354,6 +1357,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 selectedTaskId={selectedTaskId}
                 onTaskSelect={handleTaskSelect}
                 onCellClick={onMatrixCellClick}
+                dateOverlay={matrixDateOverlay}
                 highlightedTaskIds={taskListHighlightedTaskIds}
                 filterMode={filterMode}
               />

@@ -3,5 +3,6 @@ export type {
   TableMatrixColumn,
   TableMatrixColumnGroup,
   TableMatrixCellClickContext,
+  TableMatrixDateOverlay,
   TableMatrixProps,
 } from './TableMatrix';

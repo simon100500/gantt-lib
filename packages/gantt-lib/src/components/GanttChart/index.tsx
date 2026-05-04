@@ -21,4 +21,5 @@ export type {
   TableMatrixColumn,
   TableMatrixColumnGroup,
   TableMatrixCellClickContext,
+  TableMatrixDateOverlay,
 } from '../TableMatrix';
