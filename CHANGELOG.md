@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.102.0] - 2026-05-04
+
+### Features
+
+- Enhance table-matrix with auto-sizing columns and improved layout
+- Update table-matrix column properties for improved flexibility
+- Improve table-matrix mode layout and styling
+
 ## [0.101.0] - 2026-05-04
 
 ### Features
