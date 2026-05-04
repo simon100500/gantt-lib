@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.103.0] - 2026-05-04
+
+### Features
+
+- Add optional date overlay for table-matrix columns
+- Enhance table-matrix date overlay functionality and edge rendering
+- Enhance table-matrix mode with explicit group widths
+- Enhance FinancePlanMatrixDemo with new display options
+- Add z-index style to gantt-mx-body for improved layering
+
+### Fixes
+
+- Update styles for table-matrix and global CSS
+
 ## [0.102.0] - 2026-05-04
 
 ### Features
