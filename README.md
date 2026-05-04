@@ -8,8 +8,22 @@
 
 `gantt-lib` — React/Next.js библиотека для интерфейсов планирования. Она подходит не только для классического gantt chart, но и для ресурсных экранов, календарей загрузки и табличных матриц по периодам, например для финансов, бюджетов и план-факта.
 
+### Проектный график
+
+Классический gantt-интерфейс для планирования этапов, задач, сроков и зависимостей.
+
 ![Gantt](docs/images/screen.png)
+
+### Ресурсный план
+
+Отдельный режим для людей, оборудования, материалов и других ресурсов с календарём загрузки и переназначениями.
+
 ![Resources](docs/images/resource.png)
+
+### Финансовая матрица
+
+Табличный режим по периодам для бюджетов, план-факта, KPI и других data-matrix сценариев.
+
 ![Finance Matrix](docs/images/finance.png)
 
 Подходит для product planning, project delivery, resource allocation, capacity planning и finance-driven интерфейсов, где важны сроки, связи, загрузка и данные по периодам.
@@ -96,20 +110,27 @@ export default function App() {
 }
 ```
 
-## Пропсы GanttChart
+## Часто используемые пропсы GanttChart
 
 | Проп           | Тип                                                     | По умолчанию    | Описание                                      |
 | -------------- | ------------------------------------------------------- | --------------- | --------------------------------------------- |
 | `tasks`        | `Task[]`                                                | обязательный    | Массив задач для отображения                  |
+| `viewMode`     | `'day' \| 'week' \| 'month'`                            | `'day'`         | Масштаб временной шкалы                       |
 | `dayWidth`     | `number`                                                | `40`            | Ширина столбца в пикселях                     |
 | `rowHeight`    | `number`                                                | `40`            | Высота строки в пикселях                      |
 | `headerHeight` | `number`                                                | `40`            | Высота заголовка в пикселях                   |
+| `containerHeight` | `number \| string`                                  | `undefined`     | Высота контейнера: px, `%`, `vh` или auto     |
 | `showTaskList` | `boolean`                                               | `false`         | Показывает левую панель TaskList              |
+| `showChart`    | `boolean`                                               | `true`          | Позволяет скрыть правую часть с таймлайном    |
+| `showBaseline` | `boolean`                                               | `false`         | Показывает baseline для задач с baseline-датами |
 | `taskListWidth`| `number`                                                | `660`           | Желаемая ширина TaskList в пикселях           |
+| `businessDays` | `boolean`                                               | `true`          | Считать длительность в рабочих днях           |
+| `disableTaskDrag` | `boolean`                                            | `false`         | Отключает drag-and-drop и resize задач        |
 | `enableTaskMultiSelect` | `boolean`                                      | `false`         | Добавляет первый столбец с чекбоксами выбора строк |
 | `selectedTaskIds` | `Set<string>`                                       | —               | Controlled-набор выбранных задач              |
 | `onSelectedTaskIdsChange` | `(taskIds: Set<string>) => void`             | —               | Вызывается при изменении мультивыбора         |
 | `onTasksChange`| `(tasks: Task[]) => void`                               | —               | Вызывается с массивом изменённых задач        |
+| `onCascade`    | `(tasks: Task[]) => void`                               | —               | Возвращает все сдвинутые задачи при auto-schedule |
 
 Полный список актуальных пропсов смотрите в `docs/reference/04-props.md`.
 
@@ -168,9 +189,16 @@ interface Task {
   name: string;             // Название, отображаемое на полосе
   startDate: string | Date; // ISO-строка или Date (UTC)
   endDate: string | Date;   // ISO-строка или Date (UTC)
+  baselineStartDate?: string | Date;
+  baselineEndDate?: string | Date;
+  type?: 'task' | 'milestone';
   color?: string;           // Необязательный цвет, например '#3b82f6'
   progress?: number;        // Прогресс 0–100. Отображает полосу прогресса внутри задачи.
   accepted?: boolean;       // Только при progress === 100. true = зелёная полоса, false/undefined = жёлтая.
+  dependencies?: TaskDependency[];
+  locked?: boolean;
+  divider?: 'top' | 'bottom';
+  parentId?: string;
 }
 ```
 

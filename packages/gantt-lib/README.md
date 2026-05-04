@@ -4,8 +4,22 @@
 
 `gantt-lib` is a React/Next.js library for planning interfaces. It covers classic Gantt timelines, resource planning screens, and period-based table-matrix views such as finance plans, budgets, and plan-vs-actual layouts.
 
+### Project Timeline
+
+Classic Gantt-style planning for phases, tasks, dates, and dependencies.
+
 ![Gantt](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/screen.png)
+
+### Resource Planner
+
+Dedicated scheduling mode for people, equipment, materials, rooms, and other resources with load visibility and reassignment flows.
+
 ![Resources](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/resource.png)
+
+### Finance Matrix
+
+Period-based table view for budgets, plan-vs-actual, KPIs, and other data-matrix scenarios.
+
 ![Finance Matrix](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/finance.png)
 
 Use it for project timelines, delivery planning, resource allocation, capacity views, and spreadsheet-like matrices that stay aligned with the same left-side task list and time context.
@@ -38,8 +52,9 @@ npm install gantt-lib
 ```tsx
 import { GanttChart, type Task } from "gantt-lib";
 import "gantt-lib/styles.css";
+import { useState } from "react";
 
-const tasks: Task[] = [
+const initialTasks: Task[] = [
   {
     id: "1",
     name: "Project Kickoff",
@@ -56,17 +71,23 @@ const tasks: Task[] = [
 ];
 
 export default function App() {
-  const handleChange = (updated: Task[] | ((prev: Task[]) => Task[])) => {
-    // Handle task updates
-    setTasks(updated);
-  };
+  const [tasks, setTasks] = useState(initialTasks);
 
   return (
     <GanttChart
       tasks={tasks}
+      showTaskList
       dayWidth={30}
       rowHeight={36}
-      onChange={handleChange}
+      onTasksChange={(changedTasks) => {
+        setTasks((prev) => {
+          const byId = new Map(prev.map((task) => [task.id, task]));
+          for (const task of changedTasks) {
+            byId.set(task.id, task);
+          }
+          return [...byId.values()];
+        });
+      }}
     />
   );
 }
@@ -119,7 +140,7 @@ export default function Planner() {
 
 `ResourceTimelineChart` is also exported for consumers who want the specialized renderer directly. Resource mode does not render task list editing, dependency lines, hierarchy/cascade scheduling, or task reorder behavior.
 
-See the full guide: [Resource Planner Mode](../../docs/reference/15-resource-planner.md).
+See the full guide: [Resource Planner Mode](https://github.com/simon100500/gantt-lib/blob/master/docs/reference/15-resource-planner.md).
 
 ## API
 
@@ -127,18 +148,31 @@ See the full guide: [Resource Planner Mode](../../docs/reference/15-resource-pla
 
 Main component that renders the interactive Gantt chart.
 
-| Prop                    | Type                                          | Default    | Description                                             |
-| ----------------------- | --------------------------------------------- | ---------- | ------------------------------------------------------- |
-| `tasks`                 | `Task[]`                                      | _required_ | Array of tasks to display                                |
-| `dayWidth`              | `number`                                      | `40`       | Width of each day column in pixels                      |
-| `rowHeight`             | `number`                                      | `40`       | Height of each task row in pixels                       |
-| `headerHeight`          | `number`                                      | `40`       | Height of the header row in pixels                      |
-| `containerHeight`       | `number`                                      | `600`      | Container height for vertical scrolling                 |
-| `onChange`              | `(tasks: Task[] \| Task[] => Task[]) => void` | _required_ | Callback when tasks are modified                        |
-| `enableAutoSchedule`    | `boolean`                                     | `false`    | Enable automatic shifting of dependent tasks when predecessor moves (cascade) |
-| `onCascade`             | `(tasks: Task[]) => void`                     | _undefined_ | Callback when cascade drag completes; receives all shifted tasks including the dragged task |
-| `disableConstraints`    | `boolean`                                     | `false`    | Disable dependency constraint checking during drag (allows violations during editing) |
-| `onValidateDependencies`| `(result: ValidationResult) => void`          | _undefined_ | Callback for dependency validation results (cycles, missing tasks, constraint violations) |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `tasks` | `Task[]` | _required_ | Array of task rows shown in gantt mode. |
+| `viewMode` | `'day' \| 'week' \| 'month'` | `'day'` | Time scale mode. |
+| `dayWidth` | `number` | `40` | Width of one day column in pixels. |
+| `rowHeight` | `number` | `40` | Height of one task row. |
+| `headerHeight` | `number` | `40` | Height of the time-scale header. |
+| `containerHeight` | `number \| string` | `undefined` | Container height in px, `%`, `vh`, or auto. |
+| `showTaskList` | `boolean` | `false` | Shows the left-side task list. |
+| `showChart` | `boolean` | `true` | Hides the chart area when set to `false`. |
+| `showBaseline` | `boolean` | `false` | Renders baselines for tasks with `baselineStartDate` and `baselineEndDate`. |
+| `taskListWidth` | `number` | `660` | Requested width of the task list panel. |
+| `businessDays` | `boolean` | `true` | Uses working days instead of calendar days for duration and drag behavior. |
+| `disableTaskDrag` | `boolean` | `false` | Disables drag and resize interactions. |
+| `onTasksChange` | `(tasks: Task[]) => void` | `undefined` | Receives only changed tasks. Merge them into your state. |
+| `enableAutoSchedule` | `boolean` | `false` | Enables dependency-aware cascade scheduling. |
+| `disableConstraints` | `boolean` | `false` | Lets tasks move freely, ignoring dependency rules. |
+| `onCascade` | `(tasks: Task[]) => void` | `undefined` | Fires with all shifted tasks after a hard cascade drag. |
+| `onValidateDependencies` | `(result: ValidationResult) => void` | `undefined` | Receives cycles, missing references, and constraint violations. |
+
+More props, mode-specific APIs, and examples:
+
+- [GanttChart Props](https://github.com/simon100500/gantt-lib/blob/master/docs/reference/04-props.md)
+- [Resource Planner Mode](https://github.com/simon100500/gantt-lib/blob/master/docs/reference/15-resource-planner.md)
+- [Table Matrix Mode](https://github.com/simon100500/gantt-lib/blob/master/docs/reference/16-table-matrix.md)
 
 ### Task
 
@@ -146,14 +180,22 @@ Main component that renders the interactive Gantt chart.
 interface Task {
   id: string;
   name: string;
-  startDate: string; // ISO date format: YYYY-MM-DD
-  endDate: string; // ISO date format: YYYY-MM-DD
+  startDate: string | Date;
+  endDate: string | Date;
+  baselineStartDate?: string | Date;
+  baselineEndDate?: string | Date;
+  type?: 'task' | 'milestone';
   color?: string; // Optional bar color (CSS color value)
-  progress?: number; // Optional progress 0–100. Renders a progress bar overlay inside the task bar.
-  accepted?: boolean; // Optional. Only meaningful when progress is 100. true = green bar, false/undefined = yellow bar.
-  dependencies?: TaskDependency[]; // Optional array of predecessor dependencies
+  progress?: number;
+  accepted?: boolean;
+  dependencies?: TaskDependency[];
+  locked?: boolean;
+  divider?: 'top' | 'bottom';
+  parentId?: string;
 }
 ```
+
+Tasks accept ISO strings or `Date` objects, but internal calculations are UTC-safe. Milestones use `type: 'milestone'`. Hierarchy uses `parentId`. Locked tasks cannot be dragged or edited.
 
 ### Dependencies
 
@@ -219,7 +261,10 @@ Example with cascade scheduling enabled:
   onCascade={(shiftedTasks) => {
     console.log(`${shiftedTasks.length} tasks were shifted`);
   }}
-  onChange={handleChange}
+  onTasksChange={(changedTasks) => {
+    // Keep your normal merge handler for non-cascade edits.
+    console.log(changedTasks);
+  }}
 />
 ```
 
