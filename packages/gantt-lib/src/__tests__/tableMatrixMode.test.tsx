@@ -207,11 +207,14 @@ describe('table-matrix mode', () => {
     );
 
     const overlays = container.querySelectorAll('.gantt-mx-dateOverlay');
+    const edges = container.querySelectorAll('.gantt-mx-dateOverlayEdge');
     const cellContents = container.querySelectorAll('.gantt-mx-cellContent');
 
     expect(overlays).toHaveLength(2);
     expect((overlays[0] as HTMLSpanElement).style.width).toBe('100%');
     expect((overlays[1] as HTMLSpanElement).style.width).toBe('57.14285714285714%');
+    expect(edges).toHaveLength(4);
+    expect((edges[0] as HTMLSpanElement).style.left).toBe('57.14285714285714%');
     expect(cellContents).toHaveLength(4);
   });
 

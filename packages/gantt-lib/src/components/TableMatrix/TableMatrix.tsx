@@ -39,6 +39,7 @@ export interface TableMatrixDateOverlay<TTask extends Task = Task> {
   date: string | Date;
   className?: string;
   color?: string;
+  edgeColor?: string;
   shouldRender?: (context: {
     task: TTask;
     column: TableMatrixColumn<TTask>;
@@ -125,6 +126,19 @@ function getOverlayWidthPercent<TTask extends Task>(
   const totalDays = Math.max(1, Math.round((endMs - startMs) / DAY_MS) + 1);
   const elapsedDays = Math.min(totalDays, Math.max(0, Math.round((overlayDateMs - startMs) / DAY_MS) + 1));
   return (elapsedDays / totalDays) * 100;
+}
+
+function isOverlayDateInColumn<TTask extends Task>(
+  column: TableMatrixColumn<TTask>,
+  overlayDateMs: number | null
+): boolean {
+  if (overlayDateMs === null || column.periodStartDate === undefined || column.periodEndDate === undefined) {
+    return false;
+  }
+
+  const startMs = parseDateOnlyMs(column.periodStartDate);
+  const endMs = parseDateOnlyMs(column.periodEndDate);
+  return Number.isFinite(startMs) && Number.isFinite(endMs) && startMs <= overlayDateMs && overlayDateMs <= endMs;
 }
 
 export default function TableMatrix<TTask extends Task = Task>({
@@ -356,18 +370,32 @@ export default function TableMatrix<TTask extends Task = Task>({
           className="gantt-mx-headerRow"
           style={{ gridTemplateColumns, height: `${hasGroupHeader ? bottomRowHeight : topRowHeight}px` }}
         >
-          {columns.map((column) => (
-            <div
-              key={column.id}
-              className={joinClasses(
-                'gantt-mx-headerCell',
-                column.headerClassName
-              )}
-              style={column.minWidth !== undefined ? { minWidth: `${column.minWidth}px` } : undefined}
-            >
-              {column.header}
-            </div>
-          ))}
+          {columns.map((column) => {
+            const overlayWidthPercent = getOverlayWidthPercent(column, overlayDateMs);
+            const shouldRenderOverlayEdge = isOverlayDateInColumn(column, overlayDateMs);
+
+            return (
+              <div
+                key={column.id}
+                className={joinClasses(
+                  'gantt-mx-headerCell',
+                  column.headerClassName
+                )}
+                style={column.minWidth !== undefined ? { minWidth: `${column.minWidth}px` } : undefined}
+              >
+                {shouldRenderOverlayEdge && (
+                  <span
+                    className="gantt-mx-dateOverlayEdge"
+                    style={{
+                      left: `${overlayWidthPercent}%`,
+                      background: dateOverlay && dateOverlay.edgeColor ? dateOverlay.edgeColor : undefined,
+                    }}
+                  />
+                )}
+                <span className="gantt-mx-headerContent">{column.header}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -415,6 +443,7 @@ export default function TableMatrix<TTask extends Task = Task>({
                   || !dateOverlay.shouldRender
                   || dateOverlay.shouldRender({ task, column, rowIndex: index, columnIndex })
                 );
+                const shouldRenderOverlayEdge = isOverlayDateInColumn(column, overlayDateMs);
 
                 return (
                   <div
@@ -437,6 +466,15 @@ export default function TableMatrix<TTask extends Task = Task>({
                         style={{
                           width: `${overlayWidthPercent}%`,
                           background: dateOverlay && dateOverlay.color ? dateOverlay.color : undefined,
+                        }}
+                      />
+                    )}
+                    {shouldRenderOverlayEdge && (
+                      <span
+                        className="gantt-mx-dateOverlayEdge"
+                        style={{
+                          left: `${overlayWidthPercent}%`,
+                          background: dateOverlay && dateOverlay.edgeColor ? dateOverlay.edgeColor : undefined,
                         }}
                       />
                     )}
