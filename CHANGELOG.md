@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.101.0] - 2026-05-04
+
+### Features
+
+- Implement dynamic body height adjustment for table-matrix mode
+
 ## [0.100.0] - 2026-05-04
 
 ### Features
