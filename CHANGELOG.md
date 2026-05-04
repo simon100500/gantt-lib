@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.104.1] - 2026-05-05
+
+### Fixes
+
+- Enhance FinancePlanMatrixDemo and TableMatrix styles for improved layout and functionality
+
 ## [0.104.0] - 2026-05-05
 
 ### Features
