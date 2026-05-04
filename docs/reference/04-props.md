@@ -230,7 +230,9 @@ const matrixColumns: TableMatrixColumn<FinanceTask>[] = [
   {
     id: '2026-04',
     header: 'Апрель',
-    width: 108,
+    width: 'auto',
+    minWidth: 104,
+    maxWidth: 300,
     renderCell: (task) => task.plannedByPeriod['2026-04'] ?? 0,
   },
 ];
@@ -250,12 +252,14 @@ const matrixColumns: TableMatrixColumn<FinanceTask>[] = [
 |---|---|---|---|
 | `mode` | `'table-matrix'` | required | Selects the table-matrix branch. |
 | `tasks` | `TTask[]` | required | Source rows. The left `TaskList` and right matrix stay vertically synchronized. |
-| `matrixColumns` | `TableMatrixColumn<TTask>[]` | required | Arbitrary right-side columns. Each column defines `id`, `header`, `width`, and `renderCell(task)`. |
+| `matrixColumns` | `TableMatrixColumn<TTask>[]` | required | Arbitrary right-side columns. Each column defines `id`, `header`, and `renderCell(task)`. `width` can be a fixed pixel number or `'auto'` for shared content-sized column widths. |
 | `matrixColumnGroups` | `TableMatrixColumnGroup[]` | `undefined` | Optional grouped header row above `matrixColumns`. Useful for month groups over weekly columns. |
 | `onMatrixCellClick` | `(context: TableMatrixCellClickContext<TTask>) => void` | `undefined` | Called when a matrix cell is clicked. Receives the row task, full column config, `rowIndex`, `columnIndex`, and the original mouse event. When omitted, cells remain non-interactive. |
 | `rowContentLines` | `number` | `1` | Important for matrix layouts with multi-line cell content. Use `1`, `2`, etc. to keep row height consistent between `TaskList` and matrix cells. |
 | `disableTaskDrag` | `boolean` | `false` | Still supported in table-matrix mode. Commonly set to `true` to prevent accidental drag/resize while the user scrolls or works with cell-like UI. |
 | `hideTaskListRowActions` | `boolean` | `false` | Frequently used with table-matrix layouts to hide add/delete/hierarchy buttons and make the left side feel more like a spreadsheet row header. |
+
+Matrix cell spacing can be tuned with `--gantt-matrix-cell-horizontal-padding` and `--gantt-matrix-cell-vertical-padding`.
 
 ### TableMatrix Types
 
@@ -270,7 +274,9 @@ interface TableMatrixColumnGroup {
 interface TableMatrixColumn<TTask extends Task = Task> {
   id: string;
   header: React.ReactNode;
-  width: number;
+  width?: number | 'auto';
+  minWidth?: number;
+  maxWidth?: number;
   groupId?: string;
   align?: 'left' | 'center' | 'right';
   className?: string;
