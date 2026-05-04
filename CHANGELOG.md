@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.100.0] - 2026-05-04
+
+### Features
+
+- Add TableMatrix component for spreadsheet-like financial planning
+- Implement auto row height synchronization in Gantt chart
+- Add `rowContentLines` prop for consistent row height control
+- Enhance custom column editing in TaskListRow
+- Add active custom cell management to TaskList components
+- Refactor FinancePlanMatrixDemo for improved column width management
+- Enhance Gantt and TableMatrix components with parent row styling and hover effects
+- Add nesting depth support for task hierarchy in TableMatrix
+- Implement task drag disable functionality
+- Add matrix cell click functionality to GanttChart and TableMatrix
+- Add dynamic column width calculation and month group generation in TableMatrix
+- Add column group styling and dynamic week period generation
+
+### Fixes
+
+- Adjust row height calculations in TableMatrix for improved layout consistency
+
+### Refactor
+
+- Streamline TableMatrix rendering and enhance week period generation
+
+### Style
+
+- Update TableMatrix CSS for improved group cell styling
+- Enhance GanttChart and TaskList components for table matrix mode
+- Improve parent row styling across TableMatrix and TaskList
+- Add MoneyValue component for finance-related rendering
+- Update visual feedback and layout consistency
+- Refine box-sizing and background color adjustments
+- Update color palette for improved visual consistency
+
 ## [0.91.0] - 2026-05-01
 
 ### Features
