@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.104.0] - 2026-05-05
+
+### Features
+
+- Add `taskListColumnWidths` prop and column resizing to TaskList component
+- Update README and package description for gantt-lib
+
 ## [0.103.0] - 2026-05-04
 
 ### Features
