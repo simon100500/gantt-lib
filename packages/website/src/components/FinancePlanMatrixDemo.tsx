@@ -392,12 +392,6 @@ const financeTasks: FinanceTask[] = [
   },
 ];
 
-const monthlyPeriods: PeriodDefinition[] = [
-  { id: "2026-04", label: "Апрель", startDate: "2026-04-01", endDate: "2026-04-30" },
-  { id: "2026-05", label: "Май", startDate: "2026-05-01", endDate: "2026-05-31" },
-  { id: "2026-06", label: "Июнь", startDate: "2026-06-01", endDate: "2026-06-30" },
-];
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_COLUMN_WIDTH = 98;
 const DAY_COLUMN_WIDTH = WEEK_COLUMN_WIDTH / 7;
@@ -426,6 +420,12 @@ function formatWeekLabel(start: Date) {
 
 function getMonthId(date: Date) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthHeader(date: Date, withYear = false) {
+  const month = date.toLocaleString("ru-RU", { month: "long", timeZone: "UTC" });
+  const label = month.charAt(0).toUpperCase() + month.slice(1);
+  return withYear ? `${label} ${date.getUTCFullYear()}` : label;
 }
 
 function getWeekGroupMonthId(weekStart: Date) {
@@ -467,6 +467,31 @@ const weeklyPeriods: PeriodDefinition[] = buildMondayWeeksByMonthMajority(
   utcDate(2026, 6, 1)
 );
 
+function buildMonthPeriods(startMonth: Date, endMonthExclusive: Date): PeriodDefinition[] {
+  const periods: PeriodDefinition[] = [];
+  let cursor = new Date(startMonth);
+
+  while (cursor < endMonthExclusive) {
+    const nextMonth = utcDate(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1);
+    const id = getMonthId(cursor);
+    periods.push({
+      id,
+      label: formatMonthHeader(cursor),
+      groupId: String(cursor.getUTCFullYear()),
+      startDate: cursor,
+      endDate: addDays(nextMonth, -1),
+    });
+    cursor = nextMonth;
+  }
+
+  return periods;
+}
+
+const monthlyPeriods: PeriodDefinition[] = buildMonthPeriods(
+  utcDate(2026, 7, 1),
+  utcDate(2027, 11, 1)
+);
+
 function daysBetween(start: Date, end: Date) {
   return Math.round((end.getTime() - start.getTime()) / DAY_MS);
 }
@@ -506,6 +531,32 @@ const monthGroups: TableMatrixColumnGroup[] = buildVisibleMonthGroups(
   utcDate(2026, 3, 1),
   utcDate(2026, 6, 1)
 );
+
+function buildYearGroups(periods: PeriodDefinition[]): TableMatrixColumnGroup[] {
+  const groups: TableMatrixColumnGroup[] = [];
+
+  for (const period of periods) {
+    const groupId = period.groupId;
+    if (!groupId) continue;
+
+    const width = getMatrixColumnSizing('month').minWidth ?? 104;
+    const previousGroup = groups[groups.length - 1];
+    if (previousGroup?.id === groupId) {
+      previousGroup.width = (previousGroup.width ?? 0) + width;
+      continue;
+    }
+
+    groups.push({
+      id: groupId,
+      header: groupId,
+      width,
+    });
+  }
+
+  return groups;
+}
+
+const yearGroups: TableMatrixColumnGroup[] = buildYearGroups(monthlyPeriods);
 
 const moneyFormatter = new Intl.NumberFormat("ru-RU", {
   minimumFractionDigits: 2,
@@ -916,7 +967,7 @@ export default function FinancePlanMatrixDemo() {
           headerHeight={52}
           containerHeight={640}
           matrixColumns={matrixColumns}
-          matrixColumnGroups={view === 'week' ? monthGroups : undefined}
+          matrixColumnGroups={view === 'week' ? monthGroups : yearGroups}
           matrixDateOverlay={matrixDateOverlay}
           additionalColumns={additionalColumns}
           hiddenTaskListColumns={['dependencies', 'progress', 'duration', 'startDate', 'endDate']}
