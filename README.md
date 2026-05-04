@@ -6,9 +6,13 @@
 [![License](https://img.shields.io/npm/l/gantt-lib)](https://www.npmjs.com/package/gantt-lib)
 
 
-![Скриншот](docs/images/screen.png)
+`gantt-lib` уже не только про классическую диаграмму Ганта. Это React/Next.js библиотека для визуального планирования: задачи и зависимости, ресурсное планирование и табличные data-matrix сценарии вроде финансовых планов, бюджетов и period-based показателей.
 
-Лёгкий React/Next.js компонент диаграммы Ганта с drag-and-drop. Перемещайте и изменяйте размер задач прямо на сетке.
+![Gantt](docs/images/screen.png)
+![Resources](docs/images/resource.png)
+![Finance Matrix](docs/images/finance.png)
+
+Подходит для product/roadmap planning, resource allocation, capacity planning, finance matrices и других schedule-driven интерфейсов с общей временной шкалой и синхронизированной левой таблицей.
 
 ## Установка
 

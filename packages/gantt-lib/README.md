@@ -2,13 +2,19 @@
 
 [![Demo](https://img.shields.io/badge/demo-online-brightgreen)](https://gantt-lib-demo.vercel.app/)
 
-![Screenshot](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/screen.png)
+`gantt-lib` is no longer just a classic Gantt chart. It is a React scheduling UI library for timeline planning, resource allocation, and table-matrix scenarios such as finance plans, budgets, and other period-based data views.
 
-Lightweight React Gantt chart component library with drag-and-drop task management.
+![Gantt](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/screen.png)
+![Resources](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/resource.png)
+![Finance Matrix](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/finance.png)
+
+Use it for project timelines, resource planners, capacity views, and spreadsheet-like matrices that stay aligned with the same left-side task list and time context.
 
 ## Features
 
 - 📊 **Interactive Gantt chart** with drag-and-drop task management
+- 👥 **Resource planner** for people, equipment, rooms, crews, and assignments
+- 💰 **Table matrix mode** for finance plans, budgets, KPIs, and other spreadsheet-like period views
 - 🎨 **Customizable** via CSS variables
 - 📅 **Multi-month calendar grid** with two-row header (month + day)
 - 🌈 **Weekend highlighting** with customizable colors
