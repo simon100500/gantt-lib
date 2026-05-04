@@ -2,27 +2,30 @@
 
 [![Demo](https://img.shields.io/badge/demo-online-brightgreen)](https://gantt-lib-demo.vercel.app/)
 
-`gantt-lib` is no longer just a classic Gantt chart. It is a React scheduling UI library for timeline planning, resource allocation, and table-matrix scenarios such as finance plans, budgets, and other period-based data views.
+`gantt-lib` is a React/Next.js library for planning interfaces. It covers classic Gantt timelines, resource planning screens, and period-based table-matrix views such as finance plans, budgets, and plan-vs-actual layouts.
 
 ![Gantt](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/screen.png)
 ![Resources](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/resource.png)
 ![Finance Matrix](https://raw.githubusercontent.com/simon100500/gantt-lib/refs/heads/master/docs/images/finance.png)
 
-Use it for project timelines, resource planners, capacity views, and spreadsheet-like matrices that stay aligned with the same left-side task list and time context.
+Use it for project timelines, delivery planning, resource allocation, capacity views, and spreadsheet-like matrices that stay aligned with the same left-side task list and time context.
+
+Production-style example: [ai.getgantt.ru](https://ai.getgantt.ru/)
 
 ## Features
 
-- 📊 **Interactive Gantt chart** with drag-and-drop task management
-- 👥 **Resource planner** for people, equipment, rooms, crews, and assignments
-- 💰 **Table matrix mode** for finance plans, budgets, KPIs, and other spreadsheet-like period views
-- 🎨 **Customizable** via CSS variables
-- 📅 **Multi-month calendar grid** with two-row header (month + day)
-- 🌈 **Weekend highlighting** with customizable colors
-- 📍 **Today indicator** vertical line
-- 📈 **Progress bars** with accepted/completed states
-- ⚡ **Performance optimized** for ~100 tasks at 60fps
-- 📦 **Tree-shakeable** ESM + CJS builds
-- ✅ **TypeScript** types included
+- 📊 **Classic Gantt chart mode** with tasks, phases, hierarchy, and progress
+- ✋ **Drag-and-drop schedule editing** for moving and resizing timeline bars
+- 🔗 **Task dependencies and cascade scheduling** for linked plans
+- 🗓️ **Calendar and business-day modes** with weekend and custom-day support
+- 📋 **Integrated left-side task list** with configurable and hideable columns
+- 🔎 **Task filtering, search, and focus flows** for large schedules
+- 👥 **Resource planner mode** for people, equipment, rooms, crews, and assignments
+- ↔️ **Resource reassignment and date moves** directly on the calendar
+- ⚠️ **Resource grouping and conflict-oriented workflows** for capacity views
+- 💰 **Table matrix mode** for finance plans, budgets, KPIs, and other period-based data views
+- 🎨 **Customizable styling** via CSS variables
+- 📦 **Tree-shakeable ESM + CJS builds** with TypeScript types included
 
 ## Installation
 
