@@ -759,6 +759,8 @@ export interface TaskListRowProps {
   dragOverPlacement?: Exclude<ReorderDropPlacement, "end"> | null;
   /** Whether this drop target places the moved task inside a parent group */
   isNestedDropTarget?: boolean;
+  /** Whether an after-drop will place the moved task as a direct child of this row */
+  isDirectChildDropTarget?: boolean;
   /** Called when drag starts on the handle for this row */
   onDragStart?: (index: number, e: React.DragEvent) => void;
   /** Called when something is dragged over this row */
@@ -861,6 +863,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     isDragOver = false,
     dragOverPlacement = null,
     isNestedDropTarget = false,
+    isDirectChildDropTarget = false,
     onDragStart,
     onDragOver,
     onDrop,
@@ -2697,6 +2700,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isDragOver ? "gantt-tl-row-drag-over" : "",
           isDragOver && dragOverPlacement ? `gantt-tl-row-drag-over-${dragOverPlacement}` : "",
           isDragOver && isNestedDropTarget ? "gantt-tl-row-drag-over-nested" : "",
+          isDragOver && isDirectChildDropTarget ? "gantt-tl-row-drag-over-direct-child" : "",
           isChild ? "gantt-tl-row-child" : "",
           isParent ? "gantt-tl-row-parent" : "",
           `gantt-tl-row-level-${rowFillLevel}`,

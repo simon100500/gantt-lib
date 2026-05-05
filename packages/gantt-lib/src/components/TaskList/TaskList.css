@@ -390,11 +390,16 @@
   left: var(--gantt-tl-nested-drop-left, 49px);
 }
 
+.gantt-tl-row-drag-over-after.gantt-tl-row-drag-over-direct-child::before,
+.gantt-tl-row-drag-over-after.gantt-tl-row-drag-over-direct-child::after {
+  left: var(--gantt-tl-nested-inside-drop-left, 49px);
+}
+
 .gantt-tl-row-drag-over-inside.gantt-tl-row-drag-over-nested::before {
   display: block;
   top: 50%;
   left: var(--gantt-tl-nested-inside-drop-left, 49px);
-  width: 3px;
+  width: 2px;
   height: 50%;
   background-color: #3b82f6;
   border-radius: 1px;
@@ -402,7 +407,7 @@
 
 .gantt-tl-row-drag-over-inside.gantt-tl-row-drag-over-nested::after {
   display: block;
-  left: calc(var(--gantt-tl-nested-inside-drop-left, 49px) + 3px);
+  left: calc(var(--gantt-tl-nested-inside-drop-left, 49px) + 2px);
   right: 0;
   bottom: 0;
   height: 50%;
@@ -629,7 +634,7 @@
   z-index: 0;
 }
 
-.gantt-tl-name-actions > * {
+.gantt-tl-name-actions>* {
   position: relative;
   z-index: 1;
 }
@@ -866,6 +871,7 @@
 }
 
 @media (max-width: 640px) {
+
   .gantt-tl-row,
   .gantt-tl-cell,
   .gantt-tl-name-trigger,

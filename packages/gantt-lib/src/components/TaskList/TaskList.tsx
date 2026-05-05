@@ -793,6 +793,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     index: number;
     placement: ReorderDropPlacement;
     inferredParentId?: string;
+    isDirectChildDrop?: boolean;
   } | null>(null);
   const dragOriginIndexRef = useRef<number | null>(null);
   const dragTaskIdRef = useRef<string | null>(null);
@@ -945,6 +946,8 @@ export const TaskList: React.FC<TaskListProps> = ({
     setDragOverTarget({
       ...normalizedTarget,
       inferredParentId: reorderPlan.inferredParentId,
+      isDirectChildDrop: normalizedTarget.placement === 'after'
+        && reorderPlan.inferredParentId === targetTask.id,
     });
   }, [isValidParentDrop, normalizeDropTarget, orderedTasks, visibleTasks]);
 
@@ -1505,6 +1508,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                     ? dragOverTarget.placement
                     : null}
                   isNestedDropTarget={!reorderDisabled && dragOverTarget?.index === index && !!dragOverTarget.inferredParentId}
+                  isDirectChildDropTarget={!reorderDisabled && dragOverTarget?.index === index && !!dragOverTarget.isDirectChildDrop}
                   onDragStart={reorderDisabled ? undefined : handleDragStart}
                   onDragOver={reorderDisabled ? undefined : handleDragOver}
                   onDrop={reorderDisabled ? undefined : handleDrop}
