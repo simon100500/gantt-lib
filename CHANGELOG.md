@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.105.0] - 2026-05-06
+
+### Features
+
+- Add task reordering with visual drag-and-drop feedback in TaskList — drop indicators for siblings and nested children
+- Add `disableTaskListReorder` prop to TaskList and GanttChart components
+- Add nested drop indicators with direct child drop targeting
+- Implement parent row protection — prevent dropping tasks into their own descendants
+
+### Fixes
+
+- Prevent invalid parent drops in task reordering
+- Refine task reordering logic for collapsed groups and nested hierarchies
+
+### Style
+
+- Refine drag-over indicator positioning and visuals in TaskList
+- Adjust nested drop indicator width and height for better clarity
+- Hide drag-over indicator for task list rows when not applicable
+
 ## [0.104.2] - 2026-05-05
 
 ### Style
