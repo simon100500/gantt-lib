@@ -899,6 +899,14 @@ export const TaskList: React.FC<TaskListProps> = ({
       return;
     }
 
+    const isFirstChildTopAfterParent =
+      rawPlacement === 'before' && visibleTasks[index]?.parentId === visibleTasks[index - 1]?.id;
+    if (isFirstChildTopAfterParent) {
+      setDragOverTarget(null);
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+
     const normalizedTarget = normalizeDropTarget(draggedTaskId, {
       index,
       placement: rawPlacement,
@@ -954,6 +962,15 @@ export const TaskList: React.FC<TaskListProps> = ({
       && rawPlacement === 'before';
 
     if (isSelfTopBefore) {
+      clearDragState();
+      return;
+    }
+
+    const isFirstChildTopAfterParent = dropIndex < visibleTasks.length
+      && rawPlacement === 'before'
+      && visibleTasks[dropIndex]?.parentId === visibleTasks[dropIndex - 1]?.id;
+
+    if (isFirstChildTopAfterParent) {
       clearDragState();
       return;
     }
