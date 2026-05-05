@@ -388,6 +388,11 @@
     linear-gradient(0deg, rgba(59, 130, 246, 0.26) 0%, rgba(59, 130, 246, 0.08) 68%, rgba(59, 130, 246, 0) 100%);
 }
 
+.gantt-tl-row-drag-over-nested::before,
+.gantt-tl-row-drag-over-nested::after {
+  left: var(--gantt-tl-nested-drop-left, 49px);
+}
+
 /* Navigate icon removed - single click on task name now selects row */
 
 /* Restore left padding for the name column header */
