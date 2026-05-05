@@ -398,7 +398,7 @@
 .gantt-tl-row-drag-over-inside.gantt-tl-row-drag-over-nested::before {
   display: block;
   top: 50%;
-  left: var(--gantt-tl-nested-inside-drop-left, 49px);
+  left: calc(var(--gantt-tl-nested-inside-drop-left, 49px) - 1px);
   width: 2px;
   height: 50%;
   background-color: #3b82f6;
@@ -407,7 +407,7 @@
 
 .gantt-tl-row-drag-over-inside.gantt-tl-row-drag-over-nested::after {
   display: block;
-  left: calc(var(--gantt-tl-nested-inside-drop-left, 49px) + 2px);
+  left: calc(var(--gantt-tl-nested-inside-drop-left, 49px) + 1px);
   right: 0;
   bottom: 0;
   height: 50%;
