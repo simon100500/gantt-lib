@@ -326,6 +326,7 @@
 /* Drop target indicator (blue top border) - uses ::before to avoid layout shift */
 .gantt-tl-row-drag-over {
   position: relative;
+  isolation: isolate;
 }
 
 .gantt-tl-row-drag-over::before {
@@ -337,6 +338,25 @@
   height: 2px;
   background-color: #3b82f6;
   z-index: 1;
+}
+
+.gantt-tl-row-drag-over::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 80ms linear;
+  z-index: 0;
+}
+
+.gantt-tl-row-drag-over-before::after {
+  top: 0;
+  height: 50%;
+  opacity: 1;
+  background:
+    linear-gradient(180deg, rgba(59, 130, 246, 0.26) 0%, rgba(59, 130, 246, 0.08) 68%, rgba(59, 130, 246, 0) 100%);
 }
 
 .gantt-tl-row-drag-over-inside {
@@ -354,6 +374,14 @@
 .gantt-tl-row-drag-over-after::before {
   top: auto;
   bottom: 0;
+}
+
+.gantt-tl-row-drag-over-after::after {
+  bottom: 0;
+  height: 50%;
+  opacity: 1;
+  background:
+    linear-gradient(0deg, rgba(59, 130, 246, 0.26) 0%, rgba(59, 130, 246, 0.08) 68%, rgba(59, 130, 246, 0) 100%);
 }
 
 /* Navigate icon removed - single click on task name now selects row */
