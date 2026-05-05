@@ -757,6 +757,10 @@ export interface TaskListRowProps {
   isDragOver?: boolean;
   /** Which drop zone is active for this row */
   dragOverPlacement?: Exclude<ReorderDropPlacement, "end"> | null;
+  /** Whether this drop target places the moved task inside a parent group */
+  isNestedDropTarget?: boolean;
+  /** Whether an after-drop will place the moved task as a direct child of this row */
+  isDirectChildDropTarget?: boolean;
   /** Called when drag starts on the handle for this row */
   onDragStart?: (index: number, e: React.DragEvent) => void;
   /** Called when something is dragged over this row */
@@ -858,6 +862,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     isDragging = false,
     isDragOver = false,
     dragOverPlacement = null,
+    isNestedDropTarget = false,
+    isDirectChildDropTarget = false,
     onDragStart,
     onDragOver,
     onDrop,
@@ -1923,6 +1929,20 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const nameInputPaddingLeft =
       nestingDepth > 0 ? `${nestingDepth * 20 + 8}px` : undefined;
+    const nestedDropIndicatorLeft = (() => {
+      const numberColumnWidth = resolvedColumns
+        ?.find((col) => col.id === "number")
+        ?.width ?? 40;
+      const nestedAxisDepth = Math.max(0, nestingDepth - 1);
+      return `${numberColumnWidth + nestedAxisDepth * 20 + 9}px`;
+    })();
+    const nestedInsideDropIndicatorLeft = (() => {
+      const numberColumnWidth = resolvedColumns
+        ?.find((col) => col.id === "number")
+        ?.width ?? 40;
+      const nestedAxisDepth = Math.max(0, nestingDepth);
+      return `${numberColumnWidth + nestedAxisDepth * 20 + 9}px`;
+    })();
 
     const nameCell = (
       <div className="gantt-tl-cell gantt-tl-cell-name" style={getColumnStyle('name', 200)}>
@@ -2679,6 +2699,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isDragging ? "gantt-tl-row-dragging" : "",
           isDragOver ? "gantt-tl-row-drag-over" : "",
           isDragOver && dragOverPlacement ? `gantt-tl-row-drag-over-${dragOverPlacement}` : "",
+          isDragOver && isNestedDropTarget ? "gantt-tl-row-drag-over-nested" : "",
+          isDragOver && isDirectChildDropTarget ? "gantt-tl-row-drag-over-direct-child" : "",
           isChild ? "gantt-tl-row-child" : "",
           isParent ? "gantt-tl-row-parent" : "",
           `gantt-tl-row-level-${rowFillLevel}`,
@@ -2686,7 +2708,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         ]
           .filter(Boolean)
           .join(" ")}
-        style={{ height: `${rowHeight}px`, position: "relative" }}
+        style={{
+          height: `${rowHeight}px`,
+          position: "relative",
+          "--gantt-tl-nested-drop-left": nestedDropIndicatorLeft,
+          "--gantt-tl-nested-inside-drop-left": nestedInsideDropIndicatorLeft,
+        } as React.CSSProperties}
         data-gantt-task-row-id={task.id}
         onClick={handleRowClickInternal}
         onKeyDown={handleRowKeyDown}

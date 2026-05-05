@@ -218,6 +218,10 @@ export function getVisibleReorderPlan(
       break;
     }
     case 'inside': {
+      if (isTaskParent(targetTask.id, orderedTasks)) {
+        return null;
+      }
+
       inferredParentId = targetTask.id;
 
       if (!inferredParentId || movedIds.has(inferredParentId)) {

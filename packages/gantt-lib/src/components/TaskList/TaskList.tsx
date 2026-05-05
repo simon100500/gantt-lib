@@ -792,6 +792,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [dragOverTarget, setDragOverTarget] = useState<{
     index: number;
     placement: ReorderDropPlacement;
+    inferredParentId?: string;
+    isDirectChildDrop?: boolean;
   } | null>(null);
   const dragOriginIndexRef = useRef<number | null>(null);
   const dragTaskIdRef = useRef<string | null>(null);
@@ -941,7 +943,12 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     e.dataTransfer.dropEffect = 'move';
-    setDragOverTarget(normalizedTarget);
+    setDragOverTarget({
+      ...normalizedTarget,
+      inferredParentId: reorderPlan.inferredParentId,
+      isDirectChildDrop: normalizedTarget.placement === 'after'
+        && reorderPlan.inferredParentId === targetTask.id,
+    });
   }, [isValidParentDrop, normalizeDropTarget, orderedTasks, visibleTasks]);
 
   const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
@@ -1500,6 +1507,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                   dragOverPlacement={!reorderDisabled && dragOverTarget?.index === index && dragOverTarget.placement !== 'end'
                     ? dragOverTarget.placement
                     : null}
+                  isNestedDropTarget={!reorderDisabled && dragOverTarget?.index === index && !!dragOverTarget.inferredParentId}
+                  isDirectChildDropTarget={!reorderDisabled && dragOverTarget?.index === index && !!dragOverTarget.isDirectChildDrop}
                   onDragStart={reorderDisabled ? undefined : handleDragStart}
                   onDragOver={reorderDisabled ? undefined : handleDragOver}
                   onDrop={reorderDisabled ? undefined : handleDrop}
