@@ -1886,7 +1886,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const numberCell = (
       <div
-        className="gantt-tl-cell gantt-tl-cell-number"
+        className={`gantt-tl-cell gantt-tl-cell-number${onDragStart ? " gantt-tl-cell-number-reorderable" : ""}`}
         style={getColumnStyle('number', 40)}
         onClick={handleNumberClick}
       >

@@ -191,6 +191,8 @@ export interface TaskListProps {
   onReorder?: (tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void;
   /** Disable task row drag/reorder in the task list (default: false) */
   disableTaskDrag?: boolean;
+  /** Disable row reorder and drag handle inside the task list (default: false) */
+  disableTaskListReorder?: boolean;
   /** ID of task that should enter edit mode on mount (for auto-edit after insert) */
   editingTaskId?: string | null;
   /** Enable add task button at bottom of task list (default: true) */
@@ -339,6 +341,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onInsertAfter,
   onReorder,
   disableTaskDrag = false,
+  disableTaskListReorder = false,
   editingTaskId: propEditingTaskId,
   enableAddTask = true,
   defaultTaskDurationDays = DEFAULT_TASK_DURATION_DAYS,
@@ -368,6 +371,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   taskDateChangeMode = 'preserve-duration',
   onTaskDateChangeModeChange,
 }) => {
+  const reorderDisabled = disableTaskListReorder || disableTaskDrag;
   const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
   const [activeCustomCell, setActiveCustomCell] = useState<{ taskId: string; columnId: string } | null>(null);
   const [columnWidthOverrides, setColumnWidthOverrides] = useState<TaskListColumnWidthMap>(() => normalizeColumnWidthMap(taskListColumnWidths));
@@ -1437,12 +1441,12 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onAdd={onAdd}
                   onInsertAfter={handleStartInsertAfter}
                   editingTaskId={propEditingTaskId}
-                  isDragging={!disableTaskDrag && draggingIndex === index}
-                  isDragOver={!disableTaskDrag && dragOverIndex === index}
-                  onDragStart={disableTaskDrag ? undefined : handleDragStart}
-                  onDragOver={disableTaskDrag ? undefined : handleDragOver}
-                  onDrop={disableTaskDrag ? undefined : handleDrop}
-                  onDragEnd={disableTaskDrag ? undefined : handleDragEnd}
+                  isDragging={!reorderDisabled && draggingIndex === index}
+                  isDragOver={!reorderDisabled && dragOverIndex === index}
+                  onDragStart={reorderDisabled ? undefined : handleDragStart}
+                  onDragOver={reorderDisabled ? undefined : handleDragOver}
+                  onDrop={reorderDisabled ? undefined : handleDrop}
+                  onDragEnd={reorderDisabled ? undefined : handleDragEnd}
                   collapsedParentIds={collapsedParentIds}
                   onToggleCollapse={handleToggleCollapse}
                   onPromoteTask={onPromoteTask}
@@ -1496,25 +1500,25 @@ export const TaskList: React.FC<TaskListProps> = ({
         {/* Add task button - also serves as drop target for moving tasks to end */}
         {enableAddTask && onAdd && !isCreating && !pendingInsert && (
           <button
-            className={`gantt-tl-add-btn${!disableTaskDrag && dragOverIndex === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
+            className={`gantt-tl-add-btn${!reorderDisabled && dragOverIndex === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
             onClick={() => {
               setPendingInsert(null);
               setIsCreating(true);
             }}
-            onDragEnter={disableTaskDrag ? undefined : (e) => {
+            onDragEnter={reorderDisabled ? undefined : (e) => {
               e.preventDefault();
               setDragOverIndex(visibleTasks.length);
             }}
-            onDragOver={disableTaskDrag ? undefined : (e) => {
+            onDragOver={reorderDisabled ? undefined : (e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
               setDragOverIndex(visibleTasks.length);
             }}
-            onDragLeave={disableTaskDrag ? undefined : (e) => {
+            onDragLeave={reorderDisabled ? undefined : (e) => {
               e.preventDefault();
               setDragOverIndex(null);
             }}
-            onDrop={disableTaskDrag ? undefined : (e) => {
+            onDrop={reorderDisabled ? undefined : (e) => {
               e.preventDefault();
               handleDrop(visibleTasks.length, e);
             }}

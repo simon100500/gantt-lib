@@ -291,10 +291,15 @@
   background: transparent;
 }
 
-.gantt-tl-cell-number:hover .gantt-tl-drag-handle,
-.gantt-tl-cell-number:focus-within .gantt-tl-drag-handle,
+.gantt-tl-cell-number-reorderable:hover .gantt-tl-drag-handle,
+.gantt-tl-cell-number-reorderable:focus-within .gantt-tl-drag-handle,
 .gantt-tl-row-dragging .gantt-tl-drag-handle {
   visibility: visible;
+}
+
+.gantt-tl-cell-number-reorderable:hover .gantt-tl-num-label,
+.gantt-tl-cell-number-reorderable:focus-within .gantt-tl-num-label {
+  visibility: hidden;
 }
 
 .gantt-tl-num-label {

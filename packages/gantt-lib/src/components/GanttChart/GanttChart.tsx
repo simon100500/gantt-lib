@@ -172,6 +172,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   onInsertAfter?: (taskId: string, newTask: TTask) => void;
   /** Callback when tasks are reordered via drag in the task list */
   onReorder?: (tasks: TTask[], movedTaskId?: string, inferredParentId?: string) => void;
+  /** Disable row reorder and drag handle inside the task list (default: false) */
+  disableTaskListReorder?: boolean;
   /** Callback when a task is promoted (parentId removed). If not provided, default internal logic is used. */
   onPromoteTask?: (taskId: string) => void;
   /** Callback when a task is demoted (parentId set). If not provided, default internal logic is used. */
@@ -387,6 +389,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onDelete,
     onInsertAfter,
     onReorder,
+    disableTaskListReorder = false,
     onPromoteTask,
     onDemoteTask,
     onUngroupTask,
@@ -1308,7 +1311,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             onDelete={handleDelete}
             onInsertAfter={handleInsertAfter as ((taskId: string, newTask: Task) => void) | undefined}
             onReorder={handleReorder as ((tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void) | undefined}
-            disableTaskDrag={disableTaskDrag}
+            disableTaskDrag={disableTaskListReorder}
             editingTaskId={editingTaskId}
             enableAddTask={enableAddTask}
             defaultTaskDurationDays={defaultTaskDurationDays}
