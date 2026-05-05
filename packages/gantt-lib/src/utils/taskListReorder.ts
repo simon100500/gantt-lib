@@ -238,9 +238,17 @@ export function getVisibleReorderPlan(
       break;
     }
     case 'after': {
-      inferredParentId = targetTask.parentId || undefined;
-      const targetEndIndex = getSubtreeEndIndex(targetTask.id, reorderedWithoutMoved);
-      insertIndex = targetEndIndex === -1 ? targetIndex + 1 : targetEndIndex + 1;
+      const nextVisibleTask = visibleTasks[target.index + 1];
+      const hasVisibleChildBelow = nextVisibleTask?.parentId === targetTask.id;
+
+      if (hasVisibleChildBelow) {
+        inferredParentId = targetTask.id;
+        insertIndex = targetIndex + 1;
+      } else {
+        inferredParentId = targetTask.parentId || undefined;
+        const targetEndIndex = getSubtreeEndIndex(targetTask.id, reorderedWithoutMoved);
+        insertIndex = targetEndIndex === -1 ? targetIndex + 1 : targetEndIndex + 1;
+      }
       break;
     }
     default: {

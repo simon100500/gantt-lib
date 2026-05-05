@@ -867,7 +867,12 @@ export const TaskList: React.FC<TaskListProps> = ({
       return target;
     }
 
-    if ((targetTask.parentId || undefined) === (previousAnchor.task.parentId || undefined)) {
+    const isEquivalentSiblingGap =
+      (targetTask.parentId || undefined) === (previousAnchor.task.parentId || undefined);
+    const isFirstChildGap =
+      (targetTask.parentId || undefined) === previousAnchor.task.id;
+
+    if (isEquivalentSiblingGap || isFirstChildGap) {
       return {
         index: previousAnchor.index,
         placement: 'after',

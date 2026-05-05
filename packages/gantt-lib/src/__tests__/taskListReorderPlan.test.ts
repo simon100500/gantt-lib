@@ -77,6 +77,28 @@ describe('getVisibleReorderPlan', () => {
     });
   });
 
+  it('drops after an expanded parent row as the first child of that parent', () => {
+    const orderedTasks = [
+      T('g1'),
+      T('g1-1', 'g1'),
+      T('g1-2', 'g1'),
+      T('task'),
+    ];
+
+    const plan = getVisibleReorderPlan(
+      orderedTasks,
+      orderedTasks,
+      'task',
+      { index: 0, placement: 'after' },
+    );
+
+    expect(plan).toEqual({
+      originOrderedIndex: 3,
+      insertIndex: 1,
+      inferredParentId: 'g1',
+    });
+  });
+
   it('treats before the next root task after a group as insert into the end of that group', () => {
     const orderedTasks = [
       T('g1'),
