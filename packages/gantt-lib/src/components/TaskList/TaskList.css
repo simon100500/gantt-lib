@@ -787,7 +787,7 @@
   background-color: #374151;
 }
 
-@media (max-width: 640px), (pointer: coarse) {
+@media (max-width: 640px) {
   .gantt-tl-row,
   .gantt-tl-cell,
   .gantt-tl-name-trigger,
