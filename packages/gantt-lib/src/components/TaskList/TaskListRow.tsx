@@ -1933,6 +1933,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       const nestedAxisDepth = Math.max(0, nestingDepth - 1);
       return `${numberColumnWidth + nestedAxisDepth * 20 + 9}px`;
     })();
+    const nestedInsideDropIndicatorLeft = (() => {
+      const numberColumnWidth = resolvedColumns
+        ?.find((col) => col.id === "number")
+        ?.width ?? 40;
+      const nestedAxisDepth = Math.max(0, nestingDepth);
+      return `${numberColumnWidth + nestedAxisDepth * 20 + 9}px`;
+    })();
 
     const nameCell = (
       <div className="gantt-tl-cell gantt-tl-cell-name" style={getColumnStyle('name', 200)}>
@@ -2701,6 +2708,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           height: `${rowHeight}px`,
           position: "relative",
           "--gantt-tl-nested-drop-left": nestedDropIndicatorLeft,
+          "--gantt-tl-nested-inside-drop-left": nestedInsideDropIndicatorLeft,
         } as React.CSSProperties}
         data-gantt-task-row-id={task.id}
         onClick={handleRowClickInternal}
