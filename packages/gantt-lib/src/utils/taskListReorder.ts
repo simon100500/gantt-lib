@@ -224,6 +224,10 @@ export function getVisibleReorderPlan(
         return null;
       }
 
+      if (movedTask.parentId === inferredParentId) {
+        return null;
+      }
+
       const anchorEndIndex = getSubtreeEndIndex(targetTask.id, reorderedWithoutMoved);
       insertIndex = anchorEndIndex === -1 ? targetIndex + 1 : anchorEndIndex + 1;
       break;

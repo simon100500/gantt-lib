@@ -53,6 +53,24 @@ describe('getVisibleReorderPlan', () => {
     });
   });
 
+  it('does not show inside-parent drop for a child that is already in that parent', () => {
+    const orderedTasks = [
+      T('g1'),
+      T('g1-1', 'g1'),
+      T('g1-2', 'g1'),
+      T('task'),
+    ];
+
+    const plan = getVisibleReorderPlan(
+      orderedTasks,
+      orderedTasks,
+      'g1-1',
+      { index: 0, placement: 'inside' },
+    );
+
+    expect(plan).toBeNull();
+  });
+
   it('drops after a collapsed parent group as a root-level task', () => {
     const orderedTasks = [
       T('task'),
