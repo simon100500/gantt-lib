@@ -99,7 +99,7 @@ describe('getVisibleReorderPlan', () => {
     });
   });
 
-  it('treats before the next root task after a group as insert into the end of that group', () => {
+  it('attaches a free task to the group when dropped on the boundary above itself', () => {
     const orderedTasks = [
       T('g1'),
       T('g1-1', 'g1'),
@@ -118,6 +118,75 @@ describe('getVisibleReorderPlan', () => {
       originOrderedIndex: 3,
       insertIndex: 3,
       inferredParentId: 'g1',
+    });
+  });
+
+  it('attaches a free task when dropped on the lower zone of the last child', () => {
+    const orderedTasks = [
+      T('g1'),
+      T('g1-1', 'g1'),
+      T('g1-2', 'g1'),
+      T('task'),
+    ];
+
+    const plan = getVisibleReorderPlan(
+      orderedTasks,
+      orderedTasks,
+      'task',
+      { index: 2, placement: 'after' },
+    );
+
+    expect(plan).toEqual({
+      originOrderedIndex: 3,
+      insertIndex: 3,
+      inferredParentId: 'g1',
+    });
+  });
+
+  it('does not attach a free task when dropped before the next root task', () => {
+    const orderedTasks = [
+      T('g1'),
+      T('g1-1', 'g1'),
+      T('g1-2', 'g1'),
+      T('task'),
+      T('g2'),
+      T('g2-1', 'g2'),
+    ];
+
+    const plan = getVisibleReorderPlan(
+      orderedTasks,
+      orderedTasks,
+      'task',
+      { index: 4, placement: 'before' },
+    );
+
+    expect(plan).toEqual({
+      originOrderedIndex: 3,
+      insertIndex: 3,
+      inferredParentId: undefined,
+    });
+  });
+
+  it('detaches the last child when dropped before the next root task', () => {
+    const orderedTasks = [
+      T('g1'),
+      T('g1-1', 'g1'),
+      T('g1-2', 'g1'),
+      T('g2'),
+      T('g2-1', 'g2'),
+    ];
+
+    const plan = getVisibleReorderPlan(
+      orderedTasks,
+      orderedTasks,
+      'g1-2',
+      { index: 3, placement: 'before' },
+    );
+
+    expect(plan).toEqual({
+      originOrderedIndex: 2,
+      insertIndex: 2,
+      inferredParentId: undefined,
     });
   });
 
