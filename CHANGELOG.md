@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.104.2] - 2026-05-05
+
+### Style
+
+- Refine media query in TaskList CSS for better responsiveness
+
 ## [0.104.1] - 2026-05-05
 
 ### Fixes
