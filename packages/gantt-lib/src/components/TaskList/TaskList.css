@@ -371,6 +371,10 @@
   display: none;
 }
 
+.gantt-tl-row-drag-over-inside::after {
+  display: none;
+}
+
 .gantt-tl-row-drag-over-after::before {
   top: auto;
   bottom: 0;
