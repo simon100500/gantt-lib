@@ -30,7 +30,7 @@ describe('getVisibleReorderPlan', () => {
     });
   });
 
-  it('makes a root task a child of the target parent when dropped inside the parent row', () => {
+  it('rejects inside-drop on an existing parent row', () => {
     const orderedTasks = [
       T('task'),
       T('g1'),
@@ -46,11 +46,7 @@ describe('getVisibleReorderPlan', () => {
       { index: 3, placement: 'inside' },
     );
 
-    expect(plan).toEqual({
-      originOrderedIndex: 0,
-      insertIndex: 4,
-      inferredParentId: 'g2',
-    });
+    expect(plan).toBeNull();
   });
 
   it('does not show inside-parent drop for a child that is already in that parent', () => {
