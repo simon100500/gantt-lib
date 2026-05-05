@@ -6,7 +6,7 @@ type TaskLike = { id: string; parentId?: string };
 const T = (id: string, parentId?: string): TaskLike => ({ id, ...(parentId ? { parentId } : {}) });
 
 describe('getVisibleReorderPlan', () => {
-  it('moves a child into another group when dropped inside one of its children', () => {
+  it('makes the target task the direct parent when dropped inside its row', () => {
     const orderedTasks = [
       T('g1'),
       T('g1-1', 'g1'),
@@ -26,7 +26,7 @@ describe('getVisibleReorderPlan', () => {
     expect(plan).toEqual({
       originOrderedIndex: 2,
       insertIndex: 4,
-      inferredParentId: 'g2',
+      inferredParentId: 'g2-1',
     });
   });
 
@@ -74,6 +74,28 @@ describe('getVisibleReorderPlan', () => {
       originOrderedIndex: 0,
       insertIndex: 2,
       inferredParentId: undefined,
+    });
+  });
+
+  it('treats before the next root task after a group as insert into the end of that group', () => {
+    const orderedTasks = [
+      T('g1'),
+      T('g1-1', 'g1'),
+      T('g1-2', 'g1'),
+      T('task'),
+    ];
+
+    const plan = getVisibleReorderPlan(
+      orderedTasks,
+      orderedTasks,
+      'task',
+      { index: 3, placement: 'before' },
+    );
+
+    expect(plan).toEqual({
+      originOrderedIndex: 3,
+      insertIndex: 3,
+      inferredParentId: 'g1',
     });
   });
 

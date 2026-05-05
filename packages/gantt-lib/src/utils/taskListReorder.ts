@@ -61,6 +61,21 @@ function getSubtreeEndIndex(taskId: string, tasks: TaskLike[]): number {
   return endIndex;
 }
 
+function getNearestVisibleSiblingBefore(
+  visibleTasks: TaskLike[],
+  movedIds: Set<string>,
+  startIndex: number,
+): TaskLike | null {
+  for (let index = startIndex; index >= 0; index -= 1) {
+    const candidate = visibleTasks[index];
+    if (candidate && !movedIds.has(candidate.id)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 /**
  * Map visible drag/drop positions to indices in the full ordered task list.
  * This keeps collapsed descendants attached to their parent row.
@@ -161,7 +176,31 @@ export function getVisibleReorderPlan(
   }
 
   const targetTask = visibleTasks[target.index];
-  if (!targetTask || movedIds.has(targetTask.id)) {
+  const previousVisibleTask = getNearestVisibleSiblingBefore(
+    visibleTasks,
+    movedIds,
+    target.index - 1,
+  );
+
+  if (!targetTask) {
+    return null;
+  }
+
+  if (movedIds.has(targetTask.id)) {
+    if (target.placement === 'before' && previousVisibleTask?.parentId) {
+      const previousIndex = reorderedWithoutMoved.findIndex((task) => task.id === previousVisibleTask.id);
+      if (previousIndex === -1) {
+        return null;
+      }
+
+      const previousEndIndex = getSubtreeEndIndex(previousVisibleTask.id, reorderedWithoutMoved);
+      return {
+        originOrderedIndex,
+        insertIndex: previousEndIndex === -1 ? previousIndex + 1 : previousEndIndex + 1,
+        inferredParentId: previousVisibleTask.parentId,
+      };
+    }
+
     return null;
   }
 
@@ -177,19 +216,24 @@ export function getVisibleReorderPlan(
     case 'before': {
       insertIndex = targetIndex;
       inferredParentId = targetTask.parentId || undefined;
+
+      if (!targetTask.parentId && previousVisibleTask?.parentId) {
+        inferredParentId = previousVisibleTask.parentId;
+        const previousEndIndex = getSubtreeEndIndex(previousVisibleTask.id, reorderedWithoutMoved);
+        insertIndex = previousEndIndex === -1
+          ? targetIndex
+          : previousEndIndex + 1;
+      }
       break;
     }
     case 'inside': {
-      inferredParentId = targetTask.parentId
-        ? (isTaskParent(targetTask.id, orderedTasks) ? targetTask.id : targetTask.parentId)
-        : targetTask.id;
+      inferredParentId = targetTask.id;
 
       if (!inferredParentId || movedIds.has(inferredParentId)) {
         return null;
       }
 
-      const anchorTaskId = inferredParentId === targetTask.id ? targetTask.id : targetTask.id;
-      const anchorEndIndex = getSubtreeEndIndex(anchorTaskId, reorderedWithoutMoved);
+      const anchorEndIndex = getSubtreeEndIndex(targetTask.id, reorderedWithoutMoved);
       insertIndex = anchorEndIndex === -1 ? targetIndex + 1 : anchorEndIndex + 1;
       break;
     }

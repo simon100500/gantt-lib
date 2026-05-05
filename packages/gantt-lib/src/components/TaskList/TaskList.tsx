@@ -903,13 +903,13 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     const { originOrderedIndex, insertIndex, inferredParentId } = reorderPlan;
+    const moved = orderedTasks[originOrderedIndex];
 
-    if (insertIndex === originOrderedIndex) {
+    const currentParentId = moved.parentId || undefined;
+    if (insertIndex === originOrderedIndex && inferredParentId === currentParentId) {
       clearDragState();
       return;
     }
-
-    const moved = orderedTasks[originOrderedIndex];
 
     const hasChildren = isTaskParent(moved.id, orderedTasks);
 
