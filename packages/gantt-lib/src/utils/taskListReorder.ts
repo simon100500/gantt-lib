@@ -166,6 +166,7 @@ export function getVisibleReorderPlan(
   const descendantIds = getDescendantIds(movedTaskId, orderedTasks);
   const movedIds = new Set([movedTaskId, ...descendantIds]);
   const reorderedWithoutMoved = orderedTasks.filter((task) => !movedIds.has(task.id));
+  const movedTask = orderedTasks[originOrderedIndex];
 
   if (target.placement === 'end' || target.index >= visibleTasks.length) {
     return {
@@ -187,20 +188,6 @@ export function getVisibleReorderPlan(
   }
 
   if (movedIds.has(targetTask.id)) {
-    if (target.placement === 'before' && previousVisibleTask?.parentId) {
-      const previousIndex = reorderedWithoutMoved.findIndex((task) => task.id === previousVisibleTask.id);
-      if (previousIndex === -1) {
-        return null;
-      }
-
-      const previousEndIndex = getSubtreeEndIndex(previousVisibleTask.id, reorderedWithoutMoved);
-      return {
-        originOrderedIndex,
-        insertIndex: previousEndIndex === -1 ? previousIndex + 1 : previousEndIndex + 1,
-        inferredParentId: previousVisibleTask.parentId,
-      };
-    }
-
     return null;
   }
 
@@ -218,11 +205,15 @@ export function getVisibleReorderPlan(
       inferredParentId = targetTask.parentId || undefined;
 
       if (!targetTask.parentId && previousVisibleTask?.parentId) {
-        inferredParentId = previousVisibleTask.parentId;
-        const previousEndIndex = getSubtreeEndIndex(previousVisibleTask.id, reorderedWithoutMoved);
-        insertIndex = previousEndIndex === -1
-          ? targetIndex
-          : previousEndIndex + 1;
+        const isDetachingFromSameGroup = movedTask.parentId === previousVisibleTask.parentId;
+
+        if (isDetachingFromSameGroup) {
+          const previousEndIndex = getSubtreeEndIndex(previousVisibleTask.id, reorderedWithoutMoved);
+          inferredParentId = undefined;
+          insertIndex = previousEndIndex === -1
+            ? targetIndex
+            : previousEndIndex + 1;
+        }
       }
       break;
     }

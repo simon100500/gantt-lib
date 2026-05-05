@@ -861,6 +861,11 @@ export const TaskList: React.FC<TaskListProps> = ({
     const descendantIds = new Set(getAllDescendants(movedTaskId, orderedTasks).map(task => task.id));
     const movedIds = new Set<string>([movedTaskId, ...descendantIds]);
     const targetTask = visibleTasks[target.index];
+
+    if (targetTask?.id === movedTaskId) {
+      return target;
+    }
+
     const previousAnchor = getNearestVisibleDropAnchorBefore(visibleTasks, movedIds, target.index - 1);
 
     if (!targetTask || !previousAnchor) {
@@ -869,10 +874,8 @@ export const TaskList: React.FC<TaskListProps> = ({
 
     const isEquivalentSiblingGap =
       (targetTask.parentId || undefined) === (previousAnchor.task.parentId || undefined);
-    const isFirstChildGap =
-      (targetTask.parentId || undefined) === previousAnchor.task.id;
 
-    if (isEquivalentSiblingGap || isFirstChildGap) {
+    if (isEquivalentSiblingGap) {
       return {
         index: previousAnchor.index,
         placement: 'after',
@@ -888,9 +891,17 @@ export const TaskList: React.FC<TaskListProps> = ({
     const draggedTaskId = dragTaskIdRef.current;
     if (!draggedTaskId) return;
 
+    const rawPlacement = getDropPlacementFromEvent(e);
+    const isSelfTopBefore = visibleTasks[index]?.id === draggedTaskId && rawPlacement === 'before';
+    if (isSelfTopBefore) {
+      setDragOverTarget(null);
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+
     const normalizedTarget = normalizeDropTarget(draggedTaskId, {
       index,
-      placement: getDropPlacementFromEvent(e),
+      placement: rawPlacement,
     });
     const targetTask = visibleTasks[normalizedTarget.index];
 
@@ -913,6 +924,14 @@ export const TaskList: React.FC<TaskListProps> = ({
       return;
     }
 
+    const moved = orderedTasks[reorderPlan.originOrderedIndex];
+    const currentParentId = moved?.parentId || undefined;
+    if (reorderPlan.insertIndex === reorderPlan.originOrderedIndex && reorderPlan.inferredParentId === currentParentId) {
+      setDragOverTarget(null);
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+
     e.dataTransfer.dropEffect = 'move';
     setDragOverTarget(normalizedTarget);
   }, [isValidParentDrop, normalizeDropTarget, orderedTasks, visibleTasks]);
@@ -927,11 +946,23 @@ export const TaskList: React.FC<TaskListProps> = ({
       return;
     }
 
+    const rawPlacement: ReorderDropPlacement = dropIndex >= visibleTasks.length
+      ? 'end'
+      : getDropPlacementFromEvent(e);
+    const isSelfTopBefore = dropIndex < visibleTasks.length
+      && visibleTasks[dropIndex]?.id === movedTaskId
+      && rawPlacement === 'before';
+
+    if (isSelfTopBefore) {
+      clearDragState();
+      return;
+    }
+
     const normalizedTarget: { index: number; placement: ReorderDropPlacement } = dropIndex >= visibleTasks.length
       ? { index: dropIndex, placement: 'end' }
       : normalizeDropTarget(movedTaskId, {
         index: dropIndex,
-        placement: getDropPlacementFromEvent(e),
+        placement: rawPlacement,
       });
 
     if (originVisibleIndex === normalizedTarget.index && normalizedTarget.placement === 'before') {

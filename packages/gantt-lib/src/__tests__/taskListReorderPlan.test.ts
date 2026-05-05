@@ -99,7 +99,7 @@ describe('getVisibleReorderPlan', () => {
     });
   });
 
-  it('attaches a free task to the group when dropped on the boundary above itself', () => {
+  it('does not attach a free task when dropped before itself', () => {
     const orderedTasks = [
       T('g1'),
       T('g1-1', 'g1'),
@@ -114,11 +114,7 @@ describe('getVisibleReorderPlan', () => {
       { index: 3, placement: 'before' },
     );
 
-    expect(plan).toEqual({
-      originOrderedIndex: 3,
-      insertIndex: 3,
-      inferredParentId: 'g1',
-    });
+    expect(plan).toBeNull();
   });
 
   it('attaches a free task when dropped on the lower zone of the last child', () => {
