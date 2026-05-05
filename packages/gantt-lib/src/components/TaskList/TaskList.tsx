@@ -122,6 +122,21 @@ function getDropPlacementFromEvent(
   return 'inside';
 }
 
+function getNearestVisibleDropAnchorBefore(
+  visibleTasks: Task[],
+  movedIds: Set<string>,
+  startIndex: number,
+): { task: Task; index: number } | null {
+  for (let index = startIndex; index >= 0; index -= 1) {
+    const candidate = visibleTasks[index];
+    if (candidate && !movedIds.has(candidate.id)) {
+      return { task: candidate, index };
+    }
+  }
+
+  return null;
+}
+
 /**
  * Вычисляет иерархический номер задачи на основе позиции в списке visibleTasks.
  * Корневые задачи: 1, 2, 3...
@@ -835,16 +850,46 @@ export const TaskList: React.FC<TaskListProps> = ({
     dragTaskIdRef.current = visibleTasks[index]?.id ?? null;
   }, [visibleTasks]);
 
+  const normalizeDropTarget = useCallback((
+    movedTaskId: string,
+    target: { index: number; placement: ReorderDropPlacement },
+  ): { index: number; placement: ReorderDropPlacement } => {
+    if (target.placement !== 'before' || target.index <= 0 || target.index >= visibleTasks.length) {
+      return target;
+    }
+
+    const descendantIds = new Set(getAllDescendants(movedTaskId, orderedTasks).map(task => task.id));
+    const movedIds = new Set<string>([movedTaskId, ...descendantIds]);
+    const targetTask = visibleTasks[target.index];
+    const previousAnchor = getNearestVisibleDropAnchorBefore(visibleTasks, movedIds, target.index - 1);
+
+    if (!targetTask || !previousAnchor) {
+      return target;
+    }
+
+    if ((targetTask.parentId || undefined) === (previousAnchor.task.parentId || undefined)) {
+      return {
+        index: previousAnchor.index,
+        placement: 'after',
+      };
+    }
+
+    return target;
+  }, [orderedTasks, visibleTasks]);
+
   const handleDragOver = useCallback((index: number, e: React.DragEvent) => {
     e.preventDefault();
 
     const draggedTaskId = dragTaskIdRef.current;
     if (!draggedTaskId) return;
 
-    const placement = getDropPlacementFromEvent(e);
-    const targetTask = visibleTasks[index];
+    const normalizedTarget = normalizeDropTarget(draggedTaskId, {
+      index,
+      placement: getDropPlacementFromEvent(e),
+    });
+    const targetTask = visibleTasks[normalizedTarget.index];
 
-    if (!targetTask || !isValidParentDrop(draggedTaskId, index)) {
+    if (!targetTask || !isValidParentDrop(draggedTaskId, normalizedTarget.index)) {
       setDragOverTarget(null);
       e.dataTransfer.dropEffect = 'none';
       return;
@@ -854,7 +899,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       orderedTasks,
       visibleTasks,
       draggedTaskId,
-      { index, placement },
+      normalizedTarget,
     );
 
     if (!reorderPlan) {
@@ -864,28 +909,32 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     e.dataTransfer.dropEffect = 'move';
-    setDragOverTarget({ index, placement });
-  }, [isValidParentDrop, orderedTasks, visibleTasks]);
+    setDragOverTarget(normalizedTarget);
+  }, [isValidParentDrop, normalizeDropTarget, orderedTasks, visibleTasks]);
 
   const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
     e.preventDefault();
     const originVisibleIndex = dragOriginIndexRef.current;
     const movedTaskId = dragTaskIdRef.current;
-    const placement: ReorderDropPlacement = dropIndex >= visibleTasks.length
-      ? 'end'
-      : getDropPlacementFromEvent(e);
 
     if (originVisibleIndex === null || movedTaskId === null) {
       clearDragState();
       return;
     }
 
-    if (originVisibleIndex === dropIndex && placement === 'before') {
+    const normalizedTarget: { index: number; placement: ReorderDropPlacement } = dropIndex >= visibleTasks.length
+      ? { index: dropIndex, placement: 'end' }
+      : normalizeDropTarget(movedTaskId, {
+        index: dropIndex,
+        placement: getDropPlacementFromEvent(e),
+      });
+
+    if (originVisibleIndex === normalizedTarget.index && normalizedTarget.placement === 'before') {
       clearDragState();
       return;
     }
 
-    if (!isValidParentDrop(movedTaskId, dropIndex)) {
+    if (!isValidParentDrop(movedTaskId, normalizedTarget.index)) {
       clearDragState();
       return;
     }
@@ -894,7 +943,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       orderedTasks,
       visibleTasks,
       movedTaskId,
-      { index: dropIndex, placement },
+      normalizedTarget,
     );
 
     if (!reorderPlan) {
@@ -933,7 +982,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     onReorder?.(reordered, moved.id, inferredParentId);
     onTaskSelect?.(moved.id);
     clearDragState();
-  }, [orderedTasks, visibleTasks, onReorder, onTaskSelect, isValidParentDrop, clearDragState]);
+  }, [orderedTasks, visibleTasks, onReorder, onTaskSelect, isValidParentDrop, clearDragState, normalizeDropTarget]);
 
   const handleDragEnd = useCallback(() => {
     clearDragState();
