@@ -394,7 +394,7 @@
   display: block;
   top: 50%;
   left: var(--gantt-tl-nested-inside-drop-left, 49px);
-  width: 2px;
+  width: 3px;
   height: 50%;
   background-color: #3b82f6;
   border-radius: 1px;
@@ -402,13 +402,14 @@
 
 .gantt-tl-row-drag-over-inside.gantt-tl-row-drag-over-nested::after {
   display: block;
-  left: calc(var(--gantt-tl-nested-inside-drop-left, 49px) + 2px);
+  left: calc(var(--gantt-tl-nested-inside-drop-left, 49px) + 3px);
   right: 0;
   bottom: 0;
-  height: 2px;
+  height: 50%;
   opacity: 1;
   background:
-    linear-gradient(90deg, #3b82f6 0%, rgba(59, 130, 246, 0.88) 42%, rgba(59, 130, 246, 0.22) 100%);
+    linear-gradient(#3b82f6, #3b82f6) left bottom / 100% 2px no-repeat,
+    linear-gradient(0deg, rgba(59, 130, 246, 0.26) 0%, rgba(59, 130, 246, 0.08) 68%, rgba(59, 130, 246, 0) 100%);
 }
 
 /* Navigate icon removed - single click on task name now selects row */
