@@ -1,10 +1,21 @@
 import type { Task } from '../components/GanttChart';
 
-type TaskLike = { id: string };
+type TaskLike = { id: string; parentId?: string };
+
+export type ReorderDropPlacement = 'before' | 'inside' | 'after' | 'end';
+
+export interface ReorderDropTarget {
+  index: number;
+  placement: ReorderDropPlacement;
+}
 
 export interface VisibleReorderPosition {
   originOrderedIndex: number;
   insertIndex: number;
+}
+
+export interface VisibleReorderPlan extends VisibleReorderPosition {
+  inferredParentId?: string;
 }
 
 /**
@@ -30,6 +41,24 @@ function getDescendantIds(taskId: string, tasks: TaskLike[]): string[] {
 
   collect(taskId);
   return descendants;
+}
+
+function isTaskParent(taskId: string, tasks: TaskLike[]): boolean {
+  return tasks.some((task) => task.parentId === taskId);
+}
+
+function getSubtreeEndIndex(taskId: string, tasks: TaskLike[]): number {
+  const descendantIds = new Set(getDescendantIds(taskId, tasks));
+  const taskIndex = tasks.findIndex((task) => task.id === taskId);
+  if (taskIndex === -1) return -1;
+
+  let endIndex = taskIndex;
+  for (let index = taskIndex + 1; index < tasks.length; index += 1) {
+    if (!descendantIds.has(tasks[index].id)) break;
+    endIndex = index;
+  }
+
+  return endIndex;
 }
 
 /**
@@ -105,5 +134,87 @@ export function getVisibleReorderPosition(
   return {
     originOrderedIndex,
     insertIndex,
+  };
+}
+
+export function getVisibleReorderPlan(
+  orderedTasks: TaskLike[],
+  visibleTasks: TaskLike[],
+  movedTaskId: string,
+  target: ReorderDropTarget,
+): VisibleReorderPlan | null {
+  const originOrderedIndex = orderedTasks.findIndex((task) => task.id === movedTaskId);
+  if (originOrderedIndex === -1) {
+    return null;
+  }
+
+  const descendantIds = getDescendantIds(movedTaskId, orderedTasks);
+  const movedIds = new Set([movedTaskId, ...descendantIds]);
+  const reorderedWithoutMoved = orderedTasks.filter((task) => !movedIds.has(task.id));
+
+  if (target.placement === 'end' || target.index >= visibleTasks.length) {
+    return {
+      originOrderedIndex,
+      insertIndex: reorderedWithoutMoved.length,
+      inferredParentId: undefined,
+    };
+  }
+
+  const targetTask = visibleTasks[target.index];
+  if (!targetTask || movedIds.has(targetTask.id)) {
+    return null;
+  }
+
+  const targetIndex = reorderedWithoutMoved.findIndex((task) => task.id === targetTask.id);
+  if (targetIndex === -1) {
+    return null;
+  }
+
+  let insertIndex = targetIndex;
+  let inferredParentId: string | undefined;
+
+  switch (target.placement) {
+    case 'before': {
+      insertIndex = targetIndex;
+      inferredParentId = targetTask.parentId || undefined;
+      break;
+    }
+    case 'inside': {
+      inferredParentId = targetTask.parentId
+        ? (isTaskParent(targetTask.id, orderedTasks) ? targetTask.id : targetTask.parentId)
+        : targetTask.id;
+
+      if (!inferredParentId || movedIds.has(inferredParentId)) {
+        return null;
+      }
+
+      const anchorTaskId = inferredParentId === targetTask.id ? targetTask.id : targetTask.id;
+      const anchorEndIndex = getSubtreeEndIndex(anchorTaskId, reorderedWithoutMoved);
+      insertIndex = anchorEndIndex === -1 ? targetIndex + 1 : anchorEndIndex + 1;
+      break;
+    }
+    case 'after': {
+      inferredParentId = targetTask.parentId || undefined;
+      const targetEndIndex = getSubtreeEndIndex(targetTask.id, reorderedWithoutMoved);
+      insertIndex = targetEndIndex === -1 ? targetIndex + 1 : targetEndIndex + 1;
+      break;
+    }
+    default: {
+      return {
+        originOrderedIndex,
+        insertIndex: reorderedWithoutMoved.length,
+        inferredParentId: undefined,
+      };
+    }
+  }
+
+  if (inferredParentId && movedIds.has(inferredParentId)) {
+    return null;
+  }
+
+  return {
+    originOrderedIndex,
+    insertIndex,
+    inferredParentId,
   };
 }

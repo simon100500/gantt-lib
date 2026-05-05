@@ -34,6 +34,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
 import { LINK_TYPE_ICONS } from "./DepIcons";
 import type { TaskListColumn as NewTaskListColumn } from "./columns/types";
 import { DEFAULT_TASK_DURATION_DAYS, buildDefaultTaskDateRange, getTodayISODate } from "./defaultTaskDates";
+import type { ReorderDropPlacement } from "../../utils/taskListReorder";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LINK_TYPE_ORDER: LinkType[] = ["FS", "SS", "FF", "SF"];
@@ -754,6 +755,8 @@ export interface TaskListRowProps {
   isDragging?: boolean;
   /** Whether this row is the current drag-over target (shows top border indicator) */
   isDragOver?: boolean;
+  /** Which drop zone is active for this row */
+  dragOverPlacement?: Exclude<ReorderDropPlacement, "end"> | null;
   /** Called when drag starts on the handle for this row */
   onDragStart?: (index: number, e: React.DragEvent) => void;
   /** Called when something is dragged over this row */
@@ -854,6 +857,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     editingTaskId,
     isDragging = false,
     isDragOver = false,
+    dragOverPlacement = null,
     onDragStart,
     onDragOver,
     onDrop,
@@ -2674,6 +2678,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isSourceRow ? "gantt-tl-row-picking-self" : "",
           isDragging ? "gantt-tl-row-dragging" : "",
           isDragOver ? "gantt-tl-row-drag-over" : "",
+          isDragOver && dragOverPlacement ? `gantt-tl-row-drag-over-${dragOverPlacement}` : "",
           isChild ? "gantt-tl-row-child" : "",
           isParent ? "gantt-tl-row-parent" : "",
           `gantt-tl-row-level-${rowFillLevel}`,

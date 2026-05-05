@@ -8,7 +8,7 @@ import type { CustomDayConfig } from '../../utils/dateUtils';
 import { createCustomDayPredicate } from '../../utils/dateUtils';
 import { validateDependencies, calculateSuccessorDate, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration, isTaskParent, areTasksHierarchicallyRelated, getChildren } from '../../core/scheduling';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
-import { getVisibleReorderPosition } from '../../utils/taskListReorder';
+import { getVisibleReorderPlan, type ReorderDropPlacement } from '../../utils/taskListReorder';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
@@ -107,6 +107,19 @@ function duplicateTaskSubtree(anchorTaskId: string, orderedTasks: Task[]): Task[
     ...clonedSubtree,
     ...orderedTasks.slice(insertIndex),
   ];
+}
+
+const DRAG_ZONE_EDGE_RATIO = 0.28;
+
+function getDropPlacementFromEvent(
+  e: React.DragEvent,
+): Exclude<ReorderDropPlacement, 'end'> {
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const ratio = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0.5;
+
+  if (ratio <= DRAG_ZONE_EDGE_RATIO) return 'before';
+  if (ratio >= 1 - DRAG_ZONE_EDGE_RATIO) return 'after';
+  return 'inside';
 }
 
 /**
@@ -761,9 +774,19 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   // Drag-to-reorder state
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<{
+    index: number;
+    placement: ReorderDropPlacement;
+  } | null>(null);
   const dragOriginIndexRef = useRef<number | null>(null);
   const dragTaskIdRef = useRef<string | null>(null);
+
+  const clearDragState = useCallback(() => {
+    setDraggingIndex(null);
+    setDragOverTarget(null);
+    dragOriginIndexRef.current = null;
+    dragTaskIdRef.current = null;
+  }, []);
 
   // Helper: check if a parent task can be dropped at a specific position
   // Parent tasks cannot be dropped:
@@ -818,174 +841,103 @@ export const TaskList: React.FC<TaskListProps> = ({
     const draggedTaskId = dragTaskIdRef.current;
     if (!draggedTaskId) return;
 
-    // Don't show drop indication if this is an invalid parent drop
-    if (!isValidParentDrop(draggedTaskId, index)) {
-      setDragOverIndex(null);
+    const placement = getDropPlacementFromEvent(e);
+    const targetTask = visibleTasks[index];
+
+    if (!targetTask || !isValidParentDrop(draggedTaskId, index)) {
+      setDragOverTarget(null);
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+
+    const reorderPlan = getVisibleReorderPlan(
+      orderedTasks,
+      visibleTasks,
+      draggedTaskId,
+      { index, placement },
+    );
+
+    if (!reorderPlan) {
+      setDragOverTarget(null);
       e.dataTransfer.dropEffect = 'none';
       return;
     }
 
     e.dataTransfer.dropEffect = 'move';
-    setDragOverIndex(index);
-  }, [isValidParentDrop]);
+    setDragOverTarget({ index, placement });
+  }, [isValidParentDrop, orderedTasks, visibleTasks]);
 
   const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
     e.preventDefault();
     const originVisibleIndex = dragOriginIndexRef.current;
     const movedTaskId = dragTaskIdRef.current;
+    const placement: ReorderDropPlacement = dropIndex >= visibleTasks.length
+      ? 'end'
+      : getDropPlacementFromEvent(e);
 
-    // No-op: same position (line is already where the row is)
-    if (originVisibleIndex === null || movedTaskId === null || originVisibleIndex === dropIndex) {
-      setDraggingIndex(null);
-      setDragOverIndex(null);
-      dragOriginIndexRef.current = null;
-      dragTaskIdRef.current = null;
+    if (originVisibleIndex === null || movedTaskId === null) {
+      clearDragState();
       return;
     }
 
-    // Reject invalid parent drops (parent being dragged into children or another parent)
+    if (originVisibleIndex === dropIndex && placement === 'before') {
+      clearDragState();
+      return;
+    }
+
     if (!isValidParentDrop(movedTaskId, dropIndex)) {
-      setDraggingIndex(null);
-      setDragOverIndex(null);
-      dragOriginIndexRef.current = null;
-      dragTaskIdRef.current = null;
+      clearDragState();
       return;
     }
 
-    const reorderPosition = getVisibleReorderPosition(
+    const reorderPlan = getVisibleReorderPlan(
       orderedTasks,
       visibleTasks,
       movedTaskId,
-      originVisibleIndex,
-      dropIndex,
+      { index: dropIndex, placement },
     );
 
-    if (!reorderPosition) {
-      setDraggingIndex(null);
-      setDragOverIndex(null);
-      dragOriginIndexRef.current = null;
-      dragTaskIdRef.current = null;
+    if (!reorderPlan) {
+      clearDragState();
       return;
     }
 
-    const { originOrderedIndex, insertIndex } = reorderPosition;
+    const { originOrderedIndex, insertIndex, inferredParentId } = reorderPlan;
 
-    // Early exit: if insertIndex equals originOrderedIndex, the subtree would be removed
-    // and re-inserted at the exact same position - a true no-op. Skip the callback.
     if (insertIndex === originOrderedIndex) {
-      setDraggingIndex(null);
-      setDragOverIndex(null);
-      dragOriginIndexRef.current = null;
-      dragTaskIdRef.current = null;
+      clearDragState();
       return;
     }
 
     const moved = orderedTasks[originOrderedIndex];
 
-    // Check if this is a parent task with children
     const hasChildren = isTaskParent(moved.id, orderedTasks);
 
-    // Extract the subtree to move (parent + all descendants, if any)
     let subtree: Task[];
     let subtreeCount: number;
 
     if (hasChildren) {
-      // Get all descendants of the parent
       const descendants = getAllDescendants(moved.id, orderedTasks);
       subtree = [moved, ...descendants];
       subtreeCount = subtree.length;
     } else {
-      // Single task (not a parent)
       subtree = [moved];
       subtreeCount = 1;
     }
 
     const reordered = [...orderedTasks];
-
-    // Remove the entire subtree from its original position
     reordered.splice(originOrderedIndex, subtreeCount);
-
-    // CRITICAL: insertIndex is already relative to reorderedWithoutMoved
-    // After the splice, reordered === reorderedWithoutMoved (same array, same order)
-    // So we should use insertIndex directly, NOT insertIndex - subtreeCount
-    // The old code was subtracting subtreeCount again, which was incorrect
     const adjustedInsertIndex = insertIndex;
-
-    // parentId inference: determine if task should be in a group
-    // IMPORTANT: Calculate this BEFORE splicing moved task back into reordered
-    // because we need to find the parent's position in the array WITHOUT the moved task
-    let inferredParentId: string | undefined;
-
-    if (moved.parentId) {
-      // Task is currently a child - check if it's staying in or leaving its group
-      // Find parent position in the array WITHOUT the moved task (reordered after first splice)
-      const parentIndex = reordered.findIndex(t => t.id === moved.parentId);
-
-      if (parentIndex === -1) {
-        // Parent not found - should not happen, but handle gracefully
-        inferredParentId = undefined;
-      } else {
-        // Calculate where the moved task will end up AFTER we splice it in
-        // The key question: is insertIndex outside the range [parentIndex, parentIndex + numSiblings]?
-        const numSiblings = reordered.filter(t => t.parentId === moved.parentId).length;
-        const groupEnd = parentIndex + numSiblings;
-
-        // If adjustedInsertIndex is <= parent (at or above parent position) or > groupEnd (below all siblings)
-        // Note: adjustedInsertIndex == parentIndex means child will be inserted at parent's position,
-        // which after splicing puts child above parent (parent shifts down by 1)
-        if (adjustedInsertIndex <= parentIndex || adjustedInsertIndex > groupEnd) {
-          inferredParentId = undefined; // Exit group - become root
-        } else {
-          // Staying within group - keep original parentId
-          inferredParentId = moved.parentId;
-        }
-      }
-    } else {
-      // Task is currently root - check if it should join a group after splicing
-    }
-
-    // Now splice the entire subtree into its final position
     reordered.splice(adjustedInsertIndex, 0, ...subtree);
-
-    // For root tasks, check if they should join a group (need reordered for this)
-    // IMPORTANT: Parent tasks (hasChildren === true) must NEVER be reparented during drag-drop.
-    // They always stay at root level regardless of where they are dropped.
-    // Only leaf/child tasks (non-parents) can be adopted into a group by neighboring tasks.
-    if (!moved.parentId && !hasChildren) {
-      const taskAbove = adjustedInsertIndex > 0 ? reordered[adjustedInsertIndex - 1] : null;
-      const taskBelow = adjustedInsertIndex < reordered.length - 1 ? reordered[adjustedInsertIndex + 1] : null;
-
-      // Join a group ONLY if placed between parent and its first child,
-      // or between two children of the same parent.
-      // Dropping after the last child of a group keeps the task at root level.
-      if (taskAbove && taskBelow && taskBelow.parentId === taskAbove.id) {
-        // Placed between a parent and its first child
-        inferredParentId = taskAbove.id;
-      } else if (taskAbove && taskBelow && taskAbove.parentId && taskAbove.parentId === taskBelow.parentId) {
-        // Placed between two children of the same parent
-        inferredParentId = taskAbove.parentId;
-      } else if (!taskAbove && taskBelow && taskBelow.parentId) {
-        // Placed at the very top, above a child — join that group
-        inferredParentId = taskBelow.parentId;
-      }
-    }
 
     onReorder?.(reordered, moved.id, inferredParentId);
     onTaskSelect?.(moved.id);
-    setDraggingIndex(null);
-    setDragOverIndex(null);
-    dragOriginIndexRef.current = null;
-    dragTaskIdRef.current = null;
-  }, [orderedTasks, visibleTasks, onReorder, onTaskSelect]);
+    clearDragState();
+  }, [orderedTasks, visibleTasks, onReorder, onTaskSelect, isValidParentDrop, clearDragState]);
 
   const handleDragEnd = useCallback(() => {
-    // Called when drag ends without a valid drop (Escape, or dropped outside)
-    // handleDrop already clears state on successful drop, so this is only the cancel path
-    setDraggingIndex(null);
-    setDragOverIndex(null);
-    dragOriginIndexRef.current = null;
-    dragTaskIdRef.current = null;
-  }, []);
+    clearDragState();
+  }, [clearDragState]);
 
   const handleConfirmNewTask = useCallback((name: string) => {
     const range = buildDefaultTaskDateRange(getTodayISODate(), {
@@ -1442,7 +1394,10 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onInsertAfter={handleStartInsertAfter}
                   editingTaskId={propEditingTaskId}
                   isDragging={!reorderDisabled && draggingIndex === index}
-                  isDragOver={!reorderDisabled && dragOverIndex === index}
+                  isDragOver={!reorderDisabled && dragOverTarget?.index === index}
+                  dragOverPlacement={!reorderDisabled && dragOverTarget?.index === index && dragOverTarget.placement !== 'end'
+                    ? dragOverTarget.placement
+                    : null}
                   onDragStart={reorderDisabled ? undefined : handleDragStart}
                   onDragOver={reorderDisabled ? undefined : handleDragOver}
                   onDrop={reorderDisabled ? undefined : handleDrop}
@@ -1500,23 +1455,23 @@ export const TaskList: React.FC<TaskListProps> = ({
         {/* Add task button - also serves as drop target for moving tasks to end */}
         {enableAddTask && onAdd && !isCreating && !pendingInsert && (
           <button
-            className={`gantt-tl-add-btn${!reorderDisabled && dragOverIndex === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
+            className={`gantt-tl-add-btn${!reorderDisabled && dragOverTarget?.index === visibleTasks.length ? ' gantt-tl-add-btn-drag-over' : ''}`}
             onClick={() => {
               setPendingInsert(null);
               setIsCreating(true);
             }}
             onDragEnter={reorderDisabled ? undefined : (e) => {
               e.preventDefault();
-              setDragOverIndex(visibleTasks.length);
+              setDragOverTarget({ index: visibleTasks.length, placement: 'end' });
             }}
             onDragOver={reorderDisabled ? undefined : (e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
-              setDragOverIndex(visibleTasks.length);
+              setDragOverTarget({ index: visibleTasks.length, placement: 'end' });
             }}
             onDragLeave={reorderDisabled ? undefined : (e) => {
               e.preventDefault();
-              setDragOverIndex(null);
+              setDragOverTarget(null);
             }}
             onDrop={reorderDisabled ? undefined : (e) => {
               e.preventDefault();
