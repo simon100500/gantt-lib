@@ -50,6 +50,16 @@ const TimelineMarkers: React.FC<TimelineMarkersProps> = ({ rangeStart, dayWidth,
             aria-label={tooltip || 'Timeline marker'}
           >
             <div
+              className="gantt-tm-flag"
+              style={{ backgroundColor: color }}
+            >
+              {tooltip && (
+                <span className="gantt-tm-tooltip" role="tooltip">
+                  {tooltip}
+                </span>
+              )}
+            </div>
+            <div
               className="gantt-tm-line"
               style={{ backgroundColor: color }}
             />

@@ -7,5 +7,46 @@
   top: -1px;
   bottom: 0;
   z-index: 0;
+  width: var(--gantt-today-indicator-width);
   pointer-events: none;
+}
+
+.gantt-ti-flag {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 14px;
+  height: 10px;
+  background-color: var(--gantt-today-indicator-color);
+  clip-path: polygon(0 0, 100% 0, 100% 72%, 62% 72%, 50% 100%, 38% 72%, 0 72%);
+  transform: translateX(-1px);
+  box-shadow: 0 0 0 2px var(--gantt-cell-background, #ffffff);
+  pointer-events: auto;
+}
+
+.gantt-ti-tooltip {
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1000;
+  display: none;
+  width: max-content;
+  min-width: 0;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: #111827;
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+}
+
+.gantt-ti-flag:hover .gantt-ti-tooltip,
+.gantt-ti-flag:focus-visible .gantt-ti-tooltip {
+  display: block;
 }

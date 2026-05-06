@@ -264,18 +264,23 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
             const markerKey = `${day.getUTCFullYear()}-${day.getUTCMonth()}-${day.getUTCDate()}`;
             const marker = markerByDayKey.get(markerKey);
             const markerColor = marker?.color;
+            const tooltipText = isTodayDate ? 'Сегодня' : marker?.name;
             return (
               <div
                 key={`day-${index}`}
-                className={`gantt-tsh-dayCell ${isWeekendDay ? 'gantt-tsh-weekendDay' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''} ${marker ? 'gantt-tsh-markerDay' : ''}`}
+                className={`gantt-tsh-dayCell ${isWeekendDay ? 'gantt-tsh-weekendDay' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''} ${marker ? 'gantt-tsh-markerDay' : ''} ${tooltipText ? 'gantt-tsh-dayCell-tooltipTrigger' : ''}`}
                 style={markerColor ? {
                   backgroundColor: markerColor,
                   borderRadius: '4px 4px 4px 0',
                 } : undefined}
-                title={marker?.name}
-                aria-label={marker?.name}
+                aria-label={tooltipText}
               >
                 <span className="gantt-tsh-dayLabel">{format(day, 'd')}</span>
+                {tooltipText && (
+                  <span className="gantt-tsh-dayTooltip" role="tooltip">
+                    {tooltipText}
+                  </span>
+                )}
               </div>
             );
           })

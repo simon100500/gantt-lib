@@ -41,12 +41,15 @@ describe('timeline markers', () => {
 
     const firstMarker = markers[0] as HTMLElement;
     const firstLine = firstMarker.querySelector('.gantt-tm-line') as HTMLElement | null;
-    const highlightedHeaderCell = container.querySelector('[title="Release deadline"]') as HTMLElement | null;
+    const flagTooltip = firstMarker.querySelector('.gantt-tm-tooltip') as HTMLElement | null;
+    const highlightedHeaderCell = container.querySelector('.gantt-tsh-markerDay') as HTMLElement | null;
+    const headerTooltip = highlightedHeaderCell?.querySelector('.gantt-tsh-dayTooltip') as HTMLElement | null;
 
     expect(firstMarker.style.left).toBe('80px');
-    expect(firstMarker.getAttribute('title')).toBe('Release deadline');
     expect(firstLine?.style.backgroundColor).toBe('rgb(255, 0, 0)');
+    expect(flagTooltip?.textContent).toBe('Release deadline');
     expect(highlightedHeaderCell?.className).toContain('gantt-tsh-markerDay');
+    expect(headerTooltip?.textContent).toBe('Release deadline');
   });
 
   it('does not render markers outside the visible range', () => {
@@ -60,5 +63,25 @@ describe('timeline markers', () => {
     );
 
     expect(container.querySelector('.gantt-tm-marker')).toBeNull();
+  });
+
+  it('renders custom today tooltip and flag on the current date line', () => {
+    const now = new Date();
+    const iso = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
+
+    const { container } = render(
+      <GanttChart
+        tasks={[{
+          id: 'today-task',
+          name: 'Today Task',
+          startDate: iso,
+          endDate: iso,
+        }]}
+      />
+    );
+
+    expect(container.querySelector('.gantt-ti-flag')).not.toBeNull();
+    expect(container.querySelector('.gantt-ti-tooltip')?.textContent).toBe('Сегодня');
+    expect(container.querySelector('.gantt-tsh-today .gantt-tsh-dayTooltip')?.textContent).toBe('Сегодня');
   });
 });

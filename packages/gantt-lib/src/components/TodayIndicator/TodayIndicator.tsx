@@ -43,11 +43,14 @@ const TodayIndicator: React.FC<TodayIndicatorProps> = ({ monthStart, dayWidth })
       className="gantt-ti-indicator"
       style={{
         left: `${position}px`,
-        width: 'var(--gantt-today-indicator-width)',
         backgroundColor: 'var(--gantt-today-indicator-color)',
       }}
       aria-label="Today"
-    />
+    >
+      <div className="gantt-ti-flag">
+        <span className="gantt-ti-tooltip" role="tooltip">Сегодня</span>
+      </div>
+    </div>
   );
 };
 
