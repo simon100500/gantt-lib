@@ -272,9 +272,9 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
             const markerColor = marker?.color;
             const formattedDate = `${String(day.getUTCDate()).padStart(2, '0')}.${String(day.getUTCMonth() + 1).padStart(2, '0')}.${String(day.getUTCFullYear()).slice(-2)}`;
             const tooltipText = isTodayDate
-              ? `${formattedDate} Сегодня`
+              ? `${formattedDate} — Сегодня`
               : marker?.name
-                ? `${formattedDate} ${marker.name}`
+                ? `${formattedDate} — ${marker.name}`
                 : undefined;
             return (
               <div

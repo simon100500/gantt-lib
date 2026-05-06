@@ -36,7 +36,7 @@ const TodayIndicator: React.FC<TodayIndicatorProps> = ({ monthStart, dayWidth, o
     const offset = getDayOffset(todayLocal, monthStart);
     return Math.round(offset * dayWidth);
   }, [monthStart, dayWidth, todayLocal]);
-  const todayLabel = `${String(todayLocal.getUTCDate()).padStart(2, '0')}.${String(todayLocal.getUTCMonth() + 1).padStart(2, '0')}.${String(todayLocal.getUTCFullYear()).slice(-2)} Сегодня`;
+  const todayLabel = `${String(todayLocal.getUTCDate()).padStart(2, '0')}.${String(todayLocal.getUTCMonth() + 1).padStart(2, '0')}.${String(todayLocal.getUTCFullYear()).slice(-2)} — Сегодня`;
 
   // Allow negative positions (today before monthStart) - parent handles visibility
   if (isNaN(position)) {

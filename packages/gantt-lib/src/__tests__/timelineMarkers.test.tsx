@@ -48,11 +48,11 @@ describe('timeline markers', () => {
     expect(highlightedHeaderCell?.className).toContain('gantt-tsh-markerDay');
 
     fireEvent.mouseEnter(firstMarker.querySelector('.gantt-tm-hitArea') as HTMLElement);
-    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe('03.02.26 Release deadline');
+    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe('03.02.26 — Release deadline');
 
     fireEvent.mouseLeave(firstMarker.querySelector('.gantt-tm-hitArea') as HTMLElement);
     fireEvent.mouseEnter(highlightedHeaderCell as HTMLElement);
-    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe('03.02.26 Release deadline');
+    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe('03.02.26 — Release deadline');
   });
 
   it('does not render markers outside the visible range', () => {
@@ -87,10 +87,10 @@ describe('timeline markers', () => {
     const todayHeaderCell = container.querySelector('.gantt-tsh-today') as HTMLElement | null;
 
     fireEvent.mouseEnter(todayIndicator as HTMLElement);
-    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe(`${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)} Сегодня`);
+    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe(`${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)} — Сегодня`);
 
     fireEvent.mouseLeave(todayIndicator as HTMLElement);
     fireEvent.mouseEnter(todayHeaderCell as HTMLElement);
-    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe(`${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)} Сегодня`);
+    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe(`${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)} — Сегодня`);
   });
 });

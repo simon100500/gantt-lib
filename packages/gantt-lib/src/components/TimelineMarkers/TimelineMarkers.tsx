@@ -44,7 +44,7 @@ const TimelineMarkers: React.FC<TimelineMarkersProps> = ({ rangeStart, dayWidth,
     >
       {visibleMarkers.map(marker => {
         const markerName = marker.name?.trim();
-        const tooltip = markerName ? `${marker.formattedDate} ${markerName}` : marker.formattedDate;
+        const tooltip = markerName ? `${marker.formattedDate} — ${markerName}` : marker.formattedDate;
         const color = marker.color || 'var(--gantt-timeline-marker-color, #dc2626)';
         return (
           <div

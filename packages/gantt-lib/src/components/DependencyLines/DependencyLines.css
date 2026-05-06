@@ -54,6 +54,7 @@
 /* Hover highlight: sharp red highlighter-style backing */
 .gantt-dependency-line:hover .gantt-dependency-hit-area {
   stroke: var(--gantt-dependency-hover-background, rgba(239, 68, 68, 0.22));
+  stroke-width: 6;
 }
 
 .gantt-dependency-line:hover .gantt-dependency-path {

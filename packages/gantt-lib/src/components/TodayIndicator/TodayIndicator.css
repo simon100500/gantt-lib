@@ -16,7 +16,7 @@
   top: 0;
   bottom: 0;
   left: 0;
-  width: 12px;
-  transform: translateX(-5px);
+  width: 8px;
+  transform: translateX(-3px);
   pointer-events: auto;
 }
