@@ -13,33 +13,30 @@
   width: 0;
 }
 
-.gantt-tm-line {
+.gantt-tm-hitArea {
   position: absolute;
-  top: 12px;
+  top: 0;
   bottom: 0;
   left: 0;
+  width: 12px;
+  transform: translateX(-5px);
+  pointer-events: auto;
+}
+
+.gantt-tm-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
   width: var(--gantt-timeline-marker-width, 2px);
   opacity: 0.9;
   pointer-events: none;
 }
 
-.gantt-tm-flag {
-  position: absolute;
-  top: 2px;
-  left: 0;
-  width: 14px;
-  height: 10px;
-  clip-path: polygon(0 0, 100% 0, 100% 72%, 62% 72%, 50% 100%, 38% 72%, 0 72%);
-  transform: translateX(-1px);
-  box-shadow: 0 0 0 2px var(--gantt-cell-background, #ffffff);
-  pointer-events: auto;
-}
-
 .gantt-tm-tooltip {
   position: absolute;
   left: calc(100% + 6px);
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
   z-index: 1000;
   display: none;
   width: max-content;
@@ -57,7 +54,7 @@
   pointer-events: none;
 }
 
-.gantt-tm-flag:hover .gantt-tm-tooltip,
-.gantt-tm-flag:focus-visible .gantt-tm-tooltip {
+.gantt-tm-hitArea:hover .gantt-tm-tooltip,
+.gantt-tm-hitArea:focus-visible .gantt-tm-tooltip {
   display: block;
 }

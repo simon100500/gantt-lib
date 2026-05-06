@@ -268,11 +268,10 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
             return (
               <div
                 key={`day-${index}`}
-                className={`gantt-tsh-dayCell ${isWeekendDay ? 'gantt-tsh-weekendDay' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''} ${marker ? 'gantt-tsh-markerDay' : ''} ${tooltipText ? 'gantt-tsh-dayCell-tooltipTrigger' : ''}`}
-                style={markerColor ? {
-                  backgroundColor: markerColor,
-                  borderRadius: '4px 4px 4px 0',
-                } : undefined}
+                className={`gantt-tsh-dayCell ${isWeekendDay ? 'gantt-tsh-weekendDay' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''} ${marker && !isTodayDate ? 'gantt-tsh-markerDay' : ''} ${tooltipText ? 'gantt-tsh-dayCell-tooltipTrigger' : ''}`}
+                style={markerColor && !isTodayDate ? ({
+                  ['--gantt-marker-day-color' as string]: markerColor,
+                } as React.CSSProperties) : undefined}
                 aria-label={tooltipText}
               >
                 <span className="gantt-tsh-dayLabel">{format(day, 'd')}</span>

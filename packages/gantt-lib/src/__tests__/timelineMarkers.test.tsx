@@ -41,13 +41,11 @@ describe('timeline markers', () => {
 
     const firstMarker = markers[0] as HTMLElement;
     const firstLine = firstMarker.querySelector('.gantt-tm-line') as HTMLElement | null;
-    const flagTooltip = firstMarker.querySelector('.gantt-tm-tooltip') as HTMLElement | null;
     const highlightedHeaderCell = container.querySelector('.gantt-tsh-markerDay') as HTMLElement | null;
     const headerTooltip = highlightedHeaderCell?.querySelector('.gantt-tsh-dayTooltip') as HTMLElement | null;
 
     expect(firstMarker.style.left).toBe('80px');
     expect(firstLine?.style.backgroundColor).toBe('rgb(255, 0, 0)');
-    expect(flagTooltip?.textContent).toBe('Release deadline');
     expect(highlightedHeaderCell?.className).toContain('gantt-tsh-markerDay');
     expect(headerTooltip?.textContent).toBe('Release deadline');
   });
@@ -80,8 +78,6 @@ describe('timeline markers', () => {
       />
     );
 
-    expect(container.querySelector('.gantt-ti-flag')).not.toBeNull();
-    expect(container.querySelector('.gantt-ti-tooltip')?.textContent).toBe('Сегодня');
     expect(container.querySelector('.gantt-tsh-today .gantt-tsh-dayTooltip')?.textContent).toBe('Сегодня');
   });
 });

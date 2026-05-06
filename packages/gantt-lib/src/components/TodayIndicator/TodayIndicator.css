@@ -11,24 +11,20 @@
   pointer-events: none;
 }
 
-.gantt-ti-flag {
+.gantt-ti-hitArea {
   position: absolute;
-  top: 2px;
+  top: 0;
+  bottom: 0;
   left: 0;
-  width: 14px;
-  height: 10px;
-  background-color: var(--gantt-today-indicator-color);
-  clip-path: polygon(0 0, 100% 0, 100% 72%, 62% 72%, 50% 100%, 38% 72%, 0 72%);
-  transform: translateX(-1px);
-  box-shadow: 0 0 0 2px var(--gantt-cell-background, #ffffff);
+  width: 12px;
+  transform: translateX(-5px);
   pointer-events: auto;
 }
 
 .gantt-ti-tooltip {
   position: absolute;
   left: calc(100% + 6px);
-  top: 50%;
-  transform: translateY(-50%);
+  top: 12px;
   z-index: 1000;
   display: none;
   width: max-content;
@@ -46,7 +42,7 @@
   pointer-events: none;
 }
 
-.gantt-ti-flag:hover .gantt-ti-tooltip,
-.gantt-ti-flag:focus-visible .gantt-ti-tooltip {
+.gantt-ti-hitArea:hover .gantt-ti-tooltip,
+.gantt-ti-hitArea:focus-visible .gantt-ti-tooltip {
   display: block;
 }

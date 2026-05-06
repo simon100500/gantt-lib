@@ -42,6 +42,7 @@
   justify-content: center;
   box-sizing: border-box;
   position: relative;
+  isolation: isolate;
 }
 
 /* Separator divs — absolutely positioned, pixel-aligned with GridBackground.
@@ -82,19 +83,31 @@
 }
 
 .gantt-tsh-markerDay {
-  background-color: var(--gantt-timeline-marker-color, #dc2626);
-  border-radius: 4px 4px 4px 0;
+  background-color: transparent;
 }
 
 .gantt-tsh-markerDay .gantt-tsh-dayLabel {
   color: #ffffff;
 }
 
+.gantt-tsh-markerDay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--gantt-marker-day-color, var(--gantt-timeline-marker-color, #dc2626));
+  clip-path: polygon(22% 0, 100% 0, 100% 100%, 0 100%, 0 42%);
+  z-index: -1;
+}
+
+.gantt-tsh-dayLabel {
+  position: relative;
+  z-index: 1;
+}
+
 .gantt-tsh-dayTooltip {
   position: absolute;
   left: calc(100% + 6px);
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: calc(100% + 6px);
   z-index: 1000;
   display: none;
   width: max-content;

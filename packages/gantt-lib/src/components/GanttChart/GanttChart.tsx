@@ -1433,6 +1433,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                       rangeStart={monthStart}
                       dayWidth={dayWidth}
                       totalHeight={totalGridHeight}
+                      headerHeight={timelineHeaderHeight}
                       markers={visibleTimelineMarkers}
                     />
                   )}

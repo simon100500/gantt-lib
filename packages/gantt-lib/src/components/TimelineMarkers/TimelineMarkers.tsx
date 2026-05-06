@@ -9,10 +9,11 @@ export interface TimelineMarkersProps {
   rangeStart: Date;
   dayWidth: number;
   totalHeight: number;
+  headerHeight: number;
   markers?: TimelineMarker[];
 }
 
-const TimelineMarkers: React.FC<TimelineMarkersProps> = ({ rangeStart, dayWidth, totalHeight, markers = [] }) => {
+const TimelineMarkers: React.FC<TimelineMarkersProps> = ({ rangeStart, dayWidth, totalHeight, headerHeight, markers = [] }) => {
   const visibleMarkers = useMemo(() => {
     return markers
       .map((marker, index) => {
@@ -46,23 +47,23 @@ const TimelineMarkers: React.FC<TimelineMarkersProps> = ({ rangeStart, dayWidth,
             key={marker.id}
             className="gantt-tm-marker"
             style={{ left: `${marker.left}px`, color }}
-            title={tooltip}
             aria-label={tooltip || 'Timeline marker'}
           >
-            <div
-              className="gantt-tm-flag"
-              style={{ backgroundColor: color }}
-            >
+            <div className="gantt-tm-hitArea">
+              <div
+                className="gantt-tm-line"
+                style={{ backgroundColor: color }}
+              />
               {tooltip && (
-                <span className="gantt-tm-tooltip" role="tooltip">
+                <span
+                  className="gantt-tm-tooltip"
+                  style={{ top: `${-headerHeight + 6}px` }}
+                  role="tooltip"
+                >
                   {tooltip}
                 </span>
               )}
             </div>
-            <div
-              className="gantt-tm-line"
-              style={{ backgroundColor: color }}
-            />
           </div>
         );
       })}

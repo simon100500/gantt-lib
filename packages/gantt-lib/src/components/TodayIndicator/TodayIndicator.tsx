@@ -47,7 +47,7 @@ const TodayIndicator: React.FC<TodayIndicatorProps> = ({ monthStart, dayWidth })
       }}
       aria-label="Today"
     >
-      <div className="gantt-ti-flag">
+      <div className="gantt-ti-hitArea">
         <span className="gantt-ti-tooltip" role="tooltip">Сегодня</span>
       </div>
     </div>
