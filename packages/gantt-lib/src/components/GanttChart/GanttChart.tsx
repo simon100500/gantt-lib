@@ -1122,10 +1122,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return;
     }
 
+    const tasksWithoutPromoted = tasks.filter(t => t.id !== taskId);
+    const insertIndex = lastSiblingIndex.index;
     const reorderedTasks = normalizeHierarchyTasks([
-      ...tasks.filter(t => t.id !== taskId).slice(0, lastSiblingIndex.index + 1),
+      ...tasksWithoutPromoted.slice(0, insertIndex),
       promotedTask,
-      ...tasks.filter(t => t.id !== taskId).slice(lastSiblingIndex.index + 1)
+      ...tasksWithoutPromoted.slice(insertIndex)
     ]);
 
     onTasksChange?.(reorderedTasks as TTask[]);

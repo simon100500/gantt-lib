@@ -73,3 +73,57 @@ describe('GanttChart ungroup task', () => {
     expect(onDelete).not.toHaveBeenCalled();
   });
 });
+
+describe('GanttChart promote task', () => {
+  it('promotes the last child one level up without moving it after the next root task', () => {
+    const onTasksChange = vi.fn();
+
+    const parent: Task = {
+      id: 'parent',
+      name: 'Parent',
+      startDate: '2026-03-01',
+      endDate: '2026-03-05',
+    };
+    const firstChild: Task = {
+      id: 'child-1',
+      name: 'Child 1',
+      startDate: '2026-03-02',
+      endDate: '2026-03-03',
+      parentId: 'parent',
+    };
+    const lastChild: Task = {
+      id: 'child-2',
+      name: 'Child 2',
+      startDate: '2026-03-04',
+      endDate: '2026-03-05',
+      parentId: 'parent',
+    };
+    const nextRoot: Task = {
+      id: 'next-root',
+      name: 'Next root',
+      startDate: '2026-03-06',
+      endDate: '2026-03-07',
+    };
+
+    render(
+      <GanttChart
+        tasks={[parent, firstChild, lastChild, nextRoot]}
+        showTaskList
+        showChart={false}
+        onTasksChange={onTasksChange}
+      />
+    );
+
+    fireEvent.click(screen.getAllByTitle('Повысить уровень')[1]);
+
+    const updatedTasks = onTasksChange.mock.calls[0]?.[0] as Task[];
+
+    expect(updatedTasks.map(task => task.id)).toEqual([
+      'parent',
+      'child-1',
+      'child-2',
+      'next-root',
+    ]);
+    expect(updatedTasks.find(task => task.id === 'child-2')?.parentId).toBeUndefined();
+  });
+});
