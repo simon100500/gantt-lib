@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.105.1] - 2026-05-06
+
+### Features
+
+- Add promote task functionality in GanttChart with `onPromoteTask` callback prop
+
 ## [0.105.0] - 2026-05-06
 
 ### Features
