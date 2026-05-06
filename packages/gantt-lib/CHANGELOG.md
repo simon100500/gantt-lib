@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.106.0] - 2026-05-06
+
+### Features
+
+- Add vertical `timelineMarkers` prop to GanttChart for deadlines, checkpoints, and release dates
+- Render flag markers with custom colors and native tooltips on the calendar grid
+- Highlight matching day cell in header for timeline markers in day view mode
+- Add hover tooltip support to TodayIndicator with consistent library tooltip style
+
+### Refactor
+
+- Restructure timeline marker and today indicator CSS for better layering
+
+### Style
+
+- Refine dimensions and z-index for timeline markers and today indicator
+- Update tooltip formatting and clip-path for marker backgrounds
+
 ## [0.105.1] - 2026-05-06
 
 ### Features
