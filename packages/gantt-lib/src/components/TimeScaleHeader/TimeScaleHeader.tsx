@@ -20,6 +20,10 @@ export interface TimeScaleHeaderProps {
   isCustomWeekend?: (date: Date) => boolean;
   /** Optional custom timeline markers to highlight specific dates in day mode header */
   timelineMarkers?: TimelineMarker[];
+  /** Optional hover callback used to show a shared sticky tooltip */
+  onTimelineHover?: (payload: { label: string; left: number; color: string }) => void;
+  /** Called when hover/focus leaves the header marker cell */
+  onTimelineHoverEnd?: () => void;
 }
 
 /**
@@ -39,6 +43,8 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
   viewMode = 'day',
   isCustomWeekend,
   timelineMarkers,
+  onTimelineHover,
+  onTimelineHoverEnd,
 }) => {
   // Calculate month spans using the utility from dateUtils
   const monthSpans = useMemo(() => getMonthSpans(days), [days]);
@@ -264,7 +270,12 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
             const markerKey = `${day.getUTCFullYear()}-${day.getUTCMonth()}-${day.getUTCDate()}`;
             const marker = markerByDayKey.get(markerKey);
             const markerColor = marker?.color;
-            const tooltipText = isTodayDate ? 'Сегодня' : marker?.name;
+            const formattedDate = `${String(day.getUTCDate()).padStart(2, '0')}.${String(day.getUTCMonth() + 1).padStart(2, '0')}.${String(day.getUTCFullYear()).slice(-2)}`;
+            const tooltipText = isTodayDate
+              ? `${formattedDate} Сегодня`
+              : marker?.name
+                ? `${formattedDate} ${marker.name}`
+                : undefined;
             return (
               <div
                 key={`day-${index}`}
@@ -273,13 +284,17 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
                   ['--gantt-marker-day-color' as string]: markerColor,
                 } as React.CSSProperties) : undefined}
                 aria-label={tooltipText}
+                onMouseEnter={() => {
+                  if (!tooltipText) return;
+                  onTimelineHover?.({
+                    label: tooltipText,
+                    left: index * dayWidth,
+                    color: isTodayDate ? '#dc2626' : (markerColor || 'var(--gantt-timeline-marker-color, #dc2626)'),
+                  });
+                }}
+                onMouseLeave={onTimelineHoverEnd}
               >
                 <span className="gantt-tsh-dayLabel">{format(day, 'd')}</span>
-                {tooltipText && (
-                  <span className="gantt-tsh-dayTooltip" role="tooltip">
-                    {tooltipText}
-                  </span>
-                )}
               </div>
             );
           })

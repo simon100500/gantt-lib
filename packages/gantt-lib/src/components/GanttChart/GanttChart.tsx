@@ -442,6 +442,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
+  const [activeTimelineTooltip, setActiveTimelineTooltip] = useState<{ label: string; left: number; color: string } | null>(null);
 
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
@@ -1408,7 +1409,22 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     viewMode={viewMode}
                     isCustomWeekend={isCustomWeekend}
                     timelineMarkers={visibleTimelineMarkers}
+                    onTimelineHover={setActiveTimelineTooltip}
+                    onTimelineHoverEnd={() => setActiveTimelineTooltip(null)}
                   />
+                  {activeTimelineTooltip && (
+                    <div className="gantt-timelineTooltipLayer" aria-hidden="true">
+                      <div
+                        className="gantt-timelineTooltip"
+                        style={{
+                          left: `${activeTimelineTooltip.left}px`,
+                          backgroundColor: activeTimelineTooltip.color,
+                        }}
+                      >
+                        {activeTimelineTooltip.label}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Task area */}
@@ -1427,14 +1443,22 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     isCustomWeekend={isCustomWeekend}
                   />
 
-                  {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
+                  {todayInRange && (
+                    <TodayIndicator
+                      monthStart={monthStart}
+                      dayWidth={dayWidth}
+                      onHover={setActiveTimelineTooltip}
+                      onHoverEnd={() => setActiveTimelineTooltip(null)}
+                    />
+                  )}
                   {visibleTimelineMarkers.length > 0 && (
                     <TimelineMarkers
                       rangeStart={monthStart}
                       dayWidth={dayWidth}
                       totalHeight={totalGridHeight}
-                      headerHeight={timelineHeaderHeight}
                       markers={visibleTimelineMarkers}
+                      onHover={setActiveTimelineTooltip}
+                      onHoverEnd={() => setActiveTimelineTooltip(null)}
                     />
                   )}
 

@@ -9,20 +9,23 @@ export interface TimelineMarkersProps {
   rangeStart: Date;
   dayWidth: number;
   totalHeight: number;
-  headerHeight: number;
   markers?: TimelineMarker[];
+  onHover?: (payload: { label: string; left: number; color: string }) => void;
+  onHoverEnd?: () => void;
 }
 
-const TimelineMarkers: React.FC<TimelineMarkersProps> = ({ rangeStart, dayWidth, totalHeight, headerHeight, markers = [] }) => {
+const TimelineMarkers: React.FC<TimelineMarkersProps> = ({ rangeStart, dayWidth, totalHeight, markers = [], onHover, onHoverEnd }) => {
   const visibleMarkers = useMemo(() => {
     return markers
       .map((marker, index) => {
         const date = parseUTCDate(marker.date);
         const offset = getDayOffset(date, rangeStart);
         const left = Math.round(offset * dayWidth);
+        const formattedDate = `${String(date.getUTCDate()).padStart(2, '0')}.${String(date.getUTCMonth() + 1).padStart(2, '0')}.${String(date.getUTCFullYear()).slice(-2)}`;
         return {
           ...marker,
           id: `${date.getTime()}-${index}`,
+          formattedDate,
           left,
         };
       })
@@ -40,7 +43,8 @@ const TimelineMarkers: React.FC<TimelineMarkersProps> = ({ rangeStart, dayWidth,
       aria-hidden="true"
     >
       {visibleMarkers.map(marker => {
-        const tooltip = marker.name?.trim();
+        const markerName = marker.name?.trim();
+        const tooltip = markerName ? `${marker.formattedDate} ${markerName}` : marker.formattedDate;
         const color = marker.color || 'var(--gantt-timeline-marker-color, #dc2626)';
         return (
           <div
@@ -49,20 +53,15 @@ const TimelineMarkers: React.FC<TimelineMarkersProps> = ({ rangeStart, dayWidth,
             style={{ left: `${marker.left}px`, color }}
             aria-label={tooltip || 'Timeline marker'}
           >
-            <div className="gantt-tm-hitArea">
+            <div
+              className="gantt-tm-hitArea"
+              onMouseEnter={() => tooltip && onHover?.({ label: tooltip, left: marker.left, color })}
+              onMouseLeave={onHoverEnd}
+            >
               <div
                 className="gantt-tm-line"
                 style={{ backgroundColor: color }}
               />
-              {tooltip && (
-                <span
-                  className="gantt-tm-tooltip"
-                  style={{ top: `${-headerHeight + 6}px` }}
-                  role="tooltip"
-                >
-                  {tooltip}
-                </span>
-              )}
             </div>
           </div>
         );

@@ -104,32 +104,6 @@
   z-index: 1;
 }
 
-.gantt-tsh-dayTooltip {
-  position: absolute;
-  left: calc(100% + 6px);
-  bottom: calc(100% + 6px);
-  z-index: 1000;
-  display: none;
-  width: max-content;
-  min-width: 0;
-  max-width: min(360px, calc(100vw - 32px));
-  padding: 5px 8px;
-  border-radius: 4px;
-  background: #111827;
-  color: #fff;
-  font-size: 0.75rem;
-  line-height: 1.3;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
-  pointer-events: none;
-}
-
-.gantt-tsh-dayCell-tooltipTrigger:hover .gantt-tsh-dayTooltip,
-.gantt-tsh-dayCell-tooltipTrigger:focus-visible .gantt-tsh-dayTooltip {
-  display: block;
-}
-
 /* Week-view cell in day row (wider 7-day column) */
 .gantt-tsh-weekCell {
   display: flex;

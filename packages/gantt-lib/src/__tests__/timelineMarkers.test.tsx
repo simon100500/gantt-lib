@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { GanttChart, type Task } from '../components/GanttChart';
@@ -42,12 +42,17 @@ describe('timeline markers', () => {
     const firstMarker = markers[0] as HTMLElement;
     const firstLine = firstMarker.querySelector('.gantt-tm-line') as HTMLElement | null;
     const highlightedHeaderCell = container.querySelector('.gantt-tsh-markerDay') as HTMLElement | null;
-    const headerTooltip = highlightedHeaderCell?.querySelector('.gantt-tsh-dayTooltip') as HTMLElement | null;
 
     expect(firstMarker.style.left).toBe('80px');
     expect(firstLine?.style.backgroundColor).toBe('rgb(255, 0, 0)');
     expect(highlightedHeaderCell?.className).toContain('gantt-tsh-markerDay');
-    expect(headerTooltip?.textContent).toBe('Release deadline');
+
+    fireEvent.mouseEnter(firstMarker.querySelector('.gantt-tm-hitArea') as HTMLElement);
+    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe('03.02.26 Release deadline');
+
+    fireEvent.mouseLeave(firstMarker.querySelector('.gantt-tm-hitArea') as HTMLElement);
+    fireEvent.mouseEnter(highlightedHeaderCell as HTMLElement);
+    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe('03.02.26 Release deadline');
   });
 
   it('does not render markers outside the visible range', () => {
@@ -78,6 +83,14 @@ describe('timeline markers', () => {
       />
     );
 
-    expect(container.querySelector('.gantt-tsh-today .gantt-tsh-dayTooltip')?.textContent).toBe('Сегодня');
+    const todayIndicator = container.querySelector('.gantt-ti-hitArea') as HTMLElement | null;
+    const todayHeaderCell = container.querySelector('.gantt-tsh-today') as HTMLElement | null;
+
+    fireEvent.mouseEnter(todayIndicator as HTMLElement);
+    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe(`${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)} Сегодня`);
+
+    fireEvent.mouseLeave(todayIndicator as HTMLElement);
+    fireEvent.mouseEnter(todayHeaderCell as HTMLElement);
+    expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe(`${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)} Сегодня`);
   });
 });
