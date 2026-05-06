@@ -18,8 +18,8 @@
   top: 0;
   bottom: 0;
   left: 0;
-  width: 8px;
-  transform: translateX(-3px);
+  width: 12px;
+  transform: translateX(-5px);
   pointer-events: auto;
 }
 
@@ -27,7 +27,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 3px;
+  left: 5px;
   width: var(--gantt-timeline-marker-width, 2px);
   opacity: 0.9;
   pointer-events: none;
