@@ -95,7 +95,7 @@
   position: absolute;
   inset: 0;
   background-color: var(--gantt-marker-day-color, var(--gantt-timeline-marker-color, #dc2626));
-  clip-path: polygon(22% 0, 100% 0, 100% 100%, 0 100%, 0 42%);
+  clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%, 0 45%);
   z-index: -1;
 }
 
