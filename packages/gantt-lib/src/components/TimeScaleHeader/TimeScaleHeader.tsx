@@ -3,8 +3,8 @@
 import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { getMonthSpans, getWeekSpans, getWeekBlocks, getMonthBlocks, getYearSpans, type WeekBlock, type WeekSpan, type MonthBlock, type YearSpan } from '../../utils/dateUtils';
-import type { MonthSpan } from '../../types';
+import { getMonthSpans, getWeekSpans, getWeekBlocks, getMonthBlocks, getYearSpans, parseUTCDate, type WeekBlock, type WeekSpan, type MonthBlock, type YearSpan } from '../../utils/dateUtils';
+import type { MonthSpan, TimelineMarker } from '../../types';
 import './TimeScaleHeader.css';
 
 export interface TimeScaleHeaderProps {
@@ -18,6 +18,8 @@ export interface TimeScaleHeaderProps {
   viewMode?: 'day' | 'week' | 'month';
   /** Optional predicate for custom weekend logic (e.g., holidays, shift patterns) */
   isCustomWeekend?: (date: Date) => boolean;
+  /** Optional custom timeline markers to highlight specific dates in day mode header */
+  timelineMarkers?: TimelineMarker[];
 }
 
 /**
@@ -36,6 +38,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
   headerHeight,
   viewMode = 'day',
   isCustomWeekend,
+  timelineMarkers,
 }) => {
   // Calculate month spans using the utility from dateUtils
   const monthSpans = useMemo(() => getMonthSpans(days), [days]);
@@ -90,6 +93,18 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
     () => monthBlocks.map(b => `${b.days * dayWidth}px`).join(' '),
     [monthBlocks, dayWidth]
   );
+
+  const markerByDayKey = useMemo(() => {
+    const map = new Map<string, TimelineMarker>();
+    for (const marker of timelineMarkers ?? []) {
+      const date = parseUTCDate(marker.date);
+      const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}-${date.getUTCDate()}`;
+      if (!map.has(key)) {
+        map.set(key, marker);
+      }
+    }
+    return map;
+  }, [timelineMarkers]);
 
   // Separator positions — same Math.round formula as GridBackground to guarantee pixel alignment.
   // fullHeight=true → spans both header rows (thick boundary between spans in row 1).
@@ -246,8 +261,20 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
               day.getUTCFullYear() === now.getFullYear() &&
               day.getUTCMonth() === now.getMonth() &&
               day.getUTCDate() === now.getDate();
+            const markerKey = `${day.getUTCFullYear()}-${day.getUTCMonth()}-${day.getUTCDate()}`;
+            const marker = markerByDayKey.get(markerKey);
+            const markerColor = marker?.color;
             return (
-              <div key={`day-${index}`} className={`gantt-tsh-dayCell ${isWeekendDay ? 'gantt-tsh-weekendDay' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''}`}>
+              <div
+                key={`day-${index}`}
+                className={`gantt-tsh-dayCell ${isWeekendDay ? 'gantt-tsh-weekendDay' : ''} ${isTodayDate ? 'gantt-tsh-today' : ''} ${marker ? 'gantt-tsh-markerDay' : ''}`}
+                style={markerColor ? {
+                  backgroundColor: markerColor,
+                  borderRadius: '4px 4px 4px 0',
+                } : undefined}
+                title={marker?.name}
+                aria-label={marker?.name}
+              >
                 <span className="gantt-tsh-dayLabel">{format(day, 'd')}</span>
               </div>
             );

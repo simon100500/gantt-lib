@@ -11,6 +11,7 @@ import type {
   ResourceTimelineMove,
   ResourceTimelineResource,
   ResourceTimelineResourceMenuCommand,
+  TimelineMarker,
   TaskDateChangeMode,
   ValidationResult,
 } from '../../types';
@@ -19,6 +20,7 @@ import type { TaskListColumn, TaskListColumnId, TaskListColumnWidthMap } from '.
 import TimeScaleHeader from '../TimeScaleHeader';
 import TaskRow from '../TaskRow';
 import TodayIndicator from '../TodayIndicator';
+import TimelineMarkers from '../TimelineMarkers';
 import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
@@ -37,6 +39,7 @@ export type {
   ResourceTimelineMove,
   ResourceTimelineResource,
   ResourceTimelineResourceMenuCommand,
+  TimelineMarker,
 } from '../../types';
 
 /**
@@ -216,6 +219,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   disableTaskDrag?: boolean;
   /** Show calendar chart area (default: true) */
   showChart?: boolean;
+  /** Optional vertical timeline markers such as deadlines and checkpoints. */
+  timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
   additionalColumns?: TaskListColumn<TTask>[];
   /** Built-in or custom TaskList column IDs to hide after column placement is resolved */
@@ -405,6 +410,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onSelectedTaskIdsChange,
     disableTaskDrag = false,
     showChart = true,
+    timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
     taskListColumnWidths,
@@ -577,6 +583,20 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     return dateRange.some(day => day.getTime() === today.getTime());
   }, [dateRange]);
+
+  const visibleTimelineMarkers = useMemo(() => {
+    if (isTableMatrixMode || !timelineMarkers || timelineMarkers.length === 0 || dateRange.length === 0) {
+      return [];
+    }
+
+    const rangeStartMs = dateRange[0].getTime();
+    const rangeEndMs = dateRange[dateRange.length - 1].getTime();
+
+    return timelineMarkers.filter(marker => {
+      const markerDate = parseUTCDate(marker.date).getTime();
+      return markerDate >= rangeStartMs && markerDate <= rangeEndMs;
+    });
+  }, [dateRange, isTableMatrixMode, timelineMarkers]);
 
   // Center chart on today's date on initial mount
   useEffect(() => {
@@ -1387,6 +1407,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     headerHeight={headerHeight}
                     viewMode={viewMode}
                     isCustomWeekend={isCustomWeekend}
+                    timelineMarkers={visibleTimelineMarkers}
                   />
                 </div>
 
@@ -1407,6 +1428,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                   />
 
                   {todayInRange && <TodayIndicator monthStart={monthStart} dayWidth={dayWidth} />}
+                  {visibleTimelineMarkers.length > 0 && (
+                    <TimelineMarkers
+                      rangeStart={monthStart}
+                      dayWidth={dayWidth}
+                      totalHeight={totalGridHeight}
+                      markers={visibleTimelineMarkers}
+                    />
+                  )}
 
                   {/* Dependency lines SVG overlay */}
                   <DependencyLines

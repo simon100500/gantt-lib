@@ -6,6 +6,7 @@ import {
   type Task,
   type GanttChartHandle,
   type TaskListMenuCommand,
+  type TimelineMarker,
   withoutDeps, expired, inDateRange, progressInRange, nameContains, or,
   type TaskPredicate,
   reflowTasksOnModeSwitch,
@@ -118,6 +119,14 @@ export default function ConstructionChart() {
   const selectedTaskNames = useMemo(
     () => tasks.filter((task) => selectedTaskIds.has(task.id)).map((task) => task.name),
     [selectedTaskIds, tasks],
+  );
+  const timelineMarkers = useMemo<TimelineMarker[]>(
+    () => [
+      { date: '2026-02-12', color: '#dc2626', name: 'Дедлайн согласования проекта' },
+      { date: '2026-03-05', color: '#ea580c', name: 'Контрольная точка по фундаменту' },
+      { date: '2026-04-18', color: '#2563eb', name: 'Инспекция заказчика' },
+    ],
+    [],
   );
 
   useEffect(() => { setActiveSearchResultIndex(0); }, [searchQuery]);
@@ -351,10 +360,15 @@ export default function ConstructionChart() {
         <button onClick={() => setViewMode('month')} style={filterBtnStyle(viewMode === 'month')}>По месяцам</button>
       </div>
 
+      <p style={{ margin: '0 0 12px', color: '#6b7280', fontSize: '0.9rem' }}>
+        На таймлайне добавлены вертикальные маркеры дат. Наведите на кружок у линии, чтобы увидеть название контрольной точки.
+      </p>
+
       <div className="demo-chart-card">
         <GanttChart
           ref={ganttChartRef}
           tasks={tasks}
+          timelineMarkers={timelineMarkers}
           taskFilter={taskFilter}
           dayWidth={viewMode === 'month' ? 2.5 : viewMode === 'week' ? 8 : 24}
           rowHeight={36}

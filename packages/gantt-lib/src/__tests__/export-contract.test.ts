@@ -11,6 +11,7 @@ import type {
   ResourceTimelineResource,
   TableMatrixModeProps,
   Task,
+  TimelineMarker,
 } from '../index';
 
 describe('Export contract: core/scheduling', () => {
@@ -75,6 +76,17 @@ describe('Export contract: core/scheduling', () => {
     expect(mode).toBe('table-matrix');
     expect(props.matrixColumns[0].width).toBe(120);
     expect(props.hideTaskListRowActions).toBe(true);
+  });
+
+  it('keeps timeline marker public types usable from the root package', () => {
+    const marker: TimelineMarker = {
+      date: '2026-04-15',
+      color: '#dc2626',
+      name: 'Release deadline',
+    };
+
+    expect(marker.date).toBe('2026-04-15');
+    expect(marker.name).toBe('Release deadline');
   });
 
   it('exports command-level API from execute.ts', async () => {

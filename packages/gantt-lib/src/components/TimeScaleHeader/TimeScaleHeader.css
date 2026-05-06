@@ -80,6 +80,15 @@
   color: #ffffff;
 }
 
+.gantt-tsh-markerDay {
+  background-color: var(--gantt-timeline-marker-color, #dc2626);
+  border-radius: 4px 4px 4px 0;
+}
+
+.gantt-tsh-markerDay .gantt-tsh-dayLabel {
+  color: #ffffff;
+}
+
 /* Week-view cell in day row (wider 7-day column) */
 .gantt-tsh-weekCell {
   display: flex;

@@ -15,6 +15,7 @@ type GanttChartProps<TTask extends Task = Task, TItem extends ResourceTimelineIt
 interface GanttModeProps<TTask extends Task = Task> {
   mode?: 'gantt';
   tasks: TTask[];
+  timelineMarkers?: TimelineMarker[];
   dayWidth?: number;
   rowHeight?: number;
   headerHeight?: number;
@@ -57,6 +58,12 @@ interface GanttModeProps<TTask extends Task = Task> {
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
   hideTaskListRowActions?: boolean;
   rowContentLines?: number;
+}
+
+interface TimelineMarker {
+  date: string | Date;
+  color?: string;
+  name?: string;
 }
 
 interface TableMatrixModeProps<TTask extends Task = Task> {
@@ -185,6 +192,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `onCascade` | `(tasks: Task[]) => void` | `undefined` | Called when a cascade drag completes in hard mode (`enableAutoSchedule={true}`). Receives all affected tasks including the dragged task. **When `onCascade` fires, `onTasksChange` does NOT fire for that drag.** Use `onCascade` to update state in hard mode. |
 | `showTaskList` | `boolean` | `false` | When `true`, displays the TaskList panel on the left side of the chart. Built-in columns are resolved through the same pipeline as `additionalColumns`. The task list supports inline editing, hierarchy actions, and synchronized scrolling. |
 | `showChart` | `boolean` | `true` | When `false`, hides the calendar chart area (timeline grid, task bars, dependencies). Useful for displaying only the task list. Combine with `showTaskList={false}` to show only the calendar. |
+| `timelineMarkers` | `TimelineMarker[]` | `undefined` | Vertical markers rendered on the calendar grid for deadlines, checkpoints, or release dates. Each marker accepts `date`, optional `color`, and optional `name`. The line is aligned to the start of the day, and in `viewMode="day"` the matching day cell in the header is highlighted with the same color and tooltip. Multiple markers are supported. |
 | `showBaseline` | `boolean` | `false` | When `true`, renders a thin baseline line below task bars for tasks that provide both `baselineStartDate` and `baselineEndDate`. Baseline is visual-only and does not participate in drag, resize, dependencies, or auto-scheduling. |
 | `taskListWidth` | `number` | `660` | Requested width of the task list panel in pixels. Only effective when `showTaskList={true}`. Actual width grows automatically when resolved built-in + custom columns require more space. |
 | `disableTaskNameEditing` | `boolean` | `false` | When `true`, task names cannot be edited in the task list. Date editing is also disabled for locked tasks (see `task.locked` property). |

@@ -3,6 +3,15 @@ import type { ReactNode } from 'react';
 export type GanttChartMode = 'gantt' | 'table-matrix' | 'resource-planner';
 export type TaskDateChangeMode = 'preserve-duration' | 'free';
 
+export interface TimelineMarker {
+  /** Date where the vertical marker line should be rendered */
+  date: string | Date;
+  /** Optional marker color. Falls back to CSS variable when omitted */
+  color?: string;
+  /** Optional display name shown in the native tooltip on the marker head */
+  name?: string;
+}
+
 export interface ResourceTimelineItem {
   id: string;
   resourceId: string;
