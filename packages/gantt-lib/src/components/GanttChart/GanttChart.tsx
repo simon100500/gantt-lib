@@ -233,6 +233,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
   /** Hide row action controls in the TaskList for table-like read/edit presentations. */
   hideTaskListRowActions?: boolean;
+  /** Returns an extra CSS class name for a TaskList row. */
+  getTaskListRowClassName?: (task: TTask) => string | undefined;
   /** Global number of text lines the row height should accommodate in table-like presentations. */
   rowContentLines?: number;
   /** How task-list date pickers apply start/end edits (default: preserve-duration) */
@@ -417,6 +419,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onTaskListColumnWidthsChange,
     taskListMenuCommands,
     hideTaskListRowActions = false,
+    getTaskListRowClassName,
     rowContentLines = 1,
     taskDateChangeMode: externalTaskDateChangeMode,
     onTaskDateChangeModeChange: externalOnTaskDateChangeModeChange,
@@ -1359,6 +1362,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             onTaskListColumnWidthsChange={onTaskListColumnWidthsChange}
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
             hideTaskListRowActions={hideTaskListRowActions}
+            getTaskListRowClassName={getTaskListRowClassName as ((task: Task) => string | undefined) | undefined}
             rowContentLines={resolvedRowContentLines}
             bodyMinHeight={tableBodyMinHeight}
             taskDateChangeMode={taskDateChangeMode}

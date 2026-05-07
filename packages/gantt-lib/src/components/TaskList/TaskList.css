@@ -183,6 +183,19 @@
   --gantt-tl-name-actions-bg: inherit;
 }
 
+.gantt-tl-row-closed {
+  color: var(--gantt-closed-row-color, #6b7280);
+}
+
+.gantt-tl-row-closed .gantt-tl-cell:not(.gantt-tl-cell-number),
+.gantt-tl-row-closed .gantt-tl-name-trigger,
+.gantt-tl-row-closed .gantt-datepicker-trigger {
+  color: inherit;
+  text-decoration-line: line-through;
+  text-decoration-color: var(--gantt-closed-row-strike-color, #9ca3af);
+  text-decoration-thickness: 1px;
+}
+
 .gantt-container-tableMatrix .gantt-tl-row-level-0.gantt-tl-row-parent {
   --gantt-tl-name-actions-bg: var(--gantt-row-fill-level-0, #e2e8f0);
   background-color: var(--gantt-row-fill-level-0, #e2e8f0);

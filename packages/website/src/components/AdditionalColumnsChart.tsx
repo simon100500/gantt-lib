@@ -6,6 +6,7 @@ import { GanttChart, type Task, type TaskListColumn, type TaskListColumnId } fro
 type AdditionalColumnsTask = Task & {
   assignee?: string;
   priority?: 'low' | 'medium' | 'high';
+  status?: string;
 };
 
 const columnToggleOptions: { id: TaskListColumnId; label: string }[] = [
@@ -18,10 +19,10 @@ const columnToggleOptions: { id: TaskListColumnId; label: string }[] = [
 
 export default function AdditionalColumnsChart() {
   const [tasks, setTasks] = useState<AdditionalColumnsTask[]>([
-    { id: 'ac-1', name: 'Design API', startDate: '2026-03-27', endDate: '2026-04-03', assignee: 'Alice', priority: 'high' },
+    { id: 'ac-1', name: 'Design API', startDate: '2026-03-27', endDate: '2026-04-03', assignee: 'Alice', priority: 'high', status: 'closed' },
     { id: 'ac-2', name: 'Backend impl', startDate: '2026-04-01', endDate: '2026-04-15', assignee: 'Bob', priority: 'high' },
     { id: 'ac-3', name: 'Frontend impl', startDate: '2026-04-10', endDate: '2026-04-20', assignee: 'Charlie', priority: 'medium' },
-    { id: 'ac-4', name: 'Write tests', startDate: '2026-04-18', endDate: '2026-04-25', assignee: 'Alice', priority: 'low' },
+    { id: 'ac-4', name: 'Write tests', startDate: '2026-04-18', endDate: '2026-04-25', assignee: 'Alice', priority: 'low', status: 'closed' },
     { id: 'ac-5', name: 'Deploy', startDate: '2026-04-25', endDate: '2026-04-28', priority: 'medium' },
   ]);
   const [hiddenTaskListColumns, setHiddenTaskListColumns] = useState<TaskListColumnId[]>([
@@ -85,6 +86,7 @@ export default function AdditionalColumnsChart() {
       <p className="demo-section-desc">
         <strong>Custom columns:</strong> Assignee (text) и Priority (select) — добавлены через <code>additionalColumns</code> проп.
         Переключатели ниже скрывают системные и кастомные колонки через <code>hiddenTaskListColumns</code>.
+        Задачи <code>Design API</code> и <code>Write tests</code> помечены как <code>closed</code> для демонстрации <code>getTaskListRowClassName</code>.
       </p>
       <div className="demo-controls" aria-label="Task list column visibility">
         {columnToggleOptions.map(column => (
@@ -112,6 +114,7 @@ export default function AdditionalColumnsChart() {
             for (const t of changed) map.set(t.id, t);
             return [...map.values()];
           })}
+          getTaskListRowClassName={(task) => task.status === 'closed' ? 'gantt-tl-row-closed' : undefined}
           additionalColumns={additionalColumns}
           hiddenTaskListColumns={hiddenTaskListColumns}
         />

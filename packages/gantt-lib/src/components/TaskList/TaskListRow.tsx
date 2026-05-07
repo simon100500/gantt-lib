@@ -817,6 +817,8 @@ export interface TaskListRowProps {
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   /** Hide row action controls such as insert, hierarchy action buttons, and context menu trigger. */
   hideTaskListRowActions?: boolean;
+  /** Extra CSS class name for the rendered task-list row. */
+  rowClassName?: string;
   /** How task-list date pickers apply start/end edits */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
@@ -892,6 +894,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     onActiveCustomCellChange,
     taskListMenuCommands = [],
     hideTaskListRowActions = false,
+    rowClassName,
     taskDateChangeMode = 'preserve-duration',
     onTaskDateChangeModeChange,
   }) => {
@@ -2705,6 +2708,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isParent ? "gantt-tl-row-parent" : "",
           `gantt-tl-row-level-${rowFillLevel}`,
           isTotalRow ? "gantt-tl-row-total" : "",
+          rowClassName ?? "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -2715,6 +2719,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           "--gantt-tl-nested-inside-drop-left": nestedInsideDropIndicatorLeft,
         } as React.CSSProperties}
         data-gantt-task-row-id={task.id}
+        data-task-list-row-class={rowClassName ?? undefined}
         onClick={handleRowClickInternal}
         onKeyDown={handleRowKeyDown}
         onDragOver={(e) => onDragOver?.(rowIndex, e)}

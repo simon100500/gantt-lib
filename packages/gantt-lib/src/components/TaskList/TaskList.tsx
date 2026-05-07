@@ -269,6 +269,8 @@ export interface TaskListProps {
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   /** Hide row action controls such as insert, hierarchy action buttons, and the context menu trigger. */
   hideTaskListRowActions?: boolean;
+  /** Returns an extra CSS class name for a TaskList row. */
+  getTaskListRowClassName?: (task: Task) => string | undefined;
   /** Global number of visible content lines used to size every row consistently. */
   rowContentLines?: number;
   /** Optional minimum height for the data body area below the sticky header. */
@@ -394,6 +396,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   onTaskListColumnWidthsChange,
   taskListMenuCommands,
   hideTaskListRowActions = false,
+  getTaskListRowClassName,
   rowContentLines = 1,
   bodyMinHeight,
   taskDateChangeMode = 'preserve-duration',
@@ -1537,6 +1540,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onActiveCustomCellChange={setActiveCustomCell}
                   taskListMenuCommands={taskListMenuCommands}
                   hideTaskListRowActions={hideTaskListRowActions}
+                  rowClassName={getTaskListRowClassName?.(task)}
                   taskDateChangeMode={taskDateChangeMode}
                   onTaskDateChangeModeChange={onTaskDateChangeModeChange}
                 />
