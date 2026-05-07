@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.107.0] - 2026-05-07
+
+### Features
+
+- Add support for custom row class names in TaskList and GanttChart
+
 ## [0.106.0] - 2026-05-06
 
 ### Features
