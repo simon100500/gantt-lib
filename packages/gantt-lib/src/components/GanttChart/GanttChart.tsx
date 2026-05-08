@@ -6,6 +6,7 @@ import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, universalCascade, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../core/scheduling';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type {
+  ResourceTableColumnWidthMap,
   ResourcePlannerChartProps,
   ResourceTimelineItem,
   ResourceTimelineMove,
@@ -35,6 +36,7 @@ const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
 export type {
   GanttChartMode,
   ResourcePlannerChartProps,
+  ResourceTableColumnWidthMap,
   ResourceTimelineItem,
   ResourceTimelineMove,
   ResourceTimelineResource,

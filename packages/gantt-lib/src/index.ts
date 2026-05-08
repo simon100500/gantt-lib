@@ -18,6 +18,7 @@ export {
   type TableMatrixDateOverlay,
   type GanttChartProps,
   type ResourcePlannerChartProps,
+  type ResourceTableColumnWidthMap,
   type ResourceTimelineItem,
   type ResourceTimelineMove,
   type ResourceTimelineResource,
@@ -70,4 +71,6 @@ export type {
   WeekendBlock,
   TimelineMarker,
   TaskDateChangeMode,
+  BuiltInResourceTableColumnId,
+  ResourceTableColumnId,
 } from './types';

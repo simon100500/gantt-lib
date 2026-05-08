@@ -9,6 +9,7 @@ export type {
   TableMatrixModeProps,
   GanttChartProps,
   ResourcePlannerChartProps,
+  ResourceTableColumnWidthMap,
   ResourceTimelineItem,
   ResourceTimelineMove,
   ResourceTimelineResource,

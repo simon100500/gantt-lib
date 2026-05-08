@@ -130,6 +130,47 @@ describe('ResourceTimelineChart', () => {
     expect(screen.getByLabelText('Назначения ресурса Шум: 0, 0 дн.').querySelector('.gantt-resourceTimeline-resourceAssignmentIcon')).toBeNull();
   });
 
+  it('applies configured resource table column widths', () => {
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        resourceTableColumnWidths={{
+          number: 44,
+          name: 240,
+          availability: 96,
+          assignments: 104,
+          actions: 40,
+        }}
+      />
+    );
+
+    const corner = container.querySelector('.gantt-resourceTimeline-corner') as HTMLElement;
+    const resourceColumn = container.querySelector('.gantt-resourceTimeline-resourceColumn') as HTMLElement;
+
+    expect(corner.style.gridTemplateColumns).toBe('44px minmax(240px, 1fr) 96px 104px 40px');
+    expect(resourceColumn.style.width).toBe('524px');
+  });
+
+  it('emits resource table column width changes when resized', () => {
+    const onResourceTableColumnWidthsChange = vi.fn();
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={resources}
+        onResourceTableColumnWidthsChange={onResourceTableColumnWidthsChange}
+      />
+    );
+
+    fireEvent.mouseDown(screen.getByTestId('resource-table-resize-handle-name'), { clientX: 100 });
+    fireEvent.mouseMove(window, { clientX: 132 });
+    fireEvent.mouseUp(window);
+
+    expect(onResourceTableColumnWidthsChange).toHaveBeenCalledWith(expect.objectContaining({
+      name: 224,
+    }));
+  });
+
   it('edits resource type and availability inline', () => {
     const onResourceChange = vi.fn();
     render(

@@ -5,7 +5,10 @@ import { createCustomDayPredicate, getMultiMonthDays, parseUTCDate } from '../..
 import { layoutResourceTimelineItems } from '../../utils/resourceTimelineLayout';
 import { useResourceItemDrag } from '../../hooks/useResourceItemDrag';
 import type {
+  BuiltInResourceTableColumnId,
   ResourcePlannerChartProps,
+  ResourceTableColumnId,
+  ResourceTableColumnWidthMap,
   ResourceTimelineItem,
   ResourceTimelineResource,
   ResourceTimelineResourceMenuCommand,
@@ -24,6 +27,21 @@ const DEFAULT_LANE_HEIGHT = 40;
 const DEFAULT_ROW_HEADER_WIDTH = 420;
 const DEFAULT_RESOURCE_ROW_GAP = 8;
 const DEFAULT_RESOURCE_GROUP_HEIGHT = 28;
+const DEFAULT_RESOURCE_COLUMN_MIN_WIDTH = 28;
+const RESOURCE_TABLE_COLUMN_WIDTHS: Record<BuiltInResourceTableColumnId, number> = {
+  number: 30,
+  name: 192,
+  availability: 80,
+  assignments: 86,
+  actions: 32,
+};
+const RESOURCE_TABLE_COLUMN_MIN_WIDTHS: Record<BuiltInResourceTableColumnId, number> = {
+  number: 30,
+  name: 146,
+  availability: 58,
+  assignments: 72,
+  actions: 32,
+};
 const ITEM_OUTER_VERTICAL_INSET = 2;
 const ITEM_INNER_VERTICAL_INSET = 1;
 const ITEM_START_HORIZONTAL_INSET = 2;
@@ -77,6 +95,33 @@ const formatOverlapCount = (count: number): string => {
 
   return `${count} ${word}`;
 };
+
+const normalizeResourceColumnWidthMap = (widths?: ResourceTableColumnWidthMap): ResourceTableColumnWidthMap => {
+  if (!widths) {
+    return {};
+  }
+
+  return Object.entries(widths).reduce<ResourceTableColumnWidthMap>((acc, [columnId, width]) => {
+    if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) {
+      return acc;
+    }
+
+    acc[columnId as ResourceTableColumnId] = Math.round(width);
+    return acc;
+  }, {});
+};
+
+const getResourceColumnMinWidth = (columnId: ResourceTableColumnId): number => (
+  RESOURCE_TABLE_COLUMN_MIN_WIDTHS[columnId as BuiltInResourceTableColumnId] ?? DEFAULT_RESOURCE_COLUMN_MIN_WIDTH
+);
+
+const getResourceColumnWidth = (
+  columnId: BuiltInResourceTableColumnId,
+  widths: ResourceTableColumnWidthMap,
+): number => Math.max(
+  getResourceColumnMinWidth(columnId),
+  widths[columnId] ?? RESOURCE_TABLE_COLUMN_WIDTHS[columnId]
+);
 
 const getWeekendOverlaySegments = (
   startDate: Date,
@@ -222,6 +267,7 @@ interface ResourceHeaderProps<TItem extends ResourceTimelineItem> {
   onResourceChange?: (resource: ResourceTimelineResource<TItem>) => void;
   onResourceNameClick?: (resourceId: string) => void;
   onConflictBadgeClick?: (resourceId: string) => void;
+  columnTemplate: string;
 }
 
 const ResourceTypeIcon: React.FC<{ type: string }> = ({ type }) => {
@@ -289,6 +335,7 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
   onResourceChange,
   onResourceNameClick,
   onConflictBadgeClick,
+  columnTemplate,
 }: ResourceHeaderProps<TItem>) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
@@ -384,6 +431,7 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
       style={{
         height: `${height}px`,
         paddingBottom: `${paddingBottom}px`,
+        gridTemplateColumns: columnTemplate,
       }}
     >
       <span className="gantt-resourceTimeline-resourceNumber">{rowIndex + 1}</span>
@@ -574,9 +622,10 @@ interface NewResourceRowProps {
   height: number;
   onConfirm: (name: string) => void;
   onCancel: () => void;
+  columnTemplate: string;
 }
 
-const NewResourceRow: React.FC<NewResourceRowProps> = ({ height, onConfirm, onCancel }) => {
+const NewResourceRow: React.FC<NewResourceRowProps> = ({ height, onConfirm, onCancel, columnTemplate }) => {
   const [nameValue, setNameValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const confirmedRef = useRef(false);
@@ -622,6 +671,7 @@ const NewResourceRow: React.FC<NewResourceRowProps> = ({ height, onConfirm, onCa
       style={{
         height: `${height}px`,
         paddingBottom: `${DEFAULT_RESOURCE_ROW_GAP}px`,
+        gridTemplateColumns: columnTemplate,
       }}
     >
       <span className="gantt-resourceTimeline-resourceNumber">+</span>
@@ -663,10 +713,13 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   onAddResource,
   enableAddResource = true,
   resourceMenuCommands = [],
+  resourceTableColumnWidths,
+  onResourceTableColumnWidthsChange,
 }: ResourcePlannerChartProps<TItem>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
+  const resourceColumnResizeRef = useRef<{ columnId: ResourceTableColumnId; startX: number; startWidth: number } | null>(null);
   const conflictNavigationIndexRef = useRef<Map<string, number>>(new Map());
   const resourceNavigationIndexRef = useRef<Map<string, number>>(new Map());
   const conflictHighlightTimeoutRef = useRef<number | null>(null);
@@ -674,6 +727,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const [creatingResourceGroupType, setCreatingResourceGroupType] = useState<string | null>(null);
   const [activeConflictItemId, setActiveConflictItemId] = useState<string | null>(null);
   const [resourceColumnHasRightShadow, setResourceColumnHasRightShadow] = useState(false);
+  const [resourceColumnWidthOverrides, setResourceColumnWidthOverrides] = useState<ResourceTableColumnWidthMap>(() => normalizeResourceColumnWidthMap(resourceTableColumnWidths));
   const validItems = useMemo(() => collectValidItems(resources), [resources]);
   const dateRange = useMemo(() => getMultiMonthDays(validItems), [validItems]);
   const monthStart = useMemo(() => {
@@ -685,7 +739,28 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     [customDays, isWeekend]
   );
   const gridWidth = useMemo(() => Math.round(dateRange.length * dayWidth), [dateRange.length, dayWidth]);
-  const effectiveRowHeaderWidth = Math.max(rowHeaderWidth, DEFAULT_ROW_HEADER_WIDTH);
+  useEffect(() => {
+    setResourceColumnWidthOverrides(normalizeResourceColumnWidthMap(resourceTableColumnWidths));
+  }, [resourceTableColumnWidths]);
+  const resolvedResourceColumnWidths = useMemo(
+    () => ({
+      number: getResourceColumnWidth('number', resourceColumnWidthOverrides),
+      name: getResourceColumnWidth('name', resourceColumnWidthOverrides),
+      availability: getResourceColumnWidth('availability', resourceColumnWidthOverrides),
+      assignments: getResourceColumnWidth('assignments', resourceColumnWidthOverrides),
+      actions: getResourceColumnWidth('actions', resourceColumnWidthOverrides),
+    }),
+    [resourceColumnWidthOverrides]
+  );
+  const resourceColumnTemplate = useMemo(
+    () => `${resolvedResourceColumnWidths.number}px minmax(${resolvedResourceColumnWidths.name}px, 1fr) ${resolvedResourceColumnWidths.availability}px ${resolvedResourceColumnWidths.assignments}px ${resolvedResourceColumnWidths.actions}px`,
+    [resolvedResourceColumnWidths]
+  );
+  const resolvedResourceColumnWidthTotal = useMemo(
+    () => Object.values(resolvedResourceColumnWidths).reduce((sum, width) => sum + width, 0),
+    [resolvedResourceColumnWidths]
+  );
+  const effectiveRowHeaderWidth = Math.max(rowHeaderWidth, DEFAULT_ROW_HEADER_WIDTH, resolvedResourceColumnWidthTotal);
   const orderedResources = useMemo(
     () => resourceGrouping === 'type' ? orderResourcesByType(resources) : resources,
     [resourceGrouping, resources]
@@ -721,6 +796,83 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   );
   const canAddResource = enableAddResource && Boolean(onAddResource);
   const resourceAddRowHeight = laneHeight + DEFAULT_RESOURCE_ROW_GAP;
+  const updateResourceColumnWidth = useCallback((columnId: ResourceTableColumnId, width: number) => {
+    setResourceColumnWidthOverrides((prev) => {
+      if (prev[columnId] === width) {
+        return prev;
+      }
+
+      const next = { ...prev, [columnId]: width };
+      onResourceTableColumnWidthsChange?.(next);
+      return next;
+    });
+  }, [onResourceTableColumnWidthsChange]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      const resizeState = resourceColumnResizeRef.current;
+      if (!resizeState) {
+        return;
+      }
+
+      const nextWidth = Math.max(
+        getResourceColumnMinWidth(resizeState.columnId),
+        Math.round(resizeState.startWidth + event.clientX - resizeState.startX)
+      );
+
+      updateResourceColumnWidth(resizeState.columnId, nextWidth);
+    };
+
+    const handleMouseUp = () => {
+      if (!resourceColumnResizeRef.current) {
+        return;
+      }
+
+      resourceColumnResizeRef.current = null;
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+    };
+  }, [updateResourceColumnWidth]);
+
+  const startResourceColumnResize = useCallback((columnId: ResourceTableColumnId, event: React.MouseEvent<HTMLButtonElement>) => {
+    const width = resolvedResourceColumnWidths[columnId as BuiltInResourceTableColumnId];
+    if (typeof width !== 'number') {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    resourceColumnResizeRef.current = {
+      columnId,
+      startX: event.clientX,
+      startWidth: width,
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [resolvedResourceColumnWidths]);
+
+  const renderResizeHandle = useCallback((columnId: ResourceTableColumnId) => (
+    <button
+      type="button"
+      className="gantt-resourceTimeline-columnResizeHandle"
+      data-testid={`resource-table-resize-handle-${columnId}`}
+      aria-label={`Resize ${columnId} column`}
+      onMouseDown={(event) => startResourceColumnResize(columnId, event)}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    />
+  ), [startResourceColumnResize]);
 
   const displayLayout = useMemo(() => {
     if (resourceGrouping !== 'type') {
@@ -1054,13 +1206,26 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
           >
             <div
               className="gantt-resourceTimeline-corner"
-              style={{ height: `${timelineHeaderHeight}px` }}
+              style={{ height: `${timelineHeaderHeight}px`, gridTemplateColumns: resourceColumnTemplate }}
             >
-              <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderNumber">#</span>
-              <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderName">Название</span>
-              <span className="gantt-resourceTimeline-resourceHeaderCell" aria-label="Доступность" />
-              <span className="gantt-resourceTimeline-resourceHeaderCell">Назначения</span>
-              <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderActions" aria-label="Действия" />
+              <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderNumber">
+                #
+                {renderResizeHandle('number')}
+              </span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderName">
+                Название
+                {renderResizeHandle('name')}
+              </span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell" aria-label="Доступность">
+                {renderResizeHandle('availability')}
+              </span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell">
+                Назначения
+                {renderResizeHandle('assignments')}
+              </span>
+              <span className="gantt-resourceTimeline-resourceHeaderCell gantt-resourceTimeline-resourceHeaderActions" aria-label="Действия">
+                {renderResizeHandle('actions')}
+              </span>
             </div>
             {displayLayout.groupHeaders.length > 0 ? (
               displayLayout.groupHeaders.map((group) => (
@@ -1105,6 +1270,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                           onResourceChange={onResourceChange}
                           onResourceNameClick={handleResourceNameClick}
                           onConflictBadgeClick={handleConflictBadgeClick}
+                          columnTemplate={resourceColumnTemplate}
                         />
                       );
                     })}
@@ -1113,6 +1279,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                       height={resourceAddRowHeight}
                       onConfirm={handleConfirmNewResource}
                       onCancel={handleCancelNewResource}
+                      columnTemplate={resourceColumnTemplate}
                     />
                   )}
                 </React.Fragment>
@@ -1133,6 +1300,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   onResourceChange={onResourceChange}
                   onResourceNameClick={handleResourceNameClick}
                   onConflictBadgeClick={handleConflictBadgeClick}
+                  columnTemplate={resourceColumnTemplate}
                 />
               ))
             )}
@@ -1142,6 +1310,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                   height={resourceAddRowHeight}
                   onConfirm={handleConfirmNewResource}
                   onCancel={handleCancelNewResource}
+                  columnTemplate={resourceColumnTemplate}
                 />
               ) : (
                 <button

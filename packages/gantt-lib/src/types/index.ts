@@ -65,6 +65,17 @@ export interface ResourceTimelineResourceMenuCommand<
   closeOnSelect?: boolean;
 }
 
+export type BuiltInResourceTableColumnId =
+  | 'number'
+  | 'name'
+  | 'availability'
+  | 'assignments'
+  | 'actions';
+
+export type ResourceTableColumnId = BuiltInResourceTableColumnId | (string & {});
+
+export type ResourceTableColumnWidthMap = Partial<Record<ResourceTableColumnId, number>>;
+
 export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = ResourceTimelineItem> {
   mode: 'resource-planner';
   resources: Array<ResourceTimelineResource<TItem>>;
@@ -91,6 +102,8 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   onAddResource?: (resource: ResourceTimelineResource<TItem>) => void;
   enableAddResource?: boolean;
   resourceMenuCommands?: Array<ResourceTimelineResourceMenuCommand<TItem>>;
+  resourceTableColumnWidths?: ResourceTableColumnWidthMap;
+  onResourceTableColumnWidthsChange?: (widths: ResourceTableColumnWidthMap) => void;
 }
 
 /**
