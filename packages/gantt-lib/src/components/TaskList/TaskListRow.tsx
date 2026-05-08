@@ -2191,7 +2191,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   {onTasksChange && (
                     <div
                       className="gantt-tl-context-menu-section gantt-tl-context-submenu-wrap"
-                      onMouseLeave={closeColorMenu}
+                      onMouseLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                          closeColorMenu();
+                        }
+                      }}
                       onBlur={(e) => {
                         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
                           closeColorMenu();

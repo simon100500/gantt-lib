@@ -837,7 +837,7 @@
 .gantt-tl-context-submenu {
   position: absolute;
   top: 2px;
-  left: calc(100% + 6px);
+  left: calc(100% - 1px);
   z-index: 20;
   min-width: 124px;
   padding: 8px;
