@@ -126,6 +126,43 @@
   color: #44546f;
 }
 
+.gantt-resourceTimeline-resourceGroupToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #5e6c84;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.gantt-resourceTimeline-resourceGroupToggle:hover,
+.gantt-resourceTimeline-resourceGroupToggle:focus-visible {
+  background: #ebecf0;
+  color: #172b4d;
+  outline: none;
+}
+
+.gantt-resourceTimeline-resourceGroupToggleCollapsed .gantt-resourceTimeline-resourceGroupChevronIcon {
+  transform: rotate(0deg);
+}
+
+.gantt-resourceTimeline-resourceGroupChevronIcon {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  transform: rotate(90deg);
+  transition: transform 120ms ease;
+}
+
 .gantt-resourceTimeline-resourceGroupTitle {
   min-width: 0;
   overflow: hidden;

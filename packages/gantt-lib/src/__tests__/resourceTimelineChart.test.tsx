@@ -276,6 +276,38 @@ describe('ResourceTimelineChart', () => {
     expect(container.querySelectorAll('[data-resource-group]')).toHaveLength(4);
   });
 
+  it('collapses and expands grouped resource sections by chevron', () => {
+    const groupedResources: ResourceTimelineResource[] = [
+      { id: 'materials', name: 'Materials', type: 'Материалы', items: [] },
+      { id: 'crew-project', name: 'Crew Project', type: 'Люди', scope: 'Project', items: [] },
+      { id: 'equipment', name: 'Equipment', type: 'Оборудование', items: [] },
+      { id: 'qa', name: 'QA', items: [] },
+      { id: 'crew-shared', name: 'Crew Shared', type: 'Люди', scope: 'Shared', items: [] },
+    ];
+
+    render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={groupedResources}
+        resourceGrouping="type"
+      />
+    );
+
+    expect(screen.getByLabelText('Название ресурса Crew Shared')).toBeInTheDocument();
+    expect(screen.getByLabelText('Название ресурса Crew Project')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Свернуть группу Люди' }));
+
+    expect(screen.queryByLabelText('Название ресурса Crew Shared')).toBeNull();
+    expect(screen.queryByLabelText('Название ресурса Crew Project')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Развернуть группу Люди' })).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Развернуть группу Люди' }));
+
+    expect(screen.getByLabelText('Название ресурса Crew Shared')).toBeInTheDocument();
+    expect(screen.getByLabelText('Название ресурса Crew Project')).toBeInTheDocument();
+  });
+
   it('opens an inline group resource name editor before adding the typed resource', () => {
     const onAddResource = vi.fn();
     const groupedResources: ResourceTimelineResource[] = [

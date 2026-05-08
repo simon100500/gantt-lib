@@ -317,6 +317,12 @@ const ResourceTypeDropdownIcon: React.FC = () => (
   </svg>
 );
 
+const ResourceGroupChevronIcon: React.FC = () => (
+  <svg className="gantt-resourceTimeline-resourceGroupChevronIcon" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+    <path d="M4 2.5 7.5 6 4 9.5" />
+  </svg>
+);
+
 function isInactiveResourceStatus(status: string | undefined): boolean {
   return status?.trim().toLocaleLowerCase() === 'inactive';
 }
@@ -803,6 +809,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   );
   const canAddResource = enableAddResource && Boolean(onAddResource);
   const resourceAddRowHeight = laneHeight + DEFAULT_RESOURCE_ROW_GAP;
+  const [collapsedResourceGroups, setCollapsedResourceGroups] = useState<Set<string>>(new Set());
   const updateResourceColumnWidth = useCallback((columnId: ResourceTableColumnId, width: number) => {
     setResourceColumnWidthOverrides((prev) => {
       if (prev[columnId] === width) {
@@ -881,12 +888,24 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
     />
   ), [startResourceColumnResize]);
 
+  const toggleResourceGroupCollapsed = useCallback((groupKey: string) => {
+    setCollapsedResourceGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
+  }, []);
+
   const displayLayout = useMemo(() => {
     if (resourceGrouping !== 'type') {
       return {
         rows: layout.rows,
         items: layout.items,
-        groupHeaders: [] as Array<{ key: string; label: string; count: number; top: number; height: number }>,
+        groupHeaders: [] as Array<{ key: string; label: string; count: number; top: number; height: number; collapsed: boolean }>,
         groupAddRows: [] as Array<{ key: string; top: number; height: number }>,
         totalHeight: layout.totalHeight,
       };
@@ -898,57 +917,79 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
       countsByType.set(type, (countsByType.get(type) ?? 0) + 1);
     }
 
-    let offset = 0;
+    let currentTop = 0;
     let previousType: string | null = null;
     const rowTopOffsets = new Map<string, number>();
-    const groupHeaders: Array<{ key: string; label: string; count: number; top: number; height: number }> = [];
+    const visibleRowIds = new Set<string>();
+    const groupHeaders: Array<{ key: string; label: string; count: number; top: number; height: number; collapsed: boolean }> = [];
     const groupAddRows: Array<{ key: string; top: number; height: number }> = [];
-    const rows = layout.rows.map((row) => {
+    const rows = layout.rows.flatMap((row) => {
       const type = getResourceType(row.resource);
+      const isCollapsed = collapsedResourceGroups.has(type);
       if (type !== previousType) {
-        if (previousType !== null && creatingResourceGroupType === previousType) {
+        if (
+          previousType !== null &&
+          creatingResourceGroupType === previousType &&
+          !collapsedResourceGroups.has(previousType)
+        ) {
           groupAddRows.push({
             key: previousType,
-            top: row.resourceRowTop + offset,
+            top: currentTop,
             height: resourceAddRowHeight,
           });
-          offset += resourceAddRowHeight;
+          currentTop += resourceAddRowHeight;
         }
 
         groupHeaders.push({
           key: type,
           label: type,
           count: countsByType.get(type) ?? 0,
-          top: row.resourceRowTop + offset,
+          top: currentTop,
           height: DEFAULT_RESOURCE_GROUP_HEIGHT,
+          collapsed: isCollapsed,
         });
-        offset += DEFAULT_RESOURCE_GROUP_HEIGHT;
+        currentTop += DEFAULT_RESOURCE_GROUP_HEIGHT;
         previousType = type;
       }
 
-      rowTopOffsets.set(row.resourceId, offset);
-      return {
+      if (isCollapsed) {
+        return [];
+      }
+
+      rowTopOffsets.set(row.resourceId, currentTop - row.resourceRowTop);
+      visibleRowIds.add(row.resourceId);
+      const nextRow = {
         ...row,
-        resourceRowTop: row.resourceRowTop + offset,
+        resourceRowTop: currentTop,
       };
+      currentTop += row.resourceRowHeight + DEFAULT_RESOURCE_ROW_GAP;
+      return [nextRow];
     });
 
-    if (previousType !== null && creatingResourceGroupType === previousType) {
+    if (
+      previousType !== null &&
+      creatingResourceGroupType === previousType &&
+      !collapsedResourceGroups.has(previousType)
+    ) {
       groupAddRows.push({
         key: previousType,
-        top: layout.totalHeight + offset,
+        top: currentTop,
         height: resourceAddRowHeight,
       });
-      offset += resourceAddRowHeight;
+      currentTop += resourceAddRowHeight;
     }
 
-    const items = layout.items.map((item) => {
+    const items = layout.items.flatMap((item) => {
+      if (!visibleRowIds.has(item.resourceId)) {
+        return [];
+      }
+
       const itemOffset = rowTopOffsets.get(item.resourceId) ?? 0;
-      return {
+      return [{
         ...item,
         resourceRowTop: item.resourceRowTop + itemOffset,
         top: item.top + itemOffset,
-      };
+      }];
     });
 
     return {
@@ -956,9 +997,9 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
       items,
       groupHeaders,
       groupAddRows,
-      totalHeight: layout.totalHeight + offset,
+      totalHeight: currentTop,
     };
-  }, [creatingResourceGroupType, layout, resourceAddRowHeight, resourceGrouping]);
+  }, [collapsedResourceGroups, creatingResourceGroupType, layout, resourceAddRowHeight, resourceGrouping]);
 
   const todayInRange = useMemo(() => {
     const now = new Date();
@@ -1017,6 +1058,15 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   const handleStartAddResourceToGroup = useCallback((type: string) => {
     setIsCreatingResource(false);
     setCreatingResourceGroupType(type);
+    setCollapsedResourceGroups((prev) => {
+      if (!prev.has(type)) {
+        return prev;
+      }
+
+      const next = new Set(prev);
+      next.delete(type);
+      return next;
+    });
   }, []);
 
   const handleCancelNewResource = useCallback(() => {
@@ -1241,6 +1291,18 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                     className="gantt-resourceTimeline-resourceGroupHeader"
                     style={{ height: `${group.height}px` }}
                   >
+                    <button
+                      type="button"
+                      className={`gantt-resourceTimeline-resourceGroupToggle${group.collapsed ? ' gantt-resourceTimeline-resourceGroupToggleCollapsed' : ''}`}
+                      aria-label={`${group.collapsed ? 'Развернуть' : 'Свернуть'} группу ${group.label}`}
+                      aria-expanded={!group.collapsed}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleResourceGroupCollapsed(group.key);
+                      }}
+                    >
+                      <ResourceGroupChevronIcon />
+                    </button>
                     <span className="gantt-resourceTimeline-resourceGroupTitle">{group.label}</span>
                     <span className="gantt-resourceTimeline-resourceGroupCount">{group.count}</span>
                     {canAddResource && (
