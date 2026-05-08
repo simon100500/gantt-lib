@@ -407,7 +407,6 @@ describe('ResourceTimelineChart', () => {
 
     const scrollContainer = container.querySelector('.gantt-resourceTimeline-scrollContainer') as HTMLElement;
     expect(scrollContainer.style.height).toBe('calc(100dvh - 132px)');
-    expect(scrollContainer.style.overflowY).toBe('auto');
   });
 
   it('keeps the sticky resource column above timeline overlays', () => {

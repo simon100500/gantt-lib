@@ -1043,7 +1043,6 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
         style={{
           cursor: 'grab',
           height: containerHeight ?? 'auto',
-          overflowY: containerHeight === undefined ? undefined : 'auto',
         }}
         data-allow-vertical-pan={allowVerticalPan ? 'true' : 'false'}
         onMouseDown={handlePanStart}

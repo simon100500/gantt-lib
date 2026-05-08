@@ -395,6 +395,7 @@ export default function ResourcePlannerExample() {
         <GanttChart<never, PlannerItem>
           mode="resource-planner"
           resources={resources}
+          containerHeight="80dvh"
           dayWidth={dayWidth}
           viewMode={viewMode}
           laneHeight={42}
