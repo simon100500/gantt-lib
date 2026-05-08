@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.110.0] - 2026-05-08
+
+### Features
+
+- Add visual divider support to TaskList menu commands with top/bottom separator styling
+
 ## [0.109.0] - 2026-05-08
 
 ### Features
