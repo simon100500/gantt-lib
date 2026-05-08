@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.109.0] - 2026-05-08
+
+### Features
+
+- Add resource type dropdown icon and collapsible resource groups in ResourceTimelineChart
+
+### Fixes
+
+- Update z-index values for resource timeline components
+
 ## [0.108.0] - 2026-05-08
 
 ### Features
