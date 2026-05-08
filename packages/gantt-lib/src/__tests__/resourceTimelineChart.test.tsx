@@ -182,6 +182,7 @@ describe('ResourceTimelineChart', () => {
     );
 
     const typeChip = screen.getByLabelText('Тип ресурса Design: Другое');
+    expect(typeChip.querySelector('.gantt-resourceTimeline-resourceTypeDropdownIcon')).toBeTruthy();
     fireEvent.click(typeChip);
     fireEvent.click(screen.getByRole('button', { name: 'Оборудование' }));
     expect(onResourceChange).toHaveBeenCalledWith(expect.objectContaining({

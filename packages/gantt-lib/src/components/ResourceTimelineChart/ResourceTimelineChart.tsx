@@ -311,6 +311,12 @@ const ResourceTypeIcon: React.FC<{ type: string }> = ({ type }) => {
   );
 };
 
+const ResourceTypeDropdownIcon: React.FC = () => (
+  <svg className="gantt-resourceTimeline-resourceTypeDropdownIcon" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+    <path d="M2 3.5 5 6.5 8 3.5" />
+  </svg>
+);
+
 function isInactiveResourceStatus(status: string | undefined): boolean {
   return status?.trim().toLocaleLowerCase() === 'inactive';
 }
@@ -450,6 +456,7 @@ const ResourceHeader = <TItem extends ResourceTimelineItem>({
               }}
             >
               <ResourceTypeIcon type={type} />
+              <ResourceTypeDropdownIcon />
             </button>
           </PopoverTrigger>
           <PopoverContent className="gantt-resourceTimeline-resourceOptionMenu" portal={true} align="start">
