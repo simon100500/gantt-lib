@@ -126,4 +126,76 @@ describe('GanttChart taskListMenuCommands', () => {
     expect(within(rows[2] as HTMLElement).queryByRole('button', { name: /линейная команда/i })).toBeNull();
     expect(within(rows[2] as HTMLElement).queryByRole('button', { name: /команда группы/i })).toBeNull();
   });
+
+  it('renders visual dividers around commands when requested', () => {
+    const tasks: Task[] = [
+      {
+        id: 'task-1',
+        name: 'Разобрать этап',
+        startDate: '2026-04-10',
+        endDate: '2026-04-15',
+      },
+    ];
+
+    const menuCommands: TaskListMenuCommand<Task>[] = [
+      {
+        id: 'first',
+        label: 'Первый пункт',
+        onSelect: vi.fn(),
+      },
+      {
+        id: 'second',
+        label: 'Второй пункт',
+        divider: 'top',
+        onSelect: vi.fn(),
+      },
+      {
+        id: 'third',
+        label: 'Третий пункт',
+        divider: 'bottom',
+        onSelect: vi.fn(),
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart
+        tasks={tasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+        taskListWidth={660}
+        taskListMenuCommands={menuCommands}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /дополнительно/i }));
+
+    expect(document.querySelectorAll('.gantt-tl-context-menu-divider')).toHaveLength(2);
+  });
+
+  it('does not open the color submenu immediately when the row menu opens', () => {
+    const tasks: Task[] = [
+      {
+        id: 'task-1',
+        name: 'Разобрать этап',
+        startDate: '2026-04-10',
+        endDate: '2026-04-15',
+      },
+    ];
+
+    render(
+      <GanttChart
+        tasks={tasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+        taskListWidth={660}
+        onTasksChange={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /дополнительно/i }));
+
+    expect(screen.queryByRole('menu', { name: /выбор цвета/i })).toBeNull();
+  });
 });

@@ -796,6 +796,13 @@
   color: #dc2626;
 }
 
+.gantt-tl-context-menu-divider {
+  border: none;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  margin: 2px 0;
+  width: 100%;
+}
+
 .gantt-tl-context-menu-section {
   display: flex;
   flex-direction: column;
@@ -820,6 +827,24 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.gantt-tl-context-submenu-wrap {
+  position: relative;
+  margin-bottom: 0;
+}
+
+.gantt-tl-context-submenu {
+  position: absolute;
+  top: 2px;
+  left: calc(100% + 6px);
+  z-index: 20;
+  min-width: 124px;
+  padding: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
 }
 
 .gantt-tl-color-grid {

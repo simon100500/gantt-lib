@@ -132,6 +132,8 @@ export interface TaskListMenuCommand<TTask extends Task = Task> {
   isDisabled?: (row: TTask) => boolean;
   /** Scope of the command in the hierarchy: all rows, parent/group rows, regular linear rows, or milestones */
   scope?: 'all' | 'group' | 'linear' | 'milestone';
+  /** Optional visual divider before or after the command */
+  divider?: 'top' | 'bottom';
   /** Marks the command with danger styling */
   danger?: boolean;
   /** Close the menu after click (default: true) */

@@ -1593,6 +1593,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [task.id, onDemoteTask],
     );
 
+    const closeColorMenu = useCallback(() => {
+      setColorMenuOpen(false);
+    }, []);
+
     const handleApplyColor = useCallback(
       (color?: string) => {
         if (!onTasksChange) return;
@@ -1609,10 +1613,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         ];
 
         onTasksChange(updatedTasks);
-        setColorMenuOpen(false);
+        closeColorMenu();
         setContextMenuOpen(false);
       },
-      [allTasks, isParent, onTasksChange, task],
+      [allTasks, closeColorMenu, isParent, onTasksChange, task],
     );
 
     const handleUngroup = useCallback(
@@ -1653,11 +1657,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           e.stopPropagation();
           if (command.closeOnSelect !== false) {
             setContextMenuOpen(false);
-            setColorMenuOpen(false);
+            closeColorMenu();
           }
           command.onSelect(task);
         },
-      [task],
+      [closeColorMenu, task],
     );
 
     // Dependency handlers
@@ -2168,7 +2172,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             {hasContextMenu && (
               <Popover open={contextMenuOpen} onOpenChange={(open) => {
                 setContextMenuOpen(open);
-                if (!open) setColorMenuOpen(false);
+                if (!open) closeColorMenu();
               }}>
                 <PopoverTrigger asChild>
                   <button
@@ -2185,15 +2189,21 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 </PopoverTrigger>
                 <PopoverContent className="gantt-tl-context-menu" portal={true} align="end">
                   {onTasksChange && (
-                    <div className="gantt-tl-context-menu-section">
+                    <div
+                      className="gantt-tl-context-menu-section gantt-tl-context-submenu-wrap"
+                      onMouseLeave={closeColorMenu}
+                      onBlur={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                          closeColorMenu();
+                        }
+                      }}
+                    >
                       <button
                         type="button"
                         className="gantt-tl-context-menu-item gantt-tl-context-menu-item-toggle"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setColorMenuOpen((value) => !value);
-                        }}
+                        onMouseEnter={() => setColorMenuOpen(true)}
                         aria-expanded={colorMenuOpen}
+                        aria-haspopup="menu"
                       >
                         <span className="gantt-tl-context-menu-item-main">
                           {task.color && (
@@ -2208,33 +2218,35 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                         <ChevronRightIcon />
                       </button>
                       {colorMenuOpen && (
-                        <div className="gantt-tl-color-grid">
-                          <button
-                            type="button"
-                            className={`gantt-tl-color-swatch gantt-tl-color-swatch-clear${!task.color ? " is-selected" : ""}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleApplyColor(undefined);
-                            }}
-                            aria-label="Сбросить цвет"
-                            title="Сбросить цвет"
-                          >
-                            <span className="gantt-tl-color-swatch-clear-line" />
-                          </button>
-                          {TASK_COLOR_PALETTE.map((paletteColor) => (
+                        <div className="gantt-tl-context-submenu" role="menu" aria-label="Выбор цвета">
+                          <div className="gantt-tl-color-grid">
                             <button
-                              key={paletteColor.value}
                               type="button"
-                              className={`gantt-tl-color-swatch${task.color === paletteColor.value ? " is-selected" : ""}`}
-                              style={{ backgroundColor: paletteColor.value }}
+                              className={`gantt-tl-color-swatch gantt-tl-color-swatch-clear${!task.color ? " is-selected" : ""}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleApplyColor(paletteColor.value);
+                                handleApplyColor(undefined);
                               }}
-                              aria-label={`Выбрать цвет ${paletteColor.label}`}
-                              title={paletteColor.label}
-                            />
-                          ))}
+                              aria-label="Сбросить цвет"
+                              title="Сбросить цвет"
+                            >
+                              <span className="gantt-tl-color-swatch-clear-line" />
+                            </button>
+                            {TASK_COLOR_PALETTE.map((paletteColor) => (
+                              <button
+                                key={paletteColor.value}
+                                type="button"
+                                className={`gantt-tl-color-swatch${task.color === paletteColor.value ? " is-selected" : ""}`}
+                                style={{ backgroundColor: paletteColor.value }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApplyColor(paletteColor.value);
+                                }}
+                                aria-label={`Выбрать цвет ${paletteColor.label}`}
+                                title={paletteColor.label}
+                              />
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2254,16 +2266,19 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                     </button>
                   )}
                   {visibleCustomMenuCommands.map((command) => (
-                    <button
-                      key={command.id}
-                      type="button"
-                      className={`gantt-tl-context-menu-item${command.danger ? " gantt-tl-context-menu-item-danger" : ""}`}
-                      onClick={handleCustomMenuCommandClick(command)}
-                      disabled={command.isDisabled?.(task) ?? false}
-                    >
-                      {command.icon}
-                      {command.label}
-                    </button>
+                    <React.Fragment key={command.id}>
+                      {command.divider === "top" && <hr className="gantt-tl-context-menu-divider" />}
+                      <button
+                        type="button"
+                        className={`gantt-tl-context-menu-item${command.danger ? " gantt-tl-context-menu-item-danger" : ""}`}
+                        onClick={handleCustomMenuCommandClick(command)}
+                        disabled={command.isDisabled?.(task) ?? false}
+                      >
+                        {command.icon}
+                        {command.label}
+                      </button>
+                      {command.divider === "bottom" && <hr className="gantt-tl-context-menu-divider" />}
+                    </React.Fragment>
                   ))}
                   {isParent && onUngroupTask && (
                     <button
