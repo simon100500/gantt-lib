@@ -217,7 +217,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `hiddenTaskListColumns` | `TaskListColumnId[]` | `undefined` | Built-in or custom TaskList column IDs to hide after column placement is resolved. Works for built-in columns such as `'duration'` and custom `additionalColumns` ids. |
 | `taskListColumnWidths` | `TaskListColumnWidthMap` | `undefined` | Initial or controlled width overrides for built-in and custom TaskList columns, keyed by column id. Example: `{ name: 280, assignee: 180 }`. |
 | `onTaskListColumnWidthsChange` | `(widths: TaskListColumnWidthMap) => void` | `undefined` | Called when the user drags a TaskList header resize handle. Use with `taskListColumnWidths` to persist widths outside the component. |
-| `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Additional commands for the TaskList three-dots menu. Each command receives the current row in `onSelect(row)`, can render an `icon`, and may be restricted by `scope`: `'group'`, `'linear'`, `'milestone'`, or `'all'`. When `scope` is omitted, the command is shown for all task types. |
+| `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Additional commands for the TaskList three-dots menu. Each command receives the current row in `onSelect(row)`, can render an `icon`, may render a visual `divider: 'top' | 'bottom'`, and may be restricted by `scope`: `'group'`, `'linear'`, `'milestone'`, or `'all'`. When `scope` is omitted, the command is shown for all task types. |
 | `hideTaskListRowActions` | `boolean` | `false` | Hides row-level TaskList actions such as insert/delete/hierarchy buttons. Useful in spreadsheet-like or read-only table presentations. |
 | `rowContentLines` | `number` | `1` | Declares how many text lines each row should comfortably fit in table-like layouts. The effective row height is auto-expanded to at least `10 + rowContentLines * 18` pixels, keeping the left `TaskList` and the right chart/matrix row heights synchronized. |
 
@@ -381,6 +381,7 @@ type TaskListMenuCommand<TTask extends Task = Task> = {
   isVisible?: (row: TTask) => boolean;
   isDisabled?: (row: TTask) => boolean;
   scope?: 'all' | 'group' | 'linear' | 'milestone';
+  divider?: 'top' | 'bottom';
   danger?: boolean;
   closeOnSelect?: boolean;
 };
@@ -390,6 +391,8 @@ type TaskListMenuCommand<TTask extends Task = Task> = {
 - `scope: 'group'` shows the command only for parent/group rows.
 - `scope: 'linear'` shows the command only for regular non-parent, non-milestone rows.
 - `scope: 'milestone'` shows the command only for tasks with `type: 'milestone'`.
+- `divider: 'top'` renders a separator line before the command.
+- `divider: 'bottom'` renders a separator line after the command.
 - `isVisible` and `isDisabled` run per row and can be combined with `scope`.
 
 Example:
@@ -413,6 +416,7 @@ Example:
     {
       id: 'rename-milestone',
       label: 'Rename milestone',
+      divider: 'top',
       scope: 'milestone',
       onSelect: (row) => openRenameDialog(row),
     },
