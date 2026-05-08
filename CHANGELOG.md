@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.108.0] - 2026-05-08
+
+### Features
+
+- Add customizable resource table column widths in ResourceTimelineChart with resize handling
+
+### Style
+
+- Improve scroll container behavior and column width in ResourceTimelineChart, adjust example height
+
 ## [0.107.0] - 2026-05-07
 
 ### Features
