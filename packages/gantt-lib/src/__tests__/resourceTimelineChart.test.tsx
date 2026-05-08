@@ -491,7 +491,8 @@ describe('ResourceTimelineChart', () => {
 
     expect(css).toMatch(/\.gantt-resourceTimeline-resourceColumn\s*{[^}]*z-index:\s*3;/);
     expect(css).toMatch(/\.gantt-resourceTimeline-chartSurface\s*{[^}]*position:\s*relative;[^}]*z-index:\s*0;/);
-    expect(css).toMatch(/\.gantt-resourceTimeline \.gantt-ti-indicator\s*{[^}]*z-index:\s*40;/);
+    expect(css).toMatch(/\.gantt-resourceTimeline-stickyHeader\s*{[^}]*z-index:\s*2;/);
+    expect(css).toMatch(/\.gantt-resourceTimeline \.gantt-ti-indicator\s*{[^}]*z-index:\s*1;/);
     expect(css).toMatch(/\.gantt-resourceTimeline-item:hover,\s*\.gantt-resourceTimeline-item:focus-visible\s*{[^}]*z-index:\s*30;/);
   });
 

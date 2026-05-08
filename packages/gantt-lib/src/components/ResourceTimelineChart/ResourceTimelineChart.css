@@ -769,7 +769,7 @@
 }
 
 .gantt-resourceTimeline .gantt-ti-indicator {
-  z-index: 40;
+  z-index: 1;
 }
 
 .gantt-resourceTimeline-row {
