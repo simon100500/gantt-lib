@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.110.1] - 2026-05-08
+
+### Fixes
+
+- Adjust context menu positioning and submenu behavior in TaskList
+
 ## [0.106.0] - 2026-05-06
 
 ### Features
