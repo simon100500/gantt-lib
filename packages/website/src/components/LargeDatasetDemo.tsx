@@ -3,9 +3,16 @@
 import { useCallback, useMemo, useState } from "react";
 import { GanttChart, type Task } from "gantt-lib";
 
-const GROUP_COUNT = 100;
+const GROUP_COUNT = 1000;
 const CHILDREN_PER_GROUP = 9;
 const TOTAL_TASKS = GROUP_COUNT * (CHILDREN_PER_GROUP + 1);
+type ViewMode = "day" | "week" | "month";
+
+const VIEW_MODE_OPTIONS: Array<{ value: ViewMode; label: string; dayWidth: number }> = [
+  { value: "day", label: "День", dayWidth: 24 },
+  { value: "week", label: "Неделя", dayWidth: 8 },
+  { value: "month", label: "Месяц", dayWidth: 2.5 },
+];
 
 const toIsoDate = (source: Date): string => source.toISOString().slice(0, 10);
 
@@ -73,6 +80,8 @@ const createLargeDataset = (): Task[] => {
 export default function LargeDatasetDemo() {
   const initialTasks = useMemo(() => createLargeDataset(), []);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
+  const activeViewMode = VIEW_MODE_OPTIONS.find((option) => option.value === viewMode) ?? VIEW_MODE_OPTIONS[0];
 
   const handleTasksChange = useCallback((updatedTasks: Task[]) => {
     setTasks((previousTasks) => {
@@ -94,7 +103,21 @@ export default function LargeDatasetDemo() {
           <span className="demo-stat-pill">100 groups</span>
           <span className="demo-stat-pill">900 child tasks</span>
           <span className="demo-stat-pill">80dvh viewport</span>
+          <span className="demo-stat-pill">mode: {activeViewMode.label}</span>
         </div>
+      </div>
+
+      <div className="demo-controls" aria-label="Timeline scale controls">
+        {VIEW_MODE_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={`demo-btn ${viewMode === option.value ? "demo-btn-active" : "demo-btn-neutral"}`}
+            onClick={() => setViewMode(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       <div className="demo-chart-card">
@@ -110,6 +133,8 @@ export default function LargeDatasetDemo() {
           showBaseline={true}
           enableAutoSchedule={true}
           businessDays={true}
+          viewMode={viewMode}
+          dayWidth={activeViewMode.dayWidth}
         />
       </div>
     </section>

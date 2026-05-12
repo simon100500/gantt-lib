@@ -5,7 +5,6 @@
  */
 
 import type { Task, DependencyError, ValidationResult } from './types';
-import { areTasksHierarchicallyRelated } from './hierarchy';
 
 /**
  * Build adjacency list for dependency graph (task -> successors)
@@ -14,21 +13,13 @@ export function buildAdjacencyList(tasks: Task[]): Map<string, string[]> {
   const graph = new Map<string, string[]>();
 
   for (const task of tasks) {
-    const successors: string[] = [];
+    graph.set(task.id, []);
+  }
 
-    // Find all tasks that depend on this task (this task is a predecessor)
-    for (const otherTask of tasks) {
-      if (otherTask.dependencies) {
-        for (const dep of otherTask.dependencies) {
-          if (dep.taskId === task.id) {
-            successors.push(otherTask.id);
-            break;
-          }
-        }
-      }
+  for (const task of tasks) {
+    for (const dep of task.dependencies ?? []) {
+      graph.get(dep.taskId)?.push(task.id);
     }
-
-    graph.set(task.id, successors);
   }
 
   return graph;
@@ -82,6 +73,31 @@ export function detectCycles(tasks: Task[]): { hasCycle: boolean; cyclePath?: st
 export function validateDependencies(tasks: Task[]): ValidationResult {
   const errors: DependencyError[] = [];
   const taskIds = new Set(tasks.map(t => t.id));
+  const parentByTaskId = new Map(tasks.map(task => [task.id, task.parentId]));
+
+  function isAncestor(ancestorId: string, taskId: string): boolean {
+    const visited = new Set<string>();
+    let currentParentId = parentByTaskId.get(taskId);
+
+    while (currentParentId) {
+      if (currentParentId === ancestorId) {
+        return true;
+      }
+
+      if (visited.has(currentParentId)) {
+        return false;
+      }
+
+      visited.add(currentParentId);
+      currentParentId = parentByTaskId.get(currentParentId);
+    }
+
+    return false;
+  }
+
+  function areHierarchicallyRelated(taskId1: string, taskId2: string): boolean {
+    return taskId1 === taskId2 || isAncestor(taskId1, taskId2) || isAncestor(taskId2, taskId1);
+  }
 
   // Check for missing predecessor references
   for (const task of tasks) {
@@ -108,7 +124,7 @@ export function validateDependencies(tasks: Task[]): ValidationResult {
         continue;
       }
 
-      if (areTasksHierarchicallyRelated(task.id, dep.taskId, tasks)) {
+      if (areHierarchicallyRelated(task.id, dep.taskId)) {
         errors.push({
           type: 'constraint',
           taskId: task.id,

@@ -556,6 +556,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Track dependency validation results
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const cycleTaskIds = useMemo(() => {
+    const cycleError = validationResult?.errors.find(error => error.type === 'cycle');
+    return new Set(cycleError?.relatedTaskIds ?? []);
+  }, [validationResult]);
 
   // Cascade override positions for dependency lines. Task bars subscribe to previewPositionStore directly.
   const [cascadeOverrides, setCascadeOverrides] = useState<Map<string, { left: number; width: number }>>(new Map());
@@ -575,7 +579,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Visible tasks are determined by collapsed parent state and optionally by filter mode.
   // Checks the full ancestor chain so grandchildren are hidden when any ancestor is collapsed.
-  const visibleTasks = useMemo(() => {
+  const { visibleTasks, visibleTaskIndexMap } = useMemo(() => {
     const parentMap = new Map(normalizedTasks.map(t => [t.id, t.parentId]));
 
     function isAnyAncestorCollapsed(parentId: string | undefined): boolean {
@@ -587,14 +591,25 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return false;
     }
 
-    let tasks = normalizedTasks.filter(task => !isAnyAncestorCollapsed(task.parentId));
+    const tasks: TTask[] = [];
 
-    // In 'hide' mode with active filter, only show matching tasks
-    if (filterMode === 'hide' && taskFilter) {
-      tasks = tasks.filter(taskFilter);
+    for (const task of normalizedTasks) {
+      if (isAnyAncestorCollapsed(task.parentId)) {
+        continue;
+      }
+
+      // In 'hide' mode with active filter, only show matching tasks
+      if (filterMode === 'hide' && taskFilter && !taskFilter(task)) {
+        continue;
+      }
+
+      tasks.push(task);
     }
 
-    return tasks;
+    return {
+      visibleTasks: tasks,
+      visibleTaskIndexMap: new Map(tasks.map((task, index) => [task.id, index])),
+    };
   }, [normalizedTasks, collapsedParentIds, filterMode, taskFilter]);
 
   const matchedTaskIds = useMemo(() => {
@@ -1052,11 +1067,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (previewTasksById.size === 0) return visibleTasks;
     return visibleTasks.map(task => previewTasksById.get(task.id) ?? task);
   }, [visibleTasks, previewTasksById]);
-
-  const visibleTaskIndexMap = useMemo(
-    () => new Map(visibleTasks.map((task, index) => [task.id, index])),
-    [visibleTasks]
-  );
 
   const forcedRenderedTaskIds = useMemo(() => {
     const ids = new Set<string>();
@@ -1551,6 +1561,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             taskDateChangeMode={taskDateChangeMode}
             onTaskDateChangeModeChange={handleTaskDateChangeMode}
             visibleRowIndices={visibleTaskWindowIndices}
+            assumeTasksNormalized={true}
           />
 
           {/* Chart area */}
@@ -1664,6 +1675,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     rowIndexByTaskId={visibleTaskIndexMap}
                     dragOverrides={dependencyOverrides}
                     selectedDep={selectedChip}
+                    cycleTaskIds={cycleTaskIds}
                     businessDays={businessDays}
                     weekendPredicate={isCustomWeekend}
                   />

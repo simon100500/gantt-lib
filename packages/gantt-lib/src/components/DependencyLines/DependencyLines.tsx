@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import { Task } from '../../types';
 import { calculateDependencyPath, resolveTaskHorizontalGeometry } from '../../utils/geometry';
 import { isMilestoneTask } from '../../utils/taskType';
-import { detectCycles } from '../../utils/dependencyUtils';
 import './DependencyLines.css';
 
 /**
@@ -91,6 +90,8 @@ export interface DependencyLinesProps {
   dragOverrides?: Map<string, { left: number; width: number }>;
   /** Currently selected dep chip — highlights the matching arrow in red */
   selectedDep?: { predecessorId: string; successorId: string; linkType: string } | null;
+  /** Precomputed cycle task ids. Kept outside this component to avoid full-graph work during scroll. */
+  cycleTaskIds?: Set<string>;
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
 }
@@ -120,6 +121,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   rowIndexByTaskId,
   dragOverrides,
   selectedDep,
+  cycleTaskIds,
   businessDays = true,
   weekendPredicate,
 }) => {
@@ -185,14 +187,6 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
     return { taskPositions: positions, taskIndices: indices, hiddenTaskIds: hidden };
   }, [tasks, tasksForPositions, allTasks, collapsedParentIds, monthStart, dayWidth, rowHeight, dragOverrides, rowIndexByTaskId]);
-
-  // Detect cycles for highlighting (use allTasks for accurate cycle detection)
-  const cycleInfo = useMemo(() => {
-    const tasksForCycleDetection = allTasks ?? tasks;
-    const result = detectCycles(tasksForCycleDetection);
-    const cycleTaskIds = new Set(result.cyclePath || []);
-    return cycleTaskIds;
-  }, [tasks, allTasks]);
 
   // Calculate all dependency line paths (use allTasks if available)
   const lines = useMemo(() => {
@@ -319,7 +313,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       const path = calculateDependencyPath(from, to, arrivesFromRight);
 
       // Check if this edge is part of a cycle
-      const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
+      const hasCycle = Boolean(cycleTaskIds?.has(edge.predecessorId) || cycleTaskIds?.has(edge.successorId));
 
       lines.push({
         id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
@@ -336,7 +330,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     }
 
     return lines;
-  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, collapsedParentIds]);
+  }, [tasks, allTasks, taskPositions, taskIndices, cycleTaskIds, collapsedParentIds]);
 
   // Calculate SVG height based on visible tasks (not all tasks)
   const svgHeight = totalHeight ?? (tasks.length * rowHeight);

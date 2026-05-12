@@ -281,6 +281,27 @@ export interface TaskListProps {
   onTaskDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
   /** Visible row indices from the shared chart viewport window */
   visibleRowIndices?: number[];
+  /** Internal GanttChart optimization: tasks are already hierarchy-normalized by the parent. */
+  assumeTasksNormalized?: boolean;
+}
+
+function buildTaskNumberMap(tasks: Task[]): Record<string, string> {
+  const numberByTaskId = new Map<string, string>();
+  const rootCountersByParentId = new Map<string, number>();
+
+  for (const task of tasks) {
+    const parentKey = task.parentId ?? '__root__';
+    const nextSiblingNumber = (rootCountersByParentId.get(parentKey) ?? 0) + 1;
+    rootCountersByParentId.set(parentKey, nextSiblingNumber);
+
+    const parentNumber = task.parentId ? numberByTaskId.get(task.parentId) : undefined;
+    const taskNumber = parentNumber
+      ? `${parentNumber}.${nextSiblingNumber}`
+      : String(nextSiblingNumber);
+    numberByTaskId.set(task.id, taskNumber);
+  }
+
+  return Object.fromEntries(numberByTaskId) as Record<string, string>;
 }
 
 interface PendingInsertState {
@@ -404,6 +425,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   taskDateChangeMode = 'preserve-duration',
   onTaskDateChangeModeChange,
   visibleRowIndices,
+  assumeTasksNormalized = false,
 }) => {
   const reorderDisabled = disableTaskListReorder || disableTaskDrag;
   const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -439,8 +461,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, []);
 
   const orderedTasks = useMemo(() => {
-    return normalizeHierarchyTasks(tasks);
-  }, [tasks]);
+    return assumeTasksNormalized ? tasks : normalizeHierarchyTasks(tasks);
+  }, [assumeTasksNormalized, tasks]);
 
   const weekendPredicate = useMemo(
     () => createCustomDayPredicate({ customDays, isWeekend }),
@@ -476,10 +498,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     [visibleTasks.length, rowHeight]
   );
   const visibleTaskNumberMap = useMemo(
-    () =>
-      Object.fromEntries(
-        visibleTasks.map((task, index) => [task.id, String(getTaskNumber(visibleTasks, index))])
-      ) as Record<string, string>,
+    () => buildTaskNumberMap(visibleTasks),
     [visibleTasks]
   );
 
@@ -589,33 +608,33 @@ export const TaskList: React.FC<TaskListProps> = ({
   // should continue through the full row or terminate at the row midpoint.
   const ancestorLineModesMap = useMemo(() => {
     const taskById = new Map(tasks.map(t => [t.id, t]));
+    const lastVisibleDescendantIndexByAncestorId = new Map<string, number>();
+    const ancestorIdsByTaskId = new Map<string, string[]>();
 
-    const isDescendantOf = (taskId: string, ancestorId: string): boolean => {
-      let current: any = taskById.get(taskId);
-      while (current?.parentId && taskById.has(current.parentId)) {
-        if (current.parentId === ancestorId) return true;
-        current = taskById.get(current.parentId);
-      }
-      return false;
-    };
-
-    const map = new Map<string, ("full" | "half")[]>();
     for (let index = 0; index < visibleTasks.length; index++) {
       const task = visibleTasks[index];
       const ancestorIds: string[] = [];
       let current: any = taskById.get(task.id);
+
       while (current?.parentId && taskById.has(current.parentId)) {
         ancestorIds.unshift(current.parentId as string);
         current = taskById.get(current.parentId);
       }
 
+      ancestorIdsByTaskId.set(task.id, ancestorIds);
+      for (const ancestorId of ancestorIds) {
+        lastVisibleDescendantIndexByAncestorId.set(ancestorId, index);
+      }
+    }
+
+    const map = new Map<string, ("full" | "half")[]>();
+    for (let index = 0; index < visibleTasks.length; index++) {
+      const task = visibleTasks[index];
+      const ancestorIds = ancestorIdsByTaskId.get(task.id) ?? [];
       const ancestorsAboveParent = ancestorIds.slice(0, -1);
-      const modes = ancestorsAboveParent.map((ancestorId) => {
-        const hasLaterVisibleDescendant = visibleTasks
-          .slice(index + 1)
-          .some((laterTask) => isDescendantOf(laterTask.id, ancestorId));
-        return hasLaterVisibleDescendant ? "full" : "half";
-      });
+      const modes = ancestorsAboveParent.map((ancestorId) =>
+        (lastVisibleDescendantIndexByAncestorId.get(ancestorId) ?? index) > index ? "full" : "half"
+      );
 
       map.set(task.id, modes);
     }
