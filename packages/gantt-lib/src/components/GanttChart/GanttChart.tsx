@@ -496,6 +496,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const scrollContentRef = useRef<HTMLDivElement>(null);
   const clearSelectedTaskTimeoutRef = useRef<number | null>(null);
   const hasAutoScrolledToTodayRef = useRef(false);
+  const isPanningRef = useRef(false);
+  const forceViewportSyncRef = useRef<(() => void) | null>(null);
   const previewPositionStoreRef = useRef<TaskPreviewPositionStore | null>(null);
   const renderedTaskIdsRef = useRef<Set<string>>(new Set());
   if (previewPositionStoreRef.current === null) {
@@ -746,44 +748,55 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (!container) return;
 
     let frameId: number | null = null;
+    let forceHorizontalSync = false;
     const updateViewport = () => {
       frameId = null;
+      const shouldForceHorizontalSync = forceHorizontalSync;
+      forceHorizontalSync = false;
       const nextHasRightShadow = container.scrollLeft > 0;
       const nextViewportHeight = Math.max(0, container.clientHeight - timelineHeaderHeight);
       const nextScrollTopRowIndex = Math.max(0, Math.floor(container.scrollTop / effectiveRowHeight));
-      const nextScrollLeft = Math.floor(container.scrollLeft / HORIZONTAL_SCROLL_STATE_BUCKET_PX) * HORIZONTAL_SCROLL_STATE_BUCKET_PX;
+      const measuredScrollLeft = Math.floor(container.scrollLeft / HORIZONTAL_SCROLL_STATE_BUCKET_PX) * HORIZONTAL_SCROLL_STATE_BUCKET_PX;
       const nextViewportWidth = container.clientWidth;
 
       setTaskListHasRightShadow((previous) =>
         previous === nextHasRightShadow ? previous : nextHasRightShadow
       );
       setScrollViewport((previous) =>
-        previous.scrollTopRowIndex === nextScrollTopRowIndex &&
-        previous.scrollLeft === nextScrollLeft &&
-        previous.viewportHeight === nextViewportHeight &&
-        previous.viewportWidth === nextViewportWidth
-          ? previous
-          : {
-            scrollTopRowIndex: nextScrollTopRowIndex,
-            scrollLeft: nextScrollLeft,
-            viewportHeight: nextViewportHeight,
-            viewportWidth: nextViewportWidth,
-          }
-      );
+      {
+        const nextScrollLeft = isPanningRef.current && !shouldForceHorizontalSync
+          ? previous.scrollLeft
+          : measuredScrollLeft;
+
+        return previous.scrollTopRowIndex === nextScrollTopRowIndex &&
+          previous.scrollLeft === nextScrollLeft &&
+          previous.viewportHeight === nextViewportHeight &&
+          previous.viewportWidth === nextViewportWidth
+            ? previous
+            : {
+              scrollTopRowIndex: nextScrollTopRowIndex,
+              scrollLeft: nextScrollLeft,
+              viewportHeight: nextViewportHeight,
+              viewportWidth: nextViewportWidth,
+            };
+      });
     };
 
-    const scheduleUpdate = () => {
+    const scheduleUpdate = (forceHorizontal: boolean = false) => {
+      forceHorizontalSync = forceHorizontalSync || forceHorizontal;
       if (frameId !== null) return;
       frameId = window.requestAnimationFrame(updateViewport);
     };
+    const scheduleRegularUpdate = () => scheduleUpdate(false);
+    forceViewportSyncRef.current = () => scheduleUpdate(true);
 
     scheduleUpdate();
-    container.addEventListener('scroll', scheduleUpdate, { passive: true });
-    window.addEventListener('resize', scheduleUpdate);
+    container.addEventListener('scroll', scheduleRegularUpdate, { passive: true });
+    window.addEventListener('resize', scheduleRegularUpdate);
 
     const resizeObserver = typeof ResizeObserver !== 'undefined'
       ? new ResizeObserver(() => {
-          scheduleUpdate();
+          scheduleRegularUpdate();
         })
       : null;
     resizeObserver?.observe(container);
@@ -792,9 +805,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       if (frameId !== null) {
         window.cancelAnimationFrame(frameId);
       }
+      forceViewportSyncRef.current = null;
       resizeObserver?.disconnect();
-      container.removeEventListener('scroll', scheduleUpdate);
-      window.removeEventListener('resize', scheduleUpdate);
+      container.removeEventListener('scroll', scheduleRegularUpdate);
+      window.removeEventListener('resize', scheduleRegularUpdate);
     };
   }, [effectiveRowHeight, timelineHeaderHeight]);
 
@@ -1240,6 +1254,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, [clearHoveredRows]);
 
   const handleSharedRowHover = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (isPanningRef.current) return;
+
     const target = event.target as HTMLElement;
     const row = target.closest<HTMLElement>('[data-gantt-task-row-id]');
     const taskId = row?.dataset.ganttTaskRowId;
@@ -1521,13 +1537,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       scrollX: container.scrollLeft,
       scrollY: container.scrollTop,
     };
+    isPanningRef.current = true;
+    clearHoveredRows();
     // Blur any focused input so onBlur save handlers fire before pan starts
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
     container.style.cursor = 'grabbing';
     e.preventDefault();
-  }, []);
+  }, [clearHoveredRows]);
 
   useEffect(() => {
     const applyPanMove = () => {
@@ -1554,14 +1572,17 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
     const handlePanEnd = () => {
       if (!panStateRef.current?.active) return;
-      panStateRef.current = null;
-      panMoveRef.current = null;
       if (panFrameRef.current !== null) {
         window.cancelAnimationFrame(panFrameRef.current);
         panFrameRef.current = null;
+        applyPanMove();
       }
+      panStateRef.current = null;
+      isPanningRef.current = false;
+      panMoveRef.current = null;
       const container = scrollContainerRef.current;
       if (container) container.style.cursor = '';
+      forceViewportSyncRef.current?.();
     };
 
     window.addEventListener('mousemove', handlePanMove);
@@ -1571,6 +1592,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         window.cancelAnimationFrame(panFrameRef.current);
         panFrameRef.current = null;
       }
+      isPanningRef.current = false;
       window.removeEventListener('mousemove', handlePanMove);
       window.removeEventListener('mouseup', handlePanEnd);
     };
