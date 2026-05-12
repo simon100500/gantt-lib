@@ -94,6 +94,8 @@ export interface DependencyLinesProps {
   cycleTaskIds?: Set<string>;
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
+  /** Visible horizontal pixel window in global timeline coordinates */
+  horizontalWindow?: { startPx: number; endPx: number };
 }
 
 /**
@@ -124,6 +126,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   cycleTaskIds,
   businessDays = true,
   weekendPredicate,
+  horizontalWindow,
 }) => {
   // Use allTasks for virtual position calculation if provided, otherwise use tasks
   const tasksForPositions = allTasks ?? tasks;
@@ -309,6 +312,13 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
       const from = { x: fromX, y: fromY };
       const to = { x: finalToX, y: toY };
+      if (horizontalWindow) {
+        const edgeLeft = Math.min(from.x, to.x);
+        const edgeRight = Math.max(from.x, to.x);
+        if (edgeRight < horizontalWindow.startPx || edgeLeft > horizontalWindow.endPx) {
+          continue;
+        }
+      }
 
       const path = calculateDependencyPath(from, to, arrivesFromRight);
 
@@ -330,7 +340,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     }
 
     return lines;
-  }, [tasks, allTasks, taskPositions, taskIndices, cycleTaskIds, collapsedParentIds]);
+  }, [tasks, allTasks, taskPositions, taskIndices, cycleTaskIds, collapsedParentIds, horizontalWindow]);
 
   // Calculate SVG height based on visible tasks (not all tasks)
   const svgHeight = totalHeight ?? (tasks.length * rowHeight);

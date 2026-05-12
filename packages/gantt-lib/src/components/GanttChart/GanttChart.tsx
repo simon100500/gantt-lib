@@ -34,6 +34,8 @@ import './GanttChart.css';
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
 const TASK_ROW_OVERSCAN = 8;
+const INITIAL_VIEWPORT_HEIGHT_FALLBACK = 800;
+const HORIZONTAL_OVERSCAN_VIEWPORT_MULTIPLIER = 0.5;
 
 function arePositionMapsEqual(
   left: Map<string, { left: number; width: number }>,
@@ -504,7 +506,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
   const [internalTaskDateChangeMode, setInternalTaskDateChangeMode] = useState<TaskDateChangeMode>('preserve-duration');
-  const [scrollViewport, setScrollViewport] = useState({ scrollTop: 0, viewportHeight: 0 });
+  const [scrollViewport, setScrollViewport] = useState({
+    scrollTop: 0,
+    scrollLeft: 0,
+    viewportHeight: 0,
+    viewportWidth: 0,
+  });
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
@@ -569,6 +576,29 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     () => Math.round(dateRange.length * dayWidth),
     [dateRange.length, dayWidth]
   );
+  const horizontalWindow = useMemo(() => {
+    if (isTableMatrixMode || gridWidth <= 0 || scrollViewport.viewportWidth <= 0) {
+      return undefined;
+    }
+
+    const chartStartOffset = showTaskList ? taskListWidth : 0;
+    const overscan = Math.max(dayWidth, Math.round(scrollViewport.viewportWidth * HORIZONTAL_OVERSCAN_VIEWPORT_MULTIPLIER));
+    const visibleStart = scrollViewport.scrollLeft - chartStartOffset;
+    const visibleEnd = visibleStart + scrollViewport.viewportWidth;
+
+    return {
+      startPx: Math.max(0, Math.floor(visibleStart - overscan)),
+      endPx: Math.min(gridWidth, Math.ceil(visibleEnd + overscan)),
+    };
+  }, [
+    dayWidth,
+    gridWidth,
+    isTableMatrixMode,
+    scrollViewport.scrollLeft,
+    scrollViewport.viewportWidth,
+    showTaskList,
+    taskListWidth,
+  ]);
   const matrixWidth = useMemo(
     () => matrixColumns.reduce<number | undefined>((sum, column) => {
       if (typeof column.width !== 'number') return undefined;
@@ -712,14 +742,24 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       const nextHasRightShadow = container.scrollLeft > 0;
       const nextViewportHeight = Math.max(0, container.clientHeight - timelineHeaderHeight);
       const nextScrollTop = container.scrollTop;
+      const nextScrollLeft = container.scrollLeft;
+      const nextViewportWidth = container.clientWidth;
 
       setTaskListHasRightShadow((previous) =>
         previous === nextHasRightShadow ? previous : nextHasRightShadow
       );
       setScrollViewport((previous) =>
-        previous.scrollTop === nextScrollTop && previous.viewportHeight === nextViewportHeight
+        previous.scrollTop === nextScrollTop &&
+        previous.scrollLeft === nextScrollLeft &&
+        previous.viewportHeight === nextViewportHeight &&
+        previous.viewportWidth === nextViewportWidth
           ? previous
-          : { scrollTop: nextScrollTop, viewportHeight: nextViewportHeight }
+          : {
+            scrollTop: nextScrollTop,
+            scrollLeft: nextScrollLeft,
+            viewportHeight: nextViewportHeight,
+            viewportWidth: nextViewportWidth,
+          }
       );
     };
 
@@ -1084,11 +1124,11 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return [] as number[];
     }
 
-    if (scrollViewport.viewportHeight <= 0) {
-      return Array.from({ length: totalTasks }, (_, index) => index);
-    }
+    const viewportHeight = scrollViewport.viewportHeight > 0
+      ? scrollViewport.viewportHeight
+      : INITIAL_VIEWPORT_HEIGHT_FALLBACK;
 
-    const viewportRows = Math.max(1, Math.ceil(scrollViewport.viewportHeight / effectiveRowHeight));
+    const viewportRows = Math.max(1, Math.ceil(viewportHeight / effectiveRowHeight));
     const rangeStart = Math.max(0, Math.floor(scrollViewport.scrollTop / effectiveRowHeight) - TASK_ROW_OVERSCAN);
     const rangeEnd = Math.min(
       totalTasks - 1,
@@ -1108,7 +1148,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
 
     return Array.from(indices).sort((left, right) => left - right);
-  }, [effectiveRowHeight, forcedRenderedTaskIds, scrollViewport, visibleTaskIndexMap, visibleTasks.length]);
+  }, [
+    effectiveRowHeight,
+    forcedRenderedTaskIds,
+    scrollViewport.scrollTop,
+    scrollViewport.viewportHeight,
+    visibleTaskIndexMap,
+    visibleTasks.length,
+  ]);
 
   const renderedChartTasks = useMemo(
     () =>
@@ -1678,6 +1725,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     cycleTaskIds={cycleTaskIds}
                     businessDays={businessDays}
                     weekendPredicate={isCustomWeekend}
+                    horizontalWindow={horizontalWindow}
                   />
 
                   {dragGuideLines && (
