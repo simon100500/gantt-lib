@@ -417,7 +417,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
             };
           });
         })()
-        : cascadeResult;
+        : [];
 
       // Convert cascaded tasks → pixel overrides
       const overrides = new Map<string, { left: number; width: number }>();

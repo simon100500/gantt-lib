@@ -297,12 +297,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const visualLeft = milestone ? displayMilestoneGeometry.left : displayLeft;
     const visualWidth = milestone ? displayMilestoneGeometry.size : displayWidth;
     const shouldRenderBaseline = showBaseline && baselineGeometry !== null;
+    const hasPreviewPosition = isDragging || overridePosition !== undefined;
 
-    // Format date labels for display - update in real-time during drag
-    const currentStartDate = isDragging
+    // Format date labels for display - update in real-time for direct drag and cascade preview.
+    const currentStartDate = hasPreviewPosition
       ? pixelsToDate(displayLeft, monthStart, dayWidth)
       : taskStartDate;
-    const currentEndDate = isDragging
+    const currentEndDate = hasPreviewPosition
       ? (
         milestone
           ? pixelsToDate(displayLeft, monthStart, dayWidth)

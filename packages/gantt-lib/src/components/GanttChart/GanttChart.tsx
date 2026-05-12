@@ -34,6 +34,55 @@ import './GanttChart.css';
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
 const TASK_ROW_OVERSCAN = 8;
 
+function arePositionMapsEqual(
+  left: Map<string, { left: number; width: number }>,
+  right: Map<string, { left: number; width: number }>
+): boolean {
+  if (left.size !== right.size) return false;
+
+  for (const [taskId, leftPosition] of left) {
+    const rightPosition = right.get(taskId);
+    if (!rightPosition) return false;
+    if (leftPosition.left !== rightPosition.left || leftPosition.width !== rightPosition.width) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function arePreviewTaskMapsEqual(left: Map<string, Task>, right: Map<string, Task>): boolean {
+  if (left.size !== right.size) return false;
+
+  for (const [taskId, leftTask] of left) {
+    const rightTask = right.get(taskId);
+    if (!rightTask) return false;
+    if (leftTask.startDate !== rightTask.startDate || leftTask.endDate !== rightTask.endDate) {
+      return false;
+    }
+
+    const leftDependencies = leftTask.dependencies ?? [];
+    const rightDependencies = rightTask.dependencies ?? [];
+    if (leftDependencies.length !== rightDependencies.length) {
+      return false;
+    }
+
+    for (let index = 0; index < leftDependencies.length; index += 1) {
+      const leftDependency = leftDependencies[index];
+      const rightDependency = rightDependencies[index];
+      if (
+        leftDependency.taskId !== rightDependency.taskId ||
+        leftDependency.type !== rightDependency.type ||
+        leftDependency.lag !== rightDependency.lag
+      ) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 export type {
   GanttChartMode,
   ResourcePlannerChartProps,
@@ -964,8 +1013,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     overrides: Map<string, { left: number; width: number }>,
     previewTasks: Task[] = []
   ) => {
-    setCascadeOverrides(new Map(overrides));
-    setPreviewTasksById(new Map(previewTasks.map(task => [task.id, task])));
+    setCascadeOverrides((current) => (
+      arePositionMapsEqual(current, overrides) ? current : new Map(overrides)
+    ));
+    setPreviewTasksById((current) => {
+      const next = previewTasks.length > 0
+        ? new Map(previewTasks.map(task => [task.id, task]))
+        : new Map<string, Task>();
+      return arePreviewTaskMapsEqual(current, next) ? current : next;
+    });
   }, []);
 
   const previewNormalizedTasks = useMemo(() => {
@@ -1622,11 +1678,26 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         onTasksChange={handleTaskChange as (tasks: Task[]) => void}
                         onDragStateChange={(state) => {
                           if (state.isDragging) {
-                            setDragGuideLines(state);
-                            setDraggedTaskOverride({ taskId: task.id, left: state.left, width: state.width });
+                            setDragGuideLines((current) => (
+                              current &&
+                              current.isDragging === state.isDragging &&
+                              current.dragMode === state.dragMode &&
+                              current.left === state.left &&
+                              current.width === state.width
+                                ? current
+                                : state
+                            ));
+                            setDraggedTaskOverride((current) => (
+                              current &&
+                              current.taskId === task.id &&
+                              current.left === state.left &&
+                              current.width === state.width
+                                ? current
+                                : { taskId: task.id, left: state.left, width: state.width }
+                            ));
                           } else {
-                            setDragGuideLines(null);
-                            setDraggedTaskOverride(null);
+                            setDragGuideLines((current) => (current === null ? current : null));
+                            setDraggedTaskOverride((current) => (current === null ? current : null));
                           }
                         }}
                         rowIndex={index}
