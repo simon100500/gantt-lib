@@ -111,7 +111,8 @@ export function clampDateRangeForIncomingFS(
   allTasks: Task[],
   mode: 'move' | 'resize-left' | 'resize-right',
   businessDays?: boolean,
-  weekendPredicate?: (date: Date) => boolean
+  weekendPredicate?: (date: Date) => boolean,
+  taskById?: Map<string, Task>
 ): { start: Date; end: Date } {
   if (mode === 'resize-right') {
     return range;
@@ -123,6 +124,7 @@ export function clampDateRangeForIncomingFS(
     range.end,
     allTasks,
     businessDays,
-    weekendPredicate
+    weekendPredicate,
+    taskById
   );
 }

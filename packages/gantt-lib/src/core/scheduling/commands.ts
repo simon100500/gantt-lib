@@ -109,7 +109,8 @@ export function clampTaskRangeForIncomingFS(
   proposedEnd: Date,
   allTasks: Task[],
   businessDays: boolean = false,
-  weekendPredicate?: (date: Date) => boolean
+  weekendPredicate?: (date: Date) => boolean,
+  taskById?: Map<string, Task>
 ): { start: Date; end: Date } {
   if (!task.dependencies?.length) {
     return { start: proposedStart, end: proposedEnd };
@@ -122,7 +123,7 @@ export function clampTaskRangeForIncomingFS(
       continue;
     }
 
-    const predecessor = allTasks.find(candidate => candidate.id === dep.taskId);
+    const predecessor = taskById?.get(dep.taskId) ?? allTasks.find(candidate => candidate.id === dep.taskId);
     if (!predecessor) {
       continue;
     }
@@ -169,11 +170,12 @@ export function recalculateIncomingLags(
   newEndDate: Date,
   allTasks: Task[],
   businessDays: boolean = false,
-  weekendPredicate?: (date: Date) => boolean
+  weekendPredicate?: (date: Date) => boolean,
+  taskById?: Map<string, Task>
 ): NonNullable<Task['dependencies']> {
   if (!task.dependencies) return [];
   return task.dependencies.map(dep => {
-    const predecessor = allTasks.find(candidate => candidate.id === dep.taskId);
+    const predecessor = taskById?.get(dep.taskId) ?? allTasks.find(candidate => candidate.id === dep.taskId);
     if (!predecessor) {
       return { ...dep, lag: getDependencyLag(dep) };
     }

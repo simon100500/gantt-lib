@@ -16,7 +16,6 @@ import {
   normalizeTaskDependencyLags,
   normalizePredecessorDates,
 } from './dependencies';
-import { getChildren } from './hierarchy';
 import {
   buildTaskRangeFromStart,
   buildTaskRangeFromEnd,
@@ -30,6 +29,38 @@ function parseCascadeDateInput(date: string | Date): Date {
   return normalizeUTCDate(new Date(`${date.split('T')[0]}T00:00:00.000Z`));
 }
 
+export interface CascadeContext {
+  childrenByParentId: Map<string, Task[]>;
+  dependentsByPredecessorId: Map<string, Array<{ task: Task; dependencyIndex: number }>>;
+  taskById: Map<string, Task>;
+}
+
+export function createCascadeContext(allTasks: Task[]): CascadeContext {
+  const childrenByParentId = new Map<string, Task[]>();
+  const dependentsByPredecessorId = new Map<string, Array<{ task: Task; dependencyIndex: number }>>();
+  const taskById = new Map<string, Task>();
+
+  for (const task of allTasks) {
+    taskById.set(task.id, task);
+
+    if (task.parentId) {
+      const children = childrenByParentId.get(task.parentId) ?? [];
+      children.push(task);
+      childrenByParentId.set(task.parentId, children);
+    }
+
+    if (!task.dependencies) continue;
+
+    task.dependencies.forEach((dependency, dependencyIndex) => {
+      const dependents = dependentsByPredecessorId.get(dependency.taskId) ?? [];
+      dependents.push({ task, dependencyIndex });
+      dependentsByPredecessorId.set(dependency.taskId, dependents);
+    });
+  }
+
+  return { childrenByParentId, dependentsByPredecessorId, taskById };
+}
+
 /**
  * Get successor tasks of a dragged task using BFS, filtered by link type(s).
  */
@@ -38,22 +69,7 @@ export function getSuccessorChain(
   allTasks: Task[],
   linkTypes: LinkType[] = ['FS']
 ): Task[] {
-  const successorMap = new Map<string, string[]>();
-  for (const task of allTasks) {
-    successorMap.set(task.id, []);
-  }
-  for (const task of allTasks) {
-    if (!task.dependencies) continue;
-    for (const dep of task.dependencies) {
-      if (linkTypes.includes(dep.type)) {
-        const list = successorMap.get(dep.taskId) ?? [];
-        list.push(task.id);
-        successorMap.set(dep.taskId, list);
-      }
-    }
-  }
-
-  const taskById = new Map(allTasks.map(t => [t.id, t]));
+  const { dependentsByPredecessorId, taskById } = createCascadeContext(allTasks);
   const visited = new Set<string>();
   const queue: string[] = [draggedTaskId];
   const chain: Task[] = [];
@@ -61,13 +77,17 @@ export function getSuccessorChain(
 
   while (queue.length > 0) {
     const current = queue.shift()!;
-    const successors = successorMap.get(current) ?? [];
-    for (const sid of successors) {
+    const successors = dependentsByPredecessorId.get(current) ?? [];
+    for (const { task } of successors) {
+      if (!linkTypes.includes(task.dependencies?.find((dependency) => dependency.taskId === current)?.type ?? 'FS')) {
+        continue;
+      }
+      const sid = task.id;
       if (!visited.has(sid)) {
         visited.add(sid);
-        const t = taskById.get(sid);
-        if (t) {
-          chain.push(t);
+        const successorTask = taskById.get(sid);
+        if (successorTask) {
+          chain.push(successorTask);
           queue.push(sid);
         }
       }
@@ -87,7 +107,7 @@ export function cascadeByLinks(
   allTasks: Task[],
   skipChildCascade: boolean = false
 ): Task[] {
-  const taskById = new Map(allTasks.map(t => [t.id, t]));
+  const { childrenByParentId, dependentsByPredecessorId, taskById } = createCascadeContext(allTasks);
 
   const updatedDates = new Map<string, { start: Date; end: Date }>();
   updatedDates.set(movedTaskId, { start: newStart, end: newEnd });
@@ -101,7 +121,7 @@ export function cascadeByLinks(
     const { start: predStart, end: predEnd } = updatedDates.get(currentId)!;
 
     if (!skipChildCascade) {
-      const children = getChildren(currentId, allTasks);
+      const children = childrenByParentId.get(currentId) ?? [];
       for (const child of children) {
         if (visited.has(child.id) || child.locked) continue;
 
@@ -130,51 +150,49 @@ export function cascadeByLinks(
       }
     }
 
-    for (const task of allTasks) {
+    const dependents = dependentsByPredecessorId.get(currentId) ?? [];
+    for (const { task, dependencyIndex } of dependents) {
       if (visited.has(task.id) || !task.dependencies || task.locked) continue;
+      const dep = task.dependencies[dependencyIndex];
+      if (!dep) continue;
 
-      for (const dep of task.dependencies) {
-        if (dep.taskId !== currentId) continue;
+      const orig = taskById.get(task.id)!;
+      const origStart = new Date(orig.startDate as string);
+      const origEnd = new Date(orig.endDate as string);
+      const duration = getTaskDuration(origStart, origEnd);
+      const currentTask = taskById.get(currentId)!;
+      const { predStart: normalizedPredStart, predEnd: normalizedPredEnd } = normalizePredecessorDates(
+        {
+          startDate: predStart,
+          endDate: predEnd,
+          type: currentTask.type,
+        },
+        parseCascadeDateInput
+      );
+      const constraintDate = calculateSuccessorDate(
+        normalizedPredStart,
+        normalizedPredEnd,
+        dep.type,
+        getDependencyLag(dep)
+      );
 
-        const orig = taskById.get(task.id)!;
-        const origStart = new Date(orig.startDate as string);
-        const origEnd = new Date(orig.endDate as string);
-        const duration = getTaskDuration(origStart, origEnd);
-        const currentTask = taskById.get(currentId)!;
-        const { predStart: normalizedPredStart, predEnd: normalizedPredEnd } = normalizePredecessorDates(
-          {
-            startDate: predStart,
-            endDate: predEnd,
-            type: currentTask.type,
-          },
-          parseCascadeDateInput
-        );
-        const constraintDate = calculateSuccessorDate(
-          normalizedPredStart,
-          normalizedPredEnd,
-          dep.type,
-          getDependencyLag(dep)
-        );
+      let newSuccStart: Date;
+      let newSuccEnd: Date;
 
-        let newSuccStart: Date;
-        let newSuccEnd: Date;
-
-        if (dep.type === 'FS' || dep.type === 'SS') {
-          ({ start: newSuccStart, end: newSuccEnd } = buildTaskRangeFromStart(constraintDate, duration));
-        } else {
-          ({ start: newSuccStart, end: newSuccEnd } = buildTaskRangeFromEnd(constraintDate, duration));
-        }
-
-        visited.add(task.id);
-        updatedDates.set(task.id, { start: newSuccStart, end: newSuccEnd });
-        result.push(normalizeTaskDependencyLags({
-          ...task,
-          startDate: newSuccStart.toISOString().split('T')[0],
-          endDate: newSuccEnd.toISOString().split('T')[0],
-        }));
-        queue.push(task.id);
-        break;
+      if (dep.type === 'FS' || dep.type === 'SS') {
+        ({ start: newSuccStart, end: newSuccEnd } = buildTaskRangeFromStart(constraintDate, duration));
+      } else {
+        ({ start: newSuccStart, end: newSuccEnd } = buildTaskRangeFromEnd(constraintDate, duration));
       }
+
+      visited.add(task.id);
+      updatedDates.set(task.id, { start: newSuccStart, end: newSuccEnd });
+      result.push(normalizeTaskDependencyLags({
+        ...task,
+        startDate: newSuccStart.toISOString().split('T')[0],
+        endDate: newSuccEnd.toISOString().split('T')[0],
+      }));
+      queue.push(task.id);
     }
   }
 
@@ -189,20 +207,9 @@ export function getTransitiveCascadeChain(
   allTasks: Task[],
   firstLevelLinkTypes: LinkType[]
 ): Task[] {
-  const allTypesSuccessorMap = new Map<string, Task[]>();
-  for (const task of allTasks) {
-    allTypesSuccessorMap.set(task.id, []);
-  }
-  for (const task of allTasks) {
-    if (!task.dependencies) continue;
-    for (const dep of task.dependencies) {
-      const list = allTypesSuccessorMap.get(dep.taskId) ?? [];
-      list.push(task);
-      allTypesSuccessorMap.set(dep.taskId, list);
-    }
-  }
+  const { childrenByParentId, dependentsByPredecessorId } = createCascadeContext(allTasks);
 
-  const directChildren = getChildren(changedTaskId, allTasks);
+  const directChildren = childrenByParentId.get(changedTaskId) ?? [];
   const directSuccessors = getSuccessorChain(changedTaskId, allTasks, firstLevelLinkTypes);
   const initialChain = [...directChildren, ...directSuccessors].filter((task, index, arr) =>
     arr.findIndex(candidate => candidate.id === task.id) === index
@@ -215,7 +222,7 @@ export function getTransitiveCascadeChain(
   while (queue.length > 0) {
     const current = queue.shift()!;
 
-    const children = getChildren(current.id, allTasks);
+    const children = childrenByParentId.get(current.id) ?? [];
     for (const child of children) {
       if (!visited.has(child.id)) {
         visited.add(child.id);
@@ -224,8 +231,8 @@ export function getTransitiveCascadeChain(
       }
     }
 
-    const successors = allTypesSuccessorMap.get(current.id) ?? [];
-    for (const successor of successors) {
+    const successors = dependentsByPredecessorId.get(current.id) ?? [];
+    for (const { task: successor } of successors) {
       if (!visited.has(successor.id)) {
         visited.add(successor.id);
         chain.push(successor);
@@ -252,19 +259,29 @@ export function universalCascade(
   newEnd: Date,
   allTasks: Task[],
   businessDays: boolean = false,
-  weekendPredicate?: (date: Date) => boolean
+  weekendPredicate?: (date: Date) => boolean,
+  context: CascadeContext = createCascadeContext(allTasks)
 ): Task[] {
-  const taskById = new Map(allTasks.map(t => [t.id, t]));
+  const { childrenByParentId, dependentsByPredecessorId, taskById } = context;
+  const normalizedMovedTask = normalizeTaskDependencyLags({
+    ...movedTask,
+    startDate: newStart.toISOString().split('T')[0],
+    endDate: newEnd.toISOString().split('T')[0],
+  });
+
+  if (
+    !movedTask.parentId &&
+    !childrenByParentId.has(movedTask.id) &&
+    !dependentsByPredecessorId.has(movedTask.id)
+  ) {
+    return [normalizedMovedTask];
+  }
 
   const updatedDates = new Map<string, { start: Date; end: Date }>();
   updatedDates.set(movedTask.id, { start: newStart, end: newEnd });
 
   const resultMap = new Map<string, Task>();
-  resultMap.set(movedTask.id, normalizeTaskDependencyLags({
-    ...movedTask,
-    startDate: newStart.toISOString().split('T')[0],
-    endDate: newEnd.toISOString().split('T')[0],
-  }));
+  resultMap.set(movedTask.id, normalizedMovedTask);
 
   const queue: Array<[string, ArrivalMode]> = [[movedTask.id, 'direct']];
 
@@ -281,7 +298,7 @@ export function universalCascade(
 
     // RULE 1: Hierarchy children follow their parent
     if (arrivalMode !== 'parent-recalc') {
-      const children = getChildren(currentId, allTasks);
+      const children = childrenByParentId.get(currentId) ?? [];
       for (const child of children) {
         if (childShifted.has(child.id) || child.locked) continue;
 
@@ -336,7 +353,7 @@ export function universalCascade(
     if (parentId) {
       const parent = taskById.get(parentId);
       if (parent && !parent.locked) {
-        const siblings = getChildren(parentId, allTasks);
+        const siblings = childrenByParentId.get(parentId) ?? [];
 
         const siblingPositions = siblings.map(sib => {
           if (updatedDates.has(sib.id)) return updatedDates.get(sib.id)!;
@@ -360,10 +377,10 @@ export function universalCascade(
     }
 
     // RULE 3: Dependency successors are repositioned
-    for (const task of allTasks) {
+    const dependents = dependentsByPredecessorId.get(currentId) ?? [];
+    for (const { task, dependencyIndex } of dependents) {
       if (task.locked || !task.dependencies) continue;
-
-      const dep = task.dependencies.find(d => d.taskId === currentId);
+      const dep = task.dependencies[dependencyIndex];
       if (!dep) continue;
 
       const origStart  = new Date(task.startDate as string);

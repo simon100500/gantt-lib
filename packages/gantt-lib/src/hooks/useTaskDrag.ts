@@ -11,12 +11,12 @@ import {
   calculateSuccessorDate,
   clampTaskRangeForIncomingFS,
   getDependencyLag,
-  getTransitiveCascadeChain,
   moveTaskRange,
   recalculateIncomingLags,
-  getChildren,
   isTaskParent,
   universalCascade,
+  createCascadeContext,
+  type CascadeContext,
 } from '../core/scheduling';
 
 // UI adapter functions (pixel-to-date conversion)
@@ -63,21 +63,22 @@ interface ActiveDragState {
   dayWidth: number;
   monthStart: Date;
   onProgress: (left: number, width: number) => void;
-  onComplete: (finalLeft: number, finalWidth: number, finalMode: 'move' | 'resize-left' | 'resize-right') => void;
+  onComplete: (
+    finalLeft: number,
+    finalWidth: number,
+    finalMode: 'move' | 'resize-left' | 'resize-right',
+    cascadeContext?: CascadeContext
+  ) => void;
   onCancel: () => void;
   allTasks: Task[];
   disableConstraints?: boolean;
-  cascadeChain: Task[];        // FS+SS+FF+SF successors of dragged task (Phase 10: added SF)
-  cascadeChainFS: Task[];      // FS-only successors (part of resize-right cascade with FF)
-  cascadeChainStart: Task[];   // SS+SF successors (resize-left cascade) - Phase 10: renamed from cascadeChainSS
-  cascadeChainEnd: Task[];     // FS+FF successors (resize-right cascade) - Phase 9
-  hierarchyChain: Task[];      // Phase 19: children of parent task (for cascade drag)
   onCascadeProgress?: (
     overrides: Map<string, { left: number; width: number }>,
     previewTasks?: Task[]
   ) => void;
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
+  cascadeContext?: CascadeContext;
 }
 
 let globalActiveDrag: ActiveDragState | null = null;
@@ -149,9 +150,9 @@ function completeDrag() {
   if (globalActiveDrag) {
     // Clear cascade overrides before completing (avoids stale preview positions)
     globalActiveDrag.onCascadeProgress?.(new Map(), []);
-    const { onComplete, currentLeft, currentWidth, mode } = globalActiveDrag;
+    const { onComplete, currentLeft, currentWidth, mode, cascadeContext } = globalActiveDrag;
     globalActiveDrag = null;
-    onComplete(currentLeft, currentWidth, mode);
+    onComplete(currentLeft, currentWidth, mode, cascadeContext);
   }
 }
 
@@ -300,7 +301,8 @@ function handleGlobalMouseMove(e: MouseEvent) {
         allTasks,
         mode,
         true,
-        activeDrag.weekendPredicate
+        activeDrag.weekendPredicate,
+        activeDrag.cascadeContext?.taskById
       );
       const alignedStartDay = getDayOffsetFromMonthStart(previewRange.start, activeDrag.monthStart);
       const alignedEndDay = getDayOffsetFromMonthStart(previewRange.end, activeDrag.monthStart);
@@ -318,7 +320,10 @@ function handleGlobalMouseMove(e: MouseEvent) {
           draggedTask
         ),
         allTasks,
-        mode
+        mode,
+        activeDrag.businessDays,
+        activeDrag.weekendPredicate,
+        activeDrag.cascadeContext?.taskById
       );
       const alignedStartDay = getDayOffsetFromMonthStart(previewRange.start, activeDrag.monthStart);
       const alignedEndDay = getDayOffsetFromMonthStart(previewRange.end, activeDrag.monthStart);
@@ -355,7 +360,8 @@ function handleGlobalMouseMove(e: MouseEvent) {
           allTasks,
           mode,
           activeDrag.businessDays,
-          activeDrag.weekendPredicate
+          activeDrag.weekendPredicate,
+          activeDrag.cascadeContext?.taskById
         )
         : (() => {
           const previewStartDay = Math.round(newLeft / dayWidth);
@@ -380,31 +386,38 @@ function handleGlobalMouseMove(e: MouseEvent) {
         previewEndDate,
         allTasks,
         activeDrag.businessDays,
-        activeDrag.weekendPredicate
+        activeDrag.weekendPredicate,
+        activeDrag.cascadeContext
       );
 
-      const mergedPreviewTasks = allTasks.map(task => {
-        const previewTask = cascadeResult.find(candidate => candidate.id === task.id);
-        return previewTask ?? task;
-      });
+      const hasTasksWithIncomingDependencies = cascadeResult.some(task => task.dependencies?.length);
+      const previewTasks = hasTasksWithIncomingDependencies
+        ? (() => {
+          const mergedPreviewTaskById = new Map(activeDrag.cascadeContext?.taskById);
+          for (const task of cascadeResult) {
+            mergedPreviewTaskById.set(task.id, task);
+          }
 
-      const previewTasks = cascadeResult.map(task => {
-        const previewStart = new Date(task.startDate as string);
-        const previewEnd = new Date(task.endDate as string);
-        return {
-          ...task,
-          ...(task.dependencies && {
-            dependencies: recalculateIncomingLags(
-              task,
-              previewStart,
-              previewEnd,
-              mergedPreviewTasks,
-              activeDrag.businessDays,
-              activeDrag.weekendPredicate
-            ),
-          }),
-        };
-      });
+          return cascadeResult.map(task => {
+            const previewStart = new Date(task.startDate as string);
+            const previewEnd = new Date(task.endDate as string);
+            return {
+              ...task,
+              dependencies: task.dependencies
+                ? recalculateIncomingLags(
+                  task,
+                  previewStart,
+                  previewEnd,
+                  allTasks,
+                  activeDrag.businessDays,
+                  activeDrag.weekendPredicate,
+                  mergedPreviewTaskById
+                )
+                : task.dependencies,
+            };
+          });
+        })()
+        : cascadeResult;
 
       // Convert cascaded tasks → pixel overrides
       const overrides = new Map<string, { left: number; width: number }>();
@@ -675,7 +688,12 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   /**
    * Handle drag completion from global manager
    */
-  const handleComplete = useCallback((finalLeft: number, finalWidth: number, finalMode: 'move' | 'resize-left' | 'resize-right') => {
+  const handleComplete = useCallback((
+    finalLeft: number,
+    finalWidth: number,
+    finalMode: 'move' | 'resize-left' | 'resize-right',
+    cascadeContext?: CascadeContext
+  ) => {
     const wasOwner = isOwnerRef.current;
     isOwnerRef.current = false;
 
@@ -697,7 +715,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         allTasks,
         finalMode,
         businessDays,
-        weekendPredicate
+        weekendPredicate,
+        cascadeContext?.taskById
       )
       : (() => {
         const dayOffset = Math.round(finalLeft / dayWidth);
@@ -762,11 +781,27 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
           startDate: newStartDate.toISOString(),
           endDate: newEndDate.toISOString(),
           ...(draggedTaskData?.dependencies && {
-            dependencies: recalculateIncomingLags(draggedTaskData, newStartDate, newEndDate, allTasks, businessDays, weekendPredicate),
+            dependencies: recalculateIncomingLags(
+              draggedTaskData,
+              newStartDate,
+              newEndDate,
+              allTasks,
+              businessDays,
+              weekendPredicate,
+              cascadeContext?.taskById
+            ),
           }),
         };
 
-        const cascadeResult = universalCascade(movedTask, newStartDate, newEndDate, allTasks, businessDays, weekendPredicate);
+        const cascadeResult = universalCascade(
+          movedTask,
+          newStartDate,
+          newEndDate,
+          allTasks,
+          businessDays,
+          weekendPredicate,
+          cascadeContext
+        );
 
         if (cascadeResult.length > 0) {
           onCascade([movedTask, ...cascadeResult]);
@@ -783,7 +818,15 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       // Always recalculate lag so hard-mode drags (chain.length===0) also persist the new lag
       if (allTasks.length > 0 && onDragEnd) {
         const updatedDependencies = currentTask?.dependencies
-          ? recalculateIncomingLags(currentTask, newStartDate, newEndDate, allTasks, businessDays, weekendPredicate)
+          ? recalculateIncomingLags(
+            currentTask,
+            newStartDate,
+            newEndDate,
+            allTasks,
+            businessDays,
+            weekendPredicate,
+            cascadeContext?.taskById
+          )
           : undefined;
         onDragEnd({ id: taskId, startDate: newStartDate, endDate: newEndDate, updatedDependencies });
       } else if (onDragEnd) {
@@ -911,27 +954,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     // Ensure global listeners are attached (idempotent)
     ensureGlobalListeners();
 
-    // Phase 19: Build hierarchy chain for real-time parent movement
-    // When dragging a child: include parent so it moves with children
-    // When dragging a parent: include all children so they move with parent
-    const dragTask = allTasks.find(t => t.id === taskId);
-    let hierarchyChain: Task[] = [];
-
-    if (dragTask) {
-      const taskParentId = (dragTask as any).parentId;
-      if (taskParentId) {
-        // Dragging a child - include parent for real-time updates
-        const parentTask = allTasks.find(t => t.id === taskParentId);
-        if (parentTask) {
-          hierarchyChain.push(parentTask);
-        }
-      } else {
-        // Dragging a parent - include all children
-        hierarchyChain = getChildren(taskId, allTasks);
-      }
-    }
-
     // Store drag state in global singleton
+    const shouldBuildCascadeContext = !disableConstraints && (Boolean(onCascadeProgress) || Boolean(onCascade));
+
     globalActiveDrag = {
       taskId,
       mode,
@@ -947,22 +972,10 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       onCancel: handleCancel,
       allTasks,
       disableConstraints,
-      cascadeChain: !disableConstraints
-        ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'SS', 'FF', 'SF'])   // all successors, used for move (Phase 10: added SF)
-        : [],
-      cascadeChainFS: !disableConstraints
-        ? getTransitiveCascadeChain(taskId, allTasks, ['FS'])          // FS + transitive, used for resize-right
-        : [],
-      cascadeChainStart: !disableConstraints
-        ? getTransitiveCascadeChain(taskId, allTasks, ['SS', 'SF'])    // SS + SF for resize-left cascade (Phase 10: renamed from cascadeChainSS)
-        : [],
-      cascadeChainEnd: !disableConstraints
-        ? getTransitiveCascadeChain(taskId, allTasks, ['FS', 'FF'])    // FS + FF for resize-right cascade (Phase 9)
-        : [],
-      hierarchyChain, // Phase 19: children of parent task
       onCascadeProgress,
       businessDays,
       weekendPredicate,
+      cascadeContext: shouldBuildCascadeContext ? createCascadeContext(allTasks) : undefined,
     };
   }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, effectiveLocked, viewMode]);
 
