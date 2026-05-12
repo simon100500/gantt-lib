@@ -75,11 +75,6 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
       if (viewMode === 'week' || viewMode === 'month') return [];
       return calculateGridLines(dateRange, dayWidth);
     }, [dateRange, dayWidth, viewMode]);
-    const structuralGridLines = useMemo<GridLine[]>(() => {
-      if (viewMode === 'week' || viewMode === 'month') return [];
-      return gridLines.filter((line) => line.isMonthStart || line.isWeekStart);
-    }, [gridLines, viewMode]);
-
     // Month-view: grid lines at each month/year boundary
     const monthGridLines = useMemo(() => {
       if (viewMode !== 'month') return [];
@@ -108,9 +103,9 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
       () => monthGridLines.filter((line) => isInHorizontalWindow(line.x)),
       [horizontalWindow, monthGridLines]
     );
-    const visibleStructuralGridLines = useMemo(
-      () => structuralGridLines.filter((line) => isInHorizontalWindow(line.x)),
-      [horizontalWindow, structuralGridLines]
+    const visibleGridLines = useMemo(
+      () => gridLines.filter((line) => isInHorizontalWindow(line.x)),
+      [horizontalWindow, gridLines]
     );
 
     // Calculate total grid width (formula must not change — Pitfall 3)
@@ -124,11 +119,6 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
         style={{
           width: `${gridWidth}px`,
           height: `${totalHeight}px`,
-          ...(showGridLines && viewMode === 'day'
-            ? {
-              backgroundImage: `repeating-linear-gradient(to right, transparent 0, transparent ${Math.max(0, dayWidth - 1)}px, var(--gantt-day-line-color, #f3f4f6) ${Math.max(0, dayWidth - 1)}px, var(--gantt-day-line-color, #f3f4f6) ${dayWidth}px)`,
-            }
-            : null),
         }}
       >
         {/* Weekend backgrounds (rendered first, behind lines) — day-view only */}
@@ -173,8 +163,8 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
             );
           })
         ) : (
-          // Day-view: day lines are painted by a CSS repeating-gradient; keep only major separators in DOM.
-          visibleStructuralGridLines.map((line, index) => {
+          // Day-view: render day lines only inside the horizontal window to keep the original visual quality.
+          visibleGridLines.map((line, index) => {
             const lineClass = line.isMonthStart
               ? 'gantt-gb-monthSeparator'
               : line.isWeekStart
