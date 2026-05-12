@@ -442,6 +442,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
   const clearSelectedTaskTimeoutRef = useRef<number | null>(null);
+  const hasAutoScrolledToTodayRef = useRef(false);
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -611,6 +612,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // Center chart on today's date on initial mount
   useEffect(() => {
     if (isTableMatrixMode) return;
+    if (hasAutoScrolledToTodayRef.current) return;
     const container = scrollContainerRef.current;
     if (!container || dateRange.length === 0) return;
 
@@ -626,6 +628,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const scrollLeft = Math.round(todayOffset + (dayWidth / 2) - containerWidth * 0.3);
 
     container.scrollLeft = Math.max(0, scrollLeft);
+    hasAutoScrolledToTodayRef.current = true;
   }, [dateRange, dayWidth, isTableMatrixMode]);
 
   useEffect(() => {
