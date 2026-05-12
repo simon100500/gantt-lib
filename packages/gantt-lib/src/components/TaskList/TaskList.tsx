@@ -279,6 +279,8 @@ export interface TaskListProps {
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
   onTaskDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
+  /** Visible row indices from the shared chart viewport window */
+  visibleRowIndices?: number[];
 }
 
 interface PendingInsertState {
@@ -401,6 +403,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   bodyMinHeight,
   taskDateChangeMode = 'preserve-duration',
   onTaskDateChangeModeChange,
+  visibleRowIndices,
 }) => {
   const reorderDisabled = disableTaskListReorder || disableTaskDrag;
   const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -481,6 +484,20 @@ export const TaskList: React.FC<TaskListProps> = ({
   );
 
   const visibleTaskIds = useMemo(() => visibleTasks.map(task => task.id), [visibleTasks]);
+  const renderedVisibleRowIndices = useMemo(
+    () => visibleRowIndices ?? visibleTasks.map((_, index) => index),
+    [visibleRowIndices, visibleTasks]
+  );
+  const renderedVisibleTasks = useMemo(
+    () =>
+      renderedVisibleRowIndices
+        .map((index) => {
+          const task = visibleTasks[index];
+          return task ? { index, task } : null;
+        })
+        .filter((entry): entry is { index: number; task: Task } => entry !== null),
+    [renderedVisibleRowIndices, visibleTasks]
+  );
   const selectedVisibleTaskCount = useMemo(
     () => visibleTaskIds.filter(taskId => effectiveSelectedTaskIds.has(taskId)).length,
     [effectiveSelectedTaskIds, visibleTaskIds]
@@ -1125,6 +1142,15 @@ export const TaskList: React.FC<TaskListProps> = ({
 
     return displayTaskId;
   }, [pendingInsert, visibleTasks]);
+  const pendingInsertRowIndex = useMemo(
+    () => (
+      pendingInsertDisplayTaskId
+        ? visibleTasks.findIndex((task) => task.id === pendingInsertDisplayTaskId)
+        : -1
+    ),
+    [pendingInsertDisplayTaskId, visibleTasks]
+  );
+  const hasVisiblePendingInsert = pendingInsertRowIndex >= 0;
 
   const handleStartInsertAfter = useCallback((taskId: string, newTask: Task) => {
     const anchorTask = orderedTasks.find(task => task.id === taskId);
@@ -1466,18 +1492,28 @@ export const TaskList: React.FC<TaskListProps> = ({
         <div
           className="gantt-tl-body"
           style={{
-            height: `${totalHeight}px`,
+            height: `${totalHeight + (hasVisiblePendingInsert ? rowHeight : 0)}px`,
             minHeight: bodyMinHeight,
+            position: 'relative',
           }}
         >
-          {visibleTasks.map((task, index) => {
+          {renderedVisibleTasks.map(({ task, index }) => {
             const previousVisibleTask = index > 0 ? visibleTasks[index - 1] : undefined;
             const canDemoteTask = index === 0
               || !task.parentId
               || previousVisibleTask?.id !== task.parentId;
+            const topOffset = index * rowHeight + (hasVisiblePendingInsert && index > pendingInsertRowIndex ? rowHeight : 0);
 
             return (
-              <React.Fragment key={task.id}>
+              <div
+                key={task.id}
+                style={{
+                  position: 'absolute',
+                  top: `${topOffset}px`,
+                  left: 0,
+                  right: 0,
+                }}
+              >
                 <TaskListRow
                   task={task}
                   rowIndex={index}
@@ -1544,17 +1580,26 @@ export const TaskList: React.FC<TaskListProps> = ({
                   taskDateChangeMode={taskDateChangeMode}
                   onTaskDateChangeModeChange={onTaskDateChangeModeChange}
                 />
-                {pendingInsertDisplayTaskId === task.id && (
-                  <NewTaskRow
-                    rowHeight={rowHeight}
-                    onConfirm={handleConfirmInsertedTask}
-                    onCancel={handleCancelInsertedTask}
-                    nestingDepth={pendingInsert?.nestingDepth ?? 0}
-                  />
-                )}
-              </React.Fragment>
+              </div>
             );
           })}
+          {hasVisiblePendingInsert && (
+            <div
+              style={{
+                position: 'absolute',
+                top: `${(pendingInsertRowIndex + 1) * rowHeight}px`,
+                left: 0,
+                right: 0,
+              }}
+            >
+              <NewTaskRow
+                rowHeight={rowHeight}
+                onConfirm={handleConfirmInsertedTask}
+                onCancel={handleCancelInsertedTask}
+                nestingDepth={pendingInsert?.nestingDepth ?? 0}
+              />
+            </div>
+          )}
         </div>
 
         {/* Ghost row for new task creation — positioned OUTSIDE body div to avoid height desync */}

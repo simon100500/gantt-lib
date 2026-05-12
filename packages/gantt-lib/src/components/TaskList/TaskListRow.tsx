@@ -833,6 +833,93 @@ const toISODate = (value: string | Date): string => {
   return value as string;
 };
 
+const resolveSelectedChipRole = (props: TaskListRowProps): string | null => {
+  const { selectedChip, task } = props;
+  if (!selectedChip) return null;
+  if (selectedChip.successorId === task.id) {
+    return `successor:${selectedChip.predecessorId}:${selectedChip.linkType}`;
+  }
+  if (selectedChip.predecessorId === task.id) {
+    return `predecessor:${selectedChip.successorId}:${selectedChip.linkType}`;
+  }
+  return null;
+};
+
+const resolveActiveCustomCellForRow = (props: TaskListRowProps): string | null => {
+  const { activeCustomCell, task } = props;
+  return activeCustomCell?.taskId === task.id ? activeCustomCell.columnId : null;
+};
+
+const areTaskListRowPropsEqual = (prevProps: TaskListRowProps, nextProps: TaskListRowProps) => {
+  const prevTask = prevProps.task;
+  const nextTask = nextProps.task;
+  const prevTaskUnchanged = prevTask === nextTask || (
+    prevTask.id === nextTask.id &&
+    prevTask.name === nextTask.name &&
+    prevTask.startDate === nextTask.startDate &&
+    prevTask.endDate === nextTask.endDate &&
+    prevTask.type === nextTask.type &&
+    prevTask.parentId === nextTask.parentId &&
+    prevTask.progress === nextTask.progress &&
+    prevTask.color === nextTask.color &&
+    prevTask.accepted === nextTask.accepted &&
+    prevTask.dependencies === nextTask.dependencies
+  );
+
+  const prevIsSelected = prevProps.selectedTaskId === prevTask.id;
+  const nextIsSelected = nextProps.selectedTaskId === nextTask.id;
+  const prevIsEditingTask = prevProps.editingTaskId === prevTask.id;
+  const nextIsEditingTask = nextProps.editingTaskId === nextTask.id;
+  const prevCollapsed = prevProps.collapsedParentIds?.has(prevTask.id) ?? false;
+  const nextCollapsed = nextProps.collapsedParentIds?.has(nextTask.id) ?? false;
+  const prevPickingTask = prevProps.selectingPredecessorFor === prevTask.id;
+  const nextPickingTask = nextProps.selectingPredecessorFor === nextTask.id;
+  const prevAnyPicking = prevProps.selectingPredecessorFor != null;
+  const nextAnyPicking = nextProps.selectingPredecessorFor != null;
+
+  return (
+    prevTaskUnchanged &&
+    prevProps.rowIndex === nextProps.rowIndex &&
+    prevProps.taskNumber === nextProps.taskNumber &&
+    prevProps.taskNumberMap === nextProps.taskNumberMap &&
+    prevProps.rowHeight === nextProps.rowHeight &&
+    prevIsSelected === nextIsSelected &&
+    prevProps.disableTaskNameEditing === nextProps.disableTaskNameEditing &&
+    prevProps.disableDependencyEditing === nextProps.disableDependencyEditing &&
+    prevProps.allTasks === nextProps.allTasks &&
+    prevProps.activeLinkType === nextProps.activeLinkType &&
+    prevProps.dependencyPickMode === nextProps.dependencyPickMode &&
+    prevPickingTask === nextPickingTask &&
+    prevAnyPicking === nextAnyPicking &&
+    resolveSelectedChipRole(prevProps) === resolveSelectedChipRole(nextProps) &&
+    prevIsEditingTask === nextIsEditingTask &&
+    prevProps.isDragging === nextProps.isDragging &&
+    prevProps.isDragOver === nextProps.isDragOver &&
+    prevProps.dragOverPlacement === nextProps.dragOverPlacement &&
+    prevProps.isNestedDropTarget === nextProps.isNestedDropTarget &&
+    prevProps.isDirectChildDropTarget === nextProps.isDirectChildDropTarget &&
+    prevCollapsed === nextCollapsed &&
+    prevProps.canDemoteTask === nextProps.canDemoteTask &&
+    prevProps.isLastChild === nextProps.isLastChild &&
+    prevProps.nestingDepth === nextProps.nestingDepth &&
+    prevProps.hasVisibleChildren === nextProps.hasVisibleChildren &&
+    prevProps.ancestorLineModes === nextProps.ancestorLineModes &&
+    prevProps.customDays === nextProps.customDays &&
+    prevProps.isWeekend === nextProps.isWeekend &&
+    prevProps.businessDays === nextProps.businessDays &&
+    prevProps.defaultTaskDurationDays === nextProps.defaultTaskDurationDays &&
+    prevProps.isFilterMatch === nextProps.isFilterMatch &&
+    prevProps.isFilterHideMode === nextProps.isFilterHideMode &&
+    prevProps.resolvedColumns === nextProps.resolvedColumns &&
+    prevProps.isTaskSelected === nextProps.isTaskSelected &&
+    resolveActiveCustomCellForRow(prevProps) === resolveActiveCustomCellForRow(nextProps) &&
+    prevProps.taskListMenuCommands === nextProps.taskListMenuCommands &&
+    prevProps.hideTaskListRowActions === nextProps.hideTaskListRowActions &&
+    prevProps.rowClassName === nextProps.rowClassName &&
+    prevProps.taskDateChangeMode === nextProps.taskDateChangeMode
+  );
+};
+
 export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
   ({
     task,
@@ -2884,6 +2971,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       </div>
     );
   },
+  areTaskListRowPropsEqual
 );
 
 TaskListRow.displayName = "TaskListRow";

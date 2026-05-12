@@ -32,6 +32,7 @@ import { printGanttChart } from './print';
 import './GanttChart.css';
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
+const TASK_ROW_OVERSCAN = 8;
 
 export type {
   GanttChartMode,
@@ -446,6 +447,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
   const [internalTaskDateChangeMode, setInternalTaskDateChangeMode] = useState<TaskDateChangeMode>('preserve-duration');
+  const [scrollViewport, setScrollViewport] = useState({ scrollTop: 0, viewportHeight: 0 });
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
@@ -630,16 +632,48 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const updateShadow = () => {
-      setTaskListHasRightShadow(container.scrollLeft > 0);
+    let frameId: number | null = null;
+    const updateViewport = () => {
+      frameId = null;
+      const nextHasRightShadow = container.scrollLeft > 0;
+      const nextViewportHeight = Math.max(0, container.clientHeight - timelineHeaderHeight);
+      const nextScrollTop = container.scrollTop;
+
+      setTaskListHasRightShadow((previous) =>
+        previous === nextHasRightShadow ? previous : nextHasRightShadow
+      );
+      setScrollViewport((previous) =>
+        previous.scrollTop === nextScrollTop && previous.viewportHeight === nextViewportHeight
+          ? previous
+          : { scrollTop: nextScrollTop, viewportHeight: nextViewportHeight }
+      );
     };
 
-    updateShadow();
-    container.addEventListener('scroll', updateShadow, { passive: true });
-    return () => {
-      container.removeEventListener('scroll', updateShadow);
+    const scheduleUpdate = () => {
+      if (frameId !== null) return;
+      frameId = window.requestAnimationFrame(updateViewport);
     };
-  }, []);
+
+    scheduleUpdate();
+    container.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => {
+          scheduleUpdate();
+        })
+      : null;
+    resizeObserver?.observe(container);
+
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+      resizeObserver?.disconnect();
+      container.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+    };
+  }, [timelineHeaderHeight]);
 
   /**
    * Scroll to today's date when the "Today" button is clicked
@@ -940,6 +974,73 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (previewTasksById.size === 0) return visibleTasks;
     return visibleTasks.map(task => previewTasksById.get(task.id) ?? task);
   }, [visibleTasks, previewTasksById]);
+
+  const visibleTaskIndexMap = useMemo(
+    () => new Map(visibleTasks.map((task, index) => [task.id, index])),
+    [visibleTasks]
+  );
+
+  const forcedRenderedTaskIds = useMemo(() => {
+    const ids = new Set<string>();
+
+    if (draggedTaskOverride) {
+      ids.add(draggedTaskOverride.taskId);
+    }
+
+    for (const taskId of cascadeOverrides.keys()) {
+      ids.add(taskId);
+    }
+
+    return ids;
+  }, [cascadeOverrides, draggedTaskOverride]);
+
+  const visibleTaskWindowIndices = useMemo(() => {
+    const totalTasks = visibleTasks.length;
+    if (totalTasks === 0) {
+      return [] as number[];
+    }
+
+    if (scrollViewport.viewportHeight <= 0) {
+      return Array.from({ length: totalTasks }, (_, index) => index);
+    }
+
+    const viewportRows = Math.max(1, Math.ceil(scrollViewport.viewportHeight / effectiveRowHeight));
+    const rangeStart = Math.max(0, Math.floor(scrollViewport.scrollTop / effectiveRowHeight) - TASK_ROW_OVERSCAN);
+    const rangeEnd = Math.min(
+      totalTasks - 1,
+      rangeStart + viewportRows + TASK_ROW_OVERSCAN * 2 - 1
+    );
+    const indices = new Set<number>();
+
+    for (let index = rangeStart; index <= rangeEnd; index += 1) {
+      indices.add(index);
+    }
+
+    for (const taskId of forcedRenderedTaskIds) {
+      const index = visibleTaskIndexMap.get(taskId);
+      if (index !== undefined) {
+        indices.add(index);
+      }
+    }
+
+    return Array.from(indices).sort((left, right) => left - right);
+  }, [effectiveRowHeight, forcedRenderedTaskIds, scrollViewport, visibleTaskIndexMap, visibleTasks.length]);
+
+  const renderedChartTasks = useMemo(
+    () =>
+      visibleTaskWindowIndices
+        .map((index) => {
+          const task = previewVisibleTasks[index];
+          return task ? { index, task } : null;
+        })
+        .filter((entry): entry is { index: number; task: Task } => entry !== null),
+    [previewVisibleTasks, visibleTaskWindowIndices]
+  );
+
+  const renderedDependencyTasks = useMemo(
+    () => renderedChartTasks.map(({ task }) => task),
+    [renderedChartTasks]
+  );
 
   /**
    * Handle cascade completion — emit all changed tasks.
@@ -1371,6 +1472,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             bodyMinHeight={tableBodyMinHeight}
             taskDateChangeMode={taskDateChangeMode}
             onTaskDateChangeModeChange={handleTaskDateChangeMode}
+            visibleRowIndices={visibleTaskWindowIndices}
           />
 
           {/* Chart area */}
@@ -1441,6 +1543,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                   style={{
                     position: 'relative',
                     width: `${gridWidth}px`,
+                    height: `${totalGridHeight}px`,
                   }}
                 >
                   <GridBackground
@@ -1472,13 +1575,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
                   {/* Dependency lines SVG overlay */}
                   <DependencyLines
-                    tasks={previewVisibleTasks}
+                    tasks={renderedDependencyTasks}
                     allTasks={previewNormalizedTasks}
                     collapsedParentIds={collapsedParentIds}
                     monthStart={monthStart}
                     dayWidth={dayWidth}
                     rowHeight={effectiveRowHeight}
                     gridWidth={gridWidth}
+                    totalHeight={totalGridHeight}
+                    rowIndexByTaskId={visibleTaskIndexMap}
                     dragOverrides={dependencyOverrides}
                     selectedDep={selectedChip}
                     businessDays={businessDays}
@@ -1495,39 +1600,49 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     />
                   )}
 
-                  {visibleTasks.map((task, index) => (
-                    <TaskRow
+                  {renderedChartTasks.map(({ task, index }) => (
+                    <div
                       key={task.id}
-                      task={task}
-                      monthStart={monthStart}
-                      dayWidth={dayWidth}
-                      rowHeight={effectiveRowHeight}
-                      onTasksChange={handleTaskChange as (tasks: Task[]) => void}
-                      onDragStateChange={(state) => {
-                        if (state.isDragging) {
-                          setDragGuideLines(state);
-                          setDraggedTaskOverride({ taskId: task.id, left: state.left, width: state.width });
-                        } else {
-                          setDragGuideLines(null);
-                          setDraggedTaskOverride(null);
-                        }
+                      style={{
+                        position: 'absolute',
+                        top: `${index * effectiveRowHeight}px`,
+                        left: 0,
+                        right: 0,
+                        height: `${effectiveRowHeight}px`,
                       }}
-                      rowIndex={index}
-                      allTasks={normalizedTasks}
-                      enableAutoSchedule={enableAutoSchedule ?? false}
-                      disableConstraints={disableConstraints ?? false}
-                      overridePosition={cascadeOverrides.get(task.id)}
-                      onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
-                      onCascade={handleCascade as (cascadedTasks: Task[]) => void}
-                      highlightExpiredTasks={highlightExpiredTasks}
-                      showBaseline={showBaseline}
-                      isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
-                      businessDays={businessDays}
-                      customDays={customDays}
-                      isWeekend={isWeekend}
-                      disableTaskDrag={disableTaskDrag}
-                      viewMode={viewMode}
-                    />
+                    >
+                      <TaskRow
+                        task={task}
+                        monthStart={monthStart}
+                        dayWidth={dayWidth}
+                        rowHeight={effectiveRowHeight}
+                        onTasksChange={handleTaskChange as (tasks: Task[]) => void}
+                        onDragStateChange={(state) => {
+                          if (state.isDragging) {
+                            setDragGuideLines(state);
+                            setDraggedTaskOverride({ taskId: task.id, left: state.left, width: state.width });
+                          } else {
+                            setDragGuideLines(null);
+                            setDraggedTaskOverride(null);
+                          }
+                        }}
+                        rowIndex={index}
+                        allTasks={normalizedTasks}
+                        enableAutoSchedule={enableAutoSchedule ?? false}
+                        disableConstraints={disableConstraints ?? false}
+                        overridePosition={cascadeOverrides.get(task.id)}
+                        onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
+                        onCascade={handleCascade as (cascadedTasks: Task[]) => void}
+                        highlightExpiredTasks={highlightExpiredTasks}
+                        showBaseline={showBaseline}
+                        isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
+                        businessDays={businessDays}
+                        customDays={customDays}
+                        isWeekend={isWeekend}
+                        disableTaskDrag={disableTaskDrag}
+                        viewMode={viewMode}
+                      />
+                    </div>
                   ))}
                 </div>
               </>

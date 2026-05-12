@@ -83,6 +83,10 @@ export interface DependencyLinesProps {
   rowHeight: number;
   /** Total width of the grid in pixels */
   gridWidth: number;
+  /** Total rendered grid height in pixels */
+  totalHeight?: number;
+  /** Row indices in the full visible task list keyed by task id */
+  rowIndexByTaskId?: Map<string, number>;
   /** Real-time pixel overrides for task positions during drag (taskId -> {left, width}) */
   dragOverrides?: Map<string, { left: number; width: number }>;
   /** Currently selected dep chip — highlights the matching arrow in red */
@@ -112,6 +116,8 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   dayWidth,
   rowHeight,
   gridWidth,
+  totalHeight,
+  rowIndexByTaskId,
   dragOverrides,
   selectedDep,
   businessDays = true,
@@ -126,20 +132,19 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     const indices = new Map<string, number>();
     const hidden = new Set<string>();
     const taskMap = new Map(tasksForPositions.map(t => [t.id, t]));
-    const visibleTaskMap = new Map(tasks.map(t => [t.id, t]));
-
     // First pass: Calculate positions for visible tasks (existing logic)
     tasks.forEach((task, index) => {
       // Use real-time pixel override if available (during drag)
       const override = dragOverrides?.get(task.id);
       const computed = resolveTaskHorizontalGeometry(task, monthStart, dayWidth, override);
+      const rowIndex = rowIndexByTaskId?.get(task.id) ?? index;
 
-      indices.set(task.id, index);
+      indices.set(task.id, rowIndex);
       positions.set(task.id, {
         left: computed.left,
         right: computed.right,
         centerX: computed.centerX,
-        rowTop: index * rowHeight,
+        rowTop: rowIndex * rowHeight,
         isVirtual: false,
       });
     });
@@ -179,7 +184,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     }
 
     return { taskPositions: positions, taskIndices: indices, hiddenTaskIds: hidden };
-  }, [tasks, tasksForPositions, allTasks, collapsedParentIds, monthStart, dayWidth, rowHeight, dragOverrides]);
+  }, [tasks, tasksForPositions, allTasks, collapsedParentIds, monthStart, dayWidth, rowHeight, dragOverrides, rowIndexByTaskId]);
 
   // Detect cycles for highlighting (use allTasks for accurate cycle detection)
   const cycleInfo = useMemo(() => {
@@ -222,7 +227,6 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       // Check if both tasks are hidden inside the same collapsed parent
       // If so, skip rendering this line (it's internal to the collapsed group)
       if (allTasks && collapsedParentIds.size > 0) {
-        const taskMap = new Map(allTasks.map(t => [t.id, t]));
         if (areBothHiddenInSameParent(edge.predecessorId, edge.successorId, collapsedParentIds, taskMap)) {
           continue;
         }
@@ -317,7 +321,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, collapsedParentIds]);
 
   // Calculate SVG height based on visible tasks (not all tasks)
-  const svgHeight = tasks.length * rowHeight;
+  const svgHeight = totalHeight ?? (tasks.length * rowHeight);
 
   return (
     <svg
