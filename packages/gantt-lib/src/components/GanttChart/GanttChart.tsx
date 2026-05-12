@@ -1180,6 +1180,11 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     () => renderedChartTasks.map(({ task }) => task),
     [renderedChartTasks]
   );
+  const visibleTaskWindowTop = scrollViewport.scrollTopRowIndex * effectiveRowHeight;
+  const visibleTaskWindowHeight = Math.min(
+    Math.max(0, totalGridHeight - visibleTaskWindowTop),
+    Math.max(scrollViewport.viewportHeight, INITIAL_VIEWPORT_HEIGHT_FALLBACK) + effectiveRowHeight * 2
+  );
   renderedTaskIdsRef.current = useMemo(
     () => new Set(renderedChartTasks.map(({ task }) => task.id)),
     [renderedChartTasks]
@@ -1743,7 +1748,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                       dragMode={dragGuideLines.dragMode}
                       left={dragGuideLines.left}
                       width={dragGuideLines.width}
-                      totalHeight={totalGridHeight}
+                      top={visibleTaskWindowTop}
+                      totalHeight={visibleTaskWindowHeight}
                     />
                   )}
 
@@ -1775,14 +1781,18 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                                 ? current
                                 : state
                             ));
-                            setDraggedTaskOverride((current) => (
-                              current &&
-                              current.taskId === task.id &&
-                              current.left === state.left &&
-                              current.width === state.width
-                                ? current
-                                : { taskId: task.id, left: state.left, width: state.width }
-                            ));
+                            if (state.liveDependencyUpdate === false) {
+                              setDraggedTaskOverride((current) => (current === null ? current : null));
+                            } else {
+                              setDraggedTaskOverride((current) => (
+                                current &&
+                                current.taskId === task.id &&
+                                current.left === state.left &&
+                                current.width === state.width
+                                  ? current
+                                  : { taskId: task.id, left: state.left, width: state.width }
+                              ));
+                            }
                           } else {
                             setDragGuideLines((current) => (current === null ? current : null));
                             setDraggedTaskOverride((current) => (current === null ? current : null));

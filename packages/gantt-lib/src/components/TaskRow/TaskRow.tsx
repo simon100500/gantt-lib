@@ -28,6 +28,7 @@ export interface TaskRowProps {
     dragMode: 'move' | 'resize-left' | 'resize-right' | null;
     left: number;
     width: number;
+    liveDependencyUpdate?: boolean;
   }) => void;
   /** Index of the task row (used for dependency rendering) */
   rowIndex?: number;

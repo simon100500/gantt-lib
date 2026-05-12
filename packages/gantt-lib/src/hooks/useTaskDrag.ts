@@ -80,6 +80,7 @@ interface ActiveDragState {
   weekendPredicate?: (date: Date) => boolean;
   cascadeContext?: CascadeContext;
   draggedTask?: Task;
+  skipLiveCascadePreview?: boolean;
 }
 
 let globalActiveDrag: ActiveDragState | null = null;
@@ -378,12 +379,9 @@ function handleGlobalMouseMove(e: MouseEvent) {
     // universalCascade, converts dates→pixels for overrides.
 
     // Universal preview: convert pixels → dates → universalCascade → pixels
-    if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress) {
+    if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress && !activeDrag.skipLiveCascadePreview) {
       const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;
       const originalDraggedTask = draggedTask ?? allTasks.find(t => t.id === dragId);
-      if (exceedsLiveCascadePreviewLimit(activeDrag.cascadeContext, dragId, MAX_LIVE_CASCADE_PREVIEW_TASKS)) {
-        activeDrag.onCascadeProgress(new Map([[dragId, { left: newLeft, width: newWidth }]]), []);
-      } else {
       const previewRange = originalDraggedTask
         ? clampDateRangeForIncomingFS(
           originalDraggedTask,
@@ -485,7 +483,6 @@ function handleGlobalMouseMove(e: MouseEvent) {
       }
 
       activeDrag.onCascadeProgress(overrides, previewTasks);
-      }
     }
 
     // Update current values in global state for completion
@@ -555,6 +552,7 @@ export interface UseTaskDragOptions {
     dragMode: 'move' | 'resize-left' | 'resize-right' | null;
     left: number;
     width: number;
+    liveDependencyUpdate?: boolean;
   }) => void;
   /** Width of edge zones for resize detection (default: 12px) */
   edgeZoneWidth?: number;
@@ -729,6 +727,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         dragMode: mode,
         left,
         width,
+        liveDependencyUpdate: !globalActiveDrag?.skipLiveCascadePreview,
       });
     }
   }, [onDragStateChange]);
@@ -799,6 +798,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         dragMode: null,
         left: finalLeft,
         width: finalWidth,
+        liveDependencyUpdate: false,
       });
     }
 
@@ -911,6 +911,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         dragMode: null,
         left: currentLeft,
         width: currentWidth,
+        liveDependencyUpdate: false,
       });
     }
   }, [onDragStateChange, currentLeft, currentWidth]);
@@ -989,21 +990,14 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     setDragMode(mode);
     applyGlobalCursor(mode === 'move' ? 'grabbing' : 'ew-resize');
 
-    // Notify parent of drag start
-    if (onDragStateChange) {
-      onDragStateChange({
-        isDragging: true,
-        dragMode: mode,
-        left: initialLeft,
-        width: initialWidth,
-      });
-    }
-
     // Ensure global listeners are attached (idempotent)
     ensureGlobalListeners();
 
     // Store drag state in global singleton
     const shouldBuildCascadeContext = !disableConstraints && (Boolean(onCascadeProgress) || Boolean(onCascade));
+    const cascadeContext = shouldBuildCascadeContext ? createCascadeContext(allTasks) : undefined;
+    const skipLiveCascadePreview = Boolean(onCascadeProgress) &&
+      exceedsLiveCascadePreviewLimit(cascadeContext, taskId, MAX_LIVE_CASCADE_PREVIEW_TASKS);
 
     globalActiveDrag = {
       taskId,
@@ -1023,9 +1017,22 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       onCascadeProgress,
       businessDays,
       weekendPredicate,
-      cascadeContext: shouldBuildCascadeContext ? createCascadeContext(allTasks) : undefined,
+      cascadeContext,
       draggedTask: currentTask,
+      skipLiveCascadePreview,
     };
+
+    // Notify parent of drag start after globalActiveDrag is initialized so it
+    // receives the live dependency update mode for large cascade drags.
+    if (onDragStateChange) {
+      onDragStateChange({
+        isDragging: true,
+        dragMode: mode,
+        left: initialLeft,
+        width: initialWidth,
+        liveDependencyUpdate: !skipLiveCascadePreview,
+      });
+    }
   }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, effectiveLocked, viewMode, hookTask, hookTaskIsParent]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {

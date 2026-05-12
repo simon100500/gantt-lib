@@ -8,6 +8,7 @@ export interface DragGuideLinesProps {
   dragMode: 'move' | 'resize-left' | 'resize-right' | null;
   left: number;
   width: number;
+  top?: number;
   totalHeight: number;
 }
 
@@ -16,6 +17,7 @@ const DragGuideLines: React.FC<DragGuideLinesProps> = ({
   dragMode,
   left,
   width,
+  top = 0,
   totalHeight,
 }) => {
   if (!isDragging || !dragMode) {
@@ -32,6 +34,7 @@ const DragGuideLines: React.FC<DragGuideLinesProps> = ({
         <div
           className="gantt-dgl-guideLine"
           style={{
+            top: `${top}px`,
             height: `${totalHeight}px`,
             transform: `translate3d(${left}px, 0, 0)`,
           }}
@@ -41,6 +44,7 @@ const DragGuideLines: React.FC<DragGuideLinesProps> = ({
         <div
           className="gantt-dgl-guideLine"
           style={{
+            top: `${top}px`,
             height: `${totalHeight}px`,
             transform: `translate3d(${left + width}px, 0, 0)`,
           }}
