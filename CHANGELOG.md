@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.111.0] - 2026-05-13
+
+### Features
+
+- Add viewport synchronization between Gantt chart and task list horizontal scrolling
+- Improve Gantt chart auto-scrolling behavior and enhance demo styles
+- Enhance scheduling logic with task context management
+- Improve task drag handling and position management
+- Refactor dependency line rendering and integrate task preview store
+
 ## [0.110.0] - 2026-05-08
 
 ### Features
