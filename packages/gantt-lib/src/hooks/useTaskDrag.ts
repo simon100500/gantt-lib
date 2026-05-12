@@ -337,6 +337,11 @@ function handleGlobalMouseMove(e: MouseEvent) {
       newWidth = dayWidth;
     }
 
+    if (newLeft === activeDrag.currentLeft && newWidth === activeDrag.currentWidth) {
+      globalRafId = null;
+      return;
+    }
+
     // ── Universal preview cascade ──────────────────────────────────────────
     // Same algorithm as handleComplete — converts pixels→dates, runs
     // universalCascade, converts dates→pixels for overrides.

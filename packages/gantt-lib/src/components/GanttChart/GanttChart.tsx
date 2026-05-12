@@ -33,9 +33,10 @@ import { createTaskPreviewPositionStore, type TaskPreviewPositionStore } from '.
 import './GanttChart.css';
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
-const TASK_ROW_OVERSCAN = 8;
+const TASK_ROW_OVERSCAN = 24;
 const INITIAL_VIEWPORT_HEIGHT_FALLBACK = 800;
 const HORIZONTAL_OVERSCAN_VIEWPORT_MULTIPLIER = 0.5;
+const HORIZONTAL_SCROLL_STATE_BUCKET_PX = 64;
 
 function arePositionMapsEqual(
   left: Map<string, { left: number; width: number }>,
@@ -507,7 +508,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
   const [internalTaskDateChangeMode, setInternalTaskDateChangeMode] = useState<TaskDateChangeMode>('preserve-duration');
   const [scrollViewport, setScrollViewport] = useState({
-    scrollTop: 0,
+    scrollTopRowIndex: 0,
     scrollLeft: 0,
     viewportHeight: 0,
     viewportWidth: 0,
@@ -749,21 +750,21 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       frameId = null;
       const nextHasRightShadow = container.scrollLeft > 0;
       const nextViewportHeight = Math.max(0, container.clientHeight - timelineHeaderHeight);
-      const nextScrollTop = container.scrollTop;
-      const nextScrollLeft = container.scrollLeft;
+      const nextScrollTopRowIndex = Math.max(0, Math.floor(container.scrollTop / effectiveRowHeight));
+      const nextScrollLeft = Math.floor(container.scrollLeft / HORIZONTAL_SCROLL_STATE_BUCKET_PX) * HORIZONTAL_SCROLL_STATE_BUCKET_PX;
       const nextViewportWidth = container.clientWidth;
 
       setTaskListHasRightShadow((previous) =>
         previous === nextHasRightShadow ? previous : nextHasRightShadow
       );
       setScrollViewport((previous) =>
-        previous.scrollTop === nextScrollTop &&
+        previous.scrollTopRowIndex === nextScrollTopRowIndex &&
         previous.scrollLeft === nextScrollLeft &&
         previous.viewportHeight === nextViewportHeight &&
         previous.viewportWidth === nextViewportWidth
           ? previous
           : {
-            scrollTop: nextScrollTop,
+            scrollTopRowIndex: nextScrollTopRowIndex,
             scrollLeft: nextScrollLeft,
             viewportHeight: nextViewportHeight,
             viewportWidth: nextViewportWidth,
@@ -795,7 +796,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       container.removeEventListener('scroll', scheduleUpdate);
       window.removeEventListener('resize', scheduleUpdate);
     };
-  }, [timelineHeaderHeight]);
+  }, [effectiveRowHeight, timelineHeaderHeight]);
 
   /**
    * Scroll to today's date when the "Today" button is clicked
@@ -1125,7 +1126,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
     return ids;
   }, [draggedTaskOverride]);
-
   const visibleTaskWindowIndices = useMemo(() => {
     const totalTasks = visibleTasks.length;
     if (totalTasks === 0) {
@@ -1137,7 +1137,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       : INITIAL_VIEWPORT_HEIGHT_FALLBACK;
 
     const viewportRows = Math.max(1, Math.ceil(viewportHeight / effectiveRowHeight));
-    const rangeStart = Math.max(0, Math.floor(scrollViewport.scrollTop / effectiveRowHeight) - TASK_ROW_OVERSCAN);
+    const rangeStart = Math.max(0, scrollViewport.scrollTopRowIndex - TASK_ROW_OVERSCAN);
     const rangeEnd = Math.min(
       totalTasks - 1,
       rangeStart + viewportRows + TASK_ROW_OVERSCAN * 2 - 1
@@ -1159,7 +1159,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, [
     effectiveRowHeight,
     forcedRenderedTaskIds,
-    scrollViewport.scrollTop,
+    scrollViewport.scrollTopRowIndex,
     scrollViewport.viewportHeight,
     visibleTaskIndexMap,
     visibleTasks.length,
