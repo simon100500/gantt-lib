@@ -1500,6 +1500,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Pan (grab-scroll) on empty grid area
   const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
+  const panMoveRef = useRef<{ clientX: number; clientY: number } | null>(null);
+  const panFrameRef = useRef<number | null>(null);
 
   const handlePanStart = useCallback((e: React.MouseEvent) => {
     // Only pan on left click, skip if clicking on a task bar, input, or task list
@@ -1528,19 +1530,36 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, []);
 
   useEffect(() => {
-    const handlePanMove = (e: MouseEvent) => {
+    const applyPanMove = () => {
+      panFrameRef.current = null;
       const pan = panStateRef.current;
-      if (!pan?.active) return;
+      const move = panMoveRef.current;
+      if (!pan?.active || !move) return;
       const container = scrollContainerRef.current;
       if (!container) return;
 
-      container.scrollLeft = pan.scrollX - (e.clientX - pan.startX);
-      container.scrollTop = pan.scrollY - (e.clientY - pan.startY);
+      container.scrollLeft = pan.scrollX - (move.clientX - pan.startX);
+      container.scrollTop = pan.scrollY - (move.clientY - pan.startY);
+    };
+
+    const handlePanMove = (e: MouseEvent) => {
+      const pan = panStateRef.current;
+      if (!pan?.active) return;
+
+      panMoveRef.current = { clientX: e.clientX, clientY: e.clientY };
+      if (panFrameRef.current === null) {
+        panFrameRef.current = window.requestAnimationFrame(applyPanMove);
+      }
     };
 
     const handlePanEnd = () => {
       if (!panStateRef.current?.active) return;
       panStateRef.current = null;
+      panMoveRef.current = null;
+      if (panFrameRef.current !== null) {
+        window.cancelAnimationFrame(panFrameRef.current);
+        panFrameRef.current = null;
+      }
       const container = scrollContainerRef.current;
       if (container) container.style.cursor = '';
     };
@@ -1548,6 +1567,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     window.addEventListener('mousemove', handlePanMove);
     window.addEventListener('mouseup', handlePanEnd);
     return () => {
+      if (panFrameRef.current !== null) {
+        window.cancelAnimationFrame(panFrameRef.current);
+        panFrameRef.current = null;
+      }
       window.removeEventListener('mousemove', handlePanMove);
       window.removeEventListener('mouseup', handlePanEnd);
     };
