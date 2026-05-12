@@ -6,7 +6,7 @@ import { calculateMilestoneGeometry, calculateTaskBar, pixelsToDate } from '../.
 import { isTaskExpired } from '../../utils/expired';
 import { isMilestoneTask, normalizeTaskDatesForType } from '../../utils/taskType';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
-import { isTaskParent, getChildren, getBusinessDaysCount } from '../../core/scheduling';
+import { getBusinessDaysCount } from '../../core/scheduling';
 import type { Task } from '../GanttChart';
 import type { TaskPreviewPositionStore } from '../GanttChart/previewStore';
 import './TaskRow.css';
@@ -33,6 +33,8 @@ export interface TaskRowProps {
   rowIndex?: number;
   /** All tasks in the chart (used for dependency validation) */
   allTasks?: Task[];
+  /** Direct child count for this task, precomputed by the chart to avoid per-row hierarchy scans */
+  directChildCount?: number;
   /** Whether auto-scheduling is enabled */
   enableAutoSchedule?: boolean;
   /** Whether to disable constraint checking during drag */
@@ -107,6 +109,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.overridePosition?.width === nextProps.overridePosition?.width &&
     prevProps.previewPositionStore === nextProps.previewPositionStore &&
     prevProps.allTasks === nextProps.allTasks &&
+    prevProps.directChildCount === nextProps.directChildCount &&
     prevProps.disableConstraints === nextProps.disableConstraints &&
     prevProps.task.locked === nextProps.task.locked &&
     prevProps.task.divider === nextProps.task.divider &&
@@ -129,7 +132,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, viewMode = 'day' }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, directChildCount, enableAutoSchedule, disableConstraints, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, viewMode = 'day' }) => {
     const defaultParentBarColor = '#782FC4';
     // Extract divider from task prop
     const { divider: taskDivider } = task;
@@ -149,14 +152,22 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       [task.baselineEndDate]
     );
 
-    // Hierarchy: compute isParent and childCount
-    const isParent = useMemo(() => {
-      return allTasks ? isTaskParent(task.id, allTasks) : false;
-    }, [allTasks, task.id]);
-
+    // Hierarchy: prefer the chart-level precomputed count; fallback keeps standalone TaskRow tests/usages working.
     const childCount = useMemo(() => {
-      return allTasks ? getChildren(task.id, allTasks).length : 0;
-    }, [allTasks, task.id]);
+      if (directChildCount !== undefined) {
+        return directChildCount;
+      }
+      if (!allTasks) return 0;
+
+      let count = 0;
+      for (const candidate of allTasks) {
+        if (candidate.parentId === task.id) {
+          count += 1;
+        }
+      }
+      return count;
+    }, [allTasks, directChildCount, task.id]);
+    const isParent = childCount > 0;
 
     // Calculate expiration status for overdue tasks
     const isExpired = useMemo(() => {
@@ -263,6 +274,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       dragHandleProps,
     } = useTaskDrag({
       taskId: task.id,
+      task,
       initialStartDate: taskStartDate,
       initialEndDate: taskEndDate,
       monthStart,
@@ -281,6 +293,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       businessDays,
       weekendPredicate,
       viewMode,
+      isParent,
     });
 
     const subscribePreviewPosition = useCallback(

@@ -703,6 +703,10 @@ export interface TaskListRowProps {
   disableDependencyEditing?: boolean;
   /** All tasks (for dependency picker) */
   allTasks?: Task[];
+  /** All tasks keyed by id, precomputed by TaskList to avoid per-row map rebuilds */
+  taskByIdMap?: Map<string, Task>;
+  /** Direct child count for this task, precomputed by TaskList to avoid per-row hierarchy scans */
+  directChildCount?: number;
   /** Currently active link type for new dependencies */
   activeLinkType?: LinkType;
   /** Callback to change active link type for new dependencies */
@@ -887,6 +891,8 @@ const areTaskListRowPropsEqual = (prevProps: TaskListRowProps, nextProps: TaskLi
     prevProps.disableTaskNameEditing === nextProps.disableTaskNameEditing &&
     prevProps.disableDependencyEditing === nextProps.disableDependencyEditing &&
     prevProps.allTasks === nextProps.allTasks &&
+    prevProps.taskByIdMap === nextProps.taskByIdMap &&
+    prevProps.directChildCount === nextProps.directChildCount &&
     prevProps.activeLinkType === nextProps.activeLinkType &&
     prevProps.dependencyPickMode === nextProps.dependencyPickMode &&
     prevPickingTask === nextPickingTask &&
@@ -933,6 +939,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     disableTaskNameEditing = false,
     disableDependencyEditing = false,
     allTasks = [],
+    taskByIdMap,
+    directChildCount,
     activeLinkType,
     onSetActiveLinkType,
     dependencyPickMode = "successor",
@@ -1040,10 +1048,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const isSelected = selectedTaskId === task.id;
     // Hierarchy computed values
-    const isParent = useMemo(
-      () => isTaskParent(task.id, allTasks),
-      [task.id, allTasks],
-    );
+    const isParent = useMemo(() => {
+      if (directChildCount !== undefined) {
+        return directChildCount > 0;
+      }
+      return isTaskParent(task.id, allTasks);
+    }, [allTasks, directChildCount, task.id]);
     const isChild = task.parentId !== undefined;
     const rowFillLevel = Math.min(nestingDepth, 2);
     const isTotalRow = Boolean((task as Task & { isTotal?: boolean }).isTotal);
@@ -1091,13 +1101,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     // Chip data: always reflect the persisted business lag, not the visual calendar gap.
     const chips = useMemo(() => {
-      const taskById = new Map((allTasks ?? []).map((t) => [t.id, t]));
+      const taskById = taskByIdMap ?? new Map((allTasks ?? []).map((t) => [t.id, t]));
       return (task.dependencies ?? []).map((dep) => {
         const pred = taskById.get(dep.taskId);
         const lag = getDependencyLag(dep);
         return { dep, lag, predecessorName: pred?.name ?? dep.taskId };
       });
-    }, [task.dependencies, allTasks]);
+    }, [task.dependencies, allTasks, taskByIdMap]);
 
     const linkWord = chips.length <= 4 ? "связи" : "связей";
 

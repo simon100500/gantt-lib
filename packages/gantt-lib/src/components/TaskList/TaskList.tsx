@@ -463,6 +463,18 @@ export const TaskList: React.FC<TaskListProps> = ({
   const orderedTasks = useMemo(() => {
     return assumeTasksNormalized ? tasks : normalizeHierarchyTasks(tasks);
   }, [assumeTasksNormalized, tasks]);
+  const taskByIdMap = useMemo(
+    () => new Map(tasks.map((task) => [task.id, task])),
+    [tasks]
+  );
+  const directChildCountByTaskId = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const task of tasks) {
+      if (!task.parentId) continue;
+      counts.set(task.parentId, (counts.get(task.parentId) ?? 0) + 1);
+    }
+    return counts;
+  }, [tasks]);
 
   const weekendPredicate = useMemo(
     () => createCustomDayPredicate({ customDays, isWeekend }),
@@ -1545,6 +1557,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                   disableTaskNameEditing={disableTaskNameEditing}
                   disableDependencyEditing={disableDependencyEditing}
                   allTasks={tasks}
+                  taskByIdMap={taskByIdMap}
+                  directChildCount={directChildCountByTaskId.get(task.id) ?? 0}
                   activeLinkType={activeLinkType}
                   onSetActiveLinkType={setActiveLinkType}
                   selectingPredecessorFor={selectingPredecessorFor}

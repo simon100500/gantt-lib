@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { GanttChart, type Task } from "gantt-lib";
 
-const GROUP_COUNT = 1000;
+const GROUP_COUNT = 500;
 const CHILDREN_PER_GROUP = 9;
 const TOTAL_TASKS = GROUP_COUNT * (CHILDREN_PER_GROUP + 1);
 type ViewMode = "day" | "week" | "month";

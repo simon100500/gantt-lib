@@ -534,6 +534,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   );
 
   const normalizedTasks = useMemo(() => normalizeHierarchyTasks(tasks), [tasks]);
+  const directChildCountByTaskId = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const task of normalizedTasks) {
+      if (!task.parentId) continue;
+      counts.set(task.parentId, (counts.get(task.parentId) ?? 0) + 1);
+    }
+    return counts;
+  }, [normalizedTasks]);
 
   // Create custom weekend predicate from props (memoized for performance)
   const isCustomWeekend = useMemo(
@@ -1781,6 +1789,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         }}
                         rowIndex={index}
                         allTasks={normalizedTasks}
+                        directChildCount={directChildCountByTaskId.get(task.id) ?? 0}
                         enableAutoSchedule={enableAutoSchedule ?? false}
                         disableConstraints={disableConstraints ?? false}
                         previewPositionStore={previewPositionStore}

@@ -79,6 +79,7 @@ interface ActiveDragState {
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
   cascadeContext?: CascadeContext;
+  draggedTask?: Task;
 }
 
 let globalActiveDrag: ActiveDragState | null = null;
@@ -259,7 +260,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
     const deltaX = e.clientX - startX;
 
     // For milestones, force width to single day regardless of stored dates
-    const draggedTask = allTasks.find(t => t.id === activeDrag.taskId);
+    const draggedTask = activeDrag.draggedTask ?? activeDrag.cascadeContext?.taskById.get(activeDrag.taskId);
     const effectiveWidth = draggedTask && isMilestoneTask(draggedTask) ? dayWidth : initialWidth;
 
     let newLeft = initialLeft;
@@ -496,6 +497,8 @@ function cleanupGlobalListeners() {
 export interface UseTaskDragOptions {
   /** Unique identifier for the task */
   taskId: string;
+  /** Current task object, when the caller already has it */
+  task?: Task;
   /** Initial start date of the task */
   initialStartDate: Date;
   /** Initial end date of the task */
@@ -540,6 +543,8 @@ export interface UseTaskDragOptions {
   weekendPredicate?: (date: Date) => boolean;
   /** Active chart view mode */
   viewMode?: 'day' | 'week' | 'month';
+  /** Whether this task has direct children, precomputed by the row when available */
+  isParent?: boolean;
 }
 
 /**
@@ -573,6 +578,7 @@ export interface UseTaskDragReturn {
 export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   const {
     taskId,
+    task,
     initialStartDate,
     initialEndDate,
     monthStart,
@@ -591,10 +597,12 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     businessDays = true,
     weekendPredicate,
     viewMode = 'day',
+    isParent,
   } = options;
-  const rawHookTask = allTasks.find(t => t.id === taskId);
+  const rawHookTask = task ?? allTasks.find(t => t.id === taskId);
   const hookTask = rawHookTask ? normalizeTaskDatesForType(rawHookTask) : undefined;
   const hookTaskIsMilestone = hookTask ? isMilestoneTask(hookTask) : false;
+  const hookTaskIsParent = isParent ?? isTaskParent(taskId, allTasks);
 
   // Track if this hook instance owns the current global drag
   const isOwnerRef = useRef<boolean>(false);
@@ -887,10 +895,10 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     if (effectiveLocked) return;
 
     const target = e.currentTarget as HTMLElement;
-    const currentTask = allTasks.find(t => t.id === taskId);
+    const currentTask = hookTask;
     const isSingleDayTask = !!currentTask
       && !isMilestoneTask(currentTask)
-      && !isTaskParent(taskId, allTasks)
+      && !hookTaskIsParent
       && currentWidth <= dayWidth
       && viewMode === 'day';
 
@@ -917,7 +925,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     // Phase 19: Parent tasks cannot be resized - their dates are computed from children
     // Force move mode for parent tasks to prevent resize operations
     if (mode === 'resize-left' || mode === 'resize-right') {
-      if (currentTask && isTaskParent(taskId, allTasks)) {
+      if (currentTask && hookTaskIsParent) {
         mode = 'move';
       }
       if (currentTask && isMilestoneTask(currentTask)) {
@@ -976,8 +984,9 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       businessDays,
       weekendPredicate,
       cascadeContext: shouldBuildCascadeContext ? createCascadeContext(allTasks) : undefined,
+      draggedTask: currentTask,
     };
-  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, effectiveLocked, viewMode]);
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, effectiveLocked, viewMode, hookTask, hookTaskIsParent]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     startDrag(e);
@@ -1000,21 +1009,21 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     }
 
     const target = e.currentTarget as HTMLElement;
-    const currentTask = allTasks.find(t => t.id === taskId);
+    const currentTask = hookTask;
     const isSingleDayTask = !!currentTask
       && !isMilestoneTask(currentTask)
-      && !isTaskParent(taskId, allTasks)
+      && !hookTaskIsParent
       && currentWidth <= dayWidth
       && viewMode === 'day';
 
-    if (isSingleDayTask || (currentTask && (isTaskParent(taskId, allTasks) || isMilestoneTask(currentTask)))) {
+    if (isSingleDayTask || (currentTask && (hookTaskIsParent || isMilestoneTask(currentTask)))) {
       setHoverCursor('grab');
       return;
     }
 
     const edgeZone = detectEdgeZone(e.clientX, target, edgeZoneWidth);
     setHoverCursor(edgeZone === 'move' ? 'grab' : 'ew-resize');
-  }, [disableTaskDrag, locked, isDragging, allTasks, taskId, currentWidth, dayWidth, viewMode, edgeZoneWidth]);
+  }, [disableTaskDrag, locked, isDragging, hookTask, hookTaskIsParent, currentWidth, dayWidth, viewMode, edgeZoneWidth]);
 
   const handleMouseLeave = useCallback(() => {
     setHoverCursor(disableTaskDrag ? 'grab' : locked ? 'not-allowed' : isDragging ? 'grabbing' : 'grab');
