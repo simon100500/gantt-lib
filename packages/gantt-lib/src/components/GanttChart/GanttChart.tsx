@@ -1696,6 +1696,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     totalHeight={totalGridHeight}
                     viewMode={viewMode}
                     isCustomWeekend={isCustomWeekend}
+                    horizontalWindow={horizontalWindow}
                   />
 
                   {todayInRange && (

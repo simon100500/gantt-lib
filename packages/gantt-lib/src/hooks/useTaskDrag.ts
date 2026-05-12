@@ -86,6 +86,7 @@ let globalActiveDrag: ActiveDragState | null = null;
 let globalRafId: number | null = null;
 let globalLockedCursor: string | null = null;
 const GLOBAL_CURSOR_STYLE_ID = 'gantt-global-drag-cursor-style';
+const MAX_LIVE_CASCADE_PREVIEW_TASKS = 200;
 
 function ensureGlobalCursorStyle() {
   if (typeof document === 'undefined') return;
@@ -127,6 +128,36 @@ function clearGlobalCursor() {
   document.documentElement.classList.remove('gantt-global-cursor-grabbing', 'gantt-global-cursor-resize');
   document.body.style.cursor = '';
   document.documentElement.style.cursor = '';
+}
+
+function exceedsLiveCascadePreviewLimit(
+  context: CascadeContext | undefined,
+  taskId: string,
+  limit: number
+): boolean {
+  if (!context) return false;
+
+  const visited = new Set<string>([taskId]);
+  const queue = [taskId];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    const relatedTasks = [
+      ...(context.childrenByParentId.get(currentId) ?? []),
+      ...(context.dependentsByPredecessorId.get(currentId) ?? []).map(({ task }) => task),
+    ];
+
+    for (const task of relatedTasks) {
+      if (visited.has(task.id)) continue;
+      visited.add(task.id);
+      if (visited.size > limit) {
+        return true;
+      }
+      queue.push(task.id);
+    }
+  }
+
+  return false;
 }
 
 function getDayOffsetFromMonthStart(date: Date, monthStart: Date): number {
@@ -350,6 +381,9 @@ function handleGlobalMouseMove(e: MouseEvent) {
     if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress) {
       const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;
       const originalDraggedTask = draggedTask ?? allTasks.find(t => t.id === dragId);
+      if (exceedsLiveCascadePreviewLimit(activeDrag.cascadeContext, dragId, MAX_LIVE_CASCADE_PREVIEW_TASKS)) {
+        activeDrag.onCascadeProgress(new Map([[dragId, { left: newLeft, width: newWidth }]]), []);
+      } else {
       const previewRange = originalDraggedTask
         ? clampDateRangeForIncomingFS(
           originalDraggedTask,
@@ -451,6 +485,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
       }
 
       activeDrag.onCascadeProgress(overrides, previewTasks);
+      }
     }
 
     // Update current values in global state for completion

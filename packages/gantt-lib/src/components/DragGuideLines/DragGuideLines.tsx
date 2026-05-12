@@ -32,8 +32,8 @@ const DragGuideLines: React.FC<DragGuideLinesProps> = ({
         <div
           className="gantt-dgl-guideLine"
           style={{
-            left: `${left}px`,
             height: `${totalHeight}px`,
+            transform: `translate3d(${left}px, 0, 0)`,
           }}
         />
       )}
@@ -41,8 +41,8 @@ const DragGuideLines: React.FC<DragGuideLinesProps> = ({
         <div
           className="gantt-dgl-guideLine"
           style={{
-            left: `${left + width}px`,
             height: `${totalHeight}px`,
+            transform: `translate3d(${left + width}px, 0, 0)`,
           }}
         />
       )}
