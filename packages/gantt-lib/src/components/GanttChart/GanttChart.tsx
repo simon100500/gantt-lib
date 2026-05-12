@@ -29,6 +29,7 @@ import { TaskList } from '../TaskList';
 import { ResourceTimelineChart } from '../ResourceTimelineChart';
 import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup, type TableMatrixDateOverlay } from '../TableMatrix';
 import { printGanttChart } from './print';
+import { createTaskPreviewPositionStore, type TaskPreviewPositionStore } from './previewStore';
 import './GanttChart.css';
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
@@ -492,6 +493,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const scrollContentRef = useRef<HTMLDivElement>(null);
   const clearSelectedTaskTimeoutRef = useRef<number | null>(null);
   const hasAutoScrolledToTodayRef = useRef(false);
+  const previewPositionStoreRef = useRef<TaskPreviewPositionStore | null>(null);
+  const renderedTaskIdsRef = useRef<Set<string>>(new Set());
+  if (previewPositionStoreRef.current === null) {
+    previewPositionStoreRef.current = createTaskPreviewPositionStore();
+  }
+  const previewPositionStore = previewPositionStoreRef.current;
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -550,7 +557,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // Track dependency validation results
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
-  // Cascade override positions for non-dragged chain members
+  // Cascade override positions for dependency lines. Task bars subscribe to previewPositionStore directly.
   const [cascadeOverrides, setCascadeOverrides] = useState<Map<string, { left: number; width: number }>>(new Map());
 
   // Calculate grid width
@@ -844,7 +851,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (clearSelectedTaskTimeoutRef.current !== null) {
       window.clearTimeout(clearSelectedTaskTimeoutRef.current);
     }
-  }, []);
+    previewPositionStore.clear();
+  }, [previewPositionStore]);
 
   /**
    * Callback when tasks are modified.
@@ -1013,16 +1021,27 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     overrides: Map<string, { left: number; width: number }>,
     previewTasks: Task[] = []
   ) => {
+    previewPositionStore.setPositions(overrides);
+    const renderedTaskIds = renderedTaskIdsRef.current;
+    const renderedOverrides = new Map<string, { left: number; width: number }>();
+    for (const [taskId, position] of overrides) {
+      if (renderedTaskIds.has(taskId)) {
+        renderedOverrides.set(taskId, position);
+      }
+    }
+
     setCascadeOverrides((current) => (
-      arePositionMapsEqual(current, overrides) ? current : new Map(overrides)
+      arePositionMapsEqual(current, renderedOverrides) ? current : renderedOverrides
     ));
     setPreviewTasksById((current) => {
       const next = previewTasks.length > 0
-        ? new Map(previewTasks.map(task => [task.id, task]))
+        ? new Map(previewTasks
+          .filter(task => renderedTaskIds.has(task.id))
+          .map(task => [task.id, task]))
         : new Map<string, Task>();
       return arePreviewTaskMapsEqual(current, next) ? current : next;
     });
-  }, []);
+  }, [previewPositionStore]);
 
   const previewNormalizedTasks = useMemo(() => {
     if (previewTasksById.size === 0) return normalizedTasks;
@@ -1046,12 +1065,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       ids.add(draggedTaskOverride.taskId);
     }
 
-    for (const taskId of cascadeOverrides.keys()) {
-      ids.add(taskId);
-    }
-
     return ids;
-  }, [cascadeOverrides, draggedTaskOverride]);
+  }, [draggedTaskOverride]);
 
   const visibleTaskWindowIndices = useMemo(() => {
     const totalTasks = visibleTasks.length;
@@ -1098,6 +1113,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   const renderedDependencyTasks = useMemo(
     () => renderedChartTasks.map(({ task }) => task),
+    [renderedChartTasks]
+  );
+  renderedTaskIdsRef.current = useMemo(
+    () => new Set(renderedChartTasks.map(({ task }) => task.id)),
     [renderedChartTasks]
   );
 
@@ -1704,7 +1723,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         allTasks={normalizedTasks}
                         enableAutoSchedule={enableAutoSchedule ?? false}
                         disableConstraints={disableConstraints ?? false}
-                        overridePosition={cascadeOverrides.get(task.id)}
+                        previewPositionStore={previewPositionStore}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}
                         highlightExpiredTasks={highlightExpiredTasks}

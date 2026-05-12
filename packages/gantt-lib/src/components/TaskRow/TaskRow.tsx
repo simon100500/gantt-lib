@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
 import { calculateMilestoneGeometry, calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { isTaskExpired } from '../../utils/expired';
@@ -8,6 +8,7 @@ import { isMilestoneTask, normalizeTaskDatesForType } from '../../utils/taskType
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { isTaskParent, getChildren, getBusinessDaysCount } from '../../core/scheduling';
 import type { Task } from '../GanttChart';
+import type { TaskPreviewPositionStore } from '../GanttChart/previewStore';
 import './TaskRow.css';
 
 export interface TaskRowProps {
@@ -38,6 +39,8 @@ export interface TaskRowProps {
   disableConstraints?: boolean;
   /** Position override for cascade preview — when set, overrides both static and drag position */
   overridePosition?: { left: number; width: number };
+  /** External per-task preview store used to avoid chart-wide renders during cascade drag */
+  previewPositionStore?: TaskPreviewPositionStore;
   /** Called each RAF during cascade drag with override positions for non-dragged chain tasks */
   onCascadeProgress?: (
     overrides: Map<string, { left: number; width: number }>,
@@ -102,6 +105,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.rowHeight === nextProps.rowHeight &&
     prevProps.overridePosition?.left === nextProps.overridePosition?.left &&
     prevProps.overridePosition?.width === nextProps.overridePosition?.width &&
+    prevProps.previewPositionStore === nextProps.previewPositionStore &&
     prevProps.allTasks === nextProps.allTasks &&
     prevProps.disableConstraints === nextProps.disableConstraints &&
     prevProps.task.locked === nextProps.task.locked &&
@@ -125,7 +129,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, onCascadeProgress, onCascade, divider, highlightExpiredTasks, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, viewMode = 'day' }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, viewMode = 'day' }) => {
     const defaultParentBarColor = '#782FC4';
     // Extract divider from task prop
     const { divider: taskDivider } = task;
@@ -279,9 +283,24 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       viewMode,
     });
 
-    // Use override position (for cascade preview) with fallback to drag or static position
-    const displayLeft = overridePosition?.left ?? (isDragging ? currentLeft : left);
-    const displayWidth = overridePosition?.width ?? (isDragging ? currentWidth : width);
+    const subscribePreviewPosition = useCallback(
+      (listener: () => void) => previewPositionStore?.subscribeTask(task.id, listener) ?? (() => {}),
+      [previewPositionStore, task.id]
+    );
+    const getPreviewPositionSnapshot = useCallback(
+      () => previewPositionStore?.getTaskPosition(task.id),
+      [previewPositionStore, task.id]
+    );
+    const previewPosition = useSyncExternalStore(
+      subscribePreviewPosition,
+      getPreviewPositionSnapshot,
+      () => undefined
+    );
+
+    // Use external/store override position (for cascade preview) with fallback to drag or static position
+    const effectiveOverridePosition = previewPosition ?? overridePosition;
+    const displayLeft = effectiveOverridePosition?.left ?? (isDragging ? currentLeft : left);
+    const displayWidth = effectiveOverridePosition?.width ?? (isDragging ? currentWidth : width);
     const displayMilestoneGeometry = useMemo(() => {
       // Milestones are always anchored to a single day cell even if some preview path
       // passes a wider width (for example, malformed input dates before normalization).
@@ -297,7 +316,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const visualLeft = milestone ? displayMilestoneGeometry.left : displayLeft;
     const visualWidth = milestone ? displayMilestoneGeometry.size : displayWidth;
     const shouldRenderBaseline = showBaseline && baselineGeometry !== null;
-    const hasPreviewPosition = isDragging || overridePosition !== undefined;
+    const hasPreviewPosition = isDragging || effectiveOverridePosition !== undefined;
 
     // Format date labels for display - update in real-time for direct drag and cascade preview.
     const currentStartDate = hasPreviewPosition

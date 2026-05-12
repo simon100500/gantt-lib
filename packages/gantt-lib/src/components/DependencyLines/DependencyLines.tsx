@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Task } from '../../types';
 import { calculateDependencyPath, resolveTaskHorizontalGeometry } from '../../utils/geometry';
 import { isMilestoneTask } from '../../utils/taskType';
-import { getAllDependencyEdges, detectCycles } from '../../utils/dependencyUtils';
+import { detectCycles } from '../../utils/dependencyUtils';
 import './DependencyLines.css';
 
 /**
@@ -198,7 +198,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   const lines = useMemo(() => {
     const tasksForEdges = allTasks ?? tasks;
     const taskMap = new Map(tasksForEdges.map(task => [task.id, task]));
-    const edges = getAllDependencyEdges(tasksForEdges);
+    const positionedTaskIds = Array.from(taskPositions.keys());
     const lines: Array<{
       id: string;
       path: string;
@@ -211,7 +211,24 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       isVirtual: boolean;
     }> = [];
 
-    for (const edge of edges) {
+    for (const successorId of positionedTaskIds) {
+      const successorTaskForEdges = taskMap.get(successorId);
+      if (!successorTaskForEdges?.dependencies?.length) {
+        continue;
+      }
+
+      for (const dependency of successorTaskForEdges.dependencies) {
+        if (!taskPositions.has(dependency.taskId)) {
+          continue;
+        }
+
+        const edge = {
+          predecessorId: dependency.taskId,
+          successorId,
+          type: dependency.type,
+          lag: dependency.lag ?? 0,
+        };
+
       const predecessor = taskPositions.get(edge.predecessorId);
       const successor = taskPositions.get(edge.successorId);
       const predecessorIndex = taskIndices.get(edge.predecessorId);
@@ -315,6 +332,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         reverseOrder,
         isVirtual,
       });
+      }
     }
 
     return lines;
