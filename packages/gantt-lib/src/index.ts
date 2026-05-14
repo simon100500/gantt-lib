@@ -12,6 +12,9 @@ export {
   type GanttChartMode,
   type GanttModeProps,
   type TableMatrixModeProps,
+  type PlanFactModeProps,
+  type PlanFactCellCommitContext,
+  type PlanFactCellKind,
   type TableMatrixColumn,
   type TableMatrixColumnGroup,
   type TableMatrixCellClickContext,
@@ -35,6 +38,7 @@ export { default as DragGuideLines } from './components/DragGuideLines/DragGuide
 export { TaskList, type TaskListProps } from './components/TaskList';
 export { ResourceTimelineChart } from './components/ResourceTimelineChart';
 export { TableMatrix } from './components/TableMatrix';
+export { PlanFactMatrix } from './components/PlanFactMatrix';
 
 // UI Components
 export { Input, type InputProps } from './components/ui/Input';

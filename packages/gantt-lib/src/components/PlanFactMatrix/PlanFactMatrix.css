@@ -1,0 +1,132 @@
+.gantt-pf-root {
+  position: relative;
+  background: var(--gantt-cell-background, #ffffff);
+}
+
+.gantt-pf-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  overflow: hidden;
+  background: var(--gantt-cell-background, #ffffff);
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  box-sizing: border-box;
+}
+
+.gantt-pf-body {
+  position: relative;
+  z-index: 0;
+}
+
+.gantt-pf-row {
+  position: absolute;
+  left: 0;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.gantt-pf-row-parent {
+  background: var(--gantt-row-fill-level-0, #e2e8f0);
+  font-weight: 600;
+}
+
+.gantt-pf-row-highlighted {
+  background-color: rgba(250, 204, 21, 0.24);
+}
+
+.gantt-pf-row.gantt-pf-row-hovered {
+  box-shadow: inset 0 0 0 9999px var(--gantt-row-hover-background, rgba(59, 130, 246, 0.04));
+}
+
+.gantt-pf-row-highlighted.gantt-pf-row-hovered {
+  box-shadow: inset 0 0 0 9999px rgba(250, 204, 21, 0.3);
+}
+
+.gantt-pf-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  padding: 0 4px;
+  border-right: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  box-sizing: border-box;
+  color: #0f172a;
+  font-size: 12px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  background: inherit;
+}
+
+.gantt-pf-cell-plan {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.42);
+}
+
+.gantt-pf-cell-planned {
+  background: var(--gantt-plan-fact-plan-fill, rgba(59, 130, 246, 0.12));
+}
+
+.gantt-pf-cell-fact.gantt-pf-cell-hasValue {
+  background: var(--gantt-plan-fact-fact-fill, rgba(20, 184, 166, 0.10));
+}
+
+.gantt-pf-cell-active {
+  z-index: 1;
+  box-shadow: inset 0 0 0 2px #2563eb;
+}
+
+.gantt-pf-cell-editing {
+  z-index: 2;
+  padding: 0;
+  box-shadow: none;
+}
+
+.gantt-pf-cell-readonly {
+  cursor: default;
+}
+
+.gantt-pf-cell:not(.gantt-pf-cell-readonly) {
+  cursor: cell;
+}
+
+.gantt-pf-cell:not(.gantt-pf-cell-readonly):hover {
+  box-shadow: inset 0 0 0 9999px rgba(15, 23, 42, 0.06);
+}
+
+.gantt-pf-cell-active:hover,
+.gantt-pf-cell-editing:hover {
+  box-shadow: inset 0 0 0 2px #2563eb;
+}
+
+.gantt-pf-cellValue {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt-pf-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  border-radius: 0;
+  background: #ffffff;
+  padding: 0 4px;
+  color: #0f172a;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
+  box-shadow: none;
+}
+
+.gantt-pf-editor:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.18);
+}

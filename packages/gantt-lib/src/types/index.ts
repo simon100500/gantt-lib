@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type GanttChartMode = 'gantt' | 'table-matrix' | 'resource-planner';
+export type GanttChartMode = 'gantt' | 'table-matrix' | 'plan-fact' | 'resource-planner';
 export type TaskDateChangeMode = 'preserve-duration' | 'free';
 
 export interface TimelineMarker {
@@ -201,6 +201,10 @@ export interface Task {
    * Independent of accepted/progress — consumer controls both separately.
    */
   locked?: boolean;
+  /** Optional planned quantities keyed by ISO date (YYYY-MM-DD), used by plan-fact mode. */
+  planByDate?: Record<string, number>;
+  /** Optional actual quantities keyed by ISO date (YYYY-MM-DD), used by plan-fact mode. */
+  factByDate?: Record<string, number>;
 }
 
 /**
