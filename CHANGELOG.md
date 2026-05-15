@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.115.2] - 2026-05-16
+
+### Features
+
+- Implement getTodayLocalUtcDate utility for consistent local date handling
+
 ## [0.115.1] - 2026-05-15
 
 ### Styling
