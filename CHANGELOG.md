@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.112.0] - 2026-05-15
+
+### Features
+
+- Add Plan-Fact mode to Gantt chart for tracking planned and actual quantities per task
+- Add PlanFactMatrix component with cell selection, range commit, and fill handle support
+- Enhance keyboard navigation, selection visuals, and cell fill functionality in PlanFactMatrix
+- Add overflow tooltip and value formatting support in PlanFactMatrix
+
+### Fixes
+
+- Refine hover effects and selection styles in PlanFactMatrix
+- Remove bottom border from plan cells in PlanFactMatrix
+
+### Refactoring
+
+- Simplify selection styles and enhance PlanFactMatrix logic
+- Remove PlanFactSummaryCell in favor of direct value rendering in PlanFactDemo
+
+### Styling
+
+- Update PlanFactMatrix CSS for improved visual consistency
+
 ## [0.111.0] - 2026-05-13
 
 ### Features
