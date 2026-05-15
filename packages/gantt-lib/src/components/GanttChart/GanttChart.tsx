@@ -35,6 +35,7 @@ import './GanttChart.css';
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
 const TASK_ROW_OVERSCAN = 8;
+const PLAN_FACT_COLUMN_OVERSCAN = 6;
 
 function arePositionMapsEqual(
   left: Map<string, { left: number; width: number }>,
@@ -524,7 +525,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
   const [internalTaskDateChangeMode, setInternalTaskDateChangeMode] = useState<TaskDateChangeMode>('preserve-duration');
-  const [scrollViewport, setScrollViewport] = useState({ scrollTop: 0, viewportHeight: 0 });
+  const [scrollViewport, setScrollViewport] = useState({
+    scrollTop: 0,
+    scrollLeft: 0,
+    viewportHeight: 0,
+    viewportWidth: 0,
+  });
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
@@ -716,15 +722,25 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       frameId = null;
       const nextHasRightShadow = container.scrollLeft > 0;
       const nextViewportHeight = Math.max(0, container.clientHeight - timelineHeaderHeight);
+      const nextViewportWidth = Math.max(0, container.clientWidth - (showTaskList ? taskListWidth : 0));
       const nextScrollTop = container.scrollTop;
+      const nextScrollLeft = container.scrollLeft;
 
       setTaskListHasRightShadow((previous) =>
         previous === nextHasRightShadow ? previous : nextHasRightShadow
       );
       setScrollViewport((previous) =>
-        previous.scrollTop === nextScrollTop && previous.viewportHeight === nextViewportHeight
+        previous.scrollTop === nextScrollTop
+          && previous.scrollLeft === nextScrollLeft
+          && previous.viewportHeight === nextViewportHeight
+          && previous.viewportWidth === nextViewportWidth
           ? previous
-          : { scrollTop: nextScrollTop, viewportHeight: nextViewportHeight }
+          : {
+            scrollTop: nextScrollTop,
+            scrollLeft: nextScrollLeft,
+            viewportHeight: nextViewportHeight,
+            viewportWidth: nextViewportWidth,
+          }
       );
     };
 
@@ -752,7 +768,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       container.removeEventListener('scroll', scheduleUpdate);
       window.removeEventListener('resize', scheduleUpdate);
     };
-  }, [timelineHeaderHeight]);
+  }, [showTaskList, taskListWidth, timelineHeaderHeight]);
 
   /**
    * Scroll to today's date when the "Today" button is clicked
@@ -1119,6 +1135,24 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
     return Array.from(indices).sort((left, right) => left - right);
   }, [effectiveRowHeight, forcedRenderedTaskIds, scrollViewport, visibleTaskIndexMap, visibleTasks.length]);
+
+  const visiblePlanFactDateIndices = useMemo(() => {
+    if (!isPlanFactMode || dateRange.length === 0 || scrollViewport.viewportWidth <= 0) {
+      return undefined;
+    }
+
+    const rangeStart = Math.max(
+      0,
+      Math.floor(scrollViewport.scrollLeft / dayWidth) - PLAN_FACT_COLUMN_OVERSCAN
+    );
+    const visibleColumnCount = Math.max(1, Math.ceil(scrollViewport.viewportWidth / dayWidth));
+    const rangeEnd = Math.min(
+      dateRange.length - 1,
+      rangeStart + visibleColumnCount + PLAN_FACT_COLUMN_OVERSCAN * 2 - 1
+    );
+
+    return Array.from({ length: rangeEnd - rangeStart + 1 }, (_, index) => rangeStart + index);
+  }, [dateRange.length, dayWidth, isPlanFactMode, scrollViewport]);
 
   const renderedChartTasks = useMemo(
     () =>
@@ -1626,6 +1660,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 highlightedTaskIds={taskListHighlightedTaskIds}
                 filterMode={filterMode}
                 visibleRowIndices={visibleTaskWindowIndices}
+                visibleDateIndices={visiblePlanFactDateIndices}
               />
             ) : (
               <>

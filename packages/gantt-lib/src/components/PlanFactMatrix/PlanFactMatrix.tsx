@@ -31,6 +31,7 @@ export interface PlanFactMatrixProps<TTask extends Task = Task> {
   highlightedTaskIds?: Set<string>;
   filterMode?: 'highlight' | 'hide';
   visibleRowIndices?: number[];
+  visibleDateIndices?: number[];
 }
 
 type ActiveCell = {
@@ -215,6 +216,342 @@ function PlanFactCellEditor({
   );
 }
 
+type PlanFactRowProps<TTask extends Task = Task> = {
+  task: TTask;
+  rowIndex: number;
+  dateRange: Date[];
+  dateKeys: string[];
+  renderedDateIndices: number[];
+  rowHeight: number;
+  subrowHeight: number;
+  dayWidth: number;
+  isParent: boolean;
+  isHighlighted: boolean;
+  selectedTaskId?: string | null;
+  activeCell: ActiveCell | null;
+  editingCell: EditingCell | null;
+  selectedRange: CellRange | null;
+  renderedRangeBounds: RangeBounds | null;
+  didDragSelectRef: React.MutableRefObject<boolean>;
+  isSelectingRef: React.MutableRefObject<boolean>;
+  isFillDraggingRef: React.MutableRefObject<boolean>;
+  onTaskSelect?: (taskId: string | null) => void;
+  selectSingleCell: (cell: ActiveCell) => void;
+  queueHoverCellUpdate: (cell: ActiveCell) => void;
+  setActiveCell: React.Dispatch<React.SetStateAction<ActiveCell | null>>;
+  setEditingCell: React.Dispatch<React.SetStateAction<EditingCell | null>>;
+  setFillRange: React.Dispatch<React.SetStateAction<CellRange | null>>;
+  clearSelectedCells: () => void;
+  commitCell: (task: TTask, dateIndex: number, kind: PlanFactCellKind, value: number | undefined) => void;
+  commitSelectedCells: (value: number | undefined) => void;
+  moveActiveCell: (cell: ActiveCell, direction: 'left' | 'right' | 'up' | 'down') => void;
+  extendSelectedRange: (cell: ActiveCell, direction: 'left' | 'right' | 'up' | 'down') => void;
+  focusCell: (cell: ActiveCell) => void;
+  showOverflowTooltip: (target: HTMLElement, label: string, force?: boolean) => void;
+  hideOverflowTooltip: () => void;
+};
+
+function getCellSignatureForTask(cell: ActiveCell | null, taskId: string) {
+  return cell?.taskId === taskId ? `${cell.dateIndex}:${cell.kind}` : '';
+}
+
+function getEditingCellSignatureForTask(cell: EditingCell | null, taskId: string) {
+  return cell?.taskId === taskId ? `${cell.dateIndex}:${cell.kind}:${cell.startValue ?? ''}` : '';
+}
+
+function getRangeAnchorSignatureForTask(range: CellRange | null, taskId: string) {
+  return range?.anchor.taskId === taskId ? `${range.anchor.dateIndex}:${range.anchor.kind}` : '';
+}
+
+function doesRangeTouchRow(bounds: RangeBounds | null, rowIndex: number) {
+  if (!bounds) return false;
+  const firstSubrowIndex = rowIndex * 2;
+  const lastSubrowIndex = firstSubrowIndex + 1;
+  return bounds.fromSubrowIndex <= lastSubrowIndex && bounds.toSubrowIndex >= firstSubrowIndex;
+}
+
+function areRangeBoundsEqual(left: RangeBounds | null, right: RangeBounds | null) {
+  if (left === right) return true;
+  if (!left || !right) return false;
+  return left.fromDateIndex === right.fromDateIndex
+    && left.toDateIndex === right.toDateIndex
+    && left.fromSubrowIndex === right.fromSubrowIndex
+    && left.toSubrowIndex === right.toSubrowIndex;
+}
+
+function PlanFactRowInner<TTask extends Task = Task>({
+  task,
+  rowIndex,
+  dateRange,
+  dateKeys,
+  renderedDateIndices,
+  rowHeight,
+  subrowHeight,
+  dayWidth,
+  isParent,
+  isHighlighted,
+  selectedTaskId,
+  activeCell,
+  editingCell,
+  selectedRange,
+  renderedRangeBounds,
+  didDragSelectRef,
+  isSelectingRef,
+  isFillDraggingRef,
+  onTaskSelect,
+  selectSingleCell,
+  queueHoverCellUpdate,
+  setActiveCell,
+  setEditingCell,
+  setFillRange,
+  clearSelectedCells,
+  commitCell,
+  commitSelectedCells,
+  moveActiveCell,
+  extendSelectedRange,
+  focusCell,
+  showOverflowTooltip,
+  hideOverflowTooltip,
+}: PlanFactRowProps<TTask>) {
+  return (
+    <div
+      data-gantt-task-row-id={task.id}
+      className={joinClasses(
+        'gantt-pf-row',
+        isParent && 'gantt-pf-row-parent',
+        selectedTaskId === task.id && 'gantt-pf-row-selected',
+        isHighlighted && 'gantt-pf-row-highlighted'
+      )}
+      style={{
+        top: `${rowIndex * rowHeight}px`,
+        height: `${rowHeight}px`,
+        gridTemplateColumns: `repeat(${dateRange.length}, ${dayWidth}px)`,
+      }}
+      onClick={() => onTaskSelect?.(task.id)}
+    >
+      {renderedDateIndices.map((dateIndex) => {
+        const date = dateRange[dateIndex];
+        if (!date) return null;
+        const dateKey = dateKeys[dateIndex];
+        const planned = isDateWithinTask(task, date);
+        return (['plan', 'fact'] as const).map((kind) => {
+          const subrowIndex = getSubrowIndex(rowIndex, kind);
+          const isInRenderedRange = !!renderedRangeBounds
+            && dateIndex >= renderedRangeBounds.fromDateIndex
+            && dateIndex <= renderedRangeBounds.toDateIndex
+            && subrowIndex >= renderedRangeBounds.fromSubrowIndex
+            && subrowIndex <= renderedRangeBounds.toSubrowIndex;
+          const planValue = task.planByDate?.[dateKey];
+          const factValue = task.factByDate?.[dateKey];
+          const value = kind === 'plan' ? planValue : factValue;
+          const factStatus = factValue === undefined || planValue === undefined
+            ? null
+            : factValue >= planValue
+              ? 'success'
+              : 'warning';
+          const isActive = activeCell?.taskId === task.id
+            && activeCell.dateIndex === dateIndex
+            && activeCell.kind === kind;
+          const isEditing = editingCell?.taskId === task.id
+            && editingCell.dateIndex === dateIndex
+            && editingCell.kind === kind;
+          const currentCell = { taskId: task.id, dateIndex, kind };
+          const isSelected = !isParent && isInRenderedRange;
+          const showFillHandle = !isParent
+            && !isEditing
+            && isInRenderedRange
+            && renderedRangeBounds !== null
+            && dateIndex === renderedRangeBounds.toDateIndex
+            && subrowIndex === renderedRangeBounds.toSubrowIndex;
+          const isRangeAnchor = !showFillHandle
+            && !isParent
+            && selectedRange?.anchor.taskId === task.id
+            && selectedRange.anchor.dateIndex === dateIndex
+            && selectedRange.anchor.kind === kind;
+
+          return (
+            <div
+              key={`${task.id}:${dateKey}:${kind}`}
+              data-plan-fact-task-id={task.id}
+              data-plan-fact-date-index={dateIndex}
+              data-plan-fact-kind={kind}
+              className={joinClasses(
+                'gantt-pf-cell',
+                `gantt-pf-cell-${kind}`,
+                planned && kind === 'plan' && 'gantt-pf-cell-planned',
+                value !== undefined && 'gantt-pf-cell-hasValue',
+                kind === 'fact' && factStatus === 'success' && 'gantt-pf-cell-factSuccess',
+                kind === 'fact' && factStatus === 'warning' && 'gantt-pf-cell-factWarning',
+                isSelected && 'gantt-pf-cell-selected',
+                isInRenderedRange && renderedRangeBounds !== null && dateIndex === renderedRangeBounds.fromDateIndex && 'gantt-pf-cell-rangeLeft',
+                isInRenderedRange && renderedRangeBounds !== null && dateIndex === renderedRangeBounds.toDateIndex && 'gantt-pf-cell-rangeRight',
+                isInRenderedRange && renderedRangeBounds !== null && subrowIndex === renderedRangeBounds.fromSubrowIndex && 'gantt-pf-cell-rangeTop',
+                isInRenderedRange && renderedRangeBounds !== null && subrowIndex === renderedRangeBounds.toSubrowIndex && 'gantt-pf-cell-rangeBottom',
+                isRangeAnchor && 'gantt-pf-cell-rangeAnchor',
+                isActive && 'gantt-pf-cell-active',
+                isEditing && 'gantt-pf-cell-editing',
+                isParent && 'gantt-pf-cell-readonly'
+              )}
+              style={{
+                gridColumn: dateIndex + 1,
+                gridRow: kind === 'plan' ? 1 : 2,
+                height: `${subrowHeight}px`,
+              }}
+              tabIndex={isParent ? -1 : 0}
+              onMouseDown={(event) => {
+                if (isParent) return;
+                event.preventDefault();
+                event.stopPropagation();
+                didDragSelectRef.current = false;
+                isSelectingRef.current = true;
+                selectSingleCell(currentCell);
+                onTaskSelect?.(task.id);
+                (event.currentTarget as HTMLDivElement).focus();
+              }}
+              onMouseEnter={() => {
+                if (isParent) return;
+                if (!isFillDraggingRef.current && !isSelectingRef.current) return;
+                queueHoverCellUpdate(currentCell);
+              }}
+              onFocus={() => {
+                if (isParent) return;
+                setActiveCell({ taskId: task.id, dateIndex, kind });
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (didDragSelectRef.current) {
+                  didDragSelectRef.current = false;
+                  return;
+                }
+                onTaskSelect?.(task.id);
+                if (isParent) return;
+                selectSingleCell(currentCell);
+                (event.currentTarget as HTMLDivElement).focus();
+              }}
+              onDoubleClick={(event) => {
+                event.stopPropagation();
+                if (isParent) return;
+                setEditingCell({ taskId: task.id, dateIndex, kind });
+              }}
+              onKeyDown={(event) => {
+                if (isParent || isEditing) return;
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  const direction = event.key.replace('Arrow', '').toLowerCase() as 'left' | 'right' | 'up' | 'down';
+                  if (event.shiftKey) {
+                    extendSelectedRange(selectedRange?.focus ?? currentCell, direction);
+                  } else {
+                    moveActiveCell(currentCell, direction);
+                  }
+                  return;
+                }
+                if (event.key === 'Enter' || event.key === 'F2') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setEditingCell(selectedRange?.anchor ?? currentCell);
+                  return;
+                }
+                if (event.key === 'Backspace' || event.key === 'Delete') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  clearSelectedCells();
+                  return;
+                }
+                if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setEditingCell({ ...currentCell, startValue: event.key });
+                }
+              }}
+            >
+              {isEditing ? (
+                <PlanFactCellEditor
+                  value={value}
+                  startValue={editingCell.startValue}
+                  onCommit={(nextValue) => {
+                    commitCell(task, dateIndex, kind, nextValue);
+                    setEditingCell(null);
+                    const nextActiveCell = { taskId: task.id, dateIndex, kind };
+                    selectSingleCell(nextActiveCell);
+                    focusCell(nextActiveCell);
+                  }}
+                  onCommitRange={(nextValue) => {
+                    commitSelectedCells(nextValue);
+                    setEditingCell(null);
+                    const nextActiveCell = { taskId: task.id, dateIndex, kind };
+                    selectSingleCell(nextActiveCell);
+                    focusCell(nextActiveCell);
+                  }}
+                  onCancel={() => {
+                    setEditingCell(null);
+                    const nextActiveCell = { taskId: task.id, dateIndex, kind };
+                    selectSingleCell(nextActiveCell);
+                    focusCell(nextActiveCell);
+                  }}
+                />
+              ) : (
+                <span
+                  className="gantt-pf-cellValue"
+                  onMouseEnter={(event) => {
+                    if (isParent || value === undefined) return;
+                    const compactValue = formatValue(value);
+                    const fullValue = formatTooltipValue(value);
+                    showOverflowTooltip(event.currentTarget, fullValue, compactValue !== fullValue);
+                  }}
+                  onMouseLeave={hideOverflowTooltip}
+                >
+                  {isParent ? '' : formatValue(value)}
+                </span>
+              )}
+              {showFillHandle && (
+                <span
+                  className="gantt-pf-fillHandle"
+                  aria-hidden="true"
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    isSelectingRef.current = false;
+                    isFillDraggingRef.current = true;
+                    setFillRange(selectedRange);
+                  }}
+                />
+              )}
+            </div>
+          );
+        });
+      })}
+    </div>
+  );
+}
+
+function arePlanFactRowsEqual<TTask extends Task>(
+  previous: PlanFactRowProps<TTask>,
+  next: PlanFactRowProps<TTask>
+) {
+  const previousRangeTouchesRow = doesRangeTouchRow(previous.renderedRangeBounds, previous.rowIndex);
+  const nextRangeTouchesRow = doesRangeTouchRow(next.renderedRangeBounds, next.rowIndex);
+
+  return previous.task === next.task
+    && previous.rowIndex === next.rowIndex
+    && previous.dateRange === next.dateRange
+    && previous.dateKeys === next.dateKeys
+    && previous.renderedDateIndices === next.renderedDateIndices
+    && previous.rowHeight === next.rowHeight
+    && previous.subrowHeight === next.subrowHeight
+    && previous.dayWidth === next.dayWidth
+    && previous.isParent === next.isParent
+    && previous.isHighlighted === next.isHighlighted
+    && (previous.selectedTaskId === previous.task.id) === (next.selectedTaskId === next.task.id)
+    && getCellSignatureForTask(previous.activeCell, previous.task.id) === getCellSignatureForTask(next.activeCell, next.task.id)
+    && getEditingCellSignatureForTask(previous.editingCell, previous.task.id) === getEditingCellSignatureForTask(next.editingCell, next.task.id)
+    && getRangeAnchorSignatureForTask(previous.selectedRange, previous.task.id) === getRangeAnchorSignatureForTask(next.selectedRange, next.task.id)
+    && previousRangeTouchesRow === nextRangeTouchesRow
+    && (!nextRangeTouchesRow || areRangeBoundsEqual(previous.renderedRangeBounds, next.renderedRangeBounds));
+}
+
+const PlanFactRow = React.memo(PlanFactRowInner, arePlanFactRowsEqual) as typeof PlanFactRowInner;
+
 export default function PlanFactMatrix<TTask extends Task = Task>({
   tasks,
   allTasks = tasks,
@@ -230,6 +567,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   highlightedTaskIds,
   filterMode = 'highlight',
   visibleRowIndices,
+  visibleDateIndices,
 }: PlanFactMatrixProps<TTask>) {
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
@@ -249,6 +587,10 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   const renderedRowIndices = useMemo(
     () => visibleRowIndices ?? tasks.map((_, index) => index),
     [tasks, visibleRowIndices]
+  );
+  const renderedDateIndices = useMemo(
+    () => visibleDateIndices ?? dateRange.map((_, index) => index),
+    [dateRange, visibleDateIndices]
   );
   const parentTaskIds = useMemo(() => {
     const ids = new Set<string>();
@@ -787,214 +1129,43 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
           if (!task) return null;
           const isParent = parentTaskIds.has(task.id);
           const isHighlighted = filterMode === 'highlight' && !!highlightedTaskIds?.has(task.id);
-          return (
-            <div
-              key={task.id}
-              data-gantt-task-row-id={task.id}
-              className={joinClasses(
-                'gantt-pf-row',
-                isParent && 'gantt-pf-row-parent',
-                selectedTaskId === task.id && 'gantt-pf-row-selected',
-                isHighlighted && 'gantt-pf-row-highlighted'
-              )}
-              style={{
-                top: `${rowIndex * rowHeight}px`,
-                height: `${rowHeight}px`,
-                gridTemplateColumns: `repeat(${dateRange.length}, ${dayWidth}px)`,
-              }}
-              onClick={() => onTaskSelect?.(task.id)}
-            >
-              {dateRange.map((date, dateIndex) => {
-                const dateKey = dateKeys[dateIndex];
-                const planned = isDateWithinTask(task, date);
-                return (['plan', 'fact'] as const).map((kind) => {
-                  const subrowIndex = getSubrowIndex(rowIndex, kind);
-                  const isInRenderedRange = !!renderedRangeBounds
-                    && dateIndex >= renderedRangeBounds.fromDateIndex
-                    && dateIndex <= renderedRangeBounds.toDateIndex
-                    && subrowIndex >= renderedRangeBounds.fromSubrowIndex
-                    && subrowIndex <= renderedRangeBounds.toSubrowIndex;
-                  const planValue = task.planByDate?.[dateKey];
-                  const factValue = task.factByDate?.[dateKey];
-                  const value = kind === 'plan' ? planValue : factValue;
-                  const factStatus = factValue === undefined || planValue === undefined
-                    ? null
-                    : factValue >= planValue
-                      ? 'success'
-                      : 'warning';
-                  const isActive = activeCell?.taskId === task.id
-                    && activeCell.dateIndex === dateIndex
-                    && activeCell.kind === kind;
-                  const isEditing = editingCell?.taskId === task.id
-                    && editingCell.dateIndex === dateIndex
-                    && editingCell.kind === kind;
-                  const currentCell = { taskId: task.id, dateIndex, kind };
-                  const isSelected = !isParent && isInRenderedRange;
-                  const showFillHandle = !isParent
-                    && !isEditing
-                    && isInRenderedRange
-                    && renderedRangeBounds !== null
-                    && dateIndex === renderedRangeBounds.toDateIndex
-                    && subrowIndex === renderedRangeBounds.toSubrowIndex;
-                  const isRangeAnchor = !showFillHandle
-                    && !isParent
-                    && selectedRange?.anchor.taskId === task.id
-                    && selectedRange.anchor.dateIndex === dateIndex
-                    && selectedRange.anchor.kind === kind;
 
-                  return (
-                    <div
-                      key={`${task.id}:${dateKey}:${kind}`}
-                      data-plan-fact-task-id={task.id}
-                      data-plan-fact-date-index={dateIndex}
-                      data-plan-fact-kind={kind}
-                      className={joinClasses(
-                        'gantt-pf-cell',
-                        `gantt-pf-cell-${kind}`,
-                        planned && kind === 'plan' && 'gantt-pf-cell-planned',
-                        value !== undefined && 'gantt-pf-cell-hasValue',
-                        kind === 'fact' && factStatus === 'success' && 'gantt-pf-cell-factSuccess',
-                        kind === 'fact' && factStatus === 'warning' && 'gantt-pf-cell-factWarning',
-                        isSelected && 'gantt-pf-cell-selected',
-                        isInRenderedRange && renderedRangeBounds !== null && dateIndex === renderedRangeBounds.fromDateIndex && 'gantt-pf-cell-rangeLeft',
-                        isInRenderedRange && renderedRangeBounds !== null && dateIndex === renderedRangeBounds.toDateIndex && 'gantt-pf-cell-rangeRight',
-                        isInRenderedRange && renderedRangeBounds !== null && subrowIndex === renderedRangeBounds.fromSubrowIndex && 'gantt-pf-cell-rangeTop',
-                        isInRenderedRange && renderedRangeBounds !== null && subrowIndex === renderedRangeBounds.toSubrowIndex && 'gantt-pf-cell-rangeBottom',
-                        isRangeAnchor && 'gantt-pf-cell-rangeAnchor',
-                        isActive && 'gantt-pf-cell-active',
-                        isEditing && 'gantt-pf-cell-editing',
-                        isParent && 'gantt-pf-cell-readonly'
-                      )}
-                      style={{
-                        gridColumn: dateIndex + 1,
-                        gridRow: kind === 'plan' ? 1 : 2,
-                        height: `${subrowHeight}px`,
-                      }}
-                      tabIndex={isParent ? -1 : 0}
-                      onMouseDown={(event) => {
-                        if (isParent) return;
-                        event.preventDefault();
-                        event.stopPropagation();
-                        didDragSelectRef.current = false;
-                        isSelectingRef.current = true;
-                        selectSingleCell(currentCell);
-                        onTaskSelect?.(task.id);
-                        (event.currentTarget as HTMLDivElement).focus();
-                      }}
-                      onMouseEnter={() => {
-                        if (isParent) return;
-                        if (!isFillDraggingRef.current && !isSelectingRef.current) return;
-                        queueHoverCellUpdate(currentCell);
-                      }}
-                      onFocus={() => {
-                        if (isParent) return;
-                        setActiveCell({ taskId: task.id, dateIndex, kind });
-                      }}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (didDragSelectRef.current) {
-                          didDragSelectRef.current = false;
-                          return;
-                        }
-                        onTaskSelect?.(task.id);
-                        if (isParent) return;
-                        selectSingleCell(currentCell);
-                        (event.currentTarget as HTMLDivElement).focus();
-                      }}
-                      onDoubleClick={(event) => {
-                        event.stopPropagation();
-                        if (isParent) return;
-                        setEditingCell({ taskId: task.id, dateIndex, kind });
-                      }}
-                      onKeyDown={(event) => {
-                        if (isParent || isEditing) return;
-                        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          const direction = event.key.replace('Arrow', '').toLowerCase() as 'left' | 'right' | 'up' | 'down';
-                          if (event.shiftKey) {
-                            extendSelectedRange(selectedRange?.focus ?? currentCell, direction);
-                          } else {
-                            moveActiveCell(currentCell, direction);
-                          }
-                          return;
-                        }
-                        if (event.key === 'Enter' || event.key === 'F2') {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setEditingCell(selectedRange?.anchor ?? currentCell);
-                          return;
-                        }
-                        if (event.key === 'Backspace' || event.key === 'Delete') {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          clearSelectedCells();
-                          return;
-                        }
-                        if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setEditingCell({ ...currentCell, startValue: event.key });
-                        }
-                      }}
-                    >
-                      {isEditing ? (
-                        <PlanFactCellEditor
-                          value={value}
-                          startValue={editingCell.startValue}
-                          onCommit={(nextValue) => {
-                            commitCell(task, dateIndex, kind, nextValue);
-                            setEditingCell(null);
-                            const nextActiveCell = { taskId: task.id, dateIndex, kind };
-                            selectSingleCell(nextActiveCell);
-                            focusCell(nextActiveCell);
-                          }}
-                          onCommitRange={(nextValue) => {
-                            commitSelectedCells(nextValue);
-                            setEditingCell(null);
-                            const nextActiveCell = { taskId: task.id, dateIndex, kind };
-                            setActiveCell(nextActiveCell);
-                            focusCell(nextActiveCell);
-                          }}
-                          onCancel={() => {
-                            setEditingCell(null);
-                            const nextActiveCell = { taskId: task.id, dateIndex, kind };
-                            setActiveCell(nextActiveCell);
-                            focusCell(nextActiveCell);
-                          }}
-                        />
-                      ) : (
-                        <span
-                          className="gantt-pf-cellValue"
-                          onMouseEnter={(event) => {
-                            if (isParent || value === undefined) return;
-                            const compactValue = formatValue(value);
-                            const fullValue = formatTooltipValue(value);
-                            showOverflowTooltip(event.currentTarget, fullValue, compactValue !== fullValue);
-                          }}
-                          onMouseLeave={hideOverflowTooltip}
-                        >
-                          {isParent ? '' : formatValue(value)}
-                        </span>
-                      )}
-                      {showFillHandle && (
-                        <span
-                          className="gantt-pf-fillHandle"
-                          aria-hidden="true"
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            isSelectingRef.current = false;
-                            isFillDraggingRef.current = true;
-                            setFillRange(selectedRange);
-                          }}
-                        />
-                      )}
-                    </div>
-                  );
-                });
-              })}
-            </div>
+          return (
+            <PlanFactRow
+              key={task.id}
+              task={task}
+              rowIndex={rowIndex}
+              dateRange={dateRange}
+              dateKeys={dateKeys}
+              renderedDateIndices={renderedDateIndices}
+              rowHeight={rowHeight}
+              subrowHeight={subrowHeight}
+              dayWidth={dayWidth}
+              isParent={isParent}
+              isHighlighted={isHighlighted}
+              selectedTaskId={selectedTaskId}
+              activeCell={activeCell}
+              editingCell={editingCell}
+              selectedRange={selectedRange}
+              renderedRangeBounds={renderedRangeBounds}
+              didDragSelectRef={didDragSelectRef}
+              isSelectingRef={isSelectingRef}
+              isFillDraggingRef={isFillDraggingRef}
+              onTaskSelect={onTaskSelect}
+              selectSingleCell={selectSingleCell}
+              queueHoverCellUpdate={queueHoverCellUpdate}
+              setActiveCell={setActiveCell}
+              setEditingCell={setEditingCell}
+              setFillRange={setFillRange}
+              clearSelectedCells={clearSelectedCells}
+              commitCell={commitCell}
+              commitSelectedCells={commitSelectedCells}
+              moveActiveCell={moveActiveCell}
+              extendSelectedRange={extendSelectedRange}
+              focusCell={focusCell}
+              showOverflowTooltip={showOverflowTooltip}
+              hideOverflowTooltip={hideOverflowTooltip}
+            />
           );
         })}
       </div>

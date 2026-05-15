@@ -26,10 +26,18 @@
   grid-template-rows: 1fr 1fr;
   box-sizing: border-box;
   overflow: hidden;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--gantt-pf-day-width) - 1px),
+    var(--gantt-grid-line-color, #e0e0e0) calc(var(--gantt-pf-day-width) - 1px),
+    var(--gantt-grid-line-color, #e0e0e0) var(--gantt-pf-day-width)
+  );
   box-shadow: inset 0 -1px 0 var(--gantt-plan-fact-row-line-color, #b7c3d0);
 }
 
 .gantt-pf-row-parent {
+  background-image: none;
   font-weight: 600;
 }
 
@@ -74,8 +82,8 @@
   line-height: 1;
   font-variant-numeric: tabular-nums;
   outline: none;
-  background: inherit;
-  box-shadow: inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+  background: transparent;
+  box-shadow: none;
 }
 
 .gantt-pf-cell-plan {
@@ -102,17 +110,15 @@
 
 .gantt-pf-cell-active {
   z-index: 1;
-  box-shadow: inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+  box-shadow: none;
 }
 
 .gantt-pf-cell-selected {
-  box-shadow:
-    inset 0 0 0 9999px rgba(37, 99, 235, 0.12),
-    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+  box-shadow: inset 0 0 0 9999px rgba(37, 99, 235, 0.12);
 }
 
 .gantt-pf-cell-selected.gantt-pf-cell-rangeAnchor {
-  box-shadow: inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+  box-shadow: none;
 }
 
 .gantt-pf-cell-active:not(.gantt-pf-cell-selected)::after {
@@ -139,30 +145,24 @@
 }
 
 .gantt-pf-cell:not(.gantt-pf-cell-readonly):hover {
-  box-shadow:
-    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0),
-    inset 0 0 0 9999px rgba(15, 23, 42, 0.06);
+  box-shadow: inset 0 0 0 9999px rgba(15, 23, 42, 0.06);
 }
 
 .gantt-pf-cell-selected:not(.gantt-pf-cell-active):hover {
-  box-shadow:
-    inset 0 0 0 9999px rgba(37, 99, 235, 0.16),
-    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+  box-shadow: inset 0 0 0 9999px rgba(37, 99, 235, 0.16);
 }
 
 .gantt-pf-cell-selected.gantt-pf-cell-active:hover {
-  box-shadow:
-    inset 0 0 0 9999px rgba(37, 99, 235, 0.12),
-    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+  box-shadow: inset 0 0 0 9999px rgba(37, 99, 235, 0.12);
 }
 
 .gantt-pf-cell-selected.gantt-pf-cell-rangeAnchor:hover,
 .gantt-pf-cell-selected.gantt-pf-cell-rangeAnchor.gantt-pf-cell-active:hover {
-  box-shadow: inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+  box-shadow: none;
 }
 
 .gantt-pf-cell-active:not(.gantt-pf-cell-selected):hover {
-  box-shadow: inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+  box-shadow: none;
 }
 
 .gantt-pf-cell-active:not(.gantt-pf-cell-selected):hover::after {
@@ -221,7 +221,7 @@
 }
 
 .gantt-pf-cell-editing:hover {
-  box-shadow: inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+  box-shadow: none;
 }
 
 .gantt-pf-cellValue {
