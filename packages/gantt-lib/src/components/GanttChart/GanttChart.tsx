@@ -38,6 +38,19 @@ const TASK_ROW_OVERSCAN = 8;
 const PLAN_FACT_COLUMN_OVERSCAN = 24;
 const PLAN_FACT_COLUMN_WINDOW_STEP = 14;
 
+function waitForNextPaint(win: Window): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof win.requestAnimationFrame === 'function') {
+      win.requestAnimationFrame(() => {
+        win.requestAnimationFrame(() => resolve());
+      });
+      return;
+    }
+
+    win.setTimeout(() => resolve(), 50);
+  });
+}
+
 function getFullMonthDays(tasks: Array<{ startDate: string | Date; endDate: string | Date }>): Date[] {
   if (!tasks || tasks.length === 0) {
     return getMultiMonthDays(tasks);
@@ -589,6 +602,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
   const [internalTaskDateChangeMode, setInternalTaskDateChangeMode] = useState<TaskDateChangeMode>('preserve-duration');
   const [scrollViewport, setScrollViewport] = useState({ scrollTop: 0, viewportHeight: 0 });
+  const [forceFullRenderForPrint, setForceFullRenderForPrint] = useState(false);
   const [planFactDateWindow, setPlanFactDateWindow] = useState<{ start: number; end: number } | null>(null);
 
   // Track selected dep chip for arrow highlighting in DependencyLines
@@ -1193,6 +1207,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return [] as number[];
     }
 
+    if (forceFullRenderForPrint) {
+      return Array.from({ length: totalTasks }, (_, index) => index);
+    }
+
     if (scrollViewport.viewportHeight <= 0) {
       return Array.from({ length: totalTasks }, (_, index) => index);
     }
@@ -1217,9 +1235,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
 
     return Array.from(indices).sort((left, right) => left - right);
-  }, [effectiveRowHeight, forcedRenderedTaskIds, scrollViewport, visibleTaskIndexMap, visibleTasks.length]);
+  }, [effectiveRowHeight, forceFullRenderForPrint, forcedRenderedTaskIds, scrollViewport, visibleTaskIndexMap, visibleTasks.length]);
 
   const visiblePlanFactDateIndices = useMemo(() => {
+    if (forceFullRenderForPrint) {
+      return undefined;
+    }
+
     if (!isPlanFactMode || dateRange.length === 0 || !planFactDateWindow) {
       return undefined;
     }
@@ -1228,7 +1250,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       { length: planFactDateWindow.end - planFactDateWindow.start + 1 },
       (_, index) => planFactDateWindow.start + index
     );
-  }, [dateRange.length, isPlanFactMode, planFactDateWindow]);
+  }, [dateRange.length, forceFullRenderForPrint, isPlanFactMode, planFactDateWindow]);
 
   const renderedChartTasks = useMemo(
     () =>
@@ -1350,9 +1372,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   const exportToPdf = useCallback(async (options?: ExportToPdfOptions) => {
     const sourceContainer = containerRef.current;
-    const sourceContent = scrollContentRef.current;
 
-    if (!sourceContainer || !sourceContent || typeof window === 'undefined' || typeof document === 'undefined') {
+    if (!sourceContainer || typeof window === 'undefined' || typeof document === 'undefined') {
       return;
     }
 
@@ -1363,34 +1384,52 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return;
     }
 
-    const printContent = sourceContent.cloneNode(true) as HTMLDivElement;
-    const taskListClone = printContent.querySelector('.gantt-tl-overlay') as HTMLDivElement | null;
-    const chartClone = printContent.querySelector('.gantt-chartSurface') as HTMLDivElement | null;
+    const shouldForceFullRender = !isTableMatrixMode;
 
-    if (includeTaskList) {
-      taskListClone?.classList.remove('gantt-tl-hidden', 'gantt-tl-overlay-shadowed');
-    } else {
-      taskListClone?.remove();
+    try {
+      if (shouldForceFullRender) {
+        setForceFullRenderForPrint(true);
+        await waitForNextPaint(window);
+      }
+
+      const sourceContent = scrollContentRef.current;
+      if (!sourceContent) {
+        return;
+      }
+
+      const printContent = sourceContent.cloneNode(true) as HTMLDivElement;
+      const taskListClone = printContent.querySelector('.gantt-tl-overlay') as HTMLDivElement | null;
+      const chartClone = printContent.querySelector('.gantt-chartSurface') as HTMLDivElement | null;
+
+      if (includeTaskList) {
+        taskListClone?.classList.remove('gantt-tl-hidden', 'gantt-tl-overlay-shadowed');
+      } else {
+        taskListClone?.remove();
+      }
+
+      if (includeChart) {
+        chartClone?.classList.remove('gantt-chart-hidden');
+        if (chartClone) chartClone.style.display = '';
+      } else {
+        chartClone?.remove();
+      }
+
+      await printGanttChart({
+        sourceDocument: document,
+        sourceContainer,
+        printContent,
+        header: options?.header,
+        documentTitle: options?.documentTitle,
+        title: options?.title,
+        fileName: options?.fileName,
+        orientation: options?.orientation,
+      });
+    } finally {
+      if (shouldForceFullRender) {
+        setForceFullRenderForPrint(false);
+      }
     }
-
-    if (includeChart) {
-      chartClone?.classList.remove('gantt-chart-hidden');
-      if (chartClone) chartClone.style.display = '';
-    } else {
-      chartClone?.remove();
-    }
-
-    await printGanttChart({
-      sourceDocument: document,
-      sourceContainer,
-      printContent,
-      header: options?.header,
-      documentTitle: options?.documentTitle,
-      title: options?.title,
-      fileName: options?.fileName,
-      orientation: options?.orientation,
-    });
-  }, [showTaskList, showChart]);
+  }, [isTableMatrixMode, showTaskList, showChart]);
 
   // Expose collapse/expand methods via ref (must be after handlers are defined)
   useImperativeHandle(

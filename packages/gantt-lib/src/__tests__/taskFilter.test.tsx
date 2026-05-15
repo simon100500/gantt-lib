@@ -345,6 +345,114 @@ describe('GanttChart taskFilter', () => {
     expect(printStyles).not.toContain('size: portrait;');
   });
 
+  it('exports all virtualized gantt rows to print output, not only the visible viewport', async () => {
+    const tasks: Task[] = Array.from({ length: 40 }, (_, index) => ({
+      id: `task-${index + 1}`,
+      name: `Task ${index + 1}`,
+      startDate: '2026-02-01',
+      endDate: '2026-02-03',
+    }));
+
+    const ref = createRef<GanttChartHandle>();
+    const frameWindow = createMockPrintWindow();
+
+    const appendChildOriginal = document.body.appendChild.bind(document.body);
+    vi.spyOn(document.body, 'appendChild').mockImplementation((node: Node) => {
+      if (node instanceof HTMLIFrameElement) {
+        Object.defineProperty(node, 'contentWindow', {
+          configurable: true,
+          value: frameWindow,
+        });
+        Object.defineProperty(node, 'contentDocument', {
+          configurable: true,
+          value: frameWindow.document,
+        });
+      }
+      return appendChildOriginal(node);
+    });
+
+    render(
+      <GanttChart
+        ref={ref}
+        tasks={tasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+        containerHeight={160}
+      />
+    );
+
+    await act(async () => {
+      await ref.current?.exportToPdf({
+        title: 'Virtualized gantt export',
+        fileName: 'virtualized-gantt.pdf',
+      });
+    });
+
+    expect(
+      frameWindow.document.body.querySelector('[data-gantt-task-row-id="task-40"]')
+    ).not.toBeNull();
+  });
+
+  it('exports all virtualized plan-fact columns to print output, not only the visible date window', async () => {
+    const tasks: Task[] = [
+      {
+        id: 'task-1',
+        name: 'PlanFact task',
+        startDate: '2026-02-01',
+        endDate: '2026-03-15',
+        workVolume: 100,
+        planByDate: {
+          '2026-03-15': 2,
+        },
+        factByDate: {
+          '2026-03-15': 1,
+        },
+      },
+    ];
+
+    const ref = createRef<GanttChartHandle>();
+    const frameWindow = createMockPrintWindow();
+
+    const appendChildOriginal = document.body.appendChild.bind(document.body);
+    vi.spyOn(document.body, 'appendChild').mockImplementation((node: Node) => {
+      if (node instanceof HTMLIFrameElement) {
+        Object.defineProperty(node, 'contentWindow', {
+          configurable: true,
+          value: frameWindow,
+        });
+        Object.defineProperty(node, 'contentDocument', {
+          configurable: true,
+          value: frameWindow.document,
+        });
+      }
+      return appendChildOriginal(node);
+    });
+
+    render(
+      <GanttChart
+        ref={ref}
+        mode="plan-fact"
+        tasks={tasks}
+        rowHeight={46}
+        headerHeight={40}
+        dayWidth={42}
+        containerHeight={180}
+      />
+    );
+
+    await act(async () => {
+      await ref.current?.exportToPdf({
+        title: 'Virtualized plan-fact export',
+        fileName: 'virtualized-plan-fact.pdf',
+      });
+    });
+
+    expect(
+      frameWindow.document.body.querySelector('[data-plan-fact-date-index="42"]')
+    ).not.toBeNull();
+  });
+
   it('uses documentTitle for printWindow.document.title without changing the visual header', async () => {
     const tasks: Task[] = [
       {
