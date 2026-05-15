@@ -1,6 +1,7 @@
 .gantt-pf-root {
   position: relative;
   background: var(--gantt-cell-background, #ffffff);
+  --gantt-pf-day-width: 40px;
 }
 
 .gantt-pf-header {
@@ -54,10 +55,10 @@
   align-items: center;
   justify-content: flex-end;
   min-width: 0;
-  padding: 0 4px;
+  padding: 0 clamp(2px, calc(var(--gantt-pf-day-width) * 0.1), 4px);
   box-sizing: border-box;
   color: #0f172a;
-  font-size: 12px;
+  font-size: clamp(10px, calc(var(--gantt-pf-day-width) * 0.3), 12px);
   line-height: 1;
   font-variant-numeric: tabular-nums;
   outline: none;
@@ -213,9 +214,11 @@
 
 .gantt-pf-cellValue {
   overflow: hidden;
+  width: 100%;
   max-width: 100%;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: right;
 }
 
 .gantt-pf-editor {
@@ -226,7 +229,7 @@
   border-radius: 0;
   box-sizing: border-box;
   background: #ffffff;
-  padding: 0 4px;
+  padding: 0 clamp(2px, calc(var(--gantt-pf-day-width) * 0.1), 4px);
   color: #0f172a;
   font: inherit;
   font-variant-numeric: tabular-nums;
@@ -239,4 +242,34 @@
   outline: none;
   border-color: #3b82f6;
   box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.18);
+}
+
+.gantt-pf-overflowTooltip {
+  position: absolute;
+  z-index: 20;
+  transform: translate(-50%, calc(-100% - 4px));
+  pointer-events: none;
+  max-width: 160px;
+  padding: 4px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 4px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  animation: gantt-pf-tooltip-in 90ms ease-out;
+}
+
+@keyframes gantt-pf-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% - 1px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, calc(-100% - 4px));
+  }
 }

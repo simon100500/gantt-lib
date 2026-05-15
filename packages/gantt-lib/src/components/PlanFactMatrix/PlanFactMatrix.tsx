@@ -54,6 +54,12 @@ type EditingCell = ActiveCell & {
   startValue?: string;
 };
 
+type OverflowTooltip = {
+  label: string;
+  left: number;
+  top: number;
+};
+
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
 }
@@ -93,6 +99,11 @@ function isDateWithinTask(task: Task, date: Date) {
 function formatValue(value: number | undefined) {
   if (value === undefined) return '';
   return Number.isInteger(value) ? String(value) : String(value).replace('.', ',');
+}
+
+function formatTooltipValue(value: number | undefined) {
+  if (value === undefined) return '';
+  return value.toLocaleString('ru-RU', { maximumFractionDigits: 20 });
 }
 
 function getSubrowIndex(taskIndex: number, kind: PlanFactCellKind) {
@@ -200,6 +211,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [selectedRange, setSelectedRange] = useState<CellRange | null>(null);
   const [fillRange, setFillRange] = useState<CellRange | null>(null);
+  const [overflowTooltip, setOverflowTooltip] = useState<OverflowTooltip | null>(null);
   const isSelectingRef = useRef(false);
   const isFillDraggingRef = useRef(false);
   const didDragSelectRef = useRef(false);
@@ -242,6 +254,27 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     setEditingCell(null);
     setSelectedRange(null);
     setFillRange(null);
+    setOverflowTooltip(null);
+  }, []);
+
+  const hideOverflowTooltip = useCallback(() => {
+    setOverflowTooltip(null);
+  }, []);
+
+  const showOverflowTooltip = useCallback((target: HTMLElement, label: string) => {
+    if (!rootRef.current || !label) return;
+    if (target.scrollWidth <= target.clientWidth) {
+      setOverflowTooltip(null);
+      return;
+    }
+
+    const rootRect = rootRef.current.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    setOverflowTooltip({
+      label,
+      left: targetRect.left - rootRect.left + (targetRect.width / 2),
+      top: targetRect.top - rootRect.top,
+    });
   }, []);
 
   const selectSingleCell = useCallback((cell: ActiveCell) => {
@@ -666,7 +699,14 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   }, [clearSelection]);
 
   return (
-    <div ref={rootRef} className="gantt-pf-root" style={{ width: `${totalWidth}px` }}>
+    <div
+      ref={rootRef}
+      className="gantt-pf-root"
+      style={{
+        width: `${totalWidth}px`,
+        ['--gantt-pf-day-width' as string]: `${dayWidth}px`,
+      }}
+    >
       <div className="gantt-pf-header" style={{ width: `${totalWidth}px`, height: `${headerHeight}px` }}>
         <TimeScaleHeader
           days={dateRange}
@@ -860,7 +900,16 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                           }}
                         />
                       ) : (
-                        <span className="gantt-pf-cellValue">{isParent ? '' : formatValue(value)}</span>
+                        <span
+                          className="gantt-pf-cellValue"
+                          onMouseEnter={(event) => {
+                            if (isParent || value === undefined) return;
+                            showOverflowTooltip(event.currentTarget, formatTooltipValue(value));
+                          }}
+                          onMouseLeave={hideOverflowTooltip}
+                        >
+                          {isParent ? '' : formatValue(value)}
+                        </span>
                       )}
                       {showFillHandle && (
                         <span
@@ -883,6 +932,19 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
           );
         })}
       </div>
+      {overflowTooltip && (
+        <div
+          className="gantt-pf-overflowTooltip"
+          role="tooltip"
+          aria-hidden="true"
+          style={{
+            left: `${overflowTooltip.left}px`,
+            top: `${overflowTooltip.top}px`,
+          }}
+        >
+          {overflowTooltip.label}
+        </div>
+      )}
     </div>
   );
 }
