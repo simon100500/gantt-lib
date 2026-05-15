@@ -103,11 +103,13 @@ function PlanFactCellEditor({
   value,
   startValue,
   onCommit,
+  onCommitRange,
   onCancel,
 }: {
   value: number | undefined;
   startValue?: string;
   onCommit: (value: number | undefined) => void;
+  onCommitRange?: (value: number | undefined) => void;
   onCancel: () => void;
 }) {
   const [draft, setDraft] = useState(startValue ?? (value === undefined ? '' : String(value)));
@@ -147,7 +149,16 @@ function PlanFactCellEditor({
         }
         if (event.key === 'Enter') {
           event.preventDefault();
-          commit();
+          if (event.ctrlKey || event.metaKey) {
+            const parsed = parseNumberInput(draft);
+            if (parsed === null) {
+              onCancel();
+              return;
+            }
+            onCommitRange?.(parsed);
+          } else {
+            commit();
+          }
         }
       }}
     />
@@ -355,6 +366,63 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     }
   }, [activeCell, commitCell, dateKeys, isCellInSelectedRange, onTasksChange, parentTaskIds, selectedRange, tasks]);
 
+  const commitSelectedCells = useCallback((value: number | undefined) => {
+    if (!selectedRange) {
+      if (!activeCell) return;
+      const task = tasks.find((candidate) => candidate.id === activeCell.taskId);
+      if (!task || parentTaskIds.has(task.id)) return;
+      commitCell(task, activeCell.dateIndex, activeCell.kind, value);
+      return;
+    }
+
+    const changedTasksById = new Map<string, TTask>();
+    for (const task of tasks) {
+      if (parentTaskIds.has(task.id)) continue;
+
+      let nextPlanByDate = task.planByDate;
+      let nextFactByDate = task.factByDate;
+      let didChange = false;
+
+      for (let dateIndex = 0; dateIndex < dateKeys.length; dateIndex += 1) {
+        const dateKey = dateKeys[dateIndex];
+        const planCell = { taskId: task.id, dateIndex, kind: 'plan' as const };
+        if (isCellInSelectedRange(planCell) && nextPlanByDate?.[dateKey] !== value) {
+          nextPlanByDate = { ...(nextPlanByDate ?? {}) };
+          if (value === undefined) {
+            delete nextPlanByDate[dateKey];
+          } else {
+            nextPlanByDate[dateKey] = value;
+          }
+          didChange = true;
+        }
+
+        const factCell = { taskId: task.id, dateIndex, kind: 'fact' as const };
+        if (isCellInSelectedRange(factCell) && nextFactByDate?.[dateKey] !== value) {
+          nextFactByDate = { ...(nextFactByDate ?? {}) };
+          if (value === undefined) {
+            delete nextFactByDate[dateKey];
+          } else {
+            nextFactByDate[dateKey] = value;
+          }
+          didChange = true;
+        }
+      }
+
+      if (didChange) {
+        changedTasksById.set(task.id, {
+          ...task,
+          ...(nextPlanByDate !== task.planByDate ? { planByDate: nextPlanByDate ?? {} } : {}),
+          ...(nextFactByDate !== task.factByDate ? { factByDate: nextFactByDate ?? {} } : {}),
+        } as TTask);
+      }
+    }
+
+    const changedTasks = Array.from(changedTasksById.values());
+    if (changedTasks.length > 0) {
+      onTasksChange?.(changedTasks);
+    }
+  }, [activeCell, commitCell, dateKeys, isCellInSelectedRange, onTasksChange, parentTaskIds, selectedRange, tasks]);
+
   const getCellValue = useCallback((cell: ActiveCell) => {
     const task = tasks.find((candidate) => candidate.id === cell.taskId);
     if (!task) return undefined;
@@ -475,6 +543,41 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
 
     setActiveCell(nextCell);
     setSelectedRange({ anchor: nextCell, focus: nextCell });
+    onTaskSelect?.(nextCell.taskId);
+    focusCell(nextCell);
+  }, [dateRange.length, focusCell, onTaskSelect, tasks]);
+
+  const extendSelectedRange = useCallback((cell: ActiveCell, direction: 'left' | 'right' | 'up' | 'down') => {
+    const taskIndex = tasks.findIndex((task) => task.id === cell.taskId);
+    if (taskIndex < 0) return;
+
+    let nextCell = { ...cell };
+    if (direction === 'left') {
+      nextCell.dateIndex = Math.max(0, cell.dateIndex - 1);
+    } else if (direction === 'right') {
+      nextCell.dateIndex = Math.min(dateRange.length - 1, cell.dateIndex + 1);
+    } else if (direction === 'up') {
+      if (cell.kind === 'fact') {
+        nextCell.kind = 'plan';
+      } else {
+        const previousTask = tasks[Math.max(0, taskIndex - 1)];
+        nextCell = { taskId: previousTask.id, dateIndex: cell.dateIndex, kind: 'fact' };
+      }
+    } else if (direction === 'down') {
+      if (cell.kind === 'plan') {
+        nextCell.kind = 'fact';
+      } else {
+        const nextTask = tasks[Math.min(tasks.length - 1, taskIndex + 1)];
+        nextCell = { taskId: nextTask.id, dateIndex: cell.dateIndex, kind: 'plan' };
+      }
+    }
+
+    setActiveCell(nextCell);
+    setFillRange(null);
+    setSelectedRange((currentRange) => ({
+      anchor: currentRange?.anchor ?? cell,
+      focus: nextCell,
+    }));
     onTaskSelect?.(nextCell.taskId);
     focusCell(nextCell);
   }, [dateRange.length, focusCell, onTaskSelect, tasks]);
@@ -636,7 +739,11 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                           event.preventDefault();
                           event.stopPropagation();
                           const direction = event.key.replace('Arrow', '').toLowerCase() as 'left' | 'right' | 'up' | 'down';
-                          moveActiveCell(currentCell, direction);
+                          if (event.shiftKey) {
+                            extendSelectedRange(currentCell, direction);
+                          } else {
+                            moveActiveCell(currentCell, direction);
+                          }
                           return;
                         }
                         if (event.key === 'Enter' || event.key === 'F2') {
@@ -664,6 +771,13 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                           startValue={editingCell.startValue}
                           onCommit={(nextValue) => {
                             commitCell(task, dateIndex, kind, nextValue);
+                            setEditingCell(null);
+                            const nextActiveCell = { taskId: task.id, dateIndex, kind };
+                            selectSingleCell(nextActiveCell);
+                            focusCell(nextActiveCell);
+                          }}
+                          onCommitRange={(nextValue) => {
+                            commitSelectedCells(nextValue);
                             setEditingCell(null);
                             const nextActiveCell = { taskId: task.id, dateIndex, kind };
                             setActiveCell(nextActiveCell);

@@ -210,6 +210,80 @@ describe('plan-fact mode', () => {
     ]);
   });
 
+  it('extends the selected range with shift plus arrow keys', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа',
+        startDate: '2026-04-01',
+        endDate: '2026-04-03',
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        dayWidth={32}
+      />
+    );
+
+    const firstCell = getCell(container, 'task-1', '2026-04-01', 'plan');
+    fireEvent.mouseDown(firstCell);
+    fireEvent.mouseUp(window);
+    fireEvent.keyDown(firstCell, { key: 'ArrowRight', shiftKey: true });
+
+    expect(firstCell.classList.contains('gantt-pf-cell-selected')).toBe(true);
+    expect(getCell(container, 'task-1', '2026-04-02', 'plan').classList.contains('gantt-pf-cell-selected')).toBe(true);
+    expect(getCell(container, 'task-1', '2026-04-03', 'plan').classList.contains('gantt-pf-cell-selected')).toBe(false);
+  });
+
+  it('commits one edited value to every selected range cell with ctrl enter', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа',
+        startDate: '2026-04-01',
+        endDate: '2026-04-02',
+      },
+    ];
+    const changes: PlanFactTask[][] = [];
+
+    const { container } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        dayWidth={32}
+        onTasksChange={(changedTasks) => changes.push(changedTasks)}
+      />
+    );
+
+    const firstCell = getCell(container, 'task-1', '2026-04-01', 'plan');
+    const lastCell = getCell(container, 'task-1', '2026-04-02', 'fact');
+    fireEvent.mouseDown(firstCell);
+    fireEvent.mouseEnter(lastCell);
+    fireEvent.mouseUp(window);
+    fireEvent.doubleClick(firstCell);
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '7' } });
+    fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
+
+    expect(changes.at(-1)).toEqual([
+      {
+        ...tasks[0],
+        planByDate: {
+          '2026-04-01': 7,
+          '2026-04-02': 7,
+        },
+        factByDate: {
+          '2026-04-01': 7,
+          '2026-04-02': 7,
+        },
+      },
+    ]);
+  });
+
   it('keeps parent plan/fact cells readonly and value-free', () => {
     const tasks: PlanFactTask[] = [
       {
