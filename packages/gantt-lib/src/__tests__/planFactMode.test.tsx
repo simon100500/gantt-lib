@@ -234,8 +234,13 @@ describe('plan-fact mode', () => {
     fireEvent.keyDown(firstCell, { key: 'ArrowRight', shiftKey: true });
 
     expect(firstCell.classList.contains('gantt-pf-cell-selected')).toBe(true);
+    expect(firstCell.classList.contains('gantt-pf-cell-rangeAnchor')).toBe(true);
+    expect(firstCell.classList.contains('gantt-pf-cell-active')).toBe(true);
     expect(getCell(container, 'task-1', '2026-04-02', 'plan').classList.contains('gantt-pf-cell-selected')).toBe(true);
     expect(getCell(container, 'task-1', '2026-04-03', 'plan').classList.contains('gantt-pf-cell-selected')).toBe(false);
+
+    fireEvent.keyDown(firstCell, { key: 'ArrowRight', shiftKey: true });
+    expect(getCell(container, 'task-1', '2026-04-03', 'plan').classList.contains('gantt-pf-cell-selected')).toBe(true);
   });
 
   it('commits one edited value to every selected range cell with ctrl enter', () => {
@@ -263,9 +268,10 @@ describe('plan-fact mode', () => {
     fireEvent.mouseDown(firstCell);
     fireEvent.mouseEnter(lastCell);
     fireEvent.mouseUp(window);
-    fireEvent.doubleClick(firstCell);
+    fireEvent.keyDown(firstCell, { key: 'Enter' });
 
     const input = screen.getByRole('textbox') as HTMLInputElement;
+    expect(firstCell.contains(input)).toBe(true);
     fireEvent.change(input, { target: { value: '7' } });
     fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
 
@@ -282,6 +288,46 @@ describe('plan-fact mode', () => {
         },
       },
     ]);
+  });
+
+  it('skips parent rows when moving between tasks with arrow keys', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа 1',
+        startDate: '2026-04-01',
+        endDate: '2026-04-01',
+      },
+      {
+        id: 'parent',
+        name: 'Раздел',
+        startDate: '2026-04-01',
+        endDate: '2026-04-01',
+      },
+      {
+        id: 'task-2',
+        name: 'Работа 2',
+        parentId: 'parent',
+        startDate: '2026-04-01',
+        endDate: '2026-04-01',
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        dayWidth={32}
+      />
+    );
+
+    const startCell = getCell(container, 'task-1', '2026-04-01', 'fact');
+    fireEvent.mouseDown(startCell);
+    fireEvent.mouseUp(window);
+    fireEvent.keyDown(startCell, { key: 'ArrowDown' });
+
+    expect(getCell(container, 'parent', '2026-04-01', 'plan').classList.contains('gantt-pf-cell-active')).toBe(false);
+    expect(getCell(container, 'task-2', '2026-04-01', 'plan').classList.contains('gantt-pf-cell-active')).toBe(true);
   });
 
   it('keeps parent plan/fact cells readonly and value-free', () => {

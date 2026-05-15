@@ -99,6 +99,22 @@ function getSubrowIndex(taskIndex: number, kind: PlanFactCellKind) {
   return taskIndex * 2 + (kind === 'plan' ? 0 : 1);
 }
 
+function findEditableTaskIndex(
+  tasks: Task[],
+  parentTaskIds: Set<string>,
+  startIndex: number,
+  step: 1 | -1
+) {
+  let index = startIndex;
+  while (index >= 0 && index < tasks.length) {
+    if (!parentTaskIds.has(tasks[index].id)) {
+      return index;
+    }
+    index += step;
+  }
+  return null;
+}
+
 function PlanFactCellEditor({
   value,
   startValue,
@@ -501,7 +517,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
       onTasksChange?.(changedTasks);
     }
     setSelectedRange(fillRange);
-    setActiveCell(fillRange.focus);
+    setActiveCell(fillRange.anchor);
     setFillRange(null);
   }, [
     dateKeys,
@@ -529,14 +545,18 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
       if (cell.kind === 'fact') {
         nextCell.kind = 'plan';
       } else {
-        const previousTask = tasks[Math.max(0, taskIndex - 1)];
+        const previousEditableTaskIndex = findEditableTaskIndex(tasks, parentTaskIds, taskIndex - 1, -1);
+        if (previousEditableTaskIndex === null) return;
+        const previousTask = tasks[previousEditableTaskIndex];
         nextCell = { taskId: previousTask.id, dateIndex: cell.dateIndex, kind: 'fact' };
       }
     } else if (direction === 'down') {
       if (cell.kind === 'plan') {
         nextCell.kind = 'fact';
       } else {
-        const nextTask = tasks[Math.min(tasks.length - 1, taskIndex + 1)];
+        const nextEditableTaskIndex = findEditableTaskIndex(tasks, parentTaskIds, taskIndex + 1, 1);
+        if (nextEditableTaskIndex === null) return;
+        const nextTask = tasks[nextEditableTaskIndex];
         nextCell = { taskId: nextTask.id, dateIndex: cell.dateIndex, kind: 'plan' };
       }
     }
@@ -545,7 +565,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     setSelectedRange({ anchor: nextCell, focus: nextCell });
     onTaskSelect?.(nextCell.taskId);
     focusCell(nextCell);
-  }, [dateRange.length, focusCell, onTaskSelect, tasks]);
+  }, [dateRange.length, focusCell, onTaskSelect, parentTaskIds, tasks]);
 
   const extendSelectedRange = useCallback((cell: ActiveCell, direction: 'left' | 'right' | 'up' | 'down') => {
     const taskIndex = tasks.findIndex((task) => task.id === cell.taskId);
@@ -560,27 +580,31 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
       if (cell.kind === 'fact') {
         nextCell.kind = 'plan';
       } else {
-        const previousTask = tasks[Math.max(0, taskIndex - 1)];
+        const previousEditableTaskIndex = findEditableTaskIndex(tasks, parentTaskIds, taskIndex - 1, -1);
+        if (previousEditableTaskIndex === null) return;
+        const previousTask = tasks[previousEditableTaskIndex];
         nextCell = { taskId: previousTask.id, dateIndex: cell.dateIndex, kind: 'fact' };
       }
     } else if (direction === 'down') {
       if (cell.kind === 'plan') {
         nextCell.kind = 'fact';
       } else {
-        const nextTask = tasks[Math.min(tasks.length - 1, taskIndex + 1)];
+        const nextEditableTaskIndex = findEditableTaskIndex(tasks, parentTaskIds, taskIndex + 1, 1);
+        if (nextEditableTaskIndex === null) return;
+        const nextTask = tasks[nextEditableTaskIndex];
         nextCell = { taskId: nextTask.id, dateIndex: cell.dateIndex, kind: 'plan' };
       }
     }
 
-    setActiveCell(nextCell);
+    setActiveCell((currentActiveCell) => currentActiveCell ?? cell);
     setFillRange(null);
     setSelectedRange((currentRange) => ({
       anchor: currentRange?.anchor ?? cell,
       focus: nextCell,
     }));
     onTaskSelect?.(nextCell.taskId);
-    focusCell(nextCell);
-  }, [dateRange.length, focusCell, onTaskSelect, tasks]);
+    focusCell(selectedRange?.anchor ?? cell);
+  }, [dateRange.length, focusCell, onTaskSelect, parentTaskIds, selectedRange, tasks]);
 
   useEffect(() => {
     const endSelection = () => {
@@ -656,6 +680,10 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                     && editingCell.kind === kind;
                   const currentCell = { taskId: task.id, dateIndex, kind };
                   const isSelected = !isParent && isCellInSelectedRange(currentCell);
+                  const isRangeAnchor = !isParent
+                    && selectedRange?.anchor.taskId === task.id
+                    && selectedRange.anchor.dateIndex === dateIndex
+                    && selectedRange.anchor.kind === kind;
                   const isRangeFocus = !isParent
                     && selectedRange?.focus.taskId === task.id
                     && selectedRange.focus.dateIndex === dateIndex
@@ -677,6 +705,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                         kind === 'fact' && factStatus === 'warning' && 'gantt-pf-cell-factWarning',
                         isSelected && 'gantt-pf-cell-selected',
                         ...getSelectedRangeEdgeClasses(currentCell),
+                        isRangeAnchor && 'gantt-pf-cell-rangeAnchor',
                         isActive && 'gantt-pf-cell-active',
                         isEditing && 'gantt-pf-cell-editing',
                         isParent && 'gantt-pf-cell-readonly'
@@ -706,7 +735,6 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                         }
                         if (isParent || !isSelectingRef.current) return;
                         didDragSelectRef.current = true;
-                        setActiveCell(currentCell);
                         setSelectedRange((currentRange) => ({
                           anchor: currentRange?.anchor ?? currentCell,
                           focus: currentCell,
@@ -740,7 +768,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                           event.stopPropagation();
                           const direction = event.key.replace('Arrow', '').toLowerCase() as 'left' | 'right' | 'up' | 'down';
                           if (event.shiftKey) {
-                            extendSelectedRange(currentCell, direction);
+                            extendSelectedRange(selectedRange?.focus ?? currentCell, direction);
                           } else {
                             moveActiveCell(currentCell, direction);
                           }
@@ -749,7 +777,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                         if (event.key === 'Enter' || event.key === 'F2') {
                           event.preventDefault();
                           event.stopPropagation();
-                          setEditingCell(currentCell);
+                          setEditingCell(selectedRange?.anchor ?? currentCell);
                           return;
                         }
                         if (event.key === 'Backspace' || event.key === 'Delete') {
