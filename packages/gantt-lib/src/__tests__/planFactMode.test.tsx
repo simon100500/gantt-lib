@@ -166,6 +166,72 @@ describe('plan-fact mode', () => {
     ]);
   });
 
+  it('clears plan/fact selection with escape', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа',
+        startDate: '2026-04-01',
+        endDate: '2026-04-02',
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        dayWidth={32}
+      />
+    );
+
+    const firstCell = getCell(container, 'task-1', '2026-04-01', 'plan');
+    const lastCell = getCell(container, 'task-1', '2026-04-02', 'fact');
+    fireEvent.mouseDown(firstCell);
+    fireEvent.mouseEnter(lastCell);
+    fireEvent.mouseUp(window);
+
+    expect(firstCell.classList.contains('gantt-pf-cell-selected')).toBe(true);
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(firstCell.classList.contains('gantt-pf-cell-selected')).toBe(false);
+    expect(lastCell.classList.contains('gantt-pf-cell-selected')).toBe(false);
+    expect(container.querySelector('.gantt-pf-fillHandle')).toBeNull();
+  });
+
+  it('clears plan/fact selection when clicking outside the matrix', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа',
+        startDate: '2026-04-01',
+        endDate: '2026-04-02',
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        dayWidth={32}
+      />
+    );
+
+    const firstCell = getCell(container, 'task-1', '2026-04-01', 'plan');
+    const lastCell = getCell(container, 'task-1', '2026-04-02', 'fact');
+    fireEvent.mouseDown(firstCell);
+    fireEvent.mouseEnter(lastCell);
+    fireEvent.mouseUp(window);
+
+    expect(firstCell.classList.contains('gantt-pf-cell-selected')).toBe(true);
+
+    fireEvent.mouseDown(document.body);
+
+    expect(firstCell.classList.contains('gantt-pf-cell-selected')).toBe(false);
+    expect(lastCell.classList.contains('gantt-pf-cell-selected')).toBe(false);
+    expect(container.querySelector('.gantt-pf-fillHandle')).toBeNull();
+  });
+
   it('fills cells by dragging the selection corner handle', () => {
     const tasks: PlanFactTask[] = [
       {

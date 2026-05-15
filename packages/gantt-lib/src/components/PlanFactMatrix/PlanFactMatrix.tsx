@@ -203,6 +203,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   const isSelectingRef = useRef(false);
   const isFillDraggingRef = useRef(false);
   const didDragSelectRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   const totalWidth = dateRange.length * dayWidth;
@@ -231,6 +232,16 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
       ].join('');
       bodyRef.current?.querySelector<HTMLElement>(selector)?.focus();
     });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    isSelectingRef.current = false;
+    isFillDraggingRef.current = false;
+    didDragSelectRef.current = false;
+    setActiveCell(null);
+    setEditingCell(null);
+    setSelectedRange(null);
+    setFillRange(null);
   }, []);
 
   const selectSingleCell = useCallback((cell: ActiveCell) => {
@@ -621,8 +632,30 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     };
   }, [applyFillRange]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      clearSelection();
+    };
+
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Node && rootRef.current?.contains(target)) {
+        return;
+      }
+      clearSelection();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, [clearSelection]);
+
   return (
-    <div className="gantt-pf-root" style={{ width: `${totalWidth}px` }}>
+    <div ref={rootRef} className="gantt-pf-root" style={{ width: `${totalWidth}px` }}>
       <div className="gantt-pf-header" style={{ width: `${totalWidth}px`, height: `${headerHeight}px` }}>
         <TimeScaleHeader
           days={dateRange}
