@@ -278,7 +278,14 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                 const dateKey = dateKeys[dateIndex];
                 const planned = isDateWithinTask(task, date);
                 return (['plan', 'fact'] as const).map((kind) => {
-                  const value = kind === 'plan' ? task.planByDate?.[dateKey] : task.factByDate?.[dateKey];
+                  const planValue = task.planByDate?.[dateKey];
+                  const factValue = task.factByDate?.[dateKey];
+                  const value = kind === 'plan' ? planValue : factValue;
+                  const factStatus = factValue === undefined || planValue === undefined
+                    ? null
+                    : factValue >= planValue
+                      ? 'success'
+                      : 'warning';
                   const isActive = activeCell?.taskId === task.id
                     && activeCell.dateIndex === dateIndex
                     && activeCell.kind === kind;
@@ -295,8 +302,10 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                       className={joinClasses(
                         'gantt-pf-cell',
                         `gantt-pf-cell-${kind}`,
-                        planned && kind === 'plan' && 'gantt-pf-cell-planned',
+                        planned && kind === 'plan' && !isParent && 'gantt-pf-cell-planned',
                         value !== undefined && 'gantt-pf-cell-hasValue',
+                        kind === 'fact' && factStatus === 'success' && 'gantt-pf-cell-factSuccess',
+                        kind === 'fact' && factStatus === 'warning' && 'gantt-pf-cell-factWarning',
                         isActive && 'gantt-pf-cell-active',
                         isEditing && 'gantt-pf-cell-editing',
                         isParent && 'gantt-pf-cell-readonly'
@@ -307,6 +316,10 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                         height: `${subrowHeight}px`,
                       }}
                       tabIndex={isParent ? -1 : 0}
+                      onMouseDown={() => {
+                        if (isParent) return;
+                        setActiveCell({ taskId: task.id, dateIndex, kind });
+                      }}
                       onFocus={() => {
                         if (isParent) return;
                         setActiveCell({ taskId: task.id, dateIndex, kind });
