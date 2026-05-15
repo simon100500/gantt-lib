@@ -98,6 +98,28 @@ function isDateWithinTask(task: Task, date: Date) {
 
 function formatValue(value: number | undefined) {
   if (value === undefined) return '';
+  const absoluteValue = Math.abs(value);
+
+  if (absoluteValue >= 1_000_000) {
+    const compactValue = value / 1_000_000;
+    const fractionDigits = absoluteValue >= 10_000_000 ? 0 : 1;
+    return `${compactValue.toLocaleString('ru-RU', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: fractionDigits,
+      useGrouping: false,
+    })}m`;
+  }
+
+  if (absoluteValue >= 10_000) {
+    const compactValue = value / 1_000;
+    const fractionDigits = absoluteValue >= 100_000 ? 0 : 1;
+    return `${compactValue.toLocaleString('ru-RU', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: fractionDigits,
+      useGrouping: false,
+    })}k`;
+  }
+
   return Number.isInteger(value) ? String(value) : String(value).replace('.', ',');
 }
 
@@ -261,9 +283,9 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     setOverflowTooltip(null);
   }, []);
 
-  const showOverflowTooltip = useCallback((target: HTMLElement, label: string) => {
+  const showOverflowTooltip = useCallback((target: HTMLElement, label: string, force = false) => {
     if (!rootRef.current || !label) return;
-    if (target.scrollWidth <= target.clientWidth) {
+    if (!force && target.scrollWidth <= target.clientWidth) {
       setOverflowTooltip(null);
       return;
     }
@@ -904,7 +926,9 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                           className="gantt-pf-cellValue"
                           onMouseEnter={(event) => {
                             if (isParent || value === undefined) return;
-                            showOverflowTooltip(event.currentTarget, formatTooltipValue(value));
+                            const compactValue = formatValue(value);
+                            const fullValue = formatTooltipValue(value);
+                            showOverflowTooltip(event.currentTarget, fullValue, compactValue !== fullValue);
                           }}
                           onMouseLeave={hideOverflowTooltip}
                         >
