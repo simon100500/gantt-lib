@@ -425,7 +425,7 @@ describe('plan-fact mode', () => {
     expect(getCell(container, 'task-2', '2026-04-01', 'plan').classList.contains('gantt-pf-cell-active')).toBe(true);
   });
 
-  it('keeps parent plan/fact cells readonly and value-free', () => {
+  it('keeps parent plan/fact cells readonly, value-free, and unfilled', () => {
     const tasks: PlanFactTask[] = [
       {
         id: 'parent',
@@ -456,7 +456,7 @@ describe('plan-fact mode', () => {
 
     const parentCell = getCell(container, 'parent', '2026-04-01', 'plan');
     expect(parentCell.textContent).toBe('');
-    expect(parentCell.classList.contains('gantt-pf-cell-planned')).toBe(true);
+    expect(parentCell.classList.contains('gantt-pf-cell-planned')).toBe(false);
 
     fireEvent.doubleClick(parentCell);
     expect(screen.queryByRole('textbox')).toBeNull();
