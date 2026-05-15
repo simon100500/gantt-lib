@@ -118,6 +118,54 @@ describe('plan-fact mode', () => {
     expect(changes.at(-1)?.[0].planByDate).toEqual({});
   });
 
+  it('selects a continuous plan/fact cell range by dragging across rows and clears it', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа 1',
+        startDate: '2026-04-01',
+        endDate: '2026-04-02',
+        planByDate: { '2026-04-01': 1, '2026-04-02': 2 },
+        factByDate: { '2026-04-01': 1, '2026-04-02': 2 },
+      },
+      {
+        id: 'task-2',
+        name: 'Работа 2',
+        startDate: '2026-04-01',
+        endDate: '2026-04-02',
+        planByDate: { '2026-04-01': 3, '2026-04-02': 4 },
+        factByDate: { '2026-04-01': 3, '2026-04-02': 4 },
+      },
+    ];
+    const changes: PlanFactTask[][] = [];
+
+    const { container } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        dayWidth={32}
+        onTasksChange={(changedTasks) => changes.push(changedTasks)}
+      />
+    );
+
+    const firstCell = getCell(container, 'task-1', '2026-04-01', 'plan');
+    const lastCell = getCell(container, 'task-2', '2026-04-02', 'fact');
+    fireEvent.mouseDown(firstCell);
+    fireEvent.mouseEnter(lastCell);
+    fireEvent.mouseUp(window);
+
+    expect(firstCell.classList.contains('gantt-pf-cell-selected')).toBe(true);
+    expect(getCell(container, 'task-1', '2026-04-02', 'fact').classList.contains('gantt-pf-cell-selected')).toBe(true);
+    expect(lastCell.classList.contains('gantt-pf-cell-selected')).toBe(true);
+
+    fireEvent.keyDown(lastCell, { key: 'Delete' });
+
+    expect(changes.at(-1)).toEqual([
+      { ...tasks[0], planByDate: {}, factByDate: {} },
+      { ...tasks[1], planByDate: {}, factByDate: {} },
+    ]);
+  });
+
   it('keeps parent plan/fact cells readonly and value-free', () => {
     const tasks: PlanFactTask[] = [
       {
