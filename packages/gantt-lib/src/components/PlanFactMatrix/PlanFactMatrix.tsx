@@ -30,6 +30,7 @@ export interface PlanFactMatrixProps<TTask extends Task = Task> {
   onCellCommit?: (context: PlanFactCellCommitContext<TTask>) => void;
   highlightedTaskIds?: Set<string>;
   filterMode?: 'highlight' | 'hide';
+  visibleRowIndices?: number[];
 }
 
 type ActiveCell = {
@@ -228,6 +229,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   onCellCommit,
   highlightedTaskIds,
   filterMode = 'highlight',
+  visibleRowIndices,
 }: PlanFactMatrixProps<TTask>) {
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
@@ -237,11 +239,17 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   const isSelectingRef = useRef(false);
   const isFillDraggingRef = useRef(false);
   const didDragSelectRef = useRef(false);
+  const pendingHoverCellRef = useRef<ActiveCell | null>(null);
+  const hoverFrameRef = useRef<number | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   const totalWidth = dateRange.length * dayWidth;
   const subrowHeight = rowHeight / 2;
+  const renderedRowIndices = useMemo(
+    () => visibleRowIndices ?? tasks.map((_, index) => index),
+    [tasks, visibleRowIndices]
+  );
   const parentTaskIds = useMemo(() => {
     const ids = new Set<string>();
     for (const task of allTasks) {
@@ -269,6 +277,11 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   }, []);
 
   const clearSelection = useCallback(() => {
+    if (hoverFrameRef.current !== null) {
+      window.cancelAnimationFrame(hoverFrameRef.current);
+      hoverFrameRef.current = null;
+    }
+    pendingHoverCellRef.current = null;
     isSelectingRef.current = false;
     isFillDraggingRef.current = false;
     didDragSelectRef.current = false;
@@ -282,6 +295,33 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   const hideOverflowTooltip = useCallback(() => {
     setOverflowTooltip(null);
   }, []);
+
+  const flushPendingHoverCell = useCallback(() => {
+    hoverFrameRef.current = null;
+    const currentCell = pendingHoverCellRef.current;
+    if (!currentCell) return;
+
+    if (isFillDraggingRef.current && selectedRange) {
+      setFillRange({ anchor: selectedRange.anchor, focus: currentCell });
+      setActiveCell(currentCell);
+      onTaskSelect?.(currentCell.taskId);
+      return;
+    }
+
+    if (!isSelectingRef.current) return;
+    didDragSelectRef.current = true;
+    setSelectedRange((currentRange) => ({
+      anchor: currentRange?.anchor ?? currentCell,
+      focus: currentCell,
+    }));
+    onTaskSelect?.(currentCell.taskId);
+  }, [onTaskSelect, selectedRange]);
+
+  const queueHoverCellUpdate = useCallback((cell: ActiveCell) => {
+    pendingHoverCellRef.current = cell;
+    if (hoverFrameRef.current !== null) return;
+    hoverFrameRef.current = window.requestAnimationFrame(flushPendingHoverCell);
+  }, [flushPendingHoverCell]);
 
   const showOverflowTooltip = useCallback((target: HTMLElement, label: string, force = false) => {
     if (!rootRef.current || !label) return;
@@ -523,11 +563,12 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     return cell.kind === 'plan' ? task.planByDate?.[dateKey] : task.factByDate?.[dateKey];
   }, [dateKeys, tasks]);
 
-  const applyFillRange = useCallback(() => {
-    if (!selectedRange || !fillRange) return;
+  const applyFillRange = useCallback((nextFillRange?: CellRange | null) => {
+    const targetRange = nextFillRange ?? fillRange;
+    if (!selectedRange || !targetRange) return;
 
     const sourceBounds = getRangeBounds(selectedRange);
-    const targetBounds = getRangeBounds(fillRange);
+    const targetBounds = getRangeBounds(targetRange);
     if (!sourceBounds || !targetBounds) return;
 
     const sourceDateSpan = sourceBounds.toDateIndex - sourceBounds.fromDateIndex + 1;
@@ -593,8 +634,8 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     if (changedTasks.length > 0) {
       onTasksChange?.(changedTasks);
     }
-    setSelectedRange(fillRange);
-    setActiveCell(fillRange.anchor);
+    setSelectedRange(targetRange);
+    setActiveCell(targetRange.anchor);
     setFillRange(null);
   }, [
     dateKeys,
@@ -685,9 +726,19 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
 
   useEffect(() => {
     const endSelection = () => {
+      let pendingFillRange: CellRange | null = null;
+      if (hoverFrameRef.current !== null) {
+        window.cancelAnimationFrame(hoverFrameRef.current);
+        hoverFrameRef.current = null;
+        const pendingCell = pendingHoverCellRef.current;
+        if (pendingCell && isFillDraggingRef.current && selectedRange) {
+          pendingFillRange = { anchor: selectedRange.anchor, focus: pendingCell };
+        }
+        flushPendingHoverCell();
+      }
       if (isFillDraggingRef.current) {
         isFillDraggingRef.current = false;
-        applyFillRange();
+        applyFillRange(pendingFillRange);
       }
       isSelectingRef.current = false;
     };
@@ -696,7 +747,13 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     return () => {
       window.removeEventListener('mouseup', endSelection);
     };
-  }, [applyFillRange]);
+  }, [applyFillRange, flushPendingHoverCell]);
+
+  useEffect(() => () => {
+    if (hoverFrameRef.current !== null) {
+      window.cancelAnimationFrame(hoverFrameRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -746,7 +803,9 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
           width: `${totalWidth}px`,
         }}
       >
-        {tasks.map((task, rowIndex) => {
+        {renderedRowIndices.map((rowIndex) => {
+          const task = tasks[rowIndex];
+          if (!task) return null;
           const isParent = parentTaskIds.has(task.id);
           const isHighlighted = filterMode === 'highlight' && !!highlightedTaskIds?.has(task.id);
           return (
@@ -830,19 +889,9 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                         (event.currentTarget as HTMLDivElement).focus();
                       }}
                       onMouseEnter={() => {
-                        if (!isParent && isFillDraggingRef.current && selectedRange) {
-                          setFillRange({ anchor: selectedRange.anchor, focus: currentCell });
-                          setActiveCell(currentCell);
-                          onTaskSelect?.(task.id);
-                          return;
-                        }
-                        if (isParent || !isSelectingRef.current) return;
-                        didDragSelectRef.current = true;
-                        setSelectedRange((currentRange) => ({
-                          anchor: currentRange?.anchor ?? currentCell,
-                          focus: currentCell,
-                        }));
-                        onTaskSelect?.(task.id);
+                        if (isParent) return;
+                        if (!isFillDraggingRef.current && !isSelectingRef.current) return;
+                        queueHoverCellUpdate(currentCell);
                       }}
                       onFocus={() => {
                         if (isParent) return;

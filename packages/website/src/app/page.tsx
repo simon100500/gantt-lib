@@ -19,6 +19,9 @@ export default function Home() {
             <Link className="demo-link-btn" href="/perf-1000">
               1000-row stress test
             </Link>
+            <Link className="demo-link-btn demo-link-btn-secondary" href="/plan-fact-100">
+              Plan-fact 100 rows
+            </Link>
           </div>
         </header>
 

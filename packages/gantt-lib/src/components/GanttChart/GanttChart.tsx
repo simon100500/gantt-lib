@@ -1625,6 +1625,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 onCellCommit={onPlanFactCellCommit}
                 highlightedTaskIds={taskListHighlightedTaskIds}
                 filterMode={filterMode}
+                visibleRowIndices={visibleTaskWindowIndices}
               />
             ) : (
               <>
