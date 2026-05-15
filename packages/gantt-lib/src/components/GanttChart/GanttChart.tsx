@@ -525,12 +525,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
   const [internalTaskDateChangeMode, setInternalTaskDateChangeMode] = useState<TaskDateChangeMode>('preserve-duration');
-  const [scrollViewport, setScrollViewport] = useState({
-    scrollTop: 0,
-    scrollLeft: 0,
-    viewportHeight: 0,
-    viewportWidth: 0,
-  });
+  const [scrollViewport, setScrollViewport] = useState({ scrollTop: 0, viewportHeight: 0 });
+  const [planFactDateWindow, setPlanFactDateWindow] = useState<{ start: number; end: number } | null>(null);
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
@@ -730,18 +726,29 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         previous === nextHasRightShadow ? previous : nextHasRightShadow
       );
       setScrollViewport((previous) =>
-        previous.scrollTop === nextScrollTop
-          && previous.scrollLeft === nextScrollLeft
-          && previous.viewportHeight === nextViewportHeight
-          && previous.viewportWidth === nextViewportWidth
+        previous.scrollTop === nextScrollTop && previous.viewportHeight === nextViewportHeight
           ? previous
-          : {
-            scrollTop: nextScrollTop,
-            scrollLeft: nextScrollLeft,
-            viewportHeight: nextViewportHeight,
-            viewportWidth: nextViewportWidth,
-          }
+          : { scrollTop: nextScrollTop, viewportHeight: nextViewportHeight }
       );
+      setPlanFactDateWindow((previous) => {
+        if (!isPlanFactMode || dateRange.length === 0 || nextViewportWidth <= 0) {
+          return previous === null ? previous : null;
+        }
+
+        const rangeStart = Math.max(
+          0,
+          Math.floor(nextScrollLeft / dayWidth) - PLAN_FACT_COLUMN_OVERSCAN
+        );
+        const visibleColumnCount = Math.max(1, Math.ceil(nextViewportWidth / dayWidth));
+        const rangeEnd = Math.min(
+          dateRange.length - 1,
+          rangeStart + visibleColumnCount + PLAN_FACT_COLUMN_OVERSCAN * 2 - 1
+        );
+
+        return previous?.start === rangeStart && previous.end === rangeEnd
+          ? previous
+          : { start: rangeStart, end: rangeEnd };
+      });
     };
 
     const scheduleUpdate = () => {
@@ -768,7 +775,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       container.removeEventListener('scroll', scheduleUpdate);
       window.removeEventListener('resize', scheduleUpdate);
     };
-  }, [showTaskList, taskListWidth, timelineHeaderHeight]);
+  }, [dateRange.length, dayWidth, isPlanFactMode, showTaskList, taskListWidth, timelineHeaderHeight]);
 
   /**
    * Scroll to today's date when the "Today" button is clicked
@@ -1137,22 +1144,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, [effectiveRowHeight, forcedRenderedTaskIds, scrollViewport, visibleTaskIndexMap, visibleTasks.length]);
 
   const visiblePlanFactDateIndices = useMemo(() => {
-    if (!isPlanFactMode || dateRange.length === 0 || scrollViewport.viewportWidth <= 0) {
+    if (!isPlanFactMode || dateRange.length === 0 || !planFactDateWindow) {
       return undefined;
     }
 
-    const rangeStart = Math.max(
-      0,
-      Math.floor(scrollViewport.scrollLeft / dayWidth) - PLAN_FACT_COLUMN_OVERSCAN
+    return Array.from(
+      { length: planFactDateWindow.end - planFactDateWindow.start + 1 },
+      (_, index) => planFactDateWindow.start + index
     );
-    const visibleColumnCount = Math.max(1, Math.ceil(scrollViewport.viewportWidth / dayWidth));
-    const rangeEnd = Math.min(
-      dateRange.length - 1,
-      rangeStart + visibleColumnCount + PLAN_FACT_COLUMN_OVERSCAN * 2 - 1
-    );
-
-    return Array.from({ length: rangeEnd - rangeStart + 1 }, (_, index) => rangeStart + index);
-  }, [dateRange.length, dayWidth, isPlanFactMode, scrollViewport]);
+  }, [dateRange.length, isPlanFactMode, planFactDateWindow]);
 
   const renderedChartTasks = useMemo(
     () =>
@@ -1486,7 +1486,16 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, [tasks, onTasksChange, onUngroupTask]);
 
   // Pan (grab-scroll) on empty grid area
-  const panStateRef = useRef<{ active: boolean; startX: number; startY: number; scrollX: number; scrollY: number } | null>(null);
+  const panStateRef = useRef<{
+    active: boolean;
+    startX: number;
+    startY: number;
+    scrollX: number;
+    scrollY: number;
+    currentX: number;
+    currentY: number;
+    frameId: number | null;
+  } | null>(null);
 
   const handlePanStart = useCallback((e: React.MouseEvent) => {
     // Only pan on left click, skip if clicking on a task bar, input, or task list
@@ -1505,6 +1514,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       startY: e.clientY,
       scrollX: container.scrollLeft,
       scrollY: container.scrollTop,
+      currentX: e.clientX,
+      currentY: e.clientY,
+      frameId: null,
     };
     // Blur any focused input so onBlur save handlers fire before pan starts
     if (document.activeElement instanceof HTMLElement) {
@@ -1515,18 +1527,33 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, []);
 
   useEffect(() => {
-    const handlePanMove = (e: MouseEvent) => {
+    const flushPanMove = () => {
       const pan = panStateRef.current;
       if (!pan?.active) return;
+      pan.frameId = null;
+
       const container = scrollContainerRef.current;
       if (!container) return;
 
-      container.scrollLeft = pan.scrollX - (e.clientX - pan.startX);
-      container.scrollTop = pan.scrollY - (e.clientY - pan.startY);
+      container.scrollLeft = pan.scrollX - (pan.currentX - pan.startX);
+      container.scrollTop = pan.scrollY - (pan.currentY - pan.startY);
+    };
+
+    const handlePanMove = (e: MouseEvent) => {
+      const pan = panStateRef.current;
+      if (!pan?.active) return;
+      pan.currentX = e.clientX;
+      pan.currentY = e.clientY;
+      if (pan.frameId !== null) return;
+      pan.frameId = window.requestAnimationFrame(flushPanMove);
     };
 
     const handlePanEnd = () => {
-      if (!panStateRef.current?.active) return;
+      const pan = panStateRef.current;
+      if (!pan?.active) return;
+      if (pan.frameId !== null) {
+        window.cancelAnimationFrame(pan.frameId);
+      }
       panStateRef.current = null;
       const container = scrollContainerRef.current;
       if (container) container.style.cursor = '';
