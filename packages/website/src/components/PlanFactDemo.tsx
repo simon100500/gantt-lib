@@ -103,8 +103,48 @@ function sumValues(tasks: PlanFactTask[], field: "planByDate" | "factByDate") {
   }, 0);
 }
 
+function sumTaskValues(task: PlanFactTask, field: "planByDate" | "factByDate") {
+  return Object.values(task[field] ?? {}).reduce((sum, value) => sum + value, 0);
+}
+
+function formatAmount(value: number) {
+  return value === 0 ? "—" : value.toLocaleString("ru-RU", { maximumFractionDigits: 1 });
+}
+
+function hasChildren(tasks: PlanFactTask[], taskId: string) {
+  return tasks.some((candidate) => candidate.parentId === taskId);
+}
+
+function PlanFactSummaryCell({
+  plan,
+  fact,
+  unit,
+}: {
+  plan: number;
+  fact: number;
+  unit?: string;
+}) {
+  return (
+    <div className="plan-fact-summary-cell">
+      <div className="plan-fact-summary-line plan-fact-summary-plan">
+        {`${formatAmount(plan)} ${unit ?? ""}`.trim()}
+      </div>
+      <div className="plan-fact-summary-line plan-fact-summary-fact">
+        {`${formatAmount(fact)} ${unit ?? ""}`.trim()}
+      </div>
+    </div>
+  );
+}
+
 export default function PlanFactDemo() {
   const [tasks, setTasks] = useState<PlanFactTask[]>(initialTasks);
+  const parentTaskIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const task of tasks) {
+      if (task.parentId) ids.add(task.parentId);
+    }
+    return ids;
+  }, [tasks]);
   const totals = useMemo(() => ({
     plan: sumValues(tasks, "planByDate"),
     fact: sumValues(tasks, "factByDate"),
@@ -124,9 +164,25 @@ export default function PlanFactDemo() {
       width: 72,
       align: "center",
       after: "owner",
-      renderCell: ({ task }) => task.unit,
+      renderCell: ({ task }) => (hasChildren(tasks, task.id) ? "" : task.unit),
     },
-  ], []);
+    {
+      id: "total",
+      header: "Итого",
+      width: 120,
+      align: "right",
+      after: "unit",
+      renderCell: ({ task }) => parentTaskIds.has(task.id)
+        ? null
+        : (
+          <PlanFactSummaryCell
+            plan={sumTaskValues(task, "planByDate")}
+            fact={sumTaskValues(task, "factByDate")}
+            unit={task.unit}
+          />
+        ),
+    },
+  ], [parentTaskIds, tasks]);
 
   return (
     <section className="demo-section plan-fact-demo">
@@ -151,6 +207,7 @@ export default function PlanFactDemo() {
           containerHeight={520}
           rowHeight={46}
           dayWidth={42}
+          rowContentLines={2}
           additionalColumns={additionalColumns}
           hiddenTaskListColumns={["dependencies", "progress", "duration", "startDate", "endDate"]}
           disableTaskNameEditing={true}
