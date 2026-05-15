@@ -89,9 +89,33 @@
 }
 
 .gantt-pf-cell-selected {
+  --gantt-pf-range-left-shadow: 0 0 0 transparent;
+  --gantt-pf-range-right-shadow: 0 0 0 transparent;
+  --gantt-pf-range-top-shadow: 0 0 0 transparent;
+  --gantt-pf-range-bottom-shadow: 0 0 0 transparent;
   box-shadow:
     inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0),
-    inset 0 0 0 9999px rgba(37, 99, 235, 0.12);
+    inset 0 0 0 9999px rgba(37, 99, 235, 0.12),
+    var(--gantt-pf-range-left-shadow),
+    var(--gantt-pf-range-right-shadow),
+    var(--gantt-pf-range-top-shadow),
+    var(--gantt-pf-range-bottom-shadow);
+}
+
+.gantt-pf-cell-rangeLeft {
+  --gantt-pf-range-left-shadow: inset 2px 0 0 #2563eb;
+}
+
+.gantt-pf-cell-rangeRight {
+  --gantt-pf-range-right-shadow: inset -2px 0 0 #2563eb;
+}
+
+.gantt-pf-cell-rangeTop {
+  --gantt-pf-range-top-shadow: inset 0 2px 0 #2563eb;
+}
+
+.gantt-pf-cell-rangeBottom {
+  --gantt-pf-range-bottom-shadow: inset 0 -2px 0 #2563eb;
 }
 
 .gantt-pf-cell-active::after {
@@ -126,11 +150,20 @@
 .gantt-pf-cell-selected:not(.gantt-pf-cell-active):hover {
   box-shadow:
     inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0),
-    inset 0 0 0 9999px rgba(37, 99, 235, 0.16);
+    inset 0 0 0 9999px rgba(37, 99, 235, 0.16),
+    var(--gantt-pf-range-left-shadow),
+    var(--gantt-pf-range-right-shadow),
+    var(--gantt-pf-range-top-shadow),
+    var(--gantt-pf-range-bottom-shadow);
 }
 
 .gantt-pf-cell-active:hover {
-  box-shadow: inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+  box-shadow:
+    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0),
+    var(--gantt-pf-range-left-shadow, 0 0 0 transparent),
+    var(--gantt-pf-range-right-shadow, 0 0 0 transparent),
+    var(--gantt-pf-range-top-shadow, 0 0 0 transparent),
+    var(--gantt-pf-range-bottom-shadow, 0 0 0 transparent);
 }
 
 .gantt-pf-cell-active:hover::after {

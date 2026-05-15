@@ -265,6 +265,22 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     return isCellInRange(cell, fillRange ?? selectedRange);
   }, [fillRange, isCellInRange, selectedRange]);
 
+  const getSelectedRangeEdgeClasses = useCallback((cell: ActiveCell) => {
+    if (!selectedRange) return [];
+    const range = fillRange ?? selectedRange;
+    const bounds = getRangeBounds(range);
+    const taskIndex = taskIndexById.get(cell.taskId);
+    if (!bounds || taskIndex === undefined || !isCellInRange(cell, range)) return [];
+
+    const subrowIndex = getSubrowIndex(taskIndex, cell.kind);
+    return [
+      cell.dateIndex === bounds.fromDateIndex && 'gantt-pf-cell-rangeLeft',
+      cell.dateIndex === bounds.toDateIndex && 'gantt-pf-cell-rangeRight',
+      subrowIndex === bounds.fromSubrowIndex && 'gantt-pf-cell-rangeTop',
+      subrowIndex === bounds.toSubrowIndex && 'gantt-pf-cell-rangeBottom',
+    ];
+  }, [fillRange, getRangeBounds, isCellInRange, selectedRange, taskIndexById]);
+
   const commitCell = useCallback((task: TTask, dateIndex: number, kind: PlanFactCellKind, value: number | undefined) => {
     const dateKey = dateKeys[dateIndex];
     const source = kind === 'plan' ? task.planByDate : task.factByDate;
@@ -557,6 +573,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                         kind === 'fact' && factStatus === 'success' && 'gantt-pf-cell-factSuccess',
                         kind === 'fact' && factStatus === 'warning' && 'gantt-pf-cell-factWarning',
                         isSelected && 'gantt-pf-cell-selected',
+                        ...getSelectedRangeEdgeClasses(currentCell),
                         isActive && 'gantt-pf-cell-active',
                         isEditing && 'gantt-pf-cell-editing',
                         isParent && 'gantt-pf-cell-readonly'
