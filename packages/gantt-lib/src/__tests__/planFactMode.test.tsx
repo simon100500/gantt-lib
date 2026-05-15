@@ -166,6 +166,50 @@ describe('plan-fact mode', () => {
     ]);
   });
 
+  it('fills cells by dragging the selection corner handle', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа',
+        startDate: '2026-04-01',
+        endDate: '2026-04-03',
+        planByDate: { '2026-04-01': 5 },
+      },
+    ];
+    const changes: PlanFactTask[][] = [];
+
+    const { container } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        dayWidth={32}
+        onTasksChange={(changedTasks) => changes.push(changedTasks)}
+      />
+    );
+
+    const sourceCell = getCell(container, 'task-1', '2026-04-01', 'plan');
+    fireEvent.mouseDown(sourceCell);
+    fireEvent.mouseUp(window);
+
+    const fillHandle = sourceCell.querySelector('.gantt-pf-fillHandle') as HTMLElement | null;
+    expect(fillHandle).not.toBeNull();
+
+    fireEvent.mouseDown(fillHandle!);
+    fireEvent.mouseEnter(getCell(container, 'task-1', '2026-04-03', 'plan'));
+    fireEvent.mouseUp(window);
+
+    expect(changes.at(-1)).toEqual([
+      {
+        ...tasks[0],
+        planByDate: {
+          '2026-04-01': 5,
+          '2026-04-02': 5,
+          '2026-04-03': 5,
+        },
+      },
+    ]);
+  });
+
   it('keeps parent plan/fact cells readonly and value-free', () => {
     const tasks: PlanFactTask[] = [
       {

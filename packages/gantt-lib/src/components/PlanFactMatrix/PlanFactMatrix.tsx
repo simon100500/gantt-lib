@@ -43,6 +43,13 @@ type CellRange = {
   focus: ActiveCell;
 };
 
+type RangeBounds = {
+  fromDateIndex: number;
+  toDateIndex: number;
+  fromSubrowIndex: number;
+  toSubrowIndex: number;
+};
+
 type EditingCell = ActiveCell & {
   startValue?: string;
 };
@@ -165,7 +172,9 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [selectedRange, setSelectedRange] = useState<CellRange | null>(null);
+  const [fillRange, setFillRange] = useState<CellRange | null>(null);
   const isSelectingRef = useRef(false);
+  const isFillDraggingRef = useRef(false);
   const didDragSelectRef = useRef(false);
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
@@ -200,35 +209,61 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   const selectSingleCell = useCallback((cell: ActiveCell) => {
     setActiveCell(cell);
     setSelectedRange({ anchor: cell, focus: cell });
+    setFillRange(null);
   }, []);
 
-  const isCellInSelectedRange = useCallback((cell: ActiveCell) => {
-    if (!selectedRange) return false;
+  const getRangeBounds = useCallback((range: CellRange): RangeBounds | null => {
+    const anchorTaskIndex = taskIndexById.get(range.anchor.taskId);
+    const focusTaskIndex = taskIndexById.get(range.focus.taskId);
+    if (anchorTaskIndex === undefined || focusTaskIndex === undefined) {
+      return null;
+    }
 
-    const anchorTaskIndex = taskIndexById.get(selectedRange.anchor.taskId);
-    const focusTaskIndex = taskIndexById.get(selectedRange.focus.taskId);
+    return {
+      fromDateIndex: Math.min(range.anchor.dateIndex, range.focus.dateIndex),
+      toDateIndex: Math.max(range.anchor.dateIndex, range.focus.dateIndex),
+      fromSubrowIndex: Math.min(
+        getSubrowIndex(anchorTaskIndex, range.anchor.kind),
+        getSubrowIndex(focusTaskIndex, range.focus.kind)
+      ),
+      toSubrowIndex: Math.max(
+        getSubrowIndex(anchorTaskIndex, range.anchor.kind),
+        getSubrowIndex(focusTaskIndex, range.focus.kind)
+      ),
+    };
+  }, [taskIndexById]);
+
+  const getCellFromPosition = useCallback((subrowIndex: number, dateIndex: number): ActiveCell | null => {
+    const task = tasks[Math.floor(subrowIndex / 2)];
+    if (!task) return null;
+    return {
+      taskId: task.id,
+      dateIndex,
+      kind: subrowIndex % 2 === 0 ? 'plan' : 'fact',
+    };
+  }, [tasks]);
+
+  const isCellInRange = useCallback((cell: ActiveCell, range: CellRange) => {
+    const bounds = getRangeBounds(range);
+    if (!bounds) return false;
+
     const cellTaskIndex = taskIndexById.get(cell.taskId);
-    if (anchorTaskIndex === undefined || focusTaskIndex === undefined || cellTaskIndex === undefined) {
+    if (cellTaskIndex === undefined) {
       return false;
     }
 
-    const fromDateIndex = Math.min(selectedRange.anchor.dateIndex, selectedRange.focus.dateIndex);
-    const toDateIndex = Math.max(selectedRange.anchor.dateIndex, selectedRange.focus.dateIndex);
-    const fromSubrowIndex = Math.min(
-      getSubrowIndex(anchorTaskIndex, selectedRange.anchor.kind),
-      getSubrowIndex(focusTaskIndex, selectedRange.focus.kind)
-    );
-    const toSubrowIndex = Math.max(
-      getSubrowIndex(anchorTaskIndex, selectedRange.anchor.kind),
-      getSubrowIndex(focusTaskIndex, selectedRange.focus.kind)
-    );
     const cellSubrowIndex = getSubrowIndex(cellTaskIndex, cell.kind);
 
-    return cell.dateIndex >= fromDateIndex
-      && cell.dateIndex <= toDateIndex
-      && cellSubrowIndex >= fromSubrowIndex
-      && cellSubrowIndex <= toSubrowIndex;
-  }, [selectedRange, taskIndexById]);
+    return cell.dateIndex >= bounds.fromDateIndex
+      && cell.dateIndex <= bounds.toDateIndex
+      && cellSubrowIndex >= bounds.fromSubrowIndex
+      && cellSubrowIndex <= bounds.toSubrowIndex;
+  }, [getRangeBounds, taskIndexById]);
+
+  const isCellInSelectedRange = useCallback((cell: ActiveCell) => {
+    if (!selectedRange) return false;
+    return isCellInRange(cell, fillRange ?? selectedRange);
+  }, [fillRange, isCellInRange, selectedRange]);
 
   const commitCell = useCallback((task: TTask, dateIndex: number, kind: PlanFactCellKind, value: number | undefined) => {
     const dateKey = dateKeys[dateIndex];
@@ -304,6 +339,99 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     }
   }, [activeCell, commitCell, dateKeys, isCellInSelectedRange, onTasksChange, parentTaskIds, selectedRange, tasks]);
 
+  const getCellValue = useCallback((cell: ActiveCell) => {
+    const task = tasks.find((candidate) => candidate.id === cell.taskId);
+    if (!task) return undefined;
+    const dateKey = dateKeys[cell.dateIndex];
+    return cell.kind === 'plan' ? task.planByDate?.[dateKey] : task.factByDate?.[dateKey];
+  }, [dateKeys, tasks]);
+
+  const applyFillRange = useCallback(() => {
+    if (!selectedRange || !fillRange) return;
+
+    const sourceBounds = getRangeBounds(selectedRange);
+    const targetBounds = getRangeBounds(fillRange);
+    if (!sourceBounds || !targetBounds) return;
+
+    const sourceDateSpan = sourceBounds.toDateIndex - sourceBounds.fromDateIndex + 1;
+    const sourceSubrowSpan = sourceBounds.toSubrowIndex - sourceBounds.fromSubrowIndex + 1;
+    const changedTasksById = new Map<string, TTask>();
+
+    for (let subrowIndex = targetBounds.fromSubrowIndex; subrowIndex <= targetBounds.toSubrowIndex; subrowIndex += 1) {
+      const targetCellForRow = getCellFromPosition(subrowIndex, targetBounds.fromDateIndex);
+      if (!targetCellForRow || parentTaskIds.has(targetCellForRow.taskId)) continue;
+
+      const originalTask = tasks.find((task) => task.id === targetCellForRow.taskId);
+      if (!originalTask) continue;
+
+      let changedTask = changedTasksById.get(originalTask.id) ?? originalTask;
+      let nextPlanByDate = changedTask.planByDate;
+      let nextFactByDate = changedTask.factByDate;
+      let didChange = false;
+
+      for (let dateIndex = targetBounds.fromDateIndex; dateIndex <= targetBounds.toDateIndex; dateIndex += 1) {
+        const targetCell = getCellFromPosition(subrowIndex, dateIndex);
+        if (!targetCell || isCellInRange(targetCell, selectedRange)) continue;
+
+        const sourceSubrowIndex = sourceBounds.fromSubrowIndex
+          + ((subrowIndex - sourceBounds.fromSubrowIndex) % sourceSubrowSpan + sourceSubrowSpan) % sourceSubrowSpan;
+        const sourceDateIndex = sourceBounds.fromDateIndex
+          + ((dateIndex - sourceBounds.fromDateIndex) % sourceDateSpan + sourceDateSpan) % sourceDateSpan;
+        const sourceCell = getCellFromPosition(sourceSubrowIndex, sourceDateIndex);
+        if (!sourceCell) continue;
+
+        const nextValue = getCellValue(sourceCell);
+        const dateKey = dateKeys[dateIndex];
+        const currentValues = targetCell.kind === 'plan' ? nextPlanByDate : nextFactByDate;
+        if (currentValues?.[dateKey] === nextValue) continue;
+
+        if (targetCell.kind === 'plan') {
+          nextPlanByDate = { ...(nextPlanByDate ?? {}) };
+          if (nextValue === undefined) {
+            delete nextPlanByDate[dateKey];
+          } else {
+            nextPlanByDate[dateKey] = nextValue;
+          }
+        } else {
+          nextFactByDate = { ...(nextFactByDate ?? {}) };
+          if (nextValue === undefined) {
+            delete nextFactByDate[dateKey];
+          } else {
+            nextFactByDate[dateKey] = nextValue;
+          }
+        }
+        didChange = true;
+      }
+
+      if (didChange) {
+        changedTasksById.set(originalTask.id, {
+          ...changedTask,
+          ...(nextPlanByDate !== changedTask.planByDate ? { planByDate: nextPlanByDate ?? {} } : {}),
+          ...(nextFactByDate !== changedTask.factByDate ? { factByDate: nextFactByDate ?? {} } : {}),
+        } as TTask);
+      }
+    }
+
+    const changedTasks = Array.from(changedTasksById.values());
+    if (changedTasks.length > 0) {
+      onTasksChange?.(changedTasks);
+    }
+    setSelectedRange(fillRange);
+    setActiveCell(fillRange.focus);
+    setFillRange(null);
+  }, [
+    dateKeys,
+    fillRange,
+    getCellFromPosition,
+    getCellValue,
+    getRangeBounds,
+    isCellInRange,
+    onTasksChange,
+    parentTaskIds,
+    selectedRange,
+    tasks,
+  ]);
+
   const moveActiveCell = useCallback((cell: ActiveCell, direction: 'left' | 'right' | 'up' | 'down') => {
     const taskIndex = tasks.findIndex((task) => task.id === cell.taskId);
     if (taskIndex < 0) return;
@@ -337,6 +465,10 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
 
   useEffect(() => {
     const endSelection = () => {
+      if (isFillDraggingRef.current) {
+        isFillDraggingRef.current = false;
+        applyFillRange();
+      }
       isSelectingRef.current = false;
     };
 
@@ -344,7 +476,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     return () => {
       window.removeEventListener('mouseup', endSelection);
     };
-  }, []);
+  }, [applyFillRange]);
 
   return (
     <div className="gantt-pf-root" style={{ width: `${totalWidth}px` }}>
@@ -405,6 +537,11 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                     && editingCell.kind === kind;
                   const currentCell = { taskId: task.id, dateIndex, kind };
                   const isSelected = !isParent && isCellInSelectedRange(currentCell);
+                  const isRangeFocus = !isParent
+                    && selectedRange?.focus.taskId === task.id
+                    && selectedRange.focus.dateIndex === dateIndex
+                    && selectedRange.focus.kind === kind
+                    && !isEditing;
 
                   return (
                     <div
@@ -441,6 +578,12 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                         (event.currentTarget as HTMLDivElement).focus();
                       }}
                       onMouseEnter={() => {
+                        if (!isParent && isFillDraggingRef.current && selectedRange) {
+                          setFillRange({ anchor: selectedRange.anchor, focus: currentCell });
+                          setActiveCell(currentCell);
+                          onTaskSelect?.(task.id);
+                          return;
+                        }
                         if (isParent || !isSelectingRef.current) return;
                         didDragSelectRef.current = true;
                         setActiveCell(currentCell);
@@ -518,6 +661,19 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                         />
                       ) : (
                         <span className="gantt-pf-cellValue">{isParent ? '' : formatValue(value)}</span>
+                      )}
+                      {isRangeFocus && (
+                        <span
+                          className="gantt-pf-fillHandle"
+                          aria-hidden="true"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            isSelectingRef.current = false;
+                            isFillDraggingRef.current = true;
+                            setFillRange(selectedRange);
+                          }}
+                        />
                       )}
                     </div>
                   );
