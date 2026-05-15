@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.114.0] - 2026-05-15
+
+### Features
+
+- Add custom weekend support in plan-fact mode
+- Enhance GanttChart export functionality for virtualized tasks
+
 ## [0.113.1] - 2026-05-15
 
 ### Fixes
