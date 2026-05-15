@@ -57,6 +57,7 @@
 }
 
 .gantt-pf-row-parent {
+  background-color: var(--gantt-plan-fact-parent-row-background, rgba(148, 163, 184, 0.22));
   background-image:
     linear-gradient(
       to right,

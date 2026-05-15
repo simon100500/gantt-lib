@@ -179,6 +179,7 @@
 
 
 .gantt-tl-row-parent {
+  background-color: var(--gantt-plan-fact-parent-row-background, rgba(148, 163, 184, 0.22));
   font-weight: 600;
   --gantt-tl-name-actions-bg: inherit;
 }
