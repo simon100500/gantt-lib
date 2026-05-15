@@ -3,7 +3,9 @@
   background: var(--gantt-cell-background, #ffffff);
   --gantt-pf-day-width: 40px;
   --gantt-pf-day-line-width: 0.5px;
-  --gantt-pf-day-line-color: var(--gantt-day-line-color, rgba(226, 232, 240, 0.78));
+  --gantt-pf-day-line-color: rgb(226, 226, 226);
+  --gantt-pf-row-line-width: 0.5px;
+  --gantt-pf-row-line-color: var(--gantt-plan-fact-row-line-color, #b7c3d0);
 }
 
 .gantt-pf-header {
@@ -28,14 +30,12 @@
   grid-template-rows: 1fr 1fr;
   box-sizing: border-box;
   overflow: hidden;
-  background-image: repeating-linear-gradient(
-    to right,
-    transparent 0,
-    transparent calc(var(--gantt-pf-day-width) - var(--gantt-pf-day-line-width)),
-    var(--gantt-pf-day-line-color) calc(var(--gantt-pf-day-width) - var(--gantt-pf-day-line-width)),
-    var(--gantt-pf-day-line-color) var(--gantt-pf-day-width)
-  );
-  box-shadow: inset 0 -1px 0 var(--gantt-plan-fact-row-line-color, #b7c3d0);
+  background-image: repeating-linear-gradient(to right,
+      transparent 0,
+      transparent calc(var(--gantt-pf-day-width) - var(--gantt-pf-day-line-width)),
+      var(--gantt-pf-day-line-color, rgba(148, 163, 184, 0.55)) calc(var(--gantt-pf-day-width) - var(--gantt-pf-day-line-width)),
+      var(--gantt-pf-day-line-color, rgba(148, 163, 184, 0.55)) var(--gantt-pf-day-width));
+  box-shadow: inset 0 calc(-1 * var(--gantt-pf-row-line-width)) 0 var(--gantt-pf-row-line-color);
 }
 
 .gantt-pf-row-parent {
@@ -61,13 +61,13 @@
 
 .gantt-pf-row.gantt-pf-row-hovered {
   box-shadow:
-    inset 0 -1px 0 var(--gantt-plan-fact-row-line-color, #b7c3d0),
+    inset 0 calc(-1 * var(--gantt-pf-row-line-width)) 0 var(--gantt-pf-row-line-color),
     inset 0 0 0 9999px var(--gantt-row-hover-background, rgba(59, 130, 246, 0.04));
 }
 
 .gantt-pf-row-highlighted.gantt-pf-row-hovered {
   box-shadow:
-    inset 0 -1px 0 var(--gantt-plan-fact-row-line-color, #b7c3d0),
+    inset 0 calc(-1 * var(--gantt-pf-row-line-width)) 0 var(--gantt-pf-row-line-color),
     inset 0 0 0 9999px rgba(250, 204, 21, 0.3);
 }
 
@@ -296,6 +296,7 @@
     opacity: 0;
     transform: translate(-50%, calc(-100% - 1px));
   }
+
   to {
     opacity: 1;
     transform: translate(-50%, calc(-100% - 4px));
