@@ -36,6 +36,7 @@ import './GanttChart.css';
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
 const TASK_ROW_OVERSCAN = 8;
 const PLAN_FACT_COLUMN_OVERSCAN = 24;
+const PLAN_FACT_COLUMN_WINDOW_STEP = 14;
 
 function getFullMonthDays(tasks: Array<{ startDate: string | Date; endDate: string | Date }>): Date[] {
   if (!tasks || tasks.length === 0) {
@@ -93,6 +94,10 @@ function getPlanFactRangeTasks<TTask extends Task>(tasks: TTask[]): Array<{ star
   }
 
   return rangeTasks;
+}
+
+function clampScrollValue(value: number, max: number) {
+  return Math.min(max, Math.max(0, value));
 }
 
 function arePositionMapsEqual(
@@ -802,14 +807,18 @@ function TaskGanttChartInner<TTask extends Task = Task>(
           return previous === null ? previous : null;
         }
 
+        const firstVisibleColumn = Math.max(0, Math.floor(nextChartScrollLeft / dayWidth));
+        const visibleColumnCount = Math.max(1, Math.ceil(nextViewportWidth / dayWidth));
+        const lastVisibleColumn = Math.min(dateRange.length - 1, firstVisibleColumn + visibleColumnCount - 1);
         const rangeStart = Math.max(
           0,
-          Math.floor(nextChartScrollLeft / dayWidth) - PLAN_FACT_COLUMN_OVERSCAN
+          Math.floor(Math.max(0, firstVisibleColumn - PLAN_FACT_COLUMN_OVERSCAN) / PLAN_FACT_COLUMN_WINDOW_STEP)
+            * PLAN_FACT_COLUMN_WINDOW_STEP
         );
-        const visibleColumnCount = Math.max(1, Math.ceil(nextViewportWidth / dayWidth));
         const rangeEnd = Math.min(
           dateRange.length - 1,
-          rangeStart + visibleColumnCount + PLAN_FACT_COLUMN_OVERSCAN * 2 - 1
+          Math.ceil((lastVisibleColumn + PLAN_FACT_COLUMN_OVERSCAN + 1) / PLAN_FACT_COLUMN_WINDOW_STEP)
+            * PLAN_FACT_COLUMN_WINDOW_STEP - 1
         );
 
         return previous?.start === rangeStart && previous.end === rangeEnd
@@ -1602,8 +1611,17 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       const container = scrollContainerRef.current;
       if (!container) return;
 
-      container.scrollLeft = pan.scrollX - (pan.currentX - pan.startX);
-      container.scrollTop = pan.scrollY - (pan.currentY - pan.startY);
+      const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+      const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+      const nextScrollLeft = clampScrollValue(pan.scrollX - (pan.currentX - pan.startX), maxScrollLeft);
+      const nextScrollTop = clampScrollValue(pan.scrollY - (pan.currentY - pan.startY), maxScrollTop);
+
+      if (Math.abs(container.scrollLeft - nextScrollLeft) > 0.5) {
+        container.scrollLeft = nextScrollLeft;
+      }
+      if (Math.abs(container.scrollTop - nextScrollTop) > 0.5) {
+        container.scrollTop = nextScrollTop;
+      }
     };
 
     const handlePanMove = (e: MouseEvent) => {
