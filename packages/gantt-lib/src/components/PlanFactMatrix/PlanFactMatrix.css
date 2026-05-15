@@ -33,6 +33,18 @@
   font-weight: 600;
 }
 
+.gantt-pf-row-parent .gantt-pf-cell,
+.gantt-pf-row-parent .gantt-pf-cell-active,
+.gantt-pf-row-parent .gantt-pf-cell-editing:hover,
+.gantt-pf-row-parent .gantt-pf-cell-selected,
+.gantt-pf-row-parent .gantt-pf-cell-selected.gantt-pf-cell-active:hover,
+.gantt-pf-row-parent .gantt-pf-cell-selected.gantt-pf-cell-rangeAnchor,
+.gantt-pf-row-parent .gantt-pf-cell-selected.gantt-pf-cell-rangeAnchor.gantt-pf-cell-active:hover,
+.gantt-pf-row-parent .gantt-pf-cell:not(.gantt-pf-cell-readonly):hover,
+.gantt-pf-row-parent .gantt-pf-cell-active:not(.gantt-pf-cell-selected):hover {
+  box-shadow: none;
+}
+
 .gantt-pf-row-highlighted {
   background-color: rgba(250, 204, 21, 0.24);
 }
