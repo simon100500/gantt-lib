@@ -93,4 +93,31 @@ describe('timeline markers', () => {
     fireEvent.mouseEnter(todayHeaderCell as HTMLElement);
     expect(container.querySelector('.gantt-timelineTooltip')?.textContent).toBe(`${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)} — Сегодня`);
   });
+
+  it('keeps the today header cell and vertical line aligned right after local midnight', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-16T00:10:00+03:00'));
+
+    const { container } = render(
+      <GanttChart
+        tasks={[{
+          id: 'midnight-task',
+          name: 'Midnight Task',
+          startDate: '2026-05-15',
+          endDate: '2026-05-16',
+        }]}
+        dayWidth={40}
+      />
+    );
+
+    const todayIndicator = container.querySelector('.gantt-ti-indicator') as HTMLElement | null;
+    const todayHeaderCell = container.querySelector('.gantt-tsh-today') as HTMLElement | null;
+
+    expect(todayIndicator).not.toBeNull();
+    expect(todayHeaderCell).not.toBeNull();
+    expect(todayIndicator?.style.left).toBe('600px');
+    expect(todayHeaderCell?.textContent).toBe('16');
+
+    vi.useRealTimers();
+  });
 });

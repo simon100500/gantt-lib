@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createCustomDayPredicate, getMultiMonthDays, parseUTCDate } from '../../utils/dateUtils';
+import { createCustomDayPredicate, getMultiMonthDays, getTodayLocalUtcDate, parseUTCDate } from '../../utils/dateUtils';
 import { layoutResourceTimelineItems } from '../../utils/resourceTimelineLayout';
 import { useResourceItemDrag } from '../../hooks/useResourceItemDrag';
 import type {
@@ -1002,8 +1002,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   }, [collapsedResourceGroups, creatingResourceGroupType, layout, resourceAddRowHeight, resourceGrouping]);
 
   const todayInRange = useMemo(() => {
-    const now = new Date();
-    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const today = getTodayLocalUtcDate();
     return dateRange.some((day) => day.getTime() === today.getTime());
   }, [dateRange]);
 

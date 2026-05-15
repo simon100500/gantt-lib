@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { getDayOffset } from '../../utils/dateUtils';
+import { getDayOffset, getTodayLocalUtcDate } from '../../utils/dateUtils';
 import './TodayIndicator.css';
 
 export interface TodayIndicatorProps {
@@ -22,13 +22,7 @@ export interface TodayIndicatorProps {
  * Satisfies REND-04 requirement for visual today indicator.
  */
 const TodayIndicator: React.FC<TodayIndicatorProps> = ({ monthStart, dayWidth, onHover, onHoverEnd }) => {
-  // Use local date for "today" (not UTC) - user's current date matters
-  const today = new Date();
-  const todayLocal = new Date(Date.UTC(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
-  ));
+  const todayLocal = getTodayLocalUtcDate();
 
   // Calculate position based on offset from monthStart
   // The parent GanttChart component handles the date range check via todayInRange

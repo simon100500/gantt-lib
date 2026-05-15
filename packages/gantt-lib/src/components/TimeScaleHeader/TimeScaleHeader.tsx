@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { getMonthSpans, getWeekSpans, getWeekBlocks, getMonthBlocks, getYearSpans, parseUTCDate, type WeekBlock, type WeekSpan, type MonthBlock, type YearSpan } from '../../utils/dateUtils';
+import { getMonthSpans, getWeekSpans, getWeekBlocks, getMonthBlocks, getYearSpans, getTodayLocalUtcDate, parseUTCDate, type WeekBlock, type WeekSpan, type MonthBlock, type YearSpan } from '../../utils/dateUtils';
 import type { MonthSpan, TimelineMarker } from '../../types';
 import './TimeScaleHeader.css';
 
@@ -46,6 +46,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
   onTimelineHover,
   onTimelineHoverEnd,
 }) => {
+  const today = useMemo(() => getTodayLocalUtcDate(), []);
   // Calculate month spans using the utility from dateUtils
   const monthSpans = useMemo(() => getMonthSpans(days), [days]);
 
@@ -261,12 +262,10 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
               : day.getUTCDay() === 0 || day.getUTCDay() === 6;
             const prevDay = days[index - 1];
             const isMonthBoundary = index > 0 && prevDay && prevDay.getUTCMonth() !== day.getUTCMonth();
-            // Use local date comparison for "today" (user's current date)
-            const now = new Date();
             const isTodayDate =
-              day.getUTCFullYear() === now.getFullYear() &&
-              day.getUTCMonth() === now.getMonth() &&
-              day.getUTCDate() === now.getDate();
+              day.getUTCFullYear() === today.getUTCFullYear() &&
+              day.getUTCMonth() === today.getUTCMonth() &&
+              day.getUTCDate() === today.getUTCDate();
             const markerKey = `${day.getUTCFullYear()}-${day.getUTCMonth()}-${day.getUTCDate()}`;
             const marker = markerByDayKey.get(markerKey);
             const markerColor = marker?.color;

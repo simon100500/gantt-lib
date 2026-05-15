@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { getMultiMonthDays, createCustomDayPredicate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
+import { getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { validateDependencies, cascadeByLinks, universalCascade, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../core/scheduling';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
@@ -751,8 +751,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, [dateRange]);
 
   const todayIndex = useMemo(() => {
-    const now = new Date();
-    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const today = getTodayLocalUtcDate();
     return dateRange.findIndex(day => day.getTime() === today.getTime());
   }, [dateRange]);
   // Only render TodayIndicator if today is in the visible date range
@@ -779,8 +778,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const container = scrollContainerRef.current;
     if (!container || dateRange.length === 0) return;
 
-    const now = new Date();
-    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const today = getTodayLocalUtcDate();
     const todayIndex = dateRange.findIndex(day => day.getTime() === today.getTime());
 
     if (todayIndex === -1) return;
@@ -875,8 +873,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const container = scrollContainerRef.current;
     if (!container || dateRange.length === 0) return;
 
-    const now = new Date();
-    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const today = getTodayLocalUtcDate();
     const todayIndex = dateRange.findIndex(day => day.getTime() === today.getTime());
 
     if (todayIndex === -1) return;
