@@ -62,6 +62,13 @@ type OverflowTooltip = {
   top: number;
 };
 
+type PlannedIndexRange = {
+  startIndex: number;
+  endIndex: number;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
 }
@@ -89,13 +96,28 @@ function parseNumberInput(value: string): number | null | undefined {
   return parsed;
 }
 
-function isDateWithinTask(task: Task, date: Date) {
+function getDateOnlyMs(date: Date) {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function getPlannedIndexRange(task: Task, rangeStartMs: number, rangeLength: number): PlannedIndexRange | null {
+  if (rangeLength <= 0) return null;
   const start = parseUTCDate(task.startDate);
   const end = parseUTCDate(task.endDate);
-  const dateMs = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-  const startMs = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
-  const endMs = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
-  return startMs <= dateMs && dateMs <= endMs;
+  const startIndex = Math.ceil((getDateOnlyMs(start) - rangeStartMs) / DAY_MS);
+  const endIndex = Math.floor((getDateOnlyMs(end) - rangeStartMs) / DAY_MS);
+  const clampedStartIndex = Math.max(0, startIndex);
+  const clampedEndIndex = Math.min(rangeLength - 1, endIndex);
+
+  if (clampedStartIndex > clampedEndIndex) return null;
+  return {
+    startIndex: clampedStartIndex,
+    endIndex: clampedEndIndex,
+  };
+}
+
+function isDateIndexWithinPlannedRange(dateIndex: number, range: PlannedIndexRange | null) {
+  return !!range && range.startIndex <= dateIndex && dateIndex <= range.endIndex;
 }
 
 function formatValue(value: number | undefined) {
@@ -225,6 +247,7 @@ type PlanFactRowProps<TTask extends Task = Task> = {
   rowHeight: number;
   subrowHeight: number;
   dayWidth: number;
+  plannedRange: PlannedIndexRange | null;
   isParent: boolean;
   isHighlighted: boolean;
   selectedTaskId?: string | null;
@@ -288,6 +311,7 @@ function PlanFactRowInner<TTask extends Task = Task>({
   rowHeight,
   subrowHeight,
   dayWidth,
+  plannedRange,
   isParent,
   isHighlighted,
   selectedTaskId,
@@ -330,10 +354,9 @@ function PlanFactRowInner<TTask extends Task = Task>({
       onClick={() => onTaskSelect?.(task.id)}
     >
       {renderedDateIndices.map((dateIndex) => {
-        const date = dateRange[dateIndex];
-        if (!date) return null;
         const dateKey = dateKeys[dateIndex];
-        const planned = isDateWithinTask(task, date);
+        if (dateKey === undefined) return null;
+        const planned = isDateIndexWithinPlannedRange(dateIndex, plannedRange);
         return (['plan', 'fact'] as const).map((kind) => {
           const subrowIndex = getSubrowIndex(rowIndex, kind);
           const isInRenderedRange = !!renderedRangeBounds
@@ -540,6 +563,7 @@ function arePlanFactRowsEqual<TTask extends Task>(
     && previous.rowHeight === next.rowHeight
     && previous.subrowHeight === next.subrowHeight
     && previous.dayWidth === next.dayWidth
+    && previous.plannedRange === next.plannedRange
     && previous.isParent === next.isParent
     && previous.isHighlighted === next.isHighlighted
     && (previous.selectedTaskId === previous.task.id) === (next.selectedTaskId === next.task.id)
@@ -601,11 +625,23 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   }, [allTasks]);
 
   const dateKeys = useMemo(() => dateRange.map(formatDateKey), [dateRange]);
+  const dateRangeStartMs = dateRange[0] ? getDateOnlyMs(dateRange[0]) : 0;
   const taskIndexById = useMemo(() => {
     const indexById = new Map<string, number>();
     tasks.forEach((task, index) => indexById.set(task.id, index));
     return indexById;
   }, [tasks]);
+  const taskById = useMemo(
+    () => new Map(tasks.map((task) => [task.id, task])),
+    [tasks]
+  );
+  const plannedRangeByTaskId = useMemo(() => {
+    const rangeByTaskId = new Map<string, PlannedIndexRange | null>();
+    for (const task of tasks) {
+      rangeByTaskId.set(task.id, getPlannedIndexRange(task, dateRangeStartMs, dateRange.length));
+    }
+    return rangeByTaskId;
+  }, [dateRange.length, dateRangeStartMs, tasks]);
 
   const focusCell = useCallback((cell: ActiveCell) => {
     window.requestAnimationFrame(() => {
@@ -741,11 +777,6 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
       && cellSubrowIndex <= bounds.toSubrowIndex;
   }, [getRangeBounds, taskIndexById]);
 
-  const isCellInSelectedRange = useCallback((cell: ActiveCell) => {
-    if (!selectedRange) return false;
-    return isCellInRange(cell, fillRange ?? selectedRange);
-  }, [fillRange, isCellInRange, selectedRange]);
-
   const commitCell = useCallback((task: TTask, dateIndex: number, kind: PlanFactCellKind, value: number | undefined) => {
     const dateKey = dateKeys[dateIndex];
     const source = kind === 'plan' ? task.planByDate : task.factByDate;
@@ -771,118 +802,99 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     });
   }, [dateKeys, dateRange, onCellCommit, onTasksChange]);
 
+  const commitRangeCells = useCallback((bounds: RangeBounds, value: number | undefined, mode: 'set' | 'clear') => {
+    const changedTasksById = new Map<string, TTask>();
+
+    for (let subrowIndex = bounds.fromSubrowIndex; subrowIndex <= bounds.toSubrowIndex; subrowIndex += 1) {
+      const task = tasks[Math.floor(subrowIndex / 2)];
+      if (!task || parentTaskIds.has(task.id)) continue;
+
+      const kind: PlanFactCellKind = subrowIndex % 2 === 0 ? 'plan' : 'fact';
+      const currentChangedTask = changedTasksById.get(task.id) ?? task;
+      let nextPlanByDate = currentChangedTask.planByDate;
+      let nextFactByDate = currentChangedTask.factByDate;
+      let didChange = false;
+
+      for (let dateIndex = bounds.fromDateIndex; dateIndex <= bounds.toDateIndex; dateIndex += 1) {
+        const dateKey = dateKeys[dateIndex];
+        if (dateKey === undefined) continue;
+
+        const currentValues = kind === 'plan' ? nextPlanByDate : nextFactByDate;
+        const currentValue = currentValues?.[dateKey];
+        const nextValue = mode === 'clear' ? undefined : value;
+        if (currentValue === nextValue) continue;
+
+        if (kind === 'plan') {
+          nextPlanByDate = { ...(nextPlanByDate ?? {}) };
+          if (nextValue === undefined) {
+            delete nextPlanByDate[dateKey];
+          } else {
+            nextPlanByDate[dateKey] = nextValue;
+          }
+        } else {
+          nextFactByDate = { ...(nextFactByDate ?? {}) };
+          if (nextValue === undefined) {
+            delete nextFactByDate[dateKey];
+          } else {
+            nextFactByDate[dateKey] = nextValue;
+          }
+        }
+        didChange = true;
+      }
+
+      if (didChange) {
+        changedTasksById.set(task.id, {
+          ...currentChangedTask,
+          ...(nextPlanByDate !== currentChangedTask.planByDate ? { planByDate: nextPlanByDate ?? {} } : {}),
+          ...(nextFactByDate !== currentChangedTask.factByDate ? { factByDate: nextFactByDate ?? {} } : {}),
+        } as TTask);
+      }
+    }
+
+    const changedTasks = Array.from(changedTasksById.values());
+    if (changedTasks.length > 0) {
+      onTasksChange?.(changedTasks);
+    }
+  }, [dateKeys, onTasksChange, parentTaskIds, tasks]);
+
   const clearSelectedCells = useCallback(() => {
-    if (!selectedRange) {
+    const activeRange = fillRange ?? selectedRange;
+    if (!activeRange) {
       if (!activeCell) return;
-      const task = tasks.find((candidate) => candidate.id === activeCell.taskId);
+      const task = taskById.get(activeCell.taskId);
       if (!task || parentTaskIds.has(task.id)) return;
       commitCell(task, activeCell.dateIndex, activeCell.kind, undefined);
       return;
     }
 
-    const changedTasksById = new Map<string, TTask>();
-    for (const task of tasks) {
-      if (parentTaskIds.has(task.id)) continue;
-
-      let nextPlanByDate = task.planByDate;
-      let nextFactByDate = task.factByDate;
-      let didChange = false;
-
-      for (let dateIndex = 0; dateIndex < dateKeys.length; dateIndex += 1) {
-        const dateKey = dateKeys[dateIndex];
-        const planCell = { taskId: task.id, dateIndex, kind: 'plan' as const };
-        if (isCellInSelectedRange(planCell) && nextPlanByDate?.[dateKey] !== undefined) {
-          nextPlanByDate = { ...(nextPlanByDate ?? {}) };
-          delete nextPlanByDate[dateKey];
-          didChange = true;
-        }
-
-        const factCell = { taskId: task.id, dateIndex, kind: 'fact' as const };
-        if (isCellInSelectedRange(factCell) && nextFactByDate?.[dateKey] !== undefined) {
-          nextFactByDate = { ...(nextFactByDate ?? {}) };
-          delete nextFactByDate[dateKey];
-          didChange = true;
-        }
-      }
-
-      if (didChange) {
-        changedTasksById.set(task.id, {
-          ...task,
-          ...(nextPlanByDate !== task.planByDate ? { planByDate: nextPlanByDate ?? {} } : {}),
-          ...(nextFactByDate !== task.factByDate ? { factByDate: nextFactByDate ?? {} } : {}),
-        } as TTask);
-      }
+    const bounds = getRangeBounds(activeRange);
+    if (bounds) {
+      commitRangeCells(bounds, undefined, 'clear');
     }
-
-    const changedTasks = Array.from(changedTasksById.values());
-    if (changedTasks.length > 0) {
-      onTasksChange?.(changedTasks);
-    }
-  }, [activeCell, commitCell, dateKeys, isCellInSelectedRange, onTasksChange, parentTaskIds, selectedRange, tasks]);
+  }, [activeCell, commitCell, commitRangeCells, fillRange, getRangeBounds, parentTaskIds, selectedRange, taskById]);
 
   const commitSelectedCells = useCallback((value: number | undefined) => {
-    if (!selectedRange) {
+    const activeRange = fillRange ?? selectedRange;
+    if (!activeRange) {
       if (!activeCell) return;
-      const task = tasks.find((candidate) => candidate.id === activeCell.taskId);
+      const task = taskById.get(activeCell.taskId);
       if (!task || parentTaskIds.has(task.id)) return;
       commitCell(task, activeCell.dateIndex, activeCell.kind, value);
       return;
     }
 
-    const changedTasksById = new Map<string, TTask>();
-    for (const task of tasks) {
-      if (parentTaskIds.has(task.id)) continue;
-
-      let nextPlanByDate = task.planByDate;
-      let nextFactByDate = task.factByDate;
-      let didChange = false;
-
-      for (let dateIndex = 0; dateIndex < dateKeys.length; dateIndex += 1) {
-        const dateKey = dateKeys[dateIndex];
-        const planCell = { taskId: task.id, dateIndex, kind: 'plan' as const };
-        if (isCellInSelectedRange(planCell) && nextPlanByDate?.[dateKey] !== value) {
-          nextPlanByDate = { ...(nextPlanByDate ?? {}) };
-          if (value === undefined) {
-            delete nextPlanByDate[dateKey];
-          } else {
-            nextPlanByDate[dateKey] = value;
-          }
-          didChange = true;
-        }
-
-        const factCell = { taskId: task.id, dateIndex, kind: 'fact' as const };
-        if (isCellInSelectedRange(factCell) && nextFactByDate?.[dateKey] !== value) {
-          nextFactByDate = { ...(nextFactByDate ?? {}) };
-          if (value === undefined) {
-            delete nextFactByDate[dateKey];
-          } else {
-            nextFactByDate[dateKey] = value;
-          }
-          didChange = true;
-        }
-      }
-
-      if (didChange) {
-        changedTasksById.set(task.id, {
-          ...task,
-          ...(nextPlanByDate !== task.planByDate ? { planByDate: nextPlanByDate ?? {} } : {}),
-          ...(nextFactByDate !== task.factByDate ? { factByDate: nextFactByDate ?? {} } : {}),
-        } as TTask);
-      }
+    const bounds = getRangeBounds(activeRange);
+    if (bounds) {
+      commitRangeCells(bounds, value, 'set');
     }
-
-    const changedTasks = Array.from(changedTasksById.values());
-    if (changedTasks.length > 0) {
-      onTasksChange?.(changedTasks);
-    }
-  }, [activeCell, commitCell, dateKeys, isCellInSelectedRange, onTasksChange, parentTaskIds, selectedRange, tasks]);
+  }, [activeCell, commitCell, commitRangeCells, fillRange, getRangeBounds, parentTaskIds, selectedRange, taskById]);
 
   const getCellValue = useCallback((cell: ActiveCell) => {
-    const task = tasks.find((candidate) => candidate.id === cell.taskId);
+    const task = taskById.get(cell.taskId);
     if (!task) return undefined;
     const dateKey = dateKeys[cell.dateIndex];
     return cell.kind === 'plan' ? task.planByDate?.[dateKey] : task.factByDate?.[dateKey];
-  }, [dateKeys, tasks]);
+  }, [dateKeys, taskById]);
 
   const applyFillRange = useCallback((nextFillRange?: CellRange | null) => {
     const targetRange = nextFillRange ?? fillRange;
@@ -900,7 +912,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
       const targetCellForRow = getCellFromPosition(subrowIndex, targetBounds.fromDateIndex);
       if (!targetCellForRow || parentTaskIds.has(targetCellForRow.taskId)) continue;
 
-      const originalTask = tasks.find((task) => task.id === targetCellForRow.taskId);
+      const originalTask = taskById.get(targetCellForRow.taskId);
       if (!originalTask) continue;
 
       let changedTask = changedTasksById.get(originalTask.id) ?? originalTask;
@@ -968,7 +980,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     onTasksChange,
     parentTaskIds,
     selectedRange,
-    tasks,
+    taskById,
   ]);
 
   const moveActiveCell = useCallback((cell: ActiveCell, direction: 'left' | 'right' | 'up' | 'down') => {
@@ -1141,6 +1153,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
               rowHeight={rowHeight}
               subrowHeight={subrowHeight}
               dayWidth={dayWidth}
+              plannedRange={plannedRangeByTaskId.get(task.id) ?? null}
               isParent={isParent}
               isHighlighted={isHighlighted}
               selectedTaskId={selectedTaskId}
