@@ -5,7 +5,7 @@
   --gantt-pf-day-line-width: 0.5px;
   --gantt-pf-day-line-color: rgb(226, 226, 226);
   --gantt-pf-row-line-width: 0.5px;
-  --gantt-pf-row-line-color: var(--gantt-plan-fact-row-line-color, #b7c3d0);
+  --gantt-pf-row-line-color: var(--gantt-plan-fact-row-line-color, rgb(146, 153, 160));
 }
 
 .gantt-pf-header {

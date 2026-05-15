@@ -35,7 +35,7 @@ import './GanttChart.css';
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
 const TASK_ROW_OVERSCAN = 8;
-const PLAN_FACT_COLUMN_OVERSCAN = 6;
+const PLAN_FACT_COLUMN_OVERSCAN = 24;
 
 function getFullMonthDays(tasks: Array<{ startDate: string | Date; endDate: string | Date }>): Date[] {
   if (!tasks || tasks.length === 0) {
@@ -787,7 +787,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       const nextViewportWidth = Math.max(0, container.clientWidth - (showTaskList ? taskListWidth : 0));
       const nextScrollTop = container.scrollTop;
       const nextScrollLeft = container.scrollLeft;
-      const nextChartScrollLeft = Math.max(0, nextScrollLeft - (showTaskList ? taskListWidth : 0));
+      const nextChartScrollLeft = Math.max(0, nextScrollLeft);
 
       setTaskListHasRightShadow((previous) =>
         previous === nextHasRightShadow ? previous : nextHasRightShadow
