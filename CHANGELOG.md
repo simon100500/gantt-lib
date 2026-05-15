@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.113.1] - 2026-05-15
+
+### Fixes
+
+- Update PlanFactMatrix parent cell behavior and related tests
+
 ## [0.113.0] - 2026-05-15
 
 ### Features
