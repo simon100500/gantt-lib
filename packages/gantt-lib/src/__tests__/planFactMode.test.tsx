@@ -492,4 +492,37 @@ describe('plan-fact mode', () => {
     expect(firstWeekendBlock.style.left).toBe('0px');
     expect(firstWeekendBlock.style.width).toBe('32px');
   });
+
+  it('renders fact below plan with warning styling and keeps fact at or above plan green', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа',
+        startDate: '2026-04-01',
+        endDate: '2026-04-02',
+        planByDate: {
+          '2026-04-01': 10,
+          '2026-04-02': 10,
+        },
+        factByDate: {
+          '2026-04-01': 8,
+          '2026-04-02': 12,
+        },
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        dayWidth={32}
+      />
+    );
+
+    const belowPlanCell = getCell(container, 'task-1', '2026-04-01', 'fact');
+    const abovePlanCell = getCell(container, 'task-1', '2026-04-02', 'fact');
+
+    expect(belowPlanCell.classList.contains('gantt-pf-cell-factWarning')).toBe(true);
+    expect(abovePlanCell.classList.contains('gantt-pf-cell-factWarning')).toBe(false);
+  });
 });

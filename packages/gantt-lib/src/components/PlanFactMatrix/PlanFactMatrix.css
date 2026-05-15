@@ -133,15 +133,11 @@
 }
 
 .gantt-pf-cell-planned {
-  background: var(--gantt-plan-fact-plan-fill, rgba(59, 130, 246, 0.12));
+  background: var(--gantt-plan-fact-plan-fill, rgb(59 130 246 / 30%));
 }
 
 .gantt-pf-cell-fact.gantt-pf-cell-hasValue {
-  background: var(--gantt-plan-fact-fact-fill, rgba(20, 184, 166, 0.10));
-}
-
-.gantt-pf-cell-factSuccess.gantt-pf-cell-hasValue {
-  background: rgba(34, 197, 94, 0.14);
+  background: var(--gantt-plan-fact-fact-fill, rgba(34, 197, 94, 0.14));
   color: #15803d;
 }
 
