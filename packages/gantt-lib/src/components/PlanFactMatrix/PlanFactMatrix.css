@@ -141,7 +141,8 @@
   color: #15803d;
 }
 
-.gantt-pf-cell-factWarning.gantt-pf-cell-hasValue {
+.gantt-pf-cell-fact.gantt-pf-cell-factWarning,
+.gantt-pf-cell-factWarning {
   background: rgba(244, 114, 182, 0.16);
   color: #dc2626;
 }

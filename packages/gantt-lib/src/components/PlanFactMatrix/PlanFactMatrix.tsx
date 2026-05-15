@@ -375,10 +375,17 @@ function PlanFactRowInner<TTask extends Task = Task>({
           const planValue = task.planByDate?.[dateKey];
           const factValue = task.factByDate?.[dateKey];
           const value = kind === 'plan' ? planValue : factValue;
+          const isPastReportDate = todayDateIndex !== undefined && dateIndex < todayDateIndex;
+          const hasPlannedWork = (planValue ?? 0) > 0;
+          const isMissingOrZeroFact = factValue === undefined || factValue === 0;
           const isFactBelowPlan = kind === 'fact'
             && factValue !== undefined
             && planValue !== undefined
             && factValue < planValue;
+          const isPastDueMissingFact = kind === 'fact'
+            && isPastReportDate
+            && hasPlannedWork
+            && isMissingOrZeroFact;
           const isActive = activeCell?.taskId === task.id
             && activeCell.dateIndex === dateIndex
             && activeCell.kind === kind;
@@ -410,7 +417,7 @@ function PlanFactRowInner<TTask extends Task = Task>({
                 `gantt-pf-cell-${kind}`,
                 !isParent && planned && kind === 'plan' && 'gantt-pf-cell-planned',
                 !isParent && value !== undefined && 'gantt-pf-cell-hasValue',
-                !isParent && isFactBelowPlan && 'gantt-pf-cell-factWarning',
+                !isParent && (isFactBelowPlan || isPastDueMissingFact) && 'gantt-pf-cell-factWarning',
                 isSelected && 'gantt-pf-cell-selected',
                 isInRenderedRange && renderedRangeBounds !== null && dateIndex === renderedRangeBounds.fromDateIndex && 'gantt-pf-cell-rangeLeft',
                 isInRenderedRange && renderedRangeBounds !== null && dateIndex === renderedRangeBounds.toDateIndex && 'gantt-pf-cell-rangeRight',

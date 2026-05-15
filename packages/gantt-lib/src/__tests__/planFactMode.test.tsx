@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { GanttChart, type Task } from '../index';
+import PlanFactMatrix from '../components/PlanFactMatrix/PlanFactMatrix';
 
 type PlanFactTask = Task & {
   unit?: string;
@@ -524,5 +525,49 @@ describe('plan-fact mode', () => {
 
     expect(belowPlanCell.classList.contains('gantt-pf-cell-factWarning')).toBe(true);
     expect(abovePlanCell.classList.contains('gantt-pf-cell-factWarning')).toBe(false);
+  });
+
+  it('renders past fact cells red when plan is positive and fact is zero or empty', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа',
+        startDate: '2026-04-01',
+        endDate: '2026-04-03',
+        planByDate: {
+          '2026-04-01': 10,
+          '2026-04-02': 5,
+          '2026-04-03': 7,
+        },
+        factByDate: {
+          '2026-04-01': 0,
+          '2026-04-03': 7,
+        },
+      },
+    ];
+
+    const { container } = render(
+      <PlanFactMatrix<PlanFactTask>
+        tasks={tasks}
+        dateRange={[
+          new Date(Date.UTC(2026, 3, 1)),
+          new Date(Date.UTC(2026, 3, 2)),
+          new Date(Date.UTC(2026, 3, 3)),
+        ]}
+        dayWidth={32}
+        rowHeight={40}
+        headerHeight={40}
+        todayDateIndex={2}
+      />
+    );
+
+    const zeroFactPastCell = getCell(container, 'task-1', '2026-04-01', 'fact');
+    const emptyFactPastCell = getCell(container, 'task-1', '2026-04-02', 'fact');
+    const todayFactCell = getCell(container, 'task-1', '2026-04-03', 'fact');
+
+    expect(zeroFactPastCell.classList.contains('gantt-pf-cell-factWarning')).toBe(true);
+    expect(emptyFactPastCell.classList.contains('gantt-pf-cell-factWarning')).toBe(true);
+    expect(emptyFactPastCell.classList.contains('gantt-pf-cell-hasValue')).toBe(false);
+    expect(todayFactCell.classList.contains('gantt-pf-cell-factWarning')).toBe(false);
   });
 });
