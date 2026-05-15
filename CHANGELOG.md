@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.113.0] - 2026-05-15
+
+### Features
+
+- Improve GanttChart scrolling behavior and task visibility
+- Add plan-fact indicators and month separators to GanttChart and PlanFactMatrix
+- Improve GanttChart scrolling and plan-fact date window management
+- Implement planned index range logic in PlanFactMatrix
+- Enhance cell rendering and interaction in PlanFactMatrix
+- Add visibleRowIndices prop to PlanFactMatrix for virtualized rendering
+- Enhance GanttChart and PlanFactMatrix scrolling and rendering performance
+
+### Fixes
+
+- Adjust GanttChart and PlanFactMatrix for improved functionality and styling
+
+### Refactoring
+
+- Streamline GanttChart and PlanFactMatrix components for improved clarity
+
+### Styling
+
+- Update PlanFactMatrix CSS for visual consistency
+
 ## [0.112.0] - 2026-05-15
 
 ### Features
