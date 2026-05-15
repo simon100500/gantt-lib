@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseUTCDate } from '../../utils/dateUtils';
+import GridBackground from '../GridBackground';
 import TimeScaleHeader from '../TimeScaleHeader';
 import type { Task } from '../GanttChart';
 import './PlanFactMatrix.css';
@@ -33,6 +34,7 @@ export interface PlanFactMatrixProps<TTask extends Task = Task> {
   visibleRowIndices?: number[];
   visibleDateIndices?: number[];
   todayDateIndex?: number;
+  isCustomWeekend?: (date: Date) => boolean;
 }
 
 type ActiveCell = {
@@ -600,6 +602,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   visibleRowIndices,
   visibleDateIndices,
   todayDateIndex,
+  isCustomWeekend,
 }: PlanFactMatrixProps<TTask>) {
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
@@ -1142,6 +1145,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
           dayWidth={dayWidth}
           headerHeight={headerHeight - 1}
           viewMode="day"
+          isCustomWeekend={isCustomWeekend}
         />
         {todayDateIndex !== undefined && todayDateIndex >= 0 && (
           <span
@@ -1175,6 +1179,14 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
           width: `${totalWidth}px`,
         }}
       >
+        <GridBackground
+          dateRange={dateRange}
+          dayWidth={dayWidth}
+          totalHeight={tasks.length * rowHeight}
+          viewMode="day"
+          isCustomWeekend={isCustomWeekend}
+          showGridLines={false}
+        />
         {renderedRowIndices.map((rowIndex) => {
           const task = tasks[rowIndex];
           if (!task) return null;

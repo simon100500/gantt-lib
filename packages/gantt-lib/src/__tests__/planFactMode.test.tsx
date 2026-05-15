@@ -462,4 +462,34 @@ describe('plan-fact mode', () => {
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(changes).toEqual([]);
   });
+
+  it('passes custom weekends into the plan-fact calendar header and body overlay', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа',
+        startDate: '2026-04-01',
+        endDate: '2026-04-03',
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        dayWidth={32}
+        customDays={[{ date: new Date(Date.UTC(2026, 3, 1)), type: 'weekend' }]}
+      />
+    );
+
+    const headerWeekendCells = container.querySelectorAll('.gantt-pf-header .gantt-tsh-weekendDay');
+    expect(headerWeekendCells.length).toBeGreaterThan(0);
+
+    const bodyWeekendBlocks = container.querySelectorAll('.gantt-pf-body .gantt-gb-weekendBlock');
+    expect(bodyWeekendBlocks.length).toBeGreaterThan(0);
+
+    const firstWeekendBlock = bodyWeekendBlocks[0] as HTMLElement;
+    expect(firstWeekendBlock.style.left).toBe('0px');
+    expect(firstWeekendBlock.style.width).toBe('32px');
+  });
 });

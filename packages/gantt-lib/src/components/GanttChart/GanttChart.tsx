@@ -564,9 +564,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   } = props;
   const dayWidth = !isTableMatrixMode ? props.dayWidth ?? 40 : 40;
   const viewMode = !isTableMatrixMode && !isPlanFactMode ? props.viewMode ?? 'day' : 'day';
-  const customDays = !isTableMatrixMode && !isPlanFactMode ? props.customDays : undefined;
-  const isWeekend = !isTableMatrixMode && !isPlanFactMode ? props.isWeekend : undefined;
-  const businessDays = !isTableMatrixMode && !isPlanFactMode ? props.businessDays ?? true : true;
+  const customDays = !isTableMatrixMode ? props.customDays : undefined;
+  const isWeekend = !isTableMatrixMode ? props.isWeekend : undefined;
+  const businessDays = !isTableMatrixMode ? props.businessDays ?? true : true;
   const matrixColumns = isTableMatrixMode ? props.matrixColumns : [];
   const matrixColumnGroups = isTableMatrixMode ? props.matrixColumnGroups : undefined;
   const onMatrixCellClick = isTableMatrixMode ? props.onMatrixCellClick : undefined;
@@ -1774,6 +1774,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 visibleRowIndices={visibleTaskWindowIndices}
                 visibleDateIndices={visiblePlanFactDateIndices}
                 todayDateIndex={todayInRange ? todayIndex : undefined}
+                isCustomWeekend={isCustomWeekend}
               />
             ) : (
               <>
