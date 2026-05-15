@@ -32,6 +32,7 @@ export interface PlanFactMatrixProps<TTask extends Task = Task> {
   filterMode?: 'highlight' | 'hide';
   visibleRowIndices?: number[];
   visibleDateIndices?: number[];
+  todayDateIndex?: number;
 }
 
 type ActiveCell = {
@@ -248,6 +249,7 @@ type PlanFactRowProps<TTask extends Task = Task> = {
   subrowHeight: number;
   dayWidth: number;
   plannedRange: PlannedIndexRange | null;
+  todayDateIndex?: number;
   isParent: boolean;
   isHighlighted: boolean;
   selectedTaskId?: string | null;
@@ -312,6 +314,7 @@ function PlanFactRowInner<TTask extends Task = Task>({
   subrowHeight,
   dayWidth,
   plannedRange,
+  todayDateIndex,
   isParent,
   isHighlighted,
   selectedTaskId,
@@ -350,6 +353,9 @@ function PlanFactRowInner<TTask extends Task = Task>({
         top: `${rowIndex * rowHeight}px`,
         height: `${rowHeight}px`,
         gridTemplateColumns: `repeat(${dateRange.length}, ${dayWidth}px)`,
+        ['--gantt-pf-today-left' as string]: todayDateIndex !== undefined && todayDateIndex >= 0
+          ? `${todayDateIndex * dayWidth}px`
+          : undefined,
       }}
       onClick={() => onTaskSelect?.(task.id)}
     >
@@ -564,6 +570,7 @@ function arePlanFactRowsEqual<TTask extends Task>(
     && previous.subrowHeight === next.subrowHeight
     && previous.dayWidth === next.dayWidth
     && previous.plannedRange === next.plannedRange
+    && previous.todayDateIndex === next.todayDateIndex
     && previous.isParent === next.isParent
     && previous.isHighlighted === next.isHighlighted
     && (previous.selectedTaskId === previous.task.id) === (next.selectedTaskId === next.task.id)
@@ -592,6 +599,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   filterMode = 'highlight',
   visibleRowIndices,
   visibleDateIndices,
+  todayDateIndex,
 }: PlanFactMatrixProps<TTask>) {
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
@@ -1135,6 +1143,16 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
           headerHeight={headerHeight - 1}
           viewMode="day"
         />
+        {todayDateIndex !== undefined && todayDateIndex >= 0 && (
+          <span
+            className="gantt-pf-headerTodayLine"
+            aria-hidden="true"
+            style={{
+              left: `${todayDateIndex * dayWidth}px`,
+              top: `${Math.max(0, headerHeight / 2)}px`,
+            }}
+          />
+        )}
       </div>
       <div className="gantt-pf-monthSeparatorLayer" aria-hidden="true">
         {monthSeparatorIndices.map((dateIndex) => (
@@ -1175,6 +1193,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
               subrowHeight={subrowHeight}
               dayWidth={dayWidth}
               plannedRange={plannedRangeByTaskId.get(task.id) ?? null}
+              todayDateIndex={todayDateIndex}
               isParent={isParent}
               isHighlighted={isHighlighted}
               selectedTaskId={selectedTaskId}

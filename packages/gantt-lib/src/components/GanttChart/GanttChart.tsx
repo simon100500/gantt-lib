@@ -1739,35 +1739,24 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 filterMode={filterMode}
               />
             ) : isPlanFactMode ? (
-              <div className="gantt-planFactSurface">
-                <PlanFactMatrix
-                  tasks={visibleTasks}
-                  allTasks={normalizedTasks}
-                  dateRange={dateRange}
-                  dayWidth={dayWidth}
-                  rowHeight={effectiveRowHeight}
-                  headerHeight={timelineHeaderHeight}
-                  bodyMinHeight={tableBodyMinHeight}
-                  selectedTaskId={selectedTaskId}
-                  onTaskSelect={handleTaskSelect}
-                  onTasksChange={handleTaskChange}
-                  onCellCommit={onPlanFactCellCommit}
-                  highlightedTaskIds={taskListHighlightedTaskIds}
-                  filterMode={filterMode}
-                  visibleRowIndices={visibleTaskWindowIndices}
-                  visibleDateIndices={visiblePlanFactDateIndices}
-                />
-                {todayInRange && (
-                  <div
-                    className="gantt-planFactTodayIndicator"
-                    style={{
-                      left: `${todayIndex * dayWidth}px`,
-                      top: `${Math.max(0, timelineHeaderHeight / 2)}px`,
-                    }}
-                    aria-hidden="true"
-                  />
-                )}
-              </div>
+              <PlanFactMatrix
+                tasks={visibleTasks}
+                allTasks={normalizedTasks}
+                dateRange={dateRange}
+                dayWidth={dayWidth}
+                rowHeight={effectiveRowHeight}
+                headerHeight={timelineHeaderHeight}
+                bodyMinHeight={tableBodyMinHeight}
+                selectedTaskId={selectedTaskId}
+                onTaskSelect={handleTaskSelect}
+                onTasksChange={handleTaskChange}
+                onCellCommit={onPlanFactCellCommit}
+                highlightedTaskIds={taskListHighlightedTaskIds}
+                filterMode={filterMode}
+                visibleRowIndices={visibleTaskWindowIndices}
+                visibleDateIndices={visiblePlanFactDateIndices}
+                todayDateIndex={todayInRange ? todayIndex : undefined}
+              />
             ) : (
               <>
                 {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}

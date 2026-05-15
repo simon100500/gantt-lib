@@ -70,20 +70,6 @@
   display: block;
 }
 
-.gantt-planFactSurface {
-  position: relative;
-}
-
-.gantt-planFactTodayIndicator {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  z-index: 14;
-  width: var(--gantt-today-indicator-width);
-  background: var(--gantt-today-indicator-color);
-  pointer-events: none;
-}
-
 /* Hide chart area while keeping TaskList visible */
 .gantt-chartSurface.gantt-chart-hidden {
   display: none;
