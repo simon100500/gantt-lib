@@ -2,6 +2,8 @@
   position: relative;
   background: var(--gantt-cell-background, #ffffff);
   --gantt-pf-day-width: 40px;
+  --gantt-pf-day-line-width: 0.5px;
+  --gantt-pf-day-line-color: var(--gantt-day-line-color, rgba(226, 232, 240, 0.78));
 }
 
 .gantt-pf-header {
@@ -29,9 +31,9 @@
   background-image: repeating-linear-gradient(
     to right,
     transparent 0,
-    transparent calc(var(--gantt-pf-day-width) - 1px),
-    var(--gantt-grid-line-color, #e0e0e0) calc(var(--gantt-pf-day-width) - 1px),
-    var(--gantt-grid-line-color, #e0e0e0) var(--gantt-pf-day-width)
+    transparent calc(var(--gantt-pf-day-width) - var(--gantt-pf-day-line-width)),
+    var(--gantt-pf-day-line-color) calc(var(--gantt-pf-day-width) - var(--gantt-pf-day-line-width)),
+    var(--gantt-pf-day-line-color) var(--gantt-pf-day-width)
   );
   box-shadow: inset 0 -1px 0 var(--gantt-plan-fact-row-line-color, #b7c3d0);
 }
@@ -67,6 +69,20 @@
   box-shadow:
     inset 0 -1px 0 var(--gantt-plan-fact-row-line-color, #b7c3d0),
     inset 0 0 0 9999px rgba(250, 204, 21, 0.3);
+}
+
+.gantt-pf-monthSeparatorLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.gantt-pf-monthSeparator {
+  position: absolute;
+  bottom: 0;
+  width: var(--gantt-month-separator-width, 2px);
+  background: var(--gantt-month-separator-color, #374151);
 }
 
 .gantt-pf-cell {

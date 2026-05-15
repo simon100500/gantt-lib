@@ -37,6 +37,64 @@ const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
 const TASK_ROW_OVERSCAN = 8;
 const PLAN_FACT_COLUMN_OVERSCAN = 6;
 
+function getFullMonthDays(tasks: Array<{ startDate: string | Date; endDate: string | Date }>): Date[] {
+  if (!tasks || tasks.length === 0) {
+    return getMultiMonthDays(tasks);
+  }
+
+  let minDate: Date | null = null;
+  let maxDate: Date | null = null;
+
+  for (const task of tasks) {
+    const start = parseUTCDate(task.startDate);
+    const end = parseUTCDate(task.endDate);
+
+    if (!minDate || start.getTime() < minDate.getTime()) {
+      minDate = start;
+    }
+    if (!maxDate || end.getTime() > maxDate.getTime()) {
+      maxDate = end;
+    }
+  }
+
+  if (!minDate || !maxDate) {
+    return getMultiMonthDays(tasks);
+  }
+
+  const startOfMonth = new Date(Date.UTC(minDate.getUTCFullYear(), minDate.getUTCMonth(), 1));
+  const endOfMonth = new Date(Date.UTC(maxDate.getUTCFullYear(), maxDate.getUTCMonth() + 1, 0));
+  const days: Date[] = [];
+  const current = new Date(startOfMonth);
+
+  while (current.getTime() <= endOfMonth.getTime()) {
+    days.push(new Date(Date.UTC(
+      current.getUTCFullYear(),
+      current.getUTCMonth(),
+      current.getUTCDate()
+    )));
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+
+  return days;
+}
+
+function getPlanFactRangeTasks<TTask extends Task>(tasks: TTask[]): Array<{ startDate: string | Date; endDate: string | Date }> {
+  const rangeTasks: Array<{ startDate: string | Date; endDate: string | Date }> = [];
+
+  for (const task of tasks) {
+    rangeTasks.push({ startDate: task.startDate, endDate: task.endDate });
+
+    for (const dateKey of Object.keys(task.planByDate ?? {})) {
+      rangeTasks.push({ startDate: dateKey, endDate: dateKey });
+    }
+    for (const dateKey of Object.keys(task.factByDate ?? {})) {
+      rangeTasks.push({ startDate: dateKey, endDate: dateKey });
+    }
+  }
+
+  return rangeTasks;
+}
+
 function arePositionMapsEqual(
   left: Map<string, { left: number; width: number }>,
   right: Map<string, { left: number; width: number }>
@@ -558,6 +616,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // When baseline is visible, expand the visible range to include baseline dates too.
   const dateRangeTasks = useMemo(() => {
+    if (isPlanFactMode) {
+      return getPlanFactRangeTasks(normalizedTasks);
+    }
+
     if (!showBaseline) {
       return normalizedTasks;
     }
@@ -571,10 +633,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         ? task.baselineEndDate
         : task.endDate,
     }));
-  }, [normalizedTasks, showBaseline]);
+  }, [isPlanFactMode, normalizedTasks, showBaseline]);
 
   // Calculate multi-month date range from normalized tasks
-  const dateRange = useMemo(() => getMultiMonthDays(dateRangeTasks), [dateRangeTasks]);
+  const dateRange = useMemo(
+    () => isPlanFactMode ? getFullMonthDays(dateRangeTasks) : getMultiMonthDays(dateRangeTasks),
+    [dateRangeTasks, isPlanFactMode]
+  );
 
   // Track dependency validation results
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
@@ -666,12 +731,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     return new Date(Date.UTC(firstDay.getUTCFullYear(), firstDay.getUTCMonth(), 1));
   }, [dateRange]);
 
-  // Only render TodayIndicator if today is in the visible date range
-  const todayInRange = useMemo(() => {
+  const todayIndex = useMemo(() => {
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    return dateRange.some(day => day.getTime() === today.getTime());
+    return dateRange.findIndex(day => day.getTime() === today.getTime());
   }, [dateRange]);
+  // Only render TodayIndicator if today is in the visible date range
+  const todayInRange = todayIndex !== -1;
 
   const visibleTimelineMarkers = useMemo(() => {
     if (isTableMatrixMode || !timelineMarkers || timelineMarkers.length === 0 || dateRange.length === 0) {
@@ -721,6 +787,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       const nextViewportWidth = Math.max(0, container.clientWidth - (showTaskList ? taskListWidth : 0));
       const nextScrollTop = container.scrollTop;
       const nextScrollLeft = container.scrollLeft;
+      const nextChartScrollLeft = Math.max(0, nextScrollLeft - (showTaskList ? taskListWidth : 0));
 
       setTaskListHasRightShadow((previous) =>
         previous === nextHasRightShadow ? previous : nextHasRightShadow
@@ -737,7 +804,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
         const rangeStart = Math.max(
           0,
-          Math.floor(nextScrollLeft / dayWidth) - PLAN_FACT_COLUMN_OVERSCAN
+          Math.floor(nextChartScrollLeft / dayWidth) - PLAN_FACT_COLUMN_OVERSCAN
         );
         const visibleColumnCount = Math.max(1, Math.ceil(nextViewportWidth / dayWidth));
         const rangeEnd = Math.min(
@@ -1672,23 +1739,35 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 filterMode={filterMode}
               />
             ) : isPlanFactMode ? (
-              <PlanFactMatrix
-                tasks={visibleTasks}
-                allTasks={normalizedTasks}
-                dateRange={dateRange}
-                dayWidth={dayWidth}
-                rowHeight={effectiveRowHeight}
-                headerHeight={timelineHeaderHeight}
-                bodyMinHeight={tableBodyMinHeight}
-                selectedTaskId={selectedTaskId}
-                onTaskSelect={handleTaskSelect}
-                onTasksChange={handleTaskChange}
-                onCellCommit={onPlanFactCellCommit}
-                highlightedTaskIds={taskListHighlightedTaskIds}
-                filterMode={filterMode}
-                visibleRowIndices={visibleTaskWindowIndices}
-                visibleDateIndices={visiblePlanFactDateIndices}
-              />
+              <div className="gantt-planFactSurface">
+                <PlanFactMatrix
+                  tasks={visibleTasks}
+                  allTasks={normalizedTasks}
+                  dateRange={dateRange}
+                  dayWidth={dayWidth}
+                  rowHeight={effectiveRowHeight}
+                  headerHeight={timelineHeaderHeight}
+                  bodyMinHeight={tableBodyMinHeight}
+                  selectedTaskId={selectedTaskId}
+                  onTaskSelect={handleTaskSelect}
+                  onTasksChange={handleTaskChange}
+                  onCellCommit={onPlanFactCellCommit}
+                  highlightedTaskIds={taskListHighlightedTaskIds}
+                  filterMode={filterMode}
+                  visibleRowIndices={visibleTaskWindowIndices}
+                  visibleDateIndices={visiblePlanFactDateIndices}
+                />
+                {todayInRange && (
+                  <div
+                    className="gantt-planFactTodayIndicator"
+                    style={{
+                      left: `${todayIndex * dayWidth}px`,
+                      top: `${Math.max(0, timelineHeaderHeight / 2)}px`,
+                    }}
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
             ) : (
               <>
                 {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}

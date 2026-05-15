@@ -635,6 +635,15 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     () => new Map(tasks.map((task) => [task.id, task])),
     [tasks]
   );
+  const monthSeparatorIndices = useMemo(() => {
+    const indices: number[] = [];
+    for (let index = 1; index < dateRange.length; index += 1) {
+      if (dateRange[index].getUTCDate() === 1) {
+        indices.push(index);
+      }
+    }
+    return indices;
+  }, [dateRange]);
   const plannedRangeByTaskId = useMemo(() => {
     const rangeByTaskId = new Map<string, PlannedIndexRange | null>();
     for (const task of tasks) {
@@ -1126,6 +1135,18 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
           headerHeight={headerHeight - 1}
           viewMode="day"
         />
+      </div>
+      <div className="gantt-pf-monthSeparatorLayer" aria-hidden="true">
+        {monthSeparatorIndices.map((dateIndex) => (
+          <span
+            key={`month-separator-${dateIndex}`}
+            className="gantt-pf-monthSeparator"
+            style={{
+              left: `${Math.round(dateIndex * dayWidth)}px`,
+              top: `${Math.max(0, headerHeight / 2)}px`,
+            }}
+          />
+        ))}
       </div>
       <div
         ref={bodyRef}
