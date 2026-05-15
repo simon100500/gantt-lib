@@ -89,33 +89,9 @@
 }
 
 .gantt-pf-cell-selected {
-  --gantt-pf-range-left-shadow: 0 0 0 transparent;
-  --gantt-pf-range-right-shadow: 0 0 0 transparent;
-  --gantt-pf-range-top-shadow: 0 0 0 transparent;
-  --gantt-pf-range-bottom-shadow: 0 0 0 transparent;
   box-shadow:
     inset 0 0 0 9999px rgba(37, 99, 235, 0.12),
-    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0),
-    var(--gantt-pf-range-left-shadow),
-    var(--gantt-pf-range-right-shadow),
-    var(--gantt-pf-range-top-shadow),
-    var(--gantt-pf-range-bottom-shadow);
-}
-
-.gantt-pf-cell-rangeLeft {
-  --gantt-pf-range-left-shadow: inset 2px 0 0 #2563eb;
-}
-
-.gantt-pf-cell-rangeRight {
-  --gantt-pf-range-right-shadow: inset -2px 0 0 #2563eb;
-}
-
-.gantt-pf-cell-rangeTop {
-  --gantt-pf-range-top-shadow: inset 0 2px 0 #2563eb;
-}
-
-.gantt-pf-cell-rangeBottom {
-  --gantt-pf-range-bottom-shadow: inset 0 -2px 0 #2563eb;
+    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
 }
 
 .gantt-pf-cell-active:not(.gantt-pf-cell-selected)::after {
@@ -150,34 +126,59 @@
 .gantt-pf-cell-selected:not(.gantt-pf-cell-active):hover {
   box-shadow:
     inset 0 0 0 9999px rgba(37, 99, 235, 0.16),
-    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0),
-    var(--gantt-pf-range-left-shadow),
-    var(--gantt-pf-range-right-shadow),
-    var(--gantt-pf-range-top-shadow),
-    var(--gantt-pf-range-bottom-shadow);
+    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
 }
 
 .gantt-pf-cell-selected.gantt-pf-cell-active:hover {
   box-shadow:
     inset 0 0 0 9999px rgba(37, 99, 235, 0.12),
-    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0),
-    var(--gantt-pf-range-left-shadow),
-    var(--gantt-pf-range-right-shadow),
-    var(--gantt-pf-range-top-shadow),
-    var(--gantt-pf-range-bottom-shadow);
+    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
 }
 
 .gantt-pf-cell-active:not(.gantt-pf-cell-selected):hover {
-  box-shadow:
-    inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0),
-    var(--gantt-pf-range-left-shadow, 0 0 0 transparent),
-    var(--gantt-pf-range-right-shadow, 0 0 0 transparent),
-    var(--gantt-pf-range-top-shadow, 0 0 0 transparent),
-    var(--gantt-pf-range-bottom-shadow, 0 0 0 transparent);
+  box-shadow: inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
 }
 
 .gantt-pf-cell-active:not(.gantt-pf-cell-selected):hover::after {
   border-color: #1d4ed8;
+}
+
+.gantt-pf-cell-rangeLeft::before,
+.gantt-pf-cell-rangeRight::before,
+.gantt-pf-cell-rangeTop::before,
+.gantt-pf-cell-rangeBottom::before {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  content: '';
+  pointer-events: none;
+}
+
+.gantt-pf-cell-rangeLeft::before {
+  border-left: 1px solid #2563eb;
+}
+
+.gantt-pf-cell-rangeRight::before {
+  border-right: 1px solid #2563eb;
+}
+
+.gantt-pf-cell-rangeTop::before {
+  border-top: 1px solid #2563eb;
+}
+
+.gantt-pf-cell-rangeBottom::before {
+  border-bottom: 1px solid #2563eb;
+}
+
+.gantt-pf-cell-rangeLeft.gantt-pf-cell-rangeRight::before {
+  border-left: 1px solid #2563eb;
+  border-right: 1px solid #2563eb;
+}
+
+.gantt-pf-cell-rangeTop.gantt-pf-cell-rangeBottom::before {
+  border-top: 1px solid #2563eb;
+  border-bottom: 1px solid #2563eb;
 }
 
 .gantt-pf-fillHandle {
