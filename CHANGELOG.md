@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.115.0] - 2026-05-15
+
+### Features
+
+- Enhance plan-fact mode rendering and styling
+- Improve past fact cell rendering in plan-fact mode
+
 ## [0.114.0] - 2026-05-15
 
 ### Features
