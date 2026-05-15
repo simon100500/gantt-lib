@@ -28,6 +28,7 @@ import { DependencyLines } from '../DependencyLines';
 import { TaskList } from '../TaskList';
 import { ResourceTimelineChart } from '../ResourceTimelineChart';
 import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup, type TableMatrixDateOverlay } from '../TableMatrix';
+import { PlanFactMatrix, type PlanFactCellCommitContext } from '../PlanFactMatrix';
 import { printGanttChart } from './print';
 import { createTaskPreviewPositionStore, type TaskPreviewPositionStore } from './previewStore';
 import './GanttChart.css';
@@ -94,6 +95,11 @@ export type {
   ResourceTimelineResourceMenuCommand,
   TimelineMarker,
 } from '../../types';
+export type {
+  PlanFactCellCommitContext,
+  PlanFactCellKind,
+  PlanFactMatrixProps,
+} from '../PlanFactMatrix';
 
 /**
  * Task data structure for Gantt chart
@@ -147,6 +153,10 @@ export interface Task {
    * Independent of accepted/progress — consumer controls both separately.
    */
   locked?: boolean;
+  /** Optional planned quantities keyed by ISO date (YYYY-MM-DD), used by plan-fact mode. */
+  planByDate?: Record<string, number>;
+  /** Optional actual quantities keyed by ISO date (YYYY-MM-DD), used by plan-fact mode. */
+  factByDate?: Record<string, number>;
   /**
    * Optional horizontal divider line for visual grouping.
    * - 'top' renders a bold line above the task row
@@ -325,10 +335,18 @@ export interface TableMatrixModeProps<TTask extends Task = Task> extends TaskCha
   matrixDateOverlay?: TableMatrixDateOverlay<TTask> | false;
 }
 
+export interface PlanFactModeProps<TTask extends Task = Task> extends TaskChartSharedProps<TTask> {
+  mode: 'plan-fact';
+  /** Width of each day column in pixels (default: 40). */
+  dayWidth?: number;
+  /** Called after a plan/fact cell commits. The task update is still emitted through onTasksChange. */
+  onPlanFactCellCommit?: (context: PlanFactCellCommitContext<TTask>) => void;
+}
+
 export type GanttChartProps<
   TTask extends Task = Task,
   TItem extends ResourceTimelineItem = ResourceTimelineItem,
-> = GanttModeProps<TTask> | TableMatrixModeProps<TTask> | ResourcePlannerChartProps<TItem>;
+> = GanttModeProps<TTask> | TableMatrixModeProps<TTask> | PlanFactModeProps<TTask> | ResourcePlannerChartProps<TItem>;
 
 export interface ExportToPdfOptions {
   /** Structured header displayed above the exported chart */
@@ -427,10 +445,11 @@ function GanttChartInner<
 }
 
 function TaskGanttChartInner<TTask extends Task = Task>(
-  props: GanttModeProps<TTask> | TableMatrixModeProps<TTask>,
+  props: GanttModeProps<TTask> | TableMatrixModeProps<TTask> | PlanFactModeProps<TTask>,
   ref: React.ForwardedRef<GanttChartHandle>
 ) {
   const isTableMatrixMode = props.mode === 'table-matrix';
+  const isPlanFactMode = props.mode === 'plan-fact';
   const {
     tasks,
     rowHeight = 40,
@@ -480,14 +499,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onTaskDateChangeModeChange: externalOnTaskDateChangeModeChange,
   } = props;
   const dayWidth = !isTableMatrixMode ? props.dayWidth ?? 40 : 40;
-  const viewMode = !isTableMatrixMode ? props.viewMode ?? 'day' : 'day';
-  const customDays = !isTableMatrixMode ? props.customDays : undefined;
-  const isWeekend = !isTableMatrixMode ? props.isWeekend : undefined;
-  const businessDays = !isTableMatrixMode ? props.businessDays ?? true : true;
+  const viewMode = !isTableMatrixMode && !isPlanFactMode ? props.viewMode ?? 'day' : 'day';
+  const customDays = !isTableMatrixMode && !isPlanFactMode ? props.customDays : undefined;
+  const isWeekend = !isTableMatrixMode && !isPlanFactMode ? props.isWeekend : undefined;
+  const businessDays = !isTableMatrixMode && !isPlanFactMode ? props.businessDays ?? true : true;
   const matrixColumns = isTableMatrixMode ? props.matrixColumns : [];
   const matrixColumnGroups = isTableMatrixMode ? props.matrixColumnGroups : undefined;
   const onMatrixCellClick = isTableMatrixMode ? props.onMatrixCellClick : undefined;
   const matrixDateOverlay = isTableMatrixMode ? props.matrixDateOverlay : undefined;
+  const onPlanFactCellCommit = isPlanFactMode ? props.onPlanFactCellCommit : undefined;
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
@@ -520,7 +540,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const taskDateChangeMode = externalTaskDateChangeMode ?? internalTaskDateChangeMode;
   const handleTaskDateChangeMode = externalOnTaskDateChangeModeChange ?? setInternalTaskDateChangeMode;
-  const resolvedRowContentLines = Math.max(1, Math.floor(rowContentLines));
+  const resolvedRowContentLines = isPlanFactMode ? Math.max(2, Math.floor(rowContentLines)) : Math.max(1, Math.floor(rowContentLines));
   const effectiveRowHeight = useMemo(
     () => Math.max(rowHeight, 10 + resolvedRowContentLines * 18),
     [resolvedRowContentLines, rowHeight]
@@ -624,7 +644,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // TimeScaleHeader is headerHeight tall; the wrapper owns the bottom grid border.
   const timelineHeaderHeight = headerHeight + 1;
   const tableBodyMinHeight = useMemo(() => {
-    if (!isTableMatrixMode || containerHeight === undefined) {
+    if ((!isTableMatrixMode && !isPlanFactMode) || containerHeight === undefined) {
       return undefined;
     }
 
@@ -633,7 +653,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
 
     return `calc(${containerHeight} - ${timelineHeaderHeight}px)`;
-  }, [containerHeight, isTableMatrixMode, timelineHeaderHeight]);
+  }, [containerHeight, isPlanFactMode, isTableMatrixMode, timelineHeaderHeight]);
 
   // Get month start for calculations (first day of date range)
   const monthStart = useMemo(() => {
@@ -1140,7 +1160,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   const clearHoveredRows = useCallback(() => {
     for (const element of hoveredRowElementsRef.current) {
-      element.classList.remove('gantt-tl-row-hovered', 'gantt-tr-row-hovered', 'gantt-mx-row-hovered');
+      element.classList.remove('gantt-tl-row-hovered', 'gantt-tr-row-hovered', 'gantt-mx-row-hovered', 'gantt-pf-row-hovered');
     }
     hoveredRowElementsRef.current = [];
   }, []);
@@ -1163,6 +1183,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       }
       if (element.classList.contains('gantt-mx-row')) {
         element.classList.add('gantt-mx-row-hovered');
+      }
+      if (element.classList.contains('gantt-pf-row')) {
+        element.classList.add('gantt-pf-row-hovered');
       }
     }
 
@@ -1486,7 +1509,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   return (
     <div
       ref={containerRef}
-      className={isTableMatrixMode ? 'gantt-container gantt-container-tableMatrix' : 'gantt-container'}
+      className={isTableMatrixMode ? 'gantt-container gantt-container-tableMatrix' : isPlanFactMode ? 'gantt-container gantt-container-planFact' : 'gantt-container'}
     >
       <div
         ref={scrollContainerRef}
@@ -1555,16 +1578,20 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
           {/* Chart area */}
           <div
-            className={isTableMatrixMode || showChart ? 'gantt-chartSurface' : 'gantt-chartSurface gantt-chart-hidden'}
+            className={isTableMatrixMode || isPlanFactMode || showChart ? 'gantt-chartSurface' : 'gantt-chartSurface gantt-chart-hidden'}
             style={{
               minWidth: isTableMatrixMode
                 ? (matrixWidth !== undefined ? `${matrixWidth}px` : undefined)
+                : isPlanFactMode
+                  ? `${gridWidth}px`
                 : `${gridWidth}px`,
               width: isTableMatrixMode
                 ? (matrixWidth !== undefined ? `${matrixWidth}px` : 'max-content')
+                : isPlanFactMode
+                  ? `${gridWidth}px`
                 : undefined,
-              flex: isTableMatrixMode ? '0 0 auto' : 1,
-              display: isTableMatrixMode || showChart ? undefined : 'none',
+              flex: isTableMatrixMode || isPlanFactMode ? '0 0 auto' : 1,
+              display: isTableMatrixMode || isPlanFactMode || showChart ? undefined : 'none',
             }}
           >
             {isTableMatrixMode ? (
@@ -1580,6 +1607,22 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 onTaskSelect={handleTaskSelect}
                 onCellClick={onMatrixCellClick}
                 dateOverlay={matrixDateOverlay}
+                highlightedTaskIds={taskListHighlightedTaskIds}
+                filterMode={filterMode}
+              />
+            ) : isPlanFactMode ? (
+              <PlanFactMatrix
+                tasks={visibleTasks}
+                allTasks={normalizedTasks}
+                dateRange={dateRange}
+                dayWidth={dayWidth}
+                rowHeight={effectiveRowHeight}
+                headerHeight={timelineHeaderHeight}
+                bodyMinHeight={tableBodyMinHeight}
+                selectedTaskId={selectedTaskId}
+                onTaskSelect={handleTaskSelect}
+                onTasksChange={handleTaskChange}
+                onCellCommit={onPlanFactCellCommit}
                 highlightedTaskIds={taskListHighlightedTaskIds}
                 filterMode={filterMode}
               />
@@ -1748,7 +1791,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 }
 
 const TaskGanttChart = forwardRef(TaskGanttChartInner) as <TTask extends Task = Task>(
-  props: (GanttModeProps<TTask> | TableMatrixModeProps<TTask>) & { ref?: React.Ref<GanttChartHandle> }
+  props: (GanttModeProps<TTask> | TableMatrixModeProps<TTask> | PlanFactModeProps<TTask>) & { ref?: React.Ref<GanttChartHandle> }
 ) => React.ReactElement;
 
 export const GanttChart = forwardRef(GanttChartInner) as <

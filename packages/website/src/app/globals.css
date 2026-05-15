@@ -398,6 +398,16 @@ body {
   font-weight: 600;
 }
 
+.plan-fact-total-positive {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.plan-fact-total-negative {
+  color: #dc2626;
+  font-weight: 700;
+}
+
 /* Datepicker controls */
 .demo-datepicker {
   display: flex;

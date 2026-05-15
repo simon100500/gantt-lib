@@ -4,6 +4,7 @@ import Link from "next/link";
 import ConstructionChart from "@/components/ConstructionChart";
 import AdditionalColumnsChart from "@/components/AdditionalColumnsChart";
 import FinancePlanMatrixDemo from "@/components/FinancePlanMatrixDemo";
+import PlanFactDemo from "@/components/PlanFactDemo";
 import ResourcePlannerExample from "@/components/ResourcePlannerExample";
 
 export default function Home() {
@@ -24,6 +25,7 @@ export default function Home() {
         <ConstructionChart />
         <AdditionalColumnsChart />
         <FinancePlanMatrixDemo />
+        <PlanFactDemo />
         <ResourcePlannerExample />
       </div>
     </main>
