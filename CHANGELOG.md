@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.115.1] - 2026-05-15
+
+### Styling
+
+- Update parent row background color in PlanFactMatrix and TaskList
+
 ## [0.115.0] - 2026-05-15
 
 ### Features

@@ -1,6 +1,6 @@
 {
   "name": "gantt-lib",
-  "version": "0.115.0",
+  "version": "0.115.1",
   "description": "React scheduling UI library for Gantt charts, resource planners, and table-matrix views",
   "license": "MIT",
   "repository": {
