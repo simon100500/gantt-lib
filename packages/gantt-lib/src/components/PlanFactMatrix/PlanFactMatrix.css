@@ -25,7 +25,7 @@
   grid-template-rows: 1fr 1fr;
   box-sizing: border-box;
   overflow: hidden;
-  box-shadow: inset 0 -1px 0 var(--gantt-grid-line-color, #e0e0e0);
+  box-shadow: inset 0 -1px 0 var(--gantt-plan-fact-row-line-color, #b7c3d0);
 }
 
 .gantt-pf-row-parent {
@@ -38,13 +38,13 @@
 
 .gantt-pf-row.gantt-pf-row-hovered {
   box-shadow:
-    inset 0 -1px 0 var(--gantt-grid-line-color, #e0e0e0),
+    inset 0 -1px 0 var(--gantt-plan-fact-row-line-color, #b7c3d0),
     inset 0 0 0 9999px var(--gantt-row-hover-background, rgba(59, 130, 246, 0.04));
 }
 
 .gantt-pf-row-highlighted.gantt-pf-row-hovered {
   box-shadow:
-    inset 0 -1px 0 var(--gantt-grid-line-color, #e0e0e0),
+    inset 0 -1px 0 var(--gantt-plan-fact-row-line-color, #b7c3d0),
     inset 0 0 0 9999px rgba(250, 204, 21, 0.3);
 }
 
@@ -63,6 +63,10 @@
   outline: none;
   background: inherit;
   box-shadow: inset -1px 0 0 var(--gantt-grid-line-color, #e0e0e0);
+}
+
+.gantt-pf-cell-plan {
+  font-weight: 600;
 }
 
 .gantt-pf-cell-planned {
