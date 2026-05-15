@@ -309,6 +309,35 @@ describe('plan-fact mode', () => {
     expect(getCell(container, 'task-1', '2026-04-03', 'plan').classList.contains('gantt-pf-cell-selected')).toBe(true);
   });
 
+  it('keeps the fill handle in the bottom-right corner of the selected range', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Работа',
+        startDate: '2026-04-01',
+        endDate: '2026-04-03',
+      },
+    ];
+
+    const { container } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        dayWidth={32}
+      />
+    );
+
+    const firstCell = getCell(container, 'task-1', '2026-04-01', 'plan');
+    const rightCell = getCell(container, 'task-1', '2026-04-02', 'plan');
+    fireEvent.mouseDown(firstCell);
+    fireEvent.mouseUp(window);
+    fireEvent.keyDown(firstCell, { key: 'ArrowRight', shiftKey: true });
+
+    expect(firstCell.classList.contains('gantt-pf-cell-active')).toBe(true);
+    expect(firstCell.querySelector('.gantt-pf-fillHandle')).toBeNull();
+    expect(rightCell.querySelector('.gantt-pf-fillHandle')).not.toBeNull();
+  });
+
   it('commits one edited value to every selected range cell with ctrl enter', () => {
     const tasks: PlanFactTask[] = [
       {

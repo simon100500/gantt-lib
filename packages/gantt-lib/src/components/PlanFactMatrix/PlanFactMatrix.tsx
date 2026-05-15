@@ -319,6 +319,17 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
     ];
   }, [fillRange, getRangeBounds, isCellInRange, selectedRange, taskIndexById]);
 
+  const isFillHandleCell = useCallback((cell: ActiveCell) => {
+    if (!selectedRange) return false;
+    const range = fillRange ?? selectedRange;
+    const bounds = getRangeBounds(range);
+    const taskIndex = taskIndexById.get(cell.taskId);
+    if (!bounds || taskIndex === undefined || !isCellInRange(cell, range)) return false;
+
+    const subrowIndex = getSubrowIndex(taskIndex, cell.kind);
+    return cell.dateIndex === bounds.toDateIndex && subrowIndex === bounds.toSubrowIndex;
+  }, [fillRange, getRangeBounds, isCellInRange, selectedRange, taskIndexById]);
+
   const commitCell = useCallback((task: TTask, dateIndex: number, kind: PlanFactCellKind, value: number | undefined) => {
     const dateKey = dateKeys[dateIndex];
     const source = kind === 'plan' ? task.planByDate : task.factByDate;
@@ -713,15 +724,12 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                     && editingCell.kind === kind;
                   const currentCell = { taskId: task.id, dateIndex, kind };
                   const isSelected = !isParent && isCellInSelectedRange(currentCell);
-                  const isRangeAnchor = !isParent
+                  const showFillHandle = !isParent && !isEditing && isFillHandleCell(currentCell);
+                  const isRangeAnchor = !showFillHandle
+                    && !isParent
                     && selectedRange?.anchor.taskId === task.id
                     && selectedRange.anchor.dateIndex === dateIndex
                     && selectedRange.anchor.kind === kind;
-                  const isRangeFocus = !isParent
-                    && selectedRange?.focus.taskId === task.id
-                    && selectedRange.focus.dateIndex === dateIndex
-                    && selectedRange.focus.kind === kind
-                    && !isEditing;
 
                   return (
                     <div
@@ -854,7 +862,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
                       ) : (
                         <span className="gantt-pf-cellValue">{isParent ? '' : formatValue(value)}</span>
                       )}
-                      {isRangeFocus && (
+                      {showFillHandle && (
                         <span
                           className="gantt-pf-fillHandle"
                           aria-hidden="true"
