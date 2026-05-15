@@ -398,35 +398,14 @@ body {
   font-weight: 600;
 }
 
-.plan-fact-summary-cell {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  align-items: stretch;
-  width: 100%;
-  height: 100%;
-  font-size: 11px;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.plan-fact-summary-line {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  min-height: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.plan-fact-summary-plan {
-  color: #1d4ed8;
+.plan-fact-total-positive {
+  color: #15803d;
   font-weight: 700;
 }
 
-.plan-fact-summary-fact {
-  color: #0f766e;
-  font-weight: 600;
+.plan-fact-total-negative {
+  color: #dc2626;
+  font-weight: 700;
 }
 
 /* Datepicker controls */

@@ -115,27 +115,6 @@ function hasChildren(tasks: PlanFactTask[], taskId: string) {
   return tasks.some((candidate) => candidate.parentId === taskId);
 }
 
-function PlanFactSummaryCell({
-  plan,
-  fact,
-  unit,
-}: {
-  plan: number;
-  fact: number;
-  unit?: string;
-}) {
-  return (
-    <div className="plan-fact-summary-cell">
-      <div className="plan-fact-summary-line plan-fact-summary-plan">
-        {`${formatAmount(plan)} ${unit ?? ""}`.trim()}
-      </div>
-      <div className="plan-fact-summary-line plan-fact-summary-fact">
-        {`${formatAmount(fact)} ${unit ?? ""}`.trim()}
-      </div>
-    </div>
-  );
-}
-
 export default function PlanFactDemo() {
   const [tasks, setTasks] = useState<PlanFactTask[]>(initialTasks);
   const parentTaskIds = useMemo(() => {
@@ -161,26 +140,42 @@ export default function PlanFactDemo() {
     {
       id: "unit",
       header: "Ед.",
-      width: 72,
+      width: 64,
       align: "center",
       after: "owner",
       renderCell: ({ task }) => (hasChildren(tasks, task.id) ? "" : task.unit),
     },
     {
-      id: "total",
-      header: "Итого",
-      width: 120,
+      id: "planTotal",
+      header: "План",
+      width: 92,
       align: "right",
       after: "unit",
       renderCell: ({ task }) => parentTaskIds.has(task.id)
-        ? null
-        : (
-          <PlanFactSummaryCell
-            plan={sumTaskValues(task, "planByDate")}
-            fact={sumTaskValues(task, "factByDate")}
-            unit={task.unit}
-          />
-        ),
+        ? ""
+        : formatAmount(sumTaskValues(task, "planByDate")),
+    },
+    {
+      id: "factTotal",
+      header: "Факт",
+      width: 92,
+      align: "right",
+      after: "planTotal",
+      renderCell: ({ task }) => {
+        if (parentTaskIds.has(task.id)) return "";
+
+        const planTotal = sumTaskValues(task, "planByDate");
+        const factTotal = sumTaskValues(task, "factByDate");
+        const statusClass = factTotal >= planTotal
+          ? "plan-fact-total-positive"
+          : "plan-fact-total-negative";
+
+        return (
+          <span className={statusClass}>
+            {formatAmount(factTotal)}
+          </span>
+        );
+      },
     },
   ], [parentTaskIds, tasks]);
 
@@ -203,7 +198,7 @@ export default function PlanFactDemo() {
           mode="plan-fact"
           tasks={tasks}
           showTaskList={true}
-          taskListWidth={560}
+          taskListWidth={620}
           containerHeight={520}
           rowHeight={46}
           dayWidth={42}
