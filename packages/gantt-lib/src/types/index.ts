@@ -18,6 +18,11 @@ export interface ResourceTimelineItem {
   taskId?: string;
   title: string;
   subtitle?: string;
+  tooltip?: {
+    firstLine?: ReactNode;
+    secondLine?: ReactNode;
+    secondLineIcon?: ReactNode;
+  };
   startDate: string | Date;
   endDate: string | Date;
   color?: string;

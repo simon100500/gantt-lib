@@ -1538,13 +1538,16 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                     durationDays: durationValue,
                     isDragging: isDraggingItem,
                   };
+                  const tooltipFirstLine = layoutItem.item.tooltip?.firstLine ?? layoutItem.item.title;
+                  const tooltipSecondLine = layoutItem.item.tooltip?.secondLine;
+                  const tooltipSecondLineIcon = layoutItem.item.tooltip?.secondLineIcon;
 
                   return (
                     <div
                       key={layoutItem.itemId}
                       className={className}
                       data-resource-item-id={layoutItem.itemId}
-                      data-resource-item-tooltip={layoutItem.item.title}
+                      data-resource-item-tooltip={typeof tooltipFirstLine === 'string' ? tooltipFirstLine : layoutItem.item.title}
                       onMouseDown={(event) => startDrag(event, layoutItem)}
                       onClick={() => onResourceItemClick?.(layoutItem.item)}
                       onKeyDown={(event) => {
@@ -1628,6 +1631,21 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                             {layoutItem.item.subtitle && (
                               <span className="gantt-resourceTimeline-itemSubtitle">{layoutItem.item.subtitle}</span>
                             )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="gantt-resourceTimeline-itemTooltip" role="tooltip">
+                        <div className="gantt-resourceTimeline-itemTooltipLine gantt-resourceTimeline-itemTooltipLinePrimary">
+                          {tooltipFirstLine}
+                        </div>
+                        {tooltipSecondLine && (
+                          <div className="gantt-resourceTimeline-itemTooltipLine gantt-resourceTimeline-itemTooltipLineSecondary">
+                            {tooltipSecondLineIcon && (
+                              <span className="gantt-resourceTimeline-itemTooltipIcon" aria-hidden="true">
+                                {tooltipSecondLineIcon}
+                              </span>
+                            )}
+                            <span className="gantt-resourceTimeline-itemTooltipText">{tooltipSecondLine}</span>
                           </div>
                         )}
                       </div>

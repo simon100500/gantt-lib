@@ -797,14 +797,16 @@
   user-select: none;
 }
 
-.gantt-resourceTimeline-item::after {
-  content: attr(data-resource-item-tooltip);
+.gantt-resourceTimeline-itemTooltip {
   position: absolute;
   left: 50%;
   top: -8px;
   z-index: 20;
+  display: flex;
   max-width: 360px;
-  padding: 6px 8px;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 9px;
   border-radius: 6px;
   background: rgba(15, 23, 42, 0.96);
   color: #ffffff;
@@ -822,11 +824,48 @@
   word-break: break-word;
 }
 
-.gantt-resourceTimeline-item:hover::after,
-.gantt-resourceTimeline-item:focus-visible::after {
+.gantt-resourceTimeline-item:hover .gantt-resourceTimeline-itemTooltip,
+.gantt-resourceTimeline-item:focus-visible .gantt-resourceTimeline-itemTooltip {
   opacity: 1;
   transform: translate(-50%, -100%);
   visibility: visible;
+}
+
+.gantt-resourceTimeline-itemTooltipLine {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.gantt-resourceTimeline-itemTooltipLinePrimary {
+  font-weight: 700;
+}
+
+.gantt-resourceTimeline-itemTooltipLineSecondary {
+  gap: 5px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.gantt-resourceTimeline-itemTooltipIcon {
+  display: inline-flex;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.gantt-resourceTimeline-itemTooltipIcon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.gantt-resourceTimeline-itemTooltipText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gantt-resourceTimeline-item:hover,

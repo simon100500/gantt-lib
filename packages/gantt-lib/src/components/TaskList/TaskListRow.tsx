@@ -2599,6 +2599,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           </div>
         )}
         <span
+          className="gantt-tl-progress-display"
           style={
             editingProgress
               ? { visibility: "hidden", pointerEvents: "none" }

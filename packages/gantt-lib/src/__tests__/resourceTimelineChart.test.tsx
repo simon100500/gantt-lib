@@ -510,11 +510,42 @@ describe('ResourceTimelineChart', () => {
     const { container } = render(<ResourceTimelineChart mode="resource-planner" resources={resources} />);
 
     expect(screen.getByLabelText('1 д')).toHaveTextContent('1');
-    expect(screen.getByText('Discovery')).toBeInTheDocument();
+    expect(screen.getAllByText('Discovery').length).toBeGreaterThan(0);
     expect(screen.getByText('Client work')).toBeInTheDocument();
     expect(screen.queryByText('3–5 апр')).toBeNull();
     expect(container.querySelector('[data-resource-item-id="discovery"]')).not.toHaveAttribute('title');
     expect(container.querySelector('[data-resource-item-id="discovery"]')).toHaveAttribute('data-resource-item-tooltip', 'Discovery');
+    expect(container.querySelector('[data-resource-item-id="discovery"] .gantt-resourceTimeline-itemTooltip')).toHaveTextContent('Discovery');
+  });
+
+  it('renders custom two-line item tooltip content', () => {
+    const { container } = render(
+      <ResourceTimelineChart
+        mode="resource-planner"
+        resources={[{
+          id: 'crew',
+          name: 'Crew',
+          items: [{
+            id: 'assignment',
+            resourceId: 'crew',
+            title: 'Монтаж',
+            subtitle: 'Объект А',
+            startDate: '2026-04-01',
+            endDate: '2026-04-02',
+            tooltip: {
+              firstLine: 'Монтаж плитки',
+              secondLine: 'Дом на Лесной',
+              secondLineIcon: <span data-testid="tooltip-icon">⌂</span>,
+            },
+          }],
+        }]}
+      />
+    );
+
+    const tooltip = container.querySelector('.gantt-resourceTimeline-itemTooltip') as HTMLElement;
+    expect(tooltip).toHaveTextContent('Монтаж плитки');
+    expect(tooltip).toHaveTextContent('Дом на Лесной');
+    expect(tooltip.querySelector('[data-testid="tooltip-icon"]')).not.toBeNull();
   });
 
   it('calls onResourceItemClick from mouse and keyboard activation', () => {
