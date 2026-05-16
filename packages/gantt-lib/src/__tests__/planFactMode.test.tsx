@@ -494,6 +494,60 @@ describe('plan-fact mode', () => {
     expect(firstWeekendBlock.style.width).toBe('32px');
   });
 
+  it('fills parent task-list rows only in plan-fact mode by default', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'parent',
+        name: 'Раздел',
+        startDate: '2026-04-01',
+        endDate: '2026-04-03',
+      },
+      {
+        id: 'child',
+        name: 'Работа',
+        parentId: 'parent',
+        startDate: '2026-04-01',
+        endDate: '2026-04-02',
+      },
+    ];
+
+    const { container, rerender } = render(
+      <GanttChart<PlanFactTask>
+        mode="plan-fact"
+        tasks={tasks}
+        showTaskList={true}
+        dayWidth={32}
+      />
+    );
+
+    const planFactParentRow = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="parent"].gantt-tl-row-parent-filled');
+    expect(planFactParentRow).not.toBeNull();
+
+    rerender(
+      <GanttChart<PlanFactTask>
+        tasks={tasks}
+        showTaskList={true}
+        dayWidth={32}
+      />
+    );
+
+    const ganttParentRow = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="parent"]') as HTMLElement | null;
+    expect(ganttParentRow).not.toBeNull();
+    expect(ganttParentRow?.classList.contains('gantt-tl-row-parent-filled')).toBe(false);
+
+    rerender(
+      <GanttChart<PlanFactTask>
+        tasks={tasks}
+        showTaskList={true}
+        dayWidth={32}
+        fillParentRowsInTaskList={true}
+      />
+    );
+
+    const forcedGanttParentRow = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="parent"]') as HTMLElement | null;
+    expect(forcedGanttParentRow?.classList.contains('gantt-tl-row-parent-filled')).toBe(true);
+  });
+
   it('renders fact below plan with warning styling and keeps fact at or above plan green', () => {
     const tasks: PlanFactTask[] = [
       {

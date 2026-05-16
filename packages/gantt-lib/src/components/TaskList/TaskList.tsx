@@ -245,6 +245,8 @@ export interface TaskListProps {
   businessDays?: boolean;
   /** Task IDs highlighted by the active filter */
   highlightedTaskIds?: Set<string>;
+  /** Fill parent rows with background in task list */
+  fillParentRows?: boolean;
   /** Enable a leading checkbox column for multi-selecting task rows (default: false) */
   enableTaskMultiSelect?: boolean;
   /** Controlled selected task IDs for multi-select mode */
@@ -386,6 +388,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   isWeekend,
   businessDays,
   highlightedTaskIds = new Set(),
+  fillParentRows = false,
   enableTaskMultiSelect = false,
   selectedTaskIds,
   onSelectedTaskIdsChange,
@@ -1565,6 +1568,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   ancestorLineModes={ancestorLineModesMap.get(task.id) ?? []}
                   customDays={customDays}
                   isWeekend={isWeekend}
+                  fillParentRow={fillParentRows}
                   businessDays={businessDays}
                   defaultTaskDurationDays={defaultTaskDurationDays}
                   isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}

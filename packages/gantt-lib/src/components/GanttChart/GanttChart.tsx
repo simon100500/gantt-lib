@@ -351,6 +351,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   onToggleCollapse?: (parentId: string) => void;
   /** Task IDs to highlight in the task list (for search results) */
   highlightedTaskIds?: Set<string>;
+  /** Fill parent rows with background in the task list. Defaults to enabled in plan-fact mode only. */
+  fillParentRowsInTaskList?: boolean;
   /** Enable a leading checkbox column for multi-selecting task rows (default: false) */
   enableTaskMultiSelect?: boolean;
   /** Controlled selected task IDs for multi-select mode */
@@ -558,6 +560,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     collapsedParentIds: externalCollapsedParentIds,
     onToggleCollapse: externalOnToggleCollapse,
     highlightedTaskIds,
+    fillParentRowsInTaskList,
     enableTaskMultiSelect = false,
     selectedTaskIds,
     onSelectedTaskIdsChange,
@@ -620,6 +623,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const taskDateChangeMode = externalTaskDateChangeMode ?? internalTaskDateChangeMode;
   const handleTaskDateChangeMode = externalOnTaskDateChangeModeChange ?? setInternalTaskDateChangeMode;
   const resolvedRowContentLines = isPlanFactMode ? Math.max(2, Math.floor(rowContentLines)) : Math.max(1, Math.floor(rowContentLines));
+  const shouldFillParentRowsInTaskList = fillParentRowsInTaskList ?? isPlanFactMode;
   const effectiveRowHeight = useMemo(
     () => Math.max(rowHeight, 10 + resolvedRowContentLines * 18),
     [resolvedRowContentLines, rowHeight]
@@ -1735,6 +1739,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             onDemoteTask={onDemoteTask ?? handleDemoteTask}
             onUngroupTask={onUngroupTask ?? handleUngroupTask}
             highlightedTaskIds={taskListHighlightedTaskIds}
+            fillParentRows={shouldFillParentRowsInTaskList}
             enableTaskMultiSelect={enableTaskMultiSelect}
             selectedTaskIds={selectedTaskIds}
             onSelectedTaskIdsChange={onSelectedTaskIdsChange}

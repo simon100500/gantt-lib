@@ -138,13 +138,13 @@
 }
 
 .gantt-pf-cell-fact.gantt-pf-cell-hasValue {
-  background: var(--gantt-plan-fact-fact-fill, rgba(34, 197, 94, 0.14));
+  background: var(--gantt-plan-fact-fact-fill, rgb(33 196 33 / 25%));
   color: #15803d;
 }
 
 .gantt-pf-cell-fact.gantt-pf-cell-factWarning,
 .gantt-pf-cell-factWarning {
-  background: rgba(244, 114, 182, 0.16);
+  background: rgb(244 113 143 / 30%);
   color: #dc2626;
 }
 

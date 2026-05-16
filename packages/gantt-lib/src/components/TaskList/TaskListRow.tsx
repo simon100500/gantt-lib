@@ -795,6 +795,8 @@ export interface TaskListRowProps {
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate for date picker */
   isWeekend?: (date: Date) => boolean;
+  /** Fill parent rows with background in task list */
+  fillParentRow?: boolean;
   /** Считать duration в рабочих днях */
   businessDays?: boolean;
   /** Default duration for newly created tasks, interpreted in the active day mode. */
@@ -906,6 +908,7 @@ const areTaskListRowPropsEqual = (prevProps: TaskListRowProps, nextProps: TaskLi
     prevProps.ancestorLineModes === nextProps.ancestorLineModes &&
     prevProps.customDays === nextProps.customDays &&
     prevProps.isWeekend === nextProps.isWeekend &&
+    prevProps.fillParentRow === nextProps.fillParentRow &&
     prevProps.businessDays === nextProps.businessDays &&
     prevProps.defaultTaskDurationDays === nextProps.defaultTaskDurationDays &&
     prevProps.isFilterMatch === nextProps.isFilterMatch &&
@@ -970,6 +973,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     ancestorLineModes = [],
     customDays,
     isWeekend,
+    fillParentRow = false,
     businessDays,
     defaultTaskDurationDays = DEFAULT_TASK_DURATION_DAYS,
     isFilterMatch = false,
@@ -2812,6 +2816,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isDragOver && isDirectChildDropTarget ? "gantt-tl-row-drag-over-direct-child" : "",
           isChild ? "gantt-tl-row-child" : "",
           isParent ? "gantt-tl-row-parent" : "",
+          isParent && fillParentRow ? "gantt-tl-row-parent-filled" : "",
           `gantt-tl-row-level-${rowFillLevel}`,
           isTotalRow ? "gantt-tl-row-total" : "",
           rowClassName ?? "",
