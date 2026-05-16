@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.116.0] - 2026-05-16
+
+### Features
+
+- Enhance plan-fact mode with parent row filling option
+
 ## [0.115.2] - 2026-05-16
 
 ### Features
