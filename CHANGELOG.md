@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.117.0] - 2026-05-17
+
+### Features
+
+- Enhance ResourceTimelineChart with customizable tooltips
+
+### Fixes
+
+- Adjust tooltip positioning and enhance TaskList styling
+
 ## [0.116.0] - 2026-05-16
 
 ### Features
