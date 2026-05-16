@@ -402,6 +402,7 @@ export default function ResourcePlannerExample() {
           rowHeaderWidth={420}
           businessDays={businessDays}
           resourceGrouping="type"
+          resourceItemTooltipLines={2}
           disableResourceReassignment
           activeResourceItemId={activeItemId}
           onResourceItemMove={handleMove}

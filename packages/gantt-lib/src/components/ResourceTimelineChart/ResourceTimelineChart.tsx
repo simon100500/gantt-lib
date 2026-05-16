@@ -718,6 +718,7 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
   disableResourceReassignment,
   renderItem,
   getItemClassName,
+  resourceItemTooltipLines = 1,
   onResourceItemClick,
   onResourceItemMenuClick,
   activeResourceItemId,
@@ -1539,7 +1540,9 @@ export function ResourceTimelineChart<TItem extends ResourceTimelineItem = Resou
                     isDragging: isDraggingItem,
                   };
                   const tooltipFirstLine = layoutItem.item.tooltip?.firstLine ?? layoutItem.item.title;
-                  const tooltipSecondLine = layoutItem.item.tooltip?.secondLine;
+                  const tooltipSecondLine = resourceItemTooltipLines === 2
+                    ? (layoutItem.item.tooltip?.secondLine ?? layoutItem.item.subtitle)
+                    : undefined;
                   const tooltipSecondLineIcon = layoutItem.item.tooltip?.secondLineIcon;
 
                   return (

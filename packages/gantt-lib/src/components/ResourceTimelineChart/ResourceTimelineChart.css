@@ -799,7 +799,7 @@
 
 .gantt-resourceTimeline-itemTooltip {
   position: absolute;
-  left: 50%;
+  left: 6px;
   top: -8px;
   z-index: 20;
   display: flex;
@@ -816,7 +816,7 @@
   opacity: 0;
   pointer-events: none;
   text-align: left;
-  transform: translate(-50%, calc(-100% + 2px));
+  transform: translate(0, calc(-100% + 2px));
   transition: opacity 80ms ease-out, transform 80ms ease-out;
   visibility: hidden;
   white-space: normal;
@@ -827,7 +827,7 @@
 .gantt-resourceTimeline-item:hover .gantt-resourceTimeline-itemTooltip,
 .gantt-resourceTimeline-item:focus-visible .gantt-resourceTimeline-itemTooltip {
   opacity: 1;
-  transform: translate(-50%, -100%);
+  transform: translate(0, -100%);
   visibility: visible;
 }
 

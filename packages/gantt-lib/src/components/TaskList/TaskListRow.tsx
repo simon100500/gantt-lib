@@ -2516,6 +2516,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           </div>
         )}
         <span
+          className="gantt-tl-duration-display"
           style={
             editingDuration
               ? { visibility: "hidden", pointerEvents: "none" }

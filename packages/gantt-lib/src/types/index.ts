@@ -99,6 +99,8 @@ export interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = 
   disableResourceReassignment?: boolean;
   renderItem?: (item: TItem, context: ResourceTimelineRenderContext) => ReactNode;
   getItemClassName?: (item: TItem) => string | undefined;
+  /** Number of lines shown in the assignment hover popup. */
+  resourceItemTooltipLines?: 1 | 2;
   onResourceItemClick?: (item: TItem) => void;
   onResourceItemMenuClick?: (item: TItem) => void;
   activeResourceItemId?: string | null;

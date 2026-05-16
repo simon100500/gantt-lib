@@ -473,6 +473,37 @@
   font-variant-numeric: tabular-nums;
 }
 
+.gantt-tl-duration-display,
+.gantt-tl-cell-date .gantt-datepicker-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.gantt-tl-duration-display {
+  min-width: 28px;
+}
+
+.gantt-tl-cell-date .gantt-datepicker-trigger {
+  width: auto;
+  height: auto;
+  min-width: 28px;
+  min-height: 22px;
+  max-width: calc(100% - 8px);
+  align-self: center;
+}
+
+.gantt-tl-cell-duration:hover .gantt-tl-duration-display,
+.gantt-tl-cell-duration:focus-within .gantt-tl-duration-display,
+.gantt-tl-cell-date:hover .gantt-datepicker-trigger,
+.gantt-tl-cell-date:focus-within .gantt-datepicker-trigger {
+  background: rgba(107, 114, 128, 0.12);
+}
+
 /* Progress cell */
 .gantt-tl-cell-progress {
   width: 56px;
@@ -493,14 +524,12 @@
   min-height: 22px;
   padding: 2px 6px;
   border-radius: 6px;
-  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
 .gantt-tl-cell-progress:hover .gantt-tl-progress-display,
 .gantt-tl-cell-progress:focus-within .gantt-tl-progress-display {
-  background: rgba(59, 130, 246, 0.08);
-  color: #2563eb;
-  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.18);
+  background: rgba(107, 114, 128, 0.12);
 }
 
 .gantt-tl-number-editor {
