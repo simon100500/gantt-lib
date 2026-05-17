@@ -65,6 +65,22 @@ describe('hierarchy utilities', () => {
 
       expect(flattenHierarchy(orphanTasks).map((task) => task.id)).toEqual(['1', '3', '2']);
     });
+
+    it('orders siblings by sortOrder when provided', () => {
+      const tasksWithSortOrder: Task[] = [
+        { id: 'parent', name: 'Parent', startDate: '2026-01-01', endDate: '2026-01-10', sortOrder: 0 },
+        { id: 'child-new', name: 'New child', startDate: '2026-01-06', endDate: '2026-01-07', parentId: 'parent', sortOrder: 3 },
+        { id: 'child-1', name: 'Child 1', startDate: '2026-01-02', endDate: '2026-01-03', parentId: 'parent', sortOrder: 1 },
+        { id: 'child-2', name: 'Child 2', startDate: '2026-01-04', endDate: '2026-01-05', parentId: 'parent', sortOrder: 2 },
+      ];
+
+      expect(flattenHierarchy(tasksWithSortOrder).map((task) => task.id)).toEqual([
+        'parent',
+        'child-1',
+        'child-2',
+        'child-new',
+      ]);
+    });
   });
 
   describe('normalizeHierarchyTasks', () => {

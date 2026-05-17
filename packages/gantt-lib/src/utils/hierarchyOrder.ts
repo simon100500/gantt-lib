@@ -10,6 +10,7 @@ import { normalizeTaskDates } from './dateUtils';
 export function flattenHierarchy<T extends Task>(tasks: T[]): T[] {
   const byId = new Map(tasks.map((task) => [task.id, task]));
   const byParent = new Map<string | undefined, T[]>();
+  const originalIndexById = new Map(tasks.map((task, index) => [task.id, index]));
 
   for (const task of tasks) {
     const normalizedParentId = task.parentId && byId.has(task.parentId)
@@ -18,6 +19,23 @@ export function flattenHierarchy<T extends Task>(tasks: T[]): T[] {
     const siblings = byParent.get(normalizedParentId) ?? [];
     siblings.push(task);
     byParent.set(normalizedParentId, siblings);
+  }
+
+  for (const siblings of byParent.values()) {
+    siblings.sort((left, right) => {
+      const leftSortOrder = left.sortOrder;
+      const rightSortOrder = right.sortOrder;
+
+      if (leftSortOrder !== undefined || rightSortOrder !== undefined) {
+        const normalizedLeftSortOrder = leftSortOrder ?? Number.MAX_SAFE_INTEGER;
+        const normalizedRightSortOrder = rightSortOrder ?? Number.MAX_SAFE_INTEGER;
+        if (normalizedLeftSortOrder !== normalizedRightSortOrder) {
+          return normalizedLeftSortOrder - normalizedRightSortOrder;
+        }
+      }
+
+      return (originalIndexById.get(left.id) ?? 0) - (originalIndexById.get(right.id) ?? 0);
+    });
   }
 
   const result: T[] = [];
