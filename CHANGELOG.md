@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.117.1] - 2026-05-17
+
+### Features
+
+- Add sibling ordering by sortOrder in flattenHierarchy
+
 ## [0.117.0] - 2026-05-17
 
 ### Features
