@@ -598,6 +598,7 @@
 .gantt-tl-name-trigger {
   display: flex;
   align-items: center;
+  gap: 6px;
   position: absolute;
   inset: 0;
   padding: 0 4px;
@@ -615,7 +616,23 @@
   box-sizing: border-box;
 }
 
+.gantt-tl-name-trigger-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: inherit;
+  pointer-events: none;
+}
+
+.gantt-tl-name-trigger-icon > * {
+  width: 14px;
+  height: 14px;
+}
+
 .gantt-tl-name-trigger-text {
+  flex: 1 1 auto;
+  min-width: 0;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: var(--gantt-row-content-lines, 1);

@@ -57,6 +57,8 @@ interface GanttModeProps<TTask extends Task = Task> {
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
   hideTaskListRowActions?: boolean;
+  fillParentRowsInTaskList?: boolean | ((task: TTask) => boolean);
+  getTaskListNamePrefixIcon?: (task: TTask) => React.ReactNode;
   rowContentLines?: number;
 }
 
@@ -105,6 +107,8 @@ interface TableMatrixModeProps<TTask extends Task = Task> {
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
   hideTaskListRowActions?: boolean;
+  fillParentRowsInTaskList?: boolean | ((task: TTask) => boolean);
+  getTaskListNamePrefixIcon?: (task: TTask) => React.ReactNode;
   rowContentLines?: number;
   matrixColumns: Array<TableMatrixColumn<TTask>>;
   matrixColumnGroups?: Array<TableMatrixColumnGroup>;
@@ -219,7 +223,44 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `onTaskListColumnWidthsChange` | `(widths: TaskListColumnWidthMap) => void` | `undefined` | Called when the user drags a TaskList header resize handle. Use with `taskListColumnWidths` to persist widths outside the component. |
 | `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Additional commands for the TaskList three-dots menu. Each command receives the current row in `onSelect(row)`, can render an `icon`, may render a visual `divider: 'top' | 'bottom'`, and may be restricted by `scope`: `'group'`, `'linear'`, `'milestone'`, or `'all'`. When `scope` is omitted, the command is shown for all task types. |
 | `hideTaskListRowActions` | `boolean` | `false` | Hides row-level TaskList actions such as insert/delete/hierarchy buttons. Useful in spreadsheet-like or read-only table presentations. |
+| `fillParentRowsInTaskList` | `boolean \| ((task: TTask) => boolean)` | `plan-fact: true`, otherwise `false` | Controls parent-row background fill in the left `TaskList`. Pass `true` to fill every parent row, `false` to disable it, or a predicate to fill only selected parent rows such as top-level sections. The predicate is ignored for non-parent rows. |
+| `getTaskListNamePrefixIcon` | `(task: TTask) => React.ReactNode` | `undefined` | Returns an optional icon rendered before the task name in the left `TaskList` row. The callback is evaluated per row, so you can target only root tasks, only milestones, only parents, or any custom condition. Return `undefined` / `null` to render no icon for that row. |
 | `rowContentLines` | `number` | `1` | Declares how many text lines each row should comfortably fit in table-like layouts. The effective row height is auto-expanded to at least `10 + rowContentLines * 18` pixels, keeping the left `TaskList` and the right chart/matrix row heights synchronized. |
+
+### Task name prefix icon
+
+Use `getTaskListNamePrefixIcon` when you need a per-row icon before the task name inside the left `TaskList`.
+
+```tsx
+import { GanttChart } from 'gantt-lib';
+import { Home, Flag } from 'lucide-react';
+
+<GanttChart
+  tasks={tasks}
+  showTaskList={true}
+  getTaskListNamePrefixIcon={(task) => {
+    if (!task.parentId) return <Home className="h-4 w-4" />;
+    if (task.type === 'milestone') return <Flag className="h-4 w-4" />;
+    return undefined;
+  }}
+/>;
+```
+
+The icon is rendered only in the task-list name cell. It does not change the bar content in the timeline.
+
+### Selective parent-row fill
+
+Use `fillParentRowsInTaskList` with a predicate when only specific parent levels should receive the background fill.
+
+```tsx
+<GanttChart
+  tasks={tasks}
+  showTaskList={true}
+  fillParentRowsInTaskList={(task) => !task.parentId}
+/>;
+```
+
+This example fills only top-level parent rows. Child parent rows stay unfilled.
 
 ## Table Matrix Props
 

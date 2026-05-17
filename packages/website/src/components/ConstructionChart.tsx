@@ -79,6 +79,24 @@ const MilestoneCommandIcon = () => (
   </svg>
 );
 
+const HomeNameIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M3 10.5 12 3l9 7.5" />
+    <path d="M5 9.5V21h14V9.5" />
+    <path d="M9 21v-6h6v6" />
+  </svg>
+);
+
 export default function ConstructionChart() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
@@ -370,6 +388,7 @@ export default function ConstructionChart() {
           tasks={tasks}
           timelineMarkers={timelineMarkers}
           taskFilter={taskFilter}
+          getTaskListNamePrefixIcon={(task) => (!task.parentId ? <HomeNameIcon /> : undefined)}
           dayWidth={viewMode === 'month' ? 2.5 : viewMode === 'week' ? 8 : 24}
           rowHeight={36}
           onTasksChange={handleChange}

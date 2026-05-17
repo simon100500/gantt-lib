@@ -509,6 +509,19 @@ describe('plan-fact mode', () => {
         startDate: '2026-04-01',
         endDate: '2026-04-02',
       },
+      {
+        id: 'parent-2',
+        name: 'Раздел 2',
+        startDate: '2026-04-02',
+        endDate: '2026-04-04',
+      },
+      {
+        id: 'child-2',
+        name: 'Работа 2',
+        parentId: 'parent-2',
+        startDate: '2026-04-02',
+        endDate: '2026-04-03',
+      },
     ];
 
     const { container, rerender } = render(
@@ -546,6 +559,20 @@ describe('plan-fact mode', () => {
 
     const forcedGanttParentRow = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="parent"]') as HTMLElement | null;
     expect(forcedGanttParentRow?.classList.contains('gantt-tl-row-parent-filled')).toBe(true);
+
+    rerender(
+      <GanttChart<PlanFactTask>
+        tasks={tasks}
+        showTaskList={true}
+        dayWidth={32}
+        fillParentRowsInTaskList={(task) => task.id === 'parent'}
+      />
+    );
+
+    const predicateFilledParentRow = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="parent"]') as HTMLElement | null;
+    expect(predicateFilledParentRow?.classList.contains('gantt-tl-row-parent-filled')).toBe(true);
+    const predicateSkippedParentRow = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="parent-2"]') as HTMLElement | null;
+    expect(predicateSkippedParentRow?.classList.contains('gantt-tl-row-parent-filled')).toBe(false);
   });
 
   it('renders fact below plan with warning styling and keeps fact at or above plan green', () => {

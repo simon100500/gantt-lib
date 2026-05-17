@@ -821,6 +821,8 @@ export interface TaskListRowProps {
   hideTaskListRowActions?: boolean;
   /** Extra CSS class name for the rendered task-list row. */
   rowClassName?: string;
+  /** Optional icon rendered before the task name inside this row. */
+  getTaskListNamePrefixIcon?: (task: Task) => React.ReactNode;
   /** How task-list date pickers apply start/end edits */
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
@@ -919,6 +921,7 @@ const areTaskListRowPropsEqual = (prevProps: TaskListRowProps, nextProps: TaskLi
     prevProps.taskListMenuCommands === nextProps.taskListMenuCommands &&
     prevProps.hideTaskListRowActions === nextProps.hideTaskListRowActions &&
     prevProps.rowClassName === nextProps.rowClassName &&
+    prevProps.getTaskListNamePrefixIcon === nextProps.getTaskListNamePrefixIcon &&
     prevProps.taskDateChangeMode === nextProps.taskDateChangeMode
   );
 };
@@ -986,6 +989,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     taskListMenuCommands = [],
     hideTaskListRowActions = false,
     rowClassName,
+    getTaskListNamePrefixIcon,
     taskDateChangeMode = 'preserve-duration',
     onTaskDateChangeModeChange,
   }) => {
@@ -994,6 +998,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const editingName = editingColumnId === 'name';
     const editingDuration = editingColumnId === 'duration';
     const editingProgress = editingColumnId === 'progress';
+    const taskListNamePrefixIcon = getTaskListNamePrefixIcon?.(task) ?? null;
     const columnWidthStyleMap = useMemo(() => {
       return new Map(
         (resolvedColumns ?? []).map((column) => {
@@ -2216,6 +2221,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               paddingRight: task.color ? "20px" : undefined,
             }}
           >
+            {taskListNamePrefixIcon ? (
+              <span className="gantt-tl-name-trigger-icon" aria-hidden="true">
+                {taskListNamePrefixIcon}
+              </span>
+            ) : null}
             <span className="gantt-tl-name-trigger-text">{task.name}</span>
           </button>
         )}

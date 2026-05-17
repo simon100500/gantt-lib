@@ -246,7 +246,7 @@ export interface TaskListProps {
   /** Task IDs highlighted by the active filter */
   highlightedTaskIds?: Set<string>;
   /** Fill parent rows with background in task list */
-  fillParentRows?: boolean;
+  fillParentRows?: boolean | ((task: Task) => boolean);
   /** Enable a leading checkbox column for multi-selecting task rows (default: false) */
   enableTaskMultiSelect?: boolean;
   /** Controlled selected task IDs for multi-select mode */
@@ -273,6 +273,8 @@ export interface TaskListProps {
   hideTaskListRowActions?: boolean;
   /** Returns an extra CSS class name for a TaskList row. */
   getTaskListRowClassName?: (task: Task) => string | undefined;
+  /** Optional icon rendered before the task name inside TaskList rows. */
+  getTaskListNamePrefixIcon?: (task: Task) => React.ReactNode;
   /** Global number of visible content lines used to size every row consistently. */
   rowContentLines?: number;
   /** Optional minimum height for the data body area below the sticky header. */
@@ -402,6 +404,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   taskListMenuCommands,
   hideTaskListRowActions = false,
   getTaskListRowClassName,
+  getTaskListNamePrefixIcon,
   rowContentLines = 1,
   bodyMinHeight,
   taskDateChangeMode = 'preserve-duration',
@@ -1568,7 +1571,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   ancestorLineModes={ancestorLineModesMap.get(task.id) ?? []}
                   customDays={customDays}
                   isWeekend={isWeekend}
-                  fillParentRow={fillParentRows}
+                  fillParentRow={typeof fillParentRows === 'function' ? fillParentRows(task) : fillParentRows}
                   businessDays={businessDays}
                   defaultTaskDurationDays={defaultTaskDurationDays}
                   isFilterMatch={filterMode === 'highlight' ? highlightedTaskIds.has(task.id) : false}
@@ -1581,6 +1584,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   taskListMenuCommands={taskListMenuCommands}
                   hideTaskListRowActions={hideTaskListRowActions}
                   rowClassName={getTaskListRowClassName?.(task)}
+                  getTaskListNamePrefixIcon={getTaskListNamePrefixIcon}
                   taskDateChangeMode={taskDateChangeMode}
                   onTaskDateChangeModeChange={onTaskDateChangeModeChange}
                 />

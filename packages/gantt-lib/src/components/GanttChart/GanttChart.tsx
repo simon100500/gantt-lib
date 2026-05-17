@@ -351,8 +351,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   onToggleCollapse?: (parentId: string) => void;
   /** Task IDs to highlight in the task list (for search results) */
   highlightedTaskIds?: Set<string>;
-  /** Fill parent rows with background in the task list. Defaults to enabled in plan-fact mode only. */
-  fillParentRowsInTaskList?: boolean;
+  /** Fill parent rows with background in the task list. Accepts a boolean for all parent rows or a predicate for selective fill. Defaults to enabled in plan-fact mode only. */
+  fillParentRowsInTaskList?: boolean | ((task: TTask) => boolean);
   /** Enable a leading checkbox column for multi-selecting task rows (default: false) */
   enableTaskMultiSelect?: boolean;
   /** Controlled selected task IDs for multi-select mode */
@@ -379,6 +379,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   hideTaskListRowActions?: boolean;
   /** Returns an extra CSS class name for a TaskList row. */
   getTaskListRowClassName?: (task: TTask) => string | undefined;
+  /** Optional icon rendered before the task name inside TaskList rows. */
+  getTaskListNamePrefixIcon?: (task: TTask) => React.ReactNode;
   /** Global number of text lines the row height should accommodate in table-like presentations. */
   rowContentLines?: number;
   /** How task-list date pickers apply start/end edits (default: preserve-duration) */
@@ -574,6 +576,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     taskListMenuCommands,
     hideTaskListRowActions = false,
     getTaskListRowClassName,
+    getTaskListNamePrefixIcon,
     rowContentLines = 1,
     taskDateChangeMode: externalTaskDateChangeMode,
     onTaskDateChangeModeChange: externalOnTaskDateChangeModeChange,
@@ -1739,7 +1742,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             onDemoteTask={onDemoteTask ?? handleDemoteTask}
             onUngroupTask={onUngroupTask ?? handleUngroupTask}
             highlightedTaskIds={taskListHighlightedTaskIds}
-            fillParentRows={shouldFillParentRowsInTaskList}
+            fillParentRows={shouldFillParentRowsInTaskList as boolean | ((task: Task) => boolean)}
             enableTaskMultiSelect={enableTaskMultiSelect}
             selectedTaskIds={selectedTaskIds}
             onSelectedTaskIdsChange={onSelectedTaskIdsChange}
@@ -1756,6 +1759,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
             hideTaskListRowActions={hideTaskListRowActions}
             getTaskListRowClassName={getTaskListRowClassName as ((task: Task) => string | undefined) | undefined}
+            getTaskListNamePrefixIcon={getTaskListNamePrefixIcon as ((task: Task) => React.ReactNode) | undefined}
             rowContentLines={resolvedRowContentLines}
             bodyMinHeight={tableBodyMinHeight}
             taskDateChangeMode={taskDateChangeMode}
