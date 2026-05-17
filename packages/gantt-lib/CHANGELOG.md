@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.118.0] - 2026-05-17
+
+### Features
+
+- Enhance GanttChart and TaskList with new props for customizable row icons and selective parent row filling
+
 ## [0.110.1] - 2026-05-08
 
 ### Fixes
