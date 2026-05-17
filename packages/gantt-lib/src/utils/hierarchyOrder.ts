@@ -2,12 +2,16 @@ import type { Task } from '../types';
 import { computeParentDates, computeParentProgress, isTaskParent } from '../core/scheduling';
 import { normalizeTaskDates } from './dateUtils';
 
+type HierarchyTask = Task & {
+  sortOrder?: number;
+};
+
 /**
  * Build a stable depth-first task order from parentId links.
  * Sibling order follows the order in the input array.
  * Tasks with missing parents are treated as root tasks.
  */
-export function flattenHierarchy<T extends Task>(tasks: T[]): T[] {
+export function flattenHierarchy<T extends HierarchyTask>(tasks: T[]): T[] {
   const byId = new Map(tasks.map((task) => [task.id, task]));
   const byParent = new Map<string | undefined, T[]>();
   const originalIndexById = new Map(tasks.map((task, index) => [task.id, index]));
@@ -68,7 +72,7 @@ export function flattenHierarchy<T extends Task>(tasks: T[]): T[] {
  * taking precedence over any hardcoded parent values from the input.
  * Also normalizes task dates to ensure startDate is always before or equal to endDate.
  */
-export function normalizeHierarchyTasks<T extends Task>(tasks: T[]): T[] {
+export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[]): T[] {
   const orderedTasks = flattenHierarchy(tasks).map((task) => {
     // Normalize dates for all tasks (swap if endDate < startDate)
     const { startDate, endDate } = normalizeTaskDates(task.startDate, task.endDate);
