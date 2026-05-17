@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.117.2] - 2026-05-17
+
+### Refactor
+
+- Update flattenHierarchy and normalizeHierarchyTasks to use HierarchyTask type
+
 ## [0.117.1] - 2026-05-17
 
 ### Features
