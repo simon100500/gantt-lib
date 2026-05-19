@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.118.1] - 2026-05-20
+
+### Fixes
+
+- Implement before-first drop zone in TaskList and enhance task reordering logic
+
 ## [0.118.0] - 2026-05-17
 
 ### Features
