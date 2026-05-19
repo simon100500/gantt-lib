@@ -6,6 +6,28 @@ type TaskLike = { id: string; parentId?: string };
 const T = (id: string, parentId?: string): TaskLike => ({ id, ...(parentId ? { parentId } : {}) });
 
 describe('getVisibleReorderPlan', () => {
+  it('plans a before-first drop as insertion before the current first row', () => {
+    const orderedTasks = [
+      T('g1'),
+      T('g1-1', 'g1'),
+      T('g2'),
+      T('g2-1', 'g2'),
+    ];
+
+    const plan = getVisibleReorderPlan(
+      orderedTasks,
+      orderedTasks,
+      'g2',
+      { index: 0, placement: 'before' },
+    );
+
+    expect(plan).toEqual({
+      originOrderedIndex: 2,
+      insertIndex: 0,
+      inferredParentId: undefined,
+    });
+  });
+
   it('makes the target task the direct parent when dropped inside its row', () => {
     const orderedTasks = [
       T('g1'),

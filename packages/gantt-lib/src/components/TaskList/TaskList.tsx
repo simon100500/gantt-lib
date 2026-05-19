@@ -821,12 +821,14 @@ export const TaskList: React.FC<TaskListProps> = ({
     inferredParentId?: string;
     isDirectChildDrop?: boolean;
   } | null>(null);
+  const [isBeforeFirstDropZoneActive, setIsBeforeFirstDropZoneActive] = useState(false);
   const dragOriginIndexRef = useRef<number | null>(null);
   const dragTaskIdRef = useRef<string | null>(null);
 
   const clearDragState = useCallback(() => {
     setDraggingIndex(null);
     setDragOverTarget(null);
+    setIsBeforeFirstDropZoneActive(false);
     dragOriginIndexRef.current = null;
     dragTaskIdRef.current = null;
   }, []);
@@ -913,13 +915,17 @@ export const TaskList: React.FC<TaskListProps> = ({
     return target;
   }, [orderedTasks, visibleTasks]);
 
-  const handleDragOver = useCallback((index: number, e: React.DragEvent) => {
+  const handleDragOver = useCallback((
+    index: number,
+    e: React.DragEvent,
+    forcedPlacement?: ReorderDropPlacement,
+  ) => {
     e.preventDefault();
 
     const draggedTaskId = dragTaskIdRef.current;
     if (!draggedTaskId) return;
 
-    const rawPlacement = getDropPlacementFromEvent(e);
+    const rawPlacement = forcedPlacement ?? getDropPlacementFromEvent(e);
     const isSelfTopBefore = visibleTasks[index]?.id === draggedTaskId && rawPlacement === 'before';
     if (isSelfTopBefore) {
       setDragOverTarget(null);
@@ -928,7 +934,9 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     const isFirstChildTopAfterParent =
-      rawPlacement === 'before' && visibleTasks[index]?.parentId === visibleTasks[index - 1]?.id;
+      index > 0
+      && rawPlacement === 'before'
+      && visibleTasks[index]?.parentId === visibleTasks[index - 1]?.id;
     if (isFirstChildTopAfterParent) {
       setDragOverTarget(null);
       e.dataTransfer.dropEffect = 'none';
@@ -977,7 +985,11 @@ export const TaskList: React.FC<TaskListProps> = ({
     });
   }, [isValidParentDrop, normalizeDropTarget, orderedTasks, visibleTasks]);
 
-  const handleDrop = useCallback((dropIndex: number, e: React.DragEvent) => {
+  const handleDrop = useCallback((
+    dropIndex: number,
+    e: React.DragEvent,
+    forcedPlacement?: ReorderDropPlacement,
+  ) => {
     e.preventDefault();
     const originVisibleIndex = dragOriginIndexRef.current;
     const movedTaskId = dragTaskIdRef.current;
@@ -989,7 +1001,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
     const rawPlacement: ReorderDropPlacement = dropIndex >= visibleTasks.length
       ? 'end'
-      : getDropPlacementFromEvent(e);
+      : forcedPlacement ?? getDropPlacementFromEvent(e);
     const isSelfTopBefore = dropIndex < visibleTasks.length
       && visibleTasks[dropIndex]?.id === movedTaskId
       && rawPlacement === 'before';
@@ -1000,6 +1012,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
 
     const isFirstChildTopAfterParent = dropIndex < visibleTasks.length
+      && dropIndex > 0
       && rawPlacement === 'before'
       && visibleTasks[dropIndex]?.parentId === visibleTasks[dropIndex - 1]?.id;
 
@@ -1070,9 +1083,31 @@ export const TaskList: React.FC<TaskListProps> = ({
     clearDragState();
   }, [orderedTasks, visibleTasks, onReorder, onTaskSelect, isValidParentDrop, clearDragState, normalizeDropTarget]);
 
+  const handleBeforeFirstDragOver = useCallback((e: React.DragEvent) => {
+    const draggedTaskId = dragTaskIdRef.current;
+    const firstTask = visibleTasks[0];
+    const descendantIds = draggedTaskId
+      ? new Set(getAllDescendants(draggedTaskId, orderedTasks).map(task => task.id))
+      : new Set<string>();
+    const isValidBeforeFirstDrop = !!draggedTaskId
+      && !!firstTask
+      && firstTask.id !== draggedTaskId
+      && !descendantIds.has(firstTask.id)
+      && isValidParentDrop(draggedTaskId, 0);
+
+    setIsBeforeFirstDropZoneActive(isValidBeforeFirstDrop);
+    handleDragOver(0, e, 'before');
+  }, [handleDragOver, isValidParentDrop, orderedTasks, visibleTasks]);
+
   const handleDragEnd = useCallback(() => {
     clearDragState();
   }, [clearDragState]);
+
+  const shouldShowBeforeFirstDropZone =
+    !reorderDisabled
+    && visibleTasks.length > 0
+    && draggingIndex !== null
+    && draggingIndex > 0;
 
   const handleConfirmNewTask = useCallback((name: string) => {
     const range = buildDefaultTaskDateRange(getTodayISODate(), {
@@ -1503,6 +1538,20 @@ export const TaskList: React.FC<TaskListProps> = ({
             position: 'relative',
           }}
         >
+          {shouldShowBeforeFirstDropZone && (
+            <div
+              className={[
+                "gantt-tl-before-first-drop-zone",
+                isBeforeFirstDropZoneActive
+                  ? "gantt-tl-before-first-drop-zone-active"
+                  : "",
+              ].filter(Boolean).join(" ")}
+              onDragEnter={handleBeforeFirstDragOver}
+              onDragOver={handleBeforeFirstDragOver}
+              onDragLeave={() => setIsBeforeFirstDropZoneActive(false)}
+              onDrop={(e) => handleDrop(0, e, 'before')}
+            />
+          )}
           {renderedVisibleTasks.map(({ task, index }) => {
             const previousVisibleTask = index > 0 ? visibleTasks[index - 1] : undefined;
             const canDemoteTask = index === 0

@@ -207,6 +207,48 @@ describe('Parent drop order bug', () => {
     ]);
   });
 
+  it('preserves reordered root parent order when sortOrder is refreshed before normalization', () => {
+    const tasks: Task[] = [
+      createTask('родитель1', 'Parent 1', '2026-01-01', '2026-01-10'),
+      createTask('ребёнок1.1', 'Child 1.1', '2026-01-02', '2026-01-03', 'родитель1'),
+      createTask('родитель2', 'Parent 2', '2026-01-06', '2026-01-15'),
+      createTask('ребёнок2.1', 'Child 2.1', '2026-01-07', '2026-01-08', 'родитель2'),
+    ].map((task, index) => ({ ...task, sortOrder: index }));
+
+    const orderedTasks = normalizeHierarchyTasks(tasks);
+    const reorderPosition = getVisibleReorderPosition(
+      orderedTasks,
+      orderedTasks,
+      'родитель2',
+      2,
+      0,
+    );
+
+    expect(reorderPosition).not.toBeNull();
+    const { originOrderedIndex, insertIndex } = reorderPosition!;
+    const reordered = [...orderedTasks];
+    const subtree = reordered.splice(originOrderedIndex, 2);
+    reordered.splice(insertIndex, 0, ...subtree);
+
+    const normalizedWithStaleSortOrder = normalizeHierarchyTasks(reordered);
+    expect(normalizedWithStaleSortOrder.map(t => t.id)).toEqual([
+      'родитель1',
+      'ребёнок1.1',
+      'родитель2',
+      'ребёнок2.1',
+    ]);
+
+    const normalizedWithUpdatedSortOrder = normalizeHierarchyTasks(
+      reordered.map((task, index) => ({ ...task, sortOrder: index })),
+    );
+    expect(normalizedWithUpdatedSortOrder.map(t => t.id)).toEqual([
+      'родитель2',
+      'ребёнок2.1',
+      'родитель1',
+      'ребёнок1.1',
+    ]);
+  });
+
   it('flattenHierarchy should place parents before children regardless of input order', () => {
     // Even if children appear before parent in input, flattenHierarchy should fix it
     const tasks: Task[] = [

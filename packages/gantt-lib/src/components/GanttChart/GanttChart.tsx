@@ -1128,13 +1128,17 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       });
     }
 
-    const normalized = normalizeHierarchyTasks(updated);
+    const orderedForCallback = updated.map((task, index) => ({
+      ...task,
+      sortOrder: index,
+    }));
+    const normalized = normalizeHierarchyTasks(orderedForCallback);
     if (onReorder) {
-      onReorder(normalized as TTask[], movedTaskId, inferredParentId);
+      onReorder(normalized as unknown as TTask[], movedTaskId, inferredParentId);
       return;
     }
 
-    onTasksChange?.(normalized as TTask[]);
+    onTasksChange?.(normalized as unknown as TTask[]);
   }, [onTasksChange, onReorder]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
