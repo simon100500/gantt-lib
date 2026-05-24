@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.118.2] - 2026-05-24
+
+### Features
+
+- Add today line rendering in PlanFactMatrix
+
 ## [0.118.1] - 2026-05-20
 
 ### Fixes
