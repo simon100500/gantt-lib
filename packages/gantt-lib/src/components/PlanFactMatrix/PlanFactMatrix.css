@@ -40,14 +40,6 @@
   box-sizing: border-box;
   overflow: hidden;
   background-image:
-    linear-gradient(
-      to right,
-      transparent 0,
-      transparent var(--gantt-pf-today-left, -10000px),
-      var(--gantt-today-indicator-color) var(--gantt-pf-today-left, -10000px),
-      var(--gantt-today-indicator-color) calc(var(--gantt-pf-today-left, -10000px) + var(--gantt-today-indicator-width)),
-      transparent calc(var(--gantt-pf-today-left, -10000px) + var(--gantt-today-indicator-width))
-    ),
     repeating-linear-gradient(to right,
       transparent 0,
       transparent calc(var(--gantt-pf-day-width) - var(--gantt-pf-day-line-width)),
@@ -58,15 +50,6 @@
 
 .gantt-pf-row-parent {
   background-color: var(--gantt-plan-fact-parent-row-background, rgba(148, 163, 184, 0.22));
-  background-image:
-    linear-gradient(
-      to right,
-      transparent 0,
-      transparent var(--gantt-pf-today-left, -10000px),
-      var(--gantt-today-indicator-color) var(--gantt-pf-today-left, -10000px),
-      var(--gantt-today-indicator-color) calc(var(--gantt-pf-today-left, -10000px) + var(--gantt-today-indicator-width)),
-      transparent calc(var(--gantt-pf-today-left, -10000px) + var(--gantt-today-indicator-width))
-    );
   font-weight: 600;
 }
 
@@ -127,6 +110,17 @@
   outline: none;
   background: transparent;
   box-shadow: none;
+}
+
+.gantt-pf-cell-today::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--gantt-today-indicator-width);
+  background: var(--gantt-today-indicator-color);
+  content: '';
+  pointer-events: none;
 }
 
 .gantt-pf-cell-plan {

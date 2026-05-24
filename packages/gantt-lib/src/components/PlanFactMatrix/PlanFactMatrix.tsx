@@ -415,6 +415,7 @@ function PlanFactRowInner<TTask extends Task = Task>({
               className={joinClasses(
                 'gantt-pf-cell',
                 `gantt-pf-cell-${kind}`,
+                todayDateIndex === dateIndex && 'gantt-pf-cell-today',
                 !isParent && planned && kind === 'plan' && 'gantt-pf-cell-planned',
                 !isParent && value !== undefined && 'gantt-pf-cell-hasValue',
                 !isParent && (isFactBelowPlan || isPastDueMissingFact) && 'gantt-pf-cell-factWarning',

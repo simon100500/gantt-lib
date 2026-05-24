@@ -651,4 +651,38 @@ describe('plan-fact mode', () => {
     expect(emptyFactPastCell.classList.contains('gantt-pf-cell-hasValue')).toBe(false);
     expect(todayFactCell.classList.contains('gantt-pf-cell-factWarning')).toBe(false);
   });
+
+  it('renders today line only inside today cells', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Task 1',
+        startDate: '2026-04-01',
+        endDate: '2026-04-03',
+      },
+    ];
+
+    const { container } = render(
+      <PlanFactMatrix<PlanFactTask>
+        tasks={tasks}
+        dateRange={[
+          new Date(Date.UTC(2026, 3, 1)),
+          new Date(Date.UTC(2026, 3, 2)),
+          new Date(Date.UTC(2026, 3, 3)),
+        ]}
+        dayWidth={32}
+        rowHeight={40}
+        headerHeight={40}
+        todayDateIndex={1}
+      />
+    );
+
+    const todayPlanCell = getCell(container, 'task-1', '2026-04-02', 'plan');
+    const todayFactCell = getCell(container, 'task-1', '2026-04-02', 'fact');
+    const previousPlanCell = getCell(container, 'task-1', '2026-04-01', 'plan');
+
+    expect(todayPlanCell.classList.contains('gantt-pf-cell-today')).toBe(true);
+    expect(todayFactCell.classList.contains('gantt-pf-cell-today')).toBe(true);
+    expect(previousPlanCell.classList.contains('gantt-pf-cell-today')).toBe(false);
+  });
 });
