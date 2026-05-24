@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.119.0] - 2026-05-24
+
+### Refactor
+
+- Update task terminology from "задача" to "работа" across components and tests
+
 ## [0.118.0] - 2026-05-17
 
 ### Features
