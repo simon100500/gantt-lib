@@ -344,7 +344,7 @@ const SelectAllCheckbox: React.FC<SelectAllCheckboxProps> = ({
       ref={ref}
       type="checkbox"
       className="gantt-tl-selection-checkbox"
-      aria-label="Выбрать все видимые задачи"
+      aria-label="Выбрать все видимые работы"
       checked={checked}
       onChange={(event) => onChange(event.target.checked)}
       onClick={(event) => event.stopPropagation()}
@@ -1696,7 +1696,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             }}
             type="button"
           >
-            + Добавить задачу
+            + Добавить работу
           </button>
         )}
       </div>
@@ -1705,3 +1705,4 @@ export const TaskList: React.FC<TaskListProps> = ({
 };
 
 export default TaskList;
+

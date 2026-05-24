@@ -1990,7 +1990,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         <input
           type="checkbox"
           className="gantt-tl-selection-checkbox"
-          aria-label={`Выбрать задачу ${taskNumber ? `${taskNumber}. ` : ""}${task.name}`}
+          aria-label={`Выбрать работу ${taskNumber ? `${taskNumber}. ` : ""}${task.name}`}
           checked={isTaskSelected}
           onChange={(event) => onTaskSelectionChange?.(task.id, event.target.checked)}
         />
@@ -2251,14 +2251,14 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   });
                   const newTask: Task = {
                     id: crypto.randomUUID(),
-                    name: "Новая задача",
+                    name: "Новая работа",
                     startDate: range.startDate,
                     endDate: range.endDate,
                     parentId: task.parentId,
                   };
                   onInsertAfter(task.id, newTask);
                 }}
-                aria-label="Вставить задачу после этой"
+                aria-label="Вставить работу после этой"
               >
                 <PlusIcon />
               </button>
@@ -2406,7 +2406,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                       }}
                     >
                       <TrashIcon />
-                      Удалить задачу
+                      Удалить работу
                     </button>
                   )}
                 </PopoverContent>
@@ -2993,4 +2993,5 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
 TaskListRow.displayName = "TaskListRow";
 export default TaskListRow;
+
 

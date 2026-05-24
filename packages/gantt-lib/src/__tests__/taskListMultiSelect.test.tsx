@@ -38,7 +38,7 @@ describe('GanttChart task multi-select', () => {
     );
 
     expect(container.querySelector('[data-column-id="selection"]')).toBeNull();
-    expect(screen.queryByRole('checkbox', { name: /выбрать задачу task alpha/i })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: /выбрать работу task alpha/i })).toBeNull();
   });
 
   it('selects and unselects individual rows through the leading checkbox column', () => {
@@ -53,7 +53,7 @@ describe('GanttChart task multi-select', () => {
       />
     );
 
-    const alphaCheckbox = screen.getByRole('checkbox', { name: /выбрать задачу 1\. task alpha/i });
+    const alphaCheckbox = screen.getByRole('checkbox', { name: /выбрать работу 1\. task alpha/i });
     fireEvent.click(alphaCheckbox);
 
     expect((alphaCheckbox as HTMLInputElement).checked).toBe(true);
@@ -77,7 +77,7 @@ describe('GanttChart task multi-select', () => {
       />
     );
 
-    const selectAllCheckbox = screen.getByRole('checkbox', { name: /выбрать все видимые задачи/i });
+    const selectAllCheckbox = screen.getByRole('checkbox', { name: /выбрать все видимые работы/i });
     fireEvent.click(selectAllCheckbox);
 
     expect((selectAllCheckbox as HTMLInputElement).checked).toBe(true);
@@ -107,3 +107,4 @@ describe('GanttChart task multi-select', () => {
     expect((screen.getByRole('checkbox', { name: /task beta/i }) as HTMLInputElement).checked).toBe(true);
   });
 });
+

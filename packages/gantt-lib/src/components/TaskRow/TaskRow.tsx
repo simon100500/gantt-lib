@@ -284,7 +284,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     });
 
     const subscribePreviewPosition = useCallback(
-      (listener: () => void) => previewPositionStore?.subscribeTask(task.id, listener) ?? (() => {}),
+      (listener: () => void) => previewPositionStore?.subscribeTask(task.id, listener) ?? (() => { }),
       [previewPositionStore, task.id]
     );
     const getPreviewPositionSnapshot = useCallback(
@@ -336,25 +336,25 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const durationDays = businessDays
       ? getBusinessDaysCount(currentStartDate, currentEndDate, weekendPredicate)
       : Math.round(
-          (currentEndDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24)
-        ) + 1;
+        (currentEndDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1;
 
     // Format child count label for parent tasks (Russian plural)
     const getChildCountLabel = (count: number): string => {
-      if (count === 1) return '1 задача';
-      // For 2, 3, 4 tasks use "задачи" (genitive singular)
-      // For 5+ tasks use "задач" (genitive plural)
+      if (count === 1) return '1 работа';
+      // For 2, 3, 4 tasks use "работы" (genitive singular)
+      // For 5+ tasks use "работ" (genitive plural)
       const lastTwoDigits = count % 100;
       const lastDigit = count % 10;
-      if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return `${count} задач`;
-      if (lastDigit === 1) return `${count} задача`;
-      if (lastDigit >= 2 && lastDigit <= 4) return `${count} задачи`;
-      return `${count} задач`;
+      if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return `${count} работ`;
+      if (lastDigit === 1) return `${count} работа`;
+      if (lastDigit >= 2 && lastDigit <= 4) return `${count} работы`;
+      return `${count} работ`;
     };
 
     // Determine if progress text fits inside the bar
     // Parent bars have overflow: visible (for bracket ears), so threshold must be stricter:
-    // "X задач 100%" ≈ 60–70px text + 16px padding = ~110px
+    // "X работ 100%" ≈ 60–70px text + 16px padding = ~110px
     // Regular: "15 д 100%" ≈ 76px, "1 д 100%" ≈ 62px
     const estimatedTextWidth = isParent ? 120 : (durationDays >= 10 ? 76 : 62);
     const showProgressInside = !milestone && progressWidth > 0 && displayWidth > estimatedTextWidth;
@@ -496,3 +496,4 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 TaskRow.displayName = 'TaskRow';
 
 export default TaskRow;
+
