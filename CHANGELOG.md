@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.120.0] - 2026-06-01
+
+### Features
+
+- Add `synced` flag to Task interface with dashed border visual indicator for unsynced tasks
+
 ## [0.119.0] - 2026-05-24
 
 ### Refactor
