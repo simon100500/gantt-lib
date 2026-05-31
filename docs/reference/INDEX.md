@@ -21,6 +21,7 @@
 - [Resource Planner Mode](./15-resource-planner.md) — Resource rows, assignments, X-only drag, reassignment callbacks
 - [Table Matrix Mode](./16-table-matrix.md) — Spreadsheet-like matrix layout, grouped columns, clickable cells
 - [Plan-Fact Mode](./17-plan-fact.md) — Daily plan/fact input with two right-side subrows per task
+- [Locations Layer](./18-locations-layer.md) — Work templates, location hierarchy, assignments, synced flag
 
 ## Advanced
 

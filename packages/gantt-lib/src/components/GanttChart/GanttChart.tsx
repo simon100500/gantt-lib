@@ -241,6 +241,8 @@ export interface Task {
    * The line spans the full grid width.
    */
   divider?: 'top' | 'bottom';
+  /** Whether task dates match the linked work template (visual indicator only) */
+  synced?: boolean;
 }
 
 /**

@@ -109,6 +109,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.allTasks === nextProps.allTasks &&
     prevProps.disableConstraints === nextProps.disableConstraints &&
     prevProps.task.locked === nextProps.task.locked &&
+    prevProps.task.synced === nextProps.task.synced &&
     prevProps.task.divider === nextProps.task.divider &&
     prevProps.highlightExpiredTasks === nextProps.highlightExpiredTasks &&
     prevProps.showBaseline === nextProps.showBaseline &&
@@ -384,7 +385,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           )}
           <div
             data-taskbar
-            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${isParent ? 'gantt-tr-parentBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''}`}
+            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${task.synced === false ? 'gantt-tr-unsynced' : ''} ${isParent ? 'gantt-tr-parentBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''}`}
             style={{
               left: `${visualLeft}px`,
               ...barStyle,

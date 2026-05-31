@@ -14,6 +14,7 @@ interface Task {
   accepted?: boolean;
   dependencies?: TaskDependency[];
   locked?: boolean;
+  synced?: boolean;
   divider?: 'top' | 'bottom';
   parentId?: string;
 }
@@ -33,6 +34,7 @@ interface Task {
 | `accepted` | `boolean` | no | `undefined` | Only meaningful when `progress === 100`. `true` renders a green progress bar. `false` or `undefined` at 100% renders a yellow bar. Has no effect when progress is not 100. |
 | `dependencies` | `TaskDependency[]` | no | `undefined` | Array of predecessor links. Dependencies are defined on the **successor** task, pointing to the predecessor via `taskId`. See Section 5 and Section 6. |
 | `locked` | `boolean` | no | `undefined` | When `true`, the task cannot be dragged or resized. Task name and dates cannot be edited in the task list. Independent of `progress` and `accepted` — consumer controls locking separately. |
+| `synced` | `boolean` | no | `undefined` | When `false`, the task bar renders with a dashed border indicating it was modified outside the central scheduling engine and has not yet been re-synced. `undefined` or `true` renders normally. Only relevant in projects using the Locations Layer (work templates / locations / assignments). |
 | `divider` | `'top' \| 'bottom'` | no | `undefined` | Optional horizontal divider line for visual grouping. `'top'` renders a bold line above the task row. `'bottom'` renders a bold line below the task row. Spans the full grid width. |
 | `parentId` | `string` | no | `undefined` | ID of the parent task for hierarchy (parent-child relationships). Child tasks are indented in the task list. Parent tasks display with a gradient background and collapse/expand button. Dragging a task between child tasks automatically assigns it the same parent. **Unlimited nesting depth** is supported. Hierarchical numbering (1, 1.1, 1.1.1, 2...) is displayed in the task list's № column. |
 

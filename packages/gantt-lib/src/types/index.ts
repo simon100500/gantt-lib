@@ -208,6 +208,12 @@ export interface Task {
    * Independent of accepted/progress — consumer controls both separately.
    */
   locked?: boolean;
+  /**
+   * Optional flag indicating whether this task's dates are synced with its
+   * master work template (WorkTemplate). When false, the task bar is rendered
+   * with a dashed outline to indicate a local override.
+   */
+  synced?: boolean;
   /** Optional planned quantities keyed by ISO date (YYYY-MM-DD), used by plan-fact mode. */
   planByDate?: Record<string, number>;
   /** Optional actual quantities keyed by ISO date (YYYY-MM-DD), used by plan-fact mode. */

@@ -258,6 +258,17 @@
   cursor: not-allowed;
 }
 
+/* Unsynced task bar — dashed outline indicates local override from master template */
+.gantt-tr-taskBar.gantt-tr-unsynced {
+  outline: 2px dashed rgba(239, 68, 68, 0.6);
+  outline-offset: -2px;
+  opacity: 0.85;
+}
+
+.gantt-tr-taskBar.gantt-tr-unsynced:hover {
+  outline: 2px dashed rgba(239, 68, 68, 0.9);
+}
+
 /* Divider line for visual grouping of task sets */
 .gantt-tr-divider {
   position: absolute;
