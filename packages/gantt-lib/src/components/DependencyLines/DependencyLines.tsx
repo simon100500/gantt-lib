@@ -111,7 +111,7 @@ export interface DependencyLinesProps {
 export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   tasks,
   allTasks,
-  collapsedParentIds = new Set(),
+  collapsedParentIds = new Set<string>(),
   monthStart,
   dayWidth,
   rowHeight,
@@ -183,6 +183,33 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       }
     }
 
+    // Third pass: Calculate virtual positions for tasks hidden by scroll virtualization
+    // This ensures dependency lines don't abruptly disappear when their endpoint is scrolled out of view.
+    // Such lines render as dashed with reduced opacity (same .gantt-dependency-virtual style).
+    if (allTasks) {
+      for (const task of allTasks) {
+        if (positions.has(task.id)) continue;
+
+        if (collapsedParentIds.size > 0 && isTaskHidden(task.id, collapsedParentIds, taskMap)) continue;
+
+        hidden.add(task.id);
+
+        const override = dragOverrides?.get(task.id);
+        const computed = resolveTaskHorizontalGeometry(task, monthStart, dayWidth, override);
+
+        const rowIndex = rowIndexByTaskId?.get(task.id);
+        const rowTop = rowIndex !== undefined ? rowIndex * rowHeight : 0;
+
+        positions.set(task.id, {
+          left: computed.left,
+          right: computed.right,
+          centerX: computed.centerX,
+          rowTop,
+          isVirtual: false,
+        });
+      }
+    }
+
     return { taskPositions: positions, taskIndices: indices, hiddenTaskIds: hidden };
   }, [tasks, tasksForPositions, allTasks, collapsedParentIds, monthStart, dayWidth, rowHeight, dragOverrides, rowIndexByTaskId]);
 
@@ -199,6 +226,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     const tasksForEdges = allTasks ?? tasks;
     const taskMap = new Map(tasksForEdges.map(task => [task.id, task]));
     const positionedTaskIds = Array.from(taskPositions.keys());
+    const renderedTaskIdSet = new Set(tasks.map(t => t.id));
     const lines: Array<{
       id: string;
       path: string;
@@ -247,6 +275,11 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         if (areBothHiddenInSameParent(edge.predecessorId, edge.successorId, collapsedParentIds, taskMap)) {
           continue;
         }
+      }
+
+      // Skip if both tasks are hidden by scroll virtualization (neither is in the rendered viewport)
+      if (!renderedTaskIdSet.has(edge.predecessorId) && !renderedTaskIdSet.has(edge.successorId)) {
+        continue;
       }
 
       // Check if either endpoint is virtual (hidden task)
