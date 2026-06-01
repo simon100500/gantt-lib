@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.120.1] - 2026-06-02
+
+### Features
+
+- Enhance dependency line rendering with virtual task positions for scrolled-out tasks
+
 ## [0.120.0] - 2026-06-01
 
 ### Features
