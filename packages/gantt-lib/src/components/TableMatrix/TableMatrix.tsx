@@ -62,6 +62,7 @@ export interface TableMatrixProps<TTask extends Task = Task> {
   dateOverlay?: TableMatrixDateOverlay<TTask> | false;
   highlightedTaskIds?: Set<string>;
   filterMode?: 'highlight' | 'hide';
+  visibleRowIndices?: number[];
 }
 
 interface HeaderSpan {
@@ -155,6 +156,7 @@ export default function TableMatrix<TTask extends Task = Task>({
   dateOverlay,
   highlightedTaskIds,
   filterMode = 'highlight',
+  visibleRowIndices,
 }: TableMatrixProps<TTask>) {
   const measureRef = useRef<HTMLDivElement | null>(null);
   const [measuredAutoWidths, setMeasuredAutoWidths] = useState<Array<number | undefined>>([]);
@@ -313,6 +315,19 @@ export default function TableMatrix<TTask extends Task = Task>({
     return depthMap;
   }, [allTasks]);
 
+  const renderedRows = useMemo(() => {
+    if (!visibleRowIndices) {
+      return tasks.map((task, index) => ({ task, index }));
+    }
+
+    return visibleRowIndices
+      .map((index) => {
+        const task = tasks[index];
+        return task ? { task, index } : null;
+      })
+      .filter((entry): entry is { task: TTask; index: number } => entry !== null);
+  }, [tasks, visibleRowIndices]);
+
   return (
     <div className="gantt-mx-root" style={{ width: `${totalWidth}px` }}>
       {hasAutoWidthColumns && (
@@ -404,7 +419,7 @@ export default function TableMatrix<TTask extends Task = Task>({
           minHeight: bodyMinHeight,
         }}
       >
-        {tasks.map((task, index) => {
+        {renderedRows.map(({ task, index }) => {
           const isHighlighted = filterMode === 'highlight' && !!highlightedTaskIds?.has(task.id);
           const isParent = parentTaskIds.has(task.id);
           const nestingDepth = nestingDepthMap.get(task.id) ?? 0;

@@ -1,15 +1,136 @@
 import React from 'react';
+import { act } from 'react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { GanttChart, type Task } from '../index';
+import TableMatrix from '../components/TableMatrix/TableMatrix';
 
 type FinanceTask = Task & {
   weeklyPlan: Record<string, number>;
 };
 
 describe('table-matrix mode', () => {
+  it('renders only requested visible matrix rows while preserving full scroll height', () => {
+    const tasks: FinanceTask[] = Array.from({ length: 100 }, (_, index) => ({
+      id: `task-${index}`,
+      name: `Строка ${index}`,
+      startDate: '2026-04-01',
+      endDate: '2026-04-20',
+      weeklyPlan: { w1: index },
+    }));
+
+    const { container } = render(
+      <TableMatrix<FinanceTask>
+        tasks={tasks}
+        columns={[
+          { id: 'w1', header: '01-07', width: 110, renderCell: (task) => task.weeklyPlan.w1?.toString() ?? '' },
+        ]}
+        rowHeight={30}
+        headerHeight={48}
+        visibleRowIndices={[0, 9, 10]}
+      />
+    );
+
+    const body = container.querySelector('.gantt-mx-body') as HTMLDivElement | null;
+    const rows = container.querySelectorAll('.gantt-mx-row');
+
+    expect(body?.style.height).toBe('3000px');
+    expect(rows).toHaveLength(3);
+    expect(container.querySelector('.gantt-mx-row[data-gantt-task-row-id="task-9"]')).not.toBeNull();
+    expect((rows[1] as HTMLDivElement).style.top).toBe('270px');
+    expect(container.querySelector('.gantt-mx-row[data-gantt-task-row-id="task-50"]')).toBeNull();
+  });
+
+  it('keeps large finance-style matrices windowed instead of rendering every row and cell', () => {
+    const tasks: FinanceTask[] = Array.from({ length: 1600 }, (_, index) => ({
+      id: `task-${index}`,
+      name: `Строка ${index}`,
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+      weeklyPlan: Object.fromEntries(
+        Array.from({ length: 52 }, (_, weekIndex) => [`w${weekIndex}`, index + weekIndex])
+      ),
+    }));
+    const columns = Array.from({ length: 52 }, (_, index) => ({
+      id: `w${index}`,
+      header: `W${index + 1}`,
+      width: 98,
+      renderCell: (task: FinanceTask) => task.weeklyPlan[`w${index}`]?.toString() ?? '',
+    }));
+
+    const { container } = render(
+      <TableMatrix<FinanceTask>
+        tasks={tasks}
+        columns={columns}
+        rowHeight={24}
+        headerHeight={52}
+        visibleRowIndices={Array.from({ length: 28 }, (_, index) => index + 40)}
+      />
+    );
+
+    const body = container.querySelector('.gantt-mx-body') as HTMLDivElement | null;
+
+    expect(body?.style.height).toBe('38400px');
+    expect(container.querySelectorAll('.gantt-mx-row')).toHaveLength(28);
+    expect(container.querySelectorAll('.gantt-mx-cell')).toHaveLength(28 * 52);
+    expect(container.querySelector('.gantt-mx-row[data-gantt-task-row-id="task-39"]')).toBeNull();
+    expect(container.querySelector('.gantt-mx-row[data-gantt-task-row-id="task-40"]')).not.toBeNull();
+    expect(container.querySelector('.gantt-mx-row[data-gantt-task-row-id="task-1599"]')).toBeNull();
+  });
+
+  it('keeps dvh-height finance matrices windowed after layout effects run', async () => {
+    const originalInnerHeight = window.innerHeight;
+    Object.defineProperty(window, 'innerHeight', {
+      configurable: true,
+      value: 800,
+    });
+
+    const tasks: FinanceTask[] = Array.from({ length: 1000 }, (_, index) => ({
+      id: `task-${index}`,
+      name: `Строка ${index}`,
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+      weeklyPlan: Object.fromEntries(
+        Array.from({ length: 52 }, (_, weekIndex) => [`w${weekIndex}`, index + weekIndex])
+      ),
+    }));
+    const columns = Array.from({ length: 52 }, (_, index) => ({
+      id: `w${index}`,
+      header: `W${index + 1}`,
+      width: 108,
+      renderCell: (task: FinanceTask) => task.weeklyPlan[`w${index}`]?.toString() ?? '',
+    }));
+
+    try {
+      const { container } = render(
+        <GanttChart<FinanceTask>
+          mode="table-matrix"
+          tasks={tasks}
+          rowHeight={24}
+          headerHeight={52}
+          containerHeight="80dvh"
+          matrixColumns={columns}
+        />
+      );
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      await waitFor(() => {
+        expect(container.querySelectorAll('.gantt-mx-row').length).toBeLessThan(1000);
+      });
+      expect(container.querySelectorAll('.gantt-mx-cell').length).toBeLessThan(1000 * 52);
+    } finally {
+      Object.defineProperty(window, 'innerHeight', {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+    }
+  });
+
   it('renders task list on the left and arbitrary matrix cells on the right', () => {
     const tasks: FinanceTask[] = [
       {

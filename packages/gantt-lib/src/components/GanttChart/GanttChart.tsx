@@ -38,6 +38,44 @@ const TASK_ROW_OVERSCAN = 8;
 const PLAN_FACT_COLUMN_OVERSCAN = 24;
 const PLAN_FACT_COLUMN_WINDOW_STEP = 14;
 
+function getInitialScrollViewportHeight(containerHeight: number | string | undefined, headerHeight: number) {
+  if (containerHeight === undefined) {
+    return 0;
+  }
+
+  if (typeof containerHeight === 'number') {
+    return Math.max(0, containerHeight - headerHeight);
+  }
+
+  if (typeof window === 'undefined') {
+    return 0;
+  }
+
+  const dynamicViewportMatch = containerHeight.match(/^([\d.]+)dvh$/);
+  if (dynamicViewportMatch) {
+    const ratio = Number(dynamicViewportMatch[1]);
+    return Number.isFinite(ratio)
+      ? Math.max(0, window.innerHeight * (ratio / 100) - headerHeight)
+      : 0;
+  }
+
+  const viewportMatch = containerHeight.match(/^([\d.]+)vh$/);
+  if (viewportMatch) {
+    const ratio = Number(viewportMatch[1]);
+    return Number.isFinite(ratio)
+      ? Math.max(0, window.innerHeight * (ratio / 100) - headerHeight)
+      : 0;
+  }
+
+  const pixelMatch = containerHeight.match(/^([\d.]+)px$/);
+  if (pixelMatch) {
+    const height = Number(pixelMatch[1]);
+    return Number.isFinite(height) ? Math.max(0, height - headerHeight) : 0;
+  }
+
+  return 0;
+}
+
 function waitForNextPaint(win: Window): Promise<void> {
   return new Promise((resolve) => {
     if (typeof win.requestAnimationFrame === 'function') {
@@ -609,7 +647,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
   const [internalTaskDateChangeMode, setInternalTaskDateChangeMode] = useState<TaskDateChangeMode>('preserve-duration');
-  const [scrollViewport, setScrollViewport] = useState({ scrollTop: 0, viewportHeight: 0 });
+  const [scrollViewport, setScrollViewport] = useState(() => ({
+    scrollTop: 0,
+    viewportHeight: getInitialScrollViewportHeight(containerHeight, headerHeight + 1),
+  }));
   const [forceFullRenderForPrint, setForceFullRenderForPrint] = useState(false);
   const [planFactDateWindow, setPlanFactDateWindow] = useState<{ start: number; end: number } | null>(null);
 
@@ -819,7 +860,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         previous === nextHasRightShadow ? previous : nextHasRightShadow
       );
       setScrollViewport((previous) =>
-        previous.scrollTop === nextScrollTop && previous.viewportHeight === nextViewportHeight
+        previous.viewportHeight > 0 && nextViewportHeight === 0
+          ? { scrollTop: nextScrollTop, viewportHeight: previous.viewportHeight }
+          : previous.scrollTop === nextScrollTop && previous.viewportHeight === nextViewportHeight
           ? previous
           : { scrollTop: nextScrollTop, viewportHeight: nextViewportHeight }
       );
@@ -1738,7 +1781,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             onDelete={handleDelete}
             onInsertAfter={handleInsertAfter as ((taskId: string, newTask: Task) => void) | undefined}
             onReorder={handleReorder as ((tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void) | undefined}
-            disableTaskDrag={disableTaskListReorder}
+            disableTaskDrag={disableTaskDrag || disableTaskListReorder}
             editingTaskId={editingTaskId}
             enableAddTask={enableAddTask}
             defaultTaskDurationDays={defaultTaskDurationDays}
@@ -1806,6 +1849,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 dateOverlay={matrixDateOverlay}
                 highlightedTaskIds={taskListHighlightedTaskIds}
                 filterMode={filterMode}
+                visibleRowIndices={visibleTaskWindowIndices}
               />
             ) : isPlanFactMode ? (
               <PlanFactMatrix
