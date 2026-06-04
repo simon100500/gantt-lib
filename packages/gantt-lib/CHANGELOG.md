@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.121.0] - 2026-06-04
+
+### Features
+
+- Virtualize table-matrix rows for improved performance with large datasets
+
 ## [0.119.0] - 2026-05-24
 
 ### Refactor
