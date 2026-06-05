@@ -37,6 +37,7 @@ const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
 const TASK_ROW_OVERSCAN = 8;
 const PLAN_FACT_COLUMN_OVERSCAN = 24;
 const PLAN_FACT_COLUMN_WINDOW_STEP = 14;
+const DEFAULT_INITIAL_VIEWPORT_HEIGHT = 768;
 
 function getInitialScrollViewportHeight(containerHeight: number | string | undefined, headerHeight: number) {
   if (containerHeight === undefined) {
@@ -47,15 +48,11 @@ function getInitialScrollViewportHeight(containerHeight: number | string | undef
     return Math.max(0, containerHeight - headerHeight);
   }
 
-  if (typeof window === 'undefined') {
-    return 0;
-  }
-
   const dynamicViewportMatch = containerHeight.match(/^([\d.]+)dvh$/);
   if (dynamicViewportMatch) {
     const ratio = Number(dynamicViewportMatch[1]);
     return Number.isFinite(ratio)
-      ? Math.max(0, window.innerHeight * (ratio / 100) - headerHeight)
+      ? Math.max(0, DEFAULT_INITIAL_VIEWPORT_HEIGHT * (ratio / 100) - headerHeight)
       : 0;
   }
 
@@ -63,7 +60,7 @@ function getInitialScrollViewportHeight(containerHeight: number | string | undef
   if (viewportMatch) {
     const ratio = Number(viewportMatch[1]);
     return Number.isFinite(ratio)
-      ? Math.max(0, window.innerHeight * (ratio / 100) - headerHeight)
+      ? Math.max(0, DEFAULT_INITIAL_VIEWPORT_HEIGHT * (ratio / 100) - headerHeight)
       : 0;
   }
 
