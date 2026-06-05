@@ -685,4 +685,33 @@ describe('plan-fact mode', () => {
     expect(todayFactCell.classList.contains('gantt-pf-cell-today')).toBe(true);
     expect(previousPlanCell.classList.contains('gantt-pf-cell-today')).toBe(false);
   });
+
+  it('renders only the visible date window in the plan-fact matrix', () => {
+    const tasks: PlanFactTask[] = [
+      {
+        id: 'task-1',
+        name: 'Task 1',
+        startDate: '2026-04-01',
+        endDate: '2026-04-30',
+      },
+    ];
+    const dateRange = Array.from(
+      { length: 31 },
+      (_, index) => new Date(Date.UTC(2026, 3, index + 1))
+    );
+
+    const { container } = render(
+      <PlanFactMatrix<PlanFactTask>
+        tasks={tasks}
+        dateRange={dateRange}
+        visibleDateIndices={[10, 11, 12]}
+        dayWidth={32}
+        rowHeight={40}
+        headerHeight={40}
+      />
+    );
+
+    expect(container.querySelectorAll('.gantt-pf-header .gantt-tsh-dayCell')).toHaveLength(3);
+    expect(container.querySelectorAll('.gantt-pf-cell')).toHaveLength(6);
+  });
 });

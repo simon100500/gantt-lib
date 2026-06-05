@@ -10,9 +10,12 @@ type PlanFactStressTask = Task & {
   factByDate?: Record<string, number>;
 };
 
-const GROUP_COUNT = 20;
-const CHILDREN_PER_GROUP = 4;
+const GROUP_COUNT = 100;
+const CHILDREN_PER_GROUP = 9;
 const TOTAL_TASKS = GROUP_COUNT * (CHILDREN_PER_GROUP + 1);
+const PERIOD_DAYS = 730;
+const MIN_TASK_DURATION_DAYS = 45;
+const MAX_EXTRA_TASK_DURATION_DAYS = 35;
 
 function toIsoDate(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -57,12 +60,16 @@ function createPlanFactDataset(): PlanFactStressTask[] {
   const baseDate = new Date(Date.UTC(2026, 3, 1));
   const owners = ["Монолит", "Фасад", "ОВ", "ВК", "ЭОМ"];
   const units = ["м3", "т", "м2", "п.м.", "шт"];
+  const maxGroupOffset = PERIOD_DAYS - MIN_TASK_DURATION_DAYS - MAX_EXTRA_TASK_DURATION_DAYS - CHILDREN_PER_GROUP * 3;
 
   for (let groupIndex = 0; groupIndex < GROUP_COUNT; groupIndex += 1) {
     const groupId = `pf-group-${groupIndex + 1}`;
-    const groupOffset = groupIndex * 2;
+    const groupOffset = Math.floor((groupIndex / Math.max(1, GROUP_COUNT - 1)) * maxGroupOffset);
     const groupStart = shiftIsoDate(baseDate, groupOffset);
-    const groupEnd = shiftIsoDate(baseDate, groupOffset + 10);
+    const groupEnd = shiftIsoDate(
+      baseDate,
+      groupOffset + CHILDREN_PER_GROUP * 3 + MIN_TASK_DURATION_DAYS + MAX_EXTRA_TASK_DURATION_DAYS
+    );
 
     tasks.push({
       id: groupId,
@@ -74,8 +81,8 @@ function createPlanFactDataset(): PlanFactStressTask[] {
     });
 
     for (let childIndex = 0; childIndex < CHILDREN_PER_GROUP; childIndex += 1) {
-      const taskOffset = groupOffset + childIndex;
-      const duration = 4 + (childIndex % 3);
+      const taskOffset = groupOffset + childIndex * 3;
+      const duration = MIN_TASK_DURATION_DAYS + ((groupIndex * 7 + childIndex * 5) % MAX_EXTRA_TASK_DURATION_DAYS);
       const startDate = shiftIsoDate(baseDate, taskOffset);
       const endDate = shiftIsoDate(baseDate, taskOffset + duration);
       const planByDate = buildDailyValues(taskOffset, duration + 1, groupIndex * 10 + childIndex);
@@ -182,14 +189,16 @@ export default function PlanFactStressDemo() {
     <section className="demo-section plan-fact-demo">
       <div className="demo-section-header">
         <div>
-          <h1 className="demo-section-title">Plan-Fact Stress Test: 100 Rows</h1>
+          <h1 className="demo-section-title">Plan-Fact Stress Test: 1000 Rows</h1>
           <p className="demo-section-desc">
-            20 групп и 80 дочерних строк для проверки производительности, прокрутки, выделения ячеек и массового ввода в режиме plan-fact.
+            100 групп и 900 дочерних строк на дневной шкале около двух лет для проверки производительности, прокрутки, выделения ячеек и массового ввода в режиме plan-fact.
           </p>
         </div>
         <div className="demo-stats">
-          <span className="demo-stat-pill">20 групп</span>
-          <span className="demo-stat-pill">80 задач</span>
+          <span className="demo-stat-pill">{GROUP_COUNT} групп</span>
+          <span className="demo-stat-pill">{TOTAL_TASKS - GROUP_COUNT} задач</span>
+          <span className="demo-stat-pill">{TOTAL_TASKS} строк</span>
+          <span className="demo-stat-pill">{PERIOD_DAYS} дней</span>
           <span className="demo-stat-pill">План: {totals.plan.toLocaleString("ru-RU")}</span>
           <span className="demo-stat-pill">Факт: {totals.fact.toLocaleString("ru-RU")}</span>
         </div>

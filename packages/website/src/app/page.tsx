@@ -22,8 +22,8 @@ export default function Home() {
             <Link className="demo-link-btn demo-link-btn-secondary" href="/finance-1000">
               Finance 1000 rows
             </Link>
-            <Link className="demo-link-btn demo-link-btn-secondary" href="/plan-fact-100">
-              Plan-fact 100 rows
+            <Link className="demo-link-btn demo-link-btn-secondary" href="/plan-fact-1000">
+              Plan-fact 1000 rows
             </Link>
           </div>
         </header>

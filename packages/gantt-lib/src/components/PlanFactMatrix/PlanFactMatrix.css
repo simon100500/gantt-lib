@@ -27,6 +27,18 @@
   pointer-events: none;
 }
 
+.gantt-pf-dateWindow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.gantt-pf-dateWindow-body {
+  z-index: 0;
+  pointer-events: none;
+}
+
 .gantt-pf-body {
   position: relative;
   z-index: 0;
@@ -35,8 +47,6 @@
 .gantt-pf-row {
   position: absolute;
   left: 0;
-  display: grid;
-  grid-template-rows: 1fr 1fr;
   box-sizing: border-box;
   overflow: hidden;
   background-image:
@@ -96,7 +106,7 @@
 }
 
 .gantt-pf-cell {
-  position: relative;
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: flex-end;

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import PlanFactStressDemo from "@/components/PlanFactStressDemo";
 
-export default function PlanFact100Page() {
+export default function PlanFact1000Page() {
   return (
     <main>
       <div className="demo-page">

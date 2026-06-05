@@ -247,6 +247,7 @@ type PlanFactRowProps<TTask extends Task = Task> = {
   dateRange: Date[];
   dateKeys: string[];
   renderedDateIndices: number[];
+  totalWidth: number;
   rowHeight: number;
   subrowHeight: number;
   dayWidth: number;
@@ -306,12 +307,43 @@ function areRangeBoundsEqual(left: RangeBounds | null, right: RangeBounds | null
     && left.toSubrowIndex === right.toSubrowIndex;
 }
 
+function getRenderedDateWindow(dateRange: Date[], renderedDateIndices: number[]) {
+  if (dateRange.length === 0 || renderedDateIndices.length === 0) {
+    return {
+      startIndex: 0,
+      days: [] as Date[],
+    };
+  }
+
+  let startIndex = dateRange.length - 1;
+  let endIndex = 0;
+
+  for (const dateIndex of renderedDateIndices) {
+    if (dateIndex < 0 || dateIndex >= dateRange.length) continue;
+    startIndex = Math.min(startIndex, dateIndex);
+    endIndex = Math.max(endIndex, dateIndex);
+  }
+
+  if (startIndex > endIndex) {
+    return {
+      startIndex: 0,
+      days: [] as Date[],
+    };
+  }
+
+  return {
+    startIndex,
+    days: dateRange.slice(startIndex, endIndex + 1),
+  };
+}
+
 function PlanFactRowInner<TTask extends Task = Task>({
   task,
   rowIndex,
   dateRange,
   dateKeys,
   renderedDateIndices,
+  totalWidth,
   rowHeight,
   subrowHeight,
   dayWidth,
@@ -353,8 +385,8 @@ function PlanFactRowInner<TTask extends Task = Task>({
       )}
       style={{
         top: `${rowIndex * rowHeight}px`,
+        width: `${totalWidth}px`,
         height: `${rowHeight}px`,
-        gridTemplateColumns: `repeat(${dateRange.length}, ${dayWidth}px)`,
         ['--gantt-pf-today-left' as string]: todayDateIndex !== undefined && todayDateIndex >= 0
           ? `${todayDateIndex * dayWidth}px`
           : undefined,
@@ -430,8 +462,9 @@ function PlanFactRowInner<TTask extends Task = Task>({
                 isParent && 'gantt-pf-cell-readonly'
               )}
               style={{
-                gridColumn: dateIndex + 1,
-                gridRow: kind === 'plan' ? 1 : 2,
+                left: `${dateIndex * dayWidth}px`,
+                top: kind === 'plan' ? 0 : `${subrowHeight}px`,
+                width: `${dayWidth}px`,
                 height: `${subrowHeight}px`,
               }}
               tabIndex={isParent ? -1 : 0}
@@ -574,6 +607,7 @@ function arePlanFactRowsEqual<TTask extends Task>(
     && previous.dateRange === next.dateRange
     && previous.dateKeys === next.dateKeys
     && previous.renderedDateIndices === next.renderedDateIndices
+    && previous.totalWidth === next.totalWidth
     && previous.rowHeight === next.rowHeight
     && previous.subrowHeight === next.subrowHeight
     && previous.dayWidth === next.dayWidth
@@ -642,6 +676,10 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
   }, [allTasks]);
 
   const dateKeys = useMemo(() => dateRange.map(formatDateKey), [dateRange]);
+  const renderedDateWindow = useMemo(
+    () => getRenderedDateWindow(dateRange, renderedDateIndices),
+    [dateRange, renderedDateIndices]
+  );
   const dateRangeStartMs = dateRange[0] ? getDateOnlyMs(dateRange[0]) : 0;
   const taskIndexById = useMemo(() => {
     const indexById = new Map<string, number>();
@@ -1146,14 +1184,24 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
       }}
     >
       <div className="gantt-pf-header" style={{ width: `${totalWidth}px`, height: `${headerHeight}px` }}>
-        <TimeScaleHeader
-          days={dateRange}
-          dayWidth={dayWidth}
-          headerHeight={headerHeight - 1}
-          viewMode="day"
-          isCustomWeekend={isCustomWeekend}
-        />
-        {todayDateIndex !== undefined && todayDateIndex >= 0 && (
+        <div
+          className="gantt-pf-dateWindow"
+          style={{
+            left: `${renderedDateWindow.startIndex * dayWidth}px`,
+            width: `${renderedDateWindow.days.length * dayWidth}px`,
+          }}
+        >
+          <TimeScaleHeader
+            days={renderedDateWindow.days}
+            dayWidth={dayWidth}
+            headerHeight={headerHeight - 1}
+            viewMode="day"
+            isCustomWeekend={isCustomWeekend}
+          />
+        </div>
+        {todayDateIndex !== undefined
+          && todayDateIndex >= renderedDateWindow.startIndex
+          && todayDateIndex < renderedDateWindow.startIndex + renderedDateWindow.days.length && (
           <span
             className="gantt-pf-headerTodayLine"
             aria-hidden="true"
@@ -1185,14 +1233,22 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
           width: `${totalWidth}px`,
         }}
       >
-        <GridBackground
-          dateRange={dateRange}
-          dayWidth={dayWidth}
-          totalHeight={tasks.length * rowHeight}
-          viewMode="day"
-          isCustomWeekend={isCustomWeekend}
-          showGridLines={false}
-        />
+        <div
+          className="gantt-pf-dateWindow gantt-pf-dateWindow-body"
+          style={{
+            left: `${renderedDateWindow.startIndex * dayWidth}px`,
+            width: `${renderedDateWindow.days.length * dayWidth}px`,
+          }}
+        >
+          <GridBackground
+            dateRange={renderedDateWindow.days}
+            dayWidth={dayWidth}
+            totalHeight={tasks.length * rowHeight}
+            viewMode="day"
+            isCustomWeekend={isCustomWeekend}
+            showGridLines={false}
+          />
+        </div>
         {renderedRowIndices.map((rowIndex) => {
           const task = tasks[rowIndex];
           if (!task) return null;
@@ -1207,6 +1263,7 @@ export default function PlanFactMatrix<TTask extends Task = Task>({
               dateRange={dateRange}
               dateKeys={dateKeys}
               renderedDateIndices={renderedDateIndices}
+              totalWidth={totalWidth}
               rowHeight={rowHeight}
               subrowHeight={subrowHeight}
               dayWidth={dayWidth}
