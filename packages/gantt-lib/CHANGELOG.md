@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.121.2] - 2026-06-05
+
+### Refactor
+
+- Simplify plan-fact date window state
+
 ## [0.121.1] - 2026-06-05
 
 ### Fixes
