@@ -38,6 +38,7 @@ const TASK_ROW_OVERSCAN = 8;
 const PLAN_FACT_COLUMN_OVERSCAN = 24;
 const PLAN_FACT_COLUMN_WINDOW_STEP = 14;
 const DEFAULT_INITIAL_VIEWPORT_HEIGHT = 768;
+const DEFAULT_PLAN_FACT_COLUMN_WINDOW = PLAN_FACT_COLUMN_OVERSCAN + PLAN_FACT_COLUMN_WINDOW_STEP;
 
 function getInitialScrollViewportHeight(containerHeight: number | string | undefined, headerHeight: number) {
   if (containerHeight === undefined) {
@@ -649,7 +650,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     viewportHeight: getInitialScrollViewportHeight(containerHeight, headerHeight + 1),
   }));
   const [forceFullRenderForPrint, setForceFullRenderForPrint] = useState(false);
-  const [planFactDateWindow, setPlanFactDateWindow] = useState<{ start: number; end: number } | null>(null);
+  const [planFactDateWindow, setPlanFactDateWindow] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
@@ -865,7 +866,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       );
       setPlanFactDateWindow((previous) => {
         if (!isPlanFactMode || dateRange.length === 0 || nextViewportWidth <= 0) {
-          return previous === null ? previous : null;
+          return previous;
         }
 
         const firstVisibleColumn = Math.max(0, Math.floor(nextChartScrollLeft / dayWidth));
@@ -1292,13 +1293,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return undefined;
     }
 
-    if (!isPlanFactMode || dateRange.length === 0 || !planFactDateWindow) {
+    if (!isPlanFactMode || dateRange.length === 0) {
       return undefined;
     }
 
+    const window = planFactDateWindow;
+
     return Array.from(
-      { length: planFactDateWindow.end - planFactDateWindow.start + 1 },
-      (_, index) => planFactDateWindow.start + index
+      { length: window.end - window.start + 1 },
+      (_, index) => window.start + index
     );
   }, [dateRange.length, forceFullRenderForPrint, isPlanFactMode, planFactDateWindow]);
 
