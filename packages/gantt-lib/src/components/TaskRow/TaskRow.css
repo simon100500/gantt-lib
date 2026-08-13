@@ -216,9 +216,10 @@
 }
 
 .gantt-tr-dependencyPortParent {
-  top: calc(50% - 20px);
+  /* Align the point with the visible center of the group bar. */
+  top: calc(50% - 4px);
   height: var(--gantt-parent-bar-height, 14px);
-  transform: none;
+  transform: translateY(-50%);
 }
 
 .gantt-tr-dependencyPortDragActive {
