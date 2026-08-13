@@ -451,7 +451,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 data-task-id={task.id}
                 data-port-side="left"
                 className={`gantt-tr-dependencyPort gantt-tr-dependencyPortLeft ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isParent ? 'gantt-tr-dependencyPortParent' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
-                style={{ left: `${visualLeft - 24}px` }}
+                style={{ left: `${visualLeft - 21}px` }}
                 aria-label={`Начать связь от левого края: ${task.name}`}
                 title="Потяните к краю другой полосы, чтобы создать связь"
                 onPointerDown={(event) => onDependencyPortPointerDown(task.id, 'left', event)}

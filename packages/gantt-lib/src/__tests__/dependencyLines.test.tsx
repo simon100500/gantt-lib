@@ -75,4 +75,32 @@ describe('DependencyLines', () => {
       linkType: 'FS',
     }));
   });
+
+  it('highlights the selected dependency without adding an outline', () => {
+    const tasks: Task[] = [
+      { id: 'pred-task', name: 'Pred', startDate: '2026-03-03', endDate: '2026-03-04' },
+      {
+        id: 'succ-task',
+        name: 'Succ',
+        startDate: '2026-03-05',
+        endDate: '2026-03-06',
+        dependencies: [{ taskId: 'pred-task', type: 'FS', lag: 0 }],
+      },
+    ];
+
+    const { container } = render(
+      <DependencyLines
+        tasks={tasks}
+        allTasks={tasks}
+        monthStart={new Date('2026-03-01T00:00:00.000Z')}
+        dayWidth={40}
+        rowHeight={40}
+        gridWidth={1240}
+        selectedDep={{ predecessorId: 'pred-task', successorId: 'succ-task', linkType: 'FS' }}
+      />
+    );
+
+    expect(container.querySelectorAll('.gantt-dependency-selected')).toHaveLength(1);
+    expect(container.querySelectorAll('.gantt-dependency-selected-outline')).toHaveLength(0);
+  });
 });
