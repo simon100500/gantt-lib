@@ -1,0 +1,50 @@
+.gantt-dependencyCreation-svg {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.gantt-dependencyCreation-path {
+  fill: none;
+  stroke: var(--gantt-dependency-port-color, #7c3aed);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 5 5;
+  animation: gantt-dependencyCreation-dash 420ms linear infinite;
+}
+
+.gantt-dependencyCreation-pathTargeted {
+  stroke: var(--gantt-dependency-port-target-color, #16a34a);
+}
+
+.gantt-dependencyCreation-source,
+.gantt-dependencyCreation-target {
+  fill: var(--gantt-cell-background, #fff);
+  stroke: var(--gantt-dependency-port-color, #7c3aed);
+  stroke-width: 2;
+}
+
+.gantt-dependencyCreation-targetValid {
+  fill: var(--gantt-dependency-port-target-color, #16a34a);
+  stroke: var(--gantt-cell-background, #fff);
+}
+
+.gantt-dependencyCreation-label {
+  fill: var(--gantt-dependency-port-color, #7c3aed);
+  font-size: 11px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--gantt-cell-background, #fff);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+@keyframes gantt-dependencyCreation-dash {
+  to { stroke-dashoffset: -10; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gantt-dependencyCreation-path { animation: none; }
+}

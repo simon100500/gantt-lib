@@ -14,6 +14,17 @@ vi.mock('../components/ui/Calendar', () => ({
 }));
 
 describe('manual dependency linking', () => {
+  it('renders two visual connection ports on every task bar', () => {
+    const tasks: Task[] = [
+      { id: 'pred', name: 'Predecessor', startDate: '2026-03-02', endDate: '2026-03-04' },
+      { id: 'succ', name: 'Successor', startDate: '2026-03-10', endDate: '2026-03-12' },
+    ];
+
+    const { container } = render(<GanttChart tasks={tasks} onTasksChange={vi.fn()} />);
+
+    expect(container.querySelectorAll('[data-gantt-dependency-port]')).toHaveLength(4);
+  });
+
   it('preserves the newly created dependency in onTasksChange when successor is snapped', () => {
     Element.prototype.scrollIntoView = vi.fn();
 

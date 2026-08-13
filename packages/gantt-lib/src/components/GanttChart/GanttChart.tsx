@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, cascadeByLinks, universalCascade, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent } from '../../core/scheduling';
+import { validateDependencies, cascadeByLinks, universalCascade, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent, areTasksHierarchicallyRelated, calculateSuccessorDate, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration } from '../../core/scheduling';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type {
   ResourceTableColumnWidthMap,
@@ -25,6 +25,7 @@ import TimelineMarkers from '../TimelineMarkers';
 import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
+import { DependencyCreationOverlay, type DependencyCreationDrag } from '../DependencyCreationOverlay';
 import { TaskList } from '../TaskList';
 import { ResourceTimelineChart } from '../ResourceTimelineChart';
 import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup, type TableMatrixDateOverlay } from '../TableMatrix';
@@ -654,6 +655,151 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
+  const [dependencyCreationDrag, setDependencyCreationDrag] = useState<DependencyCreationDrag | null>(null);
+  const dependencyCreationRef = useRef<DependencyCreationDrag | null>(null);
+  const [dependencyCreationError, setDependencyCreationError] = useState<string | null>(null);
+
+  const getDependencyPortPoint = useCallback((element: Element, chartRect: DOMRect) => {
+    const rect = element.getBoundingClientRect();
+    const side = element.getAttribute('data-port-side');
+    return {
+      // The port hit-area is deliberately outside the bar. Anchor the preview
+      // to the actual bar boundary instead of the center of that outside zone.
+      x: Math.round((side === 'left' ? rect.right : rect.left) - chartRect.left),
+      y: Math.round(rect.top + rect.height / 2 - chartRect.top),
+    };
+  }, []);
+
+  const getVisualDependencyType = useCallback((sourceSide: 'left' | 'right', targetSide: 'left' | 'right'): TaskDependency['type'] => {
+    if (sourceSide === 'right' && targetSide === 'left') return 'FS';
+    if (sourceSide === 'left' && targetSide === 'left') return 'SS';
+    if (sourceSide === 'right' && targetSide === 'right') return 'FF';
+    return 'SF';
+  }, []);
+
+  const handleDependencyPortPointerDown = useCallback((
+    sourceId: string,
+    sourceSide: 'left' | 'right',
+    event: React.PointerEvent<HTMLButtonElement>
+  ) => {
+    if (disableDependencyEditing || event.button !== 0) return;
+    const chartElement = event.currentTarget.closest('.gantt-taskArea');
+    if (!(chartElement instanceof HTMLElement)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const chartRect = chartElement.getBoundingClientRect();
+    const source = getDependencyPortPoint(event.currentTarget, chartRect);
+    const nextDrag: DependencyCreationDrag = { sourceId, sourceSide, source, current: source };
+    dependencyCreationRef.current = nextDrag;
+    setDependencyCreationDrag(nextDrag);
+  }, [disableDependencyEditing, getDependencyPortPoint]);
+
+  useEffect(() => {
+    if (!dependencyCreationDrag) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const activeDrag = dependencyCreationRef.current;
+      const chartElement = scrollContentRef.current?.querySelector('.gantt-taskArea');
+      if (!activeDrag || !(chartElement instanceof HTMLElement)) return;
+      const chartRect = chartElement.getBoundingClientRect();
+      const targetElement = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-gantt-dependency-port]');
+      const targetTaskId = targetElement?.getAttribute('data-task-id') ?? undefined;
+      const targetSide = targetElement?.getAttribute('data-port-side') as 'left' | 'right' | null;
+      const target = targetTaskId && targetSide && targetTaskId !== activeDrag.sourceId
+        ? { taskId: targetTaskId, side: targetSide }
+        : undefined;
+      const current = targetElement
+        ? getDependencyPortPoint(targetElement, chartRect)
+        : { x: Math.round(event.clientX - chartRect.left), y: Math.round(event.clientY - chartRect.top) };
+      const nextDrag = {
+        ...activeDrag,
+        current,
+        target,
+        linkType: target ? getVisualDependencyType(activeDrag.sourceSide, target.side) : undefined,
+      };
+      dependencyCreationRef.current = nextDrag;
+      setDependencyCreationDrag(nextDrag);
+    };
+
+    const handlePointerUp = () => {
+      const activeDrag = dependencyCreationRef.current;
+      dependencyCreationRef.current = null;
+      setDependencyCreationDrag(null);
+      if (!activeDrag?.target || !activeDrag.linkType) return;
+
+      const predecessorId = activeDrag.sourceId;
+      const successorId = activeDrag.target.taskId;
+      const successor = tasks.find((task) => task.id === successorId);
+      if (!successor || areTasksHierarchicallyRelated(predecessorId, successorId, tasks)) {
+        setDependencyCreationError('Связи между родителем и потомком запрещены');
+        return;
+      }
+      const nextDependency: TaskDependency = { taskId: predecessorId, type: activeDrag.linkType as TaskDependency['type'], lag: 0 };
+      if ((successor.dependencies ?? []).some((dependency) => dependency.taskId === predecessorId && dependency.type === nextDependency.type)) return;
+      const hypothetical = tasks.map((task) => task.id === successorId
+        ? { ...task, dependencies: [...(task.dependencies ?? []), nextDependency] }
+        : task);
+      const validation = validateDependencies(hypothetical);
+      if (!validation.isValid) {
+        setDependencyCreationError(validation.errors.some((error) => error.type === 'constraint')
+          ? 'Связи между родителем и потомком запрещены'
+          : 'Цикл зависимостей!');
+        return;
+      }
+      const predecessor = tasks.find((task) => task.id === predecessorId);
+      const updatedSuccessor = hypothetical.find((task) => task.id === successorId)!;
+      if (!predecessor) {
+        onTasksChange?.([updatedSuccessor as TTask]);
+        return;
+      }
+
+      const constraintDate = calculateSuccessorDate(
+        parseUTCDate(predecessor.startDate),
+        parseUTCDate(predecessor.endDate),
+        nextDependency.type,
+        0,
+        businessDays,
+        isCustomWeekend,
+      );
+      const duration = getTaskDuration(
+        updatedSuccessor.startDate,
+        updatedSuccessor.endDate,
+        businessDays,
+        isCustomWeekend,
+      );
+      const range = nextDependency.type === 'FS' || nextDependency.type === 'SS'
+        ? buildTaskRangeFromStart(constraintDate, duration, businessDays, createCustomDayPredicate({ customDays, isWeekend }))
+        : buildTaskRangeFromEnd(constraintDate, duration, businessDays, createCustomDayPredicate({ customDays, isWeekend }));
+      onTasksChange?.([{
+        ...updatedSuccessor,
+        startDate: range.start.toISOString().split('T')[0],
+        endDate: range.end.toISOString().split('T')[0],
+      } as TTask]);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        dependencyCreationRef.current = null;
+        setDependencyCreationDrag(null);
+      }
+    };
+
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [businessDays, customDays, dependencyCreationDrag !== null, getDependencyPortPoint, getVisualDependencyType, isWeekend, onTasksChange, tasks]);
+
+  useEffect(() => {
+    if (!dependencyCreationError) return;
+    const timeout = window.setTimeout(() => setDependencyCreationError(null), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [dependencyCreationError]);
   const [activeTimelineTooltip, setActiveTimelineTooltip] = useState<{ label: string; left: number; color: string } | null>(null);
 
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
@@ -1956,6 +2102,18 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     weekendPredicate={isCustomWeekend}
                   />
 
+                  <DependencyCreationOverlay
+                    drag={dependencyCreationDrag}
+                    width={gridWidth}
+                    height={totalGridHeight}
+                  />
+
+                  {dependencyCreationError && (
+                    <div className="gantt-dependencyCreation-error" role="status">
+                      {dependencyCreationError}
+                    </div>
+                  )}
+
                   {dragGuideLines && (
                     <DragGuideLines
                       isDragging={dragGuideLines.isDragging}
@@ -2021,6 +2179,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         customDays={customDays}
                         isWeekend={isWeekend}
                         disableTaskDrag={disableTaskDrag}
+                        disableDependencyEditing={disableDependencyEditing}
+                        onDependencyPortPointerDown={handleDependencyPortPointerDown}
+                        isDependencyDragActive={dependencyCreationDrag !== null}
                         viewMode={viewMode}
                       />
                     </div>

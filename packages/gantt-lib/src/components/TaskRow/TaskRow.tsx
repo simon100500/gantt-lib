@@ -64,6 +64,16 @@ export interface TaskRowProps {
   isWeekend?: (date: Date) => boolean;
   /** Disable task drag and resize (overrides task.locked) */
   disableTaskDrag?: boolean;
+  /** Disable visual dependency creation ports */
+  disableDependencyEditing?: boolean;
+  /** Called when a user starts dragging a dependency from a task edge */
+  onDependencyPortPointerDown?: (
+    taskId: string,
+    side: 'left' | 'right',
+    event: React.PointerEvent<HTMLButtonElement>
+  ) => void;
+  /** Whether a dependency drag is currently active */
+  isDependencyDragActive?: boolean;
   /** Active chart view mode */
   viewMode?: 'day' | 'week' | 'month';
 }
@@ -118,6 +128,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.customDays === nextProps.customDays &&
     prevProps.isWeekend === nextProps.isWeekend &&
     prevProps.disableTaskDrag === nextProps.disableTaskDrag &&
+    prevProps.disableDependencyEditing === nextProps.disableDependencyEditing &&
+    prevProps.isDependencyDragActive === nextProps.isDependencyDragActive &&
     prevProps.viewMode === nextProps.viewMode
     // onTasksChange, onCascadeProgress, onCascade excluded - see note above
   );
@@ -130,7 +142,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, viewMode = 'day' }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day' }) => {
     const defaultParentBarColor = '#782FC4';
     // Extract divider from task prop
     const { divider: taskDivider } = task;
@@ -431,6 +443,32 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             )}
             {!isParent && !milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
           </div>
+          {!disableDependencyEditing && onDependencyPortPointerDown && (
+            <>
+              <button
+                type="button"
+                data-gantt-dependency-port
+                data-task-id={task.id}
+                data-port-side="left"
+                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortLeft ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
+                style={{ left: `${visualLeft - 24}px` }}
+                aria-label={`Начать связь от левого края: ${task.name}`}
+                title="Потяните к краю другой полосы, чтобы создать связь"
+                onPointerDown={(event) => onDependencyPortPointerDown(task.id, 'left', event)}
+              />
+              <button
+                type="button"
+                data-gantt-dependency-port
+                data-task-id={task.id}
+                data-port-side="right"
+                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortRight ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
+                style={{ left: `${visualLeft + visualWidth}px` }}
+                aria-label={`Начать связь от правого края: ${task.name}`}
+                title="Потяните к краю другой полосы, чтобы создать связь"
+                onPointerDown={(event) => onDependencyPortPointerDown(task.id, 'right', event)}
+              />
+            </>
+          )}
           <div
             className={`gantt-tr-leftLabels ${task.locked ? 'gantt-tr-leftLabels-locked' : ''}`}
             style={{

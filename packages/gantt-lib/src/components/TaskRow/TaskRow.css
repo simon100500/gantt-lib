@@ -144,6 +144,88 @@
   align-items: center;
 }
 
+/* Dependency creation ports intentionally grow out of the bar edges. They stay
+   quiet until the row is hovered, so the chart keeps its dense visual rhythm. */
+.gantt-tr-dependencyPort {
+  position: absolute;
+  top: 50%;
+  z-index: 12;
+  width: 24px;
+  height: min(40px, 100%);
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  transform: translateY(-50%);
+  cursor: crosshair;
+  opacity: 0;
+  transition: opacity 140ms ease, background-color 140ms ease, transform 140ms ease;
+  /* The full hit area lives outside the task bar, preserving resize handles. */
+}
+
+.gantt-tr-row:hover .gantt-tr-dependencyPort,
+.gantt-tr-dependencyPort:focus-visible,
+.gantt-tr-dependencyPortDragActive {
+  opacity: 1;
+}
+
+.gantt-tr-dependencyPort::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--gantt-dependency-port-color, #7c3aed);
+  border-radius: 50%;
+  background: var(--gantt-cell-background, #fff);
+  transform: translateY(-50%) scale(.75);
+  transition: transform 140ms cubic-bezier(.2, 0, 0, 1), background-color 140ms ease;
+}
+
+.gantt-tr-dependencyPort:hover,
+.gantt-tr-dependencyPort:focus-visible {
+  background: color-mix(in srgb, var(--gantt-dependency-port-color, #7c3aed) 12%, transparent);
+  outline: none;
+}
+
+.gantt-tr-dependencyPort:hover::after,
+.gantt-tr-dependencyPort:focus-visible::after,
+.gantt-tr-dependencyPortDragActive::after {
+  transform: translateY(-50%) scale(1);
+  background: var(--gantt-dependency-port-color, #7c3aed);
+}
+
+.gantt-tr-dependencyPortLeft {
+  /* Entirely outside the bar: left edge is bar edge minus the port width. */
+}
+
+.gantt-tr-dependencyPort::after {
+  pointer-events: none;
+}
+
+.gantt-tr-dependencyPortLeft::after {
+  left: 18px;
+}
+
+.gantt-tr-dependencyPortRight::after {
+  left: -6px;
+}
+
+.gantt-tr-dependencyPortMilestone {
+  height: min(40px, 100%);
+}
+
+.gantt-tr-dependencyPortDragActive {
+  background: color-mix(in srgb, var(--gantt-dependency-port-color, #7c3aed) 10%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gantt-tr-dependencyPort,
+  .gantt-tr-dependencyPort::after {
+    transition: none;
+  }
+}
+
 .gantt-tr-baseline {
   position: absolute;
   top: calc(50% + var(--gantt-task-bar-height, 28px) / 2 + var(--gantt-baseline-offset, -6px));
