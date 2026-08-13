@@ -123,6 +123,24 @@ const PlusIcon = () => (
   </svg>
 );
 
+const DepEditIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+    <path d="m15 5 4 4" />
+  </svg>
+);
+
 const DragHandleIcon = () => (
   <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
     <circle cx="2" cy="2" r="1.5" />
@@ -396,13 +414,12 @@ const DepChip: React.FC<DepChipProps> = ({
     selectedChip?.predecessorId === dep.taskId &&
     selectedChip?.linkType === dep.type;
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
     if (disableDependencyEditing) return;
-    // Toggle popover and chip selection together
-    const nextOpen = !popoverOpen;
-    setPopoverOpen(nextOpen);
-    if (nextOpen) {
+    // Keep selection separate from the lag editor: the editor is opened by
+    // the small expand control above the selected chip.
+    if (!isSelected) {
       onChipSelect?.({
         successorId: taskId,
         predecessorId: dep.taskId,
@@ -410,7 +427,6 @@ const DepChip: React.FC<DepChipProps> = ({
       });
       onScrollToTask?.(taskId);
     } else {
-      // Only clear selection when explicitly closing via chip click
       onChipSelect?.(null);
     }
   };
@@ -574,10 +590,20 @@ const DepChip: React.FC<DepChipProps> = ({
 
   return (
     <Popover open={popoverOpen} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
+      <span
+        className={`gantt-tl-dep-chip-control${isSelected ? " gantt-tl-dep-chip-control-selected" : ""}`}
+      >
         <span
           className={`gantt-tl-dep-chip-with-number${isSelected ? " gantt-tl-dep-chip-with-number-selected" : ""}`}
           onClick={handleClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleClick(e);
+            }
+          }}
           aria-label={`[${LINK_TYPE_LABELS_RU[dep.type]}] ${formatTaskNumberLabel(predecessorTaskNumber)}${depName}`}
         >
           {predecessorTaskNumber && (
@@ -598,7 +624,20 @@ const DepChip: React.FC<DepChipProps> = ({
             {depName}
           </span>
         </span>
-      </PopoverTrigger>
+        {isSelected && !disableDependencyEditing && (
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="gantt-tl-dep-expand"
+              aria-label="Редактировать связь"
+              title="Редактировать связь"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DepEditIcon />
+            </button>
+          </PopoverTrigger>
+        )}
+      </span>
       <PopoverContent
         className="gantt-tl-dep-edit-popover"
         portal={true}

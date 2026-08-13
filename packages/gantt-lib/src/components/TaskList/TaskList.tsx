@@ -673,6 +673,15 @@ export const TaskList: React.FC<TaskListProps> = ({
   // Escape / outside-click cancel for picker mode, chip selection, task row selection, and custom cell focus.
   useEffect(() => {
     if (!selectingPredecessorFor && !selectedChip && !selectedTaskId && !activeCustomCell) return;
+    const pendingCanvasMouseDownRef = {
+      container: null as HTMLElement | null,
+      x: 0,
+      y: 0,
+      scrollLeft: 0,
+      scrollTop: 0,
+      moved: false,
+      active: false,
+    };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSelectingPredecessorFor(null);
@@ -690,6 +699,24 @@ export const TaskList: React.FC<TaskListProps> = ({
         }
         return;
       }
+      // Starting a move/resize on a calendar task bar must not clear the
+      // dependency selected in the task list. A regular click elsewhere still
+      // follows the outside-click behavior below.
+      if (target.closest?.('[data-taskbar]')) return;
+      // Defer clearing for the empty chart canvas: it can be a pan gesture.
+      // A plain click is cleared on mouseup, while a moved canvas keeps the
+      // selected dependency highlighted.
+      if (target.closest?.('.gantt-scrollContainer')) {
+        const canvas = target.closest('.gantt-scrollContainer') as HTMLElement;
+        pendingCanvasMouseDownRef.container = canvas;
+        pendingCanvasMouseDownRef.x = e.clientX;
+        pendingCanvasMouseDownRef.y = e.clientY;
+        pendingCanvasMouseDownRef.scrollLeft = canvas.scrollLeft;
+        pendingCanvasMouseDownRef.scrollTop = canvas.scrollTop;
+        pendingCanvasMouseDownRef.moved = false;
+        pendingCanvasMouseDownRef.active = true;
+        return;
+      }
       // Don't clear when clicking inside a floating portal (popover, date picker, etc.)
       if (target.closest?.('.gantt-popover')) return;
       setSelectingPredecessorFor(null);
@@ -698,11 +725,55 @@ export const TaskList: React.FC<TaskListProps> = ({
       onSelectedChipChange?.(null);
       onTaskSelect?.(null);
     };
+    const handleCanvasMouseMove = (e: MouseEvent) => {
+      if (!pendingCanvasMouseDownRef.active) return;
+      const distance = Math.hypot(
+        e.clientX - pendingCanvasMouseDownRef.x,
+        e.clientY - pendingCanvasMouseDownRef.y,
+      );
+      const canvas = pendingCanvasMouseDownRef.container;
+      const scrollChanged = canvas && (
+        canvas.scrollLeft !== pendingCanvasMouseDownRef.scrollLeft ||
+        canvas.scrollTop !== pendingCanvasMouseDownRef.scrollTop
+      );
+      if (distance > 3 || scrollChanged) pendingCanvasMouseDownRef.moved = true;
+    };
+    const handleCanvasScroll = (e: Event) => {
+      if (!pendingCanvasMouseDownRef.active) return;
+      const canvas = pendingCanvasMouseDownRef.container;
+      if (canvas && e.target === canvas) pendingCanvasMouseDownRef.moved = true;
+    };
+    const handleCanvasWheel = (e: WheelEvent) => {
+      if (!pendingCanvasMouseDownRef.active) return;
+      if (pendingCanvasMouseDownRef.container?.contains(e.target as Node)) {
+        pendingCanvasMouseDownRef.moved = true;
+      }
+    };
+    const handleCanvasMouseUp = () => {
+      if (!pendingCanvasMouseDownRef.active) return;
+      const wasPan = pendingCanvasMouseDownRef.moved;
+      pendingCanvasMouseDownRef.active = false;
+      pendingCanvasMouseDownRef.container = null;
+      if (wasPan) return;
+      setSelectingPredecessorFor(null);
+      setSelectedChip(null);
+      setActiveCustomCell(null);
+      onSelectedChipChange?.(null);
+      onTaskSelect?.(null);
+    };
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('mousedown', handleMouseDown, true);
+    document.addEventListener('mousemove', handleCanvasMouseMove, true);
+    document.addEventListener('scroll', handleCanvasScroll, true);
+    document.addEventListener('wheel', handleCanvasWheel, true);
+    document.addEventListener('mouseup', handleCanvasMouseUp, true);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handleMouseDown, true);
+      document.removeEventListener('mousemove', handleCanvasMouseMove, true);
+      document.removeEventListener('scroll', handleCanvasScroll, true);
+      document.removeEventListener('wheel', handleCanvasWheel, true);
+      document.removeEventListener('mouseup', handleCanvasMouseUp, true);
     };
   }, [selectingPredecessorFor, selectedChip, selectedTaskId, activeCustomCell, onTaskSelect, onSelectedChipChange]);
 

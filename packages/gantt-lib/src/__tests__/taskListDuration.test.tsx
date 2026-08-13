@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { TaskListRow } from '../components/TaskList/TaskListRow';
 import type { Task } from '../components/GanttChart';
 import { universalCascade } from '../utils/dependencyUtils';
+import { createBuiltInColumns } from '../components/TaskList/columns/createBuiltInColumns';
 
 vi.mock('../components/ui/DatePicker', () => ({
   DatePicker: ({
@@ -269,10 +270,16 @@ describe('TaskListRow duration editing', () => {
         onTasksChange={onTasksChange}
         onRowClick={() => {}}
         onChipSelect={() => {}}
+        selectedChip={{ successorId: 'task-1', predecessorId: 'pred', linkType: 'FS' }}
+        resolvedColumns={createBuiltInColumns()}
         businessDays={true}
       />
     );
 
+    const editButton = container.querySelector('.gantt-tl-dep-expand') as HTMLButtonElement;
+    expect(editButton).toBeTruthy();
+    expect(editButton.getAttribute('aria-label')).toBe('Редактировать связь');
+    fireEvent.click(editButton);
     const lagInput = container.querySelector('.gantt-tl-dep-edit-input') as HTMLInputElement;
     expect(lagInput).toBeTruthy();
 

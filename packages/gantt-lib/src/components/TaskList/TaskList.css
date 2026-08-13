@@ -1133,6 +1133,12 @@
 }
 
 /* Dependency chip — clickable to select and trigger predecessor-side delete */
+.gantt-tl-dep-chip-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .gantt-tl-dep-chip {
   display: inline-flex;
   align-items: center;
@@ -1159,6 +1165,30 @@
   cursor: pointer;
   font-size: 0.75rem;
   padding: 3px 6px;
+}
+
+.gantt-tl-dep-expand {
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #2563eb;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.gantt-tl-dep-expand:hover,
+.gantt-tl-dep-expand:focus-visible {
+  background: rgba(37, 99, 235, 0.12);
+  outline: none;
 }
 
 .gantt-tl-dep-chip-with-number:hover {
