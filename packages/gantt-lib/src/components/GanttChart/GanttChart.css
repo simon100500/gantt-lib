@@ -83,6 +83,55 @@
   pointer-events: none;
 }
 
+.gantt-dependencyLineMenu {
+  position: absolute;
+  z-index: 32;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 4px 3px 8px;
+  border-radius: 7px;
+  background: var(--gantt-popover-bg, #fff);
+  box-shadow: 0 5px 16px rgba(15, 23, 42, .18), 0 0 0 1px rgba(148, 163, 184, .2);
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+.gantt-dependencyLineMenuType {
+  color: var(--gantt-dependency-hover-color, #ef4444);
+  font-size: .72rem;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.gantt-dependencyLineMenuDelete {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  color: #991b1b;
+  background: #fef2f2;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+  transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.gantt-dependencyLineMenuDelete:hover,
+.gantt-dependencyLineMenuDelete:focus-visible {
+  color: #fff;
+  background: #dc2626;
+  outline: none;
+}
+
+.gantt-dependencyLineMenuDelete:active {
+  transform: scale(.96);
+}
+
 .gantt-chartSurface {
   display: block;
 }

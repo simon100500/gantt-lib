@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { DependencyLines } from '../components/DependencyLines';
 import type { Task } from '../components/GanttChart';
 
@@ -40,5 +40,39 @@ describe('DependencyLines', () => {
     );
 
     expect(screen.getByText('+7')).toBeTruthy();
+  });
+
+  it('reports the exact dependency when its line is clicked', () => {
+    const onDependencyClick = vi.fn();
+    const tasks: Task[] = [
+      { id: 'pred-task', name: 'Pred', startDate: '2026-03-03', endDate: '2026-03-04' },
+      {
+        id: 'succ-task',
+        name: 'Succ',
+        startDate: '2026-03-05',
+        endDate: '2026-03-06',
+        dependencies: [{ taskId: 'pred-task', type: 'FS', lag: 0 }],
+      },
+    ];
+
+    const { container } = render(
+      <DependencyLines
+        tasks={tasks}
+        allTasks={tasks}
+        monthStart={new Date('2026-03-01T00:00:00.000Z')}
+        dayWidth={40}
+        rowHeight={40}
+        gridWidth={1240}
+        onDependencyClick={onDependencyClick}
+      />
+    );
+
+    fireEvent.click(container.querySelector('.gantt-dependency-hit-area')!);
+
+    expect(onDependencyClick).toHaveBeenCalledWith(expect.objectContaining({
+      predecessorId: 'pred-task',
+      successorId: 'succ-task',
+      linkType: 'FS',
+    }));
   });
 });

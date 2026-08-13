@@ -33,8 +33,8 @@ export const LINK_TYPE_ICONS: Record<LinkType, React.FC> = {
 };
 
 export const LINK_TYPE_LABELS: Record<LinkType, string> = {
-  FS: 'Окончание-начало',
-  SS: 'Начало-начало',
-  FF: 'Окончание-окончание',
-  SF: 'Начало-окончание',
+  FS: 'ОН',
+  SS: 'НН',
+  FF: 'ОО',
+  SF: 'НО',
 };

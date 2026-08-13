@@ -658,6 +658,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [dependencyCreationDrag, setDependencyCreationDrag] = useState<DependencyCreationDrag | null>(null);
   const dependencyCreationRef = useRef<DependencyCreationDrag | null>(null);
   const [dependencyCreationError, setDependencyCreationError] = useState<string | null>(null);
+  const [dependencyLineMenu, setDependencyLineMenu] = useState<{
+    predecessorId: string;
+    successorId: string;
+    linkType: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const getDependencyPortPoint = useCallback((element: Element, chartRect: DOMRect) => {
     const rect = element.getBoundingClientRect();
@@ -665,7 +672,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     return {
       // The port hit-area is deliberately outside the bar. Anchor the preview
       // to the actual bar boundary instead of the center of that outside zone.
-      x: Math.round((side === 'left' ? rect.right : rect.left) - chartRect.left),
+      x: Math.round((side === 'left' ? rect.right - 6 : rect.left + 6) - chartRect.left),
       y: Math.round(rect.top + rect.height / 2 - chartRect.top),
     };
   }, []);
@@ -800,6 +807,53 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const timeout = window.setTimeout(() => setDependencyCreationError(null), 3000);
     return () => window.clearTimeout(timeout);
   }, [dependencyCreationError]);
+
+  useEffect(() => {
+    if (!dependencyLineMenu) return;
+    const closeMenu = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.gantt-dependencyLineMenu')) setDependencyLineMenu(null);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDependencyLineMenu(null);
+    };
+    document.addEventListener('mousedown', closeMenu, true);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeMenu, true);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [dependencyLineMenu]);
+
+  const handleDependencyLineClick = useCallback((dependency: {
+    predecessorId: string;
+    successorId: string;
+    linkType: string;
+    x: number;
+    y: number;
+  }) => {
+    setSelectedChip({
+      predecessorId: dependency.predecessorId,
+      successorId: dependency.successorId,
+      linkType: dependency.linkType,
+    });
+    setDependencyLineMenu(dependency);
+  }, []);
+
+  const handleDependencyLineDelete = useCallback(() => {
+    if (!dependencyLineMenu) return;
+    const successor = tasks.find((task) => task.id === dependencyLineMenu.successorId);
+    if (!successor) return;
+    onTasksChange?.([{
+      ...successor,
+      dependencies: (successor.dependencies ?? []).filter((dependency) => !(
+        dependency.taskId === dependencyLineMenu!.predecessorId &&
+        dependency.type === dependencyLineMenu!.linkType
+      )),
+    } as TTask]);
+    setSelectedChip(null);
+    setDependencyLineMenu(null);
+  }, [dependencyLineMenu, onTasksChange, tasks]);
   const [activeTimelineTooltip, setActiveTimelineTooltip] = useState<{ label: string; left: number; color: string } | null>(null);
 
   // Hierarchy state: collapsed parent IDs (uncontrolled mode - internal state)
@@ -2100,7 +2154,32 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     selectedDep={selectedChip}
                     businessDays={businessDays}
                     weekendPredicate={isCustomWeekend}
+                    onDependencyClick={handleDependencyLineClick}
                   />
+
+                  {dependencyLineMenu && (
+                    <div
+                      className="gantt-dependencyLineMenu"
+                      style={{ left: `${dependencyLineMenu.x + 10}px`, top: `${dependencyLineMenu.y}px` }}
+                      role="dialog"
+                      aria-label="Действия со связью"
+                    >
+                      <span className="gantt-dependencyLineMenuType">
+                        {dependencyLineMenu.linkType === 'FS' ? 'ОН' : dependencyLineMenu.linkType === 'SS' ? 'НН' : dependencyLineMenu.linkType === 'FF' ? 'ОО' : 'НО'}
+                      </span>
+                      {!disableDependencyEditing && (
+                        <button
+                          type="button"
+                          className="gantt-dependencyLineMenuDelete"
+                          aria-label="Удалить связь"
+                          title="Удалить связь"
+                          onClick={handleDependencyLineDelete}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   <DependencyCreationOverlay
                     drag={dependencyCreationDrag}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Task } from '../../types';
 import { calculateDependencyPath, resolveTaskHorizontalGeometry } from '../../utils/geometry';
 import { isMilestoneTask } from '../../utils/taskType';
@@ -93,6 +93,14 @@ export interface DependencyLinesProps {
   selectedDep?: { predecessorId: string; successorId: string; linkType: string } | null;
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
+  /** Called when an existing dependency line is clicked. */
+  onDependencyClick?: (dependency: {
+    predecessorId: string;
+    successorId: string;
+    linkType: string;
+    x: number;
+    y: number;
+  }) => void;
 }
 
 /**
@@ -122,7 +130,9 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   selectedDep,
   businessDays = true,
   weekendPredicate,
+  onDependencyClick,
 }) => {
+  const [hoveredLineId, setHoveredLineId] = useState<string | null>(null);
   // Use allTasks for virtual position calculation if provided, otherwise use tasks
   const tasksForPositions = allTasks ?? tasks;
 
@@ -229,6 +239,9 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     const renderedTaskIdSet = new Set(tasks.map(t => t.id));
     const lines: Array<{
       id: string;
+      predecessorId: string;
+      successorId: string;
+      linkType: string;
       path: string;
       hasCycle: boolean;
       lag: number;
@@ -356,6 +369,9 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
       lines.push({
         id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
+        predecessorId: edge.predecessorId,
+        successorId: edge.successorId,
+        linkType: edge.type,
         path,
         hasCycle,
         lag: edge.lag,
@@ -448,7 +464,8 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         </marker>
       </defs>
 
-      {lines.map(({ id, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual }) => {
+      {lines.map(({ id, predecessorId, successorId, linkType, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual }) => {
+        const isHovered = hoveredLineId === id;
         const isSelected =
           selectedDep != null &&
           id === `${selectedDep.predecessorId}-${selectedDep.successorId}-${selectedDep.linkType}`;
@@ -471,7 +488,23 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
         return (
           <React.Fragment key={id}>
-            <g className="gantt-dependency-line">
+            <g
+              className={`gantt-dependency-line${isHovered ? ' gantt-dependency-line-hovered' : ''}`}
+              onPointerEnter={() => setHoveredLineId(id)}
+              onPointerLeave={() => setHoveredLineId((current) => current === id ? null : current)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDependencyClick?.({
+                  predecessorId,
+                  successorId,
+                  linkType,
+                  x: toX,
+                  y: reverseOrder ? fromY - 4 : fromY + 12,
+                });
+              }}
+              role="button"
+              aria-label={`Связь ${linkType}`}
+            >
               <path
                 d={path}
                 className="gantt-dependency-hit-area"

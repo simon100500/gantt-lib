@@ -12,6 +12,7 @@
 /* Interactive wrapper for one dependency line */
 .gantt-dependency-line {
   pointer-events: visibleStroke;
+  cursor: pointer;
 }
 
 /* Wide invisible stroke so thin dependency lines are easy to hover */
@@ -22,6 +23,7 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   pointer-events: stroke;
+  cursor: pointer;
 }
 
 /* Dependency line path */
@@ -51,13 +53,15 @@
   stroke-width: 2;
 }
 
-/* Hover highlight: sharp red highlighter-style backing */
-.gantt-dependency-line:hover .gantt-dependency-hit-area {
+/* Hover highlight is driven by one React state on the group. This avoids the
+   hit-area/path hover handoff that caused flicker. */
+.gantt-dependency-line-hovered .gantt-dependency-hit-area {
   stroke: var(--gantt-dependency-hover-background, rgba(239, 68, 68, 0.22));
-  stroke-width: 6;
+  /* Keep the hit area geometry unchanged while hovering to prevent flicker. */
+  stroke-width: 12;
 }
 
-.gantt-dependency-line:hover .gantt-dependency-path {
+.gantt-dependency-line-hovered .gantt-dependency-path {
   stroke: var(--gantt-dependency-hover-color, #ef4444);
   stroke-width: 2;
   marker-end: url(#arrowhead-hover);
