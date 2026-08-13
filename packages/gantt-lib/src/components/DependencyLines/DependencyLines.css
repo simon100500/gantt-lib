@@ -56,8 +56,8 @@
 /* Hover highlight is driven by one React state on the group. This avoids the
    hit-area/path hover handoff that caused flicker. */
 .gantt-dependency-line-hovered .gantt-dependency-hit-area {
-  stroke: var(--gantt-dependency-hover-background, rgba(239, 68, 68, 0.22));
-  /* Keep the hit area geometry unchanged while hovering to prevent flicker. */
+  /* Keep the hit area completely invisible; only the thin visible path reacts. */
+  stroke: transparent;
   stroke-width: 12;
 }
 

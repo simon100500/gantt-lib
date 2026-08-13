@@ -672,7 +672,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     return {
       // The port hit-area is deliberately outside the bar. Anchor the preview
       // to the actual bar boundary instead of the center of that outside zone.
-      x: Math.round((side === 'left' ? rect.right - 6 : rect.left + 6) - chartRect.left),
+      x: Math.round((side === 'left' ? rect.right - 14 : rect.left + 14) - chartRect.left),
       y: Math.round(rect.top + rect.height / 2 - chartRect.top),
     };
   }, []);
@@ -1976,7 +1976,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             disableTaskNameEditing={disableTaskNameEditing}
             disableDependencyEditing={disableDependencyEditing}
             onScrollToTask={scrollToTask}
-            onSelectedChipChange={setSelectedChip}
+            onSelectedChipChange={(chip) => setSelectedChip(
+              chip
+                ? { ...chip, linkType: chip.linkType as TaskDependency['type'] }
+                : null
+            )}
+            selectedChip={selectedChip}
             onAdd={onAdd as ((task: Task) => void) | undefined}
             onDelete={handleDelete}
             onInsertAfter={handleInsertAfter as ((taskId: string, newTask: Task) => void) | undefined}

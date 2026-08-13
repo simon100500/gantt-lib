@@ -209,6 +209,8 @@ export interface TaskListProps {
   onScrollToTask?: (taskId: string) => void;
   /** Callback when selected chip changes (used by GanttChart to highlight the corresponding arrow) */
   onSelectedChipChange?: (chip: { successorId: string; predecessorId: string; linkType: string } | null) => void;
+  /** Selected dependency controlled by the chart, e.g. after clicking a dependency line */
+  selectedChip?: { successorId: string; predecessorId: string; linkType: string } | null;
   /** Callback when a new task is added (called with full Task object including generated id) */
   onAdd?: (task: Task) => void;
   /** Callback when a task is deleted (called with taskId) */
@@ -372,6 +374,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   disableDependencyEditing = false,
   onScrollToTask,
   onSelectedChipChange,
+  selectedChip: controlledSelectedChip,
   onAdd,
   onDelete,
   onInsertAfter,
@@ -646,7 +649,17 @@ export const TaskList: React.FC<TaskListProps> = ({
     successorId: string;
     predecessorId: string;
     linkType: LinkType;
-  } | null>(null);
+  } | null>(controlledSelectedChip
+    ? { ...controlledSelectedChip, linkType: controlledSelectedChip.linkType as LinkType }
+    : null);
+
+  useEffect(() => {
+    if (controlledSelectedChip !== undefined) {
+      setSelectedChip(controlledSelectedChip
+        ? { ...controlledSelectedChip, linkType: controlledSelectedChip.linkType as LinkType }
+        : null);
+    }
+  }, [controlledSelectedChip]);
 
   const handleChipSelect = useCallback((chip: {
     successorId: string;
