@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.122.0] - 2026-08-14
+
+### Features
+
+- Add graphical dependency creation through task-bar connection ports
+- Add dependency-line selection, deletion menu, and lag editing button
+- Add Russian dependency type labels: ОН, НН, ОО, НО
+
+### Fixes
+
+- Improve dependency-line hover behavior and connection-port positioning
+- Preserve dependency selection while moving or panning the chart canvas
+
 ## [0.121.0] - 2026-06-04
 
 ### Features
