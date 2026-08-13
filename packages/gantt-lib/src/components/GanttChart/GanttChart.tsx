@@ -672,7 +672,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     return {
       // The port hit-area is deliberately outside the bar. Anchor the preview
       // to the actual bar boundary instead of the center of that outside zone.
-      x: Math.round((side === 'left' ? rect.right - 14 : rect.left + 14) - chartRect.left),
+      x: Math.round((side === 'left' ? rect.right - 6 : rect.left + 6) - chartRect.left),
       y: Math.round(rect.top + rect.height / 2 - chartRect.top),
     };
   }, []);

@@ -151,7 +151,7 @@
   top: 50%;
   z-index: 12;
   width: 24px;
-  height: min(40px, 100%);
+  height: var(--gantt-dependency-port-height, var(--gantt-task-bar-height, 28px));
   padding: 0;
   border: 0;
   border-radius: 8px;
@@ -204,15 +204,21 @@
 }
 
 .gantt-tr-dependencyPortLeft::after {
-  left: 4px;
+  left: 12px;
 }
 
 .gantt-tr-dependencyPortRight::after {
-  left: 8px;
+  left: 0;
 }
 
 .gantt-tr-dependencyPortMilestone {
-  height: min(40px, 100%);
+  height: var(--gantt-dependency-port-height, 14px);
+}
+
+.gantt-tr-dependencyPortParent {
+  top: calc(50% - 20px);
+  height: var(--gantt-parent-bar-height, 14px);
+  transform: none;
 }
 
 .gantt-tr-dependencyPortDragActive {

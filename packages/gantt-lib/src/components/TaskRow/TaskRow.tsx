@@ -450,7 +450,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 data-gantt-dependency-port
                 data-task-id={task.id}
                 data-port-side="left"
-                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortLeft ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
+                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortLeft ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isParent ? 'gantt-tr-dependencyPortParent' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
                 style={{ left: `${visualLeft - 24}px` }}
                 aria-label={`Начать связь от левого края: ${task.name}`}
                 title="Потяните к краю другой полосы, чтобы создать связь"
@@ -461,7 +461,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 data-gantt-dependency-port
                 data-task-id={task.id}
                 data-port-side="right"
-                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortRight ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
+                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortRight ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isParent ? 'gantt-tr-dependencyPortParent' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
                 style={{ left: `${visualLeft + visualWidth}px` }}
                 aria-label={`Начать связь от правого края: ${task.name}`}
                 title="Потяните к краю другой полосы, чтобы создать связь"

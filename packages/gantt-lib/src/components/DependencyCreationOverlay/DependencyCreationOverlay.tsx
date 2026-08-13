@@ -3,6 +3,13 @@
 import React from 'react';
 import './DependencyCreationOverlay.css';
 
+const LINK_TYPE_LABELS_RU: Record<string, string> = {
+  FS: 'ОН',
+  SS: 'НН',
+  FF: 'ОО',
+  SF: 'НО',
+};
+
 export interface DependencyCreationDrag {
   sourceId: string;
   sourceSide: 'left' | 'right';
@@ -59,7 +66,7 @@ export const DependencyCreationOverlay: React.FC<DependencyCreationOverlayProps>
       />
       {drag.linkType && (
         <text className="gantt-dependencyCreation-label" x={drag.current.x + 10} y={drag.current.y - 10}>
-          {drag.linkType}
+          {LINK_TYPE_LABELS_RU[drag.linkType] ?? drag.linkType}
         </text>
       )}
     </svg>
