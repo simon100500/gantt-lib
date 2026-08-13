@@ -12,18 +12,19 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Setup npm
-        run: corepack enable && corepack prepare npm@11.6.2 --activate
+          package-manager-cache: false
 
       - name: Install dependencies
         run: npm install
@@ -51,6 +52,5 @@ jobs:
           npm version $VERSION --no-git-tag-version --allow-same-version
 
       - name: Publish to npm
-        run: cd packages/gantt-lib && npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: packages/gantt-lib
+        run: npm publish --access public --provenance
