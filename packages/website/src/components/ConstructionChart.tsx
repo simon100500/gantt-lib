@@ -113,6 +113,7 @@ export default function ConstructionChart() {
   const [taskFilter, setTaskFilter] = useState<TaskPredicate | undefined>(undefined);
   const [taskFilterId, setTaskFilterId] = useState<string | undefined>(undefined);
   const [filterMode, setFilterMode] = useState<'highlight' | 'hide'>('highlight');
+  const [criticalPathMode, setCriticalPathMode] = useState<'highlight' | 'hide' | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearchResultIndex, setActiveSearchResultIndex] = useState(0);
   const [menuDialogTask, setMenuDialogTask] = useState<Task | null>(null);
@@ -371,6 +372,13 @@ export default function ConstructionChart() {
         <button onClick={() => { setTaskFilter(() => or(expired(), withoutDeps())); setTaskFilterId('or:expired:withoutDeps'); }} style={filterBtnStyle()}>Просроченные ИЛИ без зависимостей</button>
       </div>
 
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Критический путь:</span>
+        <button onClick={() => setCriticalPathMode(undefined)} style={filterBtnStyle(criticalPathMode === undefined)}>Выкл</button>
+        <button onClick={() => setCriticalPathMode('highlight')} style={filterBtnStyle(criticalPathMode === 'highlight', '#dc2626')}>Подсветить</button>
+        <button onClick={() => setCriticalPathMode('hide')} style={filterBtnStyle(criticalPathMode === 'hide', '#dc2626')}>Только критические</button>
+      </div>
+
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
         <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Масштаб:</span>
         <button onClick={() => setViewMode('day')} style={filterBtnStyle(viewMode === 'day')}>По дням</button>
@@ -412,6 +420,7 @@ export default function ConstructionChart() {
           selectedTaskIds={selectedTaskIds}
           onSelectedTaskIdsChange={setSelectedTaskIds}
           filterMode={filterMode}
+          criticalPathMode={criticalPathMode}
           taskListMenuCommands={taskListMenuCommands}
         />
       </div>
