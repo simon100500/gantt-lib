@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.123.0] - 2026-08-16
+
+### Features
+
+- Add configurable add-task button label via the `addTaskLabel` prop
+
+### Fixes
+
+- Fix positioning of the dependency-list editing control in the popover
+
 ## [0.122.0] - 2026-08-14
 
 ### Features
