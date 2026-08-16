@@ -1,26 +1,37 @@
 /**
- * Critical path (CPM) calculation over FS dependency links.
+ * Critical path (CPM) calculation over dependency links.
  * Zero React/DOM/date-fns imports.
  *
  * Semantics:
  * - Only leaf tasks (no task references them as parentId) participate in the graph.
- * - Only FS links with calendar lags are edges; SS/FF/SF are ignored.
+ * - All link types are edges — FS, SS, FF, SF — with calendar lags, mirroring
+ *   calculateSuccessorDate:
+ *     FS: succStart >= predEnd + lag          SS: succStart >= predStart + lag
+ *     FF: succEnd   >= predEnd   + lag        SF: succEnd   >= predStart + lag
  * - A dependency on a parent task (a task that has children) is expanded to its
- *   leaf descendants: the successor is constrained by every descendant leaf, so
- *   only the longest-finishing leaf of the group ends up on the critical path.
+ *   leaf descendants with the same link type and lag. For finish-anchored links
+ *   (FS/FF) the group is bounded by its latest-finishing leaf; for start-anchored
+ *   links (SS/SF) by its latest-starting leaf — a conservative approximation of
+ *   the group's span.
  * - Task weight = business-day duration (getTaskDuration); edge weight = calendar lag.
  * - Task is critical when its float (LS - ES) is exactly 0 AND it has at least one
- *   FS edge (incoming or outgoing). Isolated tasks are never critical.
+ *   dependency edge. Isolated tasks are never critical.
  * - Cycles are skipped by topological ordering (Kahn) — cyclic tasks are not critical.
  */
 
-import type { ScheduleTask } from './types';
+import type { ScheduleTask, LinkType } from './types';
 import { getTaskDuration } from './dateMath';
 import { getDependencyLag } from './dependencies';
 
 export interface CriticalPathOptions {
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
+}
+
+interface Edge {
+  succId: string;
+  lag: number;
+  type: LinkType;
 }
 
 export function computeCriticalPath(
@@ -53,33 +64,32 @@ export function computeCriticalPath(
   const durationOf = (task: ScheduleTask): number =>
     getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
 
-  // FS-only adjacency: predecessor -> successors, successor -> predecessors.
-  const succByPred = new Map<string, Array<{ succId: string; lag: number }>>();
-  const predBySucc = new Map<string, Array<{ predId: string; lag: number }>>();
+  // Adjacency over all link types: predecessor -> successors, successor -> predecessors.
+  const succByPred = new Map<string, Edge[]>();
+  const predBySucc = new Map<string, Array<{ predId: string; lag: number; type: LinkType }>>();
   const seenEdges = new Set<string>();
 
-  const addEdge = (predecessorId: string, succId: string, lag: number) => {
-    const edgeKey = `${predecessorId}|${succId}`;
+  const addEdge = (predecessorId: string, succId: string, lag: number, type: LinkType) => {
+    const edgeKey = `${predecessorId}|${succId}|${type}`;
     if (seenEdges.has(edgeKey)) return;
     seenEdges.add(edgeKey);
 
     const outEdges = succByPred.get(predecessorId) ?? [];
-    outEdges.push({ succId, lag });
+    outEdges.push({ succId, lag, type });
     succByPred.set(predecessorId, outEdges);
 
     const inEdges = predBySucc.get(succId) ?? [];
-    inEdges.push({ predId: predecessorId, lag });
+    inEdges.push({ predId: predecessorId, lag, type });
     predBySucc.set(succId, inEdges);
   };
 
   for (const succ of leafTasks) {
     for (const dep of succ.dependencies ?? []) {
-      if (dep.type !== 'FS') continue;
       const lag = getDependencyLag(dep);
 
       // Predecessor is a leaf: direct edge.
       if (leafIds.has(dep.taskId)) {
-        addEdge(dep.taskId, succ.id, lag);
+        addEdge(dep.taskId, succ.id, lag, dep.type);
         continue;
       }
 
@@ -89,7 +99,7 @@ export function computeCriticalPath(
       if (!descendants || descendants.size === 0) continue;
       for (const leafId of descendants) {
         if (leafId === succ.id) continue;
-        addEdge(leafId, succ.id, lag);
+        addEdge(leafId, succ.id, lag, dep.type);
       }
     }
   }
@@ -131,13 +141,24 @@ export function computeCriticalPath(
 
   for (const id of order) {
     const task = taskById.get(id)!;
+    const durSucc = durationOf(task);
     let es = 0;
-    for (const { predId, lag } of predBySucc.get(id) ?? []) {
-      const candidate = (ES.get(predId) ?? 0) + durationOf(taskById.get(predId)!) + lag;
+    for (const { predId, lag, type } of predBySucc.get(id) ?? []) {
+      const predTask = taskById.get(predId)!;
+      const predEs = ES.get(predId) ?? 0;
+      const predEf = predEs + durationOf(predTask);
+      let candidate: number;
+      switch (type) {
+        case 'FS': candidate = predEf + lag; break;
+        case 'SS': candidate = predEs + lag; break;
+        case 'FF': candidate = predEf + lag - durSucc; break;
+        case 'SF': candidate = predEs + lag - durSucc; break;
+        default: candidate = 0;
+      }
       if (candidate > es) es = candidate;
     }
     ES.set(id, es);
-    EF.set(id, es + durationOf(task));
+    EF.set(id, es + durSucc);
   }
 
   const projectFinish = Math.max(0, ...leafTasks.map((leaf) => EF.get(leaf.id) ?? 0));
@@ -150,13 +171,25 @@ export function computeCriticalPath(
   for (let i = order.length - 1; i >= 0; i--) {
     const id = order[i];
     const task = taskById.get(id)!;
+    const durPred = durationOf(task);
     const outEdges = succByPred.get(id) ?? [];
     let lf = projectFinish;
     if (outEdges.length > 0) {
-      lf = Math.min(...outEdges.map(({ succId, lag }) => (LS.get(succId) ?? projectFinish) - lag));
+      const candidates = outEdges.map(({ succId, lag, type }) => {
+        const succLs = LS.get(succId) ?? projectFinish;
+        const durSucc = durationOf(taskById.get(succId)!);
+        switch (type) {
+          case 'FS': return succLs - lag;
+          case 'SS': return succLs - lag + durPred;
+          case 'FF': return succLs + durSucc - lag;
+          case 'SF': return succLs + durSucc - lag + durPred;
+          default: return projectFinish;
+        }
+      });
+      lf = Math.min(projectFinish, ...candidates);
     }
     LF.set(id, lf);
-    LS.set(id, lf - durationOf(task));
+    LS.set(id, lf - durPred);
   }
 
   const critical = new Set<string>();

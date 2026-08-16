@@ -48,14 +48,15 @@ describe('computeCriticalPath', () => {
     expect(computeCriticalPath(tasks)).toEqual(new Set(['A', 'B', 'C']));
   });
 
-  it('ignores non-FS links (SS/FF/SF) when building the graph', () => {
+  it('uses SS/FF/SF links when building the graph', () => {
     const tasks = [
       makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
       makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10', dependencies: [{ taskId: 'A', type: 'SS', lag: 0 }] }),
       makeTask({ id: 'C', startDate: '2026-01-11', endDate: '2026-01-13', dependencies: [{ taskId: 'B', type: 'FF', lag: 0 }] }),
       makeTask({ id: 'D', startDate: '2026-01-14', endDate: '2026-01-16', dependencies: [{ taskId: 'C', type: 'SF', lag: 0 }] }),
     ];
-    expect(computeCriticalPath(tasks)).toEqual(new Set());
+    // A non-empty result proves non-FS links create edges — isolated tasks are never critical.
+    expect(computeCriticalPath(tasks).size).toBeGreaterThan(0);
   });
 
   it('accounts for a negative FS lag shortening the path', () => {
@@ -136,14 +137,16 @@ describe('computeCriticalPath', () => {
     expect(computeCriticalPath(tasks)).toEqual(new Set());
   });
 
-  it('does not expand non-FS dependencies on a parent group', () => {
+  it('expands non-FS dependencies on a parent group to its leaf descendants', () => {
     const tasks = [
       makeTask({ id: 'P', startDate: '2026-01-05', endDate: '2026-01-15' }),
       makeTask({ id: 'A1', startDate: '2026-01-05', endDate: '2026-01-07', parentId: 'P' }),
       makeTask({ id: 'A2', startDate: '2026-01-08', endDate: '2026-01-12', parentId: 'P' }),
       makeTask({ id: 'B', startDate: '2026-01-13', endDate: '2026-01-15', dependencies: [{ taskId: 'P', type: 'SS', lag: 0 }] }),
     ];
-    expect(computeCriticalPath(tasks)).toEqual(new Set());
+    // SS on a parent group is expanded to every descendant leaf (A2 stays critical;
+    // B starts together with the group, so it is not critical).
+    expect(computeCriticalPath(tasks)).toEqual(new Set(['A2']));
   });
 
   it('uses business days for task weight when businessDays=true', () => {
