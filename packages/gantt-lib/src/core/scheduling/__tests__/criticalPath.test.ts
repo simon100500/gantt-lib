@@ -106,6 +106,46 @@ describe('computeCriticalPath', () => {
     expect(result).toEqual(new Set(['A', 'B']));
   });
 
+  it('expands a dependency on a parent group to its leaf descendants', () => {
+    const tasks = [
+      makeTask({ id: 'P', startDate: '2026-01-05', endDate: '2026-01-15' }),
+      makeTask({ id: 'A1', startDate: '2026-01-05', endDate: '2026-01-07', parentId: 'P' }),
+      makeTask({ id: 'A2', startDate: '2026-01-08', endDate: '2026-01-12', parentId: 'P' }),
+      makeTask({ id: 'B', startDate: '2026-01-13', endDate: '2026-01-15', dependencies: [{ taskId: 'P', type: 'FS', lag: 0 }] }),
+    ];
+    // Only the last-finishing leaf of the group constrains the successor.
+    expect(computeCriticalPath(tasks)).toEqual(new Set(['A2', 'B']));
+  });
+
+  it('expands a dependency on an ancestor group across nested levels', () => {
+    const tasks = [
+      makeTask({ id: 'G', startDate: '2026-01-05', endDate: '2026-01-20' }),
+      makeTask({ id: 'P', startDate: '2026-01-05', endDate: '2026-01-15', parentId: 'G' }),
+      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-12', parentId: 'P' }),
+      makeTask({ id: 'B', startDate: '2026-01-16', endDate: '2026-01-20', dependencies: [{ taskId: 'G', type: 'FS', lag: 0 }] }),
+    ];
+    expect(computeCriticalPath(tasks)).toEqual(new Set(['A', 'B']));
+  });
+
+  it('skips a self-loop when a leaf depends on its own parent group', () => {
+    const tasks = [
+      makeTask({ id: 'P', startDate: '2026-01-05', endDate: '2026-01-12' }),
+      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07', parentId: 'P', dependencies: [{ taskId: 'P', type: 'FS', lag: 0 }] }),
+    ];
+    expect(() => computeCriticalPath(tasks)).not.toThrow();
+    expect(computeCriticalPath(tasks)).toEqual(new Set());
+  });
+
+  it('does not expand non-FS dependencies on a parent group', () => {
+    const tasks = [
+      makeTask({ id: 'P', startDate: '2026-01-05', endDate: '2026-01-15' }),
+      makeTask({ id: 'A1', startDate: '2026-01-05', endDate: '2026-01-07', parentId: 'P' }),
+      makeTask({ id: 'A2', startDate: '2026-01-08', endDate: '2026-01-12', parentId: 'P' }),
+      makeTask({ id: 'B', startDate: '2026-01-13', endDate: '2026-01-15', dependencies: [{ taskId: 'P', type: 'SS', lag: 0 }] }),
+    ];
+    expect(computeCriticalPath(tasks)).toEqual(new Set());
+  });
+
   it('uses business days for task weight when businessDays=true', () => {
     const tasks = [
       // A: Mon..Sun = 7 calendar days, 5 business days

@@ -5,6 +5,9 @@
  * Semantics:
  * - Only leaf tasks (no task references them as parentId) participate in the graph.
  * - Only FS links with calendar lags are edges; SS/FF/SF are ignored.
+ * - A dependency on a parent task (a task that has children) is expanded to its
+ *   leaf descendants: the successor is constrained by every descendant leaf, so
+ *   only the longest-finishing leaf of the group ends up on the critical path.
  * - Task weight = business-day duration (getTaskDuration); edge weight = calendar lag.
  * - Task is critical when its float (LS - ES) is exactly 0 AND it has at least one
  *   FS edge (incoming or outgoing). Isolated tasks are never critical.
@@ -35,26 +38,59 @@ export function computeCriticalPath(
   const leafTasks = tasks.filter((task) => !childIds.has(task.id));
   const leafIds = new Set(leafTasks.map((task) => task.id));
 
+  // Map any task id (parent or not) to ALL of its leaf descendants (transitive).
+  const leafIdsByAncestor = new Map<string, Set<string>>();
+  for (const leaf of leafTasks) {
+    let ancestor: string | undefined = leaf.parentId;
+    while (ancestor) {
+      const set = leafIdsByAncestor.get(ancestor) ?? new Set<string>();
+      set.add(leaf.id);
+      leafIdsByAncestor.set(ancestor, set);
+      ancestor = taskById.get(ancestor)?.parentId;
+    }
+  }
+
   const durationOf = (task: ScheduleTask): number =>
     getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
 
   // FS-only adjacency: predecessor -> successors, successor -> predecessors.
   const succByPred = new Map<string, Array<{ succId: string; lag: number }>>();
   const predBySucc = new Map<string, Array<{ predId: string; lag: number }>>();
+  const seenEdges = new Set<string>();
+
+  const addEdge = (predecessorId: string, succId: string, lag: number) => {
+    const edgeKey = `${predecessorId}|${succId}`;
+    if (seenEdges.has(edgeKey)) return;
+    seenEdges.add(edgeKey);
+
+    const outEdges = succByPred.get(predecessorId) ?? [];
+    outEdges.push({ succId, lag });
+    succByPred.set(predecessorId, outEdges);
+
+    const inEdges = predBySucc.get(succId) ?? [];
+    inEdges.push({ predId: predecessorId, lag });
+    predBySucc.set(succId, inEdges);
+  };
 
   for (const succ of leafTasks) {
     for (const dep of succ.dependencies ?? []) {
       if (dep.type !== 'FS') continue;
-      if (!leafIds.has(dep.taskId)) continue;
       const lag = getDependencyLag(dep);
 
-      const outEdges = succByPred.get(dep.taskId) ?? [];
-      outEdges.push({ succId: succ.id, lag });
-      succByPred.set(dep.taskId, outEdges);
+      // Predecessor is a leaf: direct edge.
+      if (leafIds.has(dep.taskId)) {
+        addEdge(dep.taskId, succ.id, lag);
+        continue;
+      }
 
-      const inEdges = predBySucc.get(succ.id) ?? [];
-      inEdges.push({ predId: dep.taskId, lag });
-      predBySucc.set(succ.id, inEdges);
+      // Predecessor is a parent/group: expand to every leaf descendant.
+      // The successor's own leaf (self-loop) is skipped.
+      const descendants = leafIdsByAncestor.get(dep.taskId);
+      if (!descendants || descendants.size === 0) continue;
+      for (const leafId of descendants) {
+        if (leafId === succ.id) continue;
+        addEdge(leafId, succ.id, lag);
+      }
     }
   }
 
