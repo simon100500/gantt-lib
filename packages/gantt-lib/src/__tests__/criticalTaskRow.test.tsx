@@ -33,8 +33,8 @@ function getBar(container: HTMLElement) {
   return container.querySelector('[data-taskbar]') as HTMLElement;
 }
 
-describe('TaskRow critical path bar color', () => {
-  it('paints the bar with the critical path color when isCritical is true', () => {
+describe('TaskRow critical path bar hatching', () => {
+  it('adds the critical-path class to the bar when isCritical is true', () => {
     const task = makeTask({ id: 'A', startDate: '2026-02-02', endDate: '2026-02-04' });
     const { container } = render(
       <TaskRow
@@ -47,7 +47,9 @@ describe('TaskRow critical path bar color', () => {
         isCritical
       />
     );
-    expect(getBar(container).style.backgroundColor).toBe('var(--gantt-critical-path-color, #dc2626)');
+    expect(getBar(container).classList.contains('gantt-tr-critical')).toBe(true);
+    // Critical path is marked by hatching, the bar keeps its own color.
+    expect(getBar(container).style.backgroundColor).toBe('var(--gantt-task-bar-default-color)');
   });
 
   it('keeps task.color when isCritical is false', () => {
@@ -65,6 +67,7 @@ describe('TaskRow critical path bar color', () => {
     );
     // jsdom normalizes the hex #123456 to rgb(18, 52, 86)
     expect(getBar(container).style.backgroundColor).toBe('rgb(18, 52, 86)');
+    expect(getBar(container).classList.contains('gantt-tr-critical')).toBe(false);
   });
 
   it('prioritizes expired over critical', () => {
@@ -84,7 +87,7 @@ describe('TaskRow critical path bar color', () => {
     expect(getBar(container).style.backgroundColor).toBe('var(--gantt-expired-color)');
   });
 
-  it('adds the critical color to a parent bar', () => {
+  it('adds the critical-path class to a parent bar without repainting it', () => {
     const parent = makeTask({ id: 'P', startDate: '2026-02-02', endDate: '2026-02-08' });
     const child = makeTask({ id: 'A', startDate: '2026-02-02', endDate: '2026-02-04', parentId: 'P' });
     const { container } = render(
@@ -98,6 +101,7 @@ describe('TaskRow critical path bar color', () => {
         isCritical
       />
     );
-    expect(getBar(container).style.getPropertyValue('--gantt-parent-bar-color')).toBe('var(--gantt-critical-path-color, #dc2626)');
+    expect(getBar(container).classList.contains('gantt-tr-critical')).toBe(true);
+    expect(getBar(container).style.getPropertyValue('--gantt-parent-bar-color')).toBe('#782FC4');
   });
 });

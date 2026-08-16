@@ -198,12 +198,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       return calculateTaskBar(baselineStartDate, baselineEndDate, monthStart, dayWidth);
     }, [baselineStartDate, baselineEndDate, milestone, monthStart, dayWidth]);
 
-    // Determine task bar color
+    // Determine task bar color. Critical path is marked by CSS hatching
+    // (gantt-tr-critical class), not by repainting the bar.
     const barColor = isExpired
       ? 'var(--gantt-expired-color)'
-      : isCritical
-        ? 'var(--gantt-critical-path-color, #dc2626)'
-        : (task.color || 'var(--gantt-task-bar-default-color)');
+      : (task.color || 'var(--gantt-task-bar-default-color)');
 
     // Calculate clamped and rounded progress width
     const progressWidth = useMemo(() => {
@@ -223,29 +222,23 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           : 'var(--gantt-progress-completed, #fbbf24)';   // Yellow for completed (not accepted)
       }
       // Darker shade using color-mix() with task color or default
-      const baseColor = isCritical
-        ? 'var(--gantt-critical-path-color, #dc2626)'
-        : (task.color || 'var(--gantt-task-bar-default-color)');
+      const baseColor = task.color || 'var(--gantt-task-bar-default-color)';
       return `color-mix(in srgb, ${baseColor} 40%, black)`;
-    }, [isExpired, isCritical, progressWidth, task.accepted, task.color]);
+    }, [isExpired, progressWidth, task.accepted, task.color]);
 
     const externalTaskNameColor = useMemo(() => {
       if (isExpired) {
         return 'color-mix(in srgb, var(--gantt-expired-color) 40%, black)';
       }
-      const baseColor = isCritical
-        ? 'var(--gantt-critical-path-color, #dc2626)'
-        : isParent
-          ? (task.color || defaultParentBarColor)
-          : (task.color || 'var(--gantt-task-bar-default-color)');
+      const baseColor = isParent
+        ? (task.color || defaultParentBarColor)
+        : (task.color || 'var(--gantt-task-bar-default-color)');
       return `color-mix(in srgb, ${baseColor} 40%, black)`;
-    }, [defaultParentBarColor, isExpired, isCritical, isParent, task.color]);
+    }, [defaultParentBarColor, isExpired, isParent, task.color]);
 
     // At 100% progress, tint the bar itself instead of rendering a fill overlay.
     const barStyle = useMemo(() => {
-      const parentBarColor = isCritical
-        ? 'var(--gantt-critical-path-color, #dc2626)'
-        : (task.color || defaultParentBarColor);
+      const parentBarColor = task.color || defaultParentBarColor;
       if (isParent) {
         if (progressWidth >= 100) {
           const c = isExpired
@@ -259,7 +252,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         return { backgroundColor: progressColor };
       }
       return { backgroundColor: barColor };
-    }, [defaultParentBarColor, isExpired, isCritical, isParent, progressWidth, barColor, progressColor, task.color]);
+    }, [defaultParentBarColor, isExpired, isParent, progressWidth, barColor, progressColor, task.color]);
 
     // Handle drag end - call onTasksChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
@@ -408,7 +401,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           )}
           <div
             data-taskbar
-            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${task.synced === false ? 'gantt-tr-unsynced' : ''} ${isParent ? 'gantt-tr-parentBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''}`}
+            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${task.synced === false ? 'gantt-tr-unsynced' : ''} ${isParent ? 'gantt-tr-parentBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''} ${isCritical ? 'gantt-tr-critical' : ''}`}
             style={{
               left: `${visualLeft}px`,
               ...barStyle,

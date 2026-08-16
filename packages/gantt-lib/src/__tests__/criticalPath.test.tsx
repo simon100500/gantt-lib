@@ -27,7 +27,7 @@ function getRow(container: HTMLElement, taskId: string) {
 }
 
 describe('GanttChart criticalPathMode', () => {
-  it('highlight mode paints critical bars and leaves non-critical bars untouched', () => {
+  it('highlight mode marks critical bars with the critical-path class', () => {
     const tasks: Task[] = [
       makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
       makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
@@ -39,10 +39,10 @@ describe('GanttChart criticalPathMode', () => {
       <GanttChart tasks={tasks} criticalPathMode="highlight" rowHeight={36} headerHeight={36} />
     );
 
-    expect(getBar(container, 'A')?.style.backgroundColor).toBe('var(--gantt-critical-path-color, #dc2626)');
-    expect(getBar(container, 'B')?.style.backgroundColor).toBe('var(--gantt-critical-path-color, #dc2626)');
-    expect(getBar(container, 'C')?.style.backgroundColor).toBe('var(--gantt-critical-path-color, #dc2626)');
-    expect(getBar(container, 'D')?.style.backgroundColor).toBe('var(--gantt-task-bar-default-color)');
+    expect(getBar(container, 'A')?.classList.contains('gantt-tr-critical')).toBe(true);
+    expect(getBar(container, 'B')?.classList.contains('gantt-tr-critical')).toBe(true);
+    expect(getBar(container, 'C')?.classList.contains('gantt-tr-critical')).toBe(true);
+    expect(getBar(container, 'D')?.classList.contains('gantt-tr-critical')).toBe(false);
   });
 
   it('highlight mode marks the FS chain lines as critical', () => {

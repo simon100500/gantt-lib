@@ -43,6 +43,38 @@
   cursor: grab;
 }
 
+/* Critical path task bar: diagonal hatching over the bar's own color. */
+.gantt-tr-taskBar.gantt-tr-critical {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--gantt-critical-path-color, #dc2626) 55%, transparent) 0,
+    color-mix(in srgb, var(--gantt-critical-path-color, #dc2626) 55%, transparent) 5px,
+    transparent 5px,
+    transparent 10px
+  );
+}
+
+.gantt-tr-taskBar.gantt-tr-critical.gantt-tr-parentBar {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--gantt-critical-path-color, #dc2626) 45%, transparent) 0,
+    color-mix(in srgb, var(--gantt-critical-path-color, #dc2626) 45%, transparent) 5px,
+    transparent 5px,
+    transparent 10px
+  );
+}
+
+/* Keep the hatching visible over the progress fill too. */
+.gantt-tr-taskBar.gantt-tr-critical .gantt-tr-progressBar {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--gantt-critical-path-color, #dc2626) 55%, transparent) 0,
+    color-mix(in srgb, var(--gantt-critical-path-color, #dc2626) 55%, transparent) 5px,
+    transparent 5px,
+    transparent 10px
+  );
+}
+
 .gantt-tr-milestone {
   border-radius: 2px;
   overflow: visible;
