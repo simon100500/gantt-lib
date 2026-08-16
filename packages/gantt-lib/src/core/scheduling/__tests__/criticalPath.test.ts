@@ -79,12 +79,12 @@ describe('computeCriticalPath', () => {
     expect(computeCriticalPath(tasks)).toEqual(new Set(['A', 'M']));
   });
 
-  it('does not mark isolated tasks (no FS edges) as critical', () => {
+  it('marks an isolated task as critical when it determines project finish', () => {
     const tasks = [
       makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
       makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10' }),
     ];
-    expect(computeCriticalPath(tasks)).toEqual(new Set());
+    expect(computeCriticalPath(tasks)).toEqual(new Set(['B']));
   });
 
   it('uses the scheduled project finish, not abstract path length, for total float', () => {

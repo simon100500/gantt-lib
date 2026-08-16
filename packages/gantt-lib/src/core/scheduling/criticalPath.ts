@@ -18,8 +18,9 @@
  * - The scheduled task dates are used as the current starts. The project finish is
  *   the latest scheduled leaf finish, so a late short branch can be critical even
  *   when a longer branch started earlier.
- * - Task is critical when its total float (late start - scheduled start) is <= 0
- *   and it participates in at least one dependency edge.
+ * - Task is critical when its total float (late start - scheduled start) is <= 0.
+ *   A standalone task can therefore be critical when it determines the project
+ *   finish; dependency membership is not a prerequisite for criticality.
  * - Cycles are skipped by topological ordering (Kahn) — cyclic tasks are not critical.
  */
 
@@ -198,10 +199,14 @@ export function computeCriticalPath(
     // Vertices trapped in cycles never entered the topological order and are
     // never critical.
     if (!ordered.has(leaf.id)) continue;
-    const hasEdge =
+    const hasGraphEdge =
       (succByPred.get(leaf.id)?.length ?? 0) > 0 ||
       (predBySucc.get(leaf.id)?.length ?? 0) > 0;
-    if (!hasEdge) continue;
+    // A task with no declared dependencies is a legitimate standalone
+    // project task and may determine the project finish. If it declares
+    // dependencies but none resolved to a valid graph edge (for example a
+    // self-reference through its own parent), it is not a schedulable path.
+    if (!hasGraphEdge && (leaf.dependencies?.length ?? 0) > 0) continue;
     const es = scheduledStart.get(leaf.id) ?? 0;
     const ls = LS.get(leaf.id) ?? 0;
     if (ls - es <= 0) critical.add(leaf.id);
