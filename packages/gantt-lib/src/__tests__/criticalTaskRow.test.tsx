@@ -63,6 +63,7 @@ describe('TaskRow critical path bar color', () => {
         isCritical={false}
       />
     );
+    // jsdom normalizes the hex #123456 to rgb(18, 52, 86)
     expect(getBar(container).style.backgroundColor).toBe('rgb(18, 52, 86)');
   });
 

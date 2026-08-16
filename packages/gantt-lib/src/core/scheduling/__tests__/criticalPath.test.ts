@@ -48,6 +48,28 @@ describe('computeCriticalPath', () => {
     expect(computeCriticalPath(tasks)).toEqual(new Set(['A', 'B', 'C']));
   });
 
+  it('ignores non-FS links (SS/FF/SF) when building the graph', () => {
+    const tasks = [
+      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
+      makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10', dependencies: [{ taskId: 'A', type: 'SS', lag: 0 }] }),
+      makeTask({ id: 'C', startDate: '2026-01-11', endDate: '2026-01-13', dependencies: [{ taskId: 'B', type: 'FF', lag: 0 }] }),
+      makeTask({ id: 'D', startDate: '2026-01-14', endDate: '2026-01-16', dependencies: [{ taskId: 'C', type: 'SF', lag: 0 }] }),
+    ];
+    expect(computeCriticalPath(tasks)).toEqual(new Set());
+  });
+
+  it('accounts for a negative FS lag shortening the path', () => {
+    const tasks = [
+      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
+      // B (lag 0) and B2 (lag -2) are otherwise identical; the negative lag
+      // shortens B2's branch below B's, so only B stays on the critical path.
+      makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-09', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'B2', startDate: '2026-01-08', endDate: '2026-01-09', dependencies: [{ taskId: 'A', type: 'FS', lag: -2 }] }),
+      makeTask({ id: 'C', startDate: '2026-01-11', endDate: '2026-01-13', dependencies: [{ taskId: 'B', type: 'FS', lag: 0 }, { taskId: 'B2', type: 'FS', lag: 0 }] }),
+    ];
+    expect(computeCriticalPath(tasks)).toEqual(new Set(['A', 'B', 'C']));
+  });
+
   it('treats a milestone (single-day leaf) as a regular leaf in the path', () => {
     const tasks = [
       makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
