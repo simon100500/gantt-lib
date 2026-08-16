@@ -130,6 +130,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   rowIndexByTaskId,
   dragOverrides,
   selectedDep,
+  criticalTaskIds,
   businessDays = true,
   weekendPredicate,
   onDependencyClick,
@@ -252,6 +253,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       fromY: number;
       reverseOrder: boolean;
       isVirtual: boolean;
+      isCritical: boolean;
     }> = [];
 
     for (const successorId of positionedTaskIds) {
@@ -369,6 +371,10 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       // Check if this edge is part of a cycle
       const hasCycle = cycleInfo.has(edge.predecessorId) || cycleInfo.has(edge.successorId);
 
+      const isCritical = Boolean(
+        criticalTaskIds?.has(edge.predecessorId) && criticalTaskIds.has(edge.successorId)
+      );
+
       lines.push({
         id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
         predecessorId: edge.predecessorId,
@@ -382,12 +388,13 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         fromY,
         reverseOrder,
         isVirtual,
+        isCritical,
       });
       }
     }
 
     return lines;
-  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, collapsedParentIds]);
+  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, collapsedParentIds, criticalTaskIds]);
 
   // Calculate SVG height based on visible tasks (not all tasks)
   const svgHeight = totalHeight ?? (tasks.length * rowHeight);
@@ -464,9 +471,25 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
             fill="var(--gantt-dependency-hover-color, #ef4444)"
           />
         </marker>
+
+        {/* Red arrow marker for critical path dependency */}
+        <marker
+          id="arrowhead-critical"
+          markerWidth="8"
+          markerHeight="6"
+          markerUnits="userSpaceOnUse"
+          refX="7"
+          refY="3"
+          orient="auto"
+        >
+          <polygon
+            points="0 0, 8 3, 0 6"
+            fill="var(--gantt-critical-path-color, #dc2626)"
+          />
+        </marker>
       </defs>
 
-      {lines.map(({ id, predecessorId, successorId, linkType, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual }) => {
+      {lines.map(({ id, predecessorId, successorId, linkType, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual, isCritical }) => {
         const isHovered = hoveredLineId === id;
         const isSelected =
           selectedDep != null &&
@@ -475,18 +498,22 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         let pathClassName = 'gantt-dependency-path';
         if (isSelected) pathClassName += ' gantt-dependency-selected';
         else if (hasCycle) pathClassName += ' gantt-dependency-cycle';
+        else if (isCritical) pathClassName += ' gantt-dependency-critical';
         if (isVirtual && !isSelected) pathClassName += ' gantt-dependency-virtual';
 
         let markerEnd: string;
         if (isSelected) markerEnd = 'url(#arrowhead-selected)';
         else if (hasCycle) markerEnd = 'url(#arrowhead-cycle)';
+        else if (isCritical) markerEnd = 'url(#arrowhead-critical)';
         else markerEnd = 'url(#arrowhead)';
 
         const lagColor = isSelected
           ? '#ef4444'
           : hasCycle
             ? 'var(--gantt-dependency-cycle-color, #ef4444)'
-            : 'var(--gantt-dependency-line-color, #666666)';
+            : isCritical
+              ? 'var(--gantt-critical-path-color, #dc2626)'
+              : 'var(--gantt-dependency-line-color, #666666)';
 
         return (
           <React.Fragment key={id}>
