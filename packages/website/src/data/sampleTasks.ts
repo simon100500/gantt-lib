@@ -2,6 +2,9 @@ import {
   type Task,
   createCustomDayPredicate,
   reflowTasksOnModeSwitch,
+  buildTaskRangeFromStart,
+  computeParentDates,
+  parseUTCDate,
 } from "gantt-lib";
 
 export const MAIN_CHART_CUSTOM_DAYS = [
@@ -29,14 +32,25 @@ const shiftIsoDate = (value: string | Date, days: number): string => {
   return shifted.toISOString().slice(0, 10);
 };
 
+const toIsoDate = (date: Date): string => date.toISOString().split('T')[0];
+
+/**
+ * Demo task input. Leaf tasks declare their start date, working-day duration and
+ * dependencies (with lags) — the end date is derived by the core via
+ * buildTaskRangeFromStart. Parent groups declare no dates at all: their range is
+ * rolled up from children by computeParentDates.
+ */
+type SampleTaskInput = Omit<Task, 'startDate' | 'endDate'> & {
+  startDate?: string;
+  durationDays?: number;
+};
+
 export const createSampleTasks = (): Task[] => {
-  const tasks: Task[] = [
+  const inputs: SampleTaskInput[] = [
     // GROUP 1 — Подготовительные работы
     {
       id: 'g1',
       name: 'Подготовительные работы',
-      startDate: '2026-02-01',
-      endDate: '2026-02-15',
       progress: 100,
       accepted: true,
       locked: true,
@@ -46,7 +60,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g1-1',
       name: 'Геодезическая разбивка',
       startDate: '2026-02-01',
-      endDate: '2026-02-03',
+      durationDays: 2,
       baselineStartDate: '2026-01-30',
       baselineEndDate: '2026-02-02',
       progress: 100,
@@ -58,7 +72,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g1-2',
       name: 'Ограждение площадки',
       startDate: '2026-02-03',
-      endDate: '2026-02-07',
+      durationDays: 4,
       progress: 100,
       accepted: true,
       parentId: 'g1',
@@ -68,7 +82,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g1-3',
       name: 'Временные дороги',
       startDate: '2026-02-05',
-      endDate: '2026-02-10',
+      durationDays: 4,
       progress: 100,
       accepted: true,
       parentId: 'g1',
@@ -78,7 +92,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g1-4',
       name: 'Подключение временных коммуникаций',
       startDate: '2026-02-08',
-      endDate: '2026-02-12',
+      durationDays: 4,
       progress: 100,
       accepted: false,
       parentId: 'g1',
@@ -88,7 +102,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g1-5',
       name: 'Установка строительного городка',
       startDate: '2026-02-10',
-      endDate: '2026-02-15',
+      durationDays: 4,
       progress: 100,
       accepted: true,
       parentId: 'g1',
@@ -99,8 +113,6 @@ export const createSampleTasks = (): Task[] => {
     {
       id: 'g2',
       name: 'Земляные работы',
-      startDate: '2026-02-16',
-      endDate: '2026-03-01',
       progress: 100,
       accepted: true,
       divider: 'top' as const,
@@ -110,7 +122,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g2-1',
       name: 'Разработка котлована',
       startDate: '2026-02-16',
-      endDate: '2026-02-22',
+      durationDays: 5,
       progress: 100,
       accepted: true,
       parentId: 'g2',
@@ -120,7 +132,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g2-2',
       name: 'Вывоз грунта',
       startDate: '2026-02-17',
-      endDate: '2026-02-23',
+      durationDays: 5,
       progress: 100,
       accepted: true,
       parentId: 'g2',
@@ -130,7 +142,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g2-3',
       name: 'Зачистка дна котлована',
       startDate: '2026-02-23',
-      endDate: '2026-02-25',
+      durationDays: 3,
       progress: 100,
       accepted: true,
       parentId: 'g2',
@@ -140,7 +152,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g2-4',
       name: 'Песчаная подушка',
       startDate: '2026-02-25',
-      endDate: '2026-02-27',
+      durationDays: 3,
       baselineStartDate: '2026-02-24',
       baselineEndDate: '2026-02-26',
       progress: 100,
@@ -153,7 +165,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g2-5',
       name: 'Уплотнение основания',
       startDate: '2026-02-27',
-      endDate: '2026-03-01',
+      durationDays: 1,
       progress: 100,
       accepted: true,
       parentId: 'g2',
@@ -164,8 +176,6 @@ export const createSampleTasks = (): Task[] => {
     {
       id: 'g3',
       name: 'Фундамент',
-      startDate: '2026-03-02',
-      endDate: '2026-03-28',
       progress: 85,
       accepted: false,
       divider: 'top' as const,
@@ -175,7 +185,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g3-1',
       name: 'Опалубка фундамента',
       startDate: '2026-03-02',
-      endDate: '2026-03-06',
+      durationDays: 5,
       progress: 100,
       accepted: true,
       parentId: 'g3',
@@ -185,7 +195,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g3-2',
       name: 'Армирование подошвы',
       startDate: '2026-03-04',
-      endDate: '2026-03-09',
+      durationDays: 3,
       progress: 100,
       accepted: true,
       parentId: 'g3',
@@ -195,7 +205,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g3-3',
       name: 'Бетонная подготовка',
       startDate: '2026-03-07',
-      endDate: '2026-03-10',
+      durationDays: 1,
       progress: 100,
       accepted: true,
       color: '#60a5fa',
@@ -206,7 +216,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g3-4',
       name: 'Бетонирование фундамента',
       startDate: '2026-03-10',
-      endDate: '2026-03-16',
+      durationDays: 6,
       progress: 100,
       accepted: false,
       parentId: 'g3',
@@ -216,7 +226,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g3-5',
       name: 'Уход за бетоном',
       startDate: '2026-03-15',
-      endDate: '2026-03-22',
+      durationDays: 5,
       baselineStartDate: '2026-03-13',
       baselineEndDate: '2026-03-20',
       progress: 80,
@@ -228,7 +238,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g3-6',
       name: 'Гидроизоляция',
       startDate: '2026-03-22',
-      endDate: '2026-03-26',
+      durationDays: 4,
       progress: 60,
       accepted: false,
       color: '#f59e0b',
@@ -239,7 +249,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g3-7',
       name: 'Обратная засыпка',
       startDate: '2026-03-26',
-      endDate: '2026-03-28',
+      durationDays: 2,
       progress: 40,
       accepted: false,
       parentId: 'g3',
@@ -250,8 +260,6 @@ export const createSampleTasks = (): Task[] => {
     {
       id: 'g4',
       name: 'Каркас здания',
-      startDate: '2026-03-29',
-      endDate: '2026-05-10',
       progress: 45,
       accepted: false,
       divider: 'top' as const,
@@ -261,7 +269,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g4-1',
       name: 'Монтаж колонн 1 этажа',
       startDate: '2026-03-29',
-      endDate: '2026-04-05',
+      durationDays: 5,
       progress: 80,
       accepted: false,
       parentId: 'g4',
@@ -271,7 +279,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g4-2',
       name: 'Монтаж балок перекрытия',
       startDate: '2026-04-03',
-      endDate: '2026-04-12',
+      durationDays: 6,
       baselineStartDate: '2026-04-01',
       baselineEndDate: '2026-04-10',
       progress: 70,
@@ -283,7 +291,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g4-3',
       name: 'Монтаж плит перекрытия',
       startDate: '2026-04-10',
-      endDate: '2026-04-18',
+      durationDays: 6,
       progress: 55,
       accepted: false,
       parentId: 'g4',
@@ -293,7 +301,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g4-4',
       name: 'Монтаж колонн 2 этажа',
       startDate: '2026-04-15',
-      endDate: '2026-04-24',
+      durationDays: 8,
       progress: 35,
       accepted: false,
       parentId: 'g4',
@@ -303,7 +311,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g4-5',
       name: 'Перекрытие 2 этажа',
       startDate: '2026-04-22',
-      endDate: '2026-05-01',
+      durationDays: 7,
       progress: 20,
       accepted: false,
       parentId: 'g4',
@@ -313,7 +321,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g4-6',
       name: 'Монтаж стропил',
       startDate: '2026-05-01',
-      endDate: '2026-05-10',
+      durationDays: 5,
       progress: 10,
       accepted: false,
       parentId: 'g4',
@@ -324,8 +332,6 @@ export const createSampleTasks = (): Task[] => {
     {
       id: 'g5',
       name: 'Кровля',
-      startDate: '2026-05-10',
-      endDate: '2026-05-30',
       progress: 5,
       accepted: false,
       divider: 'top' as const,
@@ -335,7 +341,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g5-1',
       name: 'Монтаж обрешётки',
       startDate: '2026-05-10',
-      endDate: '2026-05-15',
+      durationDays: 4,
       progress: 15,
       accepted: false,
       parentId: 'g5',
@@ -345,7 +351,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g5-2',
       name: 'Укладка утеплителя',
       startDate: '2026-05-13',
-      endDate: '2026-05-20',
+      durationDays: 6,
       progress: 5,
       accepted: false,
       parentId: 'g5',
@@ -355,7 +361,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g5-3',
       name: 'Монтаж кровельного покрытия',
       startDate: '2026-05-18',
-      endDate: '2026-05-27',
+      durationDays: 8,
       progress: 0,
       accepted: false,
       parentId: 'g5',
@@ -365,7 +371,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g5-4',
       name: 'Водосточная система',
       startDate: '2026-05-25',
-      endDate: '2026-05-30',
+      durationDays: 5,
       progress: 0,
       accepted: false,
       parentId: 'g5',
@@ -376,8 +382,6 @@ export const createSampleTasks = (): Task[] => {
     {
       id: 'g6',
       name: 'Наружные стены и фасад',
-      startDate: '2026-05-01',
-      endDate: '2026-06-20',
       progress: 10,
       accepted: false,
       divider: 'top' as const,
@@ -387,7 +391,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g6-1',
       name: 'Кладка наружных стен 1 эт.',
       startDate: '2026-05-01',
-      endDate: '2026-05-18',
+      durationDays: 10,
       progress: 20,
       accepted: false,
       parentId: 'g6',
@@ -397,7 +401,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g6-2',
       name: 'Кладка наружных стен 2 эт.',
       startDate: '2026-05-15',
-      endDate: '2026-06-01',
+      durationDays: 12,
       progress: 5,
       accepted: false,
       parentId: 'g6',
@@ -407,7 +411,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g6-3',
       name: 'Монтаж оконных блоков',
       startDate: '2026-06-01',
-      endDate: '2026-06-10',
+      durationDays: 8,
       progress: 0,
       accepted: false,
       parentId: 'g6',
@@ -417,7 +421,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g6-4',
       name: 'Утепление фасада',
       startDate: '2026-06-05',
-      endDate: '2026-06-15',
+      durationDays: 7,
       progress: 0,
       accepted: false,
       parentId: 'g6',
@@ -427,7 +431,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g6-5',
       name: 'Финишная отделка фасада',
       startDate: '2026-06-12',
-      endDate: '2026-06-20',
+      durationDays: 6,
       baselineStartDate: '2026-06-08',
       baselineEndDate: '2026-06-18',
       progress: 0,
@@ -441,8 +445,6 @@ export const createSampleTasks = (): Task[] => {
     {
       id: 'g7',
       name: 'Инженерные сети',
-      startDate: '2026-05-15',
-      endDate: '2026-07-01',
       progress: 5,
       accepted: false,
       divider: 'top' as const,
@@ -452,7 +454,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g7-1',
       name: 'Разводка электросетей',
       startDate: '2026-05-15',
-      endDate: '2026-06-01',
+      durationDays: 12,
       progress: 10,
       accepted: false,
       parentId: 'g7',
@@ -462,7 +464,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g7-2',
       name: 'Сантехнические работы',
       startDate: '2026-05-20',
-      endDate: '2026-06-10',
+      durationDays: 16,
       progress: 5,
       accepted: false,
       parentId: 'g7',
@@ -472,7 +474,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g7-3',
       name: 'Вентиляция и кондиционирование',
       startDate: '2026-06-01',
-      endDate: '2026-06-20',
+      durationDays: 15,
       progress: 0,
       accepted: false,
       parentId: 'g7',
@@ -482,7 +484,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g7-4',
       name: 'Слаботочные системы (охрана/связь)',
       startDate: '2026-06-10',
-      endDate: '2026-06-25',
+      durationDays: 12,
       progress: 0,
       accepted: false,
       color: '#38bdf8',
@@ -493,7 +495,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g7-5',
       name: 'Испытание и сдача сетей',
       startDate: '2026-06-25',
-      endDate: '2026-07-01',
+      durationDays: 5,
       progress: 0,
       accepted: false,
       parentId: 'g7',
@@ -507,8 +509,6 @@ export const createSampleTasks = (): Task[] => {
     {
       id: 'g8',
       name: 'Внутренняя отделка и сдача',
-      startDate: '2026-07-01',
-      endDate: '2026-08-15',
       progress: 0,
       accepted: false,
       divider: 'top' as const,
@@ -518,7 +518,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g8-1',
       name: 'Штукатурка стен',
       startDate: '2026-07-01',
-      endDate: '2026-07-18',
+      durationDays: 13,
       progress: 0,
       accepted: false,
       parentId: 'g8',
@@ -528,7 +528,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g8-2',
       name: 'Стяжка пола',
       startDate: '2026-07-05',
-      endDate: '2026-07-20',
+      durationDays: 11,
       progress: 0,
       accepted: false,
       parentId: 'g8',
@@ -538,7 +538,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g8-3',
       name: 'Чистовая отделка',
       startDate: '2026-07-20',
-      endDate: '2026-08-05',
+      durationDays: 13,
       progress: 0,
       accepted: false,
       parentId: 'g8',
@@ -548,7 +548,7 @@ export const createSampleTasks = (): Task[] => {
       id: 'g8-4',
       name: 'Установка дверей и фурнитуры',
       startDate: '2026-07-28',
-      endDate: '2026-08-08',
+      durationDays: 9,
       progress: 0,
       accepted: false,
       parentId: 'g8',
@@ -558,8 +558,8 @@ export const createSampleTasks = (): Task[] => {
       id: 'g8-ms-1',
       name: 'Комиссия готовности к сдаче',
       startDate: '2026-08-08',
-      endDate: '2026-08-15',
-      type: 'milestone',
+      durationDays: 1,
+      type: 'milestone' as const,
       progress: 0,
       accepted: false,
       parentId: 'g8',
@@ -569,8 +569,8 @@ export const createSampleTasks = (): Task[] => {
       id: 'g8-5',
       name: 'Сдача объекта',
       startDate: '2026-08-10',
-      endDate: '2026-08-15',
-      type: 'milestone',
+      durationDays: 1,
+      type: 'milestone' as const,
       progress: 0,
       accepted: false,
       locked: false,
@@ -578,6 +578,36 @@ export const createSampleTasks = (): Task[] => {
       dependencies: [{ taskId: 'g8-ms-1', type: 'FS' as const, lag: 2 }],
     },
   ];
+
+  // 1. Leaf tasks: derive endDate from startDate + working-day duration via the core.
+  let tasks: Task[] = inputs.map((input): Task => {
+    const { startDate, durationDays, ...rest } = input;
+    if (startDate == null || durationDays == null) {
+      // Parent group — placeholder, rolled up from children below.
+      return { ...rest, startDate: '', endDate: '' } as unknown as Task;
+    }
+    const range = buildTaskRangeFromStart(
+      parseUTCDate(startDate),
+      durationDays,
+      true,
+      MAIN_CHART_WEEKEND_PREDICATE
+    );
+    return {
+      ...rest,
+      startDate: toIsoDate(range.start),
+      endDate: toIsoDate(range.end),
+    } as Task;
+  });
+
+  // 2. Parent groups: roll up dates from their children.
+  const childParentIds = new Set(
+    tasks.filter((task) => task.parentId).map((task) => task.parentId)
+  );
+  tasks = tasks.map((task) => {
+    if (!childParentIds.has(task.id)) return task;
+    const { startDate, endDate } = computeParentDates(task.id, tasks);
+    return { ...task, startDate: toIsoDate(startDate), endDate: toIsoDate(endDate) };
+  });
 
   return tasks.map((task) => ({
     ...task,
