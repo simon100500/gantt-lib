@@ -1507,6 +1507,8 @@
 .gantt-tl-dep-overflow-list {
   display: flex;
   flex-direction: column;
+  /* Keep the absolutely positioned edit control inside the popover. */
+  align-items: flex-start;
   gap: 4px;
   padding: 8px;
   min-width: 140px;
