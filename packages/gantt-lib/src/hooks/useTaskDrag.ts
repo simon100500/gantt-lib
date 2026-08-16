@@ -390,34 +390,33 @@ function handleGlobalMouseMove(e: MouseEvent) {
         activeDrag.cascadeContext
       );
 
-      const hasTasksWithIncomingDependencies = cascadeResult.some(task => task.dependencies?.length);
-      const previewTasks = hasTasksWithIncomingDependencies
-        ? (() => {
-          const mergedPreviewTaskById = new Map(activeDrag.cascadeContext?.taskById);
-          for (const task of cascadeResult) {
-            mergedPreviewTaskById.set(task.id, task);
-          }
+      // Always publish the dragged task and the cascade result. Critical-path
+      // highlighting consumes these dates during drag, before the drop commits.
+      const previewTasks = (() => {
+        const mergedPreviewTaskById = new Map(activeDrag.cascadeContext?.taskById);
+        for (const task of cascadeResult) {
+          mergedPreviewTaskById.set(task.id, task);
+        }
 
-          return cascadeResult.map(task => {
-            const previewStart = new Date(task.startDate as string);
-            const previewEnd = new Date(task.endDate as string);
-            return {
-              ...task,
-              dependencies: task.dependencies
-                ? recalculateIncomingLags(
-                  task,
-                  previewStart,
-                  previewEnd,
-                  allTasks,
-                  activeDrag.businessDays,
-                  activeDrag.weekendPredicate,
-                  mergedPreviewTaskById
-                )
-                : task.dependencies,
-            };
-          });
-        })()
-        : [];
+        return cascadeResult.map(task => {
+          const previewStart = new Date(task.startDate as string);
+          const previewEnd = new Date(task.endDate as string);
+          return {
+            ...task,
+            dependencies: task.dependencies
+              ? recalculateIncomingLags(
+                task,
+                previewStart,
+                previewEnd,
+                allTasks,
+                activeDrag.businessDays,
+                activeDrag.weekendPredicate,
+                mergedPreviewTaskById
+              )
+              : task.dependencies,
+          };
+        });
+      })();
 
       // Convert cascaded tasks → pixel overrides
       const overrides = new Map<string, { left: number; width: number }>();

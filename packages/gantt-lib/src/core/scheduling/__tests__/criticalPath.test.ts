@@ -40,10 +40,10 @@ describe('computeCriticalPath', () => {
 
   it('accounts for a positive FS lag lengthening the path', () => {
     const tasks = [
-      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
-      makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10', dependencies: [{ taskId: 'A', type: 'FS', lag: 2 }] }),
-      makeTask({ id: 'B2', startDate: '2026-01-08', endDate: '2026-01-10', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
-      makeTask({ id: 'C', startDate: '2026-01-11', endDate: '2026-01-13', dependencies: [{ taskId: 'B', type: 'FS', lag: 0 }, { taskId: 'B2', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'A', startDate: '2026-01-01', endDate: '2026-01-03' }),
+      makeTask({ id: 'B', startDate: '2026-01-06', endDate: '2026-01-08', dependencies: [{ taskId: 'A', type: 'FS', lag: 2 }] }),
+      makeTask({ id: 'B2', startDate: '2026-01-04', endDate: '2026-01-06', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'C', startDate: '2026-01-09', endDate: '2026-01-11', dependencies: [{ taskId: 'B', type: 'FS', lag: 0 }, { taskId: 'B2', type: 'FS', lag: 0 }] }),
     ];
     expect(computeCriticalPath(tasks)).toEqual(new Set(['A', 'B', 'C']));
   });
@@ -61,12 +61,12 @@ describe('computeCriticalPath', () => {
 
   it('accounts for a negative FS lag shortening the path', () => {
     const tasks = [
-      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
+      makeTask({ id: 'A', startDate: '2026-01-01', endDate: '2026-01-03' }),
       // B (lag 0) and B2 (lag -2) are otherwise identical; the negative lag
       // shortens B2's branch below B's, so only B stays on the critical path.
-      makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-09', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
-      makeTask({ id: 'B2', startDate: '2026-01-08', endDate: '2026-01-09', dependencies: [{ taskId: 'A', type: 'FS', lag: -2 }] }),
-      makeTask({ id: 'C', startDate: '2026-01-11', endDate: '2026-01-13', dependencies: [{ taskId: 'B', type: 'FS', lag: 0 }, { taskId: 'B2', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'B', startDate: '2026-01-04', endDate: '2026-01-05', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'B2', startDate: '2026-01-02', endDate: '2026-01-03', dependencies: [{ taskId: 'A', type: 'FS', lag: -2 }] }),
+      makeTask({ id: 'C', startDate: '2026-01-06', endDate: '2026-01-08', dependencies: [{ taskId: 'B', type: 'FS', lag: 0 }, { taskId: 'B2', type: 'FS', lag: 0 }] }),
     ];
     expect(computeCriticalPath(tasks)).toEqual(new Set(['A', 'B', 'C']));
   });
@@ -85,6 +85,19 @@ describe('computeCriticalPath', () => {
       makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10' }),
     ];
     expect(computeCriticalPath(tasks)).toEqual(new Set());
+  });
+
+  it('uses the scheduled project finish, not abstract path length, for total float', () => {
+    const tasks = [
+      // This branch is shorter, but its scheduled finish is later.
+      makeTask({ id: 'L1', startDate: '2026-01-20', endDate: '2026-01-22' }),
+      makeTask({ id: 'L2', startDate: '2026-01-23', endDate: '2026-01-24', dependencies: [{ taskId: 'L1', type: 'FS', lag: 0 }] }),
+      // This branch is longer, but finishes earlier on the scheduled timeline.
+      makeTask({ id: 'E1', startDate: '2026-01-01', endDate: '2026-01-15' }),
+      makeTask({ id: 'E2', startDate: '2026-01-16', endDate: '2026-01-20', dependencies: [{ taskId: 'E1', type: 'FS', lag: 0 }] }),
+    ];
+
+    expect(computeCriticalPath(tasks)).toEqual(new Set(['L1', 'L2']));
   });
 
   it('does not hang on a cycle and returns no critical tasks from it', () => {
@@ -123,7 +136,7 @@ describe('computeCriticalPath', () => {
       makeTask({ id: 'G', startDate: '2026-01-05', endDate: '2026-01-20' }),
       makeTask({ id: 'P', startDate: '2026-01-05', endDate: '2026-01-15', parentId: 'G' }),
       makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-12', parentId: 'P' }),
-      makeTask({ id: 'B', startDate: '2026-01-16', endDate: '2026-01-20', dependencies: [{ taskId: 'G', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'B', startDate: '2026-01-13', endDate: '2026-01-17', dependencies: [{ taskId: 'G', type: 'FS', lag: 0 }] }),
     ];
     expect(computeCriticalPath(tasks)).toEqual(new Set(['A', 'B']));
   });
@@ -144,9 +157,8 @@ describe('computeCriticalPath', () => {
       makeTask({ id: 'A2', startDate: '2026-01-08', endDate: '2026-01-12', parentId: 'P' }),
       makeTask({ id: 'B', startDate: '2026-01-13', endDate: '2026-01-15', dependencies: [{ taskId: 'P', type: 'SS', lag: 0 }] }),
     ];
-    // SS on a parent group is expanded to every descendant leaf (A2 stays critical;
-    // B starts together with the group, so it is not critical).
-    expect(computeCriticalPath(tasks)).toEqual(new Set(['A2']));
+    // B is the latest scheduled task; the earlier group leaves have float.
+    expect(computeCriticalPath(tasks)).toEqual(new Set(['B']));
   });
 
   it('uses business days for task weight when businessDays=true', () => {

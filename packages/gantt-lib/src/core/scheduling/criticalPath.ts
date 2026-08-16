@@ -13,14 +13,18 @@
  *   (FS/FF) the group is bounded by its latest-finishing leaf; for start-anchored
  *   links (SS/SF) by its latest-starting leaf — a conservative approximation of
  *   the group's span.
- * - Task weight = business-day duration (getTaskDuration); edge weight = calendar lag.
- * - Task is critical when its float (LS - ES) is exactly 0 AND it has at least one
- *   dependency edge. Isolated tasks are never critical.
+ * - Task weight = business-day duration (getTaskDuration); edge weight = lag in the
+ *   active scheduling unit.
+ * - The scheduled task dates are used as the current starts. The project finish is
+ *   the latest scheduled leaf finish, so a late short branch can be critical even
+ *   when a longer branch started earlier.
+ * - Task is critical when its total float (late start - scheduled start) is <= 0
+ *   and it participates in at least one dependency edge.
  * - Cycles are skipped by topological ordering (Kahn) — cyclic tasks are not critical.
  */
 
 import type { ScheduleTask, LinkType } from './types';
-import { getTaskDuration } from './dateMath';
+import { DAY_MS, getBusinessDayOffset, getTaskDuration, parseDateOnly } from './dateMath';
 import { getDependencyLag } from './dependencies';
 
 export interface CriticalPathOptions {
@@ -63,6 +67,26 @@ export function computeCriticalPath(
 
   const durationOf = (task: ScheduleTask): number =>
     getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
+
+  const projectStartDate = leafTasks.reduce((earliest, task) => {
+    const taskStart = parseDateOnly(task.startDate);
+    return taskStart.getTime() < earliest.getTime() ? taskStart : earliest;
+  }, parseDateOnly(leafTasks[0]?.startDate ?? new Date()));
+
+  const offsetFromProjectStart = (date: string | Date): number => {
+    const targetDate = parseDateOnly(date);
+    if (businessDays && weekendPredicate) {
+      return getBusinessDayOffset(projectStartDate, targetDate, weekendPredicate);
+    }
+    return Math.round((targetDate.getTime() - projectStartDate.getTime()) / DAY_MS);
+  };
+
+  // The current schedule is the forward pass. Do not reset every root task to
+  // day zero: its actual start date is what gives it (or removes) total float.
+  const scheduledStart = new Map<string, number>();
+  for (const leaf of leafTasks) {
+    scheduledStart.set(leaf.id, offsetFromProjectStart(leaf.startDate));
+  }
 
   // Adjacency over all link types: predecessor -> successors, successor -> predecessors.
   const succByPred = new Map<string, Edge[]>();
@@ -134,34 +158,10 @@ export function computeCriticalPath(
     }
   }
 
-  // Forward pass: early start / early finish on the abstract day scale.
-  const ES = new Map<string, number>();
-  const EF = new Map<string, number>();
-  for (const leaf of leafTasks) ES.set(leaf.id, 0);
-
-  for (const id of order) {
-    const task = taskById.get(id)!;
-    const durSucc = durationOf(task);
-    let es = 0;
-    for (const { predId, lag, type } of predBySucc.get(id) ?? []) {
-      const predTask = taskById.get(predId)!;
-      const predEs = ES.get(predId) ?? 0;
-      const predEf = predEs + durationOf(predTask);
-      let candidate: number;
-      switch (type) {
-        case 'FS': candidate = predEf + lag; break;
-        case 'SS': candidate = predEs + lag; break;
-        case 'FF': candidate = predEf + lag - durSucc; break;
-        case 'SF': candidate = predEs + lag - durSucc; break;
-        default: candidate = 0;
-      }
-      if (candidate > es) es = candidate;
-    }
-    ES.set(id, es);
-    EF.set(id, es + durSucc);
-  }
-
-  const projectFinish = Math.max(0, ...leafTasks.map((leaf) => EF.get(leaf.id) ?? 0));
+  const projectFinish = Math.max(
+    0,
+    ...leafTasks.map((leaf) => (scheduledStart.get(leaf.id) ?? 0) + durationOf(leaf))
+  );
 
   // Backward pass: late finish / late start.
   const LF = new Map<string, number>();
@@ -202,9 +202,9 @@ export function computeCriticalPath(
       (succByPred.get(leaf.id)?.length ?? 0) > 0 ||
       (predBySucc.get(leaf.id)?.length ?? 0) > 0;
     if (!hasEdge) continue;
-    const es = ES.get(leaf.id) ?? 0;
+    const es = scheduledStart.get(leaf.id) ?? 0;
     const ls = LS.get(leaf.id) ?? 0;
-    if (ls - es === 0) critical.add(leaf.id);
+    if (ls - es <= 0) critical.add(leaf.id);
   }
 
   return critical;

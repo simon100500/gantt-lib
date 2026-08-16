@@ -934,6 +934,41 @@ describe('useTaskDrag', () => {
   });
 
   describe('Resize-right cascade (Phase 07-01 extension)', () => {
+    it('publishes the moved task in the live preview even without dependents', async () => {
+      const onCascadeProgress = vi.fn();
+      const { result } = renderHook(() => useTaskDrag({
+        ...mockOptions,
+        businessDays: false,
+        disableConstraints: false,
+        allTasks: [{
+          id: 'task-1',
+          name: 'Task 1',
+          startDate: '2026-02-10',
+          endDate: '2026-02-15',
+        }],
+        onCascadeProgress,
+      }));
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 240 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 360 + 120,
+        } as unknown as React.MouseEvent);
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 360 + 160 }));
+      });
+
+      await waitFor(() => {
+        const call = onCascadeProgress.mock.calls.find(([overrides]) => overrides.size > 0);
+        expect(call).toBeDefined();
+        const previewTasks = call?.[1] as Array<{ id: string; startDate: string }>;
+        expect(previewTasks.find((task) => task.id === 'task-1')?.startDate).toBe('2026-02-11');
+      });
+    });
+
     // Tasks:
     //   predecessor: Feb 10 – Feb 15 (task-1)
     //   successor:   Feb 16 – Feb 20 (task-2, FS dependency on task-1)

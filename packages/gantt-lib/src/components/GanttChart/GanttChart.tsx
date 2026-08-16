@@ -905,6 +905,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   const normalizedTasks = useMemo(() => normalizeHierarchyTasks(tasks), [tasks]);
 
+  // Task dates produced by the drag cascade preview. This is intentionally
+  // separate from `tasks`: preview dates must drive CPM before the drop commits.
+  const [previewTasksById, setPreviewTasksById] = useState<Map<string, Task>>(new Map());
+  const previewNormalizedTasks = useMemo(() => {
+    if (previewTasksById.size === 0) return normalizedTasks;
+    return normalizedTasks.map(task => previewTasksById.get(task.id) ?? task);
+  }, [normalizedTasks, previewTasksById]);
+
   // Create custom weekend predicate from props (memoized for performance)
   const isCustomWeekend = useMemo(
     () => createCustomDayPredicate({ customDays, isWeekend }),
@@ -914,12 +922,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // Critical path task ids (leaves via CPM + parents lifted up the chain).
   const criticalTaskIds = useMemo(() => {
     if (!criticalPathMode) return new Set<string>();
-    const leafCritical = computeCriticalPath(normalizedTasks, {
+    const leafCritical = computeCriticalPath(previewNormalizedTasks, {
       businessDays,
       weekendPredicate: isCustomWeekend,
     });
-    return extendCriticalIdsToParents(leafCritical, normalizedTasks);
-  }, [criticalPathMode, normalizedTasks, businessDays, isCustomWeekend]);
+    return extendCriticalIdsToParents(leafCritical, previewNormalizedTasks);
+  }, [criticalPathMode, previewNormalizedTasks, businessDays, isCustomWeekend]);
 
   // When baseline is visible, expand the visible range to include baseline dates too.
   const dateRangeTasks = useMemo(() => {
@@ -1263,7 +1271,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Track currently-dragged task's pixel position for real-time dependency line updates
   const [draggedTaskOverride, setDraggedTaskOverride] = useState<{ taskId: string; left: number; width: number } | null>(null);
-  const [previewTasksById, setPreviewTasksById] = useState<Map<string, Task>>(new Map());
 
   // Validate dependencies when tasks change
   useEffect(() => {
@@ -1464,18 +1471,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     ));
     setPreviewTasksById((current) => {
       const next = previewTasks.length > 0
-        ? new Map(previewTasks
-          .filter(task => renderedTaskIds.has(task.id))
-          .map(task => [task.id, task]))
+        // Keep every preview task for CPM, including virtualized rows. Only
+        // pixel overrides are limited to rendered rows below.
+        ? new Map(previewTasks.map(task => [task.id, task]))
         : new Map<string, Task>();
       return arePreviewTaskMapsEqual(current, next) ? current : next;
     });
   }, [previewPositionStore]);
-
-  const previewNormalizedTasks = useMemo(() => {
-    if (previewTasksById.size === 0) return normalizedTasks;
-    return normalizedTasks.map(task => previewTasksById.get(task.id) ?? task);
-  }, [normalizedTasks, previewTasksById]);
 
   const previewVisibleTasks = useMemo(() => {
     if (previewTasksById.size === 0) return visibleTasks;
@@ -2294,6 +2296,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                           } else {
                             setDragGuideLines((current) => (current === null ? current : null));
                             setDraggedTaskOverride((current) => (current === null ? current : null));
+                            previewPositionStore.clear();
+                            setCascadeOverrides((current) => (current.size === 0 ? current : new Map()));
+                            setPreviewTasksById((current) => (current.size === 0 ? current : new Map()));
                           }
                         }}
                         rowIndex={index}
