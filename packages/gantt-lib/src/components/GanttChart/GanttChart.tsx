@@ -366,6 +366,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   onUngroupTask?: (taskId: string) => void;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
+  /** Label text for the add task button (default: 'Добавить работу') */
+  addTaskLabel?: string;
   /** Default duration for newly created tasks, interpreted in the active day mode (default: 5). */
   defaultTaskDurationDays?: number;
   /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days, 'month' renders one column per month (default: 'day') */
@@ -544,6 +546,14 @@ export interface GanttChartHandle {
  *   enableAddTask={false}
  * />
  * ```
+ * @example
+ * ```tsx
+ * // Custom add task button label
+ * <GanttChart
+ *   tasks={tasks}
+ *   addTaskLabel="Добавить задачу"
+ * />
+ * ```
  */
 function GanttChartInner<
   TTask extends Task = Task,
@@ -595,6 +605,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onDemoteTask,
     onUngroupTask,
     enableAddTask = true,
+    addTaskLabel = 'Добавить работу',
     defaultTaskDurationDays,
     taskFilter,
     filterMode = 'highlight',
@@ -1989,6 +2000,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             disableTaskDrag={disableTaskDrag || disableTaskListReorder}
             editingTaskId={editingTaskId}
             enableAddTask={enableAddTask}
+            addTaskLabel={addTaskLabel}
             defaultTaskDurationDays={defaultTaskDurationDays}
             collapsedParentIds={collapsedParentIds}
             onToggleCollapse={handleToggleCollapse}

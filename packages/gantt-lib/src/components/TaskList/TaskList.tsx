@@ -227,6 +227,8 @@ export interface TaskListProps {
   editingTaskId?: string | null;
   /** Enable add task button at bottom of task list (default: true) */
   enableAddTask?: boolean;
+  /** Label text for the add task button (default: 'Добавить работу') */
+  addTaskLabel?: string;
   /** Default duration for newly created tasks, interpreted in the active day mode (default: 5). */
   defaultTaskDurationDays?: number;
   /** Set of collapsed parent task IDs */
@@ -383,6 +385,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   disableTaskListReorder = false,
   editingTaskId: propEditingTaskId,
   enableAddTask = true,
+  addTaskLabel = 'Добавить работу',
   defaultTaskDurationDays = DEFAULT_TASK_DURATION_DAYS,
   collapsedParentIds: externalCollapsedParentIds,
   onToggleCollapse: externalOnToggleCollapse,
@@ -1780,7 +1783,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             }}
             type="button"
           >
-            + Добавить работу
+            + {addTaskLabel}
           </button>
         )}
       </div>
