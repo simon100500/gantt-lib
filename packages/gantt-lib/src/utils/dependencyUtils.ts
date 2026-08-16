@@ -10,6 +10,7 @@ export {
   type DependencyError,
   type ValidationResult,
   type Task,
+  type CriticalPathOptions,
 
   // dateMath
   normalizeUTCDate,
@@ -34,6 +35,10 @@ export {
   getSuccessorChain,
   getTransitiveCascadeChain,
   reflowTasksOnModeSwitch,
+
+  // critical path
+  computeCriticalPath,
+  extendCriticalIdsToParents,
 
   // commands
   buildTaskRangeFromStart,
