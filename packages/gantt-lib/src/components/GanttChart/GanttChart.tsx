@@ -3,7 +3,23 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
-import { validateDependencies, cascadeByLinks, universalCascade, computeParentDates, computeParentProgress, getChildren, removeDependenciesBetweenTasks, isTaskParent, areTasksHierarchicallyRelated, calculateSuccessorDate, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration } from '../../core/scheduling';
+import {
+  validateDependencies,
+  cascadeByLinks,
+  universalCascade,
+  computeParentDates,
+  computeParentProgress,
+  getChildren,
+  removeDependenciesBetweenTasks,
+  isTaskParent,
+  areTasksHierarchicallyRelated,
+  calculateSuccessorDate,
+  buildTaskRangeFromEnd,
+  buildTaskRangeFromStart,
+  getTaskDuration,
+  computeCriticalPath,
+  extendCriticalIdsToParents,
+} from '../../core/scheduling';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type {
   ResourceTableColumnWidthMap,
@@ -443,6 +459,8 @@ export interface GanttModeProps<TTask extends Task = Task> extends TaskChartShar
   isWeekend?: (date: Date) => boolean;
   /** Считать duration в рабочих днях, исключая выходные (default: true) */
   businessDays?: boolean;
+  /** Highlight critical path tasks (bars and dependency lines) or hide non-critical tasks (default: off) */
+  criticalPathMode?: 'highlight' | 'hide';
 }
 
 export interface TableMatrixModeProps<TTask extends Task = Task> extends TaskChartSharedProps<TTask> {
@@ -632,6 +650,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onTaskDateChangeModeChange: externalOnTaskDateChangeModeChange,
   } = props;
   const dayWidth = !isTableMatrixMode ? props.dayWidth ?? 40 : 40;
+  const criticalPathMode = !isTableMatrixMode && !isPlanFactMode ? props.criticalPathMode : undefined;
   const viewMode = !isTableMatrixMode && !isPlanFactMode ? props.viewMode ?? 'day' : 'day';
   const customDays = !isTableMatrixMode ? props.customDays : undefined;
   const isWeekend = !isTableMatrixMode ? props.isWeekend : undefined;
@@ -892,6 +911,16 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     [customDays, isWeekend]
   );
 
+  // Critical path task ids (leaves via CPM + parents lifted up the chain).
+  const criticalTaskIds = useMemo(() => {
+    if (!criticalPathMode) return new Set<string>();
+    const leafCritical = computeCriticalPath(normalizedTasks, {
+      businessDays,
+      weekendPredicate: isCustomWeekend,
+    });
+    return extendCriticalIdsToParents(leafCritical, normalizedTasks);
+  }, [criticalPathMode, normalizedTasks, businessDays, isCustomWeekend]);
+
   // When baseline is visible, expand the visible range to include baseline dates too.
   const dateRangeTasks = useMemo(() => {
     if (isPlanFactMode) {
@@ -959,8 +988,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       tasks = tasks.filter(taskFilter);
     }
 
+    // In 'hide' mode with critical path active, show only critical tasks (ancestors included).
+    if (criticalPathMode === 'hide') {
+      tasks = tasks.filter(task => criticalTaskIds.has(task.id));
+    }
+
     return tasks;
-  }, [normalizedTasks, collapsedParentIds, filterMode, taskFilter]);
+  }, [normalizedTasks, collapsedParentIds, filterMode, taskFilter, criticalPathMode, criticalTaskIds]);
 
   const matchedTaskIds = useMemo(() => {
     if (!taskFilter) return new Set<string>();
@@ -2172,6 +2206,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     businessDays={businessDays}
                     weekendPredicate={isCustomWeekend}
                     onDependencyClick={handleDependencyLineClick}
+                    criticalTaskIds={criticalPathMode ? criticalTaskIds : undefined}
                   />
 
                   {dependencyLineMenu && (
@@ -2271,6 +2306,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         highlightExpiredTasks={highlightExpiredTasks}
                         showBaseline={showBaseline}
                         isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
+                        isCritical={criticalTaskIds.has(task.id)}
                         businessDays={businessDays}
                         customDays={customDays}
                         isWeekend={isWeekend}

@@ -91,6 +91,8 @@ export interface DependencyLinesProps {
   dragOverrides?: Map<string, { left: number; width: number }>;
   /** Currently selected dep chip — highlights the matching arrow in red */
   selectedDep?: { predecessorId: string; successorId: string; linkType: string } | null;
+  /** Ids of tasks on the critical path. Lines with both ends critical are highlighted. */
+  criticalTaskIds?: Set<string>;
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
   /** Called when an existing dependency line is clicked. */

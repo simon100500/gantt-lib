@@ -56,6 +56,8 @@ export interface TaskRowProps {
   showBaseline?: boolean;
   /** Whether this row matches the active filter highlight */
   isFilterMatch?: boolean;
+  /** Whether this task lies on the critical path */
+  isCritical?: boolean;
   /** Calculate duration in business days (excluding weekends) */
   businessDays?: boolean;
   /** Custom weekend configuration */

@@ -70,6 +70,9 @@
   /* Expired task color */
   --gantt-expired-color: #ef4444;
 
+  /* Critical path color */
+  --gantt-critical-path-color: #dc2626;
+
   /* Parent Task Styling (Phase 19) - MS Project bracket style */
   --gantt-parent-bar-color: #782fc4;
   --gantt-parent-bar-height: 20px;
