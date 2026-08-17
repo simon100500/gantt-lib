@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.124.0] - 2026-08-17
+
+### Features
+
+- Add critical-path highlighting for FS, SS, FF, and SF dependencies
+- Recalculate critical-path highlighting from the actual scheduled project finish
+- Update critical-path highlighting in real time while dragging tasks
+
+### Fixes
+
+- Include valid standalone tasks that determine the project finish in the critical path
+- Expand group dependencies through leaf tasks for critical-path calculation
+
 ## [0.123.0] - 2026-08-16
 
 ### Features
