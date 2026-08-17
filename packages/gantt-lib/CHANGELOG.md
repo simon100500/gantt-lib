@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.124.1] - 2026-08-17
+
+### Features
+
+- Lock mode now disables dependency creation and hides task-bar connection ports in the construction demo
+
 ## [0.124.0] - 2026-08-17
 
 ### Features
