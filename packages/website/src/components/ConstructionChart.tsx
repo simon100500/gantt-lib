@@ -104,6 +104,7 @@ export default function ConstructionChart() {
   const [showChart, setShowChart] = useState(true);
   const [showBaseline, setShowBaseline] = useState(true);
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
+  const [disableDependencyEditing, setDisableDependencyEditing] = useState(false);
   const [highlightExpired, setHighlightExpired] = useState(true);
   const [businessDays, setBusinessDays] = useState(true);
   const [disableTaskDrag, setDisableTaskDrag] = useState(false);
@@ -321,7 +322,7 @@ export default function ConstructionChart() {
         <button className={`demo-btn ${showBaseline ? "demo-btn-active" : "demo-btn-muted"}`} onClick={() => setShowBaseline(!showBaseline)}>{showBaseline ? "Baseline: ON" : "Baseline: OFF"}</button>
         <button className={`demo-btn ${businessDays ? "demo-btn-active" : "demo-btn-muted"}`} onClick={() => setBusinessDays(!businessDays)}>{businessDays ? "Рабочие дни: ON" : "Рабочие дни: OFF"}</button>
         <button className={`demo-btn ${disableTaskDrag ? "demo-btn-danger" : "demo-btn-muted"}`} onClick={() => setDisableTaskDrag(!disableTaskDrag)}>{disableTaskDrag ? "Drag: OFF" : "Drag: ON"}</button>
-        <button className={`demo-btn ${locked ? "demo-btn-danger" : "demo-btn-muted"}`} onClick={() => { setLocked(!locked); setDisableTaskNameEditing(!locked); setDisableTaskDrag(!locked); }}>{locked ? "🔓 Разблокировать" : "🔒 Заблокировать"}</button>
+        <button className={`demo-btn ${locked ? "demo-btn-danger" : "demo-btn-muted"}`} onClick={() => { setLocked(!locked); setDisableTaskNameEditing(!locked); setDisableTaskDrag(!locked); setDisableDependencyEditing(!locked); }}>{locked ? "🔓 Разблокировать" : "🔒 Заблокировать"}</button>
         <button className={`demo-btn ${enableTaskMultiSelect ? "demo-btn-active" : "demo-btn-muted"}`} onClick={handleToggleMultiSelect}>
           {enableTaskMultiSelect ? "Multi-select: ON" : "Multi-select: OFF"}
         </button>
@@ -416,6 +417,7 @@ export default function ConstructionChart() {
           customDays={MAIN_CHART_CUSTOM_DAYS}
           highlightedTaskIds={highlightedSearchTaskIds}
           disableTaskDrag={disableTaskDrag}
+          disableDependencyEditing={disableDependencyEditing}
           enableTaskMultiSelect={enableTaskMultiSelect}
           selectedTaskIds={selectedTaskIds}
           onSelectedTaskIdsChange={setSelectedTaskIds}
