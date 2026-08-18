@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.124.2] - 2026-08-18
+
+### Fixes
+
+- Critical-path "hide" filter now also filters the task list (TaskList), keeping its height and the add-task button in sync
+
 ## [0.124.1] - 2026-08-17
 
 ### Features
