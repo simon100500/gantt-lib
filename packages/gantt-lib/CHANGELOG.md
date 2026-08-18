@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.125.0] - 2026-08-18
+
+### Features
+
+- Rework critical-path visuals: solid red critical bars (including parent brackets), yellow row highlighting in highlight mode, hatching removed
+- Construction demo auto-disables expired highlighting when critical path is enabled
+
+### Fixes
+
+- Critical-path "hide" mode no longer renders dependency arrows pointing to hidden tasks (no dangling arrows)
+- Critical row highlighting is no longer dropped when no text filter is active
+
 ## [0.124.2] - 2026-08-18
 
 ### Fixes
