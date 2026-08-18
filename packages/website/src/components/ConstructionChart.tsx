@@ -376,8 +376,8 @@ export default function ConstructionChart() {
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>Критический путь:</span>
         <button onClick={() => setCriticalPathMode(undefined)} style={filterBtnStyle(criticalPathMode === undefined)}>Выкл</button>
-        <button onClick={() => setCriticalPathMode('highlight')} style={filterBtnStyle(criticalPathMode === 'highlight', '#dc2626')}>Подсветить</button>
-        <button onClick={() => setCriticalPathMode('hide')} style={filterBtnStyle(criticalPathMode === 'hide', '#dc2626')}>Только критические</button>
+        <button onClick={() => { setCriticalPathMode('highlight'); setHighlightExpired(false); }} style={filterBtnStyle(criticalPathMode === 'highlight', '#dc2626')}>Подсветить</button>
+        <button onClick={() => { setCriticalPathMode('hide'); setHighlightExpired(false); }} style={filterBtnStyle(criticalPathMode === 'hide', '#dc2626')}>Только критические</button>
       </div>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>

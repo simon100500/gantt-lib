@@ -33,8 +33,8 @@ function getBar(container: HTMLElement) {
   return container.querySelector('[data-taskbar]') as HTMLElement;
 }
 
-describe('TaskRow critical path bar hatching', () => {
-  it('adds the critical-path class to the bar when isCritical is true', () => {
+describe('TaskRow critical path bar styling', () => {
+  it('adds the critical-path class and repaints the bar red when isCritical is true', () => {
     const task = makeTask({ id: 'A', startDate: '2026-02-02', endDate: '2026-02-04' });
     const { container } = render(
       <TaskRow
@@ -48,8 +48,7 @@ describe('TaskRow critical path bar hatching', () => {
       />
     );
     expect(getBar(container).classList.contains('gantt-tr-critical')).toBe(true);
-    // Critical path is marked by hatching, the bar keeps its own color.
-    expect(getBar(container).style.backgroundColor).toBe('var(--gantt-task-bar-default-color)');
+    expect(getBar(container).style.backgroundColor).toBe('var(--gantt-critical-path-color, #dc2626)');
   });
 
   it('keeps task.color when isCritical is false', () => {
@@ -70,7 +69,7 @@ describe('TaskRow critical path bar hatching', () => {
     expect(getBar(container).classList.contains('gantt-tr-critical')).toBe(false);
   });
 
-  it('prioritizes expired over critical', () => {
+  it('expired tinting keeps priority over the critical repaint', () => {
     const task = makeTask({ id: 'E', startDate: '2026-01-05', endDate: '2026-01-09', progress: 0 });
     const { container } = render(
       <TaskRow
@@ -87,7 +86,7 @@ describe('TaskRow critical path bar hatching', () => {
     expect(getBar(container).style.backgroundColor).toBe('var(--gantt-expired-color)');
   });
 
-  it('adds the critical-path class to a parent bar without repainting it', () => {
+  it('repaints a critical parent bar including its bracket color variable', () => {
     const parent = makeTask({ id: 'P', startDate: '2026-02-02', endDate: '2026-02-08' });
     const child = makeTask({ id: 'A', startDate: '2026-02-02', endDate: '2026-02-04', parentId: 'P' });
     const { container } = render(
@@ -102,6 +101,7 @@ describe('TaskRow critical path bar hatching', () => {
       />
     );
     expect(getBar(container).classList.contains('gantt-tr-critical')).toBe(true);
-    expect(getBar(container).style.getPropertyValue('--gantt-parent-bar-color')).toBe('#782FC4');
+    expect(getBar(container).style.backgroundColor).toBe('var(--gantt-critical-path-color, #dc2626)');
+    expect(getBar(container).style.getPropertyValue('--gantt-parent-bar-color')).toBe('var(--gantt-critical-path-color, #dc2626)');
   });
 });

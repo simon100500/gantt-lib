@@ -1014,14 +1014,21 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (filterMode === 'hide') {
       return new Set<string>();
     }
-    if ((!highlightedTaskIds || highlightedTaskIds.size === 0) && matchedTaskIds.size === 0) {
+    // In critical-path 'hide' mode every visible row is critical, so the yellow
+    // highlight is redundant noise — only paint rows in 'highlight' mode.
+    const criticalHighlightMode = criticalPathMode === 'highlight';
+    const hasExternalHighlights = !!highlightedTaskIds && highlightedTaskIds.size > 0;
+    if (!hasExternalHighlights && matchedTaskIds.size === 0 && !criticalHighlightMode) {
       return new Set<string>();
     }
 
     const mergedHighlightedTaskIds = new Set(highlightedTaskIds ?? []);
     matchedTaskIds.forEach((taskId) => mergedHighlightedTaskIds.add(taskId));
+    if (criticalHighlightMode) {
+      criticalTaskIds.forEach((taskId) => mergedHighlightedTaskIds.add(taskId));
+    }
     return mergedHighlightedTaskIds;
-  }, [filterMode, highlightedTaskIds, matchedTaskIds]);
+  }, [filterMode, highlightedTaskIds, matchedTaskIds, criticalPathMode, criticalTaskIds]);
 
   // Calculate total grid height from currently visible rows.
   const totalGridHeight = useMemo(
@@ -2312,7 +2319,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}
                         highlightExpiredTasks={highlightExpiredTasks}
                         showBaseline={showBaseline}
-                        isFilterMatch={filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false}
+                        isFilterMatch={(filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false) || (criticalPathMode === 'highlight' ? criticalTaskIds.has(task.id) : false)}
                         isCritical={criticalTaskIds.has(task.id)}
                         businessDays={businessDays}
                         customDays={customDays}

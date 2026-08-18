@@ -129,6 +129,42 @@ describe('GanttChart criticalPathMode', () => {
     expect(container.querySelectorAll('.gantt-dependency-path').length).toBe(2);
   });
 
+  it('highlight mode paints critical rows yellow in both the grid and the task list', () => {
+    const tasks: Task[] = [
+      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
+      makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'D', startDate: '2026-01-05', endDate: '2026-01-06' }),
+    ];
+
+    const { container } = render(
+      <GanttChart tasks={tasks} criticalPathMode="highlight" rowHeight={36} headerHeight={36} showTaskList={true} />
+    );
+
+    const gridRowA = container.querySelector('.gantt-tr-row[data-gantt-task-row-id="A"]');
+    expect(gridRowA?.classList.contains('gantt-tr-row-filter-match')).toBe(true);
+    const listRowA = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="A"]');
+    expect(listRowA?.classList.contains('gantt-tl-row-filter-match')).toBe(true);
+
+    const gridRowD = container.querySelector('.gantt-tr-row[data-gantt-task-row-id="D"]');
+    expect(gridRowD?.classList.contains('gantt-tr-row-filter-match')).toBe(false);
+  });
+
+  it('hide mode paints critical bars red but does not yellow-highlight rows', () => {
+    const tasks: Task[] = [
+      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
+      makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
+    ];
+
+    const { container } = render(
+      <GanttChart tasks={tasks} criticalPathMode="hide" rowHeight={36} headerHeight={36} showTaskList={true} />
+    );
+
+    const gridRowA = container.querySelector('.gantt-tr-row[data-gantt-task-row-id="A"]');
+    expect(gridRowA?.classList.contains('gantt-tr-row-filter-match')).toBe(false);
+    const listRowA = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="A"]');
+    expect(listRowA?.classList.contains('gantt-tl-row-filter-match')).toBe(false);
+  });
+
   it('hide mode removes arrows going UP from a lower critical task to a hidden non-critical task above', () => {
     const tasks: Task[] = [
       makeTask({ id: 'D', startDate: '2026-01-11', endDate: '2026-01-12', dependencies: [{ taskId: 'C', type: 'FS', lag: 0 }] }),
