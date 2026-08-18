@@ -90,4 +90,26 @@ describe('GanttChart criticalPathMode', () => {
     expect(getRow(container, 'A')).not.toBeNull();
     expect(getRow(container, 'D')).not.toBeNull();
   });
+
+  it('hide mode filters task list rows so the container height shrinks', () => {
+    const tasks: Task[] = [
+      makeTask({ id: 'P', startDate: '2026-01-05', endDate: '2026-01-13' }),
+      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07', parentId: 'P' }),
+      makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10', parentId: 'P', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'D', startDate: '2026-01-05', endDate: '2026-01-06' }),
+    ];
+
+    const { container } = render(
+      <GanttChart tasks={tasks} criticalPathMode="hide" rowHeight={36} headerHeight={36} showTaskList={true} />
+    );
+
+    expect(getRow(container, 'P')).not.toBeNull();
+    expect(getRow(container, 'A')).not.toBeNull();
+    expect(getRow(container, 'B')).not.toBeNull();
+    expect(getRow(container, 'D')).toBeNull();
+
+    const body = container.querySelector('.gantt-tl-body') as HTMLElement | null;
+    expect(body).not.toBeNull();
+    expect(body!.style.height).toBe('108px');
+  });
 });

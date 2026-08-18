@@ -263,6 +263,10 @@ export interface TaskListProps {
   filteredTaskIds?: Set<string>;
   /** Whether filter is currently active (needed to distinguish "no filter" from "filter with no matches") */
   isFilterActive?: boolean;
+  /** Critical path display mode. In 'hide' mode only critical tasks (and their parents) are shown. */
+  criticalPathMode?: 'highlight' | 'hide';
+  /** Task IDs that belong to the critical path (leaves + lifted parents). Used when criticalPathMode === 'hide'. */
+  criticalTaskIds?: Set<string>;
   /** Additional columns to display after built-in columns */
   additionalColumns?: TaskListColumn<any>[];
   /** Built-in or custom TaskList column IDs to hide after column placement is resolved */
@@ -403,6 +407,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   filterMode = 'highlight',
   filteredTaskIds = new Set(),
   isFilterActive = false,
+  criticalPathMode,
+  criticalTaskIds,
   additionalColumns,
   hiddenTaskListColumns,
   taskListColumnWidths,
@@ -480,8 +486,13 @@ export const TaskList: React.FC<TaskListProps> = ({
       tasks = tasks.filter(task => filteredTaskIds.has(task.id));
     }
 
+    // In 'hide' mode with critical path active, show only critical tasks (ancestors included).
+    if (criticalPathMode === 'hide' && criticalTaskIds) {
+      tasks = tasks.filter(task => criticalTaskIds.has(task.id));
+    }
+
     return tasks;
-  }, [orderedTasks, collapsedParentIds, filterMode, filteredTaskIds, isFilterActive]);
+  }, [orderedTasks, collapsedParentIds, filterMode, filteredTaskIds, isFilterActive, criticalPathMode, criticalTaskIds]);
 
   const totalHeight = useMemo(
     () => visibleTasks.length * rowHeight,

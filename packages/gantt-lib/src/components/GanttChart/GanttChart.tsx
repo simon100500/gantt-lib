@@ -2054,6 +2054,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             filterMode={filterMode}
             filteredTaskIds={matchedTaskIds}
             isFilterActive={!!taskFilter}
+            criticalPathMode={criticalPathMode}
+            criticalTaskIds={criticalPathMode === 'hide' ? criticalTaskIds : undefined}
             additionalColumns={additionalColumns}
             hiddenTaskListColumns={hiddenTaskListColumns}
             taskListColumnWidths={taskListColumnWidths}
