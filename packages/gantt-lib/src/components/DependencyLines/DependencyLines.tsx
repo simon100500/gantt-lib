@@ -205,6 +205,11 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
         if (collapsedParentIds.size > 0 && isTaskHidden(task.id, collapsedParentIds, taskMap)) continue;
 
+        // Only virtualize tasks whose row still exists in the visible task list (i.e. they are
+        // merely scrolled out of the render window). Tasks absent from rowIndexByTaskId were
+        // removed by filtering (e.g. critical-path 'hide' mode) and must not produce lines.
+        if (rowIndexByTaskId && !rowIndexByTaskId.has(task.id)) continue;
+
         hidden.add(task.id);
 
         const override = dragOverrides?.get(task.id);

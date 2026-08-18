@@ -112,4 +112,36 @@ describe('GanttChart criticalPathMode', () => {
     expect(body).not.toBeNull();
     expect(body!.style.height).toBe('108px');
   });
+
+  it('hide mode removes dependency arrows touching hidden non-critical tasks', () => {
+    const tasks: Task[] = [
+      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
+      makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'C', startDate: '2026-01-11', endDate: '2026-01-13', dependencies: [{ taskId: 'B', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'D', startDate: '2026-01-05', endDate: '2026-01-06', dependencies: [{ taskId: 'A', type: 'SS', lag: 0 }] }),
+    ];
+
+    const { container } = render(
+      <GanttChart tasks={tasks} criticalPathMode="hide" rowHeight={36} headerHeight={36} />
+    );
+
+    expect(getRow(container, 'D')).toBeNull();
+    expect(container.querySelectorAll('.gantt-dependency-path').length).toBe(2);
+  });
+
+  it('hide mode removes arrows going UP from a lower critical task to a hidden non-critical task above', () => {
+    const tasks: Task[] = [
+      makeTask({ id: 'D', startDate: '2026-01-11', endDate: '2026-01-12', dependencies: [{ taskId: 'C', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'A', startDate: '2026-01-05', endDate: '2026-01-07' }),
+      makeTask({ id: 'B', startDate: '2026-01-08', endDate: '2026-01-10', dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }] }),
+      makeTask({ id: 'C', startDate: '2026-01-11', endDate: '2026-01-13', dependencies: [{ taskId: 'B', type: 'FS', lag: 0 }] }),
+    ];
+
+    const { container } = render(
+      <GanttChart tasks={tasks} criticalPathMode="hide" rowHeight={36} headerHeight={36} />
+    );
+
+    expect(getRow(container, 'D')).toBeNull();
+    expect(container.querySelectorAll('.gantt-dependency-path').length).toBe(2);
+  });
 });
