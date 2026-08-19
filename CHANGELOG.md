@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.126.0] - 2026-08-20
+
+### Features
+
+- Make FS dependency placement successor-type-aware for milestones: a milestone successor with `FS lag: 0` is scheduled on the predecessor's finish date (same day), while a regular successor starts on the following day
+- Two linked milestones with FS lag 0 can now share the same date; regular work after a milestone starts on the next day
+
+### Demo
+
+- Add a "critical path without links" demo to the website
+
 ## [0.125.0] - 2026-08-18
 
 ### Features
