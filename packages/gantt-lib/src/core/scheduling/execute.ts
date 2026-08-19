@@ -4,6 +4,15 @@
  * Zero React/DOM/date-fns imports.
  */
 
+// START_MODULE_CONTRACT
+//   PURPOSE: Execute authoritative task and project schedule recalculations.
+//   SCOPE: Move, resize, dependency recalculation, cascade, and full-project scheduling.
+//   DEPENDS: commands, cascade, dateMath, dependencies, hierarchy, scheduling types
+//   LINKS: M-SCHEDULING, fn-recalculateTaskFromDependencies, fn-recalculateProjectSchedule
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+
 import type { Task, ScheduleCommandResult, ScheduleCommandOptions } from './types';
 import { moveTaskRange, recalculateIncomingLags, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration } from './commands';
 import { universalCascade } from './cascade';
@@ -221,7 +230,8 @@ export function recalculateTaskFromDependencies(
       dep.type,
       getDependencyLag(dep),
       businessDays,
-      weekendPredicate
+      weekendPredicate,
+      task.type
     );
 
     const duration = getTaskDuration(
@@ -373,7 +383,8 @@ export function recalculateProjectSchedule(
           dep.type,
           getDependencyLag(dep),
           businessDays,
-          weekendPredicate
+          weekendPredicate,
+          currentTask.type
         );
 
         const candidateRange = dep.type === 'FS' || dep.type === 'SS'

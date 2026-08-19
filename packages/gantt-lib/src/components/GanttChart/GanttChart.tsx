@@ -793,11 +793,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
       const constraintDate = calculateSuccessorDate(
         parseUTCDate(predecessor.startDate),
-        parseUTCDate(predecessor.endDate),
+        predecessor.type === 'milestone'
+          ? parseUTCDate(predecessor.startDate)
+          : parseUTCDate(predecessor.endDate),
         nextDependency.type,
         0,
         businessDays,
         isCustomWeekend,
+        successor.type,
       );
       const duration = getTaskDuration(
         updatedSuccessor.startDate,

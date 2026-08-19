@@ -101,7 +101,7 @@ describe('dependencies', () => {
       expect(result.getUTCDate()).toBe(13);
     });
 
-    it('computes milestone FS with lag=0 on the same day', () => {
+    it('computes milestone successor FS with lag=0 on the same day', () => {
       const { predStart, predEnd } = normalizePredecessorDates(
         {
           startDate: '2025-01-10',
@@ -111,7 +111,39 @@ describe('dependencies', () => {
         (value) => new Date(`${String(value).split('T')[0]}T00:00:00.000Z`)
       );
 
-      const result = calculateSuccessorDate(predStart, predEnd, 'FS', 0);
+      const result = calculateSuccessorDate(predStart, predEnd, 'FS', 0, false, undefined, 'milestone');
+
+      expect(result.toISOString()).toBe('2025-01-10T00:00:00.000Z');
+    });
+
+    it('keeps a regular successor on the next day after a milestone', () => {
+      const milestone = makeDate(2025, 0, 10);
+
+      const result = calculateSuccessorDate(
+        milestone,
+        milestone,
+        'FS',
+        0,
+        false,
+        undefined,
+        'task'
+      );
+
+      expect(result.toISOString()).toBe('2025-01-11T00:00:00.000Z');
+    });
+
+    it('keeps a milestone successor on the same working day in business-day mode', () => {
+      const friday = makeDate(2025, 0, 10);
+
+      const result = calculateSuccessorDate(
+        friday,
+        friday,
+        'FS',
+        0,
+        true,
+        isWeekend,
+        'milestone'
+      );
 
       expect(result.toISOString()).toBe('2025-01-10T00:00:00.000Z');
     });
@@ -149,7 +181,26 @@ describe('dependencies', () => {
       const succStart = makeDate(2025, 0, 10);
       const succEnd = makeDate(2025, 0, 12);
 
-      const result = computeLagFromDates('FS', predStart, predEnd, succStart, succEnd);
+      const result = computeLagFromDates('FS', predStart, predEnd, succStart, succEnd, false, undefined, 'milestone');
+
+      expect(result).toBe(0);
+    });
+
+    it('computes zero FS lag for a regular successor on the day after a milestone', () => {
+      const milestone = makeDate(2025, 0, 10);
+      const successorStart = makeDate(2025, 0, 11);
+      const successorEnd = makeDate(2025, 0, 13);
+
+      const result = computeLagFromDates(
+        'FS',
+        milestone,
+        milestone,
+        successorStart,
+        successorEnd,
+        false,
+        undefined,
+        'task'
+      );
 
       expect(result).toBe(0);
     });

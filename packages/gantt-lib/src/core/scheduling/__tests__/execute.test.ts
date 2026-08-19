@@ -209,7 +209,7 @@ describe('recalculateTaskFromDependencies', () => {
     expect(recalcB.startDate).toBe('2024-01-08');
   });
 
-  it('10.1 milestone FS lag=0 keeps successor on the same day', () => {
+  it('10.1 regular successor starts the next day after a milestone', () => {
     const predecessor = makeTask({
       id: 'M',
       startDate: '2024-01-05',
@@ -227,11 +227,32 @@ describe('recalculateTaskFromDependencies', () => {
     const result = recalculateTaskFromDependencies('B', snapshot);
 
     const recalcB = result.changedTasks.find(t => t.id === 'B')!;
-    expect(recalcB.startDate).toBe('2024-01-05');
-    expect(recalcB.endDate).toBe('2024-01-07');
+    expect(recalcB.startDate).toBe('2024-01-06');
+    expect(recalcB.endDate).toBe('2024-01-08');
   });
 
-  it('10.2 moving milestone predecessor keeps milestone successor on the same day for FS lag=0', () => {
+  it('10.2 work successor milestone lands on the predecessor finish date', () => {
+    const predecessor = makeTask({
+      id: 'A',
+      startDate: '2024-01-01',
+      endDate: '2024-01-05',
+    });
+    const milestone = makeTask({
+      id: 'M',
+      startDate: '2024-01-08',
+      endDate: '2024-01-08',
+      type: 'milestone',
+      dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }],
+    });
+
+    const result = recalculateTaskFromDependencies('M', [predecessor, milestone]);
+    const recalcM = result.changedTasks.find(t => t.id === 'M')!;
+
+    expect(recalcM.startDate).toBe('2024-01-05');
+    expect(recalcM.endDate).toBe('2024-01-05');
+  });
+
+  it('10.3 moving milestone predecessor keeps milestone successor on the same day for FS lag=0', () => {
     const predecessor = makeTask({
       id: 'M1',
       startDate: '2024-01-05',
@@ -335,6 +356,32 @@ describe('recalculateProjectSchedule', () => {
 
     expect(result.changedIds).toEqual([]);
     expect(result.changedTasks).toEqual([]);
+  });
+
+  it('13.1 schedules a work-to-milestone-to-work FS chain on the correct dates', () => {
+    const work = makeTask({ id: 'A', startDate: '2024-01-01', endDate: '2024-01-05' });
+    const milestone = makeTask({
+      id: 'M',
+      startDate: '2024-01-08',
+      endDate: '2024-01-08',
+      type: 'milestone',
+      dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }],
+    });
+    const successor = makeTask({
+      id: 'B',
+      startDate: '2024-01-09',
+      endDate: '2024-01-11',
+      dependencies: [{ taskId: 'M', type: 'FS', lag: 0 }],
+    });
+
+    const result = recalculateProjectSchedule([work, milestone, successor]);
+    const recalculatedMilestone = result.changedTasks.find(t => t.id === 'M')!;
+    const recalculatedSuccessor = result.changedTasks.find(t => t.id === 'B')!;
+
+    expect(recalculatedMilestone.startDate).toBe('2024-01-05');
+    expect(recalculatedMilestone.endDate).toBe('2024-01-05');
+    expect(recalculatedSuccessor.startDate).toBe('2024-01-06');
+    expect(recalculatedSuccessor.endDate).toBe('2024-01-08');
   });
 });
 

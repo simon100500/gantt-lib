@@ -4,6 +4,15 @@
  * Zero React/DOM/date-fns imports.
  */
 
+// START_MODULE_CONTRACT
+//   PURPOSE: Build task ranges and update dependency lags for interactive scheduling commands.
+//   SCOPE: Range construction, incoming FS clamping, and lag recalculation.
+//   DEPENDS: dateMath, dependencies, scheduling types
+//   LINKS: M-SCHEDULING, fn-clampTaskRangeForIncomingFS, fn-recalculateIncomingLags
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+
 import type { Task } from './types';
 import {
   normalizeUTCDate,
@@ -104,7 +113,7 @@ export function moveTaskRange(
  * Clamp task range start date based on incoming FS dependencies.
  */
 export function clampTaskRangeForIncomingFS(
-  task: Pick<Task, 'dependencies'>,
+  task: Pick<Task, 'dependencies' | 'type'>,
   proposedStart: Date,
   proposedEnd: Date,
   allTasks: Task[],
@@ -141,7 +150,8 @@ export function clampTaskRangeForIncomingFS(
       'FS',
       -predecessorDuration,
       businessDays,
-      weekendPredicate
+      weekendPredicate,
+      task.type
     );
 
     if (!minAllowedStart || candidateMinStart.getTime() > minAllowedStart.getTime()) {
@@ -191,7 +201,8 @@ export function recalculateIncomingLags(
       newStartDate,
       newEndDate,
       businessDays,
-      weekendPredicate
+      weekendPredicate,
+      task.type
     );
 
     return { ...dep, lag: nextLag };

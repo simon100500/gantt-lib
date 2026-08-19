@@ -4,6 +4,15 @@
  * Zero React/DOM/date-fns imports.
  */
 
+// START_MODULE_CONTRACT
+//   PURPOSE: Propagate moved task dates through dependency and hierarchy graphs.
+//   SCOPE: Dependency cascades, parent/child propagation, and business-day alignment.
+//   DEPENDS: commands, dateMath, dependencies, scheduling types
+//   LINKS: M-SCHEDULING, fn-cascadeByLinks, fn-universalCascade
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+
 import type { Task, LinkType } from './types';
 import {
   normalizeUTCDate,
@@ -173,7 +182,10 @@ export function cascadeByLinks(
         normalizedPredStart,
         normalizedPredEnd,
         dep.type,
-        getDependencyLag(dep)
+        getDependencyLag(dep),
+        false,
+        undefined,
+        task.type
       );
 
       let newSuccStart: Date;
@@ -395,7 +407,7 @@ export function universalCascade(
       );
       const constraintDate = calculateSuccessorDate(
         normalizedPredStart, normalizedPredEnd, dep.type, getDependencyLag(dep),
-        businessDays, weekendPredicate
+        businessDays, weekendPredicate, task.type
       );
 
       let succNewStart: Date;

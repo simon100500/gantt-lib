@@ -467,6 +467,7 @@ const DepChip: React.FC<DepChipProps> = ({
         predEnd,
         businessDays,
         weekendPredicate,
+        task.type,
       );
 
       const constraintDate = calculateSuccessorDate(
@@ -476,6 +477,7 @@ const DepChip: React.FC<DepChipProps> = ({
         normalizedLag,
         businessDays,
         weekendPredicate,
+        task.type,
       );
 
       let newStart: Date, newEnd: Date;

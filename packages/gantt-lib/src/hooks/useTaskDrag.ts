@@ -201,14 +201,19 @@ function canMoveTask(
     if (!predecessor) continue;
 
     const predecessorStart = new Date(predecessor.startDate);
-    const predecessorEnd = new Date(predecessor.endDate);
+    const predecessorEnd = predecessor.type === 'milestone'
+      ? predecessorStart
+      : new Date(predecessor.endDate);
 
     // Calculate expected date based on link type (lag ignored, always 0)
     const expectedDate = calculateSuccessorDate(
       predecessorStart,
       predecessorEnd,
       dep.type,
-      0  // lag not used in calculations
+      0, // lag not used in calculations
+      false,
+      undefined,
+      task.type
     );
 
     // Check constraint based on link type

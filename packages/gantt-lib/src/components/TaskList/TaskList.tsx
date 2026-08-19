@@ -843,14 +843,17 @@ export const TaskList: React.FC<TaskListProps> = ({
     const predecessor = tasks.find(t => t.id === predecessorTaskId);
     if (predecessor) {
       const predStart = new Date(predecessor.startDate as string);
-      const predEnd = new Date(predecessor.endDate as string);
+      const predEnd = predecessor.type === 'milestone'
+        ? predStart
+        : new Date(predecessor.endDate as string);
       const constraintDate = calculateSuccessorDate(
         predStart,
         predEnd,
         linkType,
         0,
         businessDays ?? true,
-        weekendPredicate
+        weekendPredicate,
+        updatedTask.type
       );
 
       const origSuccessor = tasks.find(t => t.id === successorTaskId)!;
