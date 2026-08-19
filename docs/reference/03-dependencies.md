@@ -22,10 +22,13 @@ interface TaskDependency {
 
 Dependencies use standard project management link type semantics. All link types are relative to the predecessor task (A) and successor task (B).
 
-Milestones do **not** change FS/SS/FF/SF scheduling rules. Milestone-specific behaviors:
+Milestones are zero-duration events. The successor type participates in FS
+date calculation: a milestone successor with `lag: 0` is placed on the
+predecessor's finish date, while a regular successor starts on the following
+day. SS/FF/SF keep their normal start/end anchor rules.
 
 - **Visual**: dependency lines attach to the diamond edges via `calculateMilestoneConnectionBounds()`, offset by half the diamond diagonal (~10px from bar boundary).
-- **Cascade**: when a milestone is a predecessor, its `endDate` is treated as equal to `startDate` (zero duration) via `normalizePredecessorDates()`. With `lag: 0`, successors start on the **same day** as the milestone — not the next day.
+- **Cascade**: when a milestone is a predecessor, its `endDate` is treated as equal to `startDate` (zero duration) via `normalizePredecessorDates()`. With `FS lag: 0`, regular successors start on the **next day**; milestone successors can share the milestone's date.
 - **Stacked milestones**: when two milestones with a dependency share the same column (same date), the dependency line renders as a straight vertical segment instead of a diagonal chamfer.
 
 ### FS — Finish-to-Start
@@ -33,8 +36,8 @@ Milestones do **not** change FS/SS/FF/SF scheduling rules. Milestone-specific be
 | Property | Value |
 |---|---|
 | Full name | Finish-to-Start |
-| Rule | `B.startDate >= A.endDate + lag` |
-| Lag formula | `lag = startB - endA`, clamped to `0` |
+| Rule | Regular B: `B.startDate = A.endDate + lag + 1`; milestone B: `B.startDate = A.endDate + lag` |
+| Lag formula | Regular B: `lag = startB - endA - 1`; milestone B: `lag = startB - endA` |
 | Constrained edge | Left edge (`startDate`) of successor B |
 | Example | `{ taskId: 'A', type: 'FS', lag: 0 }` — B starts on or after A ends |
 

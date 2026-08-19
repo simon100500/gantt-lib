@@ -70,13 +70,13 @@ const milestone: Task = {
 - **Drag** — Milestones can only be **moved** (drag). Resize is disabled because milestones have zero duration. The library forces `mode: 'move'` even if the cursor is near the bar edges.
 - **Width** — During drag, milestone width is always clamped to a single day (`dayWidth` pixels). After all date calculations, the engine forces `newWidth = dayWidth` to prevent visual stretching.
 - **Cascade** — When a milestone is a predecessor in a dependency chain, its `endDate` is treated as equal to `startDate` (zero duration). The cascade engine uses `normalizePredecessorDates()` to handle this automatically.
-- **Zero-lag cascade** — When a milestone predecessor has `lag: 0`, successor tasks are scheduled to start on the **same day** as the milestone (not the next day). This matches project management convention: a milestone marks an event, and successor work can begin immediately.
+- **Zero-lag cascade** — With `FS lag: 0`, a milestone successor lands on the predecessor's finish date. Regular work after a milestone starts on the following day; two linked milestones may share the same date.
 
 ### Dependency Lines
 
 - Connection points are calculated via `calculateMilestoneConnectionBounds()` — lines attach to the diamond edges (offset by half the diamond diagonal), not the full bar edges.
 - For stacked milestones in the same column, dependency lines render as straight vertical lines instead of diagonal chamfers.
-- FS/SS/FF/SF scheduling rules are unchanged for milestones. Only the visual attachment points differ.
+- **FS is successor-type-aware:** a zero-lag milestone successor lands on the predecessor finish date, while regular work after a milestone starts on the following day. SS/FF/SF keep their normal anchor rules.
 
 ### Task List
 
