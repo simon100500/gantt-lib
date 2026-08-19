@@ -6,6 +6,7 @@ import AdditionalColumnsChart from "@/components/AdditionalColumnsChart";
 import FinancePlanMatrixDemo from "@/components/FinancePlanMatrixDemo";
 import PlanFactDemo from "@/components/PlanFactDemo";
 import ResourcePlannerExample from "@/components/ResourcePlannerExample";
+import NoLinksCriticalPathDemo from "@/components/NoLinksCriticalPathDemo";
 
 export default function Home() {
   return (
@@ -33,6 +34,7 @@ export default function Home() {
         <FinancePlanMatrixDemo />
         <PlanFactDemo />
         <ResourcePlannerExample />
+        <NoLinksCriticalPathDemo />
       </div>
     </main>
   );
