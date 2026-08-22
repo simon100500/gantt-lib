@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.127.0] - 2026-08-22
+
+### Features
+
+- Add a core boundary-progress batch update: setting a parent task to 0% or 100% applies the same progress to every descendant, while fractional progress remains local to the edited task
+
 ## [0.126.0] - 2026-08-20
 
 ### Features
