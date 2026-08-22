@@ -5,6 +5,7 @@ import {
   computeParentDates,
   computeParentProgress,
   getAllDescendants,
+  cascadeTaskProgress,
 } from '../hierarchy';
 import type { Task } from '../../types';
 
@@ -81,6 +82,51 @@ describe('hierarchy', () => {
       expect(ids).toContain('child1');
       expect(ids).toContain('child2');
       expect(ids).toContain('grandchild');
+    });
+  });
+
+  describe('cascadeTaskProgress', () => {
+    it('propagates 100% from a parent to every descendant in one batch', () => {
+      const sourceTasks: Task[] = [
+        { ...makeTask('parent'), progress: 0 },
+        { ...makeTask('child1', 'parent'), progress: 0 },
+        { ...makeTask('grandchild', 'child1'), progress: 0 },
+        { ...makeTask('child2', 'parent'), progress: 25 },
+      ];
+
+      const changedTasks = cascadeTaskProgress(
+        { ...sourceTasks[0], progress: 100 },
+        sourceTasks,
+      );
+
+      expect(changedTasks.map(task => [task.id, task.progress])).toEqual([
+        ['parent', 100],
+        ['child1', 100],
+        ['grandchild', 100],
+        ['child2', 100],
+      ]);
+    });
+
+    it('propagates 0% but leaves fractional parent progress undistributed', () => {
+      const sourceTasks: Task[] = [
+        { ...makeTask('parent'), progress: 100 },
+        { ...makeTask('child', 'parent'), progress: 100 },
+      ];
+
+      const resetTasks = cascadeTaskProgress(
+        { ...sourceTasks[0], progress: 0 },
+        sourceTasks,
+      );
+      expect(resetTasks.map(task => [task.id, task.progress])).toEqual([
+        ['parent', 0],
+        ['child', 0],
+      ]);
+
+      const fractionalTasks = cascadeTaskProgress(
+        { ...sourceTasks[0], progress: 50 },
+        sourceTasks,
+      );
+      expect(fractionalTasks).toEqual([{ ...sourceTasks[0], progress: 50 }]);
     });
   });
 });

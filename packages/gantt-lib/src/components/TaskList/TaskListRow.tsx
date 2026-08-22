@@ -19,6 +19,7 @@ import {
   alignToWorkingDay,
   buildTaskRangeFromEnd,
   buildTaskRangeFromStart,
+  cascadeTaskProgress,
   getDependencyLag,
   calculateSuccessorDate,
   clampTaskRangeForIncomingFS,
@@ -1434,23 +1435,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       }
       const clampedValue = Math.max(0, Math.min(100, progressValue));
 
-      // Cascade 100% or 0% progress to all children when parent is marked complete/reset
-      if (
-        (clampedValue === 100 || clampedValue === 0) &&
-        isTaskParent(task.id, allTasks)
-      ) {
-        const descendants = getAllDescendants(task.id, allTasks);
-        const updatedTasks = [
-          { ...task, progress: clampedValue },
-          ...descendants.map((descendant) => ({
-            ...descendant,
-            progress: clampedValue,
-          })),
-        ];
-        onTasksChange?.(updatedTasks);
-      } else {
-        onTasksChange?.([{ ...task, progress: clampedValue }]);
-      }
+      onTasksChange?.(cascadeTaskProgress({ ...task, progress: clampedValue }, allTasks));
       setEditingColumnId(null);
     }, [progressValue, task, onTasksChange, allTasks]);
 
@@ -1471,23 +1456,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           progressConfirmedRef.current = true;
           const clampedValue = Math.max(0, Math.min(100, progressValue));
 
-          // Cascade 100% or 0% progress to all children when parent is marked complete/reset
-          if (
-            (clampedValue === 100 || clampedValue === 0) &&
-            isTaskParent(task.id, allTasks)
-          ) {
-            const descendants = getAllDescendants(task.id, allTasks);
-            const updatedTasks = [
-              { ...task, progress: clampedValue },
-              ...descendants.map((descendant) => ({
-                ...descendant,
-                progress: clampedValue,
-              })),
-            ];
-            onTasksChange?.(updatedTasks);
-          } else {
-            onTasksChange?.([{ ...task, progress: clampedValue }]);
-          }
+          onTasksChange?.(cascadeTaskProgress({ ...task, progress: clampedValue }, allTasks));
           setEditingColumnId(null);
         } else if (e.key === "Escape") {
           handleProgressCancel();

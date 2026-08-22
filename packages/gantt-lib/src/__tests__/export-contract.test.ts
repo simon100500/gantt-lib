@@ -98,6 +98,11 @@ describe('Export contract: core/scheduling', () => {
     expect(typeof mod.moveTaskWithCascade).toBe('function');
   });
 
+  it('exports boundary progress cascade from core scheduling', async () => {
+    const mod = await import('../core/scheduling');
+    expect(typeof mod.cascadeTaskProgress).toBe('function');
+  });
+
   it('exports domain types', async () => {
     // Type-only exports can't be checked at runtime, but we can verify the module loads
     const mod = await import('../core/scheduling');

@@ -4,6 +4,15 @@
  * Zero React/DOM/date-fns imports.
  */
 
+// START_MODULE_CONTRACT
+//   PURPOSE: Query task hierarchy and build parent/descendant progress updates.
+//   SCOPE: Child/descendant lookup, parent date/progress rollups, and boundary progress batch updates.
+//   DEPENDS: scheduling types
+//   LINKS: M-SCHEDULE, fn-getAllDescendants, fn-cascadeTaskProgress
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+
 import type { Task } from './types';
 
 /**
@@ -106,6 +115,30 @@ export function getAllDescendants(parentId: string, tasks: Task[]): Task[] {
 
   collectChildren(parentId);
   return descendants;
+}
+
+/**
+ * Propagate an explicit boundary progress value through a task subtree.
+ *
+ * Fractional parent progress is intentionally left untouched: without
+ * knowing which child work was completed, there is no reliable distribution.
+ * Returns the changed parent and descendants as one sparse update batch.
+ */
+export function cascadeTaskProgress(task: Task, tasks: Task[]): Task[] {
+  const progress = task.progress;
+  if (progress !== 0 && progress !== 100) {
+    return [task];
+  }
+
+  const descendants = getAllDescendants(task.id, tasks);
+  if (descendants.length === 0) {
+    return [task];
+  }
+
+  return [
+    { ...task, progress },
+    ...descendants.map((descendant) => ({ ...descendant, progress })),
+  ];
 }
 
 /**
