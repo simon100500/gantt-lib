@@ -388,10 +388,15 @@ export function universalCascade(
       }
     }
 
-    // RULE 3: Dependency successors are repositioned
+    // RULE 3: Dependency successors are repositioned.
+    // A successor that was already shifted rigidly as a child (RULE 1) is part of
+    // the same moving subtree — re-applying its dependency constraints here would
+    // collapse the gaps/slack between descendants (e.g. a positive lag) and make
+    // them drift out of the moved parent by that amount. Preserve internal offsets.
     const dependents = dependentsByPredecessorId.get(currentId) ?? [];
     for (const { task, dependencyIndex } of dependents) {
       if (task.locked || !task.dependencies) continue;
+      if (childShifted.has(task.id)) continue;
       const dep = task.dependencies[dependencyIndex];
       if (!dep) continue;
 

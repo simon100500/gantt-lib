@@ -128,7 +128,18 @@ export default function ConstructionChart() {
     return () => window.clearTimeout(timeout);
   }, [scaleNotice]);
 
+  // Data from createSampleTasks is already built in business-day mode, so the
+  // initial mount must NOT re-flow it (a second calendar→business pass shifts
+  // dates and moves a late successor before its FS predecessor, inverting the
+  // connector). Only re-flow when the working-day toggle actually changes.
+  const appliedBusinessDaysRef = useRef<boolean | null>(null);
   useEffect(() => {
+    if (appliedBusinessDaysRef.current === null) {
+      appliedBusinessDaysRef.current = businessDays;
+      return;
+    }
+    if (appliedBusinessDaysRef.current === businessDays) return;
+    appliedBusinessDaysRef.current = businessDays;
     setTasks((prev) => reflowTasksOnModeSwitch(prev, businessDays, MAIN_CHART_WEEKEND_PREDICATE));
   }, [businessDays]);
 

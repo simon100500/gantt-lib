@@ -92,6 +92,34 @@ describe('cascade', () => {
 
       expect(cascadedB?.dependencies).toEqual([{ taskId: 'A', type: 'FS', lag: -2 }]);
     });
+
+    it('moves all descendants of a dragged parent rigidly (preserves internal gaps/lags)', () => {
+      // Parent P with two children C1 -> C2 (FS). C2 is NOT placed tightly on the
+      // constraint (C1 ends 14, so C2 could start 15, but it starts 16 — 1 day slack).
+      // Dragging P must shift the WHOLE subtree by the same delta, preserving that
+      // slack instead of re-tightening C2 onto the dependency constraint (which would
+      // make C2 drift relative to the moved parent and spill out of it).
+      const tasks: Task[] = [
+        makeTask('P', '2026-02-10', '2026-02-20'),
+        makeTask('C1', '2026-02-10', '2026-02-14', undefined, 'P'),
+        makeTask('C2', '2026-02-16', '2026-02-18', [{ taskId: 'C1', type: 'FS', lag: 0 }], 'P'),
+      ];
+
+      const result = universalCascade(
+        { ...tasks[0], startDate: '2026-02-12', endDate: '2026-02-22' },
+        new Date(Date.UTC(2026, 1, 12)),
+        new Date(Date.UTC(2026, 1, 22)),
+        tasks
+      );
+
+      const c1 = result.find(t => t.id === 'C1');
+      const c2 = result.find(t => t.id === 'C2');
+      // Every descendant shifts by exactly +2 days — the intra-parent gap is kept.
+      expect(c1?.startDate).toBe('2026-02-12');
+      expect(c1?.endDate).toBe('2026-02-16');
+      expect(c2?.startDate).toBe('2026-02-18');
+      expect(c2?.endDate).toBe('2026-02-20');
+    });
   });
 
   describe('reflowTasksOnModeSwitch', () => {
