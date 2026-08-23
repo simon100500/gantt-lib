@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.128.2] - 2026-08-24
+
+### Fixes
+
+- Fix the website production build: the demo date-derivation helper now carries the working-day duration on derived leaves (typed as `Task & { durationDays }`), so the type check no longer fails when reading `leaf.durationDays`
+
 ## [0.128.1] - 2026-08-24
 
 ### Fixes
