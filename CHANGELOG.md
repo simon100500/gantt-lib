@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.127.1] - 2026-08-23
+
+### Fixes
+
+- Rework the dependency line menu: the × button now only closes the menu, deleting a link is done via an explicit trash button
+
 ## [0.127.0] - 2026-08-22
 
 ### Features
