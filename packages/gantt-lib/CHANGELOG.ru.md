@@ -9,7 +9,7 @@
 
 ### Новые возможности
 
-- Headless-операция `scaleTaskSubtreeDuration(parentId, targetDuration, snapshot, options?)`: пропорциональное сжатие/растяжение поддерева родительской задачи до точной целевой длительности (модуль `core/scheduling/subtreeScaling.ts`, доступен из `gantt-lib/core/scheduling` и `gantt-lib`)
+- Headless-операция `scaleTaskSubtreeDuration(parentId, targetDuration, snapshot, options?)`: пропорциональное сжатие/растяжение поддерева родительской задачи до точной целевой длительности (модуль `core/scheduling/subtreeScaling.ts`, доступен из `gantt-lib/core/scheduling`)
 - Единый коэффициент для длительностей листьев с largest-remainder округлением; явные положительные лаги сохраняются, пока цель достижима через длительности, затем уменьшаются до `getMinLag`, затем сжимаются виртуальные смещения независимых веток
 - Недостижимое сжатие применяет доказанный минимум с warning `TARGET_CLAMPED_TO_MINIMUM` вместо hard error; immutable-задачи и milestone-семантика соблюдаются; входной snapshot не мутируется
 - UI: родительские бары получили handles resize — перетаскивание края родителя пропорционально масштабирует всё поддерево (единый атомарный batch через `onTasksChange`); во время драга масштабированный layout пересчитывается live (мемоизация по целевой длительности), коммит — на `mouseup`

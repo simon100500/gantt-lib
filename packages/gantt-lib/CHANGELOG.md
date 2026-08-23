@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
-- Headless operation `scaleTaskSubtreeDuration(parentId, targetDuration, snapshot, options?)`: proportionally compress or stretch a parent task's subtree to an exact target duration (module `core/scheduling/subtreeScaling.ts`, exported from `gantt-lib/core/scheduling` and `gantt-lib`)
+- Headless operation `scaleTaskSubtreeDuration(parentId, targetDuration, snapshot, options?)`: proportionally compress or stretch a parent task's subtree to an exact target duration (module `core/scheduling/subtreeScaling.ts`, exported from `gantt-lib/core/scheduling`)
 - One common factor for leaf durations with largest-remainder rounding; explicit positive lags stay intact while the target is reachable via durations, then shrink down to `getMinLag`, then virtual offsets of independent branches compress
 - Unreachable compression applies the proven minimum with a `TARGET_CLAMPED_TO_MINIMUM` warning instead of a hard error; immutable tasks and milestone semantics are respected; the input snapshot is never mutated
 - UI: parent bars now have resize handles — dragging a parent's edge proportionally rescales its whole subtree (single atomic batch through `onTasksChange`); during the drag the scaled layout recomputes live (memoized per target duration), committing on `mouseup`
