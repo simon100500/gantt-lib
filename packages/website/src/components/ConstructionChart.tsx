@@ -128,15 +128,14 @@ export default function ConstructionChart() {
     return () => window.clearTimeout(timeout);
   }, [scaleNotice]);
 
-  // Data from createSampleTasks is already built in business-day mode, so the
-  // initial mount must NOT re-flow it (a second calendar→business pass shifts
-  // dates and moves a late successor before its FS predecessor, inverting the
-  // connector). Only re-flow when the working-day toggle actually changes.
+  // Recalculate dates whenever the working-day mode changes (reflowTasksOnModeSwitch
+  // now measures duration in the TARGET mode, so a calendar -> business round-trip
+  // no longer pushes a late successor ahead of its FS predecessor).
   const appliedBusinessDaysRef = useRef<boolean | null>(null);
   useEffect(() => {
     if (appliedBusinessDaysRef.current === null) {
       appliedBusinessDaysRef.current = businessDays;
-      return;
+      return; // data from createSampleTasks is already in the initial mode
     }
     if (appliedBusinessDaysRef.current === businessDays) return;
     appliedBusinessDaysRef.current = businessDays;

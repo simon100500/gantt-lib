@@ -20,7 +20,6 @@ export function reflowTasksOnModeSwitch(
   toBusinessDays: boolean,
   weekendPredicate: (date: Date) => boolean
 ): Task[] {
-  const fromBusinessDays = !toBusinessDays;
   let tasks: Task[] = sourceTasks.map(task => ({
     ...task,
     dependencies: task.dependencies?.map(dependency => ({ ...dependency })),
@@ -32,7 +31,12 @@ export function reflowTasksOnModeSwitch(
     if (isTaskParent(task.id, tasks)) continue;
 
     const start = normalizeUTCDate(new Date(`${task.startDate}T00:00:00.000Z`));
-    const duration = getTaskDuration(task.startDate, task.endDate, fromBusinessDays, weekendPredicate);
+    // Measure the duration in the TARGET mode, not the source mode. When going
+    // calendar -> business (off -> on) each task must keep its BUSINESS day
+    // count; counting in calendar days instead inflates every task by the
+    // weekend days inside it, which pushes a task chain's tail forward past its
+    // FS successor and inverts the connector.
+    const duration = getTaskDuration(task.startDate, task.endDate, toBusinessDays, weekendPredicate);
 
     const range = toBusinessDays
       ? buildTaskRangeFromStart(
