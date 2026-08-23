@@ -50,6 +50,9 @@ type SampleTaskInput = Omit<Task, 'startDate' | 'endDate'> & {
   durationDays?: number;
 };
 
+/** A derived leaf: a Task that still carries its working-day duration. */
+type LeafTask = Task & { durationDays: number };
+
 /**
  * Derive every leaf's start/end from its dependencies (type + lag) and duration.
  * Tasks with no incoming links are anchored at `anchorStart`. The relaxation is
@@ -62,17 +65,18 @@ function deriveSchedule(
   businessDays: boolean,
   weekendPredicate: (date: Date) => boolean
 ): Task[] {
-  const toLeaf = (i: SampleTaskInput): Task => {
+  const toLeaf = (i: SampleTaskInput): LeafTask => {
     const range = buildTaskRangeFromStart(anchorStart, i.durationDays!, businessDays, weekendPredicate);
     return {
       ...i,
+      durationDays: i.durationDays,
       startDate: toIsoDate(range.start),
       endDate: toIsoDate(range.end),
       dependencies: i.dependencies,
-    } as Task;
+    } as LeafTask;
   };
 
-  const leaves = inputs.filter(i => i.durationDays != null).map(toLeaf);
+  const leaves: LeafTask[] = inputs.filter(i => i.durationDays != null).map(toLeaf);
   const parents = inputs
     .filter(i => i.durationDays == null)
     .map(i => ({ ...i, startDate: '', endDate: '' }) as Task);
@@ -99,7 +103,7 @@ function deriveSchedule(
     return { start: parseUTCDate(t.startDate), end: parseUTCDate(t.endDate) };
   };
 
-  const desiredRange = (leaf: Task): { start: Date; end: Date } | null => {
+  const desiredRange = (leaf: LeafTask): { start: Date; end: Date } | null => {
     if (!leaf.dependencies || leaf.dependencies.length === 0) return null; // anchored root
     const duration = leaf.durationDays!;
     let best: { start: Date; end: Date } | null = null;
