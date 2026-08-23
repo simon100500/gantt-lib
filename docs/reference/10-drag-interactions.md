@@ -17,6 +17,31 @@
 
 **Milestone drag:** When `type: 'milestone'`, resize is disabled — edge zones are ignored and the drag mode is always `move`. Milestone width is clamped to a single day (`dayWidth` pixels) after every frame, preventing visual stretching during drag. On drop, `endDate` is set equal to `startDate`.
 
+## Parent Bar Resize = Subtree Scaling
+
+Parent tasks are computed wrappers: their dates always derive from children. Resizing a parent bar edge therefore does not change the parent's own range — it **proportionally rescales the whole subtree** via `scaleTaskSubtreeDuration` (see [Headless Scheduling Core](./14-headless-scheduling.md), subtreeScaling.ts):
+
+- dragging the **right edge** anchors the start (`anchor: 'start'`), the new target duration comes from the dragged end date;
+- dragging the **left edge** anchors the end (`anchor: 'end'`);
+- leaf durations are scaled by one common factor; positive explicit lags compress only after durations hit their minima; independent branches scale their virtual offsets;
+- if the requested duration is below the reachable minimum, the minimal admissible schedule is applied and the `onSubtreeScaleResult` prop receives a structured result with `clamped: true` and a `TARGET_CLAMPED_TO_MINIMUM` warning — enough to render a localized notification without parsing dates;
+- external successors (tasks outside the subtree that depend on it) are shifted with preserved durations (`cascade-successors` policy); an immutable external successor cancels the operation with `EXTERNAL_DEPENDENCY_CONFLICT` and no changes are emitted;
+- editing a parent's start/end date in the TaskList date picker triggers the same scaling;
+- moving a parent bar (drag by the middle) keeps the old behavior: descendants shift uniformly, durations unchanged.
+
+```tsx
+<GanttChart
+  tasks={tasks}
+  businessDays={false}
+  onSubtreeScaleResult={(result) => {
+    if (result.ok && result.clamped) {
+      const warning = result.warnings[0];
+      showToast(`Минимально достижимый срок — ${warning.minimumDuration} дн.`);
+    }
+  }}
+/>
+```
+
 ## Resource Planner Drag
 
 For a complete resource planner guide, see [Resource Planner Mode](./15-resource-planner.md).

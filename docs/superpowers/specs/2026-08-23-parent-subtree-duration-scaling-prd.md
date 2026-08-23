@@ -1,14 +1,27 @@
 # PRD: Пропорциональное сжатие и растяжение поддерева задач
 
 Дата: 2026-08-23  
-Статус: **FUTURE — согласованный дизайн, не реализовано**  
-Целевая версия: не назначена  
-Область: `gantt-lib/core/scheduling`  
-UI и интеграция GetGantt: отдельный будущий этап
+Статус: **IMPLEMENTED — реализовано в gantt-lib 0.128.0**  
+Модуль: `gantt-lib/core/scheduling/subtreeScaling.ts` (экспорт `scaleTaskSubtreeDuration` из `gantt-lib/core/scheduling` и `gantt-lib`)  
+UI-интеграция библиотечного уровня: реализована (см. §20.1 ниже)  
+Интеграция GetGantt-продукта: отдельный будущий этап
 
-> Этот документ описывает будущую возможность библиотеки. Наличие документа не
-> означает, что API уже экспортируется или что родительские задачи можно изменять
-> через текущий UI.
+> Головная headless-операция реализована и покрыта тестовой матрицей §16/§17
+> (`src/core/scheduling/__tests__/subtreeScaling.test.ts`). Ссылка на API:
+> `docs/reference/14-headless-scheduling.md`, раздел subtreeScaling.ts.
+
+## 20.1 Выполненная UI-интеграция библиотечного уровня (0.128.0)
+
+- `useTaskDrag`: родительские бары получили режим resize (право/лево); milestone
+  по-прежнему только move; preview-cascade для родительского resize отключён.
+- `TaskRow`: resize-хэндлы рендерятся и на родительских барах.
+- `GanttChart.handleTaskChange`: изменение одной границы родителя (drag края бара
+  или редактирование даты в TaskList) → `scaleTaskSubtreeDuration` с
+  `cascade-successors`; равномерный сдвиг обеих границ → прежний universalCascade.
+- Новый проп `onSubtreeScaleResult` (только gantt-режим): структурированный
+  результат для локализованных уведомлений потребителя.
+- Тесты: `src/__tests__/subtreeScaleUi.test.tsx` (resize 20→30, clamp+warning,
+  регрессия листьев, move родителя без масштабирования).
 
 ## 1. Для кого написан документ
 

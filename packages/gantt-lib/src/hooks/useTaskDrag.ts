@@ -345,8 +345,15 @@ function handleGlobalMouseMove(e: MouseEvent) {
     // Same algorithm as handleComplete — converts pixels→dates, runs
     // universalCascade, converts dates→pixels for overrides.
 
-    // Universal preview: convert pixels → dates → universalCascade → pixels
-    if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress) {
+    // Universal preview: convert pixels → dates → universalCascade → pixels.
+    // Skipped for parent resizes — the children must NOT shift during preview;
+    // only the parent bar itself resizes until the proportional subtree scaling
+    // is applied on drop.
+    const isParentResizePreview = draggedTask
+      && (mode === 'resize-left' || mode === 'resize-right')
+      && isTaskParent(activeDrag.taskId, allTasks);
+
+    if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress && !isParentResizePreview) {
       const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;
       const originalDraggedTask = draggedTask ?? allTasks.find(t => t.id === dragId);
       const previewRange = originalDraggedTask
@@ -775,7 +782,15 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         return;
       }
 
-      if (!disableConstraints && onCascade && allTasks.length > 0) {
+      // Parent resize is NOT a cascade operation: the subtree must be rescaled
+      // proportionally. Route it to onDragEnd so GanttChart can run
+      // scaleTaskSubtreeDuration instead of the uniform date-shift cascade.
+      const isParentResize =
+        currentTask && (finalMode === 'resize-left' || finalMode === 'resize-right')
+          ? isTaskParent(taskId, allTasks)
+          : false;
+
+      if (!disableConstraints && onCascade && allTasks.length > 0 && !isParentResize) {
         // Hard mode with onCascade: use universalCascade for all cases
         // (parent drag, child drag, root task drag — all handled uniformly)
         const draggedTaskData = currentTask;
@@ -918,12 +933,11 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       }
     }
 
-    // Phase 19: Parent tasks cannot be resized - their dates are computed from children
-    // Force move mode for parent tasks to prevent resize operations
+    // Phase 19: milestone tasks cannot be resized - a milestone is a point in time.
+    // Parent tasks CAN be resized: the resize is interpreted by GanttChart as a
+    // proportional subtree duration scaling (scaleTaskSubtreeDuration) instead of
+    // a plain date change, so parents keep being computed wrappers over children.
     if (mode === 'resize-left' || mode === 'resize-right') {
-      if (currentTask && isTaskParent(taskId, allTasks)) {
-        mode = 'move';
-      }
       if (currentTask && isMilestoneTask(currentTask)) {
         mode = 'move';
       }
@@ -1011,7 +1025,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       && currentWidth <= dayWidth
       && viewMode === 'day';
 
-    if (isSingleDayTask || (currentTask && (isTaskParent(taskId, allTasks) || isMilestoneTask(currentTask)))) {
+    if (isSingleDayTask || (currentTask && isMilestoneTask(currentTask))) {
       setHoverCursor('grab');
       return;
     }

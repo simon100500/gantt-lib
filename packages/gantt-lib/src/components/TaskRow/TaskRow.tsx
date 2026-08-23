@@ -449,7 +449,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 }}
               />
             )}
-            {!isParent && !milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
+            {/* Parents are resizable: the resize scales the whole subtree proportionally. */}
+            {!milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
             {showDurationInside && (
               <span className="gantt-tr-taskDuration">
                 {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
@@ -460,7 +461,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 {progressWidth}%
               </span>
             )}
-            {!isParent && !milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
+            {!milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
           </div>
           {!disableDependencyEditing && onDependencyPortPointerDown && (
             <>

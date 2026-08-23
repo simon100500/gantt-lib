@@ -19,7 +19,9 @@ import {
   getTaskDuration,
   computeCriticalPath,
   extendCriticalIdsToParents,
+  scaleTaskSubtreeDuration,
 } from '../../core/scheduling';
+import type { ScaleTaskSubtreeResult } from '../../core/scheduling';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
 import type {
   ResourceTableColumnWidthMap,
@@ -461,6 +463,13 @@ export interface GanttModeProps<TTask extends Task = Task> extends TaskChartShar
   businessDays?: boolean;
   /** Highlight critical path tasks (bars and dependency lines) or hide non-critical tasks (default: off) */
   criticalPathMode?: 'highlight' | 'hide';
+  /**
+   * Called after a parent task's subtree was rescaled proportionally (parent bar
+   * resize or parent date edit in the task list). Receives the structured
+   * headless result: clamped flag, TARGET_CLAMPED_TO_MINIMUM warnings, error
+   * code — enough to show a localized notification without parsing dates.
+   */
+  onSubtreeScaleResult?: (result: ScaleTaskSubtreeResult) => void;
 }
 
 export interface TableMatrixModeProps<TTask extends Task = Task> extends TaskChartSharedProps<TTask> {
@@ -651,6 +660,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   } = props;
   const dayWidth = !isTableMatrixMode ? props.dayWidth ?? 40 : 40;
   const criticalPathMode = !isTableMatrixMode && !isPlanFactMode ? props.criticalPathMode : undefined;
+  const onSubtreeScaleResult = !isTableMatrixMode && !isPlanFactMode ? props.onSubtreeScaleResult : undefined;
   const viewMode = !isTableMatrixMode && !isPlanFactMode ? props.viewMode ?? 'day' : 'day';
   const customDays = !isTableMatrixMode ? props.customDays : undefined;
   const isWeekend = !isTableMatrixMode ? props.isWeekend : undefined;
@@ -1354,6 +1364,43 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return;
     }
 
+    // Parent date edits split into two semantics:
+    // - one boundary changed (bar resize / date picker) → proportional subtree
+    //   rescaling via scaleTaskSubtreeDuration (parent stays a computed wrapper);
+    // - both boundaries shifted equally (bar move) → uniform descendant shift
+    //   through universalCascade below.
+    if (datesChanged && isTaskParent(updatedTask.id, tasks)) {
+      const deltaStartMs = newStart.getTime() - origStart.getTime();
+      const deltaEndMs = newEnd.getTime() - origEnd.getTime();
+      const isUniformMove = deltaStartMs === deltaEndMs && deltaStartMs !== 0;
+
+      if (!isUniformMove) {
+        const anchor: 'start' | 'end' = deltaStartMs === 0 ? 'start' : deltaEndMs === 0 ? 'end' : 'start';
+        const targetDuration = getTaskDuration(
+          anchor === 'start' ? origStart : newStart,
+          anchor === 'start' ? newEnd : origEnd,
+          businessDays,
+          isCustomWeekend
+        );
+
+        const scaleResult = scaleTaskSubtreeDuration(updatedTask.id, targetDuration, tasks, {
+          anchor,
+          businessDays,
+          weekendPredicate: isCustomWeekend,
+          externalDependencyPolicy: 'cascade-successors',
+        });
+        onSubtreeScaleResult?.(scaleResult);
+
+        if (scaleResult.ok && scaleResult.changedTasks.length > 0) {
+          onTasksChange?.(scaleResult.changedTasks as TTask[]);
+        }
+        if (editingTaskId === updatedTask.id) {
+          setEditingTaskId(null);
+        }
+        return;
+      }
+    }
+
     // Date edits should behave the same across chart drag and task-list picker:
     // moving a parent shifts its descendants, and parent dates are then re-derived
     // from the shifted children inside universalCascade.
@@ -1366,7 +1413,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       : universalCascade(updatedTask, newStart, newEnd, sourceTasks, businessDays, isCustomWeekend);
 
     onTasksChange?.(cascadedTasks as TTask[]);
-  }, [tasks, onTasksChange, disableConstraints, editingTaskId, businessDays, isCustomWeekend]);
+  }, [tasks, onTasksChange, disableConstraints, editingTaskId, businessDays, isCustomWeekend, onSubtreeScaleResult]);
 
   /**
    * Handle task deletion: collect all changed tasks (with cleaned dependencies),

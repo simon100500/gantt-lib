@@ -49,6 +49,7 @@ src/core/scheduling/
 ├── execute.ts        — Command-level API (stable) — высокоуровневые команды
 ├── validation.ts     — Валидация зависимостей, обнаружение циклов
 ├── hierarchy.ts      — Иерархия задач: дети, родители, агрегация дат
+├── subtreeScaling.ts — Пропорциональное сжатие/растяжение поддерева (scaleTaskSubtreeDuration)
 └── index.ts          — Barrel re-export + backward-compat deprecated re-exports
 
 src/adapters/scheduling/     — UI adapter layer
@@ -196,6 +197,44 @@ export interface ScheduleCommandOptions {
 | `removeDependenciesBetweenTasks(id1, id2, tasks)` | Удаление связей между двумя задачами |
 | `getAllDependencyEdges(tasks)` | Все рёбра графа зависимостей |
 
+### subtreeScaling.ts — Subtree duration scaling
+
+@stability stable
+
+Пропорциональное сжатие/растяжение поддерева родительской задачи до точной
+целевой длительности. Семантика зафиксирована в PRD
+`docs/superpowers/specs/2026-08-23-parent-subtree-duration-scaling-prd.md`.
+
+```typescript
+scaleTaskSubtreeDuration(
+  parentId: string,
+  targetDuration: number,
+  snapshot: Task[],
+  options?: ScaleTaskSubtreeOptions,
+): ScaleTaskSubtreeResult
+```
+
+| Функция | Описание |
+|---|---|
+| `scaleTaskSubtreeDuration(parentId, targetDuration, snapshot, options?)` | Масштабирует поддерево родителя до targetDuration проектных дней. Один атомарный batch изменений, вход не мутируется |
+
+**ScaleTaskSubtreeOptions:** `anchor?: 'start' \| 'end'` (default `'start'`), `businessDays?`, `weekendPredicate?`, `externalDependencyPolicy?: 'subtree-only' \| 'cascade-successors'` (default `'subtree-only'`), `getMinDuration?`, `getMinLag?`, `isImmutable?` (default `task.locked === true`).
+
+**ScaleTaskSubtreeResult:** либо `{ ok: true, changedTasks, changedIds, requestedDuration, appliedDuration, clamped, warnings }`, либо `{ ok: false, code, changedTasks: [], changedIds: [], details? }` с кодами `INVALID_TARGET_DURATION | TASK_NOT_FOUND | NOT_A_PARENT | INVALID_HIERARCHY | INVALID_DEPENDENCIES | INVALID_DATES | INVALID_MINIMUM | EXTERNAL_DEPENDENCY_CONFLICT`.
+
+Контракт операции:
+
+- меняются только длительности листьев (единый коэффициент k, largest-remainder округление);
+- явные положительные лаги неизменны, пока цель достижима через длительности; при дальнейшем сжатии уменьшаются до `getMinLag` (default 0), затем сжимаются виртуальные смещения независимых веток;
+- растяжение никогда не увеличивает явные лаги; отрицательные лаги не меняются;
+- milestone перемещается, длительность остаётся 0 (`startDate === endDate`);
+- immutable-задачи (default `locked`) побитово неподвижны;
+- родители пересчитываются снизу вверх из потомков; их `dependencies` не меняются;
+- при недостижимом сжатии применяется доказанный минимум: `ok: true`, `clamped: true`, warning `TARGET_CLAMPED_TO_MINIMUM`;
+- детерминизм: одинаковый вход даёт побитово одинаковый результат; iteration bound выводится из доступного slack, а не из wall-clock;
+- входной snapshot и вложенные dependencies не мутируются;
+- порядок `changedTasks`: изменённые листья (порядок snapshot) → вложенные родители (от глубоких к выбранному) → внешние cascaded successors (топологический порядок).
+
 ### adapters/scheduling/ — UI Adapter Layer
 
 @stability internal
@@ -224,7 +263,7 @@ import { moveTaskWithCascade, resizeTaskWithCascade, ... } from 'gantt-lib/core/
 
 ### Stability levels
 
-- **stable** — public API, backward-compat гарантирован: execute.ts (4 команды), types, dateMath, dependencies, validation, hierarchy
+- **stable** — public API, backward-compat гарантирован: execute.ts (4 команды), subtreeScaling.ts (scaleTaskSubtreeDuration), types, dateMath, dependencies, validation, hierarchy
 - **public** — public API, может меняться: commands.ts (low-level helpers)
 - **internal** — для внутреннего использования: cascade.ts (низкоуровневый cascade), adapters/scheduling/
 - **deprecated** — будет удалён: импорт UI-функций через core/scheduling barrel

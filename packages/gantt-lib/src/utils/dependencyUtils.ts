@@ -11,6 +11,12 @@ export {
   type ValidationResult,
   type Task,
   type CriticalPathOptions,
+  type ScaleTaskSubtreeAnchor,
+  type ScaleTaskSubtreeExternalPolicy,
+  type ScaleTaskSubtreeOptions,
+  type ScaleTaskSubtreeWarning,
+  type ScaleTaskSubtreeErrorCode,
+  type ScaleTaskSubtreeResult,
 
   // dateMath
   normalizeUTCDate,
@@ -69,6 +75,9 @@ export {
   resizeTaskWithCascade,
   recalculateTaskFromDependencies,
   recalculateProjectSchedule,
+
+  // subtree scaling
+  scaleTaskSubtreeDuration,
 } from '../core/scheduling';
 
 // backward-compat UI adapter re-exports

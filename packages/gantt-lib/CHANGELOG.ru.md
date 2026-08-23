@@ -5,6 +5,16 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.128.0] - 2026-08-23
+
+### Новые возможности
+
+- Headless-операция `scaleTaskSubtreeDuration(parentId, targetDuration, snapshot, options?)`: пропорциональное сжатие/растяжение поддерева родительской задачи до точной целевой длительности (модуль `core/scheduling/subtreeScaling.ts`, доступен из `gantt-lib/core/scheduling` и `gantt-lib`)
+- Единый коэффициент для длительностей листьев с largest-remainder округлением; явные положительные лаги сохраняются, пока цель достижима через длительности, затем уменьшаются до `getMinLag`, затем сжимаются виртуальные смещения независимых веток
+- Недостижимое сжатие применяет доказанный минимум с warning `TARGET_CLAMPED_TO_MINIMUM` вместо hard error; immutable-задачи и milestone-семантика соблюдаются; входной snapshot не мутируется
+- UI: родительские бары получили handles resize — перетаскивание края родителя пропорционально масштабирует всё поддерево (единый атомарный batch через `onTasksChange`); редактирование даты родителя в TaskList работает так же
+- Новый проп `onSubtreeScaleResult` (gantt-режим): структурированный результат масштабирования — флаг clamp, warning `TARGET_CLAMPED_TO_MINIMUM`, код ошибки — для локализованных уведомлений потребителя
+
 ## [0.125.0] - 2026-08-18
 
 ### Новые возможности

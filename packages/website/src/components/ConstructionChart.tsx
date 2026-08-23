@@ -119,6 +119,14 @@ export default function ConstructionChart() {
   const [activeSearchResultIndex, setActiveSearchResultIndex] = useState(0);
   const [menuDialogTask, setMenuDialogTask] = useState<Task | null>(null);
   const [menuDialogName, setMenuDialogName] = useState("");
+  // Notification surfaced after a parent-subtree resize (clamp warnings / errors).
+  const [scaleNotice, setScaleNotice] = useState<{ text: string; kind: 'warn' | 'error' } | null>(null);
+
+  useEffect(() => {
+    if (!scaleNotice) return;
+    const timeout = window.setTimeout(() => setScaleNotice(null), 6000);
+    return () => window.clearTimeout(timeout);
+  }, [scaleNotice]);
 
   useEffect(() => {
     setTasks((prev) => reflowTasksOnModeSwitch(prev, businessDays, MAIN_CHART_WEEKEND_PREDICATE));
@@ -392,6 +400,25 @@ export default function ConstructionChart() {
       </p>
 
       <div className="demo-chart-card">
+        {scaleNotice && (
+          <div
+            role="status"
+            style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 5,
+              margin: '0 0 8px',
+              padding: '10px 14px',
+              borderRadius: 8,
+              fontSize: '0.9rem',
+              color: scaleNotice.kind === 'warn' ? '#92400e' : '#7f1d1d',
+              background: scaleNotice.kind === 'warn' ? '#fef3c7' : '#fee2e2',
+              border: '1px solid ' + (scaleNotice.kind === 'warn' ? '#f59e0b55' : '#ef444455'),
+            }}
+          >
+            {scaleNotice.text}
+          </div>
+        )}
         <GanttChart
           ref={ganttChartRef}
           tasks={tasks}
@@ -424,6 +451,22 @@ export default function ConstructionChart() {
           filterMode={filterMode}
           criticalPathMode={criticalPathMode}
           taskListMenuCommands={taskListMenuCommands}
+          onSubtreeScaleResult={(result) => {
+            if (!result.ok) {
+              setScaleNotice({
+                kind: 'error',
+                text: `Масштабирование этапа невозможно (${result.code}). Изменения не применены.`,
+              });
+              return;
+            }
+            const clamp = result.warnings.find((w) => w.code === 'TARGET_CLAMPED_TO_MINIMUM');
+            if (clamp) {
+              setScaleNotice({
+                kind: 'warn',
+                text: `До ${clamp.requestedDuration} дн. сжать невозможно. Установлен минимально достижимый срок — ${clamp.minimumDuration} дн.`,
+              });
+            }
+          }}
         />
       </div>
 

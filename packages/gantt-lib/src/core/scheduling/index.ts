@@ -12,3 +12,4 @@ export * from './commands';
 export * from './execute';
 export * from './validation';
 export * from './hierarchy';
+export * from './subtreeScaling';
