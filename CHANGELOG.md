@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.128.0] - 2026-08-23
+
+### Features
+
+- Add proportional subtree scaling: headless `scaleTaskSubtreeDuration` plus parent-bar resize handles that rescale the whole subtree to an exact target duration
+
 ## [0.127.1] - 2026-08-23
 
 ### Fixes
