@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.128.1] - 2026-08-24
+
+### Fixes
+
+- Parent-subtree drag: descendants now shift rigidly with the dragged parent, preserving their internal gaps and lags — previously re-applying dependency constraints to already-shifted children collapsed those gaps and made descendants drift out of the parent's range
+- Business-day mode switch (`reflowTasksOnModeSwitch`): task duration is now measured in the target mode, so enabling business days no longer inflates tasks by the weekend days inside them and no longer shifts a late FS successor ahead of its predecessor (which inverted the dependency connector); the construction demo derives dates from duration + link + lag, so stored lags always match the drawn gap
+
 ## [0.128.0] - 2026-08-23
 
 ### Features
