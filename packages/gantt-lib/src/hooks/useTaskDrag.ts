@@ -10,10 +10,13 @@ import {
   buildTaskRangeFromStart,
   calculateSuccessorDate,
   clampTaskRangeForIncomingFS,
+  computeParentDates,
   getDependencyLag,
+  getTaskDuration,
   moveTaskRange,
   recalculateIncomingLags,
   isTaskParent,
+  scaleTaskSubtreeDuration,
   universalCascade,
   createCascadeContext,
   type CascadeContext,
@@ -79,6 +82,12 @@ interface ActiveDragState {
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
   cascadeContext?: CascadeContext;
+  /** Memoization for the parent-resize live preview: recompute only when the snapped target changes. */
+  parentScalePreviewKey?: string;
+  parentScalePreview?: {
+    overrides: Map<string, { left: number; width: number }>;
+    previewTasks: Task[];
+  };
 }
 
 let globalActiveDrag: ActiveDragState | null = null;
@@ -346,12 +355,89 @@ function handleGlobalMouseMove(e: MouseEvent) {
     // universalCascade, converts dates→pixels for overrides.
 
     // Universal preview: convert pixels → dates → universalCascade → pixels.
-    // Skipped for parent resizes — the children must NOT shift during preview;
-    // only the parent bar itself resizes until the proportional subtree scaling
-    // is applied on drop.
+    // Parent resizes get a dedicated live preview: the subtree is proportionally
+    // rescaled on every snapped day change (memoized) so children follow the
+    // dragged parent edge in real time — not only after the drop.
     const isParentResizePreview = draggedTask
       && (mode === 'resize-left' || mode === 'resize-right')
       && isTaskParent(activeDrag.taskId, allTasks);
+
+    if (isParentResizePreview && activeDrag.onCascadeProgress) {
+      const { dayWidth: dw, monthStart: mStart } = activeDrag;
+      const previewRange = clampDateRangeForIncomingFS(
+        draggedTask,
+        resolveDateRangeFromPixels(
+          mode,
+          newLeft,
+          newWidth,
+          mStart,
+          dw,
+          draggedTask,
+          activeDrag.businessDays,
+          activeDrag.weekendPredicate
+        ),
+        allTasks,
+        mode,
+        activeDrag.businessDays,
+        activeDrag.weekendPredicate,
+        activeDrag.cascadeContext?.taskById
+      );
+
+      const anchor: 'start' | 'end' = mode === 'resize-left' ? 'end' : 'start';
+      const parentRange = computeParentDates(activeDrag.taskId, allTasks);
+      const targetDuration = Math.max(1, getTaskDuration(
+        anchor === 'start' ? parentRange.startDate : previewRange.start,
+        anchor === 'start' ? previewRange.end : parentRange.endDate,
+        activeDrag.businessDays,
+        activeDrag.weekendPredicate
+      ));
+
+      const previewKey = `${anchor}:${targetDuration}`;
+      if (activeDrag.parentScalePreviewKey !== previewKey) {
+        const scaleResult = scaleTaskSubtreeDuration(activeDrag.taskId, targetDuration, allTasks, {
+          anchor,
+          businessDays: activeDrag.businessDays,
+          weekendPredicate: activeDrag.weekendPredicate,
+          externalDependencyPolicy: 'cascade-successors',
+        });
+        if (scaleResult.ok) {
+          const overrides = new Map<string, { left: number; width: number }>();
+          for (const task of scaleResult.changedTasks) {
+            if (task.id === activeDrag.taskId) continue;
+            const s = new Date(task.startDate as string);
+            const e = new Date(task.endDate as string);
+            const startOff = Math.round(
+              (Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate()) -
+                Date.UTC(mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate()))
+              / (24 * 60 * 60 * 1000)
+            );
+            const endOff = Math.round(
+              (Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), e.getUTCDate()) -
+                Date.UTC(mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate()))
+              / (24 * 60 * 60 * 1000)
+            );
+            overrides.set(task.id, {
+              left: Math.round(startOff * dw),
+              width: Math.round((endOff - startOff + 1) * dw),
+            });
+          }
+          activeDrag.parentScalePreview = {
+            overrides,
+            previewTasks: scaleResult.changedTasks,
+          };
+        } else {
+          activeDrag.parentScalePreview = undefined;
+        }
+        activeDrag.parentScalePreviewKey = previewKey;
+      }
+
+      if (activeDrag.parentScalePreview) {
+        // Refresh the dragged parent bar's live pixel position on every frame.
+        const liveOverrides = new Map(activeDrag.parentScalePreview.overrides);
+        liveOverrides.set(activeDrag.taskId, { left: newLeft, width: newWidth });
+        activeDrag.onCascadeProgress(liveOverrides, activeDrag.parentScalePreview.previewTasks);
+      }
+    }
 
     if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress && !isParentResizePreview) {
       const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;

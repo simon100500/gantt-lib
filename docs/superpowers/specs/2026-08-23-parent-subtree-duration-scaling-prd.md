@@ -13,15 +13,22 @@ UI-интеграция библиотечного уровня: реализо�
 ## 20.1 Выполненная UI-интеграция библиотечного уровня (0.128.0)
 
 - `useTaskDrag`: родительские бары получили режим resize (право/лево); milestone
-  по-прежнему только move; preview-cascade для родительского resize отключён.
+  по-прежнему только move; parent-resize маршрутизируется мимо universalCascade
+  в `onDragEnd`.
+- **Live preview**: при драге за край родителя поддерево пересчитывается
+  пропорционально на каждом snapped-дне (мемоизация по целевой длительности)
+  и показывается через preview-override'ы; коммит — атомарный batch на drop.
 - `TaskRow`: resize-хэндлы рендерятся и на родительских барах.
 - `GanttChart.handleTaskChange`: изменение одной границы родителя (drag края бара
-  или редактирование даты в TaskList) → `scaleTaskSubtreeDuration` с
-  `cascade-successors`; равномерный сдвиг обеих границ → прежний universalCascade.
+  или редактирование даты в TaskList при `taskDateChangeMode: 'free'`) →
+  `scaleTaskSubtreeDuration` с `cascade-successors`; равномерный сдвиг обеих
+  границ в проектных днях (`preserve-duration`, драг за середину) → сдвиг
+  потомков через universalCascade по исходным датам родителя.
 - Новый проп `onSubtreeScaleResult` (только gantt-режим): структурированный
   результат для локализованных уведомлений потребителя.
 - Тесты: `src/__tests__/subtreeScaleUi.test.tsx` (resize 20→30, clamp+warning,
-  регрессия листьев, move родителя без масштабирования).
+  регрессия листьев, move родителя без масштабирования, live preview до drop,
+  чекбокс preserve/free при редактировании дат родителя в business-режиме).
 
 ## 1. Для кого написан документ
 

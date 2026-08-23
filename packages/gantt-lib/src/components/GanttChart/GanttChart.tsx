@@ -20,6 +20,8 @@ import {
   computeCriticalPath,
   extendCriticalIdsToParents,
   scaleTaskSubtreeDuration,
+  getBusinessDayOffset,
+  DAY_MS,
 } from '../../core/scheduling';
 import type { ScaleTaskSubtreeResult } from '../../core/scheduling';
 import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
@@ -1364,18 +1366,27 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return;
     }
 
-    // Parent date edits split into two semantics:
-    // - one boundary changed (bar resize / date picker) → proportional subtree
-    //   rescaling via scaleTaskSubtreeDuration (parent stays a computed wrapper);
-    // - both boundaries shifted equally (bar move) → uniform descendant shift
-    //   through universalCascade below.
+    // Parent date edits follow the "сохранять длительность" checkbox (taskDateChangeMode):
+    // - 'preserve-duration' (checked): the task list rebuilds the range keeping the
+    //   duration, so both boundaries shift by the SAME number of project days →
+    //   the stage MOVES (term shift), durations intact;
+    // - one boundary changed ('free' checkbox or parent bar edge resize):
+    //   proportional subtree rescaling via scaleTaskSubtreeDuration (parent stays
+    //   a computed wrapper over its children).
+    // Deltas MUST be measured in project days (business days in business mode):
+    // a duration-preserving shift across a weekend has unequal calendar-day
+    // deltas but equal project-day deltas.
     if (datesChanged && isTaskParent(updatedTask.id, tasks)) {
-      const deltaStartMs = newStart.getTime() - origStart.getTime();
-      const deltaEndMs = newEnd.getTime() - origEnd.getTime();
-      const isUniformMove = deltaStartMs === deltaEndMs && deltaStartMs !== 0;
+      const projectDayDelta = (from: Date, to: Date): number =>
+        businessDays && isCustomWeekend
+          ? getBusinessDayOffset(from, to, isCustomWeekend)
+          : Math.round((to.getTime() - from.getTime()) / DAY_MS);
+      const deltaStart = projectDayDelta(origStart, newStart);
+      const deltaEnd = projectDayDelta(origEnd, newEnd);
+      const isUniformMove = deltaStart === deltaEnd && deltaStart !== 0;
 
       if (!isUniformMove) {
-        const anchor: 'start' | 'end' = deltaStartMs === 0 ? 'start' : deltaEndMs === 0 ? 'end' : 'start';
+        const anchor: 'start' | 'end' = deltaStart === 0 ? 'start' : deltaEnd === 0 ? 'end' : 'start';
         const targetDuration = getTaskDuration(
           anchor === 'start' ? origStart : newStart,
           anchor === 'start' ? newEnd : origEnd,
@@ -1399,6 +1410,20 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         }
         return;
       }
+
+      // Uniform parent move ("preserve-duration" checkbox / parent bar drag):
+      // descendants shift by the parent's real boundary deltas and the parent
+      // is re-derived from the shifted children. universalCascade must see the
+      // ORIGINAL parent dates to compute those deltas, so the snapshot is
+      // passed WITHOUT the moved task substituted in.
+      const movedParentCascade = disableConstraints
+        ? [updatedTask]
+        : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays, isCustomWeekend);
+      onTasksChange?.(movedParentCascade as TTask[]);
+      if (editingTaskId === updatedTask.id) {
+        setEditingTaskId(null);
+      }
+      return;
     }
 
     // Date edits should behave the same across chart drag and task-list picker:

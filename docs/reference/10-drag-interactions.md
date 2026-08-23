@@ -23,11 +23,20 @@ Parent tasks are computed wrappers: their dates always derive from children. Res
 
 - dragging the **right edge** anchors the start (`anchor: 'start'`), the new target duration comes from the dragged end date;
 - dragging the **left edge** anchors the end (`anchor: 'end'`);
+- **live preview**: the scaled layout is recomputed on every snapped day during the drag (memoized per target duration) — children follow the dragged edge in real time; the atomic batch commits on `mouseup`;
 - leaf durations are scaled by one common factor; positive explicit lags compress only after durations hit their minima; independent branches scale their virtual offsets;
-- if the requested duration is below the reachable minimum, the minimal admissible schedule is applied and the `onSubtreeScaleResult` prop receives a structured result with `clamped: true` and a `TARGET_CLAMPED_TO_MINIMUM` warning — enough to render a localized notification without parsing dates;
+- if the requested duration is below the reachable minimum, the minimal admissible schedule is applied (live, too) and the `onSubtreeScaleResult` prop receives a structured result with `clamped: true` and a `TARGET_CLAMPED_TO_MINIMUM` warning — enough to render a localized notification without parsing dates;
 - external successors (tasks outside the subtree that depend on it) are shifted with preserved durations (`cascade-successors` policy); an immutable external successor cancels the operation with `EXTERNAL_DEPENDENCY_CONFLICT` and no changes are emitted;
-- editing a parent's start/end date in the TaskList date picker triggers the same scaling;
 - moving a parent bar (drag by the middle) keeps the old behavior: descendants shift uniformly, durations unchanged.
+
+### "Сохранять длительность" checkbox (`taskDateChangeMode`)
+
+Parent date edits in the TaskList follow the checkbox:
+
+- **checked (`preserve-duration`)** — двигаем срок: the stage moves so the edited boundary lands on the picked date, duration preserved; descendants shift by the parent's project-day deltas (business days in business mode);
+- **unchecked (`free`)** — меняем длительность: the subtree rescales proportionally to the new duration (same as a bar edge resize).
+
+Chart bar edge resize is a resize gesture and always rescales regardless of the checkbox (leaf bars behave the same way: edge drag always resizes).
 
 ```tsx
 <GanttChart

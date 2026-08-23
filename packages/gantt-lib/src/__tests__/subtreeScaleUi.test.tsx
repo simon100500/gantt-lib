@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GanttChart, type Task } from '../components/GanttChart';
@@ -8,7 +8,18 @@ import type { ScaleTaskSubtreeResult } from '../core/scheduling';
 import { getTaskDuration } from '../core/scheduling';
 
 vi.mock('../components/ui/DatePicker', () => ({
-  DatePicker: ({ value }: { value?: string }) => <button type="button">{value}</button>,
+  DatePicker: ({ value, onChange }: { value?: string; onChange?: (isoDate: string) => void }) => (
+    <button
+      type="button"
+      aria-label={`date-${value}`}
+      onClick={() => {
+        // Parent end edit: Fri 2026-03-20 -> Tue 2026-03-24.
+        if (value === '2026-03-20') onChange?.('2026-03-24');
+      }}
+    >
+      {value}
+    </button>
+  ),
 }));
 
 vi.mock('../components/ui/Popover', () => ({
@@ -251,6 +262,134 @@ describe('GanttChart parent subtree scaling (parent bar resize)', () => {
     expect(byId.get('P')!.endDate).toBe('2026-01-23');
     expect(getTaskDuration(byId.get('A')!.startDate, byId.get('A')!.endDate)).toBe(4);
     expect(getTaskDuration(byId.get('B')!.startDate, byId.get('B')!.endDate)).toBe(6);
+  });
+
+  it('shows the scaled subtree LIVE during the edge drag (preview, before drop)', async () => {
+    const onTasksChange = vi.fn();
+    const { container } = render(
+      <GanttChart
+        tasks={makeParentChain()}
+        dayWidth={DAY_WIDTH}
+        rowHeight={36}
+        headerHeight={36}
+        businessDays={false}
+        onTasksChange={onTasksChange}
+      />
+    );
+
+    const parentBar = getBar(container, 'P');
+    const childBarA = getBar(container, 'A');
+    // Original leaf A: 4 days * 40px.
+    expect(childBarA.style.width).toBe(`${4 * DAY_WIDTH}px`);
+
+    mockBarRect(parentBar, 20 * DAY_WIDTH);
+    fireEvent.mouseDown(parentBar, { clientX: 20 * DAY_WIDTH - 5, clientY: 20, button: 0 });
+    // Drag the right edge out by 10 days (20 -> 30).
+    fireEvent.mouseMove(window, { clientX: 20 * DAY_WIDTH - 5 + 10 * DAY_WIDTH, clientY: 20 });
+
+    // Live preview: the child bar already shows its scaled size (6 days) before the drop.
+    await waitFor(() => {
+      expect(childBarA.style.width).toBe(`${6 * DAY_WIDTH}px`);
+    });
+    // Commit has NOT happened yet — preview only.
+    expect(onTasksChange).not.toHaveBeenCalled();
+
+    fireEvent.mouseUp(window, { clientX: 20 * DAY_WIDTH - 5 + 10 * DAY_WIDTH, clientY: 20 });
+    await waitFor(() => {
+      expect(onTasksChange).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // "Сохранять длительность" checkbox (taskDateChangeMode) on parent date edits
+  // -------------------------------------------------------------------------
+
+  /** Business-day scenario: P [Mon 03-09 .. Fri 03-20] = 10 bd, A/B 5 bd each. */
+  function makeBusinessDayParentChain(): Task[] {
+    return [
+      makeTask({ id: 'P', startDate: '2026-03-09', endDate: '2026-03-20' }),
+      makeTask({ id: 'A', startDate: '2026-03-09', endDate: '2026-03-13', parentId: 'P' }),
+      makeTask({
+        id: 'B', startDate: '2026-03-16', endDate: '2026-03-20', parentId: 'P',
+        dependencies: [{ taskId: 'A', type: 'FS', lag: 0 }],
+      }),
+    ];
+  }
+
+  const isWeekend = (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6;
+
+  function Harness({
+    initialTasks,
+    mode,
+    updates,
+  }: {
+    initialTasks: Task[];
+    mode: 'preserve-duration' | 'free';
+    updates: Task[][];
+  }) {
+    const [tasks, setTasks] = React.useState(initialTasks);
+    return (
+      <GanttChart
+        tasks={tasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={36}
+        businessDays
+        isWeekend={isWeekend}
+        taskDateChangeMode={mode}
+        onTasksChange={(changedTasks) => {
+          updates.push(changedTasks);
+          setTasks((prev) => {
+            const map = new Map(changedTasks.map((task) => [task.id, task]));
+            return prev.map((task) => map.get(task.id) ?? task);
+          });
+        }}
+      />
+    );
+  }
+
+  it('checkbox ON (preserve-duration): parent end edit MOVES the stage, durations intact', () => {
+    const updates: Task[][] = [];
+    const { container } = render(
+      <Harness initialTasks={makeBusinessDayParentChain()} mode="preserve-duration" updates={updates} />
+    );
+
+    const parentRow = container.querySelector('.gantt-tl-row') as HTMLElement;
+    fireEvent.click(within(parentRow).getByRole('button', { name: 'date-2026-03-20' }));
+
+    const batch = updates.at(-1)!;
+    const byId = new Map(batch.map((t) => [t.id, t]));
+    // Uniform business-day shift: parent ends on the picked date, still 10 bd.
+    const parent = byId.get('P')!;
+    expect(parent.startDate).toBe('2026-03-11');
+    expect(parent.endDate).toBe('2026-03-24');
+    // Children follow the move; leaf durations stay 5 business days.
+    const a = byId.get('A')!;
+    expect(getTaskDuration(a.startDate, a.endDate, true, isWeekend)).toBe(5);
+    const b = byId.get('B')!;
+    expect(getTaskDuration(b.startDate, b.endDate, true, isWeekend)).toBe(5);
+    // Not a rescale: the leaves keep their original size ratio (no stretch).
+    expect(a.startDate).toBe('2026-03-11');
+  });
+
+  it('checkbox OFF (free): parent end edit RESCALES the subtree durations', () => {
+    const updates: Task[][] = [];
+    const { container } = render(
+      <Harness initialTasks={makeBusinessDayParentChain()} mode="free" updates={updates} />
+    );
+
+    const parentRow = container.querySelector('.gantt-tl-row') as HTMLElement;
+    fireEvent.click(within(parentRow).getByRole('button', { name: 'date-2026-03-20' }));
+
+    const batch = updates.at(-1)!;
+    const byId = new Map(batch.map((t) => [t.id, t]));
+    // Start anchored at 03-09, target 12 business days -> leaves 6 bd each.
+    const a = byId.get('A')!;
+    const b = byId.get('B')!;
+    expect(getTaskDuration(a.startDate, a.endDate, true, isWeekend)).toBe(6);
+    expect(getTaskDuration(b.startDate, b.endDate, true, isWeekend)).toBe(6);
+    expect(byId.get('P')!.startDate).toBe('2026-03-09');
+    expect(byId.get('P')!.endDate).toBe('2026-03-24');
   });
 });
 
