@@ -873,6 +873,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     setDependencyLineMenu(dependency);
   }, []);
 
+  const handleDependencyLineClose = useCallback(() => {
+    setDependencyLineMenu(null);
+  }, []);
+
   const handleDependencyLineDelete = useCallback(() => {
     if (!dependencyLineMenu) return;
     const successor = tasks.find((task) => task.id === dependencyLineMenu.successorId);
@@ -2241,9 +2245,33 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                           title="Удалить связь"
                           onClick={handleDependencyLineDelete}
                         >
-                          ×
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
                         </button>
                       )}
+                      <button
+                        type="button"
+                        className="gantt-dependencyLineMenuClose"
+                        aria-label="Закрыть"
+                        title="Закрыть"
+                        onClick={handleDependencyLineClose}
+                      >
+                        ×
+                      </button>
                     </div>
                   )}
 

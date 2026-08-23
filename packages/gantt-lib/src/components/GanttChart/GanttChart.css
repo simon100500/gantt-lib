@@ -116,7 +116,23 @@
   color: #991b1b;
   background: #fef2f2;
   cursor: pointer;
-  font-size: 17px;
+  line-height: 1;
+  transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.gantt-dependencyLineMenuClose {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  margin-left: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  color: #64748b;
+  background: transparent;
+  cursor: pointer;
+  font-size: 15px;
   line-height: 1;
   transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
 }
@@ -128,7 +144,15 @@
   outline: none;
 }
 
-.gantt-dependencyLineMenuDelete:active {
+.gantt-dependencyLineMenuClose:hover,
+.gantt-dependencyLineMenuClose:focus-visible {
+  color: #0f172a;
+  background: rgba(148, 163, 184, .25);
+  outline: none;
+}
+
+.gantt-dependencyLineMenuDelete:active,
+.gantt-dependencyLineMenuClose:active {
   transform: scale(.96);
 }
 
