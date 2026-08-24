@@ -735,6 +735,8 @@ export interface TaskListRowProps {
   rowHeight: number;
   /** Callback when task is modified via inline edit. Receives array of changed tasks. */
   onTasksChange?: (tasks: Task[]) => void;
+  /** Internal scheduling boundary for task-list duration edits. */
+  onDurationChange?: (task: Task, duration: number) => void;
   /** ID of currently selected task */
   selectedTaskId?: string;
   /** Callback when task row is clicked */
@@ -976,6 +978,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     taskNumberMap = {},
     rowHeight,
     onTasksChange,
+    onDurationChange,
     selectedTaskId,
     onRowClick,
     disableTaskNameEditing = false,
@@ -1350,19 +1353,23 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       setDurationValue(normalizedDuration);
     }, []);
 
-    const handleDurationSave = useCallback(() => {
-      if (durationConfirmedRef.current) {
-        durationConfirmedRef.current = false;
+    const emitDurationChange = useCallback((rounded: number) => {
+      if (onDurationChange) {
+        onDurationChange(
+          isMilestone && rounded > 0
+            ? { ...task, type: 'task' as const }
+            : !isMilestone && rounded === 0
+              ? { ...task, type: 'milestone' as const, endDate: task.startDate }
+              : task,
+          rounded
+        );
         return;
       }
-      const rounded = Math.round(durationValue) || 0;
       if (isMilestone && rounded > 0) {
-        // Convert milestone → task
         onTasksChange?.([
           { ...task, type: 'task' as const, endDate: getEndDate(task.startDate, rounded) },
         ]);
       } else if (!isMilestone && rounded === 0) {
-        // Convert task → milestone
         onTasksChange?.([
           { ...task, type: 'milestone' as const, endDate: task.startDate },
         ]);
@@ -1371,9 +1378,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           { ...task, endDate: getEndDate(task.startDate, rounded) },
         ]);
       }
+    }, [getEndDate, isMilestone, onDurationChange, onTasksChange, task]);
+
+    const handleDurationSave = useCallback(() => {
+      if (durationConfirmedRef.current) {
+        durationConfirmedRef.current = false;
+        return;
+      }
+      const rounded = Math.round(durationValue) || 0;
+      emitDurationChange(rounded);
       // isMilestone && rounded === 0 → no-op, just close
       setEditingColumnId(null);
-    }, [durationValue, task, onTasksChange, getEndDate, isMilestone]);
+    }, [durationValue, emitDurationChange]);
 
     const handleDurationCancel = useCallback(() => {
       setDurationValue(isMilestone ? 0 : getDuration(normalizedTask.startDate, normalizedTask.endDate));
@@ -1393,28 +1409,14 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         if (e.key === "Enter") {
           durationConfirmedRef.current = true;
           const rounded = Math.round(durationValue) || 0;
-          if (isMilestone && rounded > 0) {
-            // Convert milestone → task
-            onTasksChange?.([
-              { ...task, type: 'task' as const, endDate: getEndDate(task.startDate, rounded) },
-            ]);
-          } else if (!isMilestone && rounded === 0) {
-            // Convert task → milestone
-            onTasksChange?.([
-              { ...task, type: 'milestone' as const, endDate: task.startDate },
-            ]);
-          } else if (!isMilestone && rounded > 0) {
-            onTasksChange?.([
-              { ...task, endDate: getEndDate(task.startDate, rounded) },
-            ]);
-          }
+          emitDurationChange(rounded);
           // isMilestone && rounded === 0 → no-op, just close
           setEditingColumnId(null);
         } else if (e.key === "Escape") {
           handleDurationCancel();
         }
       },
-      [durationValue, task, onTasksChange, handleDurationCancel, getEndDate, isMilestone],
+      [durationValue, emitDurationChange, handleDurationCancel],
     );
 
     const handleProgressClick = useCallback(

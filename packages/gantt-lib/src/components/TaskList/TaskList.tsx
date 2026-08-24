@@ -20,6 +20,12 @@ import { resolveTaskListColumns } from './columns/resolveTaskListColumns';
 import type { TaskListColumn as NewTaskListColumn } from './columns/types';
 import './TaskList.css';
 
+// START_MODULE_CONTRACT
+// PURPOSE: Render task-list edits and preserve their scheduling-vs-field-edit boundary.
+// SCOPE: Route duration edits through the parent scheduling adapter while retaining legacy onTasksChange.
+// DEPENDS: TaskListRow and GanttChart callbacks.
+// END_MODULE_CONTRACT
+
 export { LINK_TYPE_ICONS };
 
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
@@ -193,6 +199,8 @@ export interface TaskListProps {
   taskListWidth?: number;
   /** Callback when tasks are modified via inline edit. Receives array of changed tasks. */
   onTasksChange?: (tasks: Task[]) => void;
+  /** Internal scheduling boundary for task-list duration edits. */
+  onDurationChange?: (task: Task, duration: number) => void;
   /** ID of currently selected task */
   selectedTaskId?: string;
   /** Callback when task row is clicked */
@@ -372,6 +380,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   headerHeight,
   taskListWidth,
   onTasksChange,
+  onDurationChange,
   selectedTaskId,
   onTaskSelect,
   show = true,
@@ -1677,6 +1686,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   taskNumberMap={originalTaskNumberMap}
                   rowHeight={rowHeight}
                   onTasksChange={onTasksChange}
+                  onDurationChange={onDurationChange}
                   selectedTaskId={selectedTaskId}
                   onRowClick={handleRowClick}
                   disableTaskNameEditing={disableTaskNameEditing}

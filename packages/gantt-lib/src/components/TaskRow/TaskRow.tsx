@@ -8,6 +8,7 @@ import { isMilestoneTask, normalizeTaskDatesForType } from '../../utils/taskType
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { isTaskParent, getChildren, getBusinessDaysCount } from '../../core/scheduling';
 import type { Task } from '../GanttChart';
+import type { GanttScheduleIntent } from '../../types';
 import type { TaskPreviewPositionStore } from '../GanttChart/previewStore';
 import './TaskRow.css';
 
@@ -22,6 +23,8 @@ export interface TaskRowProps {
   rowHeight: number;
   /** Callback when task is modified via drag/resize. Receives array of changed tasks. */
   onTasksChange?: (tasks: Task[]) => void;
+  /** Semantic scheduling operation completed by this chart row. */
+  onScheduleIntent?: (intent: GanttScheduleIntent) => void;
   /** Callback when task drag state changes (for rendering guide lines) */
   onDragStateChange?: (state: {
     isDragging: boolean;
@@ -145,7 +148,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day' }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day' }) => {
     const defaultParentBarColor = '#782FC4';
     // Extract divider from task prop
     const { divider: taskDivider } = task;
@@ -277,7 +280,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         endDate: result.endDate.toISOString(),
         ...(result.updatedDependencies !== undefined && { dependencies: result.updatedDependencies }),
       };
-      onTasksChange?.([updatedTask]);
+      if (!onScheduleIntent) {
+        onTasksChange?.([updatedTask]);
+      }
     };
 
     // Weekend predicate for business days calculation (must be before useTaskDrag)
@@ -300,6 +305,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       monthStart,
       dayWidth,
       onDragEnd: handleDragEnd,
+      onScheduleIntent,
       onDragStateChange,
       edgeZoneWidth: 20,
       allTasks,

@@ -8,6 +8,7 @@ export {
   GanttChart,
   type Task,
   type TaskDependency,
+  type GanttScheduleIntent,
   type TaskListMenuCommand,
   type GanttChartMode,
   type GanttModeProps,

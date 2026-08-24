@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
-import type { Task, TaskDependency, LinkType } from '../types';
+import type { GanttScheduleIntent, Task, TaskDependency, LinkType } from '../types';
 import { isMilestoneTask, normalizeTaskDatesForType } from '../utils/taskType';
 // Domain scheduling functions
 import {
@@ -24,6 +24,12 @@ import {
 
 // UI adapter functions (pixel-to-date conversion)
 import { resolveDateRangeFromPixels, clampDateRangeForIncomingFS } from '../adapters/scheduling';
+
+// START_MODULE_CONTRACT
+// PURPOSE: Detect completed bar move/resize interactions and calculate local preview cascades.
+// SCOPE: Emit one semantic intent at drop; legacy cascade callbacks remain available when no intent boundary is supplied.
+// DEPENDS: pixel/date adapters and existing scheduling preview functions.
+// END_MODULE_CONTRACT
 
 /**
  * Get transitive closure of successors for cascading.
@@ -603,6 +609,8 @@ export interface UseTaskDragOptions {
   dayWidth: number;
   /** Callback when drag operation completes */
   onDragEnd?: (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => void;
+  /** Semantic scheduling operation completed by the drag. */
+  onScheduleIntent?: (intent: GanttScheduleIntent) => void;
   /** Callback for drag state changes (for parent components to render guide lines) */
   onDragStateChange?: (state: {
     isDragging: boolean;
@@ -675,6 +683,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     monthStart,
     dayWidth,
     onDragEnd,
+    onScheduleIntent,
     onDragStateChange,
     edgeZoneWidth = 12,
     allTasks = [],
@@ -868,6 +877,40 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
         return;
       }
 
+      if (onScheduleIntent) {
+        const toDate = (date: Date) => date.toISOString().split('T')[0];
+        if (finalMode === 'move') {
+          onScheduleIntent({
+            type: 'move_task',
+            taskId,
+            startDate: toDate(newStartDate),
+          });
+        } else if (currentTask && isTaskParent(taskId, allTasks)) {
+          const anchor: 'start' | 'end' = finalMode === 'resize-left' ? 'end' : 'start';
+          const parentRange = computeParentDates(taskId, allTasks);
+          const targetDuration = getTaskDuration(
+            anchor === 'start' ? parentRange.startDate : newStartDate,
+            anchor === 'start' ? newEndDate : parentRange.endDate,
+            businessDays,
+            weekendPredicate
+          );
+          onScheduleIntent({
+            type: 'change_duration',
+            taskId,
+            duration: targetDuration,
+            anchor,
+          });
+        } else {
+          const anchor: 'start' | 'end' = finalMode === 'resize-left' ? 'end' : 'start';
+          onScheduleIntent({
+            type: 'resize_task',
+            taskId,
+            anchor,
+            date: toDate(finalMode === 'resize-left' ? newStartDate : newEndDate),
+          });
+        }
+      }
+
       // Parent resize is NOT a cascade operation: the subtree must be rescaled
       // proportionally. Route it to onDragEnd so GanttChart can run
       // scaleTaskSubtreeDuration instead of the uniform date-shift cascade.
@@ -942,6 +985,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     dayWidth,
     monthStart,
     onDragEnd,
+    onScheduleIntent,
     onDragStateChange,
     taskId,
     disableConstraints,

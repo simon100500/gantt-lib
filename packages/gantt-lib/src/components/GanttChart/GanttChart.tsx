@@ -34,6 +34,7 @@ import type {
   ResourceTimelineResourceMenuCommand,
   TimelineMarker,
   TaskDateChangeMode,
+  GanttScheduleIntent,
   ValidationResult,
 } from '../../types';
 import { TaskPredicate } from '../../filters';
@@ -53,6 +54,13 @@ import { PlanFactMatrix, type PlanFactCellCommitContext } from '../PlanFactMatri
 import { printGanttChart } from './print';
 import { createTaskPreviewPositionStore, type TaskPreviewPositionStore } from './previewStore';
 import './GanttChart.css';
+
+// START_MODULE_CONTRACT
+// PURPOSE: Adapt completed Gantt UI scheduling actions to persistence callbacks.
+// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data.
+// DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
+// INVARIANT: onScheduleIntent suppresses scheduling persistence through onTasksChange/onCascade.
+// END_MODULE_CONTRACT
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
 const TASK_ROW_OVERSCAN = 8;
@@ -221,6 +229,7 @@ function arePreviewTaskMapsEqual(left: Map<string, Task>, right: Map<string, Tas
 
 export type {
   GanttChartMode,
+  GanttScheduleIntent,
   ResourcePlannerChartProps,
   ResourceTableColumnWidthMap,
   ResourceTimelineItem,
@@ -348,6 +357,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   containerHeight?: number | string;
   /** Callback when tasks are modified. Receives ONLY the changed tasks as full objects with all properties. */
   onTasksChange?: (tasks: TTask[]) => void;
+  /** Semantic scheduling operation completed by the user. */
+  onScheduleIntent?: (intent: GanttScheduleIntent) => void;
   /** Optional callback for dependency validation results */
   onValidateDependencies?: (result: ValidationResult) => void;
   /** Enable automatic shifting of dependent tasks when predecessor moves (default: false) */
@@ -615,6 +626,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     headerHeight = 40,
     containerHeight,
     onTasksChange,
+    onScheduleIntent,
     onValidateDependencies,
     enableAutoSchedule,
     disableConstraints,
@@ -1317,7 +1329,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
    * Always receives ONLY the changed tasks as full objects with all properties.
    * Single task = array of 1 element (batch of size 1).
    */
-  const handleTaskChange = useCallback((updatedTasks: Task[]) => {
+  const handleTaskChange = useCallback((updatedTasks: Task[], durationEdit?: { duration: number; anchor: 'start' | 'end' }) => {
     const updatedTask = updatedTasks[0];
     if (!updatedTask) return;
     const originalTask = tasks.find(t => t.id === updatedTask.id);
@@ -1387,12 +1399,19 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
       if (!isUniformMove) {
         const anchor: 'start' | 'end' = deltaStart === 0 ? 'start' : deltaEnd === 0 ? 'end' : 'start';
-        const targetDuration = getTaskDuration(
+        const targetDuration = durationEdit?.duration ?? getTaskDuration(
           anchor === 'start' ? origStart : newStart,
           anchor === 'start' ? newEnd : origEnd,
           businessDays,
           isCustomWeekend
         );
+
+        onScheduleIntent?.({
+          type: 'change_duration',
+          taskId: updatedTask.id,
+          duration: targetDuration,
+          anchor: durationEdit?.anchor ?? anchor,
+        });
 
         const scaleResult = scaleTaskSubtreeDuration(updatedTask.id, targetDuration, tasks, {
           anchor,
@@ -1402,7 +1421,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         });
         onSubtreeScaleResult?.(scaleResult);
 
-        if (scaleResult.ok && scaleResult.changedTasks.length > 0) {
+        if (!onScheduleIntent && scaleResult.ok && scaleResult.changedTasks.length > 0) {
           onTasksChange?.(scaleResult.changedTasks as TTask[]);
         }
         if (editingTaskId === updatedTask.id) {
@@ -1419,7 +1438,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       const movedParentCascade = disableConstraints
         ? [updatedTask]
         : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays, isCustomWeekend);
-      onTasksChange?.(movedParentCascade as TTask[]);
+      if (onScheduleIntent) {
+        onScheduleIntent({
+          type: 'move_task',
+          taskId: updatedTask.id,
+          startDate: newStart.toISOString().split('T')[0],
+        });
+      } else {
+        onTasksChange?.(movedParentCascade as TTask[]);
+      }
       if (editingTaskId === updatedTask.id) {
         setEditingTaskId(null);
       }
@@ -1437,8 +1464,54 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       ? [updatedTask]
       : universalCascade(updatedTask, newStart, newEnd, sourceTasks, businessDays, isCustomWeekend);
 
-    onTasksChange?.(cascadedTasks as TTask[]);
-  }, [tasks, onTasksChange, disableConstraints, editingTaskId, businessDays, isCustomWeekend, onSubtreeScaleResult]);
+    if (durationEdit) {
+      if (onScheduleIntent) {
+        onScheduleIntent({
+          type: 'change_duration',
+          taskId: updatedTask.id,
+          duration: durationEdit.duration,
+          anchor: durationEdit.anchor,
+        });
+      } else {
+        onTasksChange?.(cascadedTasks as TTask[]);
+      }
+    } else if (onScheduleIntent) {
+      const startChanged = origStart.getTime() !== newStart.getTime();
+      const endChanged = origEnd.getTime() !== newEnd.getTime();
+      if (startChanged && endChanged) {
+        onScheduleIntent({
+          type: 'move_task',
+          taskId: updatedTask.id,
+          startDate: newStart.toISOString().split('T')[0],
+        });
+      } else {
+        const anchor: 'start' | 'end' = startChanged ? 'end' : 'start';
+        onScheduleIntent({
+          type: 'resize_task',
+          taskId: updatedTask.id,
+          anchor,
+          date: (startChanged ? newStart : newEnd).toISOString().split('T')[0],
+        });
+      }
+    } else {
+      onTasksChange?.(cascadedTasks as TTask[]);
+    }
+  }, [tasks, onTasksChange, onScheduleIntent, disableConstraints, editingTaskId, businessDays, isCustomWeekend, onSubtreeScaleResult]);
+
+  const handleTaskDurationChange = useCallback((task: Task, duration: number) => {
+    const updatedTask = {
+      ...task,
+      endDate: task.type === 'milestone'
+        ? task.startDate
+        : buildTaskRangeFromStart(
+          parseUTCDate(task.startDate),
+          duration,
+          businessDays,
+          isCustomWeekend
+        ).end.toISOString(),
+    };
+    handleTaskChange([updatedTask], { duration, anchor: 'start' });
+  }, [businessDays, handleTaskChange, isCustomWeekend]);
 
   /**
    * Handle task deletion: collect all changed tasks (with cleaned dependencies),
@@ -1663,9 +1736,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
    * Parent tasks are computed from children - don't send them in batch.
    */
   const handleCascade = useCallback((cascadedTasks: Task[]) => {
-    // Backend should compute parent dates from children
-    onTasksChange?.(cascadedTasks as TTask[]);
-  }, [tasks, onTasksChange]);
+    // With the intent API, the drag hook already emitted the one semantic
+    // operation. The materialized cascade is preview/result data only.
+    if (!onScheduleIntent) {
+      onTasksChange?.(cascadedTasks as TTask[]);
+    }
+  }, [onScheduleIntent, onTasksChange]);
 
   /**
    * Handle task selection from TaskList or TaskRow
@@ -2102,6 +2178,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             headerHeight={headerHeight}
             taskListWidth={taskListWidth}
             onTasksChange={handleTaskChange}
+            onDurationChange={handleTaskDurationChange}
             selectedTaskId={selectedTaskId ?? undefined}
             onTaskSelect={handleTaskSelect}
             show={showTaskList}
@@ -2420,6 +2497,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         previewPositionStore={previewPositionStore}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}
+                        onScheduleIntent={onScheduleIntent}
                         highlightExpiredTasks={highlightExpiredTasks}
                         showBaseline={showBaseline}
                         isFilterMatch={(filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false) || (criticalPathMode === 'highlight' ? criticalTaskIds.has(task.id) : false)}

@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
 
+export type GanttScheduleIntent =
+  | { type: 'move_task'; taskId: string; startDate: string }
+  | { type: 'resize_task'; taskId: string; anchor: 'start' | 'end'; date: string }
+  | { type: 'change_duration'; taskId: string; duration: number; anchor: 'start' | 'end' };
+
 export type GanttChartMode = 'gantt' | 'table-matrix' | 'plan-fact' | 'resource-planner';
 export type TaskDateChangeMode = 'preserve-duration' | 'free';
 
