@@ -152,7 +152,7 @@ describe('moveTaskWithCascade', () => {
 });
 
 describe('resizeTaskWithCascade', () => {
-  it('8. anchor=end keeps start fixed and resizes by end date', () => {
+  it('8. anchor=start keeps start fixed and resizes by end date', () => {
     const task = makeTask({ id: 'A', startDate: '2024-01-01', endDate: '2024-01-05' });
     const successor = makeTask({
       id: 'B', startDate: '2024-01-06', endDate: '2024-01-10',
@@ -160,7 +160,7 @@ describe('resizeTaskWithCascade', () => {
     });
     const snapshot = [task, successor];
 
-    const result = resizeTaskWithCascade('A', 'end', d('2024-01-03'), snapshot);
+    const result = resizeTaskWithCascade('A', 'start', d('2024-01-03'), snapshot);
 
     const resizedA = result.changedTasks.find(t => t.id === 'A')!;
     expect(resizedA.startDate).toBe('2024-01-01');
@@ -170,7 +170,7 @@ describe('resizeTaskWithCascade', () => {
     expect(movedB.startDate).toBe('2024-01-04');
   });
 
-  it('9. anchor=start keeps end fixed and resizes by start date', () => {
+  it('9. anchor=end keeps end fixed and resizes by start date', () => {
     const task = makeTask({ id: 'A', startDate: '2024-01-01', endDate: '2024-01-05' });
     const successor = makeTask({
       id: 'B', startDate: '2024-01-06', endDate: '2024-01-10',
@@ -178,7 +178,7 @@ describe('resizeTaskWithCascade', () => {
     });
     const snapshot = [task, successor];
 
-    const result = resizeTaskWithCascade('A', 'start', d('2024-01-03'), snapshot);
+    const result = resizeTaskWithCascade('A', 'end', d('2024-01-03'), snapshot);
 
     const resizedA = result.changedTasks.find(t => t.id === 'A')!;
     expect(resizedA.startDate).toBe('2024-01-03');

@@ -119,10 +119,10 @@ describe('core/scheduling: pure Node boundary', () => {
     expect(moved).toBeDefined();
     expect(moved!.startDate).toBe('2024-02-01');
 
-    // resizeTaskWithCascade — anchor end
+    // resizeTaskWithCascade — fixed start anchor changes the end
     const resizeResult = resizeTaskWithCascade(
       't1',
-      'end',
+      'start',
       new Date('2024-01-10T00:00:00.000Z'),
       tasks as any
     );

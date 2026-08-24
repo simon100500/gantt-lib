@@ -111,9 +111,11 @@ export function moveTaskWithCascade(
 }
 
 /**
- * Resize a task by changing its start or end date.
- * anchor='end': new end date, start stays fixed.
- * anchor='start': new start date, end stays fixed.
+ * Resize a task by changing one boundary while keeping the opposite boundary fixed.
+ *
+ * The public scheduling-intent contract names the boundary that stays fixed:
+ * anchor='start' keeps the start date and derives the end date.
+ * anchor='end' keeps the end date and derives the start date.
  */
 export function resizeTaskWithCascade(
   taskId: string,
@@ -134,11 +136,11 @@ export function resizeTaskWithCascade(
   const originalEnd = parseDateOnly(task.endDate);
   let newRange: { start: Date; end: Date };
 
-  if (anchor === 'end') {
-    // anchor='end': new end date, start stays fixed
+  if (anchor === 'start') {
+    // anchor='start': start stays fixed, newDate is the requested end.
     newRange = { start: originalStart, end: newDate };
   } else {
-    // anchor='start': new start date, end stays fixed
+    // anchor='end': end stays fixed, newDate is the requested start.
     newRange = { start: newDate, end: originalEnd };
   }
 

@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Preserve the explicit parent range during parent moves, including wrappers with gaps between children.
 - Keep schedule-intent drag and resize dates user-authoritative so incoming dependency lag is recalculated by the host scheduler.
+- Align `resizeTaskWithCascade` with the public schedule-intent contract: `anchor: 'start'` keeps the start and changes the end, while `anchor: 'end'` keeps the end and changes the start.
 
 ## [0.128.0] - 2026-08-23
 
