@@ -74,6 +74,7 @@ export type GanttScheduleIntent =
       taskId: string;
       duration: number;
       anchor: 'start' | 'end';
+      taskType?: 'task' | 'milestone';
     };
 
 export interface GanttChartProps {
@@ -83,7 +84,8 @@ export interface GanttChartProps {
 
 Dates in this callback are UI interaction data for the host adapter. They are
 not model-facing LLM fields and must not be copied into the agent tool catalog.
-`duration` is an integer number of project days. The `anchor` is the fixed
+`duration` is an integer number of project days. `taskType` is explicit metadata
+for a milestone/task transition emitted by the duration editor. The `anchor` is the fixed
 boundary:
 
 - `anchor: 'start'` keeps the start boundary fixed and derives the end;

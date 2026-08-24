@@ -1411,6 +1411,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
           taskId: updatedTask.id,
           duration: targetDuration,
           anchor: durationEdit?.anchor ?? anchor,
+          ...(durationEdit ? { taskType: updatedTask.type ?? 'task' } : {}),
         });
 
         const scaleResult = scaleTaskSubtreeDuration(updatedTask.id, targetDuration, tasks, {
@@ -1471,6 +1472,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
           taskId: updatedTask.id,
           duration: durationEdit.duration,
           anchor: durationEdit.anchor,
+          taskType: updatedTask.type ?? 'task',
         });
       } else {
         onTasksChange?.(cascadedTasks as TTask[]);

@@ -73,6 +73,7 @@ describe('GanttScheduleIntent', () => {
       taskId: 'child-a',
       duration: 5,
       anchor: 'start',
+      taskType: 'task',
     });
     expect(onTasksChange).not.toHaveBeenCalled();
   });
@@ -155,6 +156,64 @@ describe('GanttScheduleIntent', () => {
     expect(onTasksChange).not.toHaveBeenCalled();
   });
 
+  it('preserves milestone to task transition in the duration intent', async () => {
+    const onScheduleIntent = vi.fn<(intent: GanttScheduleIntent) => void>();
+    const { container } = render(
+      <GanttChart
+        tasks={[task({ id: 'milestone', type: 'milestone', startDate: '2026-01-01', endDate: '2026-01-01' })]}
+        showTaskList
+        businessDays={false}
+        onScheduleIntent={onScheduleIntent}
+      />
+    );
+
+    const durationCell = container.querySelector(
+      '[data-gantt-task-row-id="milestone"] .gantt-tl-cell-duration'
+    ) as HTMLElement;
+    fireEvent.click(durationCell);
+    const input = durationCell.querySelector('input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '3' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => expect(onScheduleIntent).toHaveBeenCalledTimes(1));
+    expect(onScheduleIntent).toHaveBeenCalledWith({
+      type: 'change_duration',
+      taskId: 'milestone',
+      duration: 3,
+      anchor: 'start',
+      taskType: 'task',
+    });
+  });
+
+  it('preserves task to milestone transition in the duration intent', async () => {
+    const onScheduleIntent = vi.fn<(intent: GanttScheduleIntent) => void>();
+    const { container } = render(
+      <GanttChart
+        tasks={[task({ id: 'task', type: 'task', startDate: '2026-01-01', endDate: '2026-01-03' })]}
+        showTaskList
+        businessDays={false}
+        onScheduleIntent={onScheduleIntent}
+      />
+    );
+
+    const durationCell = container.querySelector(
+      '[data-gantt-task-row-id="task"] .gantt-tl-cell-duration'
+    ) as HTMLElement;
+    fireEvent.click(durationCell);
+    const input = durationCell.querySelector('input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '0' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => expect(onScheduleIntent).toHaveBeenCalledTimes(1));
+    expect(onScheduleIntent).toHaveBeenCalledWith({
+      type: 'change_duration',
+      taskId: 'task',
+      duration: 0,
+      anchor: 'start',
+      taskType: 'milestone',
+    });
+  });
+
   it('emits change_duration when the parent duration is edited in the task list', async () => {
     const onScheduleIntent = vi.fn<(intent: GanttScheduleIntent) => void>();
     const onTasksChange = vi.fn();
@@ -177,7 +236,7 @@ describe('GanttScheduleIntent', () => {
 
     await waitFor(() => expect(onScheduleIntent).toHaveBeenCalledTimes(1));
     expect(onScheduleIntent).toHaveBeenCalledWith({
-      type: 'change_duration', taskId: 'parent', duration: 12, anchor: 'start',
+      type: 'change_duration', taskId: 'parent', duration: 12, anchor: 'start', taskType: 'task',
     });
     expect(onTasksChange).not.toHaveBeenCalled();
   });

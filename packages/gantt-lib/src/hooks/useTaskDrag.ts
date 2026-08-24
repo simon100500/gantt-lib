@@ -919,7 +919,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
           ? isTaskParent(taskId, allTasks)
           : false;
 
-      if (!disableConstraints && onCascade && allTasks.length > 0 && !isParentResize) {
+      if (!disableConstraints && onCascade && !onScheduleIntent && allTasks.length > 0 && !isParentResize) {
         // Hard mode with onCascade: use universalCascade for all cases
         // (parent drag, child drag, root task drag — all handled uniformly)
         const draggedTaskData = currentTask;
