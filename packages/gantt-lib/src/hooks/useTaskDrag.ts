@@ -87,6 +87,8 @@ interface ActiveDragState {
   ) => void;
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
+  /** Intent consumers let the server resolve incoming dependency lag. */
+  scheduleIntentMode?: boolean;
   cascadeContext?: CascadeContext;
   /** Memoization for the parent-resize live preview: recompute only when the snapped target changes. */
   parentScalePreviewKey?: string;
@@ -194,6 +196,39 @@ function cancelDrag() {
  */
 function snapToGrid(pixels: number, dayWidth: number): number {
   return Math.round(pixels / dayWidth) * dayWidth;
+}
+
+function resolveDragRangeForInteraction(
+  activeDrag: ActiveDragState,
+  task: Task,
+  mode: 'move' | 'resize-left' | 'resize-right',
+  left: number,
+  width: number,
+): { start: Date; end: Date } {
+  const proposedRange = resolveDateRangeFromPixels(
+    mode,
+    left,
+    width,
+    activeDrag.monthStart,
+    activeDrag.dayWidth,
+    task,
+    activeDrag.businessDays,
+    activeDrag.weekendPredicate,
+  );
+
+  if (activeDrag.scheduleIntentMode) {
+    return proposedRange;
+  }
+
+  return clampDateRangeForIncomingFS(
+    task,
+    proposedRange,
+    activeDrag.allTasks,
+    mode,
+    activeDrag.businessDays,
+    activeDrag.weekendPredicate,
+    activeDrag.cascadeContext?.taskById,
+  );
 }
 
 /**
@@ -306,45 +341,13 @@ function handleGlobalMouseMove(e: MouseEvent) {
     // the new lag will be recomputed from the final dates on drop.
 
     if (activeDrag.businessDays && activeDrag.weekendPredicate && draggedTask) {
-      const previewRange = clampDateRangeForIncomingFS(
-        draggedTask,
-        resolveDateRangeFromPixels(
-          mode,
-          newLeft,
-          newWidth,
-          activeDrag.monthStart,
-          dayWidth,
-          draggedTask,
-          true,
-          activeDrag.weekendPredicate
-        ),
-        allTasks,
-        mode,
-        true,
-        activeDrag.weekendPredicate,
-        activeDrag.cascadeContext?.taskById
-      );
+      const previewRange = resolveDragRangeForInteraction(activeDrag, draggedTask, mode, newLeft, newWidth);
       const alignedStartDay = getDayOffsetFromMonthStart(previewRange.start, activeDrag.monthStart);
       const alignedEndDay = getDayOffsetFromMonthStart(previewRange.end, activeDrag.monthStart);
       newLeft = Math.round(alignedStartDay * dayWidth);
       newWidth = Math.round((alignedEndDay - alignedStartDay + 1) * dayWidth);
     } else if (draggedTask) {
-      const previewRange = clampDateRangeForIncomingFS(
-        draggedTask,
-        resolveDateRangeFromPixels(
-          mode,
-          newLeft,
-          newWidth,
-          activeDrag.monthStart,
-          dayWidth,
-          draggedTask
-        ),
-        allTasks,
-        mode,
-        activeDrag.businessDays,
-        activeDrag.weekendPredicate,
-        activeDrag.cascadeContext?.taskById
-      );
+      const previewRange = resolveDragRangeForInteraction(activeDrag, draggedTask, mode, newLeft, newWidth);
       const alignedStartDay = getDayOffsetFromMonthStart(previewRange.start, activeDrag.monthStart);
       const alignedEndDay = getDayOffsetFromMonthStart(previewRange.end, activeDrag.monthStart);
       newLeft = Math.round(alignedStartDay * dayWidth);
@@ -370,24 +373,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
 
     if (isParentResizePreview && activeDrag.onCascadeProgress) {
       const { dayWidth: dw, monthStart: mStart } = activeDrag;
-      const previewRange = clampDateRangeForIncomingFS(
-        draggedTask,
-        resolveDateRangeFromPixels(
-          mode,
-          newLeft,
-          newWidth,
-          mStart,
-          dw,
-          draggedTask,
-          activeDrag.businessDays,
-          activeDrag.weekendPredicate
-        ),
-        allTasks,
-        mode,
-        activeDrag.businessDays,
-        activeDrag.weekendPredicate,
-        activeDrag.cascadeContext?.taskById
-      );
+      const previewRange = resolveDragRangeForInteraction(activeDrag, draggedTask, mode, newLeft, newWidth);
 
       const anchor: 'start' | 'end' = mode === 'resize-left' ? 'end' : 'start';
       const parentRange = computeParentDates(activeDrag.taskId, allTasks);
@@ -805,10 +791,8 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
     const currentTaskRaw = allTasks.find(t => t.id === taskId);
     const currentTask = currentTaskRaw ? normalizeTaskDatesForType(currentTaskRaw) : undefined;
-    const finalRange = currentTask
-      ? clampDateRangeForIncomingFS(
-        currentTask,
-        resolveDateRangeFromPixels(
+    const proposedFinalRange = currentTask
+      ? resolveDateRangeFromPixels(
           finalMode,
           finalLeft,
           finalWidth,
@@ -817,12 +801,6 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
           currentTask,
           businessDays,
           weekendPredicate
-        ),
-        allTasks,
-        finalMode,
-        businessDays,
-        weekendPredicate,
-        cascadeContext?.taskById
       )
       : (() => {
         const dayOffset = Math.round(finalLeft / dayWidth);
@@ -840,6 +818,17 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
           )),
         };
       })();
+    const finalRange = currentTask && !onScheduleIntent
+      ? clampDateRangeForIncomingFS(
+        currentTask,
+        proposedFinalRange,
+        allTasks,
+        finalMode,
+        businessDays,
+        weekendPredicate,
+        cascadeContext?.taskById
+      )
+      : proposedFinalRange;
 
     const newStartDate = finalRange.start;
     const newEndDate = currentTask && isMilestoneTask(currentTask)
@@ -1124,6 +1113,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       businessDays,
       weekendPredicate,
       cascadeContext: shouldBuildCascadeContext ? createCascadeContext(allTasks) : undefined,
+      scheduleIntentMode: Boolean(onScheduleIntent),
     };
   }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, effectiveLocked, viewMode]);
 

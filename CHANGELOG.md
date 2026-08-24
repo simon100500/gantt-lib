@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixes
+
+- Preserve the explicit parent range during parent moves, including wrappers with gaps between children.
+- Keep schedule-intent drag and resize dates user-authoritative so incoming dependency lag is recalculated by the host scheduler.
+
 ## [0.128.0] - 2026-08-23
 
 ### Features

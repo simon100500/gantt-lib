@@ -362,7 +362,10 @@ export function universalCascade(
 
     // RULE 2: Parent task is recomputed from its children
     const parentId = (currentOriginal as any).parentId as string | undefined;
-    if (parentId) {
+    // A parent move is an explicit root operation. Its requested range is the
+    // authoritative move target and must not be overwritten by the derived
+    // min/max wrapper rollup when its shifted children are processed.
+    if (parentId && parentId !== movedTask.id) {
       const parent = taskById.get(parentId);
       if (parent && !parent.locked) {
         const siblings = childrenByParentId.get(parentId) ?? [];

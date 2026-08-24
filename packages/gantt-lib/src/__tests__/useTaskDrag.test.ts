@@ -1526,6 +1526,66 @@ describe('useTaskDrag', () => {
       expect(onDragEnd).not.toHaveBeenCalled();
     });
 
+    it('emits the requested FS successor move when the schedule-intent boundary is enabled', async () => {
+      const onScheduleIntent = vi.fn();
+      const allTasks = [
+        {
+          id: 'pred',
+          name: 'Predecessor',
+          startDate: new Date(Date.UTC(2026, 1, 10)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 12)).toISOString(),
+        },
+        {
+          id: 'task-1',
+          name: 'Successor',
+          startDate: new Date(Date.UTC(2026, 1, 13)).toISOString(),
+          endDate: new Date(Date.UTC(2026, 1, 15)).toISOString(),
+          dependencies: [{ taskId: 'pred', type: 'FS' as const, lag: 0 }],
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          ...mockOptions,
+          initialStartDate: new Date(Date.UTC(2026, 1, 13)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 15)),
+          allTasks,
+          disableConstraints: false,
+          onScheduleIntent,
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 480, width: 120 }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 540,
+        } as unknown as React.MouseEvent);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 380 }));
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentLeft).toBe(320);
+      });
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      expect(onScheduleIntent).toHaveBeenCalledTimes(1);
+      expect(onScheduleIntent).toHaveBeenCalledWith({
+        type: 'move_task',
+        taskId: 'task-1',
+        startDate: '2026-02-09',
+      });
+    });
+
     it('allows reducing FS lag back to zero by moving successor left', async () => {
       const onDragEnd = vi.fn();
       const allTasks = [

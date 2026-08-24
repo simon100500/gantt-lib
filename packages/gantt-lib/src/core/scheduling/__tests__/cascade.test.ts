@@ -4,6 +4,7 @@ import {
   getSuccessorChain,
   universalCascade,
 } from '../cascade';
+import { moveTaskWithCascade } from '../execute';
 import { reflowTasksOnModeSwitch } from '../modeSwitch';
 import type { Task } from '../../types';
 
@@ -119,6 +120,23 @@ describe('cascade', () => {
       expect(c1?.endDate).toBe('2026-02-16');
       expect(c2?.startDate).toBe('2026-02-18');
       expect(c2?.endDate).toBe('2026-02-20');
+    });
+
+    it('keeps the explicitly moved parent range when children do not fill its wrapper', () => {
+      const tasks: Task[] = [
+        makeTask('P', '2026-08-01', '2026-08-20'),
+        makeTask('A', '2026-08-01', '2026-08-05', undefined, 'P'),
+        makeTask('B', '2026-08-10', '2026-08-12', undefined, 'P'),
+        makeTask('C', '2026-08-21', '2026-08-23', [{ taskId: 'P', type: 'FS', lag: 0 }]),
+      ];
+
+      const result = moveTaskWithCascade('P', new Date('2026-08-10T00:00:00Z'), tasks);
+      const byId = new Map(result.changedTasks.map((task) => [task.id, task]));
+
+      expect(byId.get('P')).toMatchObject({ startDate: '2026-08-10', endDate: '2026-08-29' });
+      expect(byId.get('A')).toMatchObject({ startDate: '2026-08-10', endDate: '2026-08-14' });
+      expect(byId.get('B')).toMatchObject({ startDate: '2026-08-19', endDate: '2026-08-21' });
+      expect(byId.get('C')).toMatchObject({ startDate: '2026-08-30', endDate: '2026-09-01' });
     });
   });
 
