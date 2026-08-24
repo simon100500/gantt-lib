@@ -5,6 +5,16 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru-RU/1.0.0/),
 и этот проект соответствует [Semantic Versioning](https://semver.org/lang/ru-RU/).
 
+## [0.129.0] - 2026-08-24
+
+### Новые возможности
+
+- Добавлены публичный тип `GanttScheduleIntent` и callback `onScheduleIntent`, который отдаёт ровно одну семантическую scheduling-операцию после завершённого move, resize или изменения длительности; materialized cascade остаётся preview/result-данными, а legacy-поведение `onTasksChange` сохраняется без нового callback
+
+### Документация
+
+- Документированы контракт persistence через schedule intent, mapping callback и путь миграции с legacy API
+
 ## [0.128.2] - 2026-08-24
 
 ### Исправления

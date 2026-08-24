@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.129.0] - 2026-08-24
+
+### Features
+
+- Add the public `GanttScheduleIntent` type and `onScheduleIntent` callback for exactly one semantic scheduling operation per completed move, resize, or duration edit; materialized cascades remain preview/result data and legacy `onTasksChange` behavior is preserved when the callback is omitted
+
+### Documentation
+
+- Document the schedule intent persistence contract, callback mapping, and legacy migration path
+
 ## [0.128.2] - 2026-08-24
 
 ### Fixes
