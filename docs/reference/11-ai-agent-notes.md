@@ -32,7 +32,11 @@ const tasks: Task[] = [
 - When constructing initial tasks, `lag: 0` is the standard neutral value. Omitting `lag` is equivalent (defaults to 0).
 
 **onTasksChange vs onCascade**
-- When `enableAutoSchedule={true}` and `onCascade` is provided, update your state from `onCascade`, not from `onTasksChange`. They are mutually exclusive per drag event.
+- Without `onScheduleIntent`, when `enableAutoSchedule={true}` and `onCascade`
+  is provided, update your state from `onCascade`, not from `onTasksChange`.
+  They are mutually exclusive per drag event. For server-backed scheduling,
+  use `onScheduleIntent` as the one persistence event and treat the cascade as
+  preview/result data.
 
 **Locked tasks**
 - Use `locked: true` to prevent drag, resize, and editing of a task. This is independent from progress and accepted properties.
@@ -138,7 +142,9 @@ import 'gantt-lib/styles.css';
 
 ## Performance Notes
 
-- `onTasksChange` fires once on mouseup — not on every drag frame. Safe with 100+ tasks.
+- Without `onScheduleIntent`, `onTasksChange` fires once on mouseup — not on
+  every drag frame. With the intent callback, scheduling actions emit one
+  intent instead.
 - `TaskRow` uses `React.memo` with a custom comparator. Only the dragged row re-renders during drag.
 - During cascade drag, chain member rows re-render from CSS transform overrides, not React state updates.
 - For very large task lists (500+), consider virtualizing the row container — the library does not virtualize internally.

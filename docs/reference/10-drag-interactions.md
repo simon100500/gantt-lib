@@ -1,5 +1,11 @@
 # Drag Interactions
 
+For server-backed scheduling persistence, use the
+[Schedule Intent Contract](../superpowers/specs/2026-08-24-schedule-intent-contract.md).
+The callback described there is the operation boundary; `changedTasks` remains
+preview/result data and must not be used to infer whether the user edited a
+parent or a child.
+
 | User Action | Result |
 |---|---|
 | Click and drag center of task bar | Move task. Both `startDate` and `endDate` shift by the same delta. Snaps to day boundaries. |
@@ -11,11 +17,32 @@
 
 **Drag tooltip:** During drag, a tooltip displays the current start and end dates of the task being dragged.
 
-**onTasksChange timing:** `onTasksChange` fires exactly once on `mouseup`, not during drag. This prevents re-render storms when 100+ tasks are in the array. During drag, only the dragged row re-renders internally.
+**Callback timing:** without `onScheduleIntent`, `onTasksChange` fires exactly
+once on `mouseup`, not during drag. With `onScheduleIntent`, scheduling actions
+emit exactly one intent on completion and do not emit the materialized cascade
+through `onTasksChange` or `onCascade` as persistence. During drag, only the
+dragged row re-renders internally.
 
 **Snapping:** All drag operations snap to full day boundaries. Sub-day positioning is not supported.
 
 **Milestone drag:** When `type: 'milestone'`, resize is disabled — edge zones are ignored and the drag mode is always `move`. Milestone width is clamped to a single day (`dayWidth` pixels) after every frame, preventing visual stretching during drag. On drop, `endDate` is set equal to `startDate`.
+
+## Schedule intent mapping
+
+When `onScheduleIntent` is provided, a completed scheduling action emits one
+of these intents:
+
+| Action | Intent |
+|---|---|
+| Move a child or parent bar | `move_task` |
+| Resize a leaf edge | `resize_task` |
+| Edit a leaf duration in the TaskList | `change_duration` |
+| Resize a parent edge or edit its duration | `change_duration` |
+
+`anchor: 'start'` fixes the start boundary; `anchor: 'end'` fixes the end
+boundary. The callback is the persistence boundary. The local cascade remains
+available for preview, but a computed parent in that result is never a second
+operation target.
 
 ## Parent Bar Resize = Subtree Scaling
 

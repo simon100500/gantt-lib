@@ -92,7 +92,10 @@ Rare link type. B must be complete by the time A begins. Lag ceiling at 0 preven
 When `enableAutoSchedule={true}` and a predecessor is dragged:
 - All successor tasks shift automatically to maintain their link constraints
 - Dependency lines redraw in real-time during drag (not just on mouseup)
-- When cascade occurs, `onCascade` fires instead of `onTasksChange` — they are mutually exclusive per drag event
+- Without `onScheduleIntent`, when cascade occurs, `onCascade` fires instead of
+  `onTasksChange` — they are mutually exclusive per drag event. With
+  `onScheduleIntent`, the intent is the scheduling persistence boundary and the
+  materialized cascade must not be persisted as a second operation.
 
 ---
 

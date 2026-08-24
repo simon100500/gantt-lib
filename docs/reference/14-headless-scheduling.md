@@ -288,7 +288,8 @@ const task: ScheduleTask = {
 - Ноль `import ... from 'date-fns'` в core/scheduling
 - Ноль обращений к `document.*` или DOM API
 - Все функции — чистые, без побочных эффектов
-- Все существующие тесты проходят через backward-compat re-export цепочку
+- Core scheduling tests проходят через backward-compat re-export цепочку; UI
+  пакетные тесты проверяются отдельно
 - Command-level API доступен через `gantt-lib/core/scheduling` entry point
 - Доказано boundary-тестами: core/scheduling работает в pure Node без jsdom
 

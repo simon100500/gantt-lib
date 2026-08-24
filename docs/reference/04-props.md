@@ -22,6 +22,7 @@ interface GanttModeProps<TTask extends Task = Task> {
   containerHeight?: number | string;
   viewMode?: 'day' | 'week' | 'month';
   onTasksChange?: (tasks: TTask[]) => void;
+  onScheduleIntent?: (intent: GanttScheduleIntent) => void;
   onAdd?: (task: TTask) => void;
   onDelete?: (taskId: string) => void;
   onInsertAfter?: (taskId: string, newTask: TTask) => void;
@@ -75,6 +76,7 @@ interface TableMatrixModeProps<TTask extends Task = Task> {
   headerHeight?: number;
   containerHeight?: number | string;
   onTasksChange?: (tasks: TTask[]) => void;
+  onScheduleIntent?: (intent: GanttScheduleIntent) => void;
   onAdd?: (task: TTask) => void;
   onDelete?: (taskId: string) => void;
   onInsertAfter?: (taskId: string, newTask: TTask) => void;
@@ -184,6 +186,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `headerHeight` | `number` | `40` | Height of the time-scale header (month + day rows) in pixels. |
 | `containerHeight` | `number \| string` | `undefined` | Container height. Can be pixels (`600`), string (`"90vh"`, `"100%"`, `"500px"`), or `undefined` for auto height (adapts to content). |
 | `onTasksChange` | `(tasks: Task[]) => void` | `undefined` | Called when tasks are modified. **Receives ONLY the changed tasks** (never the full array unless all actually changed). Single task = array of 1 element. Consumer must merge changed tasks into state. See Section 13 for usage patterns. |
+| `onScheduleIntent` | `(intent: GanttScheduleIntent) => void` | `undefined` | Persistence boundary for scheduling interactions. Emits exactly one semantic intent after a completed move, resize, or duration edit. When supplied, the materialized scheduling cascade is not emitted through `onTasksChange` or `onCascade` as a persistence event. |
 | `onAdd` | `(task: Task) => void` | `undefined` | Called when user adds a new task. The library creates a task with auto-generated ID and default dates. Consumer adds the task to the array. |
 | `onDelete` | `(taskId: string) => void` | `undefined` | Called when user clicks the trash icon in the task list action panel. Receives the `taskId` of the task to delete. The library automatically cleans up dependencies pointing to this task. |
 | `onInsertAfter` | `(taskId: string, newTask: Task) => void` | `undefined` | Called when user clicks the "+" insert button in the action panel. Receives the `taskId` to insert after and the `newTask` object. After insertion, the new task automatically enters edit mode (managed internally by the component). |
@@ -227,6 +230,39 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `fillParentRowsInTaskList` | `boolean \| ((task: TTask) => boolean)` | `plan-fact: true`, otherwise `false` | Controls parent-row background fill in the left `TaskList`. Pass `true` to fill every parent row, `false` to disable it, or a predicate to fill only selected parent rows such as top-level sections. The predicate is ignored for non-parent rows. |
 | `getTaskListNamePrefixIcon` | `(task: TTask) => React.ReactNode` | `undefined` | Returns an optional icon rendered before the task name in the left `TaskList` row. The callback is evaluated per row, so you can target only root tasks, only milestones, only parents, or any custom condition. Return `undefined` / `null` to render no icon for that row. |
 | `rowContentLines` | `number` | `1` | Declares how many text lines each row should comfortably fit in table-like layouts. The effective row height is auto-expanded to at least `10 + rowContentLines * 18` pixels, keeping the left `TaskList` and the right chart/matrix row heights synchronized. |
+
+### Schedule intent persistence
+
+Use `onScheduleIntent` when the host persists scheduling through domain commands.
+The callback identifies the task the user edited; `changedTasks` and cascade
+results remain preview/result data and must not be used to infer a second intent.
+
+```tsx
+import { GanttChart, type GanttScheduleIntent } from 'gantt-lib';
+
+const handleIntent = (intent: GanttScheduleIntent) => {
+  // Map to the existing move_task, resize_task, or change_duration command.
+  persistScheduleCommand(intent);
+};
+
+<GanttChart
+  tasks={tasks}
+  onScheduleIntent={handleIntent}
+  onTasksChange={handleLegacyTaskChange}
+/>
+```
+
+The mapping is:
+
+- whole-task move → `move_task`;
+- leaf edge resize → `resize_task`;
+- leaf duration edit → `change_duration`;
+- parent move → `move_task`;
+- parent edge or duration resize → `change_duration`.
+
+For a duration change, `anchor: 'start'` fixes the start boundary and
+`anchor: 'end'` fixes the end boundary. Consumers without `onScheduleIntent`
+keep the legacy `onTasksChange` behavior.
 
 ### Task name prefix icon
 

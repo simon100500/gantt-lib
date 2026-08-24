@@ -1,6 +1,6 @@
 # gantt-lib API Reference
 
-**Version:** 0.100.0
+**Version:** 0.128.2
 
 ## Getting Started
 
@@ -33,6 +33,7 @@
 ## Architecture
 
 - [Headless Scheduling Core](./14-headless-scheduling.md) — Runtime-agnostic scheduling module, API reference
+- [Schedule Intent Contract](../superpowers/specs/2026-08-24-schedule-intent-contract.md) — Semantic UI-to-command boundary for server-backed persistence
 
 ## AI Agents
 

@@ -131,6 +131,7 @@ export default function App() {
 | `selectedTaskIds` | `Set<string>`                                       | —               | Controlled-набор выбранных задач              |
 | `onSelectedTaskIdsChange` | `(taskIds: Set<string>) => void`             | —               | Вызывается при изменении мультивыбора         |
 | `onTasksChange`| `(tasks: Task[]) => void`                               | —               | Вызывается с массивом изменённых задач        |
+| `onScheduleIntent` | `(intent: GanttScheduleIntent) => void`              | —               | Один semantic intent после scheduling-действия; при наличии callback materialized cascade не является persistence-событием |
 | `onCascade`    | `(tasks: Task[]) => void`                               | —               | Возвращает все сдвинутые задачи при auto-schedule |
 
 Полный список актуальных пропсов смотрите в `docs/reference/04-props.md`.
@@ -281,6 +282,6 @@ packages/
 
 **Производительность:** `TaskRow` обёрнут в `React.memo` с кастомным компаратором, который исключает внешние callbacks вроде `onTasksChange`. При перетаскивании перерисовывается только перетаскиваемая строка — остальные не трогаются. Обновления позиции используют рефы + `requestAnimationFrame`, чтобы не нагружать React state на каждый кадр.
 
-**Паттерн состояния:** `onTasksChange` отдаёт только изменённые задачи, а consumer сам мержит их в своё состояние. Это позволяет обновлять большие массивы задач без лишней пересборки всего списка внутри библиотеки.
+**Паттерн состояния:** `onTasksChange` отдаёт только изменённые задачи, а consumer сам мержит их в своё состояние. Это legacy-путь. Для серверного сохранения scheduling-действий используйте `onScheduleIntent`: он различает `move_task`, `resize_task` и `change_duration`, а `changedTasks` остаётся preview/result.
 
 **Даты:** Все внутренние вычисления дат выполняются в UTC, чтобы избежать смещений из-за перехода на летнее время. Для надёжности передавайте даты как ISO-строки (`'2026-02-01'`).

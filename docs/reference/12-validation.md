@@ -36,14 +36,19 @@ Validation runs automatically on every tasks array change. You do not call it ma
 - **Use ISO strings.** Always pass dates as `'YYYY-MM-DD'` strings. `Date` objects from local environments can cause off-by-one errors due to timezone offsets.
 - **All internal calculations are UTC.** The library uses `Date.UTC()` internally. A date string `'2026-02-01'` is treated as `2026-02-01T00:00:00Z`.
 - **endDate is inclusive.** A task with `startDate: '2026-02-01'` and `endDate: '2026-02-01'` occupies exactly 1 day column. A task from Feb 1 to Feb 5 occupies 5 day columns.
-- **After drag, dates in onTasksChange are ISO strings.** The callback always receives ISO UTC date strings regardless of the input format used when constructing tasks.
+- **After drag, dates in `onTasksChange` are ISO strings.** This applies to the legacy callback path. With `onScheduleIntent`, scheduling persistence receives the intent instead; the callback always receives ISO UTC date strings regardless of the input format used when constructing tasks.
 - **Lag values after drag are integers (days).** The library rounds lag to whole days.
 
 ---
 
-## onTasksChange Pattern — Correct Usage
+## Legacy onTasksChange Pattern — Correct Usage
 
 The `onTasksChange` prop receives an array of **only the changed tasks**. You must merge these into your state. Single task changes are delivered as a single-element array.
+
+For server-backed scheduling, prefer `onScheduleIntent`. It emits exactly one
+operation (`move_task`, `resize_task`, or `change_duration`) and prevents the
+materialized cascade from being mistaken for another user operation. The legacy
+merge pattern below is for consumers that do not provide that callback.
 
 ```tsx
 // CORRECT: merge changed tasks into state
@@ -88,7 +93,7 @@ Three distinct operating modes depending on prop combinations:
 
 | `enableAutoSchedule` | `onCascade` provided | Mode | Behavior |
 |---|---|---|---|
-| `false` (default) | any | **Soft / visual only** | Tasks move independently. Dependency lines are visual only — no constraints enforced on drag. `onTasksChange` fires on each drag. |
+| `false` (default) | any | **Soft / visual only** | Tasks move independently. Dependency lines are visual only — no constraints enforced on drag. `onTasksChange` fires on each drag unless `onScheduleIntent` is provided. |
 | `true` | no | **Soft cascade** | Predecessors drag successors. On drag end, updated tasks with recalculated lag values are returned via `onTasksChange`. |
 | `true` | yes | **Hard cascade** | Predecessors drag successors with real-time preview. On drag end, `onCascade` fires with all shifted tasks. `onTasksChange` does NOT fire for cascaded drags. |
 
@@ -98,7 +103,7 @@ Three distinct operating modes depending on prop combinations:
 <GanttChart
   tasks={tasks}
   enableAutoSchedule={true}
-  onTasksChange={handleTasksChange}  // fires for non-cascade drags (resize of leaf task, etc.)
+  onTasksChange={handleTasksChange}  // legacy path when onScheduleIntent is absent
   onCascade={(shifted) => {          // fires for cascade drags — takes precedence
     setTasks(prev => {
       const map = new Map(shifted.map(t => [t.id, t]));

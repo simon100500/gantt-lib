@@ -1,13 +1,13 @@
 # Installation
 
-**Version:** 0.100.0
+**Version:** 0.128.2
 
 ## Package Identity
 
 | Property | Value |
 |---|---|
 | Package name | `gantt-lib` |
-| Version | `0.100.0` |
+| Version | `0.128.2` |
 | NPM install | `npm install gantt-lib` |
 | Peer dependencies | `react >= 18`, `react-dom >= 18` |
 | CSS import (REQUIRED) | `import 'gantt-lib/styles.css'` |
@@ -143,6 +143,7 @@ Key points:
 - **CSS import is required** for all visual features including hover buttons
 - Use ISO strings (`'YYYY-MM-DD'`) for dates — avoids timezone issues
 - **`onTasksChange` receives ONLY changed tasks** — merge them into your state using the pattern shown in `handleTasksChange`
+- For server-backed scheduling, use `onScheduleIntent`; it emits one semantic operation and keeps the materialized cascade out of the persistence path
 - Implement `onAdd`, `onDelete`, and `onInsertAfter` to handle task operations from the UI
 - After inserting via `onInsertAfter`, the new task automatically enters edit mode (managed internally)
 - No `month` prop needed — the calendar range is derived automatically from task dates
