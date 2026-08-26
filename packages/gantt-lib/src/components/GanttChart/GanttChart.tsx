@@ -438,6 +438,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   showChart?: boolean;
   /** Display-only placeholder rows appended below the currently available task rows. */
   skeletonRowCount?: number;
+  /** Shift skeleton chart bars by this many days relative to today (negative values start earlier). */
+  skeletonStartOffsetDays?: number;
   /** Optional vertical timeline markers such as deadlines and checkpoints. */
   timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
@@ -663,6 +665,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     disableTaskDrag = false,
     showChart = true,
     skeletonRowCount = 0,
+    skeletonStartOffsetDays = 0,
     timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
@@ -2527,7 +2530,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     variant="chart"
                     startIndex={visibleTasks.length}
                     chartDayWidth={dayWidth}
-                    chartStartDayOffset={todayInRange ? todayIndex : 0}
+                    chartStartDayOffset={todayInRange
+                      ? Math.max(0, todayIndex + Math.floor(Number.isFinite(skeletonStartOffsetDays) ? skeletonStartOffsetDays : 0))
+                      : 0}
                   />
                 </div>
               </>
