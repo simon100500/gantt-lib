@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.132.0] - 2026-08-27
+
+### Features
+
+- Add the `skeletonRowCount` API and display-only streaming-generation skeleton rows to the task list and Gantt timeline, with a website demo.
+
 ## Unreleased
 
 ### Fixes
