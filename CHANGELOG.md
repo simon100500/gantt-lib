@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.132.2] - 2026-08-27
+
+### Fixes
+
+- Keep generation skeleton shimmer highlights synchronized when rows appear or are filled.
+
 ## [0.132.1] - 2026-08-27
 
 ### Fixes
