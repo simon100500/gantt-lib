@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.132.3] - 2026-08-27
+
+### Features
+
+- Add `skeletonStartOffsetDays` to position generation skeleton bars relative to today.
+
+### Fixes
+
+- Fill generation skeleton rows as preview tasks appear, while retaining one bottom row during streaming.
+
 ## [0.132.2] - 2026-08-27
 
 ### Fixes
