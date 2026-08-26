@@ -2527,6 +2527,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     variant="chart"
                     startIndex={visibleTasks.length}
                     chartDayWidth={dayWidth}
+                    chartStartDayOffset={todayInRange ? todayIndex : 0}
                   />
                 </div>
               </>

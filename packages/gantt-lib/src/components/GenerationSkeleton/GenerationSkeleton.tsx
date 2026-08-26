@@ -2,7 +2,7 @@
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render display-only placeholder rows that use the same task-list and timeline geometry as Gantt rows.
-//   SCOPE: Bounded skeleton row count, task-list label placeholders, timeline bar placeholders, and reduced-motion-safe presentation.
+//   SCOPE: Bounded skeleton row count, task-list label placeholders, timeline bar placeholders anchored to a supplied timeline day, and reduced-motion-safe presentation.
 //   DEPENDS: M-GANTT-CHART
 //   LINKS: M-GANTT-CHART, V-M-GANTT-CHART
 //   ROLE: RUNTIME
@@ -27,6 +27,7 @@ export interface GenerationSkeletonRowsProps {
   startIndex?: number;
   taskListLayout?: GenerationSkeletonTaskListLayout;
   chartDayWidth?: number;
+  chartStartDayOffset?: number;
 }
 
 const MAX_SKELETON_ROWS = 200;
@@ -43,6 +44,7 @@ export const GenerationSkeletonRows: React.FC<GenerationSkeletonRowsProps> = ({
   startIndex = 0,
   taskListLayout,
   chartDayWidth = 40,
+  chartStartDayOffset = 0,
 }) => {
   const safeCount = clampCount(count);
   if (safeCount === 0) return null;
@@ -63,7 +65,10 @@ export const GenerationSkeletonRows: React.FC<GenerationSkeletonRowsProps> = ({
         const mediumShape = rowIndex % 3 === 2;
         const chartBarDays = 5 + (rowIndex % 6);
         const chartBarStyle = variant === 'chart'
-          ? { width: `${chartBarDays * Math.max(1, chartDayWidth)}px` }
+          ? {
+              width: `${chartBarDays * Math.max(1, chartDayWidth)}px`,
+              marginLeft: `${Math.max(0, chartStartDayOffset) * Math.max(1, chartDayWidth)}px`,
+            }
           : undefined;
         return (
           <div

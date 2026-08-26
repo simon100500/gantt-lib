@@ -26,4 +26,19 @@ describe('GenerationSkeletonRows', () => {
     rerender(<GenerationSkeletonRows count={999} rowHeight={36} variant="chart" />);
     expect(container.querySelectorAll('.gantt-generation-skeleton-row')).toHaveLength(200);
   });
+
+  it('starts chart bars at the requested day offset', () => {
+    const { container } = render(
+      <GenerationSkeletonRows
+        count={1}
+        rowHeight={36}
+        variant="chart"
+        chartDayWidth={32}
+        chartStartDayOffset={7}
+      />,
+    );
+
+    const bar = container.querySelector<HTMLElement>('.gantt-generation-skeleton-bar');
+    expect(bar?.style.marginLeft).toBe('224px');
+  });
 });
