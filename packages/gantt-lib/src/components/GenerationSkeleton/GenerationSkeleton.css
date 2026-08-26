@@ -30,6 +30,7 @@
   background: linear-gradient(90deg, rgba(148, 163, 184, 0.13), rgba(148, 163, 184, 0.28), rgba(148, 163, 184, 0.13));
   background-size: 220% 100%;
   animation: gantt-generation-skeleton-shimmer 1.45s ease-in-out infinite;
+  animation-delay: var(--skeleton-shimmer-delay, 0ms);
 }
 
 .gantt-generation-skeleton-chart .gantt-generation-skeleton-bar {

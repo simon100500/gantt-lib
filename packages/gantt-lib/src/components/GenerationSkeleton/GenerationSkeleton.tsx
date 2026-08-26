@@ -9,7 +9,7 @@
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 
-import React from 'react';
+import React, { useRef } from 'react';
 
 import './GenerationSkeleton.css';
 
@@ -31,6 +31,7 @@ export interface GenerationSkeletonRowsProps {
 }
 
 const MAX_SKELETON_ROWS = 200;
+const SHIMMER_DURATION_MS = 1450;
 
 function clampCount(count: number): number {
   if (!Number.isFinite(count)) return 0;
@@ -47,16 +48,25 @@ export const GenerationSkeletonRows: React.FC<GenerationSkeletonRowsProps> = ({
   chartStartDayOffset = 0,
 }) => {
   const safeCount = clampCount(count);
+  const previousCountRef = useRef<number | null>(null);
+  const shimmerDelayRef = useRef('0ms');
+  if (previousCountRef.current !== safeCount) {
+    previousCountRef.current = safeCount;
+    shimmerDelayRef.current = `-${Date.now() % SHIMMER_DURATION_MS}ms`;
+  }
   if (safeCount === 0) return null;
 
   return (
     <div
       className={`gantt-generation-skeleton gantt-generation-skeleton-${variant}`}
       aria-hidden="true"
-      style={taskListLayout ? {
-        '--skeleton-name-left': `${taskListLayout.nameLeft}px`,
-        '--skeleton-name-width': `${taskListLayout.nameWidth}px`,
-      } as React.CSSProperties : undefined}
+      style={{
+        ...(taskListLayout ? {
+          '--skeleton-name-left': `${taskListLayout.nameLeft}px`,
+          '--skeleton-name-width': `${taskListLayout.nameWidth}px`,
+        } : {}),
+        '--skeleton-shimmer-delay': shimmerDelayRef.current,
+      } as React.CSSProperties}
     >
       {Array.from({ length: safeCount }, (_, index) => {
         const rowIndex = startIndex + index;
