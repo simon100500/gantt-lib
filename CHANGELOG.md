@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.132.1] - 2026-08-27
+
+### Fixes
+
+- Start streaming-generation skeleton bars at today's position on the timeline.
+
 ## [0.132.0] - 2026-08-27
 
 ### Features
