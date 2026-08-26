@@ -440,6 +440,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   skeletonRowCount?: number;
   /** Shift skeleton chart bars by this many days relative to today (negative values start earlier). */
   skeletonStartOffsetDays?: number;
+  /** Add a stable per-row backward jitter to skeleton chart bars, in days. */
+  skeletonStartJitterDays?: number;
   /** Optional vertical timeline markers such as deadlines and checkpoints. */
   timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
@@ -666,6 +668,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     showChart = true,
     skeletonRowCount = 0,
     skeletonStartOffsetDays = 0,
+    skeletonStartJitterDays = 0,
     timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
@@ -2533,6 +2536,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     chartStartDayOffset={todayInRange
                       ? Math.max(0, todayIndex + Math.floor(Number.isFinite(skeletonStartOffsetDays) ? skeletonStartOffsetDays : 0))
                       : 0}
+                    chartStartJitterDays={skeletonStartJitterDays}
                   />
                 </div>
               </>

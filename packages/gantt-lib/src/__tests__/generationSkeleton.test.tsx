@@ -41,4 +41,36 @@ describe('GenerationSkeletonRows', () => {
     const bar = container.querySelector<HTMLElement>('.gantt-generation-skeleton-bar');
     expect(bar?.style.marginLeft).toBe('224px');
   });
+
+  it('applies stable per-row start jitter when requested', () => {
+    const { container, rerender } = render(
+      <GenerationSkeletonRows
+        count={3}
+        rowHeight={36}
+        variant="chart"
+        chartDayWidth={10}
+        chartStartDayOffset={20}
+        chartStartJitterDays={2}
+      />,
+    );
+
+    const getMargins = () => Array.from(
+      container.querySelectorAll<HTMLElement>('.gantt-generation-skeleton-bar'),
+      (bar) => bar.style.marginLeft,
+    );
+    const firstMargins = getMargins();
+    expect(firstMargins.every((margin) => ['180px', '190px', '200px'].includes(margin))).toBe(true);
+
+    rerender(
+      <GenerationSkeletonRows
+        count={3}
+        rowHeight={36}
+        variant="chart"
+        chartDayWidth={10}
+        chartStartDayOffset={20}
+        chartStartJitterDays={2}
+      />,
+    );
+    expect(getMargins()).toEqual(firstMargins);
+  });
 });

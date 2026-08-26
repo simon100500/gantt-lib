@@ -28,10 +28,17 @@ export interface GenerationSkeletonRowsProps {
   taskListLayout?: GenerationSkeletonTaskListLayout;
   chartDayWidth?: number;
   chartStartDayOffset?: number;
+  chartStartJitterDays?: number;
 }
 
 const MAX_SKELETON_ROWS = 200;
 const SHIMMER_DURATION_MS = 1450;
+
+function stableRowJitter(rowIndex: number, maxDays: number): number {
+  if (maxDays <= 0) return 0;
+  const hash = Math.imul(rowIndex + 1, 2654435761) >>> 0;
+  return hash % (maxDays + 1);
+}
 
 function clampCount(count: number): number {
   if (!Number.isFinite(count)) return 0;
@@ -46,6 +53,7 @@ export const GenerationSkeletonRows: React.FC<GenerationSkeletonRowsProps> = ({
   taskListLayout,
   chartDayWidth = 40,
   chartStartDayOffset = 0,
+  chartStartJitterDays = 0,
 }) => {
   const safeCount = clampCount(count);
   const previousCountRef = useRef<number | null>(null);
@@ -74,10 +82,13 @@ export const GenerationSkeletonRows: React.FC<GenerationSkeletonRowsProps> = ({
         const shortShape = rowIndex % 3 === 1;
         const mediumShape = rowIndex % 3 === 2;
         const chartBarDays = 5 + (rowIndex % 6);
+        const chartStartJitter = variant === 'chart'
+          ? stableRowJitter(rowIndex, Math.max(0, Math.floor(chartStartJitterDays)))
+          : 0;
         const chartBarStyle = variant === 'chart'
           ? {
               width: `${chartBarDays * Math.max(1, chartDayWidth)}px`,
-              marginLeft: `${Math.max(0, chartStartDayOffset) * Math.max(1, chartDayWidth)}px`,
+              marginLeft: `${Math.max(0, chartStartDayOffset - chartStartJitter) * Math.max(1, chartDayWidth)}px`,
             }
           : undefined;
         return (
