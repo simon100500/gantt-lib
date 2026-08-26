@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.132.4] - 2026-08-27
+
+### Features
+
+- Support stable per-row random start offsets for generation skeleton chart bars.
+
 ## [0.132.3] - 2026-08-27
 
 ### Features
