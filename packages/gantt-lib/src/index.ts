@@ -32,6 +32,7 @@ export {
   type ExportToPdfHeaderOptions,
 } from './components/GanttChart';
 export { default as TaskRow } from './components/TaskRow';
+export { GenerationSkeletonRows, type GenerationSkeletonRowsProps, type GenerationSkeletonTaskListLayout, type GenerationSkeletonVariant } from './components/GenerationSkeleton';
 export { default as TimeScaleHeader } from './components/TimeScaleHeader';
 export { default as GridBackground } from './components/GridBackground';
 export { default as TodayIndicator } from './components/TodayIndicator';

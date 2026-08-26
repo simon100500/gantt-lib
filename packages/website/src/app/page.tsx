@@ -7,6 +7,7 @@ import FinancePlanMatrixDemo from "@/components/FinancePlanMatrixDemo";
 import PlanFactDemo from "@/components/PlanFactDemo";
 import ResourcePlannerExample from "@/components/ResourcePlannerExample";
 import NoLinksCriticalPathDemo from "@/components/NoLinksCriticalPathDemo";
+import GenerationSkeletonDemo from "@/components/GenerationSkeletonDemo";
 
 export default function Home() {
   return (
@@ -35,6 +36,7 @@ export default function Home() {
         <PlanFactDemo />
         <ResourcePlannerExample />
         <NoLinksCriticalPathDemo />
+        <GenerationSkeletonDemo />
       </div>
     </main>
   );

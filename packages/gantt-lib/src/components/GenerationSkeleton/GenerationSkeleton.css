@@ -1,0 +1,97 @@
+.gantt-generation-skeleton {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.gantt-generation-skeleton-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--gantt-grid-line-color, #e5e7eb);
+  animation: gantt-generation-skeleton-in 180ms ease-out both;
+}
+
+.gantt-generation-skeleton-task-list .gantt-generation-skeleton-row {
+  display: block;
+}
+
+.gantt-generation-skeleton-label,
+.gantt-generation-skeleton-date,
+.gantt-generation-skeleton-bar {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.13), rgba(148, 163, 184, 0.28), rgba(148, 163, 184, 0.13));
+  background-size: 220% 100%;
+  animation: gantt-generation-skeleton-shimmer 1.45s ease-in-out infinite;
+}
+
+.gantt-generation-skeleton-chart .gantt-generation-skeleton-bar {
+  background: linear-gradient(90deg, #d9dee7, #eef1f5, #d9dee7);
+  background-size: 220% 100%;
+  height: var(--gantt-task-bar-height, 24px);
+  border-radius: var(--gantt-task-bar-border-radius, 4px);
+  border: 0;
+  box-shadow: none;
+}
+
+.gantt-generation-skeleton-label {
+  position: absolute;
+  left: calc(var(--skeleton-name-left, 40px) + 6px);
+  width: calc(var(--skeleton-name-width, 200px) - 12px);
+  height: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.gantt-generation-skeleton-label-parent {
+  width: calc(var(--skeleton-name-width, 200px) - 24px);
+  height: 12px;
+}
+
+.gantt-generation-skeleton-label-short {
+  width: 56%;
+}
+
+.gantt-generation-skeleton-label-medium {
+  width: 72%;
+}
+
+.gantt-generation-skeleton-bar {
+  width: 43%;
+  height: 12px;
+  margin-left: 5%;
+}
+
+.gantt-generation-skeleton-bar-parent {
+  width: 61%;
+  margin-left: 2%;
+}
+
+.gantt-generation-skeleton-bar-short {
+  width: 29%;
+}
+
+@keyframes gantt-generation-skeleton-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@keyframes gantt-generation-skeleton-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gantt-generation-skeleton-row,
+  .gantt-generation-skeleton-label,
+  .gantt-generation-skeleton-bar {
+    animation: none;
+  }
+}

@@ -154,6 +154,7 @@ Main component that renders the interactive Gantt chart.
 | `viewMode` | `'day' \| 'week' \| 'month'` | `'day'` | Time scale mode. |
 | `dayWidth` | `number` | `40` | Width of one day column in pixels. |
 | `rowHeight` | `number` | `40` | Height of one task row. |
+| `skeletonRowCount` | `number` | `0` | Display-only placeholder rows appended below the visible task rows. Useful for streamed generation previews. |
 | `headerHeight` | `number` | `40` | Height of the time-scale header. |
 | `containerHeight` | `number \| string` | `undefined` | Container height in px, `%`, `vh`, or auto. |
 | `showTaskList` | `boolean` | `false` | Shows the left-side task list. |

@@ -48,6 +48,7 @@ import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
 import { DependencyCreationOverlay, type DependencyCreationDrag } from '../DependencyCreationOverlay';
 import { TaskList } from '../TaskList';
+import { GenerationSkeletonRows } from '../GenerationSkeleton';
 import { ResourceTimelineChart } from '../ResourceTimelineChart';
 import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup, type TableMatrixDateOverlay } from '../TableMatrix';
 import { PlanFactMatrix, type PlanFactCellCommitContext } from '../PlanFactMatrix';
@@ -435,6 +436,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   disableTaskDrag?: boolean;
   /** Show calendar chart area (default: true) */
   showChart?: boolean;
+  /** Display-only placeholder rows appended below the currently available task rows. */
+  skeletonRowCount?: number;
   /** Optional vertical timeline markers such as deadlines and checkpoints. */
   timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
@@ -659,6 +662,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onSelectedTaskIdsChange,
     disableTaskDrag = false,
     showChart = true,
+    skeletonRowCount = 0,
     timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
@@ -998,6 +1002,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     () => Math.round(dateRange.length * dayWidth),
     [dateRange.length, dayWidth]
   );
+  const renderGridWidth = Math.max(gridWidth, skeletonRowCount > 0 ? 720 : 0);
   const matrixWidth = useMemo(
     () => matrixColumns.reduce<number | undefined>((sum, column) => {
       if (typeof column.width !== 'number') return undefined;
@@ -1063,8 +1068,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Calculate total grid height from currently visible rows.
   const totalGridHeight = useMemo(
-    () => visibleTasks.length * effectiveRowHeight,
-    [effectiveRowHeight, visibleTasks.length]
+    () => (visibleTasks.length + Math.max(0, Math.floor(skeletonRowCount))) * effectiveRowHeight,
+    [effectiveRowHeight, skeletonRowCount, visibleTasks.length]
   );
   // TimeScaleHeader is headerHeight tall; the wrapper owns the bottom grid border.
   const timelineHeaderHeight = headerHeight + 1;
@@ -2234,6 +2239,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             taskDateChangeMode={taskDateChangeMode}
             onTaskDateChangeModeChange={handleTaskDateChangeMode}
             visibleRowIndices={visibleTaskWindowIndices}
+            skeletonRowCount={skeletonRowCount}
           />
 
           {/* Chart area */}
@@ -2243,12 +2249,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
               minWidth: isTableMatrixMode
                 ? (matrixWidth !== undefined ? `${matrixWidth}px` : undefined)
                 : isPlanFactMode
-                  ? `${gridWidth}px`
-                : `${gridWidth}px`,
+                  ? `${renderGridWidth}px`
+                : `${renderGridWidth}px`,
               width: isTableMatrixMode
                 ? (matrixWidth !== undefined ? `${matrixWidth}px` : 'max-content')
                 : isPlanFactMode
-                  ? `${gridWidth}px`
+                  ? `${renderGridWidth}px`
                 : undefined,
               flex: isTableMatrixMode || isPlanFactMode ? '0 0 auto' : 1,
               display: isTableMatrixMode || isPlanFactMode || showChart ? undefined : 'none',
@@ -2296,7 +2302,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                 {/* Sticky header - stays at top during vertical scroll, scrolls with content horizontally */}
                 <div
                   className="gantt-stickyHeader"
-                  style={{ width: `${gridWidth}px`, height: `${timelineHeaderHeight}px` }}
+                  style={{ width: `${renderGridWidth}px`, height: `${timelineHeaderHeight}px` }}
                 >
                   <TimeScaleHeader
                     days={dateRange}
@@ -2328,7 +2334,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                   className="gantt-taskArea"
                   style={{
                     position: 'relative',
-                    width: `${gridWidth}px`,
+                    width: `${renderGridWidth}px`,
                     height: `${totalGridHeight}px`,
                   }}
                 >
@@ -2367,7 +2373,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     monthStart={monthStart}
                     dayWidth={dayWidth}
                     rowHeight={effectiveRowHeight}
-                    gridWidth={gridWidth}
+                    gridWidth={renderGridWidth}
                     totalHeight={totalGridHeight}
                     rowIndexByTaskId={visibleTaskIndexMap}
                     dragOverrides={dependencyOverrides}
@@ -2428,7 +2434,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
                   <DependencyCreationOverlay
                     drag={dependencyCreationDrag}
-                    width={gridWidth}
+                    width={renderGridWidth}
                     height={totalGridHeight}
                   />
 
@@ -2515,6 +2521,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                       />
                     </div>
                   ))}
+                  <GenerationSkeletonRows
+                    count={skeletonRowCount}
+                    rowHeight={effectiveRowHeight}
+                    variant="chart"
+                    startIndex={visibleTasks.length}
+                    chartDayWidth={dayWidth}
+                  />
                 </div>
               </>
             )}

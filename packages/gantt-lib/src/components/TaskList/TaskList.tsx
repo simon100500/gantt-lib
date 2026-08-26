@@ -12,6 +12,7 @@ import { getVisibleReorderPlan, type ReorderDropPlacement } from '../../utils/ta
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
 import { NewTaskRow } from './NewTaskRow';
+import { GenerationSkeletonRows, type GenerationSkeletonTaskListLayout } from '../GenerationSkeleton';
 import { DEFAULT_TASK_DURATION_DAYS, buildDefaultTaskDateRange, getTodayISODate } from './defaultTaskDates';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
 import type { TaskListColumn, TaskListColumnId, TaskListColumnWidthMap } from './columns/types';
@@ -301,6 +302,8 @@ export interface TaskListProps {
   onTaskDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
   /** Visible row indices from the shared chart viewport window */
   visibleRowIndices?: number[];
+  /** Display-only placeholder rows appended below streamed task rows. */
+  skeletonRowCount?: number;
 }
 
 interface PendingInsertState {
@@ -431,6 +434,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   taskDateChangeMode = 'preserve-duration',
   onTaskDateChangeModeChange,
   visibleRowIndices,
+  skeletonRowCount = 0,
 }) => {
   const reorderDisabled = disableTaskListReorder || disableTaskDrag;
   const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -504,8 +508,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [orderedTasks, collapsedParentIds, filterMode, filteredTaskIds, isFilterActive, criticalPathMode, criticalTaskIds]);
 
   const totalHeight = useMemo(
-    () => visibleTasks.length * rowHeight,
-    [visibleTasks.length, rowHeight]
+    () => (visibleTasks.length + Math.max(0, Math.floor(skeletonRowCount))) * rowHeight,
+    [rowHeight, skeletonRowCount, visibleTasks.length]
   );
   const visibleTaskNumberMap = useMemo(
     () =>
@@ -1459,6 +1463,24 @@ export const TaskList: React.FC<TaskListProps> = ({
     () => resolvedColumns.reduce((sum, col) => sum + (col.width ?? 120), 0),
     [resolvedColumns]
   );
+  const generationSkeletonTaskListLayout = useMemo<GenerationSkeletonTaskListLayout>(() => {
+    let left = 0;
+    const layout = {
+      nameLeft: 40,
+      nameWidth: 200,
+    };
+
+    for (const column of resolvedColumns) {
+      const width = column.width ?? 120;
+      if (column.id === 'name') {
+        layout.nameLeft = left;
+        layout.nameWidth = width;
+      }
+      left += width;
+    }
+
+    return layout;
+  }, [resolvedColumns]);
 
   const requestedTaskListWidth = taskListWidth ?? Math.min(MIN_TASK_LIST_WIDTH, resolvedColumnWidthTotal);
   const effectiveTaskListWidth = Math.max(requestedTaskListWidth, resolvedColumnWidthTotal);
@@ -1768,6 +1790,13 @@ export const TaskList: React.FC<TaskListProps> = ({
               />
             </div>
           )}
+          <GenerationSkeletonRows
+            count={skeletonRowCount}
+            rowHeight={rowHeight}
+            variant="task-list"
+            startIndex={visibleTasks.length}
+            taskListLayout={generationSkeletonTaskListLayout}
+          />
         </div>
 
         {/* Ghost row for new task creation — positioned OUTSIDE body div to avoid height desync */}
