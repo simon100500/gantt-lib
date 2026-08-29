@@ -115,6 +115,11 @@
   background: rgba(59, 130, 246, 0.35);
 }
 
+/* The visual touch affordance must never appear in the desktop table. */
+.gantt-tl-column-resize-icon {
+  display: none;
+}
+
 @media (hover: none), (pointer: coarse) {
   .gantt-tl-column-resize-handle {
     right: -20px;

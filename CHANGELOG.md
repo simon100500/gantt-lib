@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.133.1] - 2026-08-29
+
+### Fixes
+
+- Hide the mobile column-resize SVG handler on desktop screens so column boundaries remain clean in the desktop table.
+
 ## [0.133.0] - 2026-08-29
 
 ### Features
