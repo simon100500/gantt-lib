@@ -95,6 +95,7 @@
   background: transparent;
   cursor: col-resize;
   z-index: 2;
+  touch-action: none;
 }
 
 .gantt-tl-column-resize-handle::before {
@@ -112,6 +113,45 @@
 .gantt-tl-headerCell:hover .gantt-tl-column-resize-handle::before,
 .gantt-tl-column-resize-handle:focus-visible::before {
   background: rgba(59, 130, 246, 0.35);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .gantt-tl-column-resize-handle {
+    right: -20px;
+    width: 40px;
+  }
+
+  .gantt-tl-column-resize-handle::before {
+    left: 19px;
+  }
+
+  .gantt-tl-column-resize-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    display: block;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16);
+    color: #2563eb;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.25);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    padding: 2px;
+    box-sizing: border-box;
+  }
+
+  .gantt-tl-header[data-column-resize-mode='true'] .gantt-tl-column-resize-icon {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .gantt-tl-header[data-column-resize-mode='true'] .gantt-tl-column-resize-handle::before {
+    background: rgba(59, 130, 246, 0.45);
+  }
 }
 
 /* Body container */

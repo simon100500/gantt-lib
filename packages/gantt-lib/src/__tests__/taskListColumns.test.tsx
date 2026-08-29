@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { GanttChart, type Task } from '../components/GanttChart';
 import type { TaskListColumn } from '../components/TaskList/columns/types';
@@ -407,5 +407,45 @@ describe('GanttChart additionalColumns', () => {
     expect(nameHeader.style.width).toBe('250px');
     expect(onTaskListColumnWidthsChange).toHaveBeenCalled();
     expect(onTaskListColumnWidthsChange.mock.calls.at(-1)?.[0]).toMatchObject({ name: 250 });
+  });
+
+  it('updates task list column widths through touch pointer events', () => {
+    const onTaskListColumnWidthsChange = vi.fn();
+
+    const { container } = render(
+      <GanttChart
+        tasks={extendedTasks}
+        showTaskList
+        rowHeight={36}
+        headerHeight={40}
+        taskListWidth={660}
+        additionalColumns={additionalColumns}
+        onTaskListColumnWidthsChange={onTaskListColumnWidthsChange}
+      />
+    );
+
+    const nameHeader = container.querySelector('[data-column-id="name"]') as HTMLElement;
+    const resizeHandle = screen.getByTestId('tasklist-resize-handle-name');
+    const header = container.querySelector('.gantt-tl-header') as HTMLElement;
+
+    fireEvent.click(header);
+    expect(header.getAttribute('data-column-resize-mode')).toBe('true');
+    fireEvent.pointerDown(document.body);
+    expect(header.getAttribute('data-column-resize-mode')).toBe('false');
+    fireEvent.click(header);
+
+    const dispatchPointerEvent = (target: EventTarget, type: string, clientX?: number) => {
+      const event = new MouseEvent(type, { bubbles: true, clientX });
+      act(() => {
+        target.dispatchEvent(event);
+      });
+    };
+
+    dispatchPointerEvent(resizeHandle, 'pointerdown', 100);
+    dispatchPointerEvent(window, 'pointermove', 145);
+    dispatchPointerEvent(window, 'pointerup');
+
+    expect(nameHeader.style.width).toBe('245px');
+    expect(onTaskListColumnWidthsChange.mock.calls.at(-1)?.[0]).toMatchObject({ name: 245 });
   });
 });

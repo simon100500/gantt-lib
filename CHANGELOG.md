@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.133.0] - 2026-08-29
+
+### Features
+
+- Add touch-friendly task-list column resizing with Pointer Events, expanded 40px touch targets, and a mobile-only horizontal resize handler.
+
+### Fixes
+
+- Close the mobile column-resize mode when the user taps outside the table header.
+
 ## [0.132.4] - 2026-08-27
 
 ### Features

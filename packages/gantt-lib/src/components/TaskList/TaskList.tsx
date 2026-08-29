@@ -321,6 +321,15 @@ interface SelectAllCheckboxProps {
   onChange: (checked: boolean) => void;
 }
 
+type ColumnResizeState = {
+  columnId: TaskListColumnId;
+  startX: number;
+  startWidth: number;
+  input: 'pointer' | 'mouse';
+  pointerId?: number;
+  handle?: HTMLButtonElement;
+};
+
 function normalizeColumnWidthMap(widths?: TaskListColumnWidthMap): TaskListColumnWidthMap {
   if (!widths) {
     return {};
@@ -440,8 +449,30 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
   const [activeCustomCell, setActiveCustomCell] = useState<{ taskId: string; columnId: string } | null>(null);
   const [columnWidthOverrides, setColumnWidthOverrides] = useState<TaskListColumnWidthMap>(() => normalizeColumnWidthMap(taskListColumnWidths));
-  const resizeStateRef = useRef<{ columnId: TaskListColumnId; startX: number; startWidth: number } | null>(null);
+  const [isColumnResizeMode, setIsColumnResizeMode] = useState(false);
+  const columnResizeHeaderRef = useRef<HTMLDivElement>(null);
+  const resizeStateRef = useRef<ColumnResizeState | null>(null);
   const effectiveSelectedTaskIds = selectedTaskIds ?? internalSelectedTaskIds;
+
+  useEffect(() => {
+    if (!isColumnResizeMode) {
+      return;
+    }
+
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && columnResizeHeaderRef.current?.contains(target)) {
+        return;
+      }
+
+      setIsColumnResizeMode(false);
+    };
+
+    document.addEventListener('pointerdown', handleOutsidePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsidePointerDown);
+    };
+  }, [isColumnResizeMode]);
 
   const emitSelectedTaskIdsChange = useCallback((nextSelectedTaskIds: Set<string>) => {
     if (!selectedTaskIds) {
@@ -1498,7 +1529,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [onTaskListColumnWidthsChange]);
 
   useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
+    const updateResizedColumn = (clientX: number) => {
       const resizeState = resizeStateRef.current;
       if (!resizeState) {
         return;
@@ -1511,13 +1542,25 @@ export const TaskList: React.FC<TaskListProps> = ({
 
       const nextWidth = Math.max(
         getColumnMinWidth(column),
-        Math.round(resizeState.startWidth + event.clientX - resizeState.startX)
+        Math.round(resizeState.startWidth + clientX - resizeState.startX)
       );
 
       updateColumnWidth(column.id, nextWidth);
     };
 
-    const handleMouseUp = () => {
+    const finishColumnResize = () => {
+      const resizeState = resizeStateRef.current;
+      if (!resizeState) {
+        return;
+      }
+
+      if (
+        resizeState.pointerId !== undefined
+        && typeof resizeState.handle?.hasPointerCapture === 'function'
+        && resizeState.handle.hasPointerCapture(resizeState.pointerId)
+      ) {
+        resizeState.handle.releasePointerCapture?.(resizeState.pointerId);
+      }
       if (!resizeStateRef.current) {
         return;
       }
@@ -1525,19 +1568,70 @@ export const TaskList: React.FC<TaskListProps> = ({
       resizeStateRef.current = null;
       document.body.style.removeProperty('cursor');
       document.body.style.removeProperty('user-select');
+      document.body.style.removeProperty('touch-action');
     };
 
+    const handlePointerMove = (event: PointerEvent) => {
+      const resizeState = resizeStateRef.current;
+      if (resizeState?.input !== 'pointer' || resizeState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      event.preventDefault();
+      updateResizedColumn(event.clientX);
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      const resizeState = resizeStateRef.current;
+      if (resizeState?.input !== 'pointer' || resizeState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      finishColumnResize();
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (resizeStateRef.current?.input !== 'mouse') {
+        return;
+      }
+
+      event.preventDefault();
+      updateResizedColumn(event.clientX);
+    };
+
+    const handleMouseUp = () => {
+      if (resizeStateRef.current?.input !== 'mouse') {
+        return;
+      }
+
+      finishColumnResize();
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
       document.body.style.removeProperty('cursor');
       document.body.style.removeProperty('user-select');
+      document.body.style.removeProperty('touch-action');
     };
   }, [resolvedColumns, updateColumnWidth]);
 
-  const startColumnResize = useCallback((columnId: TaskListColumnId, event: React.MouseEvent<HTMLButtonElement>) => {
+  const startColumnResize = useCallback((
+    columnId: TaskListColumnId,
+    event: React.PointerEvent<HTMLButtonElement> | React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    if (resizeStateRef.current) {
+      return;
+    }
+
     const column = resolvedColumns.find((item) => item.id === columnId);
     if (!column) {
       return;
@@ -1545,13 +1639,24 @@ export const TaskList: React.FC<TaskListProps> = ({
 
     event.preventDefault();
     event.stopPropagation();
+    const isPointerEvent = event.type === 'pointerdown';
+    const pointerId = isPointerEvent && 'pointerId' in event.nativeEvent
+      ? event.nativeEvent.pointerId
+      : undefined;
     resizeStateRef.current = {
       columnId,
       startX: event.clientX,
       startWidth: column.width ?? 120,
+      input: isPointerEvent ? 'pointer' : 'mouse',
+      pointerId,
+      handle: event.currentTarget,
     };
+    if (isPointerEvent && pointerId !== undefined && event.currentTarget.setPointerCapture) {
+      event.currentTarget.setPointerCapture(pointerId);
+    }
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
+    document.body.style.touchAction = 'none';
   }, [resolvedColumns]);
 
   const renderResizeHandle = useCallback((columnId: TaskListColumnId) => (
@@ -1560,12 +1665,36 @@ export const TaskList: React.FC<TaskListProps> = ({
       className="gantt-tl-column-resize-handle"
       data-testid={`tasklist-resize-handle-${columnId}`}
       aria-label={`Resize ${columnId} column`}
+      onPointerDown={(event) => startColumnResize(columnId, event)}
       onMouseDown={(event) => startColumnResize(columnId, event)}
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
       }}
-    />
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="gantt-tl-column-resize-icon lucide lucide-unfold-horizontal-icon lucide-unfold-horizontal"
+        aria-hidden="true"
+      >
+        <path d="M16 12h6" />
+        <path d="M8 12H2" />
+        <path d="M12 2v2" />
+        <path d="M12 8v2" />
+        <path d="M12 14v2" />
+        <path d="M12 20v2" />
+        <path d="m19 15 3-3-3-3" />
+        <path d="m5 9-3 3 3 3" />
+      </svg>
+    </button>
   ), [startColumnResize]);
 
   return (
@@ -1579,7 +1708,13 @@ export const TaskList: React.FC<TaskListProps> = ({
     >
       <div className="gantt-tl-table">
         {/* Header row includes the bottom grid border owned by the calendar header wrapper. */}
-        <div className="gantt-tl-header" style={{ height: `${tableHeaderHeight}px` }}>
+        <div
+          ref={columnResizeHeaderRef}
+          className="gantt-tl-header"
+          data-column-resize-mode={isColumnResizeMode ? 'true' : 'false'}
+          style={{ height: `${tableHeaderHeight}px` }}
+          onClick={() => setIsColumnResizeMode(true)}
+        >
           {resolvedColumns.map(col => {
             if (col.id === 'selection') {
               return (
