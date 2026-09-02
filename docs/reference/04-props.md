@@ -35,6 +35,8 @@ interface GanttModeProps<TTask extends Task = Task> {
   onCascade?: (tasks: Task[]) => void;
   showTaskList?: boolean;
   showChart?: boolean;
+  showTaskDateLabels?: boolean;
+  showTaskNames?: boolean;
   showBaseline?: boolean;
   taskListWidth?: number;
   disableTaskNameEditing?: boolean;
@@ -89,6 +91,8 @@ interface TableMatrixModeProps<TTask extends Task = Task> {
   onCascade?: (tasks: Task[]) => void;
   showTaskList?: boolean;
   showChart?: boolean;
+  showTaskDateLabels?: boolean;
+  showTaskNames?: boolean;
   showBaseline?: boolean;
   taskListWidth?: number;
   disableTaskNameEditing?: boolean;
@@ -199,6 +203,8 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `onCascade` | `(tasks: Task[]) => void` | `undefined` | Called when a cascade drag completes in hard mode (`enableAutoSchedule={true}`). Receives all affected tasks including the dragged task. **When `onCascade` fires, `onTasksChange` does NOT fire for that drag.** Use `onCascade` to update state in hard mode. |
 | `showTaskList` | `boolean` | `false` | When `true`, displays the TaskList panel on the left side of the chart. Built-in columns are resolved through the same pipeline as `additionalColumns`. The task list supports inline editing, hierarchy actions, and synchronized scrolling. |
 | `showChart` | `boolean` | `true` | When `false`, hides the calendar chart area (timeline grid, task bars, dependencies). Useful for displaying only the task list. Combine with `showTaskList={false}` to show only the calendar. |
+| `showTaskDateLabels` | `boolean` | `true` | When `false`, omits the date range label rendered to the left of each task bar. |
+| `showTaskNames` | `boolean` | `true` | When `false`, omits the external task name rendered to the right of each task bar. Duration and progress labels remain independent. |
 | `timelineMarkers` | `TimelineMarker[]` | `undefined` | Vertical markers rendered on the calendar grid for deadlines, checkpoints, or release dates. Each marker accepts `date`, optional `color`, and optional `name`. The line is aligned to the start of the day, renders a small flag at the top, and uses the library tooltip style instead of the browser default. In `viewMode="day"` the matching day cell in the header is highlighted with the same color and tooltip. Multiple markers are supported. |
 | `showBaseline` | `boolean` | `false` | When `true`, renders a thin baseline line below task bars for tasks that provide both `baselineStartDate` and `baselineEndDate`. Baseline is visual-only and does not participate in drag, resize, dependencies, or auto-scheduling. |
 | `taskListWidth` | `number` | `660` | Requested width of the task list panel in pixels. Only effective when `showTaskList={true}`. Actual width grows automatically when resolved built-in + custom columns require more space. |

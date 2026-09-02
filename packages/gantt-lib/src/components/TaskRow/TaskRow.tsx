@@ -12,6 +12,15 @@ import type { GanttScheduleIntent } from '../../types';
 import type { TaskPreviewPositionStore } from '../GanttChart/previewStore';
 import './TaskRow.css';
 
+// START_MODULE_CONTRACT
+// PURPOSE: Render one Gantt task row, including its bar, scheduling affordances, and optional external labels.
+// SCOPE: Calculate task geometry, render duration/progress/name/date labels, and preserve drag/dependency interactions.
+// DEPENDS: core scheduling, geometry, useTaskDrag, GanttChart presentation props.
+// LINKS: M-SCHEDULE, GanttChart, type-TaskRowProps, fn-formatDateRangeLabel
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+
 export interface TaskRowProps {
   /** Task data to render */
   task: Task;
@@ -81,6 +90,10 @@ export interface TaskRowProps {
   isDependencyDragActive?: boolean;
   /** Active chart view mode */
   viewMode?: 'day' | 'week' | 'month';
+  /** Render the date range label to the left of the task bar (default: true). */
+  showTaskDateLabels?: boolean;
+  /** Render the task name to the right of the task bar (default: true). */
+  showTaskNames?: boolean;
 }
 
 /**
@@ -136,7 +149,9 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.disableTaskDrag === nextProps.disableTaskDrag &&
     prevProps.disableDependencyEditing === nextProps.disableDependencyEditing &&
     prevProps.isDependencyDragActive === nextProps.isDependencyDragActive &&
-    prevProps.viewMode === nextProps.viewMode
+    prevProps.viewMode === nextProps.viewMode &&
+    prevProps.showTaskDateLabels === nextProps.showTaskDateLabels &&
+    prevProps.showTaskNames === nextProps.showTaskNames
     // onTasksChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
@@ -148,7 +163,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day' }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true }) => {
     const defaultParentBarColor = '#782FC4';
     // Extract divider from task prop
     const { divider: taskDivider } = task;
@@ -495,16 +510,18 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               />
             </>
           )}
-          <div
-            className={`gantt-tr-leftLabels ${task.locked ? 'gantt-tr-leftLabels-locked' : ''}`}
-            style={{
-              left: `${visualLeft}px`
-            }}
-          >
-            <span className="gantt-tr-dateLabel gantt-tr-dateLabelLeft">
-              {dateRangeLabel}
-            </span>
-          </div>
+          {showTaskDateLabels && (
+            <div
+              className={`gantt-tr-leftLabels ${task.locked ? 'gantt-tr-leftLabels-locked' : ''}`}
+              style={{
+                left: `${visualLeft}px`
+              }}
+            >
+              <span className="gantt-tr-dateLabel gantt-tr-dateLabelLeft">
+                {dateRangeLabel}
+              </span>
+            </div>
+          )}
           {task.locked && (
             <svg
               className="gantt-tr-lockIcon"
@@ -543,12 +560,14 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 {progressWidth}%
               </span>
             )}
-            <span
-              className="gantt-tr-externalTaskName"
-              style={{ color: externalTaskNameColor }}
-            >
-              {task.name}
-            </span>
+            {showTaskNames && (
+              <span
+                className="gantt-tr-externalTaskName"
+                style={{ color: externalTaskNameColor }}
+              >
+                {task.name}
+              </span>
+            )}
           </div>
         </div>
         {taskDivider === 'bottom' && <div className="gantt-tr-divider gantt-tr-divider-bottom" />}

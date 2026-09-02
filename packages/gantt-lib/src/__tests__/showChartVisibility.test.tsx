@@ -56,6 +56,27 @@ describe('GanttChart showChart', () => {
     expect(getComputedStyle(chartSurface as HTMLDivElement).display).toBe('none');
   });
 
+  it('conditionally renders external task date and name labels', () => {
+    const { container } = render(
+      <GanttChart
+        tasks={tasks}
+        showTaskDateLabels={false}
+        showTaskNames={false}
+      />
+    );
+
+    expect(container.querySelector('.gantt-tr-dateLabelLeft')).toBeNull();
+    expect(container.querySelector('.gantt-tr-externalTaskName')).toBeNull();
+    expect(container.querySelector('.gantt-tr-taskDuration')?.textContent).toBe('2 д');
+  });
+
+  it('keeps external task labels enabled by default', () => {
+    const { container } = render(<GanttChart tasks={tasks} />);
+
+    expect(container.querySelector('.gantt-tr-dateLabelLeft')?.textContent).toBe('1–3 фев');
+    expect(container.querySelector('.gantt-tr-externalTaskName')?.textContent).toBe('Task 1');
+  });
+
   it('hydrates vh-height virtualized task lists without row-count mismatch', async () => {
     const manyTasks: Task[] = Array.from({ length: 60 }, (_, index) => ({
       id: `task-${index + 1}`,

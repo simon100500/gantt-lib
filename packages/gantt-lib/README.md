@@ -159,6 +159,8 @@ Main component that renders the interactive Gantt chart.
 | `containerHeight` | `number \| string` | `undefined` | Container height in px, `%`, `vh`, or auto. |
 | `showTaskList` | `boolean` | `false` | Shows the left-side task list. |
 | `showChart` | `boolean` | `true` | Hides the chart area when set to `false`. |
+| `showTaskDateLabels` | `boolean` | `true` | Shows the task date range to the left of each task bar. |
+| `showTaskNames` | `boolean` | `true` | Shows the task name to the right of each task bar. |
 | `showBaseline` | `boolean` | `false` | Renders baselines for tasks with `baselineStartDate` and `baselineEndDate`. |
 | `taskListWidth` | `number` | `660` | Requested width of the task list panel. |
 | `taskListColumnWidths` | `TaskListColumnWidthMap` | `undefined` | Width overrides for built-in and custom TaskList columns. |

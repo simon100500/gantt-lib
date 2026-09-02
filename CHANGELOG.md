@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.134.0] - 2026-09-03
+
+### Features
+
+- Add `showTaskDateLabels` and `showTaskNames` props to independently control external date and task-name labels around Gantt bars.
+
 ## [0.133.1] - 2026-08-29
 
 ### Fixes

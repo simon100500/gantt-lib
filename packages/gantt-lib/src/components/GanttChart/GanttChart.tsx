@@ -57,9 +57,11 @@ import { createTaskPreviewPositionStore, type TaskPreviewPositionStore } from '.
 import './GanttChart.css';
 
 // START_MODULE_CONTRACT
-// PURPOSE: Adapt completed Gantt UI scheduling actions to persistence callbacks.
-// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data.
+// PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
+// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; control optional task date/name labels.
 // DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
+// INPUTS: GanttChartProps including showTaskDateLabels and showTaskNames presentation flags.
+// OUTPUTS: Interactive task list/chart with configurable external task labels.
 // INVARIANT: onScheduleIntent suppresses scheduling persistence through onTasksChange/onCascade.
 // END_MODULE_CONTRACT
 
@@ -442,6 +444,10 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   skeletonStartOffsetDays?: number;
   /** Add a stable per-row backward jitter to skeleton chart bars, in days. */
   skeletonStartJitterDays?: number;
+  /** Render date ranges to the left of task bars in Gantt mode (default: true). */
+  showTaskDateLabels?: boolean;
+  /** Render task names to the right of task bars in Gantt mode (default: true). */
+  showTaskNames?: boolean;
   /** Optional vertical timeline markers such as deadlines and checkpoints. */
   timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
@@ -669,6 +675,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     skeletonRowCount = 0,
     skeletonStartOffsetDays = 0,
     skeletonStartJitterDays = 0,
+    showTaskDateLabels = true,
+    showTaskNames = true,
     timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
@@ -2524,6 +2532,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         onDependencyPortPointerDown={handleDependencyPortPointerDown}
                         isDependencyDragActive={dependencyCreationDrag !== null}
                         viewMode={viewMode}
+                        showTaskDateLabels={showTaskDateLabels}
+                        showTaskNames={showTaskNames}
                       />
                     </div>
                   ))}
