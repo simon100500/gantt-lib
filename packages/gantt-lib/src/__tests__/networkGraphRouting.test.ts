@@ -4,14 +4,14 @@ import { BALL_OFFSET_Y, BALL_RADIUS, NODE_HEIGHT, NODE_WIDTH, wrapLabel } from '
 import type { NetworkGraphNodeBox } from '../components/NetworkGraph/types';
 
 // 3 columns x 2 rows, same geometry as the production layout produces
-// (column pitch = NODE_WIDTH + 230, row pitch = NODE_HEIGHT + 84)
+// (column pitch = NODE_WIDTH + 300, row pitch = NODE_HEIGHT + 40)
 function makeBoxes(): NetworkGraphNodeBox[] {
   const ids = ['a1', 'b1', 'c1', 'a2', 'b2', 'c2'];
   return ids.map((id, i) => {
     const col = i % 3;
     const row = Math.floor(i / 3);
-    const x = col * (NODE_WIDTH + 230);
-    const y = row * (NODE_HEIGHT + 84);
+    const x = col * (NODE_WIDTH + 300);
+    const y = row * (NODE_HEIGHT + 40);
     return {
       id,
       label: id,
@@ -26,6 +26,24 @@ function makeBoxes(): NetworkGraphNodeBox[] {
 }
 
 const geometry = buildRoutingGeometry(makeBoxes());
+
+interface Pt {
+  x: number;
+  y: number;
+}
+
+function orientation(p: Pt, q: Pt, r: Pt): number {
+  const v = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+  return Math.abs(v) < 1e-9 ? 0 : v > 0 ? 1 : 2;
+}
+
+function segmentsIntersect(p1: Pt, p2: Pt, q1: Pt, q2: Pt): boolean {
+  const o1 = orientation(p1, p2, q1);
+  const o2 = orientation(p1, p2, q2);
+  const o3 = orientation(q1, q2, p1);
+  const o4 = orientation(q1, q2, p2);
+  return o1 !== o2 && o3 !== o4;
+}
 
 describe('buildRoutingGeometry', () => {
   it('clusters boxes into columns left-to-right', () => {
@@ -135,6 +153,30 @@ describe('routeEdges', () => {
         }
       }
     }
+  });
+
+  it('long sibling edge sweeps past the sibling landing row without crossing it', () => {
+    // a1 -> b1 descends directly; a1 -> c2 must sweep BELOW row B (nested fan)
+    const pair = routeEdges(geometry, [
+      { id: 'direct', source: 'a1', target: 'b1' },
+      { id: 'sweep', source: 'a1', target: 'c2' },
+    ]);
+    const direct = pair.find(r => r.id === 'direct')!;
+    const sweep = pair.find(r => r.id === 'sweep')!;
+
+    const longRunY = sweep.points[2].y; // lane after the first diagonal
+    expect(longRunY).toBeGreaterThan(geometry.boxById.get('b1')!.ball.cy);
+
+    // no segment intersections between the two sibling paths
+    const crosses = (a: Pt[], b: Pt[]) => {
+      for (let i = 1; i < a.length; i++) {
+        for (let j = 1; j < b.length; j++) {
+          if (segmentsIntersect(a[i - 1], a[i], b[j - 1], b[j])) return true;
+        }
+      }
+      return false;
+    };
+    expect(crosses(direct.points, sweep.points), 'sibling edges must not cross').toBe(false);
   });
 
   it('serializes to an SVG path', () => {

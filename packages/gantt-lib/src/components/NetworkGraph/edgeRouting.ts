@@ -211,10 +211,68 @@ function corridorLaneFor(geom: RoutingGeometry, colIdx: number, from: number, to
   return lane;
 }
 
+function intersectIntervals(A: Array<[number, number]>, B: Array<[number, number]>): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  for (const [a0, a1] of A) {
+    for (const [b0, b1] of B) {
+      const lo = Math.max(a0, b0);
+      const hi = Math.min(a1, b1);
+      if (hi >= lo - EPS) out.push([lo, hi]);
+    }
+  }
+  return out;
+}
+
+function laneInIntervalsList(intervals: Array<[number, number]>, lane: number): boolean {
+  return intervals.some(([a, b]) => lane >= a - EPS && lane <= b + EPS);
+}
+
 /**
- * Route all edges. Returns paths in the same order as the input edges.
- * Edges that point backwards in the layered layout (cycle leftovers) get a
- * chamfered orthogonal fallback around the sides.
+ * The sweep lane of a multi-column edge: a safe lane on the FAR side of the
+ * target row (beyond the target box). Sweeping past the target row keeps the
+ * edge outside every sibling's descent — the nested-fan look of reference
+ * network diagrams ("уйти вниз/вверх"). Returns null when no such lane exists
+ * or it is out of reach of the first/last window.
+ */
+function sweepLane(
+  geom: RoutingGeometry,
+  si: number,
+  ti: number,
+  startY: number,
+  endY: number,
+  target: NetworkGraphNodeBox
+): number | null {
+  const dir = Math.sign(endY - startY) || 1;
+  let feasible: Array<[number, number]> = [[-Infinity, Infinity]];
+  for (let c = si + 1; c < ti; c++) {
+    feasible = intersectIntervals(feasible, safeIntervals(geom, c));
+    if (!feasible.length) return null;
+  }
+  const farY =
+    dir > 0
+      ? target.y + target.height + CORRIDOR_CLEAR + LANE_GRID
+      : target.y - CORRIDOR_CLEAR - LANE_GRID;
+  const firstWin = geom.windows[si]?.width ?? 0;
+  const lastWin = geom.windows[ti - 1]?.width ?? 0;
+  for (let step = 0; step < 14; step++) {
+    const offsets = step === 0 ? [0] : [step * LANE_GRID, -step * LANE_GRID];
+    for (const off of offsets) {
+      const lane = snapLane(farY + off);
+      if (!laneInIntervalsList(feasible, lane)) continue;
+      if (Math.abs(lane - startY) <= firstWin && Math.abs(endY - lane) <= lastWin) {
+        return lane;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Route all edges in two passes:
+ *  1. plan each edge's waypoint lane (sweep lane for multi-column edges,
+ *     target lane otherwise);
+ *  2. assign fan slots by waypoint depth — siblings leave the node nested
+ *     (deepest sweep leaves lowest) — then build the polylines.
  */
 export function routeEdges(
   geom: RoutingGeometry,
@@ -222,21 +280,38 @@ export function routeEdges(
 ): RoutedEdge[] {
   const valid = edges.filter(e => geom.boxById.has(e.source) && geom.boxById.has(e.target));
 
-  // Fan-out/fan-in slots: edges of a node sorted by the other endpoint's position,
-  // so the angular spread follows the natural direction of each edge and
-  // parallel edges never merge into one line.
+  // Pass 1: waypoint lane per edge
+  const waypoint = new Map<string, number>();
+  const sweep = new Map<string, number>();
+  for (const e of valid) {
+    const s = geom.boxById.get(e.source)!;
+    const t = geom.boxById.get(e.target)!;
+    const si = geom.colIndexOf.get(e.source) ?? 0;
+    const ti = geom.colIndexOf.get(e.target) ?? 0;
+    if (ti - si >= 2) {
+      const lane = sweepLane(geom, si, ti, s.ball.cy, t.ball.cy, t);
+      if (lane !== null) sweep.set(e.id, lane);
+    }
+    waypoint.set(e.id, sweep.get(e.id) ?? t.ball.cy);
+  }
+
+  // Pass 2: fan slots ordered by waypoint depth
   const outOrder = new Map<string, number>();
   const inOrder = new Map<string, number>();
   {
     const sortedOut = [...valid].sort((a, b) => {
-      const ta = geom.boxById.get(a.target)!;
-      const tb = geom.boxById.get(b.target)!;
-      return ta.ball.cy - tb.ball.cy || ta.ball.cx - tb.ball.cx;
-    });
-    const sortedIn = [...valid].sort((a, b) => {
+      const wa = waypoint.get(a.id) ?? 0;
+      const wb = waypoint.get(b.id) ?? 0;
       const sa = geom.boxById.get(a.source)!;
       const sb = geom.boxById.get(b.source)!;
-      return sa.ball.cy - sb.ball.cy || sa.ball.cx - sb.ball.cx;
+      return sa.ball.cx - sb.ball.cx || wa - wb;
+    });
+    const sortedIn = [...valid].sort((a, b) => {
+      const wa = waypoint.get(a.id) ?? 0;
+      const wb = waypoint.get(b.id) ?? 0;
+      const ta = geom.boxById.get(a.target)!;
+      const tb = geom.boxById.get(b.target)!;
+      return ta.ball.cx - tb.ball.cx || wa - wb;
     });
     const outCount = new Map<string, number>();
     const inCount = new Map<string, number>();
@@ -288,16 +363,60 @@ export function routeEdges(
       return { ...e, points: [start, end], fallback: false };
     }
 
+    // Sweep: multi-column edges take the far-side corridor lane (planned in pass 1)
+    const lane = sweep.get(e.id);
+    if (lane !== null && lane !== undefined) {
+      const firstWin = geom.windows[si]?.width ?? 0;
+      const lastWin = geom.windows[ti - 1]?.width ?? 0;
+      if (Math.abs(lane - start.y) <= firstWin && Math.abs(end.y - lane) <= lastWin) {
+        return { ...e, points: sweepRoute(geom, si, ti, start, end, lane), fallback: false };
+      }
+    }
+
     return { ...e, points: forwardRoute(geom, si, ti, start, end), fallback: false };
   });
 }
 
 /**
- * Forward routing. The edge bends only where it must:
- *  - one bend into a safe corridor lane right after the source,
- *  - one bend out of it right before the target,
- *  - intermediate bends only when a multi-row edge staircases through corridors
- *    (each bend ≥ MIN_BEND, lanes on the global grid — no kinks).
+ * Sweep route: stub → diagonal to the far-side corridor lane (first window) →
+ * one long run → diagonal into the target (last window). Exactly two bends.
+ */
+function sweepRoute(
+  geom: RoutingGeometry,
+  colFrom: number,
+  colTo: number,
+  start: Pt,
+  end: Pt,
+  lane: number
+): Pt[] {
+  const pts: Pt[] = [{ ...start }];
+
+  const d1 = Math.abs(lane - start.y);
+  const diagStartX = Math.max(start.x + STUB_OUT, geom.windows[colFrom]?.x1 ?? 0);
+  pts.push({ x: diagStartX, y: start.y });
+  pts.push({ x: diagStartX + d1, y: lane });
+
+  // Final diagonal into the target's arc lane; clamp so it never overshoots the ball
+  let d2 = Math.abs(end.y - lane);
+  const maxD2 = end.x - STUB_IN - (diagStartX + d1);
+  d2 = Math.max(Math.min(d2, maxD2), 0);
+  if (d2 > EPS) {
+    const riseStartX = end.x - STUB_IN - d2;
+    pts.push({ x: riseStartX, y: lane });
+    pts.push({ x: riseStartX + d2, y: end.y });
+  } else {
+    pts.push({ ...end });
+    return pts;
+  }
+
+  pts.push({ ...end });
+  return pts;
+}
+
+/**
+ * Forward routing staircase for multi-row edges without a reachable sweep lane.
+ * The edge bends only where it must — each bend lands on a grid-aligned safe
+ * corridor lane and is at least MIN_BEND tall (no kinks).
  */
 function forwardRoute(geom: RoutingGeometry, colFrom: number, colTo: number, start: Pt, end: Pt): Pt[] {
   const pts: Pt[] = [{ ...start }];
