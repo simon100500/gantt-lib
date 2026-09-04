@@ -742,8 +742,9 @@ function pickBestRoute(
     }
   }
 
-  // Staircase fallback for multi-column edges
-  if (ti - si >= 2) candidates.push({ points: forwardRoute(geom, si, ti, start, end), penalty: 0 });
+  // Staircase fallback for multi-column edges — только если коридорных
+  // кандидатов нет: штраф делает его последним средством
+  if (ti - si >= 2) candidates.push({ points: forwardRoute(geom, si, ti, start, end), penalty: 2000 });
 
   const foreign = geom.boxes.filter(b => b.id !== e.source && b.id !== e.target);
 

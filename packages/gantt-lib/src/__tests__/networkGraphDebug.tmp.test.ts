@@ -1,20 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import { computeNetworkLayout } from '../components/NetworkGraph/layout';
+import { buildRoutingGeometry, routeEdges } from '../components/NetworkGraph/edgeRouting';
+import type { NetworkGraphEdge, NetworkGraphNode } from '../components/NetworkGraph/types';
 
-const NODES = ['z1', 'z2', 'f1', 'f2', 'm1', 'm2', 'el1', 'el2', 'os', 'ot1', 'ot2', 'blg', 'nal'].map(id => ({ id, label: id }));
-const EDGES = [
-  ['z1', 'z2'], ['z1', 'f1'], ['z2', 'f2'], ['z1', 'blg'], ['f1', 'm1'], ['f1', 'os'],
-  ['f2', 'm2'], ['m1', 'el1'], ['m2', 'el2'], ['os', 'ot1'], ['el1', 'ot1'], ['el2', 'ot2'],
-  ['ot1', 'ot2'], ['ot1', 'blg'], ['blg', 'nal'], ['ot2', 'nal'],
-].map(([source, target]) => ({ source, target }));
+const NODES: NetworkGraphNode[] = [
+  { id: 'z1', label: 'a' }, { id: 'z2', label: 'a' }, { id: 'f1', label: 'a' }, { id: 'f2', label: 'a' },
+  { id: 'm1', label: 'a' }, { id: 'm2', label: 'a' }, { id: 'el1', label: 'a' }, { id: 'el2', label: 'a' },
+  { id: 'os', label: 'a' }, { id: 'ot1', label: 'a' }, { id: 'ot2', label: 'a' }, { id: 'blg', label: 'a' },
+  { id: 'nal', label: 'a' },
+];
+const EDGES: NetworkGraphEdge[] = [
+  { source: 'z1', target: 'z2' }, { source: 'z1', target: 'f1' }, { source: 'z2', target: 'f2' },
+  { source: 'z1', target: 'blg' }, { source: 'f1', target: 'm1' }, { source: 'f1', target: 'os' },
+  { source: 'f2', target: 'm2' }, { source: 'm1', target: 'el1' }, { source: 'm2', target: 'el2' },
+  { source: 'os', target: 'ot1' }, { source: 'el1', target: 'ot1' }, { source: 'el2', target: 'ot2' },
+  { source: 'ot1', target: 'ot2' }, { source: 'ot1', target: 'blg' }, { source: 'blg', target: 'nal' },
+  { source: 'ot2', target: 'nal' },
+];
 
 describe('debug', () => {
-  it('column gaps', async () => {
+  it('f1->os route', async () => {
     const layout = await computeNetworkLayout(NODES, EDGES);
-    const cols = [...new Set(layout.nodes.map(n => Math.round(n.x)))].sort((a, b) => a - b);
-    console.log('col x:', cols.join(' -> '));
-    console.log('col gaps:', cols.slice(1).map((x, i) => x - cols[i]).join(' -> '));
-    console.log('total width:', Math.round(layout.width));
+    console.log(layout.nodes.map(n => `${n.id}: x=${Math.round(n.x)} y=${Math.round(n.y)}`).join('\n'));
+    const routed = routeEdges(buildRoutingGeometry(layout.nodes), EDGES.map((e, i) => ({ id: `e${i}`, ...e })));
+    const f1os = routed.find(r => r.source === 'f1' && r.target === 'os');
+    console.log('f1->os bends:', f1os!.points.length - 1, JSON.stringify(f1os!.points.map(p => [Math.round(p.x), Math.round(p.y)])));
     expect(true).toBe(true);
   });
 });
