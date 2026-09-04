@@ -41,6 +41,7 @@ export { TaskList, type TaskListProps } from './components/TaskList';
 export { ResourceTimelineChart } from './components/ResourceTimelineChart';
 export { TableMatrix } from './components/TableMatrix';
 export { PlanFactMatrix } from './components/PlanFactMatrix';
+export { NetworkGraph, type NetworkGraphProps, type NetworkGraphNode, type NetworkGraphEdge } from './components/NetworkGraph';
 
 // UI Components
 export { Input, type InputProps } from './components/ui/Input';

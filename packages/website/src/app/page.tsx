@@ -21,6 +21,9 @@ export default function Home() {
             <Link className="demo-link-btn" href="/perf-1000">
               1000-row stress test
             </Link>
+            <Link className="demo-link-btn demo-link-btn-secondary" href="/network-graph">
+              Сетевой график (прототип)
+            </Link>
             <Link className="demo-link-btn demo-link-btn-secondary" href="/finance-1000">
               Finance 1000 rows
             </Link>

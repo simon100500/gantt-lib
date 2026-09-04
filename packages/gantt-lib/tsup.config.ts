@@ -8,7 +8,7 @@ export default defineConfig({
   splitting: false,
   clean: true,
   sourcemap: true,
-  external: ['react', 'react-dom', 'date-fns'],
+  external: ['react', 'react-dom', 'date-fns', 'elkjs'],
   esbuildPlugins: [
     preserveDirectivesPlugin({
       directives: ['use client', 'use strict'],

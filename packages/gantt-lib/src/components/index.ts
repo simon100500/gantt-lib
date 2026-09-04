@@ -5,4 +5,5 @@ export { default as GridBackground } from './GridBackground';
 export { default as TodayIndicator } from './TodayIndicator';
 export { TableMatrix } from './TableMatrix';
 export { DependencyLines } from './DependencyLines';
+export { NetworkGraph, type NetworkGraphProps, type NetworkGraphNode, type NetworkGraphEdge } from './NetworkGraph';
 export { DragGuideLines } from './DragGuideLines/DragGuideLines';
