@@ -310,8 +310,9 @@ export function requiredWindows(
   edges: { source: string; target: string }[]
 ): number[] {
   const geom = buildRoutingGeometry(boxes);
-  // базовый зазор: места хватает диагоналям соседних колонок и разведению шариков
-  const baseGap = 90;
+  // базовый зазор — только под стрелку и разведение шариков; основной размер
+  // каждого окна определяется перепадом связей, идущих через него
+  const baseGap = 34;
   const gaps = new Array(Math.max(geom.columns.length - 1, 0)).fill(baseGap);
   const setGap = (col: number, win: number) => {
     if (col >= 0 && col < gaps.length) gaps[col] = Math.max(gaps[col], win);
@@ -327,19 +328,20 @@ export function requiredWindows(
     if (si < 0 || ti < 0 || ti <= si) continue;
 
     if (ti === si + 1) {
-      // соседние колонки: связь идёт чистой диагональю через любой зазор —
-      // специальной ширины не требуется
+      // соседние колонки: со «смягчённым» правилом 45° крутые связи идут
+      // прямой диагональю (влезает в любой зазор), доп. ширина не нужна
       continue;
     }
     // много-колоночная связь: свип на дальнюю полосу — первый и последний
-    // спуски определяют окна у источника и цели
+    // спуски определяют окна у источника и цели. Лимит сверху не даёт раздувать
+    // колонки (длинные горизонтали обычно не нужны — хватает лестницы).
     const lane = sweepLane(geom, si, ti, s.ball.cy, t.ball.cy, t, undefined, Infinity, Infinity);
     if (lane !== null) {
-      setGap(si, Math.abs(lane - s.ball.cy) - 3);
-      setGap(ti - 1, Math.abs(t.ball.cy - lane) - 47);
+      setGap(si, Math.min(MAX_SWEEP_GAP, Math.abs(lane - s.ball.cy) - 3));
+      setGap(ti - 1, Math.min(MAX_SWEEP_GAP, Math.abs(t.ball.cy - lane) - 47));
     } else {
       // лестница: каждому окну хватит перепада «ряд + коридор»
-      for (let j = si; j < ti; j++) setGap(j, MIN_STAIR_WINDOW);
+      for (let j = si; j < ti; j++) setGap(j, Math.min(MAX_SWEEP_GAP, MIN_STAIR_WINDOW));
     }
   }
   return gaps.map(g => Math.round(g));
@@ -350,6 +352,10 @@ export function requiredWindows(
  * "dip past the target row" excursions, then bend count, then raw length.
  */
 const MIN_STAIR_WINDOW = 140; // окно лестницы: ряд + коридор + запас
+/** Потолок разлёта много-колоночного свипа — чтобы далёкие по вертикали связи
+ *  не разносили колонки на тысячи пикселей (мягкое правило 45° вместо глубоких
+ *  свипов). */
+const MAX_SWEEP_GAP = 400;
 const CROSSING_COST = 10000;
 /** Наложение линий (две связи на одной полосе с перекрытием по x) — как в git graph,
  *  у каждой линии своя полоса: наложение стоит как пересечение */
@@ -737,6 +743,14 @@ function pickBestRoute(
   // всем прямым связям — и к соседним колонкам, и к много-колоночным, где
   // диагональ + горизонталь оказывается короче и с меньшим числом изломов.
   addStraight45Candidates(start, end, candidates);
+
+  // Смягчённое правило 45°: для соседних колонок, когда перепад достаточно крутой
+  // (угол ≥45°), соединяем шарики напрямую одной диагональю. Это позволяет держать
+  // зазоры малыми и не тянет за собой длинные горизонтальные участки. Пологие
+  // связи по-прежнему разбирает addStraight45Candidates (горизонталь / 45°).
+  if (ti === si + 1 && Math.abs(dy) >= end.x - start.x - EPS) {
+    candidates.push({ points: [start, end], penalty: 0 });
+  }
 
   // Corridor lane candidates. Multi-column edges require the lane to be safe in
   // every crossed column; adjacent edges require both diagonals to fit into the
