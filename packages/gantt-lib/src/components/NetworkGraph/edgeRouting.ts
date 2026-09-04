@@ -630,6 +630,42 @@ function corridorRoute(start: Pt, end: Pt, lane: number): Pt[] {
   return pts;
 }
 
+/**
+ * 45°-only minimal-bend candidates for a direct start→end connection.
+ *
+ * Заменяет произвольные наклонные прямые (которые выглядят как «косые» линии,
+ * а не как рёбра сетевого графика) на эталонную геометрию «горизонталь + 45°»:
+ *  - диагональ 45° к ряду цели, затем горизонтальный прогон (1 излом);
+ *  - горизонтальный прогон, затем диагональ 45° в цель (1 излом);
+ *  - если вертикальный перепад в точности равен горизонтальному пробегу —
+ *    чистая диагональ 45° (0 изломов).
+ * Оба направления добавляются, чтобы скор мог выбрать сторону, где диагональ
+ * свободна от боксов.
+ */
+function addStraight45Candidates(start: Pt, end: Pt, candidates: CandidateRoute[]) {
+  const dy = end.y - start.y;
+  const ady = Math.abs(dy);
+  if (ady < EPS) return; // чистая горизонталь — её покрывает straight-кандидат
+  // A: диагональ 45° вперёд к ряду цели, затем горизонтальный прогон в цель.
+  const ax = start.x + ady;
+  if (ax > start.x + EPS && ax <= end.x + EPS) {
+    if (ax >= end.x - EPS) {
+      candidates.push({ points: [start, end], penalty: 0 }); // ровно 45°: без излома
+    } else {
+      candidates.push({ points: [start, { x: ax, y: end.y }, end], penalty: 0 });
+    }
+  }
+  // B: горизонтальный прогон от источника, затем диагональ 45° в цель.
+  const bx = end.x - ady;
+  if (bx >= start.x - EPS && bx < end.x - EPS) {
+    if (bx <= start.x + EPS) {
+      candidates.push({ points: [start, end], penalty: 0 }); // ровно 45°: без излома
+    } else {
+      candidates.push({ points: [start, { x: bx, y: start.y }, end], penalty: 0 });
+    }
+  }
+}
+
 /** Компоненты отрезка строго внутри раздутого прямоугольника? */
 function pointInRect(p: Pt, r: { x: number; y: number; w: number; h: number }): boolean {
   return p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h;
@@ -697,11 +733,10 @@ function pickBestRoute(
     candidates.push({ points: [start, snappedEnd], penalty: 0 });
   }
 
-  // Adjacent columns: чистая диагональ из шарика в шарик — без горизонтальных
-  // участков (как в git graph: переход между соседними рядами одной линией)
-  if (ti === si + 1 && Math.abs(dy) >= EPS) {
-    candidates.push({ points: [start, end], penalty: 0 });
-  }
+  // 45°-only candidates (вместо произвольных наклонных прямых): применяются ко
+  // всем прямым связям — и к соседним колонкам, и к много-колоночным, где
+  // диагональ + горизонталь оказывается короче и с меньшим числом изломов.
+  addStraight45Candidates(start, end, candidates);
 
   // Corridor lane candidates. Multi-column edges require the lane to be safe in
   // every crossed column; adjacent edges require both diagonals to fit into the
