@@ -47,7 +47,7 @@ export interface RoutedEdge {
   fallback: boolean;
 }
 
-interface Pt {
+export interface Pt {
   x: number;
   y: number;
 }
@@ -152,9 +152,12 @@ function isLaneSafeForColumn(geom: RoutingGeometry, colIdx: number, y: number): 
 }
 
 function bandMidpoint(a: number, b: number): number {
-  const flo = Number.isFinite(a) ? a : b - 1e4;
-  const fhi = Number.isFinite(b) ? b : a + 1e4;
-  return Math.min(fhi - 1, Math.max(flo + 1, snapLane((flo + fhi) / 2)));
+  // Бесконечные полосы (выше всех / ниже всех) — ближайшая сеточная полоса внутрь,
+  // а не «середина бесконечности»
+  if (!Number.isFinite(a)) return snapLane(b - LANE_GRID);
+  if (!Number.isFinite(b)) return snapLane(a + LANE_GRID);
+  const mid = snapLane((a + b) / 2);
+  return Math.min(b - 1, Math.max(a + 1, mid));
 }
 
 /**
@@ -291,6 +294,26 @@ function countDiagonals(pts: Pt[]): number {
   return count;
 }
 
+/**
+ * Итоговое качество набора маршрутов: число пересечений, число диагоналей
+ * (переломов) и суммарная длина. Используется поиском расстановки вершин.
+ */
+export function routeQuality(pointsList: Pt[][]): { crossings: number; bends: number; length: number } {
+  let crossings = 0;
+  for (let i = 0; i < pointsList.length; i++) {
+    for (let j = i + 1; j < pointsList.length; j++) {
+      crossings += countCrossings(pointsList[i], [pointsList[j]]);
+    }
+  }
+  let bends = 0;
+  let length = 0;
+  for (const pts of pointsList) {
+    bends += countDiagonals(pts);
+    length += polylineLength(pts);
+  }
+  return { crossings, bends, length };
+}
+
 function polylineLength(pts: Pt[]): number {
   let len = 0;
   for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
@@ -302,7 +325,9 @@ function segmentsCross(p1: Pt, p2: Pt, q1: Pt, q2: Pt): boolean {
   const o2 = Math.sign((p2.y - p1.y) * (q2.x - p2.x) - (p2.x - p1.x) * (q2.y - p2.y));
   const o3 = Math.sign((q2.y - q1.y) * (p1.x - q2.x) - (q2.x - q1.x) * (p1.y - q2.y));
   const o4 = Math.sign((q2.y - q1.y) * (p2.x - q2.x) - (q2.x - q1.x) * (p2.y - q2.y));
-  return o1 !== o2 && o3 !== o4 && o1 !== 0 && o3 !== 0;
+  // Строгое пересечение: касания концами и коллинеарные наложения (шина из
+  // нескольких связей на одной полосе) пересечением не считаются
+  return o1 !== 0 && o2 !== 0 && o3 !== 0 && o4 !== 0 && o1 !== o2 && o3 !== o4;
 }
 
 function countCrossings(points: Pt[], context: Pt[][]): number {
