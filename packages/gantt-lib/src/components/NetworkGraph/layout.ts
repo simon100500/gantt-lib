@@ -5,7 +5,7 @@ import type {
   NetworkGraphNode,
   NetworkGraphNodeBox,
 } from './types';
-import { buildRoutingGeometry, polylineToPath, routeEdges } from './edgeRouting';
+import { buildRoutingGeometry, polylineToPath, requiredWindows, routeEdges } from './edgeRouting';
 
 /** Габаритный бокс вершины (шарик сверху + подпись снизу) */
 export const NODE_WIDTH = 152;
@@ -19,14 +19,9 @@ export const LABEL_LINE_HEIGHT = 12;
 const LABEL_MAX_LINES = 2;
 const LABEL_MAX_CHARS = 22;
 
-/** Вертикальный шаг рядов (используется и выравниванием рядов) */
-export const SPACING_IN_LAYER = 40;
-/** Минимальная ширина окна под диагонали между колонками */
-const MIN_WINDOW = 70;
-/** Запас окна к перепаду для соседних колонок (стабы заходов) */
-const WINDOW_SLACK = 56;
-/** Шаг диагонали много-колоночной лестницы (ряд + коридор) */
-const STAIR_STEP = NODE_HEIGHT + SPACING_IN_LAYER + 30;
+/** Вертикальный шаг рядов: коридор между рядами 90px вмещает 3 полосы
+ *  на сетке 26px (git-graph: каждая линия — своя полоса, без наложений) */
+export const SPACING_IN_LAYER = 90;
 
 const LAYOUT_OPTIONS = {
   'elk.algorithm': 'layered',
@@ -36,7 +31,7 @@ const LAYOUT_OPTIONS = {
   'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
   'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '240',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '250',
   'elk.layered.spacing.nodeNode': String(SPACING_IN_LAYER),
   'elk.layered.spacing.edgeNodeBetweenLayers': '16',
 };
@@ -78,14 +73,24 @@ function relocateBox(box: NetworkGraphNodeBox, y: number): NetworkGraphNodeBox {
 }
 
 /**
- * Выравнивание верхнего ряда в одну линию: узлы у верхней кромки схлопываются
- * в общий y. Остальные вершины остаются там, где их поставил ELK — его
- * микросмещения (например, цель длинной связи чуть ниже ряда) нужны роутеру
- * для чистых заходов без пересечений.
+ * Выравнивание всех рядов на точную сетку: кластеры верхушек с допуском
+ * схлопываются, каждому ряду — точный y = i * ROW_PITCH. Верхний ряд — ровно
+ * одна линия, ряды параллельны, коридоры между ними постоянной ширины.
  */
-function alignTopRow(boxes: NetworkGraphNodeBox[]): NetworkGraphNodeBox[] {
-  const minY = Math.min(...boxes.map(b => b.y));
-  return boxes.map(b => (b.y - minY <= 40 ? relocateBox(b, minY) : b));
+function alignRows(boxes: NetworkGraphNodeBox[]): NetworkGraphNodeBox[] {
+  const rowPitch = NODE_HEIGHT + SPACING_IN_LAYER;
+  const sorted = [...boxes].sort((a, b) => a.y - b.y);
+  const clusters: { y: number; ids: string[] }[] = [];
+  for (const b of sorted) {
+    const last = clusters[clusters.length - 1];
+    if (last && b.y - last.y <= 45) last.ids.push(b.id);
+    else clusters.push({ y: b.y, ids: [b.id] });
+  }
+  const yById = new Map<string, number>();
+  clusters.forEach((c, i) => {
+    for (const id of c.ids) yById.set(id, i * rowPitch);
+  });
+  return boxes.map(b => relocateBox(b, yById.get(b.id)!));
 }
 
 /**
@@ -105,25 +110,11 @@ function compactColumns(boxes: NetworkGraphNodeBox[], edges: PreparedEdge[]): Ne
       colIndexOf.set(b.id, columns.length - 1);
     }
   }
-  const gaps = new Array(Math.max(columns.length - 1, 0)).fill(MIN_WINDOW);
-  const setGap = (col: number, need: number) => {
-    if (col >= 0 && col < gaps.length) gaps[col] = Math.max(gaps[col], need);
-  };
-  for (const e of edges) {
-    const si = colIndexOf.get(e.source);
-    const ti = colIndexOf.get(e.target);
-    if (si === undefined || ti === undefined || ti <= si) continue;
-    if (ti === si + 1) {
-      const s = boxes.find(b => b.id === e.source)!;
-      const t = boxes.find(b => b.id === e.target)!;
-      setGap(si, Math.abs(t.ball.cy - s.ball.cy) + WINDOW_SLACK);
-    } else {
-      for (let j = si; j < ti; j++) setGap(j, STAIR_STEP);
-    }
-  }
+  // Ширины окон считает роутер (ему видны перепады и свипы)
+  const windows = requiredWindows(boxes, edges);
   // Пересобираем x колонок по фактически нужным промежуткам
   const xs = [0];
-  for (let j = 0; j < gaps.length; j++) xs.push(xs[j] + NODE_WIDTH + gaps[j] + 44);
+  for (let j = 0; j < windows.length; j++) xs.push(xs[j] + NODE_WIDTH + windows[j]);
   return boxes.map(b => {
     const col = colIndexOf.get(b.id) ?? 0;
     const x = xs[col];
@@ -161,7 +152,7 @@ export async function computeNetworkLayout(
 
   const boxes: NetworkGraphNodeBox[] = nodes.map((n, i) => {
     const child = result.children?.find(c => c.id === n.id);
-    const x = child?.x ?? i * (NODE_WIDTH + 240);
+    const x = child?.x ?? i * (NODE_WIDTH + 250);
     const y = child?.y ?? i * NODE_HEIGHT;
     return {
       id: n.id,
@@ -175,8 +166,8 @@ export async function computeNetworkLayout(
     };
   });
 
-  // Выравниваем верхний ряд в одну линию…
-  const aligned = alignTopRow(boxes);
+  // Выравниваем все ряды на точную сетку (верхний ряд — одна линия)…
+  const aligned = alignRows(boxes);
   // …и сжимаем горизонтальные промежутки до реально нужных перепадов
   const compact = compactColumns(aligned, prepared);
 

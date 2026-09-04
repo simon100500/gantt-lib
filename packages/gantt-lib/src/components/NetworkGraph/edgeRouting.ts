@@ -57,8 +57,10 @@ const CORRIDOR_CLEAR = 10; // clearance between runs and node boxes
 const MIN_CORRIDOR = 6; // corridor narrower than this is not usable
 const STUB_OUT = 16; // horizontal stub after leaving the source ball
 const STUB_IN = 14; // horizontal stub before entering the target ball
-const SPREAD_FACTOR = 0.36; // max angular spread on the ball arc (fraction of r)
-const LANE_GRID = 13; // all run lanes snapped to this grid
+
+/** Шаг полос между параллельными линиями — как в git graph: каждой линии своя
+ *  полоса, параллельные линии читаются раздельно, наложений нет */
+const LANE_GRID = 26; // all run lanes snapped to this grid
 const MIN_BEND = 16; // never draw a diagonal shorter than this (anti-kink)
 const EPS = 0.5;
 
@@ -113,11 +115,20 @@ export function buildRoutingGeometry(boxes: NetworkGraphNodeBox[]): RoutingGeome
   return { boxes, boxById, columns, columnBoxes, colIndexOf, windows, corridorLanes };
 }
 
-/** Vertical offset on the ball arc for the given slot (fan-out / fan-in spread) */
+/** Вертикальный разнос между соседними связями в веере (как полосы в git graph) */
+const FAN_STEP = 26;
+/** Запас окна к перепаду (заходы у вершин) */
+const WINDOW_SLACK = 56;
+
+/** Vertical offset on the ball arc for the given slot (fan-out / fan-in spread).
+ *  Слоты разнесены минимум на FAN_STEP, чтобы выходящие связи не сливались. */
 function slotOffset(slot: number, count: number, r: number): number {
   if (count <= 1) return 0;
-  const maxOff = r * SPREAD_FACTOR;
-  return -maxOff + (2 * maxOff * slot) / (count - 1);
+  const half = (count - 1) / 2;
+  const step = Math.min(FAN_STEP, (r * 0.9) / half);
+  const offset = (slot - half) * step;
+  const maxOff = r * 0.95;
+  return Math.min(maxOff, Math.max(-maxOff, offset));
 }
 
 function pointOnRightArc(cx: number, cy: number, r: number, dy: number): Pt {
@@ -140,9 +151,13 @@ function safeIntervals(geom: RoutingGeometry, colIdx: number): Array<[number, nu
   const intervals: Array<[number, number]> = [];
   let prevBottom = -Infinity;
   for (const b of boxes) {
-    intervals.push([prevBottom, b.y - CORRIDOR_CLEAR]);
+    const top = b.y - CORRIDOR_CLEAR;
+    // тесные ряды могут давать вырожденный (перевёрнутый) интервал — не пушим его,
+    // чтобы он не отравлял пересечение интервалов нескольких колонок
+    if (top >= prevBottom) intervals.push([prevBottom, top]);
     prevBottom = b.y + b.height + CORRIDOR_CLEAR;
   }
+  if (-Infinity === prevBottom) prevBottom = 0;
   intervals.push([prevBottom, Infinity]);
   return intervals;
 }
@@ -244,7 +259,9 @@ function sweepLane(
   startY: number,
   endY: number,
   target: NetworkGraphNodeBox,
-  forcedDir?: number
+  forcedDir?: number,
+  reachFirst?: number,
+  reachLast?: number
 ): number | null {
   const dir = forcedDir || Math.sign(endY - startY) || 1;
   let feasible: Array<[number, number]> = [[-Infinity, Infinity]];
@@ -252,12 +269,23 @@ function sweepLane(
     feasible = intersectIntervals(feasible, safeIntervals(geom, c));
     if (!feasible.length) return null;
   }
+  // Дальняя сторона самого глубокого (для спуска) / самого верхнего (для подъёма)
+  // ряда среди колонок, которые связь пересекает, плюс ряд цели: «ниже всех»
+  let extreme: number | null = null;
+  for (let c = si + 1; c < ti; c++) {
+    for (const b of geom.columnBoxes[c] ?? []) {
+      if (dir > 0) extreme = extreme === null ? b.y + b.height : Math.max(extreme, b.y + b.height);
+      else extreme = extreme === null ? b.y : Math.min(extreme, b.y);
+    }
+  }
+  if (dir > 0) extreme = extreme === null ? target.y + target.height : Math.max(extreme, target.y + target.height);
+  else extreme = extreme === null ? target.y : Math.min(extreme, target.y);
   const farY =
     dir > 0
-      ? target.y + target.height + CORRIDOR_CLEAR + LANE_GRID
-      : target.y - CORRIDOR_CLEAR - LANE_GRID;
-  const firstWin = geom.windows[si]?.width ?? 0;
-  const lastWin = geom.windows[ti - 1]?.width ?? 0;
+      ? extreme + CORRIDOR_CLEAR + LANE_GRID
+      : extreme - CORRIDOR_CLEAR - LANE_GRID;
+  const firstWin = reachFirst ?? geom.windows[si]?.width ?? 0;
+  const lastWin = reachLast ?? geom.windows[ti - 1]?.width ?? 0;
   for (let step = 0; step < 14; step++) {
     const offsets = step === 0 ? [0] : [step * LANE_GRID, -step * LANE_GRID];
     for (const off of offsets) {
@@ -272,12 +300,91 @@ function sweepLane(
 }
 
 /**
+ * Требуемая ширина каждого окна между колонками (учитывая запас на заходы 44px):
+ * для соседних колонок — перепад их связей, для много-колоночных — возможность
+ * спуститься на дальнюю полосу. Используется layout'ом для компактной расстановки.
+ */
+export function requiredWindows(
+  boxes: NetworkGraphNodeBox[],
+  edges: { source: string; target: string }[]
+): number[] {
+  const geom = buildRoutingGeometry(boxes);
+  const gaps = new Array(Math.max(geom.columns.length - 1, 0)).fill(MIN_STAIR_WINDOW);
+  const setGap = (col: number, win: number) => {
+    if (col >= 0 && col < gaps.length) gaps[col] = Math.max(gaps[col], win);
+  };
+  const colIndexOf = (id: string) => geom.colIndexOf.get(id) ?? -1;
+
+  for (const e of edges) {
+    const s = geom.boxById.get(e.source);
+    const t = geom.boxById.get(e.target);
+    if (!s || !t) continue;
+    const si = colIndexOf(e.source);
+    const ti = colIndexOf(e.target);
+    if (si < 0 || ti < 0 || ti <= si) continue;
+
+    if (ti === si + 1) {
+      // соседние колонки: одна диагональ — окно вмещает полный перепад + заходы
+      setGap(si, Math.abs(t.ball.cy - s.ball.cy) + WINDOW_SLACK);
+      continue;
+    }
+    // много-колоночная связь: свип на дальнюю полосу — первый и последний
+    // спуски определяют окна у источника и цели
+    const lane = sweepLane(geom, si, ti, s.ball.cy, t.ball.cy, t, undefined, Infinity, Infinity);
+    if (lane !== null) {
+      setGap(si, Math.abs(lane - s.ball.cy) + WINDOW_SLACK);
+      setGap(ti - 1, Math.abs(t.ball.cy - lane) + WINDOW_SLACK);
+    } else {
+      // лестница: каждому окну хватит перепада «ряд + коридор»
+      for (let j = si; j < ti; j++) setGap(j, MIN_STAIR_WINDOW);
+    }
+  }
+  return gaps.map(g => Math.round(g));
+}
+
+/**
  * Scoring weights for candidate routes. Crossings dominate everything, then
  * "dip past the target row" excursions, then bend count, then raw length.
  */
+const MIN_STAIR_WINDOW = 140; // окно лестницы: ряд + коридор + запас
 const CROSSING_COST = 10000;
+/** Наложение линий (две связи на одной полосе с перекрытием по x) — как в git graph,
+ *  у каждой линии своя полоса: наложение стоит как пересечение */
+const OVERLAP_COST = 10000;
 const BEYOND_COST = 12;
 const BEND_COST = 40;
+
+/**
+ * Сколько горизонтальных участков кандидата ложится НА ДРУГУЮ ЛИНИЮ
+ * (та же полоса, перекрытие по x). Наложение линий запрещено — это и есть
+ * «каша»: две связи сливаются в одну непонятную.
+ */
+function countOverlaps(points: Pt[], context: Pt[][]): number {
+  let count = 0;
+  const horizontals: { y: number; x1: number; x2: number }[] = [];
+  for (let i = 1; i < points.length; i++) {
+    if (Math.abs(points[i].y - points[i - 1].y) < EPS) {
+      horizontals.push({
+        y: points[i].y,
+        x1: Math.min(points[i].x, points[i - 1].x),
+        x2: Math.max(points[i].x, points[i - 1].x),
+      });
+    }
+  }
+  for (const other of context) {
+    for (let i = 1; i < other.length; i++) {
+      if (Math.abs(other[i].y - other[i - 1].y) >= EPS) continue;
+      const oy = other[i].y;
+      const ox1 = Math.min(other[i].x, other[i - 1].x);
+      const ox2 = Math.max(other[i].x, other[i - 1].x);
+      for (const h of horizontals) {
+        if (Math.abs(h.y - oy) >= EPS) continue;
+        if (h.x2 > ox1 + 2 && h.x1 < ox2 - 2) count++;
+      }
+    }
+  }
+  return count;
+}
 
 interface CandidateRoute {
   points: Pt[];
@@ -579,6 +686,7 @@ function pickBestRoute(
   for (const candidate of candidates) {
     const score =
       CROSSING_COST * countCrossings(candidate.points, context) +
+      OVERLAP_COST * countOverlaps(candidate.points, context) +
       candidate.penalty +
       BEND_COST * countDiagonals(candidate.points) +
       polylineLength(candidate.points);
