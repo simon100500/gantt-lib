@@ -5,7 +5,7 @@ import type { NetworkGraphLayout, NetworkGraphProps } from './types';
 import { computeNetworkLayout, LABEL_LINE_HEIGHT, LABEL_TOP } from './layout';
 import './NetworkGraph.css';
 
-const MIN_SCALE = 0.2;
+const MIN_SCALE = 0.03;
 const MAX_SCALE = 4;
 const FIT_PADDING = 28;
 
