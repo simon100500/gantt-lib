@@ -119,12 +119,17 @@ function getColumnIndex(boxes: NetworkGraphNodeBox[]): Map<string, number> {
   return colIndexOf;
 }
 
-function compactColumns(boxes: NetworkGraphNodeBox[], edges: PreparedEdge[], nodes: NetworkGraphNode[]): NetworkGraphNodeBox[] {
+function compactColumns(
+  boxes: NetworkGraphNodeBox[],
+  edges: PreparedEdge[],
+  nodes: NetworkGraphNode[],
+  columnGap: number
+): NetworkGraphNodeBox[] {
   const colIndexOf = getColumnIndex(boxes);
   const columnCount = Math.max(1, ...Array.from(colIndexOf.values(), col => col + 1));
   // Прямые связи не требуют широких окон под диагональные обходы. Общий шаг
   // сохраняет ритм рядов и не позволяет чужой ветке растянуть горизонтальную.
-  const columnPitch = NODE_WIDTH + COLUMN_GAP;
+  const columnPitch = NODE_WIDTH + Math.max(MIN_COLUMN_GAP, columnGap);
   const xs = Array.from({ length: columnCount }, (_, index) => index * columnPitch);
 
   const structuralX = new Map<string, number>();
@@ -231,9 +236,10 @@ export async function computeNetworkLayout(
 
   const preparedNodes = nodes.map(n => ({ ...n, labelLines: wrapLabel(n.label) }));
   const elk = new ELK();
+  const rowGap = Math.max(12, routingOptions?.rowGap ?? SPACING_IN_LAYER);
   const result = await elk.layout({
     id: 'root',
-    layoutOptions: LAYOUT_OPTIONS,
+    layoutOptions: { ...LAYOUT_OPTIONS, 'elk.layered.spacing.nodeNode': String(rowGap) },
     children: preparedNodes.map(n => ({
       id: n.id,
       width: NODE_WIDTH,
@@ -261,7 +267,7 @@ export async function computeNetworkLayout(
   // Сохраняем естественную вертикальную раскладку ELK и приводим структурные
   // колонки к единому горизонтальному шагу.
   const placed = normalizeVerticalPlacement(boxes);
-  const compact = compactColumns(placed, prepared, nodes);
+  const compact = compactColumns(placed, prepared, nodes, routingOptions?.columnGap ?? COLUMN_GAP);
 
   const geometry = buildRoutingGeometry(compact);
   const routed = routeDirectConnections(geometry, prepared, routingOptions);

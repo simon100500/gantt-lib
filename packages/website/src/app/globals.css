@@ -47,12 +47,35 @@ body {
 }
 
 .network-routing-controls {
-  margin: -1.5rem 0 1.5rem;
+  margin: 0;
   padding: 1rem 1.125rem 1.125rem;
   border: 1px solid #dbe3ee;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.network-graph-workspace {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.network-routing-group {
+  display: grid;
+  gap: 0.9rem;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid #e7edf5;
+}
+
+.network-routing-group-title {
+  margin: 0;
+  color: #172033;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
 }
 
 .network-routing-controls-heading {
@@ -139,6 +162,10 @@ body {
 }
 
 @media (max-width: 760px) {
+  .network-graph-workspace {
+    grid-template-columns: 1fr;
+  }
+
   .network-routing-sliders {
     grid-template-columns: 1fr;
   }

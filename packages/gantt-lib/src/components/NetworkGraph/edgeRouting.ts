@@ -157,17 +157,18 @@ function pointOnLeftArc(cx: number, cy: number, r: number, dy: number): Pt {
 function pointOnHorizontalArc(
   ball: NetworkGraphNodeBox['ball'],
   side: -1 | 1,
-  dy: number
+  dy: number,
+  fanArc: number
 ): Pt {
-  const maxOffset = ball.r * DIRECT_FAN_ARC;
+  const maxOffset = ball.r * fanArc;
   const offset = Math.max(-maxOffset, Math.min(maxOffset, dy));
   const x = Math.sqrt(Math.max(0, ball.r * ball.r - offset * offset));
   return { x: ball.cx + side * x, y: ball.cy + offset };
 }
 
-function directSlotOffset(slot: number, count: number, r: number): number {
+function directSlotOffset(slot: number, count: number, r: number, fanArc: number, fanStep: number): number {
   if (count <= 1) return 0;
-  const spread = r * DIRECT_FAN_ARC;
+  const spread = Math.min(r * fanArc, (fanStep * (count - 1)) / 2);
   return -spread + (slot / (count - 1)) * spread * 2;
 }
 
@@ -217,7 +218,8 @@ export function directConnectionPath(
   }
 
   const direction = dx >= 0 ? 1 : -1;
-  const shoulder = Math.min(Math.abs(dx) * 0.22, 64);
+  const endpointLength = Math.max(0, options.endpointLength ?? 44);
+  const shoulder = Math.min(Math.abs(dx) * 0.22, endpointLength);
   const laneY = start.y + dy * (1 - snap);
   const lineStart = { x: start.x + direction * shoulder, y: laneY };
   const lineEnd = { x: end.x - direction * shoulder, y: laneY };
@@ -259,6 +261,8 @@ export function routeDirectConnections(
   const inSlots = new Map<string, number>();
   const outTotals = new Map<string, number>();
   const inTotals = new Map<string, number>();
+  const fanArc = clamp01(options?.fanArc, DIRECT_FAN_ARC);
+  const fanStep = Math.max(0, options?.fanStep ?? FAN_STEP);
 
   for (const [source, group] of groupEdges(valid, 'source')) {
     group.sort((a, b) => {
@@ -286,15 +290,19 @@ export function routeDirectConnections(
     const startOffset = directSlotOffset(
       outSlots.get(edge.id) ?? 0,
       outTotals.get(edge.source) ?? 1,
-      source.ball.r
+      source.ball.r,
+      fanArc,
+      fanStep
     );
     const endOffset = directSlotOffset(
       inSlots.get(edge.id) ?? 0,
       inTotals.get(edge.target) ?? 1,
-      target.ball.r
+      target.ball.r,
+      fanArc,
+      fanStep
     );
-    const start = pointOnHorizontalArc(source.ball, direction, startOffset);
-    const end = pointOnHorizontalArc(target.ball, direction === 1 ? -1 : 1, endOffset);
+    const start = pointOnHorizontalArc(source.ball, direction, startOffset, fanArc);
+    const end = pointOnHorizontalArc(target.ball, direction === 1 ? -1 : 1, endOffset, fanArc);
     return {
       ...edge,
       start,

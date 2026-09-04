@@ -44,6 +44,16 @@ export interface NetworkGraphEdgePath {
 }
 
 export interface NetworkGraphRoutingOptions {
+  /** Минимальный вертикальный зазор между соседними вершинами одного слоя, px. */
+  rowGap?: number;
+  /** Горизонтальный зазор между структурными столбцами, px. */
+  columnGap?: number;
+  /** Разнос соседних точек веера на окружности, px. */
+  fanStep?: number;
+  /** Доля дуги окружности, доступная для точек входа/выхода: 0..1. */
+  fanArc?: number;
+  /** Длина прямого плеча перед началом центрального участка, px. */
+  endpointLength?: number;
   /** Сила притяжения центрального участка к горизонтали: 0..1. */
   horizontalSnap?: number;
   /** Максимальный перепад между концами, при котором включается snap, в px. */
@@ -66,5 +76,7 @@ export interface NetworkGraphProps {
   height?: number;
   className?: string;
   routingOptions?: NetworkGraphRoutingOptions;
+  /** Начальный масштаб после fit-to-view. 1 — текущий fit, 1.25 — крупнее. */
+  initialZoom?: number;
   onNodeClick?: (node: NetworkGraphNode) => void;
 }

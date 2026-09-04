@@ -29,6 +29,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   height = 480,
   className,
   routingOptions,
+  initialZoom = 1.25,
   onNodeClick,
 }) => {
   const [layout, setLayout] = useState<NetworkGraphLayout | null>(null);
@@ -62,9 +63,10 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
     const el = containerRef.current;
     if (!el || result.width === 0) return;
     const { clientWidth: cw, clientHeight: ch } = el;
+    const fitScale = Math.min((cw - FIT_PADDING * 2) / result.width, (ch - FIT_PADDING * 2) / result.height);
     const k = Math.min(
-      1,
-      Math.max(MIN_FIT_SCALE, Math.min((cw - FIT_PADDING * 2) / result.width, (ch - FIT_PADDING * 2) / result.height))
+      MAX_SCALE,
+      Math.max(MIN_FIT_SCALE, fitScale * Math.max(0.5, initialZoom))
     );
     const renderedWidth = result.width * k;
     setView({
@@ -74,7 +76,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
       y: (ch - result.height * k) / 2,
       k,
     });
-  }, []);
+  }, [initialZoom]);
 
   // Center/fit the graph whenever a new layout arrives
   useEffect(() => {
