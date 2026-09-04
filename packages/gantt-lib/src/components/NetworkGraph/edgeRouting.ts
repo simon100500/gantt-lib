@@ -1,3 +1,4 @@
+import { BALL_RADIUS } from './layout';
 import type { NetworkGraphNodeBox } from './types';
 
 /**
@@ -324,16 +325,17 @@ export function requiredWindows(
     if (si < 0 || ti < 0 || ti <= si) continue;
 
     if (ti === si + 1) {
-      // соседние колонки: одна диагональ — окно вмещает полный перепад + заходы
-      setGap(si, Math.abs(t.ball.cy - s.ball.cy) + WINDOW_SLACK);
+      // соседние колонки: связь в один перелом — диагональ на весь перепад,
+      // окно должно дать на неё место по горизонтали
+      setGap(si, Math.abs(t.ball.cy - s.ball.cy) - (geom.columns[si].width - 2 * BALL_RADIUS) + 30);
       continue;
     }
     // много-колоночная связь: свип на дальнюю полосу — первый и последний
     // спуски определяют окна у источника и цели
     const lane = sweepLane(geom, si, ti, s.ball.cy, t.ball.cy, t, undefined, Infinity, Infinity);
     if (lane !== null) {
-      setGap(si, Math.abs(lane - s.ball.cy) + WINDOW_SLACK);
-      setGap(ti - 1, Math.abs(t.ball.cy - lane) + WINDOW_SLACK);
+      setGap(si, Math.abs(lane - s.ball.cy) - 3);
+      setGap(ti - 1, Math.abs(t.ball.cy - lane) - 47);
     } else {
       // лестница: каждому окну хватит перепада «ряд + коридор»
       for (let j = si; j < ti; j++) setGap(j, MIN_STAIR_WINDOW);
@@ -390,6 +392,14 @@ interface CandidateRoute {
   points: Pt[];
   /** заранее посчитанные штрафы: вылет за ряд цели + ход в обратную сторону */
   penalty: number;
+}
+
+function score2(cr: number, ov: number, candidate: CandidateRoute, foreign: NetworkGraphNodeBox[]): number {
+  return Math.round(
+    (routeHitsBox(candidate.points, foreign) ? 1e9 : 0) +
+    CROSSING_COST * cr + OVERLAP_COST * ov + candidate.penalty +
+    BEND_COST * countDiagonals(candidate.points) + polylineLength(candidate.points)
+  );
 }
 
 function countDiagonals(pts: Pt[]): number {
@@ -600,6 +610,62 @@ export function routeEdges(
 }
 
 /**
+ * Corridor route: сразу диагональ из шарика на полосу → один длинный прогон →
+ * диагональ в шарик. Ровно два перелома, без горизонтальных стабов.
+ */
+function corridorRoute(start: Pt, end: Pt, lane: number): Pt[] {
+  const pts: Pt[] = [{ ...start }];
+
+  const d1 = Math.abs(lane - start.y);
+  if (d1 > EPS) pts.push({ x: start.x + d1, y: lane });
+
+  const d2 = Math.abs(end.y - lane);
+  if (d2 > EPS) {
+    pts.push({ x: end.x - d2, y: lane });
+    pts.push({ ...end });
+  } else {
+    pts.push({ ...end });
+  }
+  return pts;
+}
+
+/** Компоненты отрезка строго внутри раздутого прямоугольника? */
+function pointInRect(p: Pt, r: { x: number; y: number; w: number; h: number }): boolean {
+  return p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h;
+}
+
+/** Пересекает ли отрезок прямоугольник (с запасом clearance) */
+function segHitsRect(p1: Pt, p2: Pt, box: NetworkGraphNodeBox, clearance: number): boolean {
+  const r = {
+    x: box.x - clearance,
+    y: box.y - clearance,
+    w: box.width + 2 * clearance,
+    h: box.height + 2 * clearance,
+  };
+  if (pointInRect(p1, r) || pointInRect(p2, r)) return true;
+  const corners = [
+    { x: r.x, y: r.y },
+    { x: r.x + r.w, y: r.y },
+    { x: r.x + r.w, y: r.y + r.h },
+    { x: r.x, y: r.y + r.h },
+  ];
+  for (let i = 0; i < 4; i++) {
+    if (segmentsCross(p1, p2, corners[i], corners[(i + 1) % 4])) return true;
+  }
+  return false;
+}
+
+/** Маршрут задевает чужие боксы (с запасом 6px)? */
+function routeHitsBox(points: Pt[], foreign: NetworkGraphNodeBox[]): boolean {
+  for (let i = 1; i < points.length; i++) {
+    for (const b of foreign) {
+      if (segHitsRect(points[i - 1], points[i], b, 6)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * All candidate routes for one edge; the best (fewest crossings with `context`,
  * then least excursion, fewest bends, shortest) wins.
  */
@@ -630,17 +696,20 @@ function pickBestRoute(
     candidates.push({ points: [start, snappedEnd], penalty: 0 });
   }
 
-  // Direct single diagonal for adjacent columns
+  // Adjacent columns: одна диагональ сразу из шарика + вход в цель (один перелом)
   const win0 = geom.windows[si];
   const lastWin = geom.windows[ti - 1]?.width ?? 0;
-  if (ti === si + 1 && win0 && Math.abs(dy) <= win0.width && Math.abs(dy) >= EPS) {
+  if (ti === si + 1 && Math.abs(dy) >= EPS) {
     const d = Math.abs(dy);
-    let diagStartX = end.x - STUB_IN - d;
-    if (diagStartX < start.x + STUB_OUT) diagStartX = start.x + STUB_OUT;
-    candidates.push({
-      points: [start, { x: diagStartX, y: start.y }, { x: diagStartX + d, y: end.y }, end],
-      penalty: 0,
-    });
+    const room = end.x - start.x;
+    if (room >= d) {
+      candidates.push({ points: [start, { x: start.x + d, y: end.y }, end], penalty: 0 });
+    } else {
+      const bendX = end.x - d;
+      if (bendX > start.x) {
+        candidates.push({ points: [start, { x: bendX, y: start.y }, end], penalty: 0 });
+      }
+    }
   }
 
   // Corridor lane candidates. Multi-column edges require the lane to be safe in
@@ -666,13 +735,15 @@ function pickBestRoute(
       if (d1 < MIN_BEND || (d2 < MIN_BEND && d2 > EPS)) continue;
       if (ti === si + 1) {
         if (d1 + d2 > firstWin) continue;
-      } else if (d1 > firstWin || d2 > lastWin) {
+      } else if (d1 > firstWin + 90 || d2 > lastWin + 90) {
+        // диагональ стартует от дуги шарика (раньше окна) и может заходить
+        // в поля своей/целевой колонки — реальную проверку делает routeHitsBox
         continue;
       }
-      const beyond = dir > 0 ? Math.max(0, lane - (t.y + t.height)) : Math.max(0, t.y - lane);
+        const beyond = dir > 0 ? Math.max(0, lane - (t.y + t.height)) : Math.max(0, t.y - lane);
       const back = Math.sign(lane - start.y) === -dir ? Math.abs(lane - start.y) : 0;
       candidates.push({
-        points: sweepRoute(geom, si, ti, start, end, lane),
+        points: corridorRoute(start, end, lane),
         penalty: BEYOND_COST * (beyond + back),
       });
     }
@@ -681,57 +752,24 @@ function pickBestRoute(
   // Staircase fallback for multi-column edges
   if (ti - si >= 2) candidates.push({ points: forwardRoute(geom, si, ti, start, end), penalty: 0 });
 
+  const foreign = geom.boxes.filter(b => b.id !== e.source && b.id !== e.target);
+
   let best: Pt[] | null = null;
   let bestScore = Infinity;
   for (const candidate of candidates) {
-    const score =
-      CROSSING_COST * countCrossings(candidate.points, context) +
-      OVERLAP_COST * countOverlaps(candidate.points, context) +
-      candidate.penalty +
-      BEND_COST * countDiagonals(candidate.points) +
-      polylineLength(candidate.points);
+    const score = routeHitsBox(candidate.points, foreign)
+      ? Infinity
+      : CROSSING_COST * countCrossings(candidate.points, context) +
+        OVERLAP_COST * countOverlaps(candidate.points, context) +
+        candidate.penalty +
+        BEND_COST * countDiagonals(candidate.points) +
+        polylineLength(candidate.points);
     if (score < bestScore) {
       bestScore = score;
       best = candidate.points;
     }
   }
   return best ?? forwardRoute(geom, si, ti, start, end);
-}
-
-/**
- * Sweep route: stub → diagonal to the far-side corridor lane (first window) →
- * one long run → diagonal into the target (last window). Exactly two bends.
- */
-function sweepRoute(
-  geom: RoutingGeometry,
-  colFrom: number,
-  colTo: number,
-  start: Pt,
-  end: Pt,
-  lane: number
-): Pt[] {
-  const pts: Pt[] = [{ ...start }];
-
-  const d1 = Math.abs(lane - start.y);
-  const diagStartX = Math.max(start.x + STUB_OUT, geom.windows[colFrom]?.x1 ?? 0);
-  pts.push({ x: diagStartX, y: start.y });
-  pts.push({ x: diagStartX + d1, y: lane });
-
-  // Final diagonal into the target's arc lane; clamp so it never overshoots the ball
-  let d2 = Math.abs(end.y - lane);
-  const maxD2 = end.x - STUB_IN - (diagStartX + d1);
-  d2 = Math.max(Math.min(d2, maxD2), 0);
-  if (d2 > EPS) {
-    const riseStartX = end.x - STUB_IN - d2;
-    pts.push({ x: riseStartX, y: lane });
-    pts.push({ x: riseStartX + d2, y: end.y });
-  } else {
-    pts.push({ ...end });
-    return pts;
-  }
-
-  pts.push({ ...end });
-  return pts;
 }
 
 /**

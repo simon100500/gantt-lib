@@ -103,11 +103,12 @@ describe('routeEdges', () => {
     }
   });
 
-  it('leaves and enters horizontally', () => {
+  it('enters the target ball on its left side', () => {
     for (const edge of routed) {
-      expect(edge.points[1].y).toBeCloseTo(edge.points[0].y, 5);
-      const n = edge.points.length;
-      expect(edge.points[n - 1].y).toBeCloseTo(edge.points[n - 2].y, 5);
+      const t = geometry.boxById.get(edge.target)!.ball;
+      const last = edge.points[edge.points.length - 1];
+      expect(last.x).toBeLessThan(t.cx);
+      expect(Math.abs(last.y - t.cy)).toBeLessThanOrEqual(t.r);
     }
   });
 
