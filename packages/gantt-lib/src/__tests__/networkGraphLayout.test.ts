@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeNetworkLayout } from '../components/NetworkGraph/layout';
-import { buildRoutingGeometry, routeEdges, routeQuality } from '../components/NetworkGraph/edgeRouting';
+import { COLUMN_GAP, computeNetworkLayout, NODE_WIDTH } from '../components/NetworkGraph/layout';
 import type { NetworkGraphEdge, NetworkGraphNode } from '../components/NetworkGraph/types';
 
 // Данные демо-страницы: «Благоустройство» — цель длинной связи z1→blg
@@ -48,6 +47,14 @@ describe('network graph layout (demo data)', () => {
     expect(z1.y).toBeLessThanOrEqual(maxY / 2);
   });
 
+  it('uses one steady pitch for structural columns without dates', async () => {
+    const layout = await computeNetworkLayout(NODES, EDGES);
+    const columns = [...new Set(layout.nodes.map(node => Math.round(node.x)))].sort((a, b) => a - b);
+    for (let index = 1; index < columns.length; index++) {
+      expect(columns[index] - columns[index - 1]).toBe(NODE_WIDTH + COLUMN_GAP);
+    }
+  });
+
   it('uses start dates as a soft horizontal schedule', async () => {
     const nodes: NetworkGraphNode[] = [
       { id: 'start', label: 'Старт', startDate: '2026-01-01' },
@@ -64,14 +71,12 @@ describe('network graph layout (demo data)', () => {
     expect(x.get('late')! - x.get('middle')!).toBeGreaterThan(0);
   });
 
-  it('routes the demo graph with zero crossings', async () => {
+  it('keeps every dependency moving left-to-right after column compaction', async () => {
     const layout = await computeNetworkLayout(NODES, EDGES);
-    const routed = routeEdges(
-      buildRoutingGeometry(layout.nodes),
-      EDGES.map((e, i) => ({ id: `e${i}`, source: e.source, target: e.target }))
-    );
-    const q = routeQuality(routed.map(r => r.points));
-    expect(q.crossings).toBe(0);
+    const nodeById = new Map(layout.nodes.map(node => [node.id, node]));
+    for (const edge of EDGES) {
+      expect(nodeById.get(edge.target)!.x).toBeGreaterThan(nodeById.get(edge.source)!.x);
+    }
   });
 
   it('renders every demo edge without intermediate bends', async () => {

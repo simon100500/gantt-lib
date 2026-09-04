@@ -5,7 +5,7 @@ import type {
   NetworkGraphNode,
   NetworkGraphNodeBox,
 } from './types';
-import { buildRoutingGeometry, requiredWindows, routeDirectConnections } from './edgeRouting';
+import { buildRoutingGeometry, routeDirectConnections } from './edgeRouting';
 
 /** Габаритный бокс вершины (шарик сверху + подпись снизу) */
 export const NODE_WIDTH = 152;
@@ -23,6 +23,8 @@ const LABEL_MAX_CHARS = 22;
  * ELK сохраняет естественное положение рядов, а значение лишь не даёт боксам
  * слипаться. */
 export const SPACING_IN_LAYER = 54;
+/** Единый визуальный просвет между соседними структурными колонками. */
+export const COLUMN_GAP = 108;
 const MIN_COLUMN_GAP = 34;
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Мягкий масштаб дат: достаточно заметный, чтобы две работы в одном ELK-
@@ -101,12 +103,7 @@ function normalizeVerticalPlacement(boxes: NetworkGraphNodeBox[]): NetworkGraphN
   return boxes.map(b => relocateBox(b, Math.max(0, b.y - minY)));
 }
 
-/**
- * Переменный шаг колонок: каждый промежуток сжимается до перепада, который
- * реально нужен связям через него (соседние колонки — свой перепад,
- * много-колоночные лестницы — небольшой запас). Граф становится компактнее
- * по горизонтали без потери читаемых обходов.
- */
+/** Индекс структурной колонки из layered-layout ELK. */
 function getColumnIndex(boxes: NetworkGraphNodeBox[]): Map<string, number> {
   const colIndexOf = new Map<string, number>();
   const columns: number[] = [];
@@ -124,11 +121,10 @@ function getColumnIndex(boxes: NetworkGraphNodeBox[]): Map<string, number> {
 function compactColumns(boxes: NetworkGraphNodeBox[], edges: PreparedEdge[], nodes: NetworkGraphNode[]): NetworkGraphNodeBox[] {
   const colIndexOf = getColumnIndex(boxes);
   const columnCount = Math.max(1, ...Array.from(colIndexOf.values(), col => col + 1));
-  // Ширины окон считает роутер (ему видны перепады и свипы)
-  const windows = requiredWindows(boxes, edges);
-  // Пересобираем x колонок по фактически нужным промежуткам
-  const xs = [0];
-  for (let j = 0; j < windows.length; j++) xs.push(xs[j] + NODE_WIDTH + windows[j]);
+  // Прямые связи не требуют широких окон под диагональные обходы. Общий шаг
+  // сохраняет ритм рядов и не позволяет чужой ветке растянуть горизонтальную.
+  const columnPitch = NODE_WIDTH + COLUMN_GAP;
+  const xs = Array.from({ length: columnCount }, (_, index) => index * columnPitch);
 
   const structuralX = new Map<string, number>();
   for (const b of boxes) structuralX.set(b.id, xs[colIndexOf.get(b.id) ?? 0] ?? 0);
@@ -260,8 +256,8 @@ export async function computeNetworkLayout(
     };
   });
 
-  // Сохраняем естественную вертикальную раскладку ELK и сжимаем только
-  // горизонтальные промежутки до реально нужных перепадов.
+  // Сохраняем естественную вертикальную раскладку ELK и приводим структурные
+  // колонки к единому горизонтальному шагу.
   const placed = normalizeVerticalPlacement(boxes);
   const compact = compactColumns(placed, prepared, nodes);
 
