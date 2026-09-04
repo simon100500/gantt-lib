@@ -310,7 +310,9 @@ export function requiredWindows(
   edges: { source: string; target: string }[]
 ): number[] {
   const geom = buildRoutingGeometry(boxes);
-  const gaps = new Array(Math.max(geom.columns.length - 1, 0)).fill(MIN_STAIR_WINDOW);
+  // базовый зазор: места хватает диагоналям соседних колонок и разведению шариков
+  const baseGap = 90;
+  const gaps = new Array(Math.max(geom.columns.length - 1, 0)).fill(baseGap);
   const setGap = (col: number, win: number) => {
     if (col >= 0 && col < gaps.length) gaps[col] = Math.max(gaps[col], win);
   };
@@ -325,9 +327,8 @@ export function requiredWindows(
     if (si < 0 || ti < 0 || ti <= si) continue;
 
     if (ti === si + 1) {
-      // соседние колонки: связь в один перелом — диагональ на весь перепад,
-      // окно должно дать на неё место по горизонтали
-      setGap(si, Math.abs(t.ball.cy - s.ball.cy) - (geom.columns[si].width - 2 * BALL_RADIUS) + 30);
+      // соседние колонки: связь идёт чистой диагональю через любой зазор —
+      // специальной ширины не требуется
       continue;
     }
     // много-колоночная связь: свип на дальнюю полосу — первый и последний
@@ -696,20 +697,10 @@ function pickBestRoute(
     candidates.push({ points: [start, snappedEnd], penalty: 0 });
   }
 
-  // Adjacent columns: одна диагональ сразу из шарика + вход в цель (один перелом)
-  const win0 = geom.windows[si];
-  const lastWin = geom.windows[ti - 1]?.width ?? 0;
+  // Adjacent columns: чистая диагональ из шарика в шарик — без горизонтальных
+  // участков (как в git graph: переход между соседними рядами одной линией)
   if (ti === si + 1 && Math.abs(dy) >= EPS) {
-    const d = Math.abs(dy);
-    const room = end.x - start.x;
-    if (room >= d) {
-      candidates.push({ points: [start, { x: start.x + d, y: end.y }, end], penalty: 0 });
-    } else {
-      const bendX = end.x - d;
-      if (bendX > start.x) {
-        candidates.push({ points: [start, { x: bendX, y: start.y }, end], penalty: 0 });
-      }
-    }
+    candidates.push({ points: [start, end], penalty: 0 });
   }
 
   // Corridor lane candidates. Multi-column edges require the lane to be safe in
@@ -719,13 +710,15 @@ function pickBestRoute(
   const dir = Math.sign(dy) || 1;
   const lo = Math.min(start.y, end.y);
   const hi = Math.max(start.y, end.y);
-  const firstWin = win0?.width ?? 0;
+  const firstWin = geom.windows[si]?.width ?? 0;
+  const lastWin = geom.windows[ti - 1]?.width ?? 0;
   let feasible: Array<[number, number]> = [[-Infinity, Infinity]];
   for (let c = si + 1; c < ti; c++) {
     feasible = intersectIntervals(feasible, safeIntervals(geom, c));
     if (!feasible.length) break;
   }
-  if (feasible.length) {
+  // коридорные кандидаты — только для связей через ≥2 колонки
+  if (feasible.length && ti - si >= 2) {
     const scanFrom = snapLane(lo - lastWin);
     const scanTo = snapLane(hi + firstWin);
     for (let lane = scanFrom; lane <= scanTo + EPS; lane += LANE_GRID) {
