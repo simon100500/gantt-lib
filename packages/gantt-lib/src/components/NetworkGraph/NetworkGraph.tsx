@@ -28,6 +28,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   edges,
   height = 480,
   className,
+  routingOptions,
   onNodeClick,
 }) => {
   const [layout, setLayout] = useState<NetworkGraphLayout | null>(null);
@@ -44,7 +45,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   useEffect(() => {
     let cancelled = false;
     setFailed(false);
-    computeNetworkLayout(nodes, edges)
+    computeNetworkLayout(nodes, edges, routingOptions)
       .then(result => {
         if (!cancelled) setLayout(result);
       })
@@ -55,7 +56,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [nodes, edges]);
+  }, [nodes, edges, routingOptions]);
 
   const fitView = useCallback((result: NetworkGraphLayout) => {
     const el = containerRef.current;

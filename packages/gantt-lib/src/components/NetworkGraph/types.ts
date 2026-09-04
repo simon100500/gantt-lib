@@ -43,6 +43,15 @@ export interface NetworkGraphEdgePath {
   d: string;
 }
 
+export interface NetworkGraphRoutingOptions {
+  /** Сила притяжения центрального участка к горизонтали: 0..1. */
+  horizontalSnap?: number;
+  /** Максимальный перепад между концами, при котором включается snap, в px. */
+  snapThreshold?: number;
+  /** Длина плавного захода у окружностей: 0..1. */
+  endpointCurve?: number;
+}
+
 export interface NetworkGraphLayout {
   nodes: NetworkGraphNodeBox[];
   edges: NetworkGraphEdgePath[];
@@ -56,5 +65,6 @@ export interface NetworkGraphProps {
   /** Высота контейнера (px). Ширина — 100% родителя */
   height?: number;
   className?: string;
+  routingOptions?: NetworkGraphRoutingOptions;
   onNodeClick?: (node: NetworkGraphNode) => void;
 }

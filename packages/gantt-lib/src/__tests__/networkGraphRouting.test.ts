@@ -228,6 +228,28 @@ describe('routeDirectConnections', () => {
     ]);
     expect(edge.d).toMatch(/^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/);
   });
+
+  it('can pull a near-by-height connection onto a horizontal run', () => {
+    const edge = routeDirectConnections(geometry, [
+      { id: 'snap', source: 'a1', target: 'b2' },
+    ], {
+      horizontalSnap: 1,
+      snapThreshold: 180,
+      endpointCurve: 1,
+    })[0];
+    expect(edge.d).toMatch(/ C .* L .* C /);
+  });
+
+  it('can turn endpoint smoothing off while keeping the snapped run', () => {
+    const edge = routeDirectConnections(geometry, [
+      { id: 'sharp-snap', source: 'a1', target: 'b2' },
+    ], {
+      horizontalSnap: 1,
+      snapThreshold: 180,
+      endpointCurve: 0,
+    })[0];
+    expect(edge.d).toMatch(/^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/);
+  });
 });
 
 describe('wrapLabel', () => {

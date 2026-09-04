@@ -1,5 +1,5 @@
 import { BALL_RADIUS } from './layout';
-import type { NetworkGraphNodeBox } from './types';
+import type { NetworkGraphNodeBox, NetworkGraphRoutingOptions } from './types';
 
 /**
  * Routing of edges between "balls" in the reference style of a network diagram:
@@ -193,6 +193,57 @@ export function directLinePath(start: Pt, end: Pt): string {
   return `M ${round(start.x)} ${round(start.y)} L ${round(end.x)} ${round(end.y)}`;
 }
 
+function clamp01(value: number | undefined, fallback: number): number {
+  if (value === undefined || !Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.min(1, value));
+}
+
+/**
+ * Связь с опциональной горизонтальной полкой. Snap меняет только центральный
+ * участок: к окружностям линия подходит короткими плечами, а между ними идёт
+ * одним горизонтальным L. При нулевых настройках сохраняется прямая связь.
+ */
+export function directConnectionPath(
+  start: Pt,
+  end: Pt,
+  options: NetworkGraphRoutingOptions = {}
+): string {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const snap = clamp01(options.horizontalSnap, 0);
+  const threshold = Math.max(0, options.snapThreshold ?? 0);
+  if (snap <= EPS || Math.abs(dy) <= EPS || Math.abs(dy) > threshold || Math.abs(dx) < 32) {
+    return directLinePath(start, end);
+  }
+
+  const direction = dx >= 0 ? 1 : -1;
+  const shoulder = Math.min(Math.abs(dx) * 0.22, 64);
+  const laneY = start.y + dy * (1 - snap);
+  const lineStart = { x: start.x + direction * shoulder, y: laneY };
+  const lineEnd = { x: end.x - direction * shoulder, y: laneY };
+  const curve = clamp01(options.endpointCurve, 0.7);
+  if (curve <= EPS) {
+    return (
+      `M ${round(start.x)} ${round(start.y)} ` +
+      `L ${round(lineStart.x)} ${round(lineStart.y)} ` +
+      `L ${round(lineEnd.x)} ${round(lineEnd.y)} ` +
+      `L ${round(end.x)} ${round(end.y)}`
+    );
+  }
+
+  const handle = shoulder * curve;
+  const startControl = { x: start.x + direction * handle, y: start.y };
+  const lineStartControl = { x: lineStart.x - direction * handle, y: lineStart.y };
+  const lineEndControl = { x: lineEnd.x + direction * handle, y: lineEnd.y };
+  const endControl = { x: end.x - direction * handle, y: end.y };
+  return (
+    `M ${round(start.x)} ${round(start.y)} ` +
+    `C ${round(startControl.x)} ${round(startControl.y)} ${round(lineStartControl.x)} ${round(lineStartControl.y)} ${round(lineStart.x)} ${round(lineStart.y)} ` +
+    `L ${round(lineEnd.x)} ${round(lineEnd.y)} ` +
+    `C ${round(lineEndControl.x)} ${round(lineEndControl.y)} ${round(endControl.x)} ${round(endControl.y)} ${round(end.x)} ${round(end.y)}`
+  );
+}
+
 /**
  * Простая маршрутизация для сетевого графика: одна кривая на ребро.
  * Веера сортируются по положению противоположной вершины и занимают разные
@@ -200,7 +251,8 @@ export function directLinePath(start: Pt, end: Pt): string {
  */
 export function routeDirectConnections(
   geom: RoutingGeometry,
-  edges: { id: string; source: string; target: string }[]
+  edges: { id: string; source: string; target: string }[],
+  options?: NetworkGraphRoutingOptions
 ): RoutedConnectionEdge[] {
   const valid = edges.filter(e => geom.boxById.has(e.source) && geom.boxById.has(e.target));
   const outSlots = new Map<string, number>();
@@ -247,7 +299,7 @@ export function routeDirectConnections(
       ...edge,
       start,
       end,
-      d: directLinePath(start, end),
+      d: directConnectionPath(start, end, options),
     };
   });
 }

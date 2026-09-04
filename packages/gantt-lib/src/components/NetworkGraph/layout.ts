@@ -4,6 +4,7 @@ import type {
   NetworkGraphLayout,
   NetworkGraphNode,
   NetworkGraphNodeBox,
+  NetworkGraphRoutingOptions,
 } from './types';
 import { buildRoutingGeometry, routeDirectConnections } from './edgeRouting';
 
@@ -219,7 +220,8 @@ function toTime(value: string | Date | undefined): number | null {
  */
 export async function computeNetworkLayout(
   nodes: NetworkGraphNode[],
-  edges: NetworkGraphEdge[]
+  edges: NetworkGraphEdge[],
+  routingOptions?: NetworkGraphRoutingOptions
 ): Promise<NetworkGraphLayout> {
   const nodeIds = new Set(nodes.map(n => n.id));
   const cleanEdges = edges.filter(
@@ -262,7 +264,7 @@ export async function computeNetworkLayout(
   const compact = compactColumns(placed, prepared, nodes);
 
   const geometry = buildRoutingGeometry(compact);
-  const routed = routeDirectConnections(geometry, prepared);
+  const routed = routeDirectConnections(geometry, prepared, routingOptions);
 
   const width = Math.max(0, ...compact.map(b => b.x + b.width));
   const height = Math.max(0, ...compact.map(b => b.y + b.height));

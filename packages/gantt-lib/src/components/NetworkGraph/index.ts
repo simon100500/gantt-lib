@@ -5,6 +5,7 @@ export {
   routeEdges,
   routeDirectConnections,
   directLinePath,
+  directConnectionPath,
   polylineToPath,
   polylineToCurvePath,
   chamferPolyline,
@@ -16,4 +17,5 @@ export type {
   NetworkGraphLayout,
   NetworkGraphNodeBox,
   NetworkGraphEdgePath,
+  NetworkGraphRoutingOptions,
 } from './types';
