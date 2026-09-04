@@ -395,7 +395,7 @@ export function routeEdges(
     });
   }
 
-  // Pass 3: sequential crossing-aware selection, shortest spans first
+  // Pass 3: sequential crossing-aware selection (shortest spans first)…
   const ordered = [...valid]
     .filter(e => (geom.colIndexOf.get(e.target) ?? 0) > (geom.colIndexOf.get(e.source) ?? 0))
     .sort((a, b) => {
@@ -404,93 +404,32 @@ export function routeEdges(
       return spanA - spanB || (geom.colIndexOf.get(a.source) ?? 0) - (geom.colIndexOf.get(b.source) ?? 0);
     });
 
-  const context: Pt[][] = [];
   const routed = new Map<string, RoutedEdge>();
 
-  for (const e of ordered) {
-    const s = geom.boxById.get(e.source)!;
-    const t = geom.boxById.get(e.target)!;
-    const si = geom.colIndexOf.get(e.source) ?? 0;
-    const ti = geom.colIndexOf.get(e.target) ?? 0;
-    const { start, end: endArc } = arcs.get(e.id)!;
-    let end = endArc;
-
-    // Straight: the start lane must hit the target's arc and stay clear of every
-    // node box in the columns the run crosses.
-    const dy = end.y - start.y;
-    const laneOnArc = Math.abs(start.y - t.ball.cy) <= t.ball.r * 0.95;
-    const startLaneClear = geom.columns.every((_, colIdx) => {
-      if (colIdx <= si || colIdx >= ti) return true;
-      return isLaneSafeForColumn(geom, colIdx, start.y);
-    });
-
-    const candidates: CandidateRoute[] = [];
-    if (Math.abs(dy) < EPS || (laneOnArc && startLaneClear)) {
-      end = pointOnLeftArc(t.ball.cx, t.ball.cy, t.ball.r, start.y - t.ball.cy);
-      candidates.push({ points: [start, end], penalty: 0 });
+  // Initial sequential pass (shortest spans first)…
+  {
+    const done: Pt[][] = [];
+    for (const e of ordered) {
+      const points = pickBestRoute(geom, e, arcs.get(e.id)!, done);
+      done.push(points);
+      routed.set(e.id, { ...e, points, fallback: false });
     }
-
-    if (candidates.length === 0) {
-      if (ti === si + 1) {
-        // Adjacent columns: single 45° diagonal when it fits the window
-        const win = geom.windows[si];
-        if (win && Math.abs(dy) <= win.width) {
-          const d = Math.abs(dy);
-          const dir = Math.sign(dy);
-          let diagStartX = end.x - STUB_IN - d;
-          if (diagStartX < start.x + STUB_OUT) diagStartX = start.x + STUB_OUT;
-          candidates.push({
-            points: [start, { x: diagStartX, y: start.y }, { x: diagStartX + d, y: end.y }, end],
-            penalty: 0,
-          });
-        }
-      } else {
-        // Multi-column: corridor lane candidates + greedy staircase fallback
-        let feasible: Array<[number, number]> = [[-Infinity, Infinity]];
-        for (let c = si + 1; c < ti; c++) {
-          feasible = intersectIntervals(feasible, safeIntervals(geom, c));
-        }
-        const firstWin = geom.windows[si]?.width ?? 0;
-        const lastWin = geom.windows[ti - 1]?.width ?? 0;
-        const lo = Math.min(start.y, end.y);
-        const hi = Math.max(start.y, end.y);
-        const dir = Math.sign(dy) || 1;
-        const scanFrom = snapLane(lo - lastWin);
-        const scanTo = snapLane(hi + firstWin);
-        for (let lane = scanFrom; lane <= scanTo + EPS; lane += LANE_GRID) {
-          if (!laneInIntervalsList(feasible, lane)) continue;
-          const d1 = Math.abs(lane - start.y);
-          const d2 = Math.abs(end.y - lane);
-          if (d1 > firstWin || d2 > lastWin) continue;
-          if (d1 < MIN_BEND || (d2 < MIN_BEND && d2 > EPS)) continue;
-          const beyond = dir > 0 ? Math.max(0, lane - (t.y + t.height)) : Math.max(0, t.y - lane);
-          const back = Math.sign(lane - start.y) === -dir ? Math.abs(lane - start.y) : 0;
-          candidates.push({
-            points: sweepRoute(geom, si, ti, start, end, lane),
-            penalty: BEYOND_COST * (beyond + back),
-          });
-        }
-        candidates.push({ points: forwardRoute(geom, si, ti, start, end), penalty: 0 });
+  }
+  // …then improvement iterations: every edge is re-checked against the current
+  // routes of all other edges (the sequential pass alone gets stuck in local
+  // optima — e.g. a sibling straight that should dip into a corridor bus).
+  for (let iter = 0; iter < 3; iter++) {
+    let changed = false;
+    for (const e of ordered) {
+      const others = ordered.filter(o => o.id !== e.id).map(o => routed.get(o.id)!.points);
+      const best = pickBestRoute(geom, e, arcs.get(e.id)!, others);
+      const edge = routed.get(e.id)!;
+      if (polylineToPath(best) !== polylineToPath(edge.points)) {
+        edge.points = best;
+        changed = true;
       }
     }
-
-    let best: CandidateRoute | null = null;
-    let bestScore = Infinity;
-    for (const candidate of candidates) {
-      const score =
-        CROSSING_COST * countCrossings(candidate.points, context) +
-        candidate.penalty +
-        BEND_COST * countDiagonals(candidate.points) +
-        polylineLength(candidate.points);
-      if (score < bestScore) {
-        bestScore = score;
-        best = candidate;
-      }
-    }
-
-    const points = best?.points ?? forwardRoute(geom, si, ti, start, end);
-    context.push(points);
-    routed.set(e.id, { ...e, points, fallback: false });
+    if (!changed) break;
   }
 
   // Backwards edges (cycle leftovers in the layered layout)
@@ -502,6 +441,104 @@ export function routeEdges(
   }
 
   return valid.map(e => routed.get(e.id)!);
+}
+
+/**
+ * All candidate routes for one edge; the best (fewest crossings with `context`,
+ * then least excursion, fewest bends, shortest) wins.
+ */
+function pickBestRoute(
+  geom: RoutingGeometry,
+  e: { id: string; source: string; target: string },
+  arc: { start: Pt; end: Pt },
+  context: Pt[][]
+): Pt[] {
+  const s = geom.boxById.get(e.source)!;
+  const t = geom.boxById.get(e.target)!;
+  const si = geom.colIndexOf.get(e.source) ?? 0;
+  const ti = geom.colIndexOf.get(e.target) ?? 0;
+  const start = arc.start;
+  const end = arc.end;
+  const dy = end.y - start.y;
+  const candidates: CandidateRoute[] = [];
+
+  // Straight: the start lane must hit the target's arc and stay clear of every
+  // node box in the columns the run crosses.
+  const laneOnArc = Math.abs(start.y - t.ball.cy) <= t.ball.r * 0.95;
+  const startLaneClear = geom.columns.every((_, colIdx) => {
+    if (colIdx <= si || colIdx >= ti) return true;
+    return isLaneSafeForColumn(geom, colIdx, start.y);
+  });
+  if (Math.abs(dy) < EPS || (laneOnArc && startLaneClear)) {
+    const snappedEnd = pointOnLeftArc(t.ball.cx, t.ball.cy, t.ball.r, start.y - t.ball.cy);
+    candidates.push({ points: [start, snappedEnd], penalty: 0 });
+  }
+
+  // Direct single diagonal for adjacent columns
+  const win0 = geom.windows[si];
+  const lastWin = geom.windows[ti - 1]?.width ?? 0;
+  if (ti === si + 1 && win0 && Math.abs(dy) <= win0.width && Math.abs(dy) >= EPS) {
+    const d = Math.abs(dy);
+    let diagStartX = end.x - STUB_IN - d;
+    if (diagStartX < start.x + STUB_OUT) diagStartX = start.x + STUB_OUT;
+    candidates.push({
+      points: [start, { x: diagStartX, y: start.y }, { x: diagStartX + d, y: end.y }, end],
+      penalty: 0,
+    });
+  }
+
+  // Corridor lane candidates. Multi-column edges require the lane to be safe in
+  // every crossed column; adjacent edges require both diagonals to fit into the
+  // single window. The dip candidate lets an edge join a corridor bus to avoid
+  // crossing it.
+  const dir = Math.sign(dy) || 1;
+  const lo = Math.min(start.y, end.y);
+  const hi = Math.max(start.y, end.y);
+  const firstWin = win0?.width ?? 0;
+  let feasible: Array<[number, number]> = [[-Infinity, Infinity]];
+  for (let c = si + 1; c < ti; c++) {
+    feasible = intersectIntervals(feasible, safeIntervals(geom, c));
+    if (!feasible.length) break;
+  }
+  if (feasible.length) {
+    const scanFrom = snapLane(lo - lastWin);
+    const scanTo = snapLane(hi + firstWin);
+    for (let lane = scanFrom; lane <= scanTo + EPS; lane += LANE_GRID) {
+      if (!laneInIntervalsList(feasible, lane)) continue;
+      const d1 = Math.abs(lane - start.y);
+      const d2 = Math.abs(end.y - lane);
+      if (d1 < MIN_BEND || (d2 < MIN_BEND && d2 > EPS)) continue;
+      if (ti === si + 1) {
+        if (d1 + d2 > firstWin) continue;
+      } else if (d1 > firstWin || d2 > lastWin) {
+        continue;
+      }
+      const beyond = dir > 0 ? Math.max(0, lane - (t.y + t.height)) : Math.max(0, t.y - lane);
+      const back = Math.sign(lane - start.y) === -dir ? Math.abs(lane - start.y) : 0;
+      candidates.push({
+        points: sweepRoute(geom, si, ti, start, end, lane),
+        penalty: BEYOND_COST * (beyond + back),
+      });
+    }
+  }
+
+  // Staircase fallback for multi-column edges
+  if (ti - si >= 2) candidates.push({ points: forwardRoute(geom, si, ti, start, end), penalty: 0 });
+
+  let best: Pt[] | null = null;
+  let bestScore = Infinity;
+  for (const candidate of candidates) {
+    const score =
+      CROSSING_COST * countCrossings(candidate.points, context) +
+      candidate.penalty +
+      BEND_COST * countDiagonals(candidate.points) +
+      polylineLength(candidate.points);
+    if (score < bestScore) {
+      bestScore = score;
+      best = candidate.points;
+    }
+  }
+  return best ?? forwardRoute(geom, si, ti, start, end);
 }
 
 /**
