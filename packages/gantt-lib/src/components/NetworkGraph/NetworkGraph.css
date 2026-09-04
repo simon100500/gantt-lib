@@ -1,4 +1,4 @@
-/* Сетевой график (прототип): минимализм, шарики-работы, связи под 45° */
+/* Сетевой график (прототип): минимализм, шарики-работы, прямые связи */
 
 .network-graph {
   position: relative;
@@ -40,7 +40,7 @@
 .network-graph-edge {
   fill: none;
   stroke: var(--network-graph-edge-color, #64748b);
-  stroke-width: 1.4;
+  stroke-width: 1.25;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

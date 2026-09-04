@@ -73,4 +73,13 @@ describe('network graph layout (demo data)', () => {
     const q = routeQuality(routed.map(r => r.points));
     expect(q.crossings).toBe(0);
   });
+
+  it('renders every demo edge without intermediate bends', async () => {
+    const layout = await computeNetworkLayout(NODES, EDGES);
+    expect(layout.edges).toHaveLength(EDGES.length);
+    for (const edge of layout.edges) {
+      expect(edge.d).toMatch(/^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/);
+      expect(edge.d).not.toMatch(/[CQHV]/);
+    }
+  });
 });

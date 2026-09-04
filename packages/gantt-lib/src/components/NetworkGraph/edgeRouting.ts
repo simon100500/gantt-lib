@@ -48,6 +48,16 @@ export interface RoutedEdge {
   fallback: boolean;
 }
 
+export interface RoutedConnectionEdge {
+  id: string;
+  source: string;
+  target: string;
+  /** Один прямой участок между точками на окружностях. */
+  d: string;
+  start: Pt;
+  end: Pt;
+}
+
 export interface Pt {
   x: number;
   y: number;
@@ -64,6 +74,8 @@ const STUB_IN = 14; // horizontal stub before entering the target ball
 const LANE_GRID = 26;
 const MIN_BEND = 16; // never draw a diagonal shorter than this (anti-kink)
 const EPS = 0.5;
+/** Не уводим веер к верхней и нижней точкам круга: там стрелки теряют направление. */
+const DIRECT_FAN_ARC = 0.72;
 
 export function buildRoutingGeometry(boxes: NetworkGraphNodeBox[]): RoutingGeometry {
   const boxById = new Map(boxes.map(b => [b.id, b]));
@@ -140,6 +152,104 @@ function pointOnRightArc(cx: number, cy: number, r: number, dy: number): Pt {
 function pointOnLeftArc(cx: number, cy: number, r: number, dy: number): Pt {
   const clamped = Math.min(Math.abs(dy), r * 0.95);
   return { x: cx - Math.sqrt(r * r - clamped * clamped), y: cy + Math.sign(dy || 1) * clamped };
+}
+
+function pointOnHorizontalArc(
+  ball: NetworkGraphNodeBox['ball'],
+  side: -1 | 1,
+  dy: number
+): Pt {
+  const maxOffset = ball.r * DIRECT_FAN_ARC;
+  const offset = Math.max(-maxOffset, Math.min(maxOffset, dy));
+  const x = Math.sqrt(Math.max(0, ball.r * ball.r - offset * offset));
+  return { x: ball.cx + side * x, y: ball.cy + offset };
+}
+
+function directSlotOffset(slot: number, count: number, r: number): number {
+  if (count <= 1) return 0;
+  const spread = r * DIRECT_FAN_ARC;
+  return -spread + (slot / (count - 1)) * spread * 2;
+}
+
+function groupEdges(
+  edges: { id: string; source: string; target: string }[],
+  key: 'source' | 'target'
+): Map<string, { id: string; source: string; target: string }[]> {
+  const groups = new Map<string, { id: string; source: string; target: string }[]>();
+  for (const edge of edges) {
+    const id = edge[key];
+    const group = groups.get(id) ?? [];
+    group.push(edge);
+    groups.set(id, group);
+  }
+  return groups;
+}
+
+/** Один прямой SVG-сегмент между двумя точками дуг. */
+export function directLinePath(start: Pt, end: Pt): string {
+  if (Math.hypot(end.x - start.x, end.y - start.y) < EPS) {
+    return `M ${round(start.x)} ${round(start.y)}`;
+  }
+  return `M ${round(start.x)} ${round(start.y)} L ${round(end.x)} ${round(end.y)}`;
+}
+
+/**
+ * Простая маршрутизация для сетевого графика: одна кривая на ребро.
+ * Веера сортируются по положению противоположной вершины и занимают разные
+ * точки дуги — порядок связей читается уже на выходе из круга.
+ */
+export function routeDirectConnections(
+  geom: RoutingGeometry,
+  edges: { id: string; source: string; target: string }[]
+): RoutedConnectionEdge[] {
+  const valid = edges.filter(e => geom.boxById.has(e.source) && geom.boxById.has(e.target));
+  const outSlots = new Map<string, number>();
+  const inSlots = new Map<string, number>();
+  const outTotals = new Map<string, number>();
+  const inTotals = new Map<string, number>();
+
+  for (const [source, group] of groupEdges(valid, 'source')) {
+    group.sort((a, b) => {
+      const ta = geom.boxById.get(a.target)!.ball;
+      const tb = geom.boxById.get(b.target)!.ball;
+      return ta.cy - tb.cy || ta.cx - tb.cx || a.id.localeCompare(b.id);
+    });
+    outTotals.set(source, group.length);
+    group.forEach((edge, index) => outSlots.set(edge.id, index));
+  }
+  for (const [target, group] of groupEdges(valid, 'target')) {
+    group.sort((a, b) => {
+      const sa = geom.boxById.get(a.source)!.ball;
+      const sb = geom.boxById.get(b.source)!.ball;
+      return sa.cy - sb.cy || sa.cx - sb.cx || a.id.localeCompare(b.id);
+    });
+    inTotals.set(target, group.length);
+    group.forEach((edge, index) => inSlots.set(edge.id, index));
+  }
+
+  return valid.map(edge => {
+    const source = geom.boxById.get(edge.source)!;
+    const target = geom.boxById.get(edge.target)!;
+    const direction: -1 | 1 = target.ball.cx >= source.ball.cx ? 1 : -1;
+    const startOffset = directSlotOffset(
+      outSlots.get(edge.id) ?? 0,
+      outTotals.get(edge.source) ?? 1,
+      source.ball.r
+    );
+    const endOffset = directSlotOffset(
+      inSlots.get(edge.id) ?? 0,
+      inTotals.get(edge.target) ?? 1,
+      target.ball.r
+    );
+    const start = pointOnHorizontalArc(source.ball, direction, startOffset);
+    const end = pointOnHorizontalArc(target.ball, direction === 1 ? -1 : 1, endOffset);
+    return {
+      ...edge,
+      start,
+      end,
+      d: directLinePath(start, end),
+    };
+  });
 }
 
 function snapLane(v: number): number {
@@ -583,7 +693,7 @@ export function routeEdges(
   {
     const done: Pt[][] = [];
     for (const e of ordered) {
-      const points = pickBestRoute(geom, e, arcs.get(e.id)!, done);
+      const points = simplifyPolyline(pickBestRoute(geom, e, arcs.get(e.id)!, done));
       done.push(points);
       routed.set(e.id, { ...e, points, fallback: false });
     }
@@ -595,7 +705,7 @@ export function routeEdges(
     let changed = false;
     for (const e of ordered) {
       const others = ordered.filter(o => o.id !== e.id).map(o => routed.get(o.id)!.points);
-      const best = pickBestRoute(geom, e, arcs.get(e.id)!, others);
+      const best = simplifyPolyline(pickBestRoute(geom, e, arcs.get(e.id)!, others));
       const edge = routed.get(e.id)!;
       if (polylineToPath(best) !== polylineToPath(edge.points)) {
         edge.points = best;
@@ -610,7 +720,7 @@ export function routeEdges(
     if (routed.has(e.id)) continue;
     const s = geom.boxById.get(e.source)!;
     const t = geom.boxById.get(e.target)!;
-    routed.set(e.id, { ...e, points: fallbackRoute(s.ball, t.ball), fallback: true });
+    routed.set(e.id, { ...e, points: simplifyPolyline(fallbackRoute(s.ball, t.ball)), fallback: true });
   }
 
   return valid.map(e => routed.get(e.id)!);
@@ -696,14 +806,45 @@ function segHitsRect(p1: Pt, p2: Pt, box: NetworkGraphNodeBox, clearance: number
   return false;
 }
 
-/** Маршрут задевает чужие боксы (с запасом 6px)? */
+/** Маршрут задевает чужие боксы (с заметным визуальным запасом)? */
 function routeHitsBox(points: Pt[], foreign: NetworkGraphNodeBox[]): boolean {
   for (let i = 1; i < points.length; i++) {
     for (const b of foreign) {
-      if (segHitsRect(points[i - 1], points[i], b, 6)) return true;
+      if (segHitsRect(points[i - 1], points[i], b, 12)) return true;
     }
   }
   return false;
+}
+
+/** Убирает дубли и промежуточные точки на одной прямой перед рисованием. */
+function simplifyPolyline(points: Pt[]): Pt[] {
+  const compact: Pt[] = [];
+  for (const point of points) {
+    const previous = compact[compact.length - 1];
+    if (!previous || Math.hypot(point.x - previous.x, point.y - previous.y) > EPS) {
+      compact.push({ ...point });
+    }
+  }
+
+  let changed = true;
+  while (changed && compact.length > 2) {
+    changed = false;
+    for (let i = 1; i < compact.length - 1; i++) {
+      const a = compact[i - 1];
+      const b = compact[i];
+      const c = compact[i + 1];
+      const ab = { x: b.x - a.x, y: b.y - a.y };
+      const bc = { x: c.x - b.x, y: c.y - b.y };
+      const cross = ab.x * bc.y - ab.y * bc.x;
+      const dot = ab.x * bc.x + ab.y * bc.y;
+      if (Math.abs(cross) <= EPS && dot >= -EPS) {
+        compact.splice(i, 1);
+        changed = true;
+        break;
+      }
+    }
+  }
+  return compact;
 }
 
 /**
@@ -811,8 +952,8 @@ function pickBestRoute(
 
 /**
  * Forward routing staircase for multi-row edges without a reachable sweep lane.
- * The edge bends only where it must — each bend lands on a grid-aligned safe
- * corridor lane and is at least MIN_BEND tall (no kinks).
+ * The edge bends only where it must — each bend lands on a safe corridor lane
+ * and is at least MIN_BEND tall (no kinks).
  */
 function forwardRoute(geom: RoutingGeometry, colFrom: number, colTo: number, start: Pt, end: Pt): Pt[] {
   const pts: Pt[] = [{ ...start }];
@@ -912,10 +1053,11 @@ export function chamferPolyline(pts: Pt[], radius = 10): Pt[] {
 }
 
 export function polylineToPath(pts: Pt[]): string {
-  if (pts.length === 0) return '';
+  const clean = simplifyPolyline(pts);
+  if (clean.length === 0) return '';
   return (
-    `M ${round(pts[0].x)} ${round(pts[0].y)} ` +
-    pts.slice(1).map(p => `L ${round(p.x)} ${round(p.y)}`).join(' ')
+    `M ${round(clean[0].x)} ${round(clean[0].y)} ` +
+    clean.slice(1).map(p => `L ${round(p.x)} ${round(p.y)}`).join(' ')
   );
 }
 
@@ -927,14 +1069,15 @@ export function polylineToPath(pts: Pt[]): string {
  * связи на отдельных полосах). Концы остаются точными, чтобы стрелка
  * сохраняла направление.
  */
-export function polylineToCurvePath(pts: Pt[], radius = 24): string {
-  if (pts.length === 0) return '';
-  if (pts.length < 3) return polylineToPath(pts); // без внутренних изломов — прямая
-  let d = `M ${round(pts[0].x)} ${round(pts[0].y)}`;
-  for (let i = 1; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
+export function polylineToCurvePath(pts: Pt[], radius = 10): string {
+  const clean = simplifyPolyline(pts);
+  if (clean.length === 0) return '';
+  if (clean.length < 3) return polylineToPath(clean); // без внутренних изломов — прямая
+  let d = `M ${round(clean[0].x)} ${round(clean[0].y)}`;
+  for (let i = 1; i < clean.length - 1; i++) {
+    const p0 = clean[i - 1];
+    const p1 = clean[i];
+    const p2 = clean[i + 1];
     const inLen = Math.hypot(p1.x - p0.x, p1.y - p0.y);
     const outLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
     if (inLen < EPS || outLen < EPS) {
@@ -950,7 +1093,7 @@ export function polylineToCurvePath(pts: Pt[], radius = 24): string {
       ` L ${round(p1.x - inX * r)} ${round(p1.y - inY * r)}` +
       ` Q ${round(p1.x)} ${round(p1.y)} ${round(p1.x + outX * r)} ${round(p1.y + outY * r)}`;
   }
-  const last = pts[pts.length - 1];
+  const last = clean[clean.length - 1];
   d += ` L ${round(last.x)} ${round(last.y)}`;
   return d;
 }

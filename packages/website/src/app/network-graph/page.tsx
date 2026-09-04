@@ -18,7 +18,7 @@ export default function NetworkGraphPage() {
         <h1>Сетевой график (прототип)</h1>
         <p>
           Реальный проект: <strong>{NETWORK_NODES.length} работ, {NETWORK_EDGES.length} связей</strong>.
-          Плавные кривые, позиционирование elkjs layered слева направо.
+          Прямые связи, позиционирование elkjs layered слева направо.
         </p>
         <p style={{ color: "#6b7280", fontSize: 13 }}>{hint}</p>
       </header>

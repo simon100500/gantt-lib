@@ -5,7 +5,7 @@ import type {
   NetworkGraphNode,
   NetworkGraphNodeBox,
 } from './types';
-import { buildRoutingGeometry, polylineToCurvePath, requiredWindows, routeEdges } from './edgeRouting';
+import { buildRoutingGeometry, requiredWindows, routeDirectConnections } from './edgeRouting';
 
 /** Габаритный бокс вершины (шарик сверху + подпись снизу) */
 export const NODE_WIDTH = 152;
@@ -16,7 +16,7 @@ export const BALL_OFFSET_Y = 26;
 /** Первая строка подписи относительно верха бокса и шаг строк — используются при рендере */
 export const LABEL_TOP = 52;
 export const LABEL_LINE_HEIGHT = 12;
-const LABEL_MAX_LINES = 2;
+const LABEL_BOTTOM_PADDING = 8;
 const LABEL_MAX_CHARS = 22;
 
 /** Минимальный зазор между вершинами одного слоя. Это не координатная сетка:
@@ -42,26 +42,39 @@ const LAYOUT_OPTIONS = {
   'elk.layered.spacing.edgeNodeBetweenLayers': '16',
 };
 
-/** Разбиение подписи на строки фиксированной ширины (без измерений DOM) */
+/**
+ * Разбиение подписи на строки фиксированной ширины (без измерений DOM).
+ * Количество строк не ограничивается: подпись — это данные и не должна
+ * превращаться в «…» только из-за размера вершины.
+ */
 export function wrapLabel(label: string): string[] {
-  const words = label.split(/\s+/).filter(Boolean);
+  const words = label.trim().split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let current = '';
   for (const word of words) {
-    if (!current) {
-      current = word;
-    } else if (current.length + 1 + word.length <= LABEL_MAX_CHARS) {
-      current += ` ${word}`;
-    } else if (lines.length === LABEL_MAX_LINES - 1) {
-      current = current.slice(0, LABEL_MAX_CHARS - 1) + '…';
-      break;
-    } else {
+    if (current && current.length + 1 + word.length > LABEL_MAX_CHARS) {
       lines.push(current);
-      current = word;
+      current = '';
+    }
+
+    let remaining = word;
+    while (remaining.length > LABEL_MAX_CHARS) {
+      lines.push(remaining.slice(0, LABEL_MAX_CHARS));
+      remaining = remaining.slice(LABEL_MAX_CHARS);
+    }
+
+    if (!current) {
+      current = remaining;
+    } else if (remaining) {
+      current += ` ${remaining}`;
     }
   }
-  if (lines.length < LABEL_MAX_LINES && current) lines.push(current);
+  if (current) lines.push(current);
   return lines;
+}
+
+function boxHeightForLabel(labelLines: string[]): number {
+  return Math.max(NODE_HEIGHT, LABEL_TOP + labelLines.length * LABEL_LINE_HEIGHT + LABEL_BOTTOM_PADDING);
 }
 
 interface PreparedEdge {
@@ -204,8 +217,8 @@ function toTime(value: string | Date | undefined): number | null {
 
 
 /**
- * Positioning of the graph (left to right) via elkjs layered, row alignment
- * (верхний ряд — одна линия) and per-gap column compression.
+ * Positioning of the graph (left to right) via elkjs layered placement and
+ * per-gap column compression.
  * Pure data-in/data-out: no DOM.
  */
 export async function computeNetworkLayout(
@@ -218,19 +231,20 @@ export async function computeNetworkLayout(
   );
   const prepared = prepareEdges(cleanEdges);
 
+  const preparedNodes = nodes.map(n => ({ ...n, labelLines: wrapLabel(n.label) }));
   const elk = new ELK();
   const result = await elk.layout({
     id: 'root',
     layoutOptions: LAYOUT_OPTIONS,
-    children: nodes.map(n => ({
+    children: preparedNodes.map(n => ({
       id: n.id,
       width: NODE_WIDTH,
-      height: NODE_HEIGHT,
+      height: boxHeightForLabel(n.labelLines),
     })),
     edges: prepared.map(e => ({ id: e.id, sources: [e.source], targets: [e.target] })),
   });
 
-  const boxes: NetworkGraphNodeBox[] = nodes.map((n, i) => {
+  const boxes: NetworkGraphNodeBox[] = preparedNodes.map((n, i) => {
     const child = result.children?.find(c => c.id === n.id);
     const x = child?.x ?? i * (NODE_WIDTH + 250);
     const y = child?.y ?? i * NODE_HEIGHT;
@@ -240,9 +254,9 @@ export async function computeNetworkLayout(
       x,
       y,
       width: NODE_WIDTH,
-      height: NODE_HEIGHT,
+      height: boxHeightForLabel(n.labelLines),
       ball: { cx: x + NODE_WIDTH / 2, cy: y + BALL_OFFSET_Y, r: BALL_RADIUS },
-      labelLines: wrapLabel(n.label),
+      labelLines: n.labelLines,
     };
   });
 
@@ -252,7 +266,7 @@ export async function computeNetworkLayout(
   const compact = compactColumns(placed, prepared, nodes);
 
   const geometry = buildRoutingGeometry(compact);
-  const routed = routeEdges(geometry, prepared);
+  const routed = routeDirectConnections(geometry, prepared);
 
   const width = Math.max(0, ...compact.map(b => b.x + b.width));
   const height = Math.max(0, ...compact.map(b => b.y + b.height));
@@ -263,7 +277,7 @@ export async function computeNetworkLayout(
       id: r.id,
       source: r.source,
       target: r.target,
-      d: polylineToCurvePath(r.points),
+      d: r.d,
     })),
     width,
     height,

@@ -39,7 +39,7 @@ export interface NetworkGraphEdgePath {
   id: string;
   source: string;
   target: string;
-  /** SVG path с изломами под 45° */
+  /** SVG path одного прямого соединения между окружностями */
   d: string;
 }
 

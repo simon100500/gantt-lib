@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildRoutingGeometry, polylineToPath, routeEdges } from '../components/NetworkGraph/edgeRouting';
+import {
+  buildRoutingGeometry,
+  polylineToPath,
+  routeDirectConnections,
+  routeEdges,
+} from '../components/NetworkGraph/edgeRouting';
 import { BALL_OFFSET_Y, BALL_RADIUS, NODE_HEIGHT, NODE_WIDTH, wrapLabel } from '../components/NetworkGraph/layout';
 import type { NetworkGraphNodeBox } from '../components/NetworkGraph/types';
 
@@ -185,6 +190,46 @@ describe('routeEdges', () => {
   });
 });
 
+describe('routeDirectConnections', () => {
+  const curves = routeDirectConnections(geometry, [
+    { id: 'upper-out', source: 'a1', target: 'b1' },
+    { id: 'lower-out', source: 'a1', target: 'b2' },
+    { id: 'lower-in', source: 'a2', target: 'b1' },
+  ]);
+
+  it('draws every connection as one straight segment', () => {
+    expect(curves).toHaveLength(3);
+    for (const edge of curves) {
+      expect(edge.d).toMatch(/^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/);
+      expect(edge.d).not.toMatch(/[CQHV]/);
+    }
+  });
+
+  it('attaches curves to the circle arcs', () => {
+    for (const edge of curves) {
+      const source = geometry.boxById.get(edge.source)!.ball;
+      const target = geometry.boxById.get(edge.target)!.ball;
+      expect(Math.hypot(edge.start.x - source.cx, edge.start.y - source.cy)).toBeCloseTo(source.r, 5);
+      expect(Math.hypot(edge.end.x - target.cx, edge.end.y - target.cy)).toBeCloseTo(target.r, 5);
+    }
+  });
+
+  it('orders fan anchors by the opposite node position', () => {
+    const upperOut = curves.find(edge => edge.id === 'upper-out')!;
+    const lowerOut = curves.find(edge => edge.id === 'lower-out')!;
+    const lowerIn = curves.find(edge => edge.id === 'lower-in')!;
+    expect(upperOut.start.y).toBeLessThan(lowerOut.start.y);
+    expect(upperOut.end.y).toBeLessThan(lowerIn.end.y);
+  });
+
+  it('keeps an isolated same-row connection straight', () => {
+    const [edge] = routeDirectConnections(geometry, [
+      { id: 'same-row', source: 'a1', target: 'b1' },
+    ]);
+    expect(edge.d).toMatch(/^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/);
+  });
+});
+
 describe('wrapLabel', () => {
   it('wraps long labels into several lines', () => {
     const lines = wrapLabel('Электромонтажные работы I');
@@ -194,5 +239,17 @@ describe('wrapLabel', () => {
 
   it('keeps short labels on one line', () => {
     expect(wrapLabel('Наладка')).toEqual(['Наладка']);
+  });
+
+  it('keeps the complete label without an ellipsis', () => {
+    const label = 'Очень длинное название работы без сокращения';
+    const lines = wrapLabel(label);
+    expect(lines.join(' ')).toBe(label);
+    expect(lines.join('')).not.toContain('…');
+  });
+
+  it('breaks an overlong word without dropping characters', () => {
+    const label = 'Сверхдлинноесловобезпробелов';
+    expect(wrapLabel(label).join('')).toBe(label);
   });
 });
