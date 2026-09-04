@@ -243,9 +243,10 @@ function sweepLane(
   ti: number,
   startY: number,
   endY: number,
-  target: NetworkGraphNodeBox
+  target: NetworkGraphNodeBox,
+  forcedDir?: number
 ): number | null {
-  const dir = Math.sign(endY - startY) || 1;
+  const dir = forcedDir || Math.sign(endY - startY) || 1;
   let feasible: Array<[number, number]> = [[-Infinity, Infinity]];
   for (let c = si + 1; c < ti; c++) {
     feasible = intersectIntervals(feasible, safeIntervals(geom, c));
@@ -366,7 +367,17 @@ export function routeEdges(
     const ti = geom.colIndexOf.get(e.target) ?? 0;
     let wp = t.ball.cy;
     if (ti - si >= 2) {
-      const lane = sweepLane(geom, si, ti, s.ball.cy, t.ball.cy, t);
+      const down = sweepLane(geom, si, ti, s.ball.cy, t.ball.cy, t, 1);
+      // цель в том же ряду — обходить можно с обеих сторон; для вложенного
+      // веера берём ближнюю, чтобы порядок выхода соответствовал ходу
+      const sameRow = Math.abs(t.ball.cy - s.ball.cy) < 40;
+      const up = sameRow ? sweepLane(geom, si, ti, s.ball.cy, t.ball.cy, t, -1) : null;
+      let lane: number | null = down;
+      if (down !== null && up !== null) {
+        lane = Math.abs(up - s.ball.cy) <= Math.abs(down - s.ball.cy) ? up : down;
+      } else {
+        lane = down ?? up;
+      }
       if (lane !== null) wp = lane;
     }
     waypoint.set(e.id, wp);
@@ -379,12 +390,25 @@ export function routeEdges(
     const sortedOut = [...valid].sort((a, b) => {
       const sa = geom.boxById.get(a.source)!;
       const sb = geom.boxById.get(b.source)!;
-      return sa.ball.cx - sb.ball.cx || (waypoint.get(a.id) ?? 0) - (waypoint.get(b.id) ?? 0);
+      const ta = geom.boxById.get(a.target)!;
+      const tb = geom.boxById.get(b.target)!;
+      // при равных точках маршрута веер вкладывается по направлению хода
+      return (
+        sa.ball.cx - sb.ball.cx ||
+        (waypoint.get(a.id) ?? 0) - (waypoint.get(b.id) ?? 0) ||
+        ta.ball.cy - tb.ball.cy
+      );
     });
     const sortedIn = [...valid].sort((a, b) => {
       const ta = geom.boxById.get(a.target)!;
       const tb = geom.boxById.get(b.target)!;
-      return ta.ball.cx - tb.ball.cx || (waypoint.get(a.id) ?? 0) - (waypoint.get(b.id) ?? 0);
+      const sa = geom.boxById.get(a.source)!;
+      const sb = geom.boxById.get(b.source)!;
+      return (
+        ta.ball.cx - tb.ball.cx ||
+        (waypoint.get(a.id) ?? 0) - (waypoint.get(b.id) ?? 0) ||
+        sa.ball.cy - sb.ball.cy
+      );
     });
     const outCount = new Map<string, number>();
     const inCount = new Map<string, number>();

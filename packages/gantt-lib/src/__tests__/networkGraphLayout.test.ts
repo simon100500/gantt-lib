@@ -39,11 +39,17 @@ const EDGES: NetworkGraphEdge[] = [
 ];
 
 describe('network graph layout (demo data)', () => {
-  it('sinks the long-edge target (Благоустройство) into the deepest row', async () => {
+  it('aligns the top row into one straight line and starts there', async () => {
     const layout = await computeNetworkLayout(NODES, EDGES);
-    const blg = layout.nodes.find(n => n.id === 'blg')!;
-    const deepest = Math.max(...layout.nodes.map(n => n.y));
-    expect(blg.y).toBe(deepest);
+    const minY = Math.min(...layout.nodes.map(n => n.y));
+    const topRow = layout.nodes.filter(n => n.y - minY <= 1);
+    // стартовый блок (z1) — в верхнем ряду, и верхний ряд выровнен в одну линию
+    expect(topRow.some(n => n.id === 'z1')).toBe(true);
+    expect(new Set(topRow.map(n => n.y)).size).toBe(1);
+    // стартовый блок — в верхней половине графа (поток сверху вниз вправо)
+    const maxY = Math.max(...layout.nodes.map(n => n.y));
+    const z1 = layout.nodes.find(n => n.id === 'z1')!;
+    expect(z1.y).toBeLessThanOrEqual(maxY / 2);
   });
 
   it('routes the demo graph with zero crossings', async () => {
