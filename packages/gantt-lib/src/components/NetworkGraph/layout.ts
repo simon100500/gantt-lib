@@ -5,7 +5,7 @@ import type {
   NetworkGraphNode,
   NetworkGraphNodeBox,
 } from './types';
-import { buildRoutingGeometry, polylineToPath, requiredWindows, routeEdges } from './edgeRouting';
+import { buildRoutingGeometry, polylineToCurvePath, requiredWindows, routeEdges } from './edgeRouting';
 
 /** Габаритный бокс вершины (шарик сверху + подпись снизу) */
 export const NODE_WIDTH = 152;
@@ -183,7 +183,7 @@ export async function computeNetworkLayout(
       id: r.id,
       source: r.source,
       target: r.target,
-      d: polylineToPath(r.points),
+      d: polylineToCurvePath(r.points),
     })),
     width,
     height,

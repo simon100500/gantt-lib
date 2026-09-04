@@ -908,6 +908,42 @@ export function polylineToPath(pts: Pt[]): string {
   );
 }
 
+/**
+ * Плавный («curved») вариант polylineToPath: прямые участки между точками
+ * маршрута сохраняются, а каждый внутренний излом скругляется квадратичной
+ * кривой Безье. Получается мягкая непрерывная кривая, которая по-прежнему
+ * следует полосовой маршрутизации (не задевает боксы и держит параллельные
+ * связи на отдельных полосах). Концы остаются точными, чтобы стрелка
+ * сохраняла направление.
+ */
+export function polylineToCurvePath(pts: Pt[], radius = 24): string {
+  if (pts.length === 0) return '';
+  if (pts.length < 3) return polylineToPath(pts); // без внутренних изломов — прямая
+  let d = `M ${round(pts[0].x)} ${round(pts[0].y)}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const inLen = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+    const outLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    if (inLen < EPS || outLen < EPS) {
+      d += ` L ${round(p1.x)} ${round(p1.y)}`;
+      continue;
+    }
+    const r = Math.min(radius, inLen / 2, outLen / 2);
+    const inX = (p1.x - p0.x) / inLen;
+    const inY = (p1.y - p0.y) / inLen;
+    const outX = (p2.x - p1.x) / outLen;
+    const outY = (p2.y - p1.y) / outLen;
+    d +=
+      ` L ${round(p1.x - inX * r)} ${round(p1.y - inY * r)}` +
+      ` Q ${round(p1.x)} ${round(p1.y)} ${round(p1.x + outX * r)} ${round(p1.y + outY * r)}`;
+  }
+  const last = pts[pts.length - 1];
+  d += ` L ${round(last.x)} ${round(last.y)}`;
+  return d;
+}
+
 function round(v: number): number {
   return Math.round(v * 100) / 100;
 }
