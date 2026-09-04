@@ -2,13 +2,20 @@ import type { NetworkGraphNodeBox } from './types';
 
 /**
  * Routing of edges between "balls" in the reference style of a network diagram:
- * horizontal segments, 45° diagonals, long horizontal runs in corridors between rows.
+ * horizontal runs + 45° diagonals, minimal number of bends.
  *
- * Principles:
- *  - edges exit the ball on the right arc, enter the ball on the left arc (small angular spread so
- *    parallel edges do not merge into one line);
- *  - diagonals live only in the windows between columns of nodes;
- *  - horizontal middle runs live only in corridors between rows, so they never cross nodes.
+ * Global rules (no greedy micro-adjustments — those look like glitches):
+ *  - every horizontal run lives on a lane from a global 13px grid, so parallel
+ *    edges either share the exact lane (bus) or are ≥13px apart — never almost-parallel;
+ *  - a diagonal shorter than MIN_BEND is never drawn: either the lane already
+ *    works, or the edge steps a full grid step away;
+ *  - a run crossing a column stays inside that column's safe band (clear of all
+ *    its node boxes); safe bands are computed per column, so off-grid nodes
+ *    (network-simplex alignment) are handled correctly;
+ *  - the ideal edge is: stub → diagonal to its corridor lane → one long run →
+ *    diagonal into the target → stub (\____/ in the reference style). Extra bends
+ *    appear only for multi-row edges, where each window contributes at most
+ *    its width of vertical travel (a staircase through corridors).
  */
 
 export interface RoutingWindow {
@@ -46,11 +53,13 @@ interface Pt {
 }
 
 const PAD_DIAG = 22; // clearance from node boxes for diagonal windows
-const CORRIDOR_CLEAR = 10; // clearance from rows for horizontal corridor lanes
+const CORRIDOR_CLEAR = 10; // clearance between runs and node boxes
 const MIN_CORRIDOR = 6; // corridor narrower than this is not usable
 const STUB_OUT = 16; // horizontal stub after leaving the source ball
 const STUB_IN = 14; // horizontal stub before entering the target ball
 const SPREAD_FACTOR = 0.36; // max angular spread on the ball arc (fraction of r)
+const LANE_GRID = 13; // all run lanes snapped to this grid
+const MIN_BEND = 16; // never draw a diagonal shorter than this (anti-kink)
 const EPS = 0.5;
 
 export function buildRoutingGeometry(boxes: NetworkGraphNodeBox[]): RoutingGeometry {
@@ -121,10 +130,11 @@ function pointOnLeftArc(cx: number, cy: number, r: number, dy: number): Pt {
   return { x: cx - Math.sqrt(r * r - clamped * clamped), y: cy + Math.sign(dy || 1) * clamped };
 }
 
-/**
- * Safe y-intervals for a horizontal run crossing the given column:
- * everything not occupied by the column's node boxes (plus clearance).
- */
+function snapLane(v: number): number {
+  return Math.round(v / LANE_GRID) * LANE_GRID;
+}
+
+/** Safe y-intervals for a horizontal run crossing the given column */
 function safeIntervals(geom: RoutingGeometry, colIdx: number): Array<[number, number]> {
   const boxes = [...(geom.columnBoxes[colIdx] ?? [])].sort((a, b) => a.y - b.y);
   const intervals: Array<[number, number]> = [];
@@ -137,71 +147,68 @@ function safeIntervals(geom: RoutingGeometry, colIdx: number): Array<[number, nu
   return intervals;
 }
 
-function laneInIntervals(
-  intervals: Array<[number, number]>,
-  lo: number,
-  hi: number,
-  fromY: number
-): number | null {
-  let best: number | null = null;
-  let bestDist = Infinity;
-  for (const [a, b] of intervals) {
-    const ia = Math.max(lo, a);
-    const ib = Math.min(hi, b);
-    if (ib < ia - EPS) continue;
-    const lane = (ia + ib) / 2;
-    const dist = Math.abs(lane - fromY);
-    if (best === null || dist < bestDist) {
-      best = lane;
-      bestDist = dist;
-    }
-  }
-  return best;
-}
-
-/**
- * A horizontal lane is safe for a run crossing column colIdx if it does not
- * pass through any node box of that column.
- */
 function isLaneSafeForColumn(geom: RoutingGeometry, colIdx: number, y: number): boolean {
   return safeIntervals(geom, colIdx).some(([a, b]) => y >= a - EPS && y <= b + EPS);
 }
 
+function bandMidpoint(a: number, b: number): number {
+  const flo = Number.isFinite(a) ? a : b - 1e4;
+  const fhi = Number.isFinite(b) ? b : a + 1e4;
+  return Math.min(fhi - 1, Math.max(flo + 1, snapLane((flo + fhi) / 2)));
+}
+
 /**
- * Pick a lane for the horizontal run that crosses column colIdx.
- * Prefers the current lane (no jog), then a safe lane between fromY and toY,
- * then the nearest safe lane on either side (wide swing around the row).
+ * Lane for the horizontal run that will cross column colIdx.
+ * Returns `from` itself when it is already safe; otherwise a grid lane inside
+ * the safe band nearest to `from` (preferring bands lying towards the target).
+ * The lane is always a full grid step away from `from` (never a 3px nudge).
  */
-function safeRunLane(geom: RoutingGeometry, colIdx: number, fromY: number, toY: number): number | null {
+function corridorLaneFor(geom: RoutingGeometry, colIdx: number, from: number, to: number): number | null {
   const intervals = safeIntervals(geom, colIdx);
-  if (isLaneSafeForColumn(geom, colIdx, fromY)) return fromY;
+  if (!intervals.length) return null;
+  if (isLaneSafeForColumn(geom, colIdx, from)) return from;
 
-  const lo = Math.min(fromY, toY);
-  const hi = Math.max(fromY, toY);
-  const inside = laneInIntervals(
-    intervals.filter(([a, b]) => b >= lo - EPS && a <= hi + EPS),
-    lo,
-    hi,
-    fromY
-  );
-  if (inside !== null) return inside;
+  const lo = Math.min(from, to);
+  const hi = Math.max(from, to);
+  const dir = Math.sign(to - from) || 1;
 
-  // Nothing between the lanes: swing to the nearest safe band on either side
-  let best: number | null = null;
+  let bestBand: [number, number] | null = null;
   let bestCost = Infinity;
-  const dir = Math.sign(toY - fromY) || 1;
   for (const [a, b] of intervals) {
-    const finiteB = Number.isFinite(b) ? b : a + 10000;
-    const finiteA = Number.isFinite(a) ? a : b - 10000;
-    const candidate = Math.abs(finiteA - fromY) <= Math.abs(finiteB - fromY) ? finiteA : finiteB;
-    const toward = Math.sign(candidate - fromY) === dir ? 1 : 3;
-    const cost = Math.abs(candidate - fromY) * toward;
+    const nearest = Math.min(Math.max(from, a), b); // closest point of the band to `from`
+    let cost = Math.abs(nearest - from);
+    if (Math.sign(nearest - from) !== dir) cost *= 3; // going backwards is worse
+    const intersectsSpan = b >= lo - EPS && a <= hi + EPS;
+    if (!intersectsSpan) cost += 1e5; // swing around only if nothing lies between
     if (cost < bestCost) {
       bestCost = cost;
-      best = candidate;
+      bestBand = [a, b];
     }
   }
-  return best;
+  if (!bestBand) return null;
+
+  let [a, b] = bestBand;
+  const intersectsSpan = b >= lo - EPS && a <= hi + EPS;
+  if (intersectsSpan) {
+    a = Math.max(a, lo);
+    b = Math.min(b, hi);
+    if (b - a < LANE_GRID) {
+      // the span barely clips the band — use the band part outside the span instead
+      a = bestBand[0];
+      b = bestBand[1];
+    }
+  }
+  const lane = bandMidpoint(a, b);
+  if (Math.abs(lane - from) < MIN_BEND) {
+    // too close for a meaningful bend: step a full grid step towards the band
+    const nearest = Math.min(Math.max(from, a), b);
+    const stepped = snapLane(from + Math.sign(nearest - from || dir) * MIN_BEND);
+    if (Math.abs(stepped - from) < MIN_BEND || stepped < a - EPS || stepped > b + EPS) {
+      return from; // no meaningful move — keep the current lane
+    }
+    return stepped;
+  }
+  return lane;
 }
 
 /**
@@ -286,53 +293,51 @@ export function routeEdges(
 }
 
 /**
- * Forward routing through column windows and row corridors.
- * start is on the source's right arc, end is on the target's left arc
- * (both approximately horizontal attachment points).
+ * Forward routing. The edge bends only where it must:
+ *  - one bend into a safe corridor lane right after the source,
+ *  - one bend out of it right before the target,
+ *  - intermediate bends only when a multi-row edge staircases through corridors
+ *    (each bend ≥ MIN_BEND, lanes on the global grid — no kinks).
  */
 function forwardRoute(geom: RoutingGeometry, colFrom: number, colTo: number, start: Pt, end: Pt): Pt[] {
   const pts: Pt[] = [{ ...start }];
-  let cur: Pt = { ...start };
+  let curY = start.y;
   let x = start.x + STUB_OUT;
-  pts.push({ x, y: cur.y });
+  pts.push({ x, y: curY });
 
   for (let j = colFrom; j < colTo; j++) {
     const win = geom.windows[j];
     if (!win || win.width <= 0) continue;
 
-    const need = end.y - cur.y;
+    const need = end.y - curY;
     if (Math.abs(need) < EPS) break;
     const dir = Math.sign(need);
-
     const isLast = j === colTo - 1;
-    let d: number;
-    let diagStartX: number;
 
     if (isLast) {
-      // Final diagonal lands exactly on the target's arc lane
-      d = Math.min(Math.abs(need), win.width);
-      diagStartX = end.x - STUB_IN - d;
+      // Final diagonal lands exactly on the target's arc lane (single-window
+      // edges get a single clean 45° diagonal here).
+      const d = Math.min(Math.abs(need), win.width);
+      let diagStartX = end.x - STUB_IN - d;
       if (diagStartX < x) diagStartX = x;
-    } else {
-      // Move to a lane that is safe for the horizontal run crossing column j+1
-      const lane = safeRunLane(geom, j + 1, cur.y, end.y);
-      const targetY = lane !== null ? lane : cur.y + dir * win.width;
-      d = Math.min(Math.abs(targetY - cur.y), win.width);
-      diagStartX = win.x1;
+      pts.push({ x: diagStartX, y: curY });
+      curY += dir * d;
+      pts.push({ x: diagStartX + d, y: curY });
+      x = diagStartX + d;
+      break;
     }
 
-    if (d < EPS) continue;
+    const lane = corridorLaneFor(geom, j + 1, curY, end.y);
+    if (lane === null) continue;
+    const dSigned = lane - curY;
+    if (Math.abs(dSigned) < MIN_BEND) continue; // lane already good — straight run
 
-    if (diagStartX > x + EPS) {
-      // Horizontal run along the current (safe) lane up to the diagonal start
-      pts.push({ x: diagStartX, y: cur.y });
-    } else {
-      diagStartX = x; // no room to run, start the diagonal right away
-    }
-
-    cur = { x: diagStartX + d, y: cur.y + dir * d };
-    pts.push(cur);
-    x = cur.x;
+    const d = Math.min(Math.abs(dSigned), win.width);
+    const diagStartX = Math.max(x, win.x1);
+    pts.push({ x: diagStartX, y: curY });
+    curY += Math.sign(dSigned) * d;
+    pts.push({ x: diagStartX + d, y: curY });
+    x = diagStartX + d;
   }
 
   pts.push({ ...end });

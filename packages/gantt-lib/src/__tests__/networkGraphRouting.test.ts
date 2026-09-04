@@ -4,14 +4,14 @@ import { BALL_OFFSET_Y, BALL_RADIUS, NODE_HEIGHT, NODE_WIDTH, wrapLabel } from '
 import type { NetworkGraphNodeBox } from '../components/NetworkGraph/types';
 
 // 3 columns x 2 rows, same geometry as the production layout produces
-// (column pitch = NODE_WIDTH + 190, row pitch = NODE_HEIGHT + 30)
+// (column pitch = NODE_WIDTH + 230, row pitch = NODE_HEIGHT + 84)
 function makeBoxes(): NetworkGraphNodeBox[] {
   const ids = ['a1', 'b1', 'c1', 'a2', 'b2', 'c2'];
   return ids.map((id, i) => {
     const col = i % 3;
     const row = Math.floor(i / 3);
-    const x = col * (NODE_WIDTH + 190);
-    const y = row * (NODE_HEIGHT + 30);
+    const x = col * (NODE_WIDTH + 230);
+    const y = row * (NODE_HEIGHT + 84);
     return {
       id,
       label: id,
@@ -113,6 +113,25 @@ describe('routeEdges', () => {
           const crossesLane = y > b.y + 1 && y < b.y + b.height - 1;
           const crossesX = x2 > b.x + 1 && x1 < b.x + b.width - 1;
           expect(crossesLane && crossesX, `edge ${edge.id} segment ${i} runs through box ${b.id}`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('never draws tiny kink diagonals (all bends are meaningful)', () => {
+    for (const edge of routed) {
+      for (let i = 1; i < edge.points.length; i++) {
+        const dx = Math.abs(edge.points[i].x - edge.points[i - 1].x);
+        const dy = Math.abs(edge.points[i].y - edge.points[i - 1].y);
+        const isDiagonal = Math.abs(dx - dy) < 0.01;
+        if (isDiagonal) {
+          // a diagonal is either a real bend or the final approach into the ball
+          const isFinalApproach = i === edge.points.length - 1;
+          const isInitialDeparture = i === 2 && edge.points.length > 3;
+          expect(
+            Math.min(dx, dy) >= 16 || isFinalApproach || isInitialDeparture,
+            `edge ${edge.id} segment ${i} is a kink (dx=${dx})`
+          ).toBe(true);
         }
       }
     }

@@ -19,9 +19,11 @@ const LABEL_MAX_CHARS = 22;
 export const LABEL_TOP = 52;
 export const LABEL_LINE_HEIGHT = 12;
 
-/** Шаг колонок/рядов — синхронизирован с шириной окон под диагонали в edgeRouting */
-const SPACING_BETWEEN_LAYERS = 190;
-const SPACING_IN_LAYER = 30;
+/** Шаг колонок/рядов — синхронизирован с шириной окон под диагонали в edgeRouting.
+ *  Межстрочный шаг 84 даёт коридоры высотой ~64px: в них помещается несколько
+ *  полос на сетке 13px для параллельных связей. */
+const SPACING_BETWEEN_LAYERS = 230;
+const SPACING_IN_LAYER = 84;
 
 const LAYOUT_OPTIONS = {
   'elk.algorithm': 'layered',
