@@ -4,13 +4,13 @@ import { BALL_OFFSET_Y, BALL_RADIUS, NODE_HEIGHT, NODE_WIDTH, wrapLabel } from '
 import type { NetworkGraphNodeBox } from '../components/NetworkGraph/types';
 
 // 3 columns x 2 rows, same geometry as the production layout produces
-// (column pitch = NODE_WIDTH + 300, row pitch = NODE_HEIGHT + 40)
+// (column pitch = NODE_WIDTH + 240, row pitch = NODE_HEIGHT + 40)
 function makeBoxes(): NetworkGraphNodeBox[] {
   const ids = ['a1', 'b1', 'c1', 'a2', 'b2', 'c2'];
   return ids.map((id, i) => {
     const col = i % 3;
     const row = Math.floor(i / 3);
-    const x = col * (NODE_WIDTH + 300);
+    const x = col * (NODE_WIDTH + 240);
     const y = row * (NODE_HEIGHT + 40);
     return {
       id,

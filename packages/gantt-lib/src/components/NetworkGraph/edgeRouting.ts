@@ -268,11 +268,63 @@ function sweepLane(
 }
 
 /**
- * Route all edges in two passes:
- *  1. plan each edge's waypoint lane (sweep lane for multi-column edges,
- *     target lane otherwise);
- *  2. assign fan slots by waypoint depth — siblings leave the node nested
- *     (deepest sweep leaves lowest) — then build the polylines.
+ * Scoring weights for candidate routes. Crossings dominate everything, then
+ * "dip past the target row" excursions, then bend count, then raw length.
+ */
+const CROSSING_COST = 10000;
+const BEYOND_COST = 12;
+const BEND_COST = 40;
+
+interface CandidateRoute {
+  points: Pt[];
+  /** заранее посчитанные штрафы: вылет за ряд цели + ход в обратную сторону */
+  penalty: number;
+}
+
+function countDiagonals(pts: Pt[]): number {
+  let count = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = Math.abs(pts[i].x - pts[i - 1].x);
+    const dy = Math.abs(pts[i].y - pts[i - 1].y);
+    if (dy > EPS && Math.abs(dx - dy) < 0.01) count++;
+  }
+  return count;
+}
+
+function polylineLength(pts: Pt[]): number {
+  let len = 0;
+  for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  return len;
+}
+
+function segmentsCross(p1: Pt, p2: Pt, q1: Pt, q2: Pt): boolean {
+  const o1 = Math.sign((p2.y - p1.y) * (q1.x - p2.x) - (p2.x - p1.x) * (q1.y - p2.y));
+  const o2 = Math.sign((p2.y - p1.y) * (q2.x - p2.x) - (p2.x - p1.x) * (q2.y - p2.y));
+  const o3 = Math.sign((q2.y - q1.y) * (p1.x - q2.x) - (q2.x - q1.x) * (p1.y - q2.y));
+  const o4 = Math.sign((q2.y - q1.y) * (p2.x - q2.x) - (q2.x - q1.x) * (p2.y - q2.y));
+  return o1 !== o2 && o3 !== o4 && o1 !== 0 && o3 !== 0;
+}
+
+function countCrossings(points: Pt[], context: Pt[][]): number {
+  let count = 0;
+  for (const other of context) {
+    for (let i = 1; i < points.length; i++) {
+      for (let j = 1; j < other.length; j++) {
+        if (segmentsCross(points[i - 1], points[i], other[j - 1], other[j])) count++;
+      }
+    }
+  }
+  return count;
+}
+
+/**
+ * Route all edges sequentially, choosing the best candidate route for each edge
+ * against the already-routed ones:
+ *  1. plan waypoint lanes (far-side estimates) to order the fan slots nested;
+ *  2. route edges from shortest span to longest; for each edge enumerate
+ *     candidate routes (straight / direct diagonal / corridor lanes / staircase)
+ *     and pick the one with fewest crossings, then least excursion past the
+ *     target row, fewest bends, shortest length.
  */
 export function routeEdges(
   geom: RoutingGeometry,
@@ -280,19 +332,19 @@ export function routeEdges(
 ): RoutedEdge[] {
   const valid = edges.filter(e => geom.boxById.has(e.source) && geom.boxById.has(e.target));
 
-  // Pass 1: waypoint lane per edge
+  // Pass 1: waypoint lane per edge (far-side estimate for multi-column edges)
   const waypoint = new Map<string, number>();
-  const sweep = new Map<string, number>();
   for (const e of valid) {
     const s = geom.boxById.get(e.source)!;
     const t = geom.boxById.get(e.target)!;
     const si = geom.colIndexOf.get(e.source) ?? 0;
     const ti = geom.colIndexOf.get(e.target) ?? 0;
+    let wp = t.ball.cy;
     if (ti - si >= 2) {
       const lane = sweepLane(geom, si, ti, s.ball.cy, t.ball.cy, t);
-      if (lane !== null) sweep.set(e.id, lane);
+      if (lane !== null) wp = lane;
     }
-    waypoint.set(e.id, sweep.get(e.id) ?? t.ball.cy);
+    waypoint.set(e.id, wp);
   }
 
   // Pass 2: fan slots ordered by waypoint depth
@@ -300,18 +352,14 @@ export function routeEdges(
   const inOrder = new Map<string, number>();
   {
     const sortedOut = [...valid].sort((a, b) => {
-      const wa = waypoint.get(a.id) ?? 0;
-      const wb = waypoint.get(b.id) ?? 0;
       const sa = geom.boxById.get(a.source)!;
       const sb = geom.boxById.get(b.source)!;
-      return sa.ball.cx - sb.ball.cx || wa - wb;
+      return sa.ball.cx - sb.ball.cx || (waypoint.get(a.id) ?? 0) - (waypoint.get(b.id) ?? 0);
     });
     const sortedIn = [...valid].sort((a, b) => {
-      const wa = waypoint.get(a.id) ?? 0;
-      const wb = waypoint.get(b.id) ?? 0;
       const ta = geom.boxById.get(a.target)!;
       const tb = geom.boxById.get(b.target)!;
-      return ta.ball.cx - tb.ball.cx || wa - wb;
+      return ta.ball.cx - tb.ball.cx || (waypoint.get(a.id) ?? 0) - (waypoint.get(b.id) ?? 0);
     });
     const outCount = new Map<string, number>();
     const inCount = new Map<string, number>();
@@ -334,47 +382,126 @@ export function routeEdges(
     inTotals.set(e.target, (inTotals.get(e.target) ?? 0) + 1);
   }
 
-  return valid.map(e => {
+  // Arc points per edge (with fan-slot spread)
+  const arcs = new Map<string, { start: Pt; end: Pt }>();
+  for (const e of valid) {
+    const s = geom.boxById.get(e.source)!;
+    const t = geom.boxById.get(e.target)!;
+    const dyOut = slotOffset(outOrder.get(e.id) ?? 0, outTotals.get(e.source) ?? 1, s.ball.r);
+    const dyIn = slotOffset(inOrder.get(e.id) ?? 0, inTotals.get(e.target) ?? 1, t.ball.r);
+    arcs.set(e.id, {
+      start: pointOnRightArc(s.ball.cx, s.ball.cy, s.ball.r, dyOut),
+      end: pointOnLeftArc(t.ball.cx, t.ball.cy, t.ball.r, dyIn),
+    });
+  }
+
+  // Pass 3: sequential crossing-aware selection, shortest spans first
+  const ordered = [...valid]
+    .filter(e => (geom.colIndexOf.get(e.target) ?? 0) > (geom.colIndexOf.get(e.source) ?? 0))
+    .sort((a, b) => {
+      const spanA = (geom.colIndexOf.get(a.target) ?? 0) - (geom.colIndexOf.get(a.source) ?? 0);
+      const spanB = (geom.colIndexOf.get(b.target) ?? 0) - (geom.colIndexOf.get(b.source) ?? 0);
+      return spanA - spanB || (geom.colIndexOf.get(a.source) ?? 0) - (geom.colIndexOf.get(b.source) ?? 0);
+    });
+
+  const context: Pt[][] = [];
+  const routed = new Map<string, RoutedEdge>();
+
+  for (const e of ordered) {
     const s = geom.boxById.get(e.source)!;
     const t = geom.boxById.get(e.target)!;
     const si = geom.colIndexOf.get(e.source) ?? 0;
     const ti = geom.colIndexOf.get(e.target) ?? 0;
+    const { start, end: endArc } = arcs.get(e.id)!;
+    let end = endArc;
 
-    if (ti <= si) {
-      return { ...e, points: fallbackRoute(s.ball, t.ball), fallback: true };
-    }
-
-    const dyOut = slotOffset(outOrder.get(e.id) ?? 0, outTotals.get(e.source) ?? 1, s.ball.r);
-    const dyIn = slotOffset(inOrder.get(e.id) ?? 0, inTotals.get(e.target) ?? 1, t.ball.r);
-
-    const start = pointOnRightArc(s.ball.cx, s.ball.cy, s.ball.r, dyOut);
-    let end = pointOnLeftArc(t.ball.cx, t.ball.cy, t.ball.r, dyIn);
-
-    // Straight lane: the start lane must hit the target's arc and stay clear of
-    // every node box in the columns the run crosses.
+    // Straight: the start lane must hit the target's arc and stay clear of every
+    // node box in the columns the run crosses.
     const dy = end.y - start.y;
     const laneOnArc = Math.abs(start.y - t.ball.cy) <= t.ball.r * 0.95;
     const startLaneClear = geom.columns.every((_, colIdx) => {
-      if (colIdx <= si || colIdx >= ti) return true; // own box remainder / target box remainder
+      if (colIdx <= si || colIdx >= ti) return true;
       return isLaneSafeForColumn(geom, colIdx, start.y);
     });
+
+    const candidates: CandidateRoute[] = [];
     if (Math.abs(dy) < EPS || (laneOnArc && startLaneClear)) {
       end = pointOnLeftArc(t.ball.cx, t.ball.cy, t.ball.r, start.y - t.ball.cy);
-      return { ...e, points: [start, end], fallback: false };
+      candidates.push({ points: [start, end], penalty: 0 });
     }
 
-    // Sweep: multi-column edges take the far-side corridor lane (planned in pass 1)
-    const lane = sweep.get(e.id);
-    if (lane !== null && lane !== undefined) {
-      const firstWin = geom.windows[si]?.width ?? 0;
-      const lastWin = geom.windows[ti - 1]?.width ?? 0;
-      if (Math.abs(lane - start.y) <= firstWin && Math.abs(end.y - lane) <= lastWin) {
-        return { ...e, points: sweepRoute(geom, si, ti, start, end, lane), fallback: false };
+    if (candidates.length === 0) {
+      if (ti === si + 1) {
+        // Adjacent columns: single 45° diagonal when it fits the window
+        const win = geom.windows[si];
+        if (win && Math.abs(dy) <= win.width) {
+          const d = Math.abs(dy);
+          const dir = Math.sign(dy);
+          let diagStartX = end.x - STUB_IN - d;
+          if (diagStartX < start.x + STUB_OUT) diagStartX = start.x + STUB_OUT;
+          candidates.push({
+            points: [start, { x: diagStartX, y: start.y }, { x: diagStartX + d, y: end.y }, end],
+            penalty: 0,
+          });
+        }
+      } else {
+        // Multi-column: corridor lane candidates + greedy staircase fallback
+        let feasible: Array<[number, number]> = [[-Infinity, Infinity]];
+        for (let c = si + 1; c < ti; c++) {
+          feasible = intersectIntervals(feasible, safeIntervals(geom, c));
+        }
+        const firstWin = geom.windows[si]?.width ?? 0;
+        const lastWin = geom.windows[ti - 1]?.width ?? 0;
+        const lo = Math.min(start.y, end.y);
+        const hi = Math.max(start.y, end.y);
+        const dir = Math.sign(dy) || 1;
+        const scanFrom = snapLane(lo - lastWin);
+        const scanTo = snapLane(hi + firstWin);
+        for (let lane = scanFrom; lane <= scanTo + EPS; lane += LANE_GRID) {
+          if (!laneInIntervalsList(feasible, lane)) continue;
+          const d1 = Math.abs(lane - start.y);
+          const d2 = Math.abs(end.y - lane);
+          if (d1 > firstWin || d2 > lastWin) continue;
+          if (d1 < MIN_BEND || (d2 < MIN_BEND && d2 > EPS)) continue;
+          const beyond = dir > 0 ? Math.max(0, lane - (t.y + t.height)) : Math.max(0, t.y - lane);
+          const back = Math.sign(lane - start.y) === -dir ? Math.abs(lane - start.y) : 0;
+          candidates.push({
+            points: sweepRoute(geom, si, ti, start, end, lane),
+            penalty: BEYOND_COST * (beyond + back),
+          });
+        }
+        candidates.push({ points: forwardRoute(geom, si, ti, start, end), penalty: 0 });
       }
     }
 
-    return { ...e, points: forwardRoute(geom, si, ti, start, end), fallback: false };
-  });
+    let best: CandidateRoute | null = null;
+    let bestScore = Infinity;
+    for (const candidate of candidates) {
+      const score =
+        CROSSING_COST * countCrossings(candidate.points, context) +
+        candidate.penalty +
+        BEND_COST * countDiagonals(candidate.points) +
+        polylineLength(candidate.points);
+      if (score < bestScore) {
+        bestScore = score;
+        best = candidate;
+      }
+    }
+
+    const points = best?.points ?? forwardRoute(geom, si, ti, start, end);
+    context.push(points);
+    routed.set(e.id, { ...e, points, fallback: false });
+  }
+
+  // Backwards edges (cycle leftovers in the layered layout)
+  for (const e of valid) {
+    if (routed.has(e.id)) continue;
+    const s = geom.boxById.get(e.source)!;
+    const t = geom.boxById.get(e.target)!;
+    routed.set(e.id, { ...e, points: fallbackRoute(s.ball, t.ball), fallback: true });
+  }
+
+  return valid.map(e => routed.get(e.id)!);
 }
 
 /**

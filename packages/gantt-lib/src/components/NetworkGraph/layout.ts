@@ -20,9 +20,9 @@ export const LABEL_TOP = 52;
 export const LABEL_LINE_HEIGHT = 12;
 
 /** Шаг колонок/рядов — синхронизирован с шириной окон под диагонали в edgeRouting.
- *  Окно между колонками должно вмещать полный спуск «через ряд» (sweep),
- *  а шаг рядов 40 оставляет коридоры под полосы на сетке 13px. */
-const SPACING_BETWEEN_LAYERS = 300;
+ *  Окно 196px вмещает спуск на соседний ряд и свип-полосу под ним,
+ *  шаг рядов 40 оставляет коридоры под полосы на сетке 13px. */
+const SPACING_BETWEEN_LAYERS = 240;
 const SPACING_IN_LAYER = 40;
 
 const LAYOUT_OPTIONS = {
