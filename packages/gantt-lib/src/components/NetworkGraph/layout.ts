@@ -19,9 +19,15 @@ export const LABEL_LINE_HEIGHT = 12;
 const LABEL_MAX_LINES = 2;
 const LABEL_MAX_CHARS = 22;
 
-/** Вертикальный шаг рядов: коридор между рядами 90px вмещает 3 полосы
- *  на сетке 26px (git-graph: каждая линия — своя полоса, без наложений) */
-export const SPACING_IN_LAYER = 90;
+/** Минимальный зазор между вершинами одного слоя. Это не координатная сетка:
+ * ELK сохраняет естественное положение рядов, а значение лишь не даёт боксам
+ * слипаться. */
+export const SPACING_IN_LAYER = 54;
+const MIN_COLUMN_GAP = 34;
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** Мягкий масштаб дат: достаточно заметный, чтобы две работы в одном ELK-
+ * слое не слипались, но всё ещё компактнее полноценной шкалы Ганта. */
+const SCHEDULE_PX_PER_DAY = 4;
 
 const LAYOUT_OPTIONS = {
   'elk.algorithm': 'layered',
@@ -31,7 +37,7 @@ const LAYOUT_OPTIONS = {
   'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
   'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '250',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '180',
   'elk.layered.spacing.nodeNode': String(SPACING_IN_LAYER),
   'elk.layered.spacing.edgeNodeBetweenLayers': '16',
 };
@@ -73,33 +79,22 @@ function relocateBox(box: NetworkGraphNodeBox, y: number): NetworkGraphNodeBox {
 }
 
 /**
- * Выравнивание всех рядов на точную сетку: кластеры верхушек с допуском
- * схлопываются, каждому ряду — точный y = i * ROW_PITCH. Верхний ряд — ровно
- * одна линия, ряды параллельны, коридоры между ними постоянной ширины.
+ * Сохраняем вертикальную работу ELK без насильственного выравнивания в ряды.
+ * Это делает граф менее «табличным»: соседние ветки могут идти на разных
+ * высотах, а маршрутизатор сам ищет свободные коридоры между боксами.
  */
-function alignRows(boxes: NetworkGraphNodeBox[]): NetworkGraphNodeBox[] {
-  const rowPitch = NODE_HEIGHT + SPACING_IN_LAYER;
-  const sorted = [...boxes].sort((a, b) => a.y - b.y);
-  const clusters: { y: number; ids: string[] }[] = [];
-  for (const b of sorted) {
-    const last = clusters[clusters.length - 1];
-    if (last && b.y - last.y <= 45) last.ids.push(b.id);
-    else clusters.push({ y: b.y, ids: [b.id] });
-  }
-  const yById = new Map<string, number>();
-  clusters.forEach((c, i) => {
-    for (const id of c.ids) yById.set(id, i * rowPitch);
-  });
-  return boxes.map(b => relocateBox(b, yById.get(b.id)!));
+function normalizeVerticalPlacement(boxes: NetworkGraphNodeBox[]): NetworkGraphNodeBox[] {
+  const minY = Math.min(...boxes.map(b => b.y), 0);
+  return boxes.map(b => relocateBox(b, Math.max(0, b.y - minY)));
 }
 
 /**
  * Переменный шаг колонок: каждый промежуток сжимается до перепада, который
  * реально нужен связям через него (соседние колонки — свой перепад,
- * много-колоночные лестницы — шаг ряда). Граф становится компактнее по
- * горизонтали без потери 45°-геометрии.
+ * много-колоночные лестницы — небольшой запас). Граф становится компактнее
+ * по горизонтали без потери читаемых обходов.
  */
-function compactColumns(boxes: NetworkGraphNodeBox[], edges: PreparedEdge[]): NetworkGraphNodeBox[] {
+function getColumnIndex(boxes: NetworkGraphNodeBox[]): Map<string, number> {
   const colIndexOf = new Map<string, number>();
   const columns: number[] = [];
   for (const b of [...boxes].sort((a, c) => a.x - c.x)) {
@@ -110,16 +105,101 @@ function compactColumns(boxes: NetworkGraphNodeBox[], edges: PreparedEdge[]): Ne
       colIndexOf.set(b.id, columns.length - 1);
     }
   }
+  return colIndexOf;
+}
+
+function compactColumns(boxes: NetworkGraphNodeBox[], edges: PreparedEdge[], nodes: NetworkGraphNode[]): NetworkGraphNodeBox[] {
+  const colIndexOf = getColumnIndex(boxes);
+  const columnCount = Math.max(1, ...Array.from(colIndexOf.values(), col => col + 1));
   // Ширины окон считает роутер (ему видны перепады и свипы)
   const windows = requiredWindows(boxes, edges);
   // Пересобираем x колонок по фактически нужным промежуткам
   const xs = [0];
   for (let j = 0; j < windows.length; j++) xs.push(xs[j] + NODE_WIDTH + windows[j]);
+
+  const structuralX = new Map<string, number>();
+  for (const b of boxes) structuralX.set(b.id, xs[colIndexOf.get(b.id) ?? 0] ?? 0);
+
+  const datedNodes = nodes
+    .map(n => ({ id: n.id, time: toTime(n.startDate) }))
+    .filter((n): n is { id: string; time: number } => n.time !== null);
+  const times = datedNodes.map(n => n.time);
+  const dateSpan = Math.max(...times, 0) - Math.min(...times, 0);
+  const useSchedule = datedNodes.length >= 2 && dateSpan > 0;
+
+  if (!useSchedule) {
+    return boxes.map(b => {
+      const x = structuralX.get(b.id) ?? 0;
+      return { ...b, x, ball: { ...b.ball, cx: x + NODE_WIDTH / 2 } };
+    });
+  }
+
+  // Сохраняем ширину структурного графа: даты задают порядок и относительное
+  // положение, но не могут раздуть холст до «пиксель-в-день» масштаба.
+  const timeMin = Math.min(...times);
+  const structuralSpan = xs[columnCount - 1] ?? 0;
+  const scheduleSpan = (dateSpan / DAY_MS) * SCHEDULE_PX_PER_DAY;
+  const timeSpan = Math.max(structuralSpan, scheduleSpan);
+  const desiredX = new Map<string, number>();
+  const timeById = new Map(datedNodes.map(n => [n.id, n.time]));
+  for (const b of boxes) {
+    const time = timeById.get(b.id);
+    const x = time === undefined
+      ? structuralX.get(b.id) ?? 0
+      : ((time - timeMin) / dateSpan) * timeSpan;
+    desiredX.set(b.id, x);
+  }
+
+  const xById = new Map(desiredX);
+  const rows = new Map<number, NetworkGraphNodeBox[]>();
+  for (const b of boxes) {
+    const row = Math.round(b.y);
+    const rowBoxes = rows.get(row) ?? [];
+    rowBoxes.push(b);
+    rows.set(row, rowBoxes);
+  }
+
+  // Даты — мягкое ограничение. Сначала сохраняем их положение, затем слегка
+  // двигаем только конфликтующие вершины вправо, чтобы боксы и зависимости не
+  // пересекались. Несколько проходов проталкивают изменение по цепочке.
+  for (let pass = 0; pass < boxes.length; pass++) {
+    let changed = false;
+    for (const edge of edges) {
+      const sourceX = xById.get(edge.source);
+      const targetX = xById.get(edge.target);
+      if (sourceX === undefined || targetX === undefined) continue;
+      const minTargetX = sourceX + NODE_WIDTH + MIN_COLUMN_GAP;
+      if (targetX < minTargetX) {
+        xById.set(edge.target, minTargetX);
+        changed = true;
+      }
+    }
+    for (const rowBoxes of rows.values()) {
+      rowBoxes.sort((a, b) => (xById.get(a.id) ?? 0) - (xById.get(b.id) ?? 0));
+      let right = -Infinity;
+      for (const b of rowBoxes) {
+        const x = xById.get(b.id) ?? 0;
+        const safeX = Math.max(x, right + MIN_COLUMN_GAP);
+        if (safeX !== x) {
+          xById.set(b.id, safeX);
+          changed = true;
+        }
+        right = safeX + NODE_WIDTH;
+      }
+    }
+    if (!changed) break;
+  }
+
   return boxes.map(b => {
-    const col = colIndexOf.get(b.id) ?? 0;
-    const x = xs[col];
+    const x = xById.get(b.id) ?? 0;
     return { ...b, x, ball: { ...b.ball, cx: x + NODE_WIDTH / 2 } };
   });
+}
+
+function toTime(value: string | Date | undefined): number | null {
+  if (value === undefined) return null;
+  const time = value instanceof Date ? value.getTime() : Date.parse(value);
+  return Number.isFinite(time) ? time : null;
 }
 
 
@@ -166,10 +246,10 @@ export async function computeNetworkLayout(
     };
   });
 
-  // Выравниваем все ряды на точную сетку (верхний ряд — одна линия)…
-  const aligned = alignRows(boxes);
-  // …и сжимаем горизонтальные промежутки до реально нужных перепадов
-  const compact = compactColumns(aligned, prepared);
+  // Сохраняем естественную вертикальную раскладку ELK и сжимаем только
+  // горизонтальные промежутки до реально нужных перепадов.
+  const placed = normalizeVerticalPlacement(boxes);
+  const compact = compactColumns(placed, prepared, nodes);
 
   const geometry = buildRoutingGeometry(compact);
   const routed = routeEdges(geometry, prepared);

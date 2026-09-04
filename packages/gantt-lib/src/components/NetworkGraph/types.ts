@@ -5,6 +5,11 @@ export interface NetworkGraphNode {
   id: string;
   /** Отображаемое название работы */
   label: string;
+  /**
+   * Плановая дата начала работы. Если даты есть хотя бы у части вершин,
+   * раскладка использует их как мягкую горизонтальную шкалу.
+   */
+  startDate?: string | Date;
 }
 
 export interface NetworkGraphEdge {

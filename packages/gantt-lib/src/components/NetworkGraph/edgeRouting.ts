@@ -3,11 +3,11 @@ import type { NetworkGraphNodeBox } from './types';
 
 /**
  * Routing of edges between "balls" in the reference style of a network diagram:
- * horizontal runs + 45° diagonals, minimal number of bends.
+ * horizontal runs + short diagonals, minimal number of bends.
  *
  * Global rules (no greedy micro-adjustments — those look like glitches):
- *  - every horizontal run lives on a lane from a global 13px grid, so parallel
- *    edges either share the exact lane (bus) or are ≥13px apart — never almost-parallel;
+ *  - parallel horizontal runs either share a deliberate bus lane or are
+ *    separated by a meaningful minimum distance — never almost-parallel;
  *  - a diagonal shorter than MIN_BEND is never drawn: either the lane already
  *    works, or the edge steps a full grid step away;
  *  - a run crossing a column stays inside that column's safe band (clear of all
@@ -59,9 +59,9 @@ const MIN_CORRIDOR = 6; // corridor narrower than this is not usable
 const STUB_OUT = 16; // horizontal stub after leaving the source ball
 const STUB_IN = 14; // horizontal stub before entering the target ball
 
-/** Шаг полос между параллельными линиями — как в git graph: каждой линии своя
- *  полоса, параллельные линии читаются раздельно, наложений нет */
-const LANE_GRID = 26; // all run lanes snapped to this grid
+/** Минимальный разнос параллельных полос. Это шаг поиска, а не абсолютная
+ * координатная сетка: итоговая полоса остаётся привязанной к геометрии графа. */
+const LANE_GRID = 26;
 const MIN_BEND = 16; // never draw a diagonal shorter than this (anti-kink)
 const EPS = 0.5;
 
@@ -143,7 +143,7 @@ function pointOnLeftArc(cx: number, cy: number, r: number, dy: number): Pt {
 }
 
 function snapLane(v: number): number {
-  return Math.round(v / LANE_GRID) * LANE_GRID;
+  return v;
 }
 
 /** Safe y-intervals for a horizontal run crossing the given column */
@@ -351,11 +351,11 @@ export function requiredWindows(
  * Scoring weights for candidate routes. Crossings dominate everything, then
  * "dip past the target row" excursions, then bend count, then raw length.
  */
-const MIN_STAIR_WINDOW = 140; // окно лестницы: ряд + коридор + запас
+const MIN_STAIR_WINDOW = 96; // запас для редкого многоступенчатого обхода
 /** Потолок разлёта много-колоночного свипа — чтобы далёкие по вертикали связи
  *  не разносили колонки на тысячи пикселей (мягкое правило 45° вместо глубоких
  *  свипов). */
-const MAX_SWEEP_GAP = 400;
+const MAX_SWEEP_GAP = 220;
 const CROSSING_COST = 10000;
 /** Наложение линий (две связи на одной полосе с перекрытием по x) — как в git graph,
  *  у каждой линии своя полоса: наложение стоит как пересечение */
@@ -617,27 +617,25 @@ export function routeEdges(
 }
 
 /**
- * Corridor route: сразу диагональ из шарика на полосу → один длинный прогон →
- * диагональ в шарик. Ровно два перелома, без горизонтальных стабов.
+ * Corridor route: короткий естественный заход из шарика на полосу → один
+ * длинный прогон → короткий заход в шарик. Длина захода не равна перепаду по
+ * y, поэтому узкие окна не раздуваются только ради 45°-геометрии.
  */
 function corridorRoute(start: Pt, end: Pt, lane: number): Pt[] {
   const pts: Pt[] = [{ ...start }];
 
-  const d1 = Math.abs(lane - start.y);
-  if (d1 > EPS) pts.push({ x: start.x + d1, y: lane });
-
-  const d2 = Math.abs(end.y - lane);
-  if (d2 > EPS) {
-    pts.push({ x: end.x - d2, y: lane });
-    pts.push({ ...end });
-  } else {
-    pts.push({ ...end });
-  }
+  const span = Math.max(end.x - start.x, 0);
+  const lead = Math.min(56, Math.max(18, span * 0.2));
+  const firstX = start.x + lead;
+  const lastX = Math.max(firstX, end.x - lead);
+  if (Math.abs(lane - start.y) > EPS) pts.push({ x: firstX, y: lane });
+  if (lastX - firstX > EPS) pts.push({ x: lastX, y: lane });
+  if (Math.abs(end.y - lane) > EPS || pts[pts.length - 1].x !== end.x) pts.push({ ...end });
   return pts;
 }
 
 /**
- * 45°-only minimal-bend candidates for a direct start→end connection.
+ * 45° minimal-bend candidates for a direct start→end connection.
  *
  * Заменяет произвольные наклонные прямые (которые выглядят как «косые» линии,
  * а не как рёбра сетевого графика) на эталонную геометрию «горизонталь + 45°»:
@@ -739,10 +737,15 @@ function pickBestRoute(
     candidates.push({ points: [start, snappedEnd], penalty: 0 });
   }
 
-  // 45°-only candidates (вместо произвольных наклонных прямых): применяются ко
-  // всем прямым связям — и к соседним колонкам, и к много-колоночным, где
-  // диагональ + горизонталь оказывается короче и с меньшим числом изломов.
+  // Точные 45°-кандидаты остаются доступными для случаев, где такой маршрут
+  // действительно короче и лучше читается.
   addStraight45Candidates(start, end, candidates);
+
+  // Свободная прямая — основной компактный вариант. Угол не обязан быть 45°:
+  // это не координатная сетка, а сеть зависимостей. Если отрезок задевает
+  // вершину или пересекает уже выбранный маршрут, score автоматически выберет
+  // коридорный/лестничный обход.
+  if (ti - si === 1) candidates.push({ points: [start, end], penalty: 0 });
 
   // Смягчённое правило 45°: для соседних колонок, когда перепад достаточно крутой
   // (угол ≥45°), соединяем шарики напрямую одной диагональю. Это позволяет держать
@@ -753,9 +756,7 @@ function pickBestRoute(
   }
 
   // Corridor lane candidates. Multi-column edges require the lane to be safe in
-  // every crossed column; adjacent edges require both diagonals to fit into the
-  // single window. The dip candidate lets an edge join a corridor bus to avoid
-  // crossing it.
+  // every crossed column. Short diagonal approaches keep the windows compact.
   const dir = Math.sign(dy) || 1;
   const lo = Math.min(start.y, end.y);
   const hi = Math.max(start.y, end.y);
@@ -775,14 +776,7 @@ function pickBestRoute(
       const d1 = Math.abs(lane - start.y);
       const d2 = Math.abs(end.y - lane);
       if (d1 < MIN_BEND || (d2 < MIN_BEND && d2 > EPS)) continue;
-      if (ti === si + 1) {
-        if (d1 + d2 > firstWin) continue;
-      } else if (d1 > firstWin + 90 || d2 > lastWin + 90) {
-        // диагональ стартует от дуги шарика (раньше окна) и может заходить
-        // в поля своей/целевой колонки — реальную проверку делает routeHitsBox
-        continue;
-      }
-        const beyond = dir > 0 ? Math.max(0, lane - (t.y + t.height)) : Math.max(0, t.y - lane);
+      const beyond = dir > 0 ? Math.max(0, lane - (t.y + t.height)) : Math.max(0, t.y - lane);
       const back = Math.sign(lane - start.y) === -dir ? Math.abs(lane - start.y) : 0;
       candidates.push({
         points: corridorRoute(start, end, lane),
@@ -854,7 +848,10 @@ function forwardRoute(geom: RoutingGeometry, colFrom: number, colTo: number, sta
     if (Math.abs(dSigned) < MIN_BEND) continue; // lane already good — straight run
 
     const d = Math.min(Math.abs(dSigned), win.width);
-    const diagStartX = Math.max(x, win.x1);
+    // Первый поворот начинается сразу после шарика. Ожидание границы окна
+    // создаёт горизонтальный отрезок, который может пересечь соседний веер
+    // из того же источника.
+    const diagStartX = j === colFrom ? x : Math.max(x, win.x1);
     pts.push({ x: diagStartX, y: curY });
     curY += Math.sign(dSigned) * d;
     pts.push({ x: diagStartX + d, y: curY });

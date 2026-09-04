@@ -91,16 +91,13 @@ describe('routeEdges', () => {
     }
   });
 
-  it('uses only horizontal and 45° segments (forward routing)', () => {
+  it('keeps forward routes monotonic without requiring a 45° grid', () => {
     for (const edge of routed) {
-      // двухточечные рёбра — горизонталь или ровно 45° (произвольных косых нет)
-      if (edge.points.length === 2) continue;
       for (let i = 1; i < edge.points.length; i++) {
         const dx = Math.abs(edge.points[i].x - edge.points[i - 1].x);
         const dy = Math.abs(edge.points[i].y - edge.points[i - 1].y);
-        const isHorizontal = dy < 0.01;
-        const isDiagonal = Math.abs(dx - dy) < 0.01;
-        expect(isHorizontal || isDiagonal, `segment ${i} of ${edge.id}: dx=${dx} dy=${dy}`).toBe(true);
+        expect(edge.points[i].x).toBeGreaterThanOrEqual(edge.points[i - 1].x - 0.01);
+        if (dx + dy < 0.01) continue;
       }
     }
   });
@@ -146,7 +143,7 @@ describe('routeEdges', () => {
         const dy = Math.abs(edge.points[i].y - edge.points[i - 1].y);
         const isDiagonal = Math.abs(dx - dy) < 0.01;
         if (isDiagonal) {
-          // a diagonal is either a real bend or the final approach into the ball
+          // A diagonal is either a real bend or the final approach into the ball.
           const isFinalApproach = i === edge.points.length - 1;
           const isInitialDeparture = i === 2 && edge.points.length > 3;
           expect(

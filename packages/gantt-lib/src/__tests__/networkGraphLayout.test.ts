@@ -39,17 +39,29 @@ const EDGES: NetworkGraphEdge[] = [
 ];
 
 describe('network graph layout (demo data)', () => {
-  it('aligns the top row into one straight line and starts there', async () => {
+  it('keeps the start near the beginning without forcing a global row grid', async () => {
     const layout = await computeNetworkLayout(NODES, EDGES);
-    const minY = Math.min(...layout.nodes.map(n => n.y));
-    const topRow = layout.nodes.filter(n => n.y - minY <= 1);
-    // стартовый блок (z1) — в верхнем ряду, и верхний ряд выровнен в одну линию
-    expect(topRow.some(n => n.id === 'z1')).toBe(true);
-    expect(new Set(topRow.map(n => n.y)).size).toBe(1);
-    // стартовый блок — в верхней половине графа (поток сверху вниз вправо)
+    // стартовый блок (z1) остаётся в верхней половине потока, но его y не
+    // обязан совпадать с глобальной линией остальных вершин.
     const maxY = Math.max(...layout.nodes.map(n => n.y));
     const z1 = layout.nodes.find(n => n.id === 'z1')!;
     expect(z1.y).toBeLessThanOrEqual(maxY / 2);
+  });
+
+  it('uses start dates as a soft horizontal schedule', async () => {
+    const nodes: NetworkGraphNode[] = [
+      { id: 'start', label: 'Старт', startDate: '2026-01-01' },
+      { id: 'middle', label: 'Середина', startDate: '2026-03-01' },
+      { id: 'late', label: 'Финиш', startDate: '2026-06-01' },
+    ];
+    const layout = await computeNetworkLayout(nodes, [
+      { source: 'start', target: 'middle' },
+      { source: 'middle', target: 'late' },
+    ]);
+    const x = new Map(layout.nodes.map(n => [n.id, n.x]));
+    expect(x.get('start')).toBeLessThan(x.get('middle')!);
+    expect(x.get('middle')).toBeLessThan(x.get('late')!);
+    expect(x.get('late')! - x.get('middle')!).toBeGreaterThan(0);
   });
 
   it('routes the demo graph with zero crossings', async () => {

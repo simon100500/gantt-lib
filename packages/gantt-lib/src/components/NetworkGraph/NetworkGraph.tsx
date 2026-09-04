@@ -6,6 +6,7 @@ import { computeNetworkLayout, LABEL_LINE_HEIGHT, LABEL_TOP } from './layout';
 import './NetworkGraph.css';
 
 const MIN_SCALE = 0.03;
+const MIN_FIT_SCALE = 0.18;
 const MAX_SCALE = 4;
 const FIT_PADDING = 28;
 
@@ -17,8 +18,8 @@ interface ViewTransform {
 
 /**
  * Прототип сетевого графика (графа): работы — вершины-"шарики", связи —
- * ломаные под 45°. Позиционирование делает elkjs (слева направо),
- * разводка связей — своя, коридорами между рядами.
+ * мягкие ломаные/диагональные связи. Позиционирование делает elkjs
+ * (слева направо), разводка связей — своя, с обходом вершин и пересечений.
  *
  * Холст можно таскать мышью (grab), колесо — зум к курсору.
  */
@@ -62,10 +63,13 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
     const { clientWidth: cw, clientHeight: ch } = el;
     const k = Math.min(
       1,
-      Math.max(MIN_SCALE, Math.min((cw - FIT_PADDING * 2) / result.width, (ch - FIT_PADDING * 2) / result.height))
+      Math.max(MIN_FIT_SCALE, Math.min((cw - FIT_PADDING * 2) / result.width, (ch - FIT_PADDING * 2) / result.height))
     );
+    const renderedWidth = result.width * k;
     setView({
-      x: (cw - result.width * k) / 2,
+      // Если весь граф не помещается, начинаем с левого края. При центрировании
+      // пользователь получает середину большой схемы и теряет точку старта.
+      x: renderedWidth > cw - FIT_PADDING * 2 ? FIT_PADDING : (cw - renderedWidth) / 2,
       y: (ch - result.height * k) / 2,
       k,
     });
