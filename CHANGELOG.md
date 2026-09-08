@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.134.1] - 2026-09-09
+
+### Fixes
+
+- Cancel stale in-flight drag previews when a controlled schedule update replaces task dates, so task bars and dependency lines immediately redraw at the authoritative coordinates without requiring a reload.
+
 ## [0.134.0] - 2026-09-03
 
 ### Features
