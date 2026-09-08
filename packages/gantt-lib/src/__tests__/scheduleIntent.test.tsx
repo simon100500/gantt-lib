@@ -31,6 +31,10 @@ function getBar(container: HTMLElement, taskId: string): HTMLElement {
   return container.querySelector(`[data-gantt-task-row-id="${taskId}"] [data-taskbar]`) as HTMLElement;
 }
 
+function getDependencyPath(container: HTMLElement): string | null {
+  return container.querySelector('.gantt-dependency-path')?.getAttribute('d') ?? null;
+}
+
 describe('GanttScheduleIntent', () => {
   beforeEach(() => {
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
@@ -102,6 +106,58 @@ describe('GanttScheduleIntent', () => {
       type: 'move_task', taskId: 'child-a', startDate: '2026-01-03',
     });
     expect(onTasksChange).not.toHaveBeenCalled();
+  });
+
+  it('drops stale drag coordinates when the controlled schedule is replaced', async () => {
+    const initialTasks = [
+      task({ id: 'predecessor', startDate: '2026-01-01', endDate: '2026-01-02' }),
+      task({
+        id: 'successor',
+        startDate: '2026-01-03',
+        endDate: '2026-01-04',
+        dependencies: [{ taskId: 'predecessor', type: 'FS', lag: 0 }],
+      }),
+    ];
+    const authoritativeTasks = [
+      task({ id: 'predecessor', startDate: '2026-01-08', endDate: '2026-01-09' }),
+      task({
+        id: 'successor',
+        startDate: '2026-01-10',
+        endDate: '2026-01-11',
+        dependencies: [{ taskId: 'predecessor', type: 'FS', lag: 0 }],
+      }),
+    ];
+    const onScheduleIntent = vi.fn<(intent: GanttScheduleIntent) => void>();
+    const { container, rerender } = render(
+      <GanttChart
+        tasks={initialTasks}
+        dayWidth={40}
+        businessDays={false}
+        onScheduleIntent={onScheduleIntent}
+      />
+    );
+
+    const predecessorBar = getBar(container, 'predecessor');
+    mockBarRect(predecessorBar, 2 * 40);
+    fireEvent.mouseDown(predecessorBar, { clientX: 40 });
+    fireEvent.mouseMove(window, { clientX: 3 * 40 });
+    await waitFor(() => expect(predecessorBar).toHaveClass('gantt-tr-dragging'));
+
+    rerender(
+      <GanttChart
+        tasks={authoritativeTasks}
+        dayWidth={40}
+        businessDays={false}
+        onScheduleIntent={onScheduleIntent}
+      />
+    );
+
+    await waitFor(() => {
+      expect(getBar(container, 'predecessor')).toHaveStyle({ left: '280px' });
+      expect(getDependencyPath(container)).toBe('M 360 30 V 46');
+    });
+    fireEvent.mouseUp(window);
+    expect(onScheduleIntent).not.toHaveBeenCalled();
   });
 
   it('emits one move intent for a parent move', async () => {

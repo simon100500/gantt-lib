@@ -58,11 +58,12 @@ import './GanttChart.css';
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
-// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; control optional task date/name labels.
+// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; reconcile transient drag geometry with controlled task updates; control optional task date/name labels.
 // DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
 // INPUTS: GanttChartProps including showTaskDateLabels and showTaskNames presentation flags.
 // OUTPUTS: Interactive task list/chart with configurable external task labels.
 // INVARIANT: onScheduleIntent suppresses scheduling persistence through onTasksChange/onCascade.
+// INVARIANT: A controlled task schedule replacement invalidates every transient drag/cascade coordinate before dependency geometry is retained.
 // END_MODULE_CONTRACT
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;

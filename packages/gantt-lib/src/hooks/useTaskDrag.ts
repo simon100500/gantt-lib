@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { detectEdgeZone } from '../utils/geometry';
 import type { GanttScheduleIntent, Task, TaskDependency, LinkType } from '../types';
 import { isMilestoneTask, normalizeTaskDatesForType } from '../utils/taskType';
+import { parseUTCDate } from '../utils/dateUtils';
 // Domain scheduling functions
 import {
   buildTaskRangeFromEnd,
@@ -27,8 +28,9 @@ import { resolveDateRangeFromPixels, clampDateRangeForIncomingFS } from '../adap
 
 // START_MODULE_CONTRACT
 // PURPOSE: Detect completed bar move/resize interactions and calculate local preview cascades.
-// SCOPE: Emit one semantic intent at drop; legacy cascade callbacks remain available when no intent boundary is supplied.
+// SCOPE: Emit one semantic intent at drop; cancel obsolete gestures when controlled dates change; legacy cascade callbacks remain available when no intent boundary is supplied.
 // DEPENDS: pixel/date adapters and existing scheduling preview functions.
+// INVARIANT: A controlled date replacement cancels the owned gesture before stale pixel coordinates can emit an intent or survive as preview geometry.
 // END_MODULE_CONTRACT
 
 /**
@@ -687,9 +689,15 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
   const rawHookTask = allTasks.find(t => t.id === taskId);
   const hookTask = rawHookTask ? normalizeTaskDatesForType(rawHookTask) : undefined;
   const hookTaskIsMilestone = hookTask ? isMilestoneTask(hookTask) : false;
+  const authoritativeStartTime = parseUTCDate(hookTask?.startDate ?? initialStartDate).getTime();
+  const authoritativeEndTime = parseUTCDate(hookTask?.endDate ?? initialEndDate).getTime();
 
   // Track if this hook instance owns the current global drag
   const isOwnerRef = useRef<boolean>(false);
+  const authoritativeRangeRef = useRef({
+    start: authoritativeStartTime,
+    end: authoritativeEndTime,
+  });
   const effectiveLocked = locked || disableTaskDrag;
 
   // Display state (triggers re-renders only when needed)
@@ -727,6 +735,28 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
     return { left, width };
   }, [initialStartDate, initialEndDate, monthStart, dayWidth, hookTaskIsMilestone]);
+
+  /**
+   * A controlled schedule replacement supersedes any in-flight gesture owned by
+   * this task. Cancel before position synchronization so stale drag pixels cannot
+   * keep either the task bar or dependency geometry pinned to the old schedule.
+   */
+  useEffect(() => {
+    const nextRange = {
+      start: authoritativeStartTime,
+      end: authoritativeEndTime,
+    };
+    const previousRange = authoritativeRangeRef.current;
+    authoritativeRangeRef.current = nextRange;
+
+    if (
+      (previousRange.start !== nextRange.start || previousRange.end !== nextRange.end)
+      && isOwnerRef.current
+      && globalActiveDrag?.taskId === taskId
+    ) {
+      cancelDrag();
+    }
+  }, [authoritativeStartTime, authoritativeEndTime, taskId]);
 
   /**
    * Initialize position when dates or dayWidth changes.
