@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.135.1] - 2026-09-10
+
+### Fixes
+
+- Preserve the calculated task-area height in print mode so exact-range PDF exports render their grid and task bars while still clipping bars to the selected period.
+
 ## [0.134.1] - 2026-09-09
 
 ### Fixes

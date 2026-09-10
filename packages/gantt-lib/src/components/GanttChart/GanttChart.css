@@ -61,6 +61,15 @@
   clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 
+/* FILE: packages/gantt-lib/src/components/GanttChart/GanttChart.css */
+/* VERSION: 1.0.0 */
+/* START_MODULE_CONTRACT */
+/*   PURPOSE: Define layout and print behavior for the Gantt chart surface. */
+/*   SCOPE: Chart containers, timeline area, exact-range clipping, and print-safe overflow rules. */
+/*   INPUTS: GanttChart DOM classes and inline geometry dimensions. */
+/*   OUTPUTS: A visible chart whose absolute grid and task layers retain their computed height in print. */
+/* END_MODULE_CONTRACT */
+
 .gantt-taskArea {
   position: relative;
   background-color: var(--gantt-cell-background, #ffffff);
@@ -174,11 +183,22 @@
   .gantt-container,
   .gantt-scrollContainer,
   .gantt-scrollContent,
-  .gantt-chartSurface,
-  .gantt-taskArea {
+  .gantt-chartSurface {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
+  }
+
+  /* The task area owns the absolutely-positioned grid and bars. Its inline
+     rows-height must survive printing; otherwise the clipped exact-range
+     variant collapses to zero and hides both layers. */
+  .gantt-taskArea {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  .gantt-taskArea.gantt-taskArea-clipped {
+    overflow: hidden !important;
   }
 
   .gantt-container {
