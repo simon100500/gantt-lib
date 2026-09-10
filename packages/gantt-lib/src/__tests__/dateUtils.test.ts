@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseUTCDate, getMonthDays, getDayOffset, isToday, isWeekend, getMultiMonthDays, getMonthSpans, normalizeTaskDates, getWeekStartDays, getWeekSpans, createCustomDayPredicate, getBusinessDaysCount, addBusinessDays, type CustomDayConfig } from '../utils/dateUtils';
+import { parseUTCDate, getMonthDays, getDayOffset, isToday, isWeekend, getMultiMonthDays, getDateRangeDays, getMonthSpans, normalizeTaskDates, getWeekStartDays, getWeekSpans, createCustomDayPredicate, getBusinessDaysCount, addBusinessDays, type CustomDayConfig } from '../utils/dateUtils';
 
 describe('parseUTCDate', () => {
   it('should parse ISO date string as UTC', () => {
@@ -229,6 +229,24 @@ describe('getMultiMonthDays', () => {
       expect(date.getUTCHours()).toBe(0);
       expect(date.getUTCMinutes()).toBe(0);
     });
+  });
+});
+
+describe('getDateRangeDays', () => {
+  it('returns every day with inclusive boundaries', () => {
+    const result = getDateRangeDays({ start: '2024-03-30', end: '2024-04-02' });
+    expect(result.map((date) => date.toISOString().slice(0, 10))).toEqual([
+      '2024-03-30', '2024-03-31', '2024-04-01', '2024-04-02',
+    ]);
+  });
+
+  it('returns one day for equal boundaries', () => {
+    expect(getDateRangeDays({ start: '2024-03-31', end: '2024-03-31' })).toHaveLength(1);
+  });
+
+  it('returns an empty range for invalid or reversed boundaries', () => {
+    expect(getDateRangeDays({ start: 'invalid', end: '2024-03-31' })).toEqual([]);
+    expect(getDateRangeDays({ start: '2024-04-01', end: '2024-03-31' })).toEqual([]);
   });
 });
 

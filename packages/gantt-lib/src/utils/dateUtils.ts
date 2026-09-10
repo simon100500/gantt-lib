@@ -281,6 +281,35 @@ export const getMultiMonthDays = (tasks: Array<{ startDate: string | Date; endDa
 };
 
 /**
+ * Build an inclusive UTC day range without the interactive chart's padding.
+ * Invalid or reversed ranges return an empty array so callers can fall back
+ * to their normal range policy instead of rendering a misleading grid.
+ */
+export const getDateRangeDays = (dateRange: { start: string | Date; end: string | Date }): Date[] => {
+  let start: Date;
+  let end: Date;
+  try {
+    start = parseUTCDate(dateRange.start);
+    end = parseUTCDate(dateRange.end);
+  } catch {
+    return [];
+  }
+
+  if (start.getTime() > end.getTime()) {
+    return [];
+  }
+
+  const days: Date[] = [];
+  const current = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+  const last = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
+  while (current.getTime() <= last.getTime()) {
+    days.push(new Date(current));
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+  return days;
+};
+
+/**
  * Calculate month spans within a date range
  * @param dateRange - Array of Date objects representing the full range
  * @returns Array of month span objects with month, days count, and start index

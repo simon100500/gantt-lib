@@ -8,6 +8,13 @@ All notable changes to this project will be documented in this file.
 
 - Cancel stale in-flight drag previews when a controlled schedule update replaces task dates, so task bars and dependency lines immediately redraw at the authoritative coordinates without requiring a reload.
 
+## [0.135.0] - 2026-09-10
+
+### Features
+
+- Add an optional inclusive `dateRange` prop to render an exact Gantt grid without automatic trailing month padding.
+- Clip task bars to an explicit visible date range.
+
 ## [0.134.0] - 2026-09-03
 
 ### Features

@@ -66,6 +66,11 @@
   background-color: var(--gantt-cell-background, #ffffff);
 }
 
+/* An explicit export/view range is a hard viewport boundary for task bars. */
+.gantt-taskArea.gantt-taskArea-clipped {
+  overflow: hidden;
+}
+
 .gantt-dependencyCreation-error {
   position: sticky;
   top: 12px;

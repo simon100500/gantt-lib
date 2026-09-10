@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
+import { getDateRangeDays, getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import {
   validateDependencies,
@@ -35,6 +35,7 @@ import type {
   TimelineMarker,
   TaskDateChangeMode,
   GanttScheduleIntent,
+  GanttDateRange,
   ValidationResult,
 } from '../../types';
 import { TaskPredicate } from '../../filters';
@@ -60,7 +61,7 @@ import './GanttChart.css';
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
 // SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; reconcile transient drag geometry with controlled task updates; control optional task date/name labels.
 // DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
-// INPUTS: GanttChartProps including showTaskDateLabels and showTaskNames presentation flags.
+// INPUTS: GanttChartProps including showTaskDateLabels, showTaskNames, and an optional exact dateRange.
 // OUTPUTS: Interactive task list/chart with configurable external task labels.
 // INVARIANT: onScheduleIntent suppresses scheduling persistence through onTasksChange/onCascade.
 // INVARIANT: A controlled task schedule replacement invalidates every transient drag/cascade coordinate before dependency geometry is retained.
@@ -407,6 +408,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   defaultTaskDurationDays?: number;
   /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days, 'month' renders one column per month (default: 'day') */
   viewMode?: 'day' | 'week' | 'month';
+  /** Explicit inclusive visible date range. When set, no automatic month padding is added. */
+  dateRange?: GanttDateRange;
   /** Custom day configurations with explicit type (weekend or workday) */
   customDays?: CustomDayConfig[];
   /** Optional base weekend predicate (checked before customDays overrides) */
@@ -695,6 +698,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const criticalPathMode = !isTableMatrixMode && !isPlanFactMode ? props.criticalPathMode : undefined;
   const onSubtreeScaleResult = !isTableMatrixMode && !isPlanFactMode ? props.onSubtreeScaleResult : undefined;
   const viewMode = !isTableMatrixMode && !isPlanFactMode ? props.viewMode ?? 'day' : 'day';
+  const explicitDateRange = props.mode === undefined || props.mode === 'gantt' ? props.dateRange : undefined;
   const customDays = !isTableMatrixMode ? props.customDays : undefined;
   const isWeekend = !isTableMatrixMode ? props.isWeekend : undefined;
   const businessDays = !isTableMatrixMode ? props.businessDays ?? true : true;
@@ -1002,8 +1006,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Calculate multi-month date range from normalized tasks
   const dateRange = useMemo(
-    () => isPlanFactMode ? getFullMonthDays(dateRangeTasks) : getMultiMonthDays(dateRangeTasks),
-    [dateRangeTasks, isPlanFactMode]
+    () => {
+      if (!isPlanFactMode && explicitDateRange) {
+        const exactDays = getDateRangeDays(explicitDateRange);
+        if (exactDays.length > 0) return exactDays;
+      }
+      return isPlanFactMode ? getFullMonthDays(dateRangeTasks) : getMultiMonthDays(dateRangeTasks);
+    },
+    [dateRangeTasks, explicitDateRange, isPlanFactMode]
   );
 
   // Track dependency validation results
@@ -1106,8 +1116,11 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
     }
     const firstDay = dateRange[0];
+    if (explicitDateRange && !isPlanFactMode) {
+      return new Date(firstDay);
+    }
     return new Date(Date.UTC(firstDay.getUTCFullYear(), firstDay.getUTCMonth(), 1));
-  }, [dateRange]);
+  }, [dateRange, explicitDateRange, isPlanFactMode]);
 
   const todayIndex = useMemo(() => {
     const today = getTodayLocalUtcDate();
@@ -2346,7 +2359,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
                 {/* Task area */}
                 <div
-                  className="gantt-taskArea"
+                  className={`gantt-taskArea${explicitDateRange && !isPlanFactMode ? ' gantt-taskArea-clipped' : ''}`}
                   style={{
                     position: 'relative',
                     width: `${renderGridWidth}px`,

@@ -21,6 +21,8 @@ interface GanttModeProps<TTask extends Task = Task> {
   headerHeight?: number;
   containerHeight?: number | string;
   viewMode?: 'day' | 'week' | 'month';
+  /** Inclusive visible range; disables automatic trailing month padding. */
+  dateRange?: { start: Date; end: Date };
   onTasksChange?: (tasks: TTask[]) => void;
   onScheduleIntent?: (intent: GanttScheduleIntent) => void;
   onAdd?: (task: TTask) => void;
