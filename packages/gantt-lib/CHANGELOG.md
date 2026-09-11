@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.135.2] - 2026-09-11
+
+### Fixes
+
+- Clear transient drag/cascade pixel overrides when the controlled task schedule is replaced, keeping dependency arrows aligned with authoritative task bars
+- Disable dependency-link hit targets on touch/coarse-pointer layouts so mobile scrolling cannot be intercepted by connection handles
+
 ## [0.129.0] - 2026-08-24
 
 ### Features
