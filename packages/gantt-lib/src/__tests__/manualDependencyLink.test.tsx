@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,6 +16,14 @@ vi.mock('../components/ui/Calendar', () => ({
 }));
 
 describe('manual dependency linking', () => {
+  it('removes dependency-link hit targets on touch/coarse-pointer devices', () => {
+    const stylesheet = readFileSync(resolve(process.cwd(), 'src/components/TaskRow/TaskRow.css'), 'utf8');
+
+    expect(stylesheet).toMatch(
+      /@media\s*\(max-width:\s*640px\),\s*\(hover:\s*none\),\s*\(pointer:\s*coarse\)[\s\S]*?\.gantt-tr-dependencyPort\s*\{[\s\S]*?display:\s*none;[\s\S]*?pointer-events:\s*none;/,
+    );
+  });
+
   it('renders two visual connection ports on every task bar', () => {
     const tasks: Task[] = [
       { id: 'pred', name: 'Predecessor', startDate: '2026-03-02', endDate: '2026-03-04' },

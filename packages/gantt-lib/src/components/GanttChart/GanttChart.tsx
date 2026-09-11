@@ -64,7 +64,7 @@ import './GanttChart.css';
 // INPUTS: GanttChartProps including showTaskDateLabels, showTaskNames, and an optional exact dateRange.
 // OUTPUTS: Interactive task list/chart with configurable external task labels.
 // INVARIANT: onScheduleIntent suppresses scheduling persistence through onTasksChange/onCascade.
-// INVARIANT: A controlled task schedule replacement invalidates every transient drag/cascade coordinate before dependency geometry is retained.
+// INVARIANT: Any controlled task schedule replacement, including one outside an active drag, invalidates every transient drag/cascade coordinate before dependency geometry is retained.
 // END_MODULE_CONTRACT
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
@@ -73,6 +73,18 @@ const PLAN_FACT_COLUMN_OVERSCAN = 24;
 const PLAN_FACT_COLUMN_WINDOW_STEP = 14;
 const DEFAULT_INITIAL_VIEWPORT_HEIGHT = 768;
 const DEFAULT_PLAN_FACT_COLUMN_WINDOW = PLAN_FACT_COLUMN_OVERSCAN + PLAN_FACT_COLUMN_WINDOW_STEP;
+
+function buildControlledScheduleIdentity(tasks: Task[]): string {
+  return tasks.map((task, index) => [
+    String(index),
+    task.id,
+    String(task.startDate),
+    String(task.endDate),
+    task.type ?? '',
+    task.parentId ?? '',
+    JSON.stringify(task.dependencies ?? []),
+  ].join('\u0000')).join('\u0001');
+}
 
 function getInitialScrollViewportHeight(containerHeight: number | string | undefined, headerHeight: number) {
   if (containerHeight === undefined) {
@@ -958,14 +970,21 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   );
 
   const normalizedTasks = useMemo(() => normalizeHierarchyTasks(tasks), [tasks]);
+  const controlledScheduleIdentity = useMemo(
+    () => buildControlledScheduleIdentity(normalizedTasks),
+    [normalizedTasks]
+  );
+  const previousControlledScheduleIdentityRef = useRef<string | null>(null);
+  const controlledScheduleChanged = previousControlledScheduleIdentityRef.current !== null
+    && previousControlledScheduleIdentityRef.current !== controlledScheduleIdentity;
 
   // Task dates produced by the drag cascade preview. This is intentionally
   // separate from `tasks`: preview dates must drive CPM before the drop commits.
   const [previewTasksById, setPreviewTasksById] = useState<Map<string, Task>>(new Map());
   const previewNormalizedTasks = useMemo(() => {
-    if (previewTasksById.size === 0) return normalizedTasks;
+    if (controlledScheduleChanged || previewTasksById.size === 0) return normalizedTasks;
     return normalizedTasks.map(task => previewTasksById.get(task.id) ?? task);
-  }, [normalizedTasks, previewTasksById]);
+  }, [controlledScheduleChanged, normalizedTasks, previewTasksById]);
 
   // Create custom weekend predicate from props (memoized for performance)
   const isCustomWeekend = useMemo(
@@ -1343,6 +1362,21 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // Track currently-dragged task's pixel position for real-time dependency line updates
   const [draggedTaskOverride, setDraggedTaskOverride] = useState<{ taskId: string; left: number; width: number } | null>(null);
 
+  useEffect(() => {
+    const previousIdentity = previousControlledScheduleIdentityRef.current;
+    previousControlledScheduleIdentityRef.current = controlledScheduleIdentity;
+
+    if (previousIdentity === null || previousIdentity === controlledScheduleIdentity) {
+      return;
+    }
+
+    previewPositionStore.clear();
+    setCascadeOverrides((current) => (current.size === 0 ? current : new Map()));
+    setPreviewTasksById((current) => (current.size === 0 ? current : new Map()));
+    setDraggedTaskOverride((current) => (current === null ? current : null));
+    setDragGuideLines((current) => (current === null ? current : null));
+  }, [controlledScheduleIdentity, previewPositionStore]);
+
   // Validate dependencies when tasks change
   useEffect(() => {
     const result = validateDependencies(tasks);
@@ -1632,6 +1666,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
   const dependencyOverrides = useMemo(() => {
+    if (controlledScheduleChanged) return new Map<string, { left: number; width: number }>();
     const map = new Map(cascadeOverrides);
     if (draggedTaskOverride) {
       map.set(draggedTaskOverride.taskId, {
@@ -1640,7 +1675,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       });
     }
     return map;
-  }, [cascadeOverrides, draggedTaskOverride]);
+  }, [cascadeOverrides, controlledScheduleChanged, draggedTaskOverride]);
 
   /**
    * Handle real-time cascade progress — updates cascadeOverrides state each RAF
@@ -1674,9 +1709,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, [previewPositionStore]);
 
   const previewVisibleTasks = useMemo(() => {
-    if (previewTasksById.size === 0) return visibleTasks;
+    if (controlledScheduleChanged || previewTasksById.size === 0) return visibleTasks;
     return visibleTasks.map(task => previewTasksById.get(task.id) ?? task);
-  }, [visibleTasks, previewTasksById]);
+  }, [controlledScheduleChanged, visibleTasks, previewTasksById]);
 
   const visibleTaskIndexMap = useMemo(
     () => new Map(visibleTasks.map((task, index) => [task.id, index])),

@@ -2,6 +2,14 @@
  * TaskRow Component Styles
  */
 
+/* START_MODULE_CONTRACT */
+/*   PURPOSE: Define task-row layout, bar affordances, and dependency-port presentation. */
+/*   SCOPE: Task row positioning, task bars, resize zones, dependency ports, baseline labels, and touch-device suppression. */
+/*   INPUTS: TaskRow DOM classes and CSS custom properties. */
+/*   OUTPUTS: A readable task row with non-overlapping drag, resize, and dependency-link affordances. */
+/*   INVARIANT: Dependency creation ports never participate in touch scrolling or overlap the sticky date header on mobile/touch layouts. */
+/* END_MODULE_CONTRACT */
+
 :root {
   --gantt-task-bar-border-radius: 6px;
 }
@@ -227,6 +235,16 @@
 
 .gantt-tr-dependencyPortDragActive {
   background: color-mix(in srgb, var(--gantt-dependency-port-color, #7c3aed) 10%, transparent);
+}
+
+/* Dependency linking is a precise drag interaction and is not usable alongside
+   touch scrolling. Remove the hit targets entirely on touch/coarse-pointer
+   devices so they cannot catch a scroll gesture or paint above the date header. */
+@media (max-width: 640px), (hover: none), (pointer: coarse) {
+  .gantt-tr-dependencyPort {
+    display: none;
+    pointer-events: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
