@@ -1,5 +1,13 @@
 "use client";
 
+// START_MODULE_CONTRACT
+// PURPOSE: Render one task-list row, including editable dependency controls and print-friendly dependency labels.
+// SCOPE: Render task fields, hierarchy/actions, dependency editing, and the optional compact dependency text used by exported documents.
+// DEPENDS: GanttChart task types, scheduling helpers, TaskList column definitions, and UI popovers.
+// ROLE: RUNTIME
+// MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+
 import React, {
   useState,
   useRef,
@@ -252,6 +260,16 @@ const LINK_TYPE_LABELS_RU: Record<LinkType, string> = {
 
 function formatTaskNumberLabel(taskNumber?: string): string {
   return taskNumber ? `${taskNumber}. ` : "";
+}
+
+function formatDependencyPrintLabel(
+  dep: { taskId: string; type: LinkType },
+  predecessorTaskNumber: string | undefined,
+  lag: number | undefined,
+): string {
+  const effectiveLag = lag ?? 0;
+  const lagSuffix = effectiveLag === 0 ? "" : effectiveLag > 0 ? `+${effectiveLag}` : String(effectiveLag);
+  return `[${predecessorTaskNumber ?? dep.taskId}]${LINK_TYPE_LABELS_RU[dep.type]}${lagSuffix}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -871,6 +889,8 @@ export interface TaskListRowProps {
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
   onTaskDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
+  /** Render dependencies as compact text for print/export layouts instead of interactive chips. */
+  printDependencyLabels?: boolean;
 }
 
 const toISODate = (value: string | Date): string => {
@@ -966,7 +986,8 @@ const areTaskListRowPropsEqual = (prevProps: TaskListRowProps, nextProps: TaskLi
     prevProps.hideTaskListRowActions === nextProps.hideTaskListRowActions &&
     prevProps.rowClassName === nextProps.rowClassName &&
     prevProps.getTaskListNamePrefixIcon === nextProps.getTaskListNamePrefixIcon &&
-    prevProps.taskDateChangeMode === nextProps.taskDateChangeMode
+    prevProps.taskDateChangeMode === nextProps.taskDateChangeMode &&
+    prevProps.printDependencyLabels === nextProps.printDependencyLabels
   );
 };
 
@@ -1037,6 +1058,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     getTaskListNamePrefixIcon,
     taskDateChangeMode = 'preserve-duration',
     onTaskDateChangeModeChange,
+    printDependencyLabels = false,
   }) => {
     const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
     const [editingColumnStartValue, setEditingColumnStartValue] = useState<string | undefined>(undefined);
@@ -2669,7 +2691,15 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           </>
         ) : (
           <>
-            {chips.length >= 2 ? (
+            {printDependencyLabels ? (
+              <span className="gantt-tl-dependency-print-labels">
+                {chips.map(({ dep, lag }) => formatDependencyPrintLabel(
+                  dep,
+                  taskNumberMap[dep.taskId],
+                  lag,
+                )).join(", ")}
+              </span>
+            ) : chips.length >= 2 ? (
               /* 2+ deps — show only "N связей" summary chip that opens a popover */
               <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
                 <PopoverTrigger asChild>
@@ -2740,7 +2770,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             ) : null}
 
             {/* "+" add dependency button — hidden in picker mode and when editing disabled, hover-reveal */}
-            {!disableDependencyEditing && !isPicking && (
+            {!printDependencyLabels && !disableDependencyEditing && !isPicking && (
               <button
                 type="button"
                 className={`gantt-tl-dep-add gantt-tl-dep-add-hover${selectedChip ? " gantt-tl-dep-add-hidden" : ""}`}

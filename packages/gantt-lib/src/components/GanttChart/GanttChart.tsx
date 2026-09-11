@@ -61,8 +61,8 @@ import './GanttChart.css';
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
 // SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; reconcile transient drag geometry with controlled task updates; control optional task date/name labels.
 // DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
-// INPUTS: GanttChartProps including showTaskDateLabels, showTaskNames, and an optional exact dateRange.
-// OUTPUTS: Interactive task list/chart with configurable external task labels.
+// INPUTS: GanttChartProps including showTaskDateLabels, showTaskNames, printDependencyLabels, and an optional exact dateRange.
+// OUTPUTS: Interactive task list/chart with configurable external task labels and print-friendly dependency text.
 // INVARIANT: onScheduleIntent suppresses scheduling persistence through onTasksChange/onCascade.
 // INVARIANT: Any controlled task schedule replacement, including one outside an active drag, invalidates every transient drag/cascade coordinate before dependency geometry is retained.
 // END_MODULE_CONTRACT
@@ -488,6 +488,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
   onTaskDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
+  /** Render task-list dependencies as compact text for print/export layouts (default: false). */
+  printDependencyLabels?: boolean;
 }
 
 export interface GanttModeProps<TTask extends Task = Task> extends TaskChartSharedProps<TTask> {
@@ -705,6 +707,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     rowContentLines = 1,
     taskDateChangeMode: externalTaskDateChangeMode,
     onTaskDateChangeModeChange: externalOnTaskDateChangeModeChange,
+    printDependencyLabels = false,
   } = props;
   const dayWidth = !isTableMatrixMode ? props.dayWidth ?? 40 : 40;
   const criticalPathMode = !isTableMatrixMode && !isPlanFactMode ? props.criticalPathMode : undefined;
@@ -2301,6 +2304,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             bodyMinHeight={tableBodyMinHeight}
             taskDateChangeMode={taskDateChangeMode}
             onTaskDateChangeModeChange={handleTaskDateChangeMode}
+            printDependencyLabels={printDependencyLabels}
             visibleRowIndices={visibleTaskWindowIndices}
             skeletonRowCount={skeletonRowCount}
           />

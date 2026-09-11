@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.135.3] - 2026-09-11
+
+### Added
+
+- Add `printDependencyLabels` to render task-list dependencies as compact predecessor-number/type/lag text for print and PDF layouts.
+
 ## [0.135.1] - 2026-09-10
 
 ### Fixes

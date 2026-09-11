@@ -23,7 +23,7 @@ import './TaskList.css';
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render task-list edits and preserve their scheduling-vs-field-edit boundary.
-// SCOPE: Route duration edits through the parent scheduling adapter while retaining legacy onTasksChange.
+// SCOPE: Route duration edits through the parent scheduling adapter while retaining legacy onTasksChange; optionally render compact dependency labels for print/export layouts.
 // DEPENDS: TaskListRow and GanttChart callbacks.
 // END_MODULE_CONTRACT
 
@@ -300,6 +300,8 @@ export interface TaskListProps {
   taskDateChangeMode?: TaskDateChangeMode;
   /** Controlled callback for task-list date picker mode changes */
   onTaskDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
+  /** Render dependencies as compact text for print/export layouts instead of interactive chips. */
+  printDependencyLabels?: boolean;
   /** Visible row indices from the shared chart viewport window */
   visibleRowIndices?: number[];
   /** Display-only placeholder rows appended below streamed task rows. */
@@ -442,6 +444,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   bodyMinHeight,
   taskDateChangeMode = 'preserve-duration',
   onTaskDateChangeModeChange,
+  printDependencyLabels = false,
   visibleRowIndices,
   skeletonRowCount = 0,
 }) => {
@@ -1904,6 +1907,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   getTaskListNamePrefixIcon={getTaskListNamePrefixIcon}
                   taskDateChangeMode={taskDateChangeMode}
                   onTaskDateChangeModeChange={onTaskDateChangeModeChange}
+                  printDependencyLabels={printDependencyLabels}
                 />
               </div>
             );
