@@ -13,6 +13,16 @@ import type { GanttScheduleIntent } from '../../types';
 import type { TaskPreviewPositionStore } from '../GanttChart/previewStore';
 import './TaskRow.css';
 
+const formatCompositePreviewDate = (date: Date): string => {
+  const month = new Intl.DateTimeFormat('ru-RU', { month: 'short', timeZone: 'UTC' })
+    .format(date)
+    .replace(/\.$/, '');
+  const yearSuffix = date.getUTCFullYear() === new Date().getFullYear()
+    ? ''
+    : ` ${String(date.getUTCFullYear()).slice(-2)}`;
+  return `${date.getUTCDate()} ${month}${yearSuffix}`;
+};
+
 // START_MODULE_CONTRACT
 // PURPOSE: Render one Gantt task row, including its bar, scheduling affordances, and optional external labels.
 // SCOPE: Calculate task geometry, render duration/progress/name/date labels, and preserve drag/dependency interactions with optional deferred cascade preview.
@@ -461,7 +471,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // "X работ 100%" ≈ 60–70px text + 16px padding = ~110px
     // Regular: "15 д 100%" ≈ 76px, "1 д 100%" ≈ 62px
     const estimatedTextWidth = isVisualParent ? 120 : (durationDays >= 10 ? 76 : 62);
-    const showProgressInside = !milestone && progressWidth > 0 && displayWidth > estimatedTextWidth;
+    const showProgressInside = !milestone && progressWidth > 0 && displayWidth > (compactDetail ? 28 : estimatedTextWidth);
 
     // Determine if duration fits inside the bar
     // For 1-day tasks: always show duration outside (too narrow)
@@ -504,7 +514,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 }
                 : {
                   width: `${visualWidth}px`,
-                  height: compactDetail ? '14px' : isVisualParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
+                  height: compactDetail ? '18px' : isVisualParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
                 }),
               cursor: dragHandleProps.style.cursor,
               userSelect: dragHandleProps.style.userSelect,
@@ -586,11 +596,10 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               </span>
             )}
             {task.composite && (
-              <span className="gantt-tr-compositeCount" aria-hidden="true">
+              <span className="gantt-tr-compositeHoverChevron" aria-hidden="true">
                 <svg className={`gantt-tr-compositeChevron${compositeExpanded ? ' gantt-tr-compositeChevron-open' : ''}`} viewBox="0 0 20 20">
                   <path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                {childCount}
               </span>
             )}
             {showDurationInside && (
@@ -611,10 +620,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               style={{ left: `${compositePreviewPosition.left}px`, top: `${compositePreviewPosition.top}px` }}
               role="tooltip"
             >
-              <strong>{task.name}</strong>
               <div className="gantt-tr-compositePreviewAxis">
-                <span>{taskStartDate.toISOString().slice(0, 10)}</span>
-                <span>{taskEndDate.toISOString().slice(0, 10)}</span>
+                <span>{formatCompositePreviewDate(currentStartDate)}</span>
+                <span>{formatCompositePreviewDate(currentEndDate)}</span>
               </div>
               {compositeChildren.slice(0, 12).map(child => (
                 <div key={child.id} className="gantt-tr-compositePreviewRow">
@@ -625,6 +633,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                       style={{
                         left: `${Math.max(0, (parseUTCDate(child.startDate).getTime() - taskStartDate.getTime()) / (taskEndDate.getTime() - taskStartDate.getTime() + 86400000) * 100)}%`,
                         width: `${Math.max(2, (parseUTCDate(child.endDate).getTime() - parseUTCDate(child.startDate).getTime() + 86400000) / (taskEndDate.getTime() - taskStartDate.getTime() + 86400000) * 100)}%`,
+                        backgroundColor: barColor,
                       }}
                     />
                   </span>

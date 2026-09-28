@@ -57,7 +57,7 @@
   width: 220px;
   max-height: 340px;
   overflow: hidden;
-  padding: 10px 12px;
+  padding: 4px 12px 10px;
   border: 1px solid var(--gantt-grid-line-color, #ddd);
   border-radius: 8px;
   background: var(--gantt-background, #fff);
@@ -79,7 +79,7 @@
 .gantt-tr-compositePreviewAxis {
   display: flex;
   justify-content: space-between;
-  margin: 7px 0 3px 68px;
+  margin: 0 0 3px 68px;
   color: #64748b;
   font-size: 10px;
 }
@@ -87,7 +87,7 @@
 .gantt-tr-compositePreviewTrack {
   position: relative;
   height: 10px;
-  border-radius: 5px;
+  border-radius: 2px;
   background: #f1f5f9;
 }
 
@@ -96,7 +96,6 @@
   top: 1px;
   height: 8px;
   border-radius: 2px;
-  background: #8b5cf6;
 }
 
 .gantt-tr-compositeBar {
@@ -117,25 +116,31 @@
   background: rgba(255, 255, 255, .14);
 }
 
-.gantt-tr-compositeCount {
+.gantt-tr-compositeHoverChevron {
   position: absolute;
   z-index: 3;
-  left: 3px;
+  left: 0;
   top: 50%;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   transform: translateY(-50%);
-  padding: 2px 5px 2px 3px;
+  padding: 0;
   border-radius: 4px;
   background: rgba(24, 16, 45, .48);
   color: white;
   font-size: 11px;
   font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
 }
 
-.gantt-tr-compositeBar .gantt-tr-taskDuration {
-  margin-left: 48px;
+.gantt-tr-compositeBar:hover .gantt-tr-compositeHoverChevron,
+.gantt-tr-compositeBar:focus-visible .gantt-tr-compositeHoverChevron {
+  opacity: 1;
 }
 
 .gantt-tr-compositeChevron {
@@ -178,13 +183,20 @@
   opacity: .88;
 }
 
-.gantt-tr-row-compositeDetail .gantt-tr-leftLabels,
-.gantt-tr-row-compositeDetail .gantt-tr-externalProgress {
+.gantt-tr-row-compositeDetail .gantt-tr-leftLabels {
   display: none;
 }
 
 .gantt-tr-row-compositeDetail .gantt-tr-externalTaskName {
   font-size: 0.72rem;
+}
+
+.gantt-tr-row-compositeDetail .gantt-tr-progressText {
+  display: none;
+}
+
+.gantt-tr-row-compositeDetail .gantt-tr-externalProgress {
+  display: none;
 }
 
 /* Critical path task bar: solid red repaint handled in TaskRow.tsx

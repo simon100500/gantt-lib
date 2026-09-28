@@ -228,7 +228,7 @@
   font-size: 12px;
 }
 
-.gantt-tl-row-composite-detail .gantt-tl-cell:not(.gantt-tl-cell-name):not(.gantt-tl-cell-number) {
+.gantt-tl-row-composite-detail .gantt-tl-cell:not(.gantt-tl-cell-name):not(.gantt-tl-cell-number):not(.gantt-tl-cell-progress) {
   visibility: hidden;
 }
 
@@ -266,6 +266,47 @@
 .gantt-tl-compositeToggle svg {
   width: 13px;
   height: 13px;
+  transform-origin: center;
+}
+
+.gantt-tl-compositeToggle .gantt-tl-compositeGlyph-composite-opening-outgoing {
+  animation: gantt-tl-composite-out-open 120ms ease-in-out forwards;
+}
+
+.gantt-tl-compositeToggle .gantt-tl-compositeGlyph-down-opening-incoming {
+  animation: gantt-tl-composite-in-open 120ms ease-in-out forwards;
+}
+
+.gantt-tl-compositeToggle .gantt-tl-compositeGlyph-down-closing-outgoing {
+  animation: gantt-tl-composite-out-close 120ms ease-in-out forwards;
+}
+
+.gantt-tl-compositeToggle .gantt-tl-compositeGlyph-composite-closing-incoming {
+  animation: gantt-tl-composite-in-close 120ms ease-in-out forwards;
+}
+
+@keyframes gantt-tl-composite-out-open {
+  to { transform: rotate(90deg); }
+}
+
+@keyframes gantt-tl-composite-in-open {
+  from { transform: rotate(-90deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes gantt-tl-composite-out-close {
+  to { transform: rotate(-90deg); }
+}
+
+@keyframes gantt-tl-composite-in-close {
+  from { transform: rotate(90deg); }
+  to { transform: rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gantt-tl-compositeToggle [class*="gantt-tl-compositeGlyph-"] {
+    animation-duration: 1ms;
+  }
 }
 
 

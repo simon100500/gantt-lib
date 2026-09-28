@@ -1152,6 +1152,37 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     );
 
     const isCollapsed = collapsedParentIds.has(task.id);
+    const [compositeIconMode, setCompositeIconMode] = useState<'composite' | 'down'>(
+      () => isCollapsed ? 'composite' : 'down'
+    );
+    const compositeIconModeRef = useRef(compositeIconMode);
+    const [compositeIconAnimation, setCompositeIconAnimation] = useState<'opening' | 'closing' | null>(null);
+    const [compositeIconAnimationPhase, setCompositeIconAnimationPhase] = useState<'outgoing' | 'incoming' | null>(null);
+
+    useEffect(() => {
+      const nextMode = isCollapsed ? 'composite' : 'down';
+      if (nextMode === compositeIconModeRef.current) {
+        setCompositeIconAnimation(null);
+        setCompositeIconAnimationPhase(null);
+        return;
+      }
+
+      setCompositeIconAnimation(isCollapsed ? 'closing' : 'opening');
+      setCompositeIconAnimationPhase('outgoing');
+      const swapTimeoutId = window.setTimeout(() => {
+        compositeIconModeRef.current = nextMode;
+        setCompositeIconMode(nextMode);
+        setCompositeIconAnimationPhase('incoming');
+      }, 120);
+      const finishTimeoutId = window.setTimeout(() => {
+        setCompositeIconAnimation(null);
+        setCompositeIconAnimationPhase(null);
+      }, 240);
+      return () => {
+        window.clearTimeout(swapTimeoutId);
+        window.clearTimeout(finishTimeoutId);
+      };
+    }, [isCollapsed]);
 
     const getHierarchyLineColor = useCallback((columnDepth: number) => {
       return columnDepth % 2 === 0
@@ -2170,22 +2201,23 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 />
               </>
             )}
+            {isParent && task.composite && !isFilterHideMode && !isCollapsed && !editingName && (
+              <span
+                data-testid="gantt-tl-parent-connector-tail"
+                style={{
+                  position: "absolute",
+                  left: `${nestingDepth * 20 + 9}px`,
+                  top: `${rowHeight / 2 + 7}px`,
+                  height: `${rowHeight / 2 - 7}px`,
+                  width: "1.5px",
+                  background: getHierarchyLineColor(nestingDepth),
+                  borderRadius: "1px",
+                  pointerEvents: "none",
+                }}
+              />
+            )}
             {isParent && !task.composite && !editingName && (
               <>
-                {!isFilterHideMode && !isCollapsed && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      left: `${nestingDepth * 20 + 9}px`,
-                      top: `${rowHeight / 2 + 7}px`,
-                      height: `${rowHeight / 2 - 7}px`,
-                      width: "1.5px",
-                      background: getHierarchyLineColor(nestingDepth),
-                      borderRadius: "1px",
-                      pointerEvents: "none",
-                    }}
-                  />
-                )}
                 <button
                   type="button"
                   className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
@@ -2251,8 +2283,21 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 aria-expanded={!isCollapsed}
                 title={isCollapsed ? "Раскрыть этажи" : "Свернуть этажи"}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  {isCollapsed ? <><path d="M21 5H11" /><path d="M21 12H11" /><path d="M21 19H11" /><path d="m3 8 4 4-4 4" /></> : <path d="m6 9 6 6 6-6" />}
+                <svg
+                  className={compositeIconAnimation && compositeIconAnimationPhase
+                    ? `gantt-tl-compositeGlyph-${compositeIconMode}-${compositeIconAnimation}-${compositeIconAnimationPhase}`
+                    : undefined}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  {compositeIconMode === 'composite'
+                    ? <><path d="M21 5H11" /><path d="M21 12H11" /><path d="M21 19H11" /><path d="m3 8 4 4-4 4" /></>
+                    : <path d="m6 9 6 6 6-6" />}
                 </svg>
               </button>
             )}
