@@ -231,13 +231,16 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     return { taskPositions: positions, taskIndices: indices, hiddenTaskIds: hidden };
   }, [tasks, tasksForPositions, allTasks, collapsedParentIds, monthStart, dayWidth, rowHeight, dragOverrides, rowIndexByTaskId]);
 
-  // Detect cycles for highlighting (use allTasks for accurate cycle detection)
+  // Detect cycles for highlighting (use allTasks for accurate cycle detection).
+  // Keyed on the detection input only: with allTasks supplied (the stable full task
+  // list), the virtualized `tasks` window changes identity on every scroll frame —
+  // including it re-ran the full-graph detection per frame and froze panning.
+  const tasksForCycleDetection = allTasks ?? tasks;
   const cycleInfo = useMemo(() => {
-    const tasksForCycleDetection = allTasks ?? tasks;
     const result = detectCycles(tasksForCycleDetection);
     const cycleTaskIds = new Set(result.cyclePath || []);
     return cycleTaskIds;
-  }, [tasks, allTasks]);
+  }, [tasksForCycleDetection]);
 
   // Calculate all dependency line paths (use allTasks if available)
   const lines = useMemo(() => {

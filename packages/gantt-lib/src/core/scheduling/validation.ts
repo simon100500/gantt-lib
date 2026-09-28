@@ -10,25 +10,31 @@ import { areTasksHierarchicallyRelated } from './hierarchy';
 /**
  * Build adjacency list for dependency graph (task -> successors)
  */
+// START_CONTRACT:
+//   PURPOSE: Index successor ids by predecessor in one pass.
+//   INPUTS: tasks - task list with optional dependencies.
+//   OUTPUTS: Map<predecessorId, successorId[]>; tasks without successors map to [].
+//   SIDE_EFFECTS: none.
+//   LINKS: fn-detectCycles
+//   INVARIANT: Linear in tasks + edges. The previous nested scan was O(n²) and
+//     ran per rendered frame through DependencyLines cycle detection, freezing
+//     chart panning on 4k-task projects.
+// END_CONTRACT:
 export function buildAdjacencyList(tasks: Task[]): Map<string, string[]> {
   const graph = new Map<string, string[]>();
 
   for (const task of tasks) {
-    const successors: string[] = [];
+    graph.set(task.id, []);
+  }
 
-    // Find all tasks that depend on this task (this task is a predecessor)
-    for (const otherTask of tasks) {
-      if (otherTask.dependencies) {
-        for (const dep of otherTask.dependencies) {
-          if (dep.taskId === task.id) {
-            successors.push(otherTask.id);
-            break;
-          }
-        }
+  for (const task of tasks) {
+    if (!task.dependencies) continue;
+    for (const dep of task.dependencies) {
+      const bucket = graph.get(dep.taskId);
+      if (bucket) {
+        bucket.push(task.id);
       }
     }
-
-    graph.set(task.id, successors);
   }
 
   return graph;
