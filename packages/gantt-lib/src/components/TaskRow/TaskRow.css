@@ -95,7 +95,7 @@
   position: absolute;
   top: 1px;
   height: 8px;
-  border-radius: 4px;
+  border-radius: 2px;
   background: #8b5cf6;
 }
 
@@ -162,9 +162,12 @@
 }
 
 .gantt-tr-row-compositeDetail .gantt-tr-leftLabels,
-.gantt-tr-row-compositeDetail .gantt-tr-externalTaskName,
 .gantt-tr-row-compositeDetail .gantt-tr-externalProgress {
   display: none;
+}
+
+.gantt-tr-row-compositeDetail .gantt-tr-externalTaskName {
+  font-size: 0.72rem;
 }
 
 /* Critical path task bar: solid red repaint handled in TaskRow.tsx

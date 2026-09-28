@@ -236,18 +236,30 @@
   color: #5b4b83;
 }
 
-.gantt-tl-name-trigger-composite {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.gantt-tl-compositeToggle {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 2px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--gantt-text-color, #374151);
   cursor: pointer;
 }
 
-.gantt-tl-compositeChevron {
+.gantt-tl-compositeToggle:hover {
+  background: var(--gantt-row-hover-background, rgba(59, 130, 246, .08));
+}
+
+.gantt-tl-compositeToggle svg {
   width: 18px;
   height: 18px;
-  flex: 0 0 18px;
-  color: #6d28d9;
 }
 
 

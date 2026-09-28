@@ -1291,14 +1291,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const handleNameClick = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (task.composite) {
-          onToggleCollapse?.(task.id);
-          return;
-        }
         onRowClick?.(task.id);
         onScrollToTask?.(task.id);
       },
-      [task.id, task.composite, onToggleCollapse, onRowClick, onScrollToTask],
+      [task.id, onRowClick, onScrollToTask],
     );
 
     const handleNameDoubleClick = useCallback(
@@ -2244,37 +2240,42 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <button
-            type="button"
-            className={[
-              "gantt-tl-name-trigger",
-              task.composite ? "gantt-tl-name-trigger-composite" : "",
-              disableTaskNameEditing ? "gantt-tl-name-locked" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            title={task.name}
-            aria-expanded={task.composite ? !isCollapsed : undefined}
-            onClick={handleNameClick}
-            onDoubleClick={handleNameDoubleClick}
-            style={{
-              paddingLeft: nameTriggerPaddingLeft,
-              paddingRight: task.color ? "20px" : undefined,
-            }}
-          >
+          <>
             {task.composite && (
-              <svg className="gantt-tl-compositeChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M3 5h8" /><path d="M3 12h8" /><path d="M3 19h8" />
-                {isCollapsed ? <><path d="m15 8 3-3 3 3" /><path d="m15 16 3 3 3-3" /></> : <><path d="m15 5 3 3 3-3" /><path d="m15 19 3-3 3 3" /></>}
-              </svg>
+              <button
+                type="button"
+                className="gantt-tl-compositeToggle"
+                onClick={handleToggleCollapse}
+                style={{ left: `${nestingDepth * 20 + 2}px` }}
+                aria-label={isCollapsed ? `Раскрыть ${task.name}` : `Свернуть ${task.name}`}
+                aria-expanded={!isCollapsed}
+                title={isCollapsed ? "Раскрыть этажи" : "Свернуть этажи"}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 5h8" /><path d="M3 12h8" /><path d="M3 19h8" />
+                  {isCollapsed ? <><path d="m15 8 3-3 3 3" /><path d="m15 16 3 3 3-3" /></> : <><path d="m15 5 3 3 3-3" /><path d="m15 19 3-3 3 3" /></>}
+                </svg>
+              </button>
             )}
-            {taskListNamePrefixIcon ? (
-              <span className="gantt-tl-name-trigger-icon" aria-hidden="true">
-                {taskListNamePrefixIcon}
-              </span>
-            ) : null}
-            <span className="gantt-tl-name-trigger-text">{task.name}</span>
-          </button>
+            <button
+              type="button"
+              className={`gantt-tl-name-trigger${disableTaskNameEditing ? " gantt-tl-name-locked" : ""}`}
+              title={task.name}
+              onClick={handleNameClick}
+              onDoubleClick={handleNameDoubleClick}
+              style={{
+                paddingLeft: task.composite ? `${nestingDepth * 20 + 30}px` : nameTriggerPaddingLeft,
+                paddingRight: task.color ? "20px" : undefined,
+              }}
+            >
+              {taskListNamePrefixIcon ? (
+                <span className="gantt-tl-name-trigger-icon" aria-hidden="true">
+                  {taskListNamePrefixIcon}
+                </span>
+              ) : null}
+              <span className="gantt-tl-name-trigger-text">{task.name}</span>
+            </button>
+          </>
         )}
         {!editingName && task.color && (
           <span
