@@ -110,6 +110,8 @@ export interface TaskRowProps {
   /** Open or close the composite detail rows. */
   onCompositeToggle?: (source: 'release' | 'click' | 'keyboard') => void;
   compactDetail?: boolean;
+  /** Parent bar color used to tint a composite detail row. */
+  compositeParentColor?: string;
   compositeExpanded?: boolean;
 }
 
@@ -162,6 +164,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.showBaseline === nextProps.showBaseline &&
     prevProps.onCompositeToggle === nextProps.onCompositeToggle &&
     prevProps.compactDetail === nextProps.compactDetail &&
+    prevProps.compositeParentColor === nextProps.compositeParentColor &&
     prevProps.compositeExpanded === nextProps.compositeExpanded &&
     prevProps.isFilterMatch === nextProps.isFilterMatch &&
     prevProps.businessDays === nextProps.businessDays &&
@@ -184,7 +187,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, onCompositeToggle, compactDetail = false, compositeExpanded = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
@@ -483,7 +486,10 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         data-filter-match={isFilterMatch ? 'true' : 'false'}
         data-gantt-task-row-id={task.id}
         className={`gantt-tr-row ${compactDetail ? 'gantt-tr-row-compositeDetail' : ''} ${isFilterMatch ? 'gantt-tr-row-filter-match' : ''}`}
-        style={{ height: `${rowHeight}px` }}
+        style={{
+          height: `${rowHeight}px`,
+          '--gantt-tr-composite-detail-color': compositeParentColor ?? 'var(--gantt-task-bar-default-color, #8b5cf6)',
+        } as React.CSSProperties}
       >
         {taskDivider === 'top' && <div className="gantt-tr-divider gantt-tr-divider-top" />}
         <div className="gantt-tr-taskContainer">

@@ -27,12 +27,13 @@
 
 .gantt-tr-row:hover,
 .gantt-tr-row-hovered {
-  background-color: var(--gantt-row-hover-background, rgba(59, 130, 246, 0.04));
+  box-shadow: inset 0 0 0 9999px var(--gantt-row-hover-background, rgba(59, 130, 246, 0.04));
 }
 
 .gantt-tr-row.gantt-tr-row-filter-match:hover,
 .gantt-tr-row.gantt-tr-row-filter-match.gantt-tr-row-hovered {
   background-color: rgba(250, 204, 21, 0.3);
+  box-shadow: inset 0 0 0 9999px rgba(250, 204, 21, 0.3);
 }
 
 .gantt-tr-taskBar {
@@ -175,7 +176,12 @@
 }
 
 .gantt-tr-row-compositeDetail {
-  background: rgba(139, 92, 246, .035);
+  background-color: color-mix(in srgb, var(--gantt-tr-composite-detail-color) 8%, transparent);
+}
+
+.gantt-tr-row-compositeDetail:hover,
+.gantt-tr-row-compositeDetail.gantt-tr-row-hovered {
+  box-shadow: inset 0 0 0 9999px var(--gantt-row-hover-background, rgba(59, 130, 246, 0.04));
 }
 
 .gantt-tr-row-compositeDetail .gantt-tr-taskBar {

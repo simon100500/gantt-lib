@@ -90,4 +90,25 @@ describe('composite Gantt accordion', () => {
     expect(rows()).toHaveLength(2);
     expect(tableName.querySelector('path[d="m15 8 3-3 3 3"]')).not.toBeNull();
   });
+
+  it('tints composite detail rows in both panes and shares row hover across the full chart row', () => {
+    const coloredTasks: Task[] = [
+      { id: 'group', name: 'Group', composite: true, color: '#0891b2', startDate: '2026-03-02', endDate: '2026-03-04' },
+      { id: 'child', parentId: 'group', name: 'Child', startDate: '2026-03-02', endDate: '2026-03-04' },
+    ];
+    const { container } = render(
+      <GanttChart tasks={coloredTasks} showTaskList dayWidth={32} rowHeight={40} containerHeight={400} />
+    );
+
+    fireEvent.click(container.querySelector('.gantt-tl-row[data-gantt-task-row-id="group"] .gantt-tl-compositeToggle')!);
+
+    const tableChild = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="child"]') as HTMLElement;
+    const chartChild = container.querySelector('.gantt-tr-row[data-gantt-task-row-id="child"]') as HTMLElement;
+    expect(tableChild.style.getPropertyValue('--gantt-tl-composite-detail-color')).toBe('#0891b2');
+    expect(chartChild.style.getPropertyValue('--gantt-tr-composite-detail-color')).toBe('#0891b2');
+
+    fireEvent.mouseOver(chartChild);
+    expect(chartChild.classList.contains('gantt-tr-row-hovered')).toBe(true);
+    expect(tableChild.classList.contains('gantt-tl-row-hovered')).toBe(true);
+  });
 });

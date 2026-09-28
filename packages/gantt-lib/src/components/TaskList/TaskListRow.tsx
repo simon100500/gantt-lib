@@ -883,6 +883,8 @@ export interface TaskListRowProps {
   hideTaskListRowActions?: boolean;
   /** Extra CSS class name for the rendered task-list row. */
   rowClassName?: string;
+  /** Parent bar color used to tint rows under an expanded composite task. */
+  compositeParentColor?: string;
   /** Optional icon rendered before the task name inside this row. */
   getTaskListNamePrefixIcon?: (task: Task) => React.ReactNode;
   /** How task-list date pickers apply start/end edits */
@@ -1055,6 +1057,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     taskListMenuCommands = [],
     hideTaskListRowActions = false,
     rowClassName,
+    compositeParentColor,
     getTaskListNamePrefixIcon,
     taskDateChangeMode = 'preserve-duration',
     onTaskDateChangeModeChange,
@@ -2201,7 +2204,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 />
               </>
             )}
-            {isParent && task.composite && !isFilterHideMode && !isCollapsed && !editingName && (
+            {task.composite && !isFilterHideMode && !isCollapsed && !editingName && (
               <span
                 data-testid="gantt-tl-parent-connector-tail"
                 style={{
@@ -2939,6 +2942,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         style={{
           height: `${rowHeight}px`,
           position: "relative",
+          "--gantt-tl-composite-detail-color": compositeParentColor ?? "var(--gantt-task-bar-default-color, #8b5cf6)",
           "--gantt-tl-nested-drop-left": nestedDropIndicatorLeft,
           "--gantt-tl-nested-inside-drop-left": nestedInsideDropIndicatorLeft,
         } as React.CSSProperties}

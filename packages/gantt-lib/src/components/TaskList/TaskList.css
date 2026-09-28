@@ -223,8 +223,8 @@
 }
 
 .gantt-tl-row-composite-detail {
-  --gantt-tl-name-actions-bg: rgba(139, 92, 246, .035);
-  background: rgba(139, 92, 246, .035);
+  --gantt-tl-name-actions-bg: color-mix(in srgb, var(--gantt-tl-composite-detail-color) 9%, var(--gantt-cell-background, #fff));
+  background: color-mix(in srgb, var(--gantt-tl-composite-detail-color) 9%, var(--gantt-cell-background, #fff));
   font-size: 12px;
 }
 

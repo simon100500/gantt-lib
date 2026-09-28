@@ -524,6 +524,10 @@ export const TaskList: React.FC<TaskListProps> = ({
     () => new Set(tasks.filter(task => task.composite).map(task => task.id)),
     [tasks]
   );
+  const compositeParentsById = useMemo(
+    () => new Map(tasks.filter(task => task.composite).map(task => [task.id, task])),
+    [tasks]
+  );
   const renderedVisibleRowIndices = useMemo(
     () => visibleRowIndices ?? visibleTasks.map((_, index) => index),
     [visibleRowIndices, visibleTasks]
@@ -1869,6 +1873,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   hideTaskListRowActions={hideTaskListRowActions}
                   rowClassName={[task.parentId && compositeParentIds.has(task.parentId)
                     ? 'gantt-tl-row-composite-detail' : '', getTaskListRowClassName?.(task)].filter(Boolean).join(' ')}
+                  compositeParentColor={task.parentId ? compositeParentsById.get(task.parentId)?.color : undefined}
                   getTaskListNamePrefixIcon={getTaskListNamePrefixIcon}
                   taskDateChangeMode={taskDateChangeMode}
                   onTaskDateChangeModeChange={onTaskDateChangeModeChange}

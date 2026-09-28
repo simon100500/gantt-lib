@@ -1138,6 +1138,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
     return { tops, heights, totalHeight: top };
   }, [normalizedTasks, visibleTasks, effectiveRowHeight]);
+  const compositeParentsById = useMemo(
+    () => new Map(normalizedTasks.filter(task => task.composite).map(task => [task.id, task])),
+    [normalizedTasks]
+  );
 
   const matchedTaskIds = useMemo(() => {
     if (!taskFilter) return new Set<string>();
@@ -2632,6 +2636,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         dayWidth={dayWidth}
                         rowHeight={compositeRowLayout.heights[index]}
                         compactDetail={compositeRowLayout.heights[index] < effectiveRowHeight}
+                        compositeParentColor={task.parentId ? compositeParentsById.get(task.parentId)?.color : undefined}
                         onTasksChange={handleTaskChange as (tasks: Task[]) => void}
                         onDragStateChange={(state) => {
                           if (state.isDragging) {
