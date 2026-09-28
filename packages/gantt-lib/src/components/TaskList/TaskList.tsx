@@ -145,49 +145,11 @@ function getNearestVisibleDropAnchorBefore(
 }
 
 /**
- * Вычисляет иерархический номер задачи на основе позиции в списке visibleTasks.
- * Корневые задачи: 1, 2, 3...
- * Дочерние задачи: 1.1, 1.2, 2.1, 2.1.1 и т.д.
- *
- * @param tasks - Массив видимых задач (уже отсортированных в иерархическом порядке)
- * @param taskIndex - Индекс задачи в массиве visibleTasks
- * @returns Иерархический номер в виде строки
+ * Иерархические номера строк («1», «1.2», «2.1.3») строит линейный
+ * buildTaskNumberMap из ./taskNumbering — прежний рекурсивный вариант был
+ * O(n²) и стоил сотни миллисекунд на 4k+ строк при каждом применении снапшота.
  */
-function getTaskNumber(tasks: Task[], taskIndex: number): string {
-  const task = tasks[taskIndex];
-  if (!task) return '';
-
-  // Если это корневая задача (нет parentId)
-  if (!task.parentId) {
-    // Найти порядковый номер среди корневых задач
-    let rootIndex = 0;
-    for (let i = 0; i < taskIndex; i++) {
-      if (!tasks[i].parentId) {
-        rootIndex++;
-      }
-    }
-    return String(rootIndex + 1);
-  }
-
-  // Для дочерней задачи - найти родительский номер
-  const parentIndex = tasks.findIndex(t => t.id === task.parentId);
-  if (parentIndex === -1) {
-    // Родитель не найден - fallback на плоский номер
-    return String(taskIndex + 1);
-  }
-
-  const parentNumber = getTaskNumber(tasks, parentIndex);
-
-  // Найти порядковый номер среди детей этого родителя
-  let siblingIndex = 0;
-  for (let i = 0; i < taskIndex; i++) {
-    if (tasks[i].parentId === task.parentId) {
-      siblingIndex++;
-    }
-  }
-
-  return `${parentNumber}.${siblingIndex + 1}`;
-}
+import { buildTaskNumberMap } from './taskNumbering';
 
 export interface TaskListProps {
   /** Array of tasks to display */
@@ -546,10 +508,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     [rowHeight, skeletonRowCount, visibleTasks.length]
   );
   const visibleTaskNumberMap = useMemo(
-    () =>
-      Object.fromEntries(
-        visibleTasks.map((task, index) => [task.id, String(getTaskNumber(visibleTasks, index))])
-      ) as Record<string, string>,
+    () => Object.fromEntries(buildTaskNumberMap(visibleTasks)) as Record<string, string>,
     [visibleTasks]
   );
 
@@ -600,13 +559,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   // Оригинальные номера задач на основе полного списка (до фильтрации)
   // Используются для сохранения нумерации при скрытии задач
   const originalTaskNumberMap = useMemo(
-    () => {
-      const numberMap = new Map<string, string>();
-      for (let i = 0; i < orderedTasks.length; i++) {
-        numberMap.set(orderedTasks[i].id, getTaskNumber(orderedTasks, i));
-      }
-      return Object.fromEntries(numberMap) as Record<string, string>;
-    },
+    () => Object.fromEntries(buildTaskNumberMap(orderedTasks)) as Record<string, string>,
     [orderedTasks]
   );
 
