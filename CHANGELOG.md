@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.135.7] - 2026-09-28
+
+### Performance
+
+- Build the dependency adjacency list in one pass instead of an O(n²) task-vs-task scan; the old graph build ran per rendered frame and froze vertical chart panning on 4k-task projects.
+- Key the DependencyLines cycle-detection memo on the stable full task list instead of the per-frame virtualized row window, so scrolling no longer re-runs full-graph cycle detection.
+
 ## [0.135.6] - 2026-09-28
 
 ### Performance
