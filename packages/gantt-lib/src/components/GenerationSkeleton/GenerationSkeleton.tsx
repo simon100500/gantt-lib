@@ -25,6 +25,8 @@ export interface GenerationSkeletonRowsProps {
   rowHeight: number;
   variant: GenerationSkeletonVariant;
   startIndex?: number;
+  /** Pixel offset of the first placeholder when preceding rows have variable heights. */
+  startTop?: number;
   taskListLayout?: GenerationSkeletonTaskListLayout;
   chartDayWidth?: number;
   chartStartDayOffset?: number;
@@ -50,6 +52,7 @@ export const GenerationSkeletonRows: React.FC<GenerationSkeletonRowsProps> = ({
   rowHeight,
   variant,
   startIndex = 0,
+  startTop,
   taskListLayout,
   chartDayWidth = 40,
   chartStartDayOffset = 0,
@@ -95,7 +98,7 @@ export const GenerationSkeletonRows: React.FC<GenerationSkeletonRowsProps> = ({
           <div
             key={rowIndex}
             className="gantt-generation-skeleton-row"
-            style={{ top: `${rowIndex * rowHeight}px`, height: `${rowHeight}px` }}
+            style={{ top: `${(startTop ?? startIndex * rowHeight) + index * rowHeight}px`, height: `${rowHeight}px` }}
           >
             {variant === 'task-list' ? (
               <>

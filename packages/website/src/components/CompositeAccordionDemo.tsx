@@ -61,10 +61,14 @@ export default function CompositeAccordionDemo() {
           showTaskList
           showChart
           businessDays={false}
-          dayWidth={32}
+          dateRange={{ start: new Date(Date.UTC(2026, 8, 25)), end: new Date(Date.UTC(2026, 9, 22)) }}
+          dayWidth={16}
           rowHeight={40}
-          taskListWidth={560}
+          taskListWidth={530}
+          hiddenTaskListColumns={['startDate', 'endDate', 'duration', 'progress', 'dependencies']}
           containerHeight={570}
+          showTaskDateLabels={false}
+          showTaskNames={false}
         />
       </div>
     </section>

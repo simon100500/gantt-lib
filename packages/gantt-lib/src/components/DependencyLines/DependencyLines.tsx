@@ -87,6 +87,8 @@ export interface DependencyLinesProps {
   totalHeight?: number;
   /** Row indices in the full visible task list keyed by task id */
   rowIndexByTaskId?: Map<string, number>;
+  rowTops?: number[];
+  rowHeights?: number[];
   /** Real-time pixel overrides for task positions during drag (taskId -> {left, width}) */
   dragOverrides?: Map<string, { left: number; width: number }>;
   /** Currently selected dep chip — highlights the matching arrow in red */
@@ -128,6 +130,8 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   gridWidth,
   totalHeight,
   rowIndexByTaskId,
+  rowTops,
+  rowHeights,
   dragOverrides,
   selectedDep,
   criticalTaskIds,
@@ -141,7 +145,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
   // Create a lookup map for task positions and their indices
   const { taskPositions, taskIndices, hiddenTaskIds } = useMemo(() => {
-    const positions = new Map<string, { left: number; right: number; centerX: number; rowTop: number; isVirtual: boolean }>();
+    const positions = new Map<string, { left: number; right: number; centerX: number; rowTop: number; rowHeight: number; isVirtual: boolean }>();
     const indices = new Map<string, number>();
     const hidden = new Set<string>();
     const taskMap = new Map(tasksForPositions.map(t => [t.id, t]));
@@ -157,7 +161,8 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         left: computed.left,
         right: computed.right,
         centerX: computed.centerX,
-        rowTop: rowIndex * rowHeight,
+        rowTop: rowTops?.[rowIndex] ?? rowIndex * rowHeight,
+        rowHeight: rowHeights?.[rowIndex] ?? rowHeight,
         isVirtual: false,
       });
     });
@@ -216,20 +221,21 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         const computed = resolveTaskHorizontalGeometry(task, monthStart, dayWidth, override);
 
         const rowIndex = rowIndexByTaskId?.get(task.id);
-        const rowTop = rowIndex !== undefined ? rowIndex * rowHeight : 0;
+        const rowTop = rowIndex !== undefined ? (rowTops?.[rowIndex] ?? rowIndex * rowHeight) : 0;
 
         positions.set(task.id, {
           left: computed.left,
           right: computed.right,
           centerX: computed.centerX,
           rowTop,
+          rowHeight: rowIndex !== undefined ? (rowHeights?.[rowIndex] ?? rowHeight) : rowHeight,
           isVirtual: false,
         });
       }
     }
 
     return { taskPositions: positions, taskIndices: indices, hiddenTaskIds: hidden };
-  }, [tasks, tasksForPositions, allTasks, collapsedParentIds, monthStart, dayWidth, rowHeight, dragOverrides, rowIndexByTaskId]);
+  }, [tasks, tasksForPositions, allTasks, collapsedParentIds, monthStart, dayWidth, rowHeight, rowTops, rowHeights, dragOverrides, rowIndexByTaskId]);
 
   // Detect cycles for highlighting (use allTasks for accurate cycle detection).
   // Keyed on the detection input only: with allTasks supplied (the stable full task
@@ -327,10 +333,10 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       if (reverseOrder) {
         // Arrow goes UP: exit from top of parent bar, enter at bottom of child bar
         fromY = predecessor.rowTop + 10;               // 8px from top of parent bar
-        toY = successor.rowTop + rowHeight - 6;        // 8px from bottom of child bar
+        toY = successor.rowTop + successor.rowHeight - 6;        // 8px from bottom of child bar
       } else {
         // Arrow goes DOWN: exit from bottom of parent bar, enter at top of child bar
-        fromY = predecessor.rowTop + rowHeight - 10;   // 8px from bottom of parent bar
+        fromY = predecessor.rowTop + predecessor.rowHeight - 10;   // 8px from bottom of parent bar
         toY = successor.rowTop + 6;                    // 8px from top of child bar
       }
 

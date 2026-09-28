@@ -1122,6 +1122,23 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     return tasks;
   }, [normalizedTasks, collapsedParentIds, filterMode, taskFilter, criticalPathMode, criticalTaskIds]);
 
+  // Expanded composite details occupy compact, real rows in both panes.
+  const compositeRowLayout = useMemo(() => {
+    const compositeIds = new Set(normalizedTasks.filter(task => task.composite).map(task => task.id));
+    const tops: number[] = [];
+    const heights: number[] = [];
+    let top = 0;
+    for (const task of visibleTasks) {
+      tops.push(top);
+      const height = task.parentId && compositeIds.has(task.parentId)
+        ? Math.min(effectiveRowHeight, 26)
+        : effectiveRowHeight;
+      heights.push(height);
+      top += height;
+    }
+    return { tops, heights, totalHeight: top };
+  }, [normalizedTasks, visibleTasks, effectiveRowHeight]);
+
   const matchedTaskIds = useMemo(() => {
     if (!taskFilter) return new Set<string>();
     return new Set(visibleTasks.filter(taskFilter).map(task => task!.id));
@@ -1150,8 +1167,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Calculate total grid height from currently visible rows.
   const totalGridHeight = useMemo(
-    () => (visibleTasks.length + Math.max(0, Math.floor(skeletonRowCount))) * effectiveRowHeight,
-    [effectiveRowHeight, skeletonRowCount, visibleTasks.length]
+    () => compositeRowLayout.totalHeight + Math.max(0, Math.floor(skeletonRowCount)) * effectiveRowHeight,
+    [compositeRowLayout.totalHeight, effectiveRowHeight, skeletonRowCount]
   );
   // TimeScaleHeader is headerHeight tall; the wrapper owns the bottom grid border.
   const timelineHeaderHeight = headerHeight + 1;
@@ -1329,7 +1346,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       if (rowIndex === -1) return;
 
       const paddedRowIndex = Math.max(0, rowIndex - SCROLL_TO_ROW_CONTEXT_ROWS);
-      container.scrollTo({ top: Math.max(0, effectiveRowHeight * paddedRowIndex), behavior: 'smooth' });
+      container.scrollTo({ top: Math.max(0, compositeRowLayout.tops[paddedRowIndex] ?? 0), behavior: 'smooth' });
       setSelectedTaskId(taskId);
       return;
     }
@@ -1351,7 +1368,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const taskOffset = taskIndex * dayWidth;
     const scrollLeft = Math.round(taskOffset - dayWidth * 2);
     container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
-  }, [dateRange, dayWidth, effectiveRowHeight, isTableMatrixMode, tasks, visibleTasks]);
+  }, [dateRange, dayWidth, effectiveRowHeight, compositeRowLayout, isTableMatrixMode, tasks, visibleTasks]);
 
   const scrollToRow = useCallback((taskId: string, options: ScrollToRowOptions = {}) => {
     const container = scrollContainerRef.current;
@@ -1364,7 +1381,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (rowIndex === -1) return;
 
     const paddedRowIndex = Math.max(0, rowIndex - SCROLL_TO_ROW_CONTEXT_ROWS);
-    const scrollTop = Math.max(0, effectiveRowHeight * paddedRowIndex);
+    const scrollTop = Math.max(0, compositeRowLayout.tops[paddedRowIndex] ?? 0);
     const {
       select = true,
       behavior = 'smooth',
@@ -1387,7 +1404,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
 
     container.scrollTo({ top: scrollTop, behavior });
-  }, [effectiveRowHeight, tasks, visibleTasks]);
+  }, [effectiveRowHeight, compositeRowLayout, tasks, visibleTasks]);
 
   // Track drag state for guide lines
   const [dragGuideLines, setDragGuideLines] = useState<{
@@ -1785,12 +1802,25 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return Array.from({ length: totalTasks }, (_, index) => index);
     }
 
-    const viewportRows = Math.max(1, Math.ceil(scrollViewport.viewportHeight / effectiveRowHeight));
-    const rangeStart = Math.max(0, Math.floor(scrollViewport.scrollTop / effectiveRowHeight) - TASK_ROW_OVERSCAN);
-    const rangeEnd = Math.min(
-      totalTasks - 1,
-      rangeStart + viewportRows + TASK_ROW_OVERSCAN * 2 - 1
-    );
+    let low = 0;
+    let high = totalTasks;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (compositeRowLayout.tops[middle] + compositeRowLayout.heights[middle] < scrollViewport.scrollTop) low = middle + 1;
+      else high = middle;
+    }
+    const first = Math.min(low, totalTasks - 1);
+    const viewportBottom = scrollViewport.scrollTop + scrollViewport.viewportHeight;
+    low = first;
+    high = totalTasks;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (compositeRowLayout.tops[middle] < viewportBottom) low = middle + 1;
+      else high = middle;
+    }
+    const last = Math.min(low, totalTasks - 1);
+    const rangeStart = Math.max(0, first - TASK_ROW_OVERSCAN);
+    const rangeEnd = Math.min(totalTasks - 1, last + TASK_ROW_OVERSCAN);
     const indices = new Set<number>();
 
     for (let index = rangeStart; index <= rangeEnd; index += 1) {
@@ -1805,7 +1835,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
 
     return Array.from(indices).sort((left, right) => left - right);
-  }, [effectiveRowHeight, forceFullRenderForPrint, forcedRenderedTaskIds, scrollViewport, visibleTaskIndexMap, visibleTasks.length]);
+  }, [compositeRowLayout, forceFullRenderForPrint, forcedRenderedTaskIds, scrollViewport, visibleTaskIndexMap, visibleTasks.length]);
 
   const visiblePlanFactDateIndices = useMemo(() => {
     if (forceFullRenderForPrint) {
@@ -1934,6 +1964,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return next;
     });
   });
+  const lastCompositeBarToggleRef = useRef<{ id: string; time: number; source: string } | null>(null);
+  const handleCompositeBarToggle = (taskId: string, source: 'release' | 'click' | 'keyboard') => {
+    const now = Date.now();
+    if (source === 'click' && lastCompositeBarToggleRef.current?.source === 'release'
+      && lastCompositeBarToggleRef.current.id === taskId
+      && now - lastCompositeBarToggleRef.current.time < 150) return;
+    lastCompositeBarToggleRef.current = { id: taskId, time: now, source };
+    handleToggleCollapse(taskId);
+  };
 
   // Get all parent task IDs (tasks that have children)
   const allParentIds = useMemo(() => {
@@ -2298,6 +2337,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
           <TaskList
             tasks={normalizedTasks}
             rowHeight={effectiveRowHeight}
+            rowTops={compositeRowLayout.tops}
+            rowHeights={compositeRowLayout.heights}
             headerHeight={headerHeight}
             taskListWidth={taskListWidth}
             onTasksChange={handleTaskChange}
@@ -2493,6 +2534,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     gridWidth={renderGridWidth}
                     totalHeight={totalGridHeight}
                     rowIndexByTaskId={visibleTaskIndexMap}
+                    rowTops={compositeRowLayout.tops}
+                    rowHeights={compositeRowLayout.heights}
                     dragOverrides={dependencyOverrides}
                     selectedDep={selectedChip}
                     businessDays={businessDays}
@@ -2577,17 +2620,18 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                       key={task.id}
                       style={{
                         position: 'absolute',
-                        top: `${index * effectiveRowHeight}px`,
+                        top: `${compositeRowLayout.tops[index]}px`,
                         left: 0,
                         right: 0,
-                        height: `${effectiveRowHeight}px`,
+                        height: `${compositeRowLayout.heights[index]}px`,
                       }}
                     >
                       <TaskRow
                         task={task}
                         monthStart={monthStart}
                         dayWidth={dayWidth}
-                        rowHeight={effectiveRowHeight}
+                        rowHeight={compositeRowLayout.heights[index]}
+                        compactDetail={compositeRowLayout.heights[index] < effectiveRowHeight}
                         onTasksChange={handleTaskChange as (tasks: Task[]) => void}
                         onDragStateChange={(state) => {
                           if (state.isDragging) {
@@ -2643,7 +2687,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         viewMode={viewMode}
                         showTaskDateLabels={showTaskDateLabels}
                         showTaskNames={showTaskNames}
-                        onCompositeToggle={task.composite ? () => handleToggleCollapse(task.id) : undefined}
+                        onCompositeToggle={task.composite ? source => handleCompositeBarToggle(task.id, source) : undefined}
+                        compositeExpanded={task.composite ? !collapsedParentIds.has(task.id) : undefined}
                       />
                     </div>
                   ))}
@@ -2652,6 +2697,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     rowHeight={effectiveRowHeight}
                     variant="chart"
                     startIndex={visibleTasks.length}
+                    startTop={compositeRowLayout.totalHeight}
                     chartDayWidth={dayWidth}
                     chartStartDayOffset={todayInRange
                       ? Math.max(0, todayIndex + Math.floor(Number.isFinite(skeletonStartOffsetDays) ? skeletonStartOffsetDays : 0))

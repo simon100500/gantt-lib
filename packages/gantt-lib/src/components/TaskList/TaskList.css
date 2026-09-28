@@ -222,6 +222,20 @@
   padding-left: 0;
 }
 
+.gantt-tl-row-composite-detail {
+  --gantt-tl-name-actions-bg: #f8f7ff;
+  background: #f8f7ff;
+  font-size: 12px;
+}
+
+.gantt-tl-row-composite-detail .gantt-tl-cell:not(.gantt-tl-cell-name):not(.gantt-tl-cell-number) {
+  visibility: hidden;
+}
+
+.gantt-tl-row-composite-detail .gantt-tl-cell-name {
+  color: #5b4b83;
+}
+
 
 .gantt-tl-row-parent {
   font-weight: 600;

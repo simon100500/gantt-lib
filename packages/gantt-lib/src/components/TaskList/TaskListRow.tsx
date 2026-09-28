@@ -2058,7 +2058,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     );
 
     const nameTriggerPaddingLeft =
-      isParent
+      isParent && !task.composite
         ? `${nestingDepth * 20 + 28}px`
         : nestingDepth > 0
           ? `${nestingDepth * 20 + 8}px`
@@ -2169,7 +2169,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 />
               </>
             )}
-            {isParent && !editingName && (
+            {isParent && !task.composite && !editingName && (
               <>
                 {!isFilterHideMode && !isCollapsed && (
                   <span
@@ -2198,7 +2198,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             )}
           </>
         )}
-        {!isChild && isParent && !editingName && (
+        {!isChild && isParent && !task.composite && !editingName && (
           <>
             {!isFilterHideMode && !isCollapsed && (
               <span
@@ -2869,8 +2869,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           isDragOver && isNestedDropTarget ? "gantt-tl-row-drag-over-nested" : "",
           isDragOver && isDirectChildDropTarget ? "gantt-tl-row-drag-over-direct-child" : "",
           isChild ? "gantt-tl-row-child" : "",
-          isParent ? "gantt-tl-row-parent" : "",
-          isParent && fillParentRow ? "gantt-tl-row-parent-filled" : "",
+          isParent && !task.composite ? "gantt-tl-row-parent" : "",
+          task.composite ? "gantt-tl-row-composite" : "",
+          isParent && !task.composite && fillParentRow ? "gantt-tl-row-parent-filled" : "",
           `gantt-tl-row-level-${rowFillLevel}`,
           isTotalRow ? "gantt-tl-row-total" : "",
           rowClassName ?? "",

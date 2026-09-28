@@ -29,8 +29,12 @@ describe('composite Gantt accordion', () => {
     const chartRows = () => container.querySelectorAll('.gantt-tr-row[data-gantt-task-row-id]');
     expect(chartRows()).toHaveLength(1);
     const bar = chartRows()[0].querySelector('[data-taskbar]')!;
+    expect(bar.classList.contains('gantt-tr-parentBar')).toBe(false);
+    expect(bar.classList.contains('gantt-tr-compositeBar')).toBe(true);
+    fireEvent.mouseEnter(bar);
+    expect(container.querySelectorAll('.gantt-tr-compositePreviewBar')).toHaveLength(10);
     fireEvent.mouseDown(bar, { clientX: 100, clientY: 20 });
-    fireEvent.click(bar, { clientX: 100, clientY: 20 });
+    fireEvent.mouseUp(bar, { clientX: 100, clientY: 20 });
     expect(chartRows()).toHaveLength(11);
   });
 
@@ -45,17 +49,24 @@ describe('composite Gantt accordion', () => {
     const bar = rows()[0].querySelector('[data-taskbar]')!;
     fireEvent.mouseEnter(bar);
     expect(container.querySelector('.gantt-tr-compositePreview')?.textContent).toContain('Floor 2');
+    expect(container.querySelectorAll('.gantt-tr-compositePreviewBar')).toHaveLength(2);
+    expect(container.querySelectorAll('.gantt-tr-compositeSegment')).toHaveLength(2);
     expect(rows()).toHaveLength(2);
 
     fireEvent.mouseDown(bar, { clientX: 200, clientY: 20 });
+    fireEvent.mouseUp(bar, { clientX: 200, clientY: 20 });
     fireEvent.click(bar, { clientX: 200, clientY: 20 });
     expect(rows().map(row => row.getAttribute('data-gantt-task-row-id'))).toEqual([
       'floor-work', 'floor-1', 'floor-2', 'doors',
     ]);
-    expect((rows()[3].parentElement as HTMLElement).style.top).toBe('120px');
+    expect((rows()[3].parentElement as HTMLElement).style.top).toBe('92px');
+    const tableDoor = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="doors"]');
+    expect((tableDoor?.parentElement as HTMLElement).style.top).toBe('92px');
+    expect((rows()[1] as HTMLElement).style.height).toBe('26px');
 
     const expandedBar = rows()[0].querySelector('[data-taskbar]')!;
     fireEvent.mouseDown(expandedBar, { clientX: 200, clientY: 20 });
+    fireEvent.mouseUp(expandedBar, { clientX: 200, clientY: 20 });
     fireEvent.click(expandedBar, { clientX: 200, clientY: 20 });
     expect(rows()).toHaveLength(2);
   });

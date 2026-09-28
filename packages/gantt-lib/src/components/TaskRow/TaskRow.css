@@ -54,9 +54,8 @@
 .gantt-tr-compositePreview {
   position: absolute;
   z-index: 30;
-  min-width: 260px;
-  max-width: 380px;
-  max-height: 300px;
+  width: 220px;
+  max-height: 340px;
   overflow: hidden;
   padding: 10px 12px;
   border: 1px solid var(--gantt-grid-line-color, #ddd);
@@ -69,10 +68,79 @@
 }
 
 .gantt-tr-compositePreviewRow {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  align-items: center;
+  gap: 8px;
+  height: 20px;
+  white-space: nowrap;
+}
+
+.gantt-tr-compositePreviewAxis {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  margin-top: 5px;
+  margin: 7px 0 3px 68px;
+  color: #64748b;
+  font-size: 10px;
+}
+
+.gantt-tr-compositePreviewTrack {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: #f1f5f9;
+}
+
+.gantt-tr-compositePreviewBar {
+  position: absolute;
+  top: 1px;
+  height: 8px;
+  border-radius: 4px;
+  background: #8b5cf6;
+}
+
+.gantt-tr-compositeBar {
+  border-radius: var(--gantt-task-bar-border-radius);
+  overflow: hidden;
+}
+
+.gantt-tr-compositeSegments {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.gantt-tr-compositeSegment {
+  position: absolute;
+  box-sizing: border-box;
+  border-right: 2px solid rgba(255, 255, 255, .85);
+  background: rgba(255, 255, 255, .14);
+}
+
+.gantt-tr-compositeCount {
+  position: relative;
+  z-index: 2;
+  margin-left: auto;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(24, 16, 45, .48);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gantt-tr-row-compositeDetail {
+  background: #f8f7ff;
+}
+
+.gantt-tr-row-compositeDetail .gantt-tr-taskBar {
+  border-radius: 4px;
+  opacity: .88;
+}
+
+.gantt-tr-row-compositeDetail .gantt-tr-leftLabels,
+.gantt-tr-row-compositeDetail .gantt-tr-rightLabels {
+  display: none;
 }
 
 /* Critical path task bar: solid red repaint handled in TaskRow.tsx

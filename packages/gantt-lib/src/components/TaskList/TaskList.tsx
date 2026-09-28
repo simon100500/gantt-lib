@@ -156,6 +156,9 @@ export interface TaskListProps {
   tasks: Task[];
   /** Height of each row in pixels (must match Gantt chart's rowHeight) */
   rowHeight: number;
+  /** Pixel positions shared with the chart for variable-height detail rows. */
+  rowTops?: number[];
+  rowHeights?: number[];
   /** Height of the header row in pixels (must match Gantt chart's headerHeight) */
   headerHeight: number;
   /** Width of the task list overlay in pixels. Values below the visible column width are clamped. */
@@ -353,6 +356,8 @@ const SelectAllCheckbox: React.FC<SelectAllCheckboxProps> = ({
 export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   rowHeight,
+  rowTops,
+  rowHeights,
   headerHeight,
   taskListWidth,
   onTasksChange,
@@ -504,8 +509,10 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [orderedTasks, collapsedParentIds, filterMode, filteredTaskIds, isFilterActive, criticalPathMode, criticalTaskIds]);
 
   const totalHeight = useMemo(
-    () => (visibleTasks.length + Math.max(0, Math.floor(skeletonRowCount))) * rowHeight,
-    [rowHeight, skeletonRowCount, visibleTasks.length]
+    () => (rowTops && rowHeights && visibleTasks.length > 0
+      ? rowTops[visibleTasks.length - 1] + rowHeights[visibleTasks.length - 1]
+      : visibleTasks.length * rowHeight) + Math.max(0, Math.floor(skeletonRowCount)) * rowHeight,
+    [rowHeight, rowTops, rowHeights, skeletonRowCount, visibleTasks.length]
   );
   const visibleTaskNumberMap = useMemo(
     () => Object.fromEntries(buildTaskNumberMap(visibleTasks)) as Record<string, string>,
@@ -513,6 +520,10 @@ export const TaskList: React.FC<TaskListProps> = ({
   );
 
   const visibleTaskIds = useMemo(() => visibleTasks.map(task => task.id), [visibleTasks]);
+  const compositeParentIds = useMemo(
+    () => new Set(tasks.filter(task => task.composite).map(task => task.id)),
+    [tasks]
+  );
   const renderedVisibleRowIndices = useMemo(
     () => visibleRowIndices ?? visibleTasks.map((_, index) => index),
     [visibleRowIndices, visibleTasks]
@@ -1780,7 +1791,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             const canDemoteTask = index === 0
               || !task.parentId
               || previousVisibleTask?.id !== task.parentId;
-            const topOffset = index * rowHeight + (hasVisiblePendingInsert && index > pendingInsertRowIndex ? rowHeight : 0);
+            const topOffset = (rowTops?.[index] ?? index * rowHeight) + (hasVisiblePendingInsert && index > pendingInsertRowIndex ? rowHeight : 0);
 
             return (
               <div
@@ -1797,7 +1808,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   rowIndex={index}
                   taskNumber={originalTaskNumberMap[task.id] || ''}
                   taskNumberMap={originalTaskNumberMap}
-                  rowHeight={rowHeight}
+                  rowHeight={rowHeights?.[index] ?? rowHeight}
                   onTasksChange={onTasksChange}
                   onDurationChange={onDurationChange}
                   selectedTaskId={selectedTaskId}
@@ -1856,7 +1867,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onActiveCustomCellChange={setActiveCustomCell}
                   taskListMenuCommands={taskListMenuCommands}
                   hideTaskListRowActions={hideTaskListRowActions}
-                  rowClassName={getTaskListRowClassName?.(task)}
+                  rowClassName={[task.parentId && compositeParentIds.has(task.parentId)
+                    ? 'gantt-tl-row-composite-detail' : '', getTaskListRowClassName?.(task)].filter(Boolean).join(' ')}
                   getTaskListNamePrefixIcon={getTaskListNamePrefixIcon}
                   taskDateChangeMode={taskDateChangeMode}
                   onTaskDateChangeModeChange={onTaskDateChangeModeChange}
@@ -1869,7 +1881,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             <div
               style={{
                 position: 'absolute',
-                top: `${(pendingInsertRowIndex + 1) * rowHeight}px`,
+                top: `${rowTops?.[pendingInsertRowIndex + 1] ?? (pendingInsertRowIndex + 1) * rowHeight}px`,
                 left: 0,
                 right: 0,
               }}
@@ -1887,6 +1899,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             rowHeight={rowHeight}
             variant="task-list"
             startIndex={visibleTasks.length}
+            startTop={totalHeight - Math.max(0, Math.floor(skeletonRowCount)) * rowHeight}
             taskListLayout={generationSkeletonTaskListLayout}
           />
         </div>

@@ -97,7 +97,9 @@ export interface TaskRowProps {
   /** Render the task name to the right of the task bar (default: true). */
   showTaskNames?: boolean;
   /** Open or close the composite detail rows. */
-  onCompositeToggle?: () => void;
+  onCompositeToggle?: (source: 'release' | 'click' | 'keyboard') => void;
+  compactDetail?: boolean;
+  compositeExpanded?: boolean;
 }
 
 /**
@@ -148,6 +150,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.isCritical === nextProps.isCritical &&
     prevProps.showBaseline === nextProps.showBaseline &&
     prevProps.onCompositeToggle === nextProps.onCompositeToggle &&
+    prevProps.compactDetail === nextProps.compactDetail &&
+    prevProps.compositeExpanded === nextProps.compositeExpanded &&
     prevProps.isFilterMatch === nextProps.isFilterMatch &&
     prevProps.businessDays === nextProps.businessDays &&
     prevProps.customDays === nextProps.customDays &&
@@ -169,10 +173,11 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, onCompositeToggle }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, onCompositeToggle, compactDetail = false, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const pointerStart = useRef<{ x: number; y: number } | null>(null);
+    const handledCompositeMouseUp = useRef(false);
     const compositeChildren = useMemo(
       () => task.composite ? (allTasks ?? []).filter(child => child.parentId === task.id) : [],
       [allTasks, task.composite, task.id]
@@ -199,6 +204,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const isParent = useMemo(() => {
       return allTasks ? isTaskParent(task.id, allTasks) : false;
     }, [allTasks, task.id]);
+    const isVisualParent = isParent && !task.composite;
 
     const childCount = useMemo(() => {
       return allTasks ? getChildren(task.id, allTasks).length : 0;
@@ -268,23 +274,23 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       if (isExpired) {
         return 'color-mix(in srgb, var(--gantt-expired-color) 40%, black)';
       }
-      const baseColor = isParent
+      const baseColor = isVisualParent
         ? (task.color || defaultParentBarColor)
         : (task.color || 'var(--gantt-task-bar-default-color)');
       return `color-mix(in srgb, ${baseColor} 40%, black)`;
-    }, [defaultParentBarColor, isCritical, isExpired, isParent, task.color]);
+    }, [defaultParentBarColor, isCritical, isExpired, isVisualParent, task.color]);
 
     // At 100% progress, tint the bar itself instead of rendering a fill overlay.
     const barStyle = useMemo(() => {
       const parentBarColor = task.color || defaultParentBarColor;
       if (isCritical && !isExpired) {
         const c = criticalBarColor;
-        if (isParent) {
+        if (isVisualParent) {
           return { backgroundColor: c, '--gantt-parent-bar-color': c } as React.CSSProperties;
         }
         return { backgroundColor: c } as React.CSSProperties;
       }
-      if (isParent) {
+      if (isVisualParent) {
         if (progressWidth >= 100) {
           const c = isExpired
             ? 'color-mix(in srgb, var(--gantt-expired-color) 40%, black)'
@@ -297,7 +303,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         return { backgroundColor: progressColor };
       }
       return { backgroundColor: barColor };
-    }, [isCritical, defaultParentBarColor, isExpired, isParent, progressWidth, barColor, progressColor, task.color]);
+    }, [isCritical, defaultParentBarColor, isExpired, isVisualParent, progressWidth, barColor, progressColor, task.color]);
 
     // Handle drag end - call onTasksChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
@@ -381,6 +387,26 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     }, [displayLeft, dayWidth, milestoneGeometry.size]);
     const visualLeft = milestone ? displayMilestoneGeometry.left : displayLeft;
     const visualWidth = milestone ? displayMilestoneGeometry.size : displayWidth;
+    const compositeSegments = useMemo(() => {
+      if (!task.composite || width <= 0) return [];
+      const laneEnds: number[] = [];
+      return compositeChildren.map(child => {
+        const segment = calculateTaskBar(parseUTCDate(child.startDate), parseUTCDate(child.endDate), monthStart, dayWidth);
+        let lane = laneEnds.findIndex(end => end <= segment.left);
+        if (lane < 0) lane = laneEnds.length;
+        laneEnds[lane] = segment.left + segment.width;
+        return {
+          id: child.id,
+          name: child.name,
+          left: (segment.left - left) / width * 100,
+          width: segment.width / width * 100,
+          lane,
+        };
+      });
+    }, [task.composite, compositeChildren, monthStart, dayWidth, left, width]);
+    const compositeLaneCount = Math.max(1, ...compositeSegments.map(segment => segment.lane + 1));
+    const showCompositeSegments = task.composite && compositeSegments.length > 0
+      && visualWidth / compositeSegments.length >= 22;
     const shouldRenderBaseline = showBaseline && baselineGeometry !== null;
     const hasPreviewPosition = isDragging || effectiveOverridePosition !== undefined;
 
@@ -422,19 +448,19 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Parent bars have overflow: visible (for bracket ears), so threshold must be stricter:
     // "X работ 100%" ≈ 60–70px text + 16px padding = ~110px
     // Regular: "15 д 100%" ≈ 76px, "1 д 100%" ≈ 62px
-    const estimatedTextWidth = isParent ? 120 : (durationDays >= 10 ? 76 : 62);
+    const estimatedTextWidth = isVisualParent ? 120 : (durationDays >= 10 ? 76 : 62);
     const showProgressInside = !milestone && progressWidth > 0 && displayWidth > estimatedTextWidth;
 
     // Determine if duration fits inside the bar
     // For 1-day tasks: always show duration outside (too narrow)
     // Parent bars: child count label is longer — need more space
-    const MIN_DURATION_WIDTH = isParent ? 80 : 50;
+    const MIN_DURATION_WIDTH = isVisualParent ? 80 : 50;
     const showDurationInside = !milestone && durationDays >= 2 && displayWidth > MIN_DURATION_WIDTH;
     return (
       <div
         data-filter-match={isFilterMatch ? 'true' : 'false'}
         data-gantt-task-row-id={task.id}
-        className={`gantt-tr-row ${isFilterMatch ? 'gantt-tr-row-filter-match' : ''}`}
+        className={`gantt-tr-row ${compactDetail ? 'gantt-tr-row-compositeDetail' : ''} ${isFilterMatch ? 'gantt-tr-row-filter-match' : ''}`}
         style={{ height: `${rowHeight}px` }}
       >
         {taskDivider === 'top' && <div className="gantt-tr-divider gantt-tr-divider-top" />}
@@ -450,7 +476,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           )}
           <div
             data-taskbar
-            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${task.synced === false ? 'gantt-tr-unsynced' : ''} ${isParent ? 'gantt-tr-parentBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''} ${isCritical ? 'gantt-tr-critical' : ''}`}
+            role={task.composite ? 'button' : undefined}
+            tabIndex={task.composite ? 0 : undefined}
+            aria-label={task.composite ? `${task.name}: ${compositeExpanded ? 'свернуть' : 'раскрыть'} детали` : undefined}
+            aria-expanded={task.composite ? compositeExpanded : undefined}
+            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${task.synced === false ? 'gantt-tr-unsynced' : ''} ${isVisualParent ? 'gantt-tr-parentBar' : ''} ${task.composite ? 'gantt-tr-compositeBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''} ${isCritical ? 'gantt-tr-critical' : ''}`}
             style={{
               left: `${visualLeft}px`,
               ...barStyle,
@@ -462,7 +492,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 }
                 : {
                   width: `${visualWidth}px`,
-                  height: isParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
+                  height: compactDetail ? '14px' : isVisualParent ? 'var(--gantt-parent-bar-height, 14px)' : 'var(--gantt-task-bar-height)',
                 }),
               cursor: dragHandleProps.style.cursor,
               userSelect: dragHandleProps.style.userSelect,
@@ -471,13 +501,40 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             onMouseMove={dragHandleProps.onMouseMove}
             onMouseLeave={() => { dragHandleProps.onMouseLeave(); setShowCompositePreview(false); }}
             onMouseEnter={task.composite ? () => setShowCompositePreview(true) : undefined}
-            onMouseDownCapture={task.composite ? event => { pointerStart.current = { x: event.clientX, y: event.clientY }; } : undefined}
-            onClick={task.composite ? event => {
+            onMouseDownCapture={task.composite ? event => {
+              handledCompositeMouseUp.current = false;
+              pointerStart.current = (event.target as HTMLElement).closest('.gantt-tr-resizeHandle')
+                ? null : { x: event.clientX, y: event.clientY };
+              if (pointerStart.current) {
+                document.addEventListener('mouseup', release => {
+                  const start = pointerStart.current;
+                  if (!start || handledCompositeMouseUp.current) return;
+                  if (Math.hypot(release.clientX - start.x, release.clientY - start.y) < 4) {
+                    handledCompositeMouseUp.current = true;
+                    setShowCompositePreview(false);
+                    onCompositeToggle?.('release');
+                  }
+                  pointerStart.current = null;
+                }, { once: true, capture: true });
+              }
+            } : undefined}
+            onMouseUpCapture={task.composite ? event => {
               const start = pointerStart.current;
               if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) < 4) {
-                onCompositeToggle?.();
+                handledCompositeMouseUp.current = true;
+                setShowCompositePreview(false);
+                onCompositeToggle?.('release');
               }
               pointerStart.current = null;
+            } : undefined}
+            onClick={task.composite ? () => {
+              if (!isDragging) onCompositeToggle?.('click');
+            } : undefined}
+            onKeyDown={task.composite ? event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onCompositeToggle?.('keyboard');
+              }
             } : undefined}
           >
             {!milestone && progressWidth > 0 && progressWidth < 100 && (
@@ -486,7 +543,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 style={{
                   width: `${progressWidth}%`,
                   backgroundColor: progressColor,
-                  ...(isParent && {
+                  ...(isVisualParent && {
                     borderRadius: 'var(--gantt-parent-bar-radius, 8px) 0 0 0',
                   }),
                 }}
@@ -494,9 +551,26 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             )}
             {/* Parents are resizable: the resize scales the whole subtree proportionally. */}
             {!milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
-            {showDurationInside && (
+            {showCompositeSegments && (
+              <span className="gantt-tr-compositeSegments" aria-hidden="true">
+                {compositeSegments.map(segment => (
+                  <span
+                    key={segment.id}
+                    className="gantt-tr-compositeSegment"
+                    style={{
+                      left: `${segment.left}%`,
+                      width: `${segment.width}%`,
+                      top: `${segment.lane / compositeLaneCount * 100}%`,
+                      height: `${100 / compositeLaneCount}%`,
+                    }}
+                  />
+                ))}
+              </span>
+            )}
+            {task.composite && <span className="gantt-tr-compositeCount">⌄ {childCount}</span>}
+            {!task.composite && showDurationInside && (
               <span className="gantt-tr-taskDuration">
-                {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
+                {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
               </span>
             )}
             {progressWidth > 0 && showProgressInside && (
@@ -514,10 +588,22 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               role="tooltip"
             >
               <strong>{task.name}</strong>
+              <div className="gantt-tr-compositePreviewAxis">
+                <span>{taskStartDate.toISOString().slice(0, 10)}</span>
+                <span>{taskEndDate.toISOString().slice(0, 10)}</span>
+              </div>
               {compositeChildren.slice(0, 12).map(child => (
                 <div key={child.id} className="gantt-tr-compositePreviewRow">
                   <span>{child.name}</span>
-                  <span>{parseUTCDate(child.startDate).toISOString().slice(0, 10)} – {parseUTCDate(child.endDate).toISOString().slice(0, 10)}</span>
+                  <span className="gantt-tr-compositePreviewTrack">
+                    <span
+                      className="gantt-tr-compositePreviewBar"
+                      style={{
+                        left: `${Math.max(0, (parseUTCDate(child.startDate).getTime() - taskStartDate.getTime()) / (taskEndDate.getTime() - taskStartDate.getTime() + 86400000) * 100)}%`,
+                        width: `${Math.max(2, (parseUTCDate(child.endDate).getTime() - parseUTCDate(child.startDate).getTime() + 86400000) / (taskEndDate.getTime() - taskStartDate.getTime() + 86400000) * 100)}%`,
+                      }}
+                    />
+                  </span>
                 </div>
               ))}
               {compositeChildren.length > 12 && <div>+{compositeChildren.length - 12}</div>}
@@ -530,7 +616,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 data-gantt-dependency-port
                 data-task-id={task.id}
                 data-port-side="left"
-                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortLeft ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isParent ? 'gantt-tr-dependencyPortParent' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
+                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortLeft ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isVisualParent ? 'gantt-tr-dependencyPortParent' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
                 style={{ left: `${visualLeft - 24}px` }}
                 aria-label={`Начать связь от левого края: ${task.name}`}
                 title="Потяните к краю другой полосы, чтобы создать связь"
@@ -541,7 +627,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 data-gantt-dependency-port
                 data-task-id={task.id}
                 data-port-side="right"
-                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortRight ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isParent ? 'gantt-tr-dependencyPortParent' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
+                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortRight ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isVisualParent ? 'gantt-tr-dependencyPortParent' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
                 style={{ left: `${visualLeft + visualWidth}px` }}
                 aria-label={`Начать связь от правого края: ${task.name}`}
                 title="Потяните к краю другой полосы, чтобы создать связь"
