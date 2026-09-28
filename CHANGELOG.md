@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.135.4] - 2026-09-28
+
+### Performance
+
+- Defer live dependency cascades and parent scaling while dragging charts with at least 1,000 tasks; apply the unchanged scheduling operation on drop.
+- Draw drag guides across the visible viewport instead of the full task area.
+
 ## [0.135.3] - 2026-09-11
 
 ### Added
