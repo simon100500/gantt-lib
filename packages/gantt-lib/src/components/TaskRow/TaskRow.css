@@ -52,8 +52,8 @@
 }
 
 .gantt-tr-compositePreview {
-  position: absolute;
-  z-index: 30;
+  position: fixed;
+  z-index: 10000;
   width: 220px;
   max-height: 340px;
   overflow: hidden;
@@ -118,10 +118,15 @@
 }
 
 .gantt-tr-compositeCount {
-  position: relative;
-  z-index: 2;
-  margin-left: auto;
-  padding: 2px 5px;
+  position: absolute;
+  z-index: 3;
+  left: 3px;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transform: translateY(-50%);
+  padding: 2px 5px 2px 3px;
   border-radius: 4px;
   background: rgba(24, 16, 45, .48);
   color: white;
@@ -129,8 +134,26 @@
   font-weight: 700;
 }
 
+.gantt-tr-compositeChevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 140ms ease;
+}
+
+.gantt-tr-compositeChevron-open {
+  transform: rotate(90deg);
+}
+
+.gantt-tr-compositeDuration {
+  font-size: 0.72rem;
+}
+
+.gantt-tr-compositeBar .gantt-tr-resizeHandle {
+  width: 6px;
+}
+
 .gantt-tr-row-compositeDetail {
-  background: #f8f7ff;
+  background: rgba(139, 92, 246, .035);
 }
 
 .gantt-tr-row-compositeDetail .gantt-tr-taskBar {

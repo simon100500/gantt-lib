@@ -223,8 +223,8 @@
 }
 
 .gantt-tl-row-composite-detail {
-  --gantt-tl-name-actions-bg: #f8f7ff;
-  background: #f8f7ff;
+  --gantt-tl-name-actions-bg: rgba(139, 92, 246, .035);
+  background: rgba(139, 92, 246, .035);
   font-size: 12px;
 }
 
@@ -234,6 +234,25 @@
 
 .gantt-tl-row-composite-detail .gantt-tl-cell-name {
   color: #5b4b83;
+}
+
+.gantt-tl-name-trigger-composite {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.gantt-tl-compositeChevron {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  color: #6d28d9;
+  transition: transform 140ms ease;
+}
+
+.gantt-tl-compositeChevron-open {
+  transform: rotate(90deg);
 }
 
 

@@ -1291,14 +1291,19 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const handleNameClick = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (task.composite) {
+          onToggleCollapse?.(task.id);
+          return;
+        }
         onRowClick?.(task.id);
         onScrollToTask?.(task.id);
       },
-      [task.id, onRowClick, onScrollToTask],
+      [task.id, task.composite, onToggleCollapse, onRowClick, onScrollToTask],
     );
 
     const handleNameDoubleClick = useCallback(
       (e: React.MouseEvent) => {
+        if (task.composite) return;
         if (disableTaskNameEditing) return;
         e.stopPropagation();
         nameConfirmedRef.current = false; // Reset stale flag from any previous Enter-key save
@@ -1306,7 +1311,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         setNameValue(task.name);
         setEditingColumnId('name');
       },
-      [task.name, disableTaskNameEditing],
+      [task.name, task.composite, disableTaskNameEditing],
     );
 
     const handleRowKeyDown = useCallback(
@@ -2243,11 +2248,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             type="button"
             className={[
               "gantt-tl-name-trigger",
+              task.composite ? "gantt-tl-name-trigger-composite" : "",
               disableTaskNameEditing ? "gantt-tl-name-locked" : "",
             ]
               .filter(Boolean)
               .join(" ")}
             title={task.name}
+            aria-expanded={task.composite ? !isCollapsed : undefined}
             onClick={handleNameClick}
             onDoubleClick={handleNameDoubleClick}
             style={{
@@ -2255,6 +2262,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               paddingRight: task.color ? "20px" : undefined,
             }}
           >
+            {task.composite && (
+              <svg className={`gantt-tl-compositeChevron${isCollapsed ? '' : ' gantt-tl-compositeChevron-open'}`} viewBox="0 0 20 20" aria-hidden="true">
+                <path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
             {taskListNamePrefixIcon ? (
               <span className="gantt-tl-name-trigger-icon" aria-hidden="true">
                 {taskListNamePrefixIcon}

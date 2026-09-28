@@ -32,9 +32,10 @@ describe('composite Gantt accordion', () => {
     expect(bar.classList.contains('gantt-tr-parentBar')).toBe(false);
     expect(bar.classList.contains('gantt-tr-compositeBar')).toBe(true);
     fireEvent.mouseEnter(bar);
-    expect(container.querySelectorAll('.gantt-tr-compositePreviewBar')).toHaveLength(10);
+    expect(document.querySelectorAll('.gantt-tr-compositePreviewBar')).toHaveLength(10);
     fireEvent.mouseDown(bar, { clientX: 100, clientY: 20 });
     fireEvent.mouseUp(bar, { clientX: 100, clientY: 20 });
+    fireEvent.click(bar, { clientX: 100, clientY: 20 });
     expect(chartRows()).toHaveLength(11);
   });
 
@@ -48,9 +49,17 @@ describe('composite Gantt accordion', () => {
 
     const bar = rows()[0].querySelector('[data-taskbar]')!;
     fireEvent.mouseEnter(bar);
-    expect(container.querySelector('.gantt-tr-compositePreview')?.textContent).toContain('Floor 2');
-    expect(container.querySelectorAll('.gantt-tr-compositePreviewBar')).toHaveLength(2);
+    expect(document.querySelector('.gantt-tr-compositePreview')?.textContent).toContain('Floor 2');
+    expect(document.querySelectorAll('.gantt-tr-compositePreviewBar')).toHaveLength(2);
     expect(container.querySelectorAll('.gantt-tr-compositeSegment')).toHaveLength(2);
+    expect(rows()).toHaveLength(2);
+    expect(rows()[0].querySelector('.gantt-tr-compositeDuration')?.textContent).toBe('6 д');
+    expect(rows()[0].querySelector('.gantt-tr-externalTaskName')?.textContent).toBe('Floor work');
+
+    fireEvent.mouseDown(bar, { clientX: 200, clientY: 20 });
+    fireEvent.mouseMove(bar, { clientX: 230, clientY: 20 });
+    fireEvent.mouseUp(bar, { clientX: 230, clientY: 20 });
+    fireEvent.click(bar, { clientX: 230, clientY: 20 });
     expect(rows()).toHaveLength(2);
 
     fireEvent.mouseDown(bar, { clientX: 200, clientY: 20 });
@@ -68,6 +77,13 @@ describe('composite Gantt accordion', () => {
     fireEvent.mouseDown(expandedBar, { clientX: 200, clientY: 20 });
     fireEvent.mouseUp(expandedBar, { clientX: 200, clientY: 20 });
     fireEvent.click(expandedBar, { clientX: 200, clientY: 20 });
+    expect(rows()).toHaveLength(2);
+
+    const tableName = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="floor-work"] .gantt-tl-name-trigger')!;
+    fireEvent.click(tableName);
+    expect(rows()).toHaveLength(4);
+    expect(tableName.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(tableName);
     expect(rows()).toHaveLength(2);
   });
 });

@@ -68,7 +68,7 @@ export default function CompositeAccordionDemo() {
           hiddenTaskListColumns={['startDate', 'endDate', 'duration', 'progress', 'dependencies']}
           containerHeight={570}
           showTaskDateLabels={false}
-          showTaskNames={false}
+          showTaskNames
         />
       </div>
     </section>

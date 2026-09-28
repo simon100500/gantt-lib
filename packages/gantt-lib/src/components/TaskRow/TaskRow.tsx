@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
 import { calculateMilestoneGeometry, calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { isTaskExpired } from '../../utils/expired';
@@ -176,12 +177,23 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
   ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, onCompositeToggle, compactDetail = false, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
+    const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
     const pointerStart = useRef<{ x: number; y: number } | null>(null);
-    const handledCompositeMouseUp = useRef(false);
+    const suppressCompositeClick = useRef(false);
     const compositeChildren = useMemo(
       () => task.composite ? (allTasks ?? []).filter(child => child.parentId === task.id) : [],
       [allTasks, task.composite, task.id]
     );
+    useEffect(() => {
+      if (!showCompositePreview) return;
+      const hide = () => setShowCompositePreview(false);
+      window.addEventListener('scroll', hide, true);
+      window.addEventListener('resize', hide);
+      return () => {
+        window.removeEventListener('scroll', hide, true);
+        window.removeEventListener('resize', hide);
+      };
+    }, [showCompositePreview]);
     // Extract divider from task prop
     const { divider: taskDivider } = task;
 
@@ -500,35 +512,41 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             onMouseDown={dragHandleProps.onMouseDown}
             onMouseMove={dragHandleProps.onMouseMove}
             onMouseLeave={() => { dragHandleProps.onMouseLeave(); setShowCompositePreview(false); }}
-            onMouseEnter={task.composite ? () => setShowCompositePreview(true) : undefined}
+            onMouseEnter={task.composite ? event => {
+              const rect = event.currentTarget.getBoundingClientRect();
+              const previewWidth = 220;
+              const previewHeight = Math.min(340, 68 + Math.min(compositeChildren.length, 12) * 20);
+              setCompositePreviewPosition({
+                left: Math.max(8, Math.min(rect.left, window.innerWidth - previewWidth - 8)),
+                top: rect.bottom + previewHeight + 8 < window.innerHeight
+                  ? rect.bottom + 6
+                  : Math.max(8, rect.top - previewHeight - 6),
+              });
+              setShowCompositePreview(true);
+            } : undefined}
             onMouseDownCapture={task.composite ? event => {
-              handledCompositeMouseUp.current = false;
-              pointerStart.current = (event.target as HTMLElement).closest('.gantt-tr-resizeHandle')
-                ? null : { x: event.clientX, y: event.clientY };
-              if (pointerStart.current) {
-                document.addEventListener('mouseup', release => {
-                  const start = pointerStart.current;
-                  if (!start || handledCompositeMouseUp.current) return;
-                  if (Math.hypot(release.clientX - start.x, release.clientY - start.y) < 4) {
-                    handledCompositeMouseUp.current = true;
-                    setShowCompositePreview(false);
-                    onCompositeToggle?.('release');
-                  }
-                  pointerStart.current = null;
-                }, { once: true, capture: true });
+              suppressCompositeClick.current = Boolean((event.target as HTMLElement).closest('.gantt-tr-resizeHandle'));
+              pointerStart.current = { x: event.clientX, y: event.clientY };
+            } : undefined}
+            onMouseMoveCapture={task.composite ? event => {
+              const start = pointerStart.current;
+              if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) >= 4) {
+                suppressCompositeClick.current = true;
               }
             } : undefined}
             onMouseUpCapture={task.composite ? event => {
               const start = pointerStart.current;
-              if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) < 4) {
-                handledCompositeMouseUp.current = true;
-                setShowCompositePreview(false);
-                onCompositeToggle?.('release');
+              if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) >= 4) {
+                suppressCompositeClick.current = true;
               }
               pointerStart.current = null;
             } : undefined}
             onClick={task.composite ? () => {
-              if (!isDragging) onCompositeToggle?.('click');
+              if (!isDragging && !suppressCompositeClick.current) {
+                setShowCompositePreview(false);
+                onCompositeToggle?.('click');
+              }
+              suppressCompositeClick.current = false;
             } : undefined}
             onKeyDown={task.composite ? event => {
               if (event.key === 'Enter' || event.key === ' ') {
@@ -567,7 +585,14 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 ))}
               </span>
             )}
-            {task.composite && <span className="gantt-tr-compositeCount">⌄ {childCount}</span>}
+            {task.composite && (
+              <span className="gantt-tr-compositeCount" aria-hidden="true">
+                <svg className={`gantt-tr-compositeChevron${compositeExpanded ? ' gantt-tr-compositeChevron-open' : ''}`} viewBox="0 0 20 20">
+                  <path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {childCount}
+              </span>
+            )}
             {!task.composite && showDurationInside && (
               <span className="gantt-tr-taskDuration">
                 {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
@@ -580,11 +605,10 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             )}
             {!milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
           </div>
-          {task.composite && showCompositePreview && compositeChildren.length > 0 && !isDragging && (
+          {task.composite && showCompositePreview && compositePreviewPosition && compositeChildren.length > 0 && !isDragging && typeof document !== 'undefined' && createPortal(
             <div
               className="gantt-tr-compositePreview"
-              style={{ left: `${visualLeft}px`, top: `${rowHeight - 4}px` }}
-              onMouseLeave={() => setShowCompositePreview(false)}
+              style={{ left: `${compositePreviewPosition.left}px`, top: `${compositePreviewPosition.top}px` }}
               role="tooltip"
             >
               <strong>{task.name}</strong>
@@ -607,7 +631,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 </div>
               ))}
               {compositeChildren.length > 12 && <div>+{compositeChildren.length - 12}</div>}
-            </div>
+            </div>,
+            document.body
           )}
           {!disableDependencyEditing && onDependencyPortPointerDown && (
             <>
@@ -675,9 +700,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               color: isParent ? (task.color || defaultParentBarColor) : barColor,
             }}
           >
-            {!showDurationInside && !milestone && (
-              <span className="gantt-tr-externalDuration">
-                {isParent ? getChildCountLabel(childCount) : `${durationDays} д`}
+            {(!showDurationInside || task.composite) && !milestone && (
+              <span className={`gantt-tr-externalDuration${task.composite ? ' gantt-tr-compositeDuration' : ''}`}>
+                {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
               </span>
             )}
             {progressWidth > 0 && !showProgressInside && (
