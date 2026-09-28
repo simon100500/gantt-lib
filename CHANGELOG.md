@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.135.9] - 2026-09-28
+
+### Fixes
+
+- One-day tasks can be resized by their edges in the day view again: edge zones compress adaptively (12px edges plus a guaranteed 16px central move strip on a 40px bar), with grip hints shown on row hover.
+- Dependency port dots sit 2px off the bar edges and the port zone no longer overlaps the bar; the dot responds with a soft halo instead of a filled zone.
+- The dependency drag polyline ends exactly at the port dot: the preview anchor moved from the bar edge to the dot center, and fractional coordinates remove the one-pixel marker offset.
+
 ## [0.135.8] - 2026-09-28
 
 ### Performance
