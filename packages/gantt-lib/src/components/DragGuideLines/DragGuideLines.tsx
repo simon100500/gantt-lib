@@ -3,12 +3,22 @@
 import React from 'react';
 import './DragGuideLines.css';
 
+// START_MODULE_CONTRACT
+// PURPOSE: Show drag boundaries only across the visible Gantt viewport.
+// SCOPE: Render left/right guides at the active bar edges using viewport top and height.
+// DEPENDS: GanttChart
+// LINKS: GanttChart
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+
 export interface DragGuideLinesProps {
   isDragging: boolean;
   dragMode: 'move' | 'resize-left' | 'resize-right' | null;
   left: number;
   width: number;
   totalHeight: number;
+  top?: number;
 }
 
 const DragGuideLines: React.FC<DragGuideLinesProps> = ({
@@ -17,6 +27,7 @@ const DragGuideLines: React.FC<DragGuideLinesProps> = ({
   left,
   width,
   totalHeight,
+  top = 0,
 }) => {
   if (!isDragging || !dragMode) {
     return null;
@@ -33,6 +44,7 @@ const DragGuideLines: React.FC<DragGuideLinesProps> = ({
           className="gantt-dgl-guideLine"
           style={{
             left: `${left}px`,
+            top: `${top}px`,
             height: `${totalHeight}px`,
           }}
         />
@@ -42,6 +54,7 @@ const DragGuideLines: React.FC<DragGuideLinesProps> = ({
           className="gantt-dgl-guideLine"
           style={{
             left: `${left + width}px`,
+            top: `${top}px`,
             height: `${totalHeight}px`,
           }}
         />

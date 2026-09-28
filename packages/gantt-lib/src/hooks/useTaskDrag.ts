@@ -28,7 +28,7 @@ import { resolveDateRangeFromPixels, clampDateRangeForIncomingFS } from '../adap
 
 // START_MODULE_CONTRACT
 // PURPOSE: Detect completed bar move/resize interactions and calculate local preview cascades.
-// SCOPE: Emit one semantic intent at drop; cancel obsolete gestures when controlled dates change; legacy cascade callbacks remain available when no intent boundary is supplied.
+// SCOPE: Emit one semantic intent at drop; cancel obsolete gestures when controlled dates change; defer expensive live cascade previews for large charts while preserving drop semantics; legacy cascade callbacks remain available when no intent boundary is supplied.
 // DEPENDS: pixel/date adapters and existing scheduling preview functions.
 // INVARIANT: A controlled date replacement cancels the owned gesture before stale pixel coordinates can emit an intent or survive as preview geometry.
 // END_MODULE_CONTRACT
@@ -83,6 +83,7 @@ interface ActiveDragState {
   onCancel: () => void;
   allTasks: Task[];
   disableConstraints?: boolean;
+  deferCascadePreview?: boolean;
   onCascadeProgress?: (
     overrides: Map<string, { left: number; width: number }>,
     previewTasks?: Task[]
@@ -369,11 +370,11 @@ function handleGlobalMouseMove(e: MouseEvent) {
     // Parent resizes get a dedicated live preview: the subtree is proportionally
     // rescaled on every snapped day change (memoized) so children follow the
     // dragged parent edge in real time — not only after the drop.
-    const isParentResizePreview = draggedTask
+    const isParentResizePreview = !activeDrag.deferCascadePreview && draggedTask
       && (mode === 'resize-left' || mode === 'resize-right')
       && isTaskParent(activeDrag.taskId, allTasks);
 
-    if (isParentResizePreview && activeDrag.onCascadeProgress) {
+    if (!activeDrag.deferCascadePreview && isParentResizePreview && activeDrag.onCascadeProgress) {
       const { dayWidth: dw, monthStart: mStart } = activeDrag;
       const previewRange = resolveDragRangeForInteraction(activeDrag, draggedTask, mode, newLeft, newWidth);
 
@@ -433,7 +434,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
       }
     }
 
-    if (!activeDrag.disableConstraints && activeDrag.onCascadeProgress && !isParentResizePreview) {
+    if (!activeDrag.deferCascadePreview && !activeDrag.disableConstraints && activeDrag.onCascadeProgress && !isParentResizePreview) {
       const { dayWidth, monthStart: mStart, taskId: dragId } = activeDrag;
       const originalDraggedTask = draggedTask ?? allTasks.find(t => t.id === dragId);
       const previewRange = originalDraggedTask
@@ -616,6 +617,8 @@ export interface UseTaskDragOptions {
   enableAutoSchedule?: boolean;
   /** When true, dependency constraint checking is skipped during drag (default: false) */
   disableConstraints?: boolean;
+  /** Skip live cascade and parent scaling on large charts; drop semantics remain unchanged. */
+  deferCascadePreview?: boolean;
   /** Callback for real-time cascade preview — called each RAF with non-dragged chain member positions */
   onCascadeProgress?: (
     overrides: Map<string, { left: number; width: number }>,
@@ -678,6 +681,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     rowIndex,
     enableAutoSchedule = false,
     disableConstraints = false,
+    deferCascadePreview = false,
     onCascadeProgress,
     onCascade,
     locked = false,
@@ -1139,13 +1143,14 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       onCancel: handleCancel,
       allTasks,
       disableConstraints,
+      deferCascadePreview,
       onCascadeProgress,
       businessDays,
       weekendPredicate,
       cascadeContext: shouldBuildCascadeContext ? createCascadeContext(allTasks) : undefined,
       scheduleIntentMode: Boolean(onScheduleIntent),
     };
-  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, onCascadeProgress, onCascade, effectiveLocked, viewMode]);
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, deferCascadePreview, onCascadeProgress, onCascade, effectiveLocked, viewMode]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     startDrag(e);

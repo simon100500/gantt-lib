@@ -934,6 +934,33 @@ describe('useTaskDrag', () => {
   });
 
   describe('Resize-right cascade (Phase 07-01 extension)', () => {
+    it('keeps the dragged bar responsive while deferring cascade preview until the intent', async () => {
+      const onCascadeProgress = vi.fn();
+      const onScheduleIntent = vi.fn();
+      const { result } = renderHook(() => useTaskDrag({
+        ...mockOptions,
+        businessDays: false,
+        allTasks: [{ id: 'task-1', name: 'Task 1', startDate: '2026-02-10', endDate: '2026-02-15' }],
+        deferCascadePreview: true,
+        onCascadeProgress,
+        onScheduleIntent,
+      }));
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({ left: 360, width: 240 }),
+      } as unknown as HTMLElement;
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 480,
+        } as unknown as React.MouseEvent);
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 520 }));
+      });
+      await waitFor(() => expect(result.current.currentLeft).toBe(400));
+      expect(onCascadeProgress).not.toHaveBeenCalled();
+      act(() => window.dispatchEvent(new MouseEvent('mouseup')));
+      expect(onScheduleIntent).toHaveBeenCalledWith({ type: 'move_task', taskId: 'task-1', startDate: '2026-02-11' });
+    });
+
     it('publishes the moved task in the live preview even without dependents', async () => {
       const onCascadeProgress = vi.fn();
       const { result } = renderHook(() => useTaskDrag({

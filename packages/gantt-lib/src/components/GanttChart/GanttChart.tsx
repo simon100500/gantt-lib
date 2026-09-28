@@ -59,7 +59,7 @@ import './GanttChart.css';
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
-// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; reconcile transient drag geometry with controlled task updates; control optional task date/name labels.
+// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; reconcile transient drag geometry with controlled task updates; control optional task date/name labels.
 // DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
 // INPUTS: GanttChartProps including showTaskDateLabels, showTaskNames, printDependencyLabels, and an optional exact dateRange.
 // OUTPUTS: Interactive task list/chart with configurable external task labels and print-friendly dependency text.
@@ -2517,7 +2517,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                       dragMode={dragGuideLines.dragMode}
                       left={dragGuideLines.left}
                       width={dragGuideLines.width}
-                      totalHeight={totalGridHeight}
+                      totalHeight={Math.min(totalGridHeight, scrollViewport.viewportHeight)}
+                      top={Math.max(0, scrollViewport.scrollTop)}
                     />
                   )}
 
@@ -2569,6 +2570,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         allTasks={normalizedTasks}
                         enableAutoSchedule={enableAutoSchedule ?? false}
                         disableConstraints={disableConstraints ?? false}
+                        deferCascadePreview={normalizedTasks.length >= 1000}
                         previewPositionStore={previewPositionStore}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}

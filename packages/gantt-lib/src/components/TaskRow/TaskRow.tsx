@@ -14,7 +14,7 @@ import './TaskRow.css';
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render one Gantt task row, including its bar, scheduling affordances, and optional external labels.
-// SCOPE: Calculate task geometry, render duration/progress/name/date labels, and preserve drag/dependency interactions.
+// SCOPE: Calculate task geometry, render duration/progress/name/date labels, and preserve drag/dependency interactions with optional deferred cascade preview.
 // DEPENDS: core scheduling, geometry, useTaskDrag, GanttChart presentation props.
 // LINKS: M-SCHEDULE, GanttChart, type-TaskRowProps, fn-formatDateRangeLabel
 // ROLE: RUNTIME
@@ -49,6 +49,8 @@ export interface TaskRowProps {
   enableAutoSchedule?: boolean;
   /** Whether to disable constraint checking during drag */
   disableConstraints?: boolean;
+  /** Keep the dragged bar live but defer the cascade preview until drop. */
+  deferCascadePreview?: boolean;
   /** Position override for cascade preview — when set, overrides both static and drag position */
   overridePosition?: { left: number; width: number };
   /** External per-task preview store used to avoid chart-wide renders during cascade drag */
@@ -136,6 +138,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.previewPositionStore === nextProps.previewPositionStore &&
     prevProps.allTasks === nextProps.allTasks &&
     prevProps.disableConstraints === nextProps.disableConstraints &&
+    prevProps.deferCascadePreview === nextProps.deferCascadePreview &&
     prevProps.task.locked === nextProps.task.locked &&
     prevProps.task.synced === nextProps.task.synced &&
     prevProps.task.divider === nextProps.task.divider &&
@@ -163,7 +166,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true }) => {
     const defaultParentBarColor = '#782FC4';
     // Extract divider from task prop
     const { divider: taskDivider } = task;
@@ -327,6 +330,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       rowIndex,
       enableAutoSchedule,
       disableConstraints,
+      deferCascadePreview,
       locked: task.locked,
       disableTaskDrag,
       onCascadeProgress,
