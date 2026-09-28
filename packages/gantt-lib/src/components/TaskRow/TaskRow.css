@@ -139,6 +139,34 @@
   right: 0;
 }
 
+/* Edge grips surface the resize affordance on hover — a cursor hint alone is
+   easy to miss, especially on narrow one-day bars. The handle divs only exist
+   on non-milestone bars (see TaskRow.tsx), so milestones never show grips. */
+.gantt-tr-resizeHandle::before {
+  content: "";
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  width: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.65);
+  opacity: 0;
+  transition: opacity 140ms ease;
+  pointer-events: none;
+}
+
+.gantt-tr-resizeHandleLeft::before {
+  left: 4px;
+}
+
+.gantt-tr-resizeHandleRight::before {
+  right: 4px;
+}
+
+.gantt-tr-row:hover .gantt-tr-resizeHandle::before {
+  opacity: 1;
+}
+
 .gantt-tr-resizeZoneLeft {
   cursor: ew-resize;
 }
@@ -214,12 +242,14 @@
   pointer-events: none;
 }
 
+/* The dots sit at the outer end of each port zone so they never cover the
+   bar edge itself — that edge belongs to the resize zones. */
 .gantt-tr-dependencyPortLeft::after {
-  left: 12px;
+  left: 0;
 }
 
 .gantt-tr-dependencyPortRight::after {
-  left: 0;
+  left: 12px;
 }
 
 .gantt-tr-dependencyPortMilestone {

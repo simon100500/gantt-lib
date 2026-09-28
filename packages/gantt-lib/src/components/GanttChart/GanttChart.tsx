@@ -762,9 +762,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const rect = element.getBoundingClientRect();
     const side = element.getAttribute('data-port-side');
     return {
-      // The port hit-area is deliberately outside the bar. Anchor the preview
-      // to the actual bar boundary instead of the center of that outside zone.
-      x: Math.round((side === 'left' ? rect.right - 6 : rect.left + 6) - chartRect.left),
+      // The port hit-area is flush against the bar (left button ends at the
+      // bar's left edge, right button starts at its right edge), so the
+      // adjacent button edge is exactly the bar boundary the line anchors to.
+      x: Math.round((side === 'left' ? rect.right : rect.left) - chartRect.left),
       y: Math.round(rect.top + rect.height / 2 - chartRect.top),
     };
   }, []);

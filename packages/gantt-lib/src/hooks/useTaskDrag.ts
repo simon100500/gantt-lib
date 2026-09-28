@@ -688,7 +688,6 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
     disableTaskDrag = false,
     businessDays = true,
     weekendPredicate,
-    viewMode = 'day',
   } = options;
   const rawHookTask = allTasks.find(t => t.id === taskId);
   const hookTask = rawHookTask ? normalizeTaskDatesForType(rawHookTask) : undefined;
@@ -1060,30 +1059,23 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
     const target = e.currentTarget as HTMLElement;
     const currentTask = allTasks.find(t => t.id === taskId);
-    const isSingleDayTask = !!currentTask
-      && !isMilestoneTask(currentTask)
-      && !isTaskParent(taskId, allTasks)
-      && currentWidth <= dayWidth
-      && viewMode === 'day';
 
+    // detectEdgeZone compresses the edge zones on narrow bars, so even a
+    // single-day task keeps both resize handles and a central move strip.
     let mode: 'move' | 'resize-left' | 'resize-right' | null = null;
 
-    if (isSingleDayTask) {
-      mode = 'move';
-    } else {
-      const edgeZone = detectEdgeZone(e.clientX, target, edgeZoneWidth);
+    const edgeZone = detectEdgeZone(e.clientX, target, edgeZoneWidth);
 
-      switch (edgeZone) {
-        case 'left':
-          mode = 'resize-left';
-          break;
-        case 'right':
-          mode = 'resize-right';
-          break;
-        case 'move':
-          mode = 'move';
-          break;
-      }
+    switch (edgeZone) {
+      case 'left':
+        mode = 'resize-left';
+        break;
+      case 'right':
+        mode = 'resize-right';
+        break;
+      case 'move':
+        mode = 'move';
+        break;
     }
 
     // Phase 19: milestone tasks cannot be resized - a milestone is a point in time.
@@ -1150,7 +1142,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
       cascadeContext: shouldBuildCascadeContext ? createCascadeContext(allTasks) : undefined,
       scheduleIntentMode: Boolean(onScheduleIntent),
     };
-  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, deferCascadePreview, onCascadeProgress, onCascade, effectiveLocked, viewMode]);
+  }, [edgeZoneWidth, currentLeft, currentWidth, dayWidth, monthStart, taskId, onDragStateChange, handleProgress, handleComplete, handleCancel, allTasks, disableConstraints, deferCascadePreview, onCascadeProgress, onCascade, effectiveLocked]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     startDrag(e);
@@ -1174,20 +1166,16 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
 
     const target = e.currentTarget as HTMLElement;
     const currentTask = allTasks.find(t => t.id === taskId);
-    const isSingleDayTask = !!currentTask
-      && !isMilestoneTask(currentTask)
-      && !isTaskParent(taskId, allTasks)
-      && currentWidth <= dayWidth
-      && viewMode === 'day';
 
-    if (isSingleDayTask || (currentTask && isMilestoneTask(currentTask))) {
+    // Milestones are points in time: no resize affordance anywhere.
+    if (currentTask && isMilestoneTask(currentTask)) {
       setHoverCursor('grab');
       return;
     }
 
     const edgeZone = detectEdgeZone(e.clientX, target, edgeZoneWidth);
     setHoverCursor(edgeZone === 'move' ? 'grab' : 'ew-resize');
-  }, [disableTaskDrag, locked, isDragging, allTasks, taskId, currentWidth, dayWidth, viewMode, edgeZoneWidth]);
+  }, [disableTaskDrag, locked, isDragging, allTasks, taskId, edgeZoneWidth]);
 
   const handleMouseLeave = useCallback(() => {
     setHoverCursor(disableTaskDrag ? 'grab' : locked ? 'not-allowed' : isDragging ? 'grabbing' : 'grab');

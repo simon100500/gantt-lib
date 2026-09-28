@@ -124,7 +124,52 @@ describe('useTaskDrag', () => {
       expect(result.current.dragMode).toBe('move');
     });
 
-    it('should force move mode for a single-day task in day view even near the edge', () => {
+    it('should resize a single-day task from its compressed edge zones in day view', () => {
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          taskId: 'task-1',
+          initialStartDate: new Date(Date.UTC(2026, 1, 10)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 10)),
+          monthStart: new Date(Date.UTC(2026, 1, 1)),
+          dayWidth: 40,
+          edgeZoneWidth: 20,
+          viewMode: 'day',
+          allTasks: [
+            { id: 'task-1', name: 'Task 1', startDate: '2026-02-10', endDate: '2026-02-10', type: 'task' },
+          ],
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 360,
+          width: 40,
+        }),
+      } as unknown as HTMLElement;
+
+      // 40px bar: 12px edge zones + 16px central move strip.
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 365, // left edge zone
+        } as unknown as React.MouseEvent);
+      });
+      expect(result.current.dragMode).toBe('resize-left');
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', {}));
+      });
+
+      act(() => {
+        result.current.dragHandleProps.onMouseDown({
+          currentTarget: mockElement,
+          clientX: 395, // right edge zone
+        } as unknown as React.MouseEvent);
+      });
+      expect(result.current.dragMode).toBe('resize-right');
+    });
+
+    it('should keep move available in the central strip of a single-day task', () => {
       const { result } = renderHook(() =>
         useTaskDrag({
           taskId: 'task-1',
@@ -150,12 +195,54 @@ describe('useTaskDrag', () => {
       act(() => {
         result.current.dragHandleProps.onMouseDown({
           currentTarget: mockElement,
-          clientX: 395,
+          clientX: 380, // center strip, between the 12px edge zones
         } as unknown as React.MouseEvent);
       });
 
       expect(result.current.isDragging).toBe(true);
       expect(result.current.dragMode).toBe('move');
+    });
+
+    it('should show grab cursor over the central strip of a single-day task', () => {
+      const { result } = renderHook(() =>
+        useTaskDrag({
+          taskId: 'task-1',
+          initialStartDate: new Date(Date.UTC(2026, 1, 10)),
+          initialEndDate: new Date(Date.UTC(2026, 1, 10)),
+          monthStart: new Date(Date.UTC(2026, 1, 1)),
+          dayWidth: 40,
+          edgeZoneWidth: 20,
+          viewMode: 'day',
+          allTasks: [
+            { id: 'task-1', name: 'Task 1', startDate: '2026-02-10', endDate: '2026-02-10', type: 'task' },
+          ],
+        })
+      );
+
+      const mockElement = {
+        getBoundingClientRect: vi.fn().mockReturnValue({
+          left: 360,
+          width: 40,
+        }),
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current.dragHandleProps.onMouseMove({
+          currentTarget: mockElement,
+          clientX: 380, // center strip
+        } as unknown as React.MouseEvent);
+      });
+
+      expect(result.current.dragHandleProps.style.cursor).toBe('grab');
+
+      act(() => {
+        result.current.dragHandleProps.onMouseMove({
+          currentTarget: mockElement,
+          clientX: 365, // left edge zone
+        } as unknown as React.MouseEvent);
+      });
+
+      expect(result.current.dragHandleProps.style.cursor).toBe('ew-resize');
     });
 
     it('should show ew-resize cursor on the edge of a wide task bar', () => {

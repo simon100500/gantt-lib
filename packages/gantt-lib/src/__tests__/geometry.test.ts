@@ -358,43 +358,61 @@ describe('detectEdgeZone', () => {
     });
   });
 
-  describe('with 1-day tasks (width <= 2 * edgeZoneWidth)', () => {
+  describe('with 1-day tasks (narrow bars compress edge zones)', () => {
     const edgeZoneWidth = 20;
-    const oneDayWidth = 40; // 40 = 2 * 20, zones overlap
+    const oneDayWidth = 40; // 40px bar: 12px edges + 16px central move strip
 
-    it('should return left when clicking closer to left edge', () => {
+    it('should return left when clicking in the compressed left edge zone', () => {
       const element = createMockElement(oneDayWidth);
-      const clientX = 10; // distanceToLeft = 10, distanceToRight = 30
+      const clientX = 10; // Within [0, 12]
       const result = detectEdgeZone(clientX, element, edgeZoneWidth);
       expect(result).toBe('left');
     });
 
-    it('should return right when clicking closer to right edge', () => {
+    it('should return move when clicking in the guaranteed central strip', () => {
       const element = createMockElement(oneDayWidth);
-      const clientX = 30; // distanceToLeft = 30, distanceToRight = 10
+      const clientX = 20; // Between the 12px edge zones
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('move');
+    });
+
+    it('should return right when clicking in the compressed right edge zone', () => {
+      const element = createMockElement(oneDayWidth);
+      const clientX = 30; // Within [28, 40]
       const result = detectEdgeZone(clientX, element, edgeZoneWidth);
       expect(result).toBe('right');
     });
 
-    it('should return left when clicking exactly in center (tiebreaker)', () => {
-      const element = createMockElement(oneDayWidth);
-      const clientX = 20; // Exactly center, distanceToLeft = 20, distanceToRight = 20
-      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
-      expect(result).toBe('left'); // Left wins on tie
-    });
-
     it('should handle clicking on far right edge of 1-day task', () => {
       const element = createMockElement(oneDayWidth);
-      const clientX = 38; // distanceToLeft = 38, distanceToRight = 2
+      const clientX = 38; // Within [28, 40]
       const result = detectEdgeZone(clientX, element, edgeZoneWidth);
       expect(result).toBe('right');
     });
 
     it('should handle clicking on far left edge of 1-day task', () => {
       const element = createMockElement(oneDayWidth);
-      const clientX = 2; // distanceToLeft = 2, distanceToRight = 38
+      const clientX = 2; // Within [0, 12]
       const result = detectEdgeZone(clientX, element, edgeZoneWidth);
       expect(result).toBe('left');
+    });
+  });
+
+  describe('with extremely narrow bars (width < 32px)', () => {
+    const edgeZoneWidth = 20;
+    const tinyWidth = 24; // Zeff clamps to MIN_EDGE_ZONE_PX = 8
+
+    it('should still leave a central move strip between 8px edge zones', () => {
+      const element = createMockElement(tinyWidth);
+      const clientX = 12; // Between [0, 8] and [16, 24]
+      const result = detectEdgeZone(clientX, element, edgeZoneWidth);
+      expect(result).toBe('move');
+    });
+
+    it('should return resize near the edges', () => {
+      const element = createMockElement(tinyWidth);
+      expect(detectEdgeZone(2, element, edgeZoneWidth)).toBe('left');
+      expect(detectEdgeZone(22, element, edgeZoneWidth)).toBe('right');
     });
   });
 
@@ -405,9 +423,9 @@ describe('detectEdgeZone', () => {
 
     it('should correctly calculate relative position with offset', () => {
       const element = createMockElement(oneDayWidth, offsetLeft);
-      const clientX = 125; // relativeX = 25 (closer to right edge at 40)
+      const clientX = 125; // relativeX = 25, inside the central move strip
       const result = detectEdgeZone(clientX, element, edgeZoneWidth);
-      expect(result).toBe('right');
+      expect(result).toBe('move');
     });
   });
 });

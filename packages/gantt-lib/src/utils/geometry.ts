@@ -158,6 +158,11 @@ export const calculateGridWidth = (daysInMonth: number, dayWidth: number): numbe
   return Math.round(daysInMonth * dayWidth);
 };
 
+/** Floor for an edge resize zone: below this a bar edge is hard to grab. */
+export const MIN_EDGE_ZONE_PX = 8;
+/** Guaranteed central strip that always stays available for moving the bar. */
+export const MIN_MOVE_ZONE_PX = 16;
+
 /**
  * Detect which edge zone the cursor is in on a task bar
  * @param clientX - Mouse X coordinate relative to viewport
@@ -174,21 +179,21 @@ export const detectEdgeZone = (
   const relativeX = Math.round(clientX - rect.left);
   const width = Math.round(rect.width);
 
-  // When zones overlap (width <= 2 * edgeZoneWidth), prefer the closer edge
-  if (width <= 2 * edgeZoneWidth) {
-    // Cursor is in overlapping edge zone, return closer edge
-    const distanceToLeft = relativeX;
-    const distanceToRight = width - relativeX;
-    return distanceToLeft <= distanceToRight ? 'left' : 'right';
-  }
+  // Edge zones compress on narrow bars so resize stays available at every
+  // density while a central move strip always survives (40px bar with 20px
+  // zones becomes 12px | 16px | 12px instead of "move only").
+  const effectiveZone = Math.max(
+    MIN_EDGE_ZONE_PX,
+    Math.min(edgeZoneWidth, (width - MIN_MOVE_ZONE_PX) / 2)
+  );
 
   // Check left edge zone
-  if (relativeX >= 0 && relativeX <= edgeZoneWidth) {
+  if (relativeX >= 0 && relativeX <= effectiveZone) {
     return 'left';
   }
 
   // Check right edge zone
-  if (relativeX >= width - edgeZoneWidth && relativeX <= width) {
+  if (relativeX >= width - effectiveZone && relativeX <= width) {
     return 'right';
   }
 
