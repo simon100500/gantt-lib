@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.135.6] - 2026-09-28
+
+### Performance
+
+- Normalize large task hierarchies in one bottom-up pass while preserving parent dates and duration-weighted progress.
+- Build the chart's parent ID set from parent links instead of scanning every task for each row.
+
 ## [0.135.5] - 2026-09-28
 
 ### Performance
