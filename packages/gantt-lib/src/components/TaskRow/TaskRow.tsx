@@ -467,7 +467,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // For 1-day tasks: always show duration outside (too narrow)
     // Parent bars: child count label is longer — need more space
     const MIN_DURATION_WIDTH = isVisualParent ? 80 : 50;
-    const showDurationInside = !milestone && durationDays >= 2 && displayWidth > MIN_DURATION_WIDTH;
+    const showDurationInside = !compactDetail && !task.composite && !milestone && durationDays >= 2 && displayWidth > MIN_DURATION_WIDTH;
     return (
       <div
         data-filter-match={isFilterMatch ? 'true' : 'false'}
@@ -701,7 +701,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
           >
             {(!showDurationInside || task.composite) && !milestone && (
-              <span className={`gantt-tr-externalDuration${task.composite ? ' gantt-tr-compositeDuration' : ''}`}>
+              <span className={`gantt-tr-externalDuration${task.composite || compactDetail ? ' gantt-tr-compositeDuration' : ''}`}>
                 {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
               </span>
             )}

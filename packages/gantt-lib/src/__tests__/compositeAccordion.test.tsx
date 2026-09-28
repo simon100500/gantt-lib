@@ -68,6 +68,8 @@ describe('composite Gantt accordion', () => {
     expect(rows().map(row => row.getAttribute('data-gantt-task-row-id'))).toEqual([
       'floor-work', 'floor-1', 'floor-2', 'doors',
     ]);
+    expect(rows()[1].querySelector('.gantt-tr-externalDuration')?.textContent).toBe('3 д');
+    expect(rows()[1].querySelector('.gantt-tr-taskDuration')).toBeNull();
     expect((rows()[3].parentElement as HTMLElement).style.top).toBe('92px');
     const tableDoor = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="doors"]');
     expect((tableDoor?.parentElement as HTMLElement).style.top).toBe('92px');
@@ -83,7 +85,9 @@ describe('composite Gantt accordion', () => {
     fireEvent.click(tableName);
     expect(rows()).toHaveLength(4);
     expect(tableName.getAttribute('aria-expanded')).toBe('true');
+    expect(tableName.querySelector('path[d="m15 5 3 3 3-3"]')).not.toBeNull();
     fireEvent.click(tableName);
     expect(rows()).toHaveLength(2);
+    expect(tableName.querySelector('path[d="m15 8 3-3 3 3"]')).not.toBeNull();
   });
 });

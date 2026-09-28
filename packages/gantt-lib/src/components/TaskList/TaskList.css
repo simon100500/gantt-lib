@@ -244,15 +244,10 @@
 }
 
 .gantt-tl-compositeChevron {
-  width: 13px;
-  height: 13px;
-  flex: 0 0 13px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   color: #6d28d9;
-  transition: transform 140ms ease;
-}
-
-.gantt-tl-compositeChevron-open {
-  transform: rotate(90deg);
 }
 
 

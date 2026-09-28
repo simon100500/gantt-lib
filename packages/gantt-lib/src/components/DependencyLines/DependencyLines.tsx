@@ -196,6 +196,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
           right: computed.right,
           centerX: computed.centerX,
           rowTop: ancestorPosition.rowTop,
+          rowHeight: ancestorPosition.rowHeight,
           isVirtual: true,
         });
       }
@@ -309,7 +310,13 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       }
 
       // Skip if both tasks are hidden by scroll virtualization (neither is in the rendered viewport)
-      if (!renderedTaskIdSet.has(edge.predecessorId) && !renderedTaskIdSet.has(edge.successorId)) {
+      const predecessorVisibleId = predecessor.isVirtual
+        ? findVisibleAncestor(taskMap.get(edge.predecessorId)!, collapsedParentIds, taskMap)?.id
+        : edge.predecessorId;
+      const successorVisibleId = successor.isVirtual
+        ? findVisibleAncestor(taskMap.get(edge.successorId)!, collapsedParentIds, taskMap)?.id
+        : edge.successorId;
+      if (!renderedTaskIdSet.has(predecessorVisibleId ?? '') && !renderedTaskIdSet.has(successorVisibleId ?? '')) {
         continue;
       }
 

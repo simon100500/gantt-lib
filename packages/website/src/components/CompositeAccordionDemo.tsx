@@ -6,38 +6,43 @@ import { GanttChart, type Task } from "gantt-lib";
 const day = (offset: number) =>
   new Date(Date.UTC(2026, 8, 28 + offset)).toISOString().slice(0, 10);
 
-const initialTasks: Task[] = [
-  {
-    id: "laminate",
-    name: "Ламинат · 10 этажей",
-    startDate: day(0),
-    endDate: day(14),
-    composite: true,
-    color: "#7c3aed",
-  },
-  ...Array.from({ length: 10 }, (_, index): Task => {
-    const start = Math.floor(index / 2) * 3;
+const floorWork = (id: string, name: string, count: number, offset: number, color: string, predecessor?: string): Task[] => [
+  { id, name: `${name} · ${count} этажей`, startDate: day(offset), endDate: day(offset + Math.floor((count - 1) / 2) * 3 + 2), composite: true, color },
+  ...Array.from({ length: count }, (_, index): Task => {
+    const start = offset + Math.floor(index / 2) * 3;
     return {
-      id: `laminate-floor-${index + 1}`,
-      parentId: "laminate",
+      id: `${id}-floor-${index + 1}`,
+      parentId: id,
       name: `Этаж ${index + 1}`,
       startDate: day(start),
       endDate: day(start + 2),
-      color: "#8b5cf6",
+      color,
       synced: true,
+      dependencies: predecessor && index === 0 ? [{ taskId: `${predecessor}-floor-${count}`, type: "FS", lag: 0 }] : undefined,
     };
   }),
+];
+
+const initialTasks: Task[] = [
+  ...floorWork("laminate", "Ламинат", 10, 0, "#7c3aed"),
+  ...floorWork("walls", "Отделка стен", 10, 15, "#0891b2", "laminate"),
+  ...floorWork("paint", "Покраска", 10, 30, "#d97706", "walls"),
+  ...floorWork("lights", "Светильники", 10, 45, "#059669", "paint"),
   {
     id: "doors",
     name: "Двери",
-    startDate: day(15),
-    endDate: day(20),
-    color: "#0891b2",
+    startDate: day(60),
+    endDate: day(63),
+    color: "#be185d",
+    dependencies: [{ taskId: "lights-floor-10", type: "FS", lag: 0 }],
   },
 ];
 
 export default function CompositeAccordionDemo() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const latestEnd = Math.max(...tasks.map(task => new Date(task.endDate).getTime()));
+  const initialRangeEnd = Date.UTC(2026, 10, 30);
+  const rangeEnd = new Date(latestEnd > initialRangeEnd ? latestEnd + 14 * 86400000 : initialRangeEnd);
 
   const handleTasksChange = useCallback((changed: Task[]) => {
     setTasks(current => {
@@ -48,11 +53,11 @@ export default function CompositeAccordionDemo() {
 
   return (
     <section className="demo-section" id="gantt-accordion">
-      <h2 className="demo-section-title">Gantt Accordion · Ламинат по этажам</h2>
+      <h2 className="demo-section-title">Gantt Accordion · Работы по этажам</h2>
       <p className="demo-section-desc">
-        Два этажа выполняются параллельно. Наведите курсор на общую полосу для просмотра,
-        нажмите на неё для раскрытия, затем перетащите отдельный этаж или всю работу.
-        Строка «Двери» смещается вниз при раскрытии.
+        Четыре составные работы на трёхмесячном графике. Наведите курсор на полосу для просмотра этажей,
+        нажмите для раскрытия и перетащите работу за правый край графика — шкала продлится автоматически.
+        Связи со скрытыми этажами показаны пунктиром.
       </p>
       <div className="demo-chart-card">
         <GanttChart
@@ -61,7 +66,7 @@ export default function CompositeAccordionDemo() {
           showTaskList
           showChart
           businessDays={false}
-          dateRange={{ start: new Date(Date.UTC(2026, 8, 25)), end: new Date(Date.UTC(2026, 9, 22)) }}
+          dateRange={{ start: new Date(Date.UTC(2026, 8, 1)), end: rangeEnd }}
           dayWidth={16}
           rowHeight={40}
           taskListWidth={530}

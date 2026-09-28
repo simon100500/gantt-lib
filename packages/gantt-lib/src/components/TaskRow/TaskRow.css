@@ -162,7 +162,8 @@
 }
 
 .gantt-tr-row-compositeDetail .gantt-tr-leftLabels,
-.gantt-tr-row-compositeDetail .gantt-tr-rightLabels {
+.gantt-tr-row-compositeDetail .gantt-tr-externalTaskName,
+.gantt-tr-row-compositeDetail .gantt-tr-externalProgress {
   display: none;
 }
 

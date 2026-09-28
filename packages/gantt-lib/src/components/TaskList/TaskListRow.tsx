@@ -2263,8 +2263,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             }}
           >
             {task.composite && (
-              <svg className={`gantt-tl-compositeChevron${isCollapsed ? '' : ' gantt-tl-compositeChevron-open'}`} viewBox="0 0 20 20" aria-hidden="true">
-                <path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <svg className="gantt-tl-compositeChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 5h8" /><path d="M3 12h8" /><path d="M3 19h8" />
+                {isCollapsed ? <><path d="m15 8 3-3 3 3" /><path d="m15 16 3 3 3-3" /></> : <><path d="m15 5 3 3 3-3" /><path d="m15 19 3-3 3 3" /></>}
               </svg>
             )}
             {taskListNamePrefixIcon ? (

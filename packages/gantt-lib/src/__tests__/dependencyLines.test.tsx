@@ -7,6 +7,29 @@ import type { Task } from '../components/GanttChart';
 const isWeekend = (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6;
 
 describe('DependencyLines', () => {
+  it('draws a dashed link between children of two collapsed composite works', () => {
+    const allTasks: Task[] = [
+      { id: 'work-a', name: 'Work A', composite: true, startDate: '2026-03-01', endDate: '2026-03-04' },
+      { id: 'floor-a', parentId: 'work-a', name: 'Floor A', startDate: '2026-03-02', endDate: '2026-03-03' },
+      { id: 'work-b', name: 'Work B', composite: true, startDate: '2026-03-05', endDate: '2026-03-08' },
+      { id: 'floor-b', parentId: 'work-b', name: 'Floor B', startDate: '2026-03-06', endDate: '2026-03-07', dependencies: [{ taskId: 'floor-a', type: 'FS', lag: 0 }] },
+    ];
+    const { container } = render(
+      <DependencyLines
+        tasks={[allTasks[0], allTasks[2]]}
+        allTasks={allTasks}
+        collapsedParentIds={new Set(['work-a', 'work-b'])}
+        monthStart={new Date('2026-03-01T00:00:00.000Z')}
+        dayWidth={40}
+        rowHeight={40}
+        gridWidth={1240}
+      />
+    );
+    const path = container.querySelector('.gantt-dependency-virtual');
+    expect(path).not.toBeNull();
+    expect(path?.getAttribute('d')).not.toContain('NaN');
+  });
+
   it('renders lag labels in business days when enabled', () => {
     const tasks: Task[] = [
       {
