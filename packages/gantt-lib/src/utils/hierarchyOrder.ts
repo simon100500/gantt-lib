@@ -1,5 +1,12 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Order task hierarchies and roll parent dates/progress from direct children.
+// SCOPE: Stable depth-first ordering and one indexed bottom-up normalization pass.
+// DEPENDS: scheduling types, dateUtils
+// LINKS: M-SCHEDULE, fn-normalizeHierarchyTasks
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
 import type { Task } from '../types';
-import { computeParentDates, computeParentProgress, isTaskParent } from '../core/scheduling';
 import { normalizeTaskDates } from './dateUtils';
 
 type HierarchyTask = Task & {
@@ -79,22 +86,38 @@ export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[]): T[
     return { ...task, startDate: startDate as T['startDate'], endDate: endDate as T['endDate'] };
   }) as T[];
 
-  for (const task of [...orderedTasks].reverse()) {
-    if (!isTaskParent(task.id, orderedTasks)) continue;
+  const childrenByParent = new Map<string, number[]>();
+  for (let index = 0; index < orderedTasks.length; index++) {
+    const parentId = orderedTasks[index].parentId;
+    if (!parentId) continue;
+    const children = childrenByParent.get(parentId) ?? [];
+    children.push(index);
+    childrenByParent.set(parentId, children);
+  }
 
-    const { startDate, endDate } = computeParentDates(task.id, orderedTasks);
-    const progress = computeParentProgress(task.id, orderedTasks);
-    const normalizedStartDate = startDate.toISOString().split('T')[0];
-    const normalizedEndDate = endDate.toISOString().split('T')[0];
-    const parentIndex = orderedTasks.findIndex((candidate) => candidate.id === task.id);
-
-    if (parentIndex === -1) continue;
-
-    orderedTasks[parentIndex] = {
-      ...orderedTasks[parentIndex],
-      startDate: normalizedStartDate as T['startDate'],
-      endDate: normalizedEndDate as T['endDate'],
-      progress: progress as T['progress'],
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  for (let index = orderedTasks.length - 1; index >= 0; index--) {
+    const children = childrenByParent.get(orderedTasks[index].id);
+    if (!children?.length) continue;
+    let minStart = Infinity;
+    let maxEnd = -Infinity;
+    let totalWeight = 0;
+    let weightedProgress = 0;
+    for (const childIndex of children) {
+      const child = orderedTasks[childIndex];
+      const start = new Date(child.startDate).getTime();
+      const end = new Date(child.endDate).getTime();
+      minStart = Math.min(minStart, start);
+      maxEnd = Math.max(maxEnd, end);
+      const duration = (end - start + DAY_MS) / DAY_MS;
+      totalWeight += duration;
+      weightedProgress += duration * (child.progress ?? 0);
+    }
+    orderedTasks[index] = {
+      ...orderedTasks[index],
+      startDate: new Date(minStart).toISOString().split('T')[0] as T['startDate'],
+      endDate: new Date(maxEnd).toISOString().split('T')[0] as T['endDate'],
+      progress: (totalWeight === 0 ? 0 : Math.round((weightedProgress / totalWeight) * 10) / 10) as T['progress'],
     };
   }
 

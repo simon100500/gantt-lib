@@ -59,7 +59,7 @@ import './GanttChart.css';
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
-// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; reconcile transient drag geometry with controlled task updates; control optional task date/name labels.
+// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; index parent IDs without repeated task scans; reconcile transient drag geometry with controlled task updates; control optional task date/name labels.
 // DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
 // INPUTS: GanttChartProps including showTaskDateLabels, showTaskNames, printDependencyLabels, and an optional exact dateRange.
 // OUTPUTS: Interactive task list/chart with configurable external task labels and print-friendly dependency text.
@@ -1888,11 +1888,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Get all parent task IDs (tasks that have children)
   const allParentIds = useMemo(() => {
-    return new Set(
-      normalizedTasks
-        .filter(t => isTaskParent(t.id, normalizedTasks))
-        .map(t => t.id)
-    );
+    const taskIds = new Set(normalizedTasks.map((task) => task.id));
+    return new Set(normalizedTasks
+      .map((task) => task.parentId)
+      .filter((parentId): parentId is string => Boolean(parentId && taskIds.has(parentId))));
   }, [normalizedTasks]);
 
   const handleCollapseAll = useCallback(() => {

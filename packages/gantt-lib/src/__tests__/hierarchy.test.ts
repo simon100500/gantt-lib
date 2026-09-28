@@ -84,6 +84,17 @@ describe('hierarchy utilities', () => {
   });
 
   describe('normalizeHierarchyTasks', () => {
+    it('rolls nested parent dates and duration-weighted progress from normalized children', () => {
+      const normalized = normalizeHierarchyTasks([
+        { id: 'root', name: 'Root', startDate: '2026-01-01', endDate: '2026-01-31', progress: 0 },
+        { id: 'section', name: 'Section', parentId: 'root', startDate: '2026-01-01', endDate: '2026-01-31', progress: 0 },
+        { id: 'floor-a', name: 'Floor A', parentId: 'section', startDate: '2026-01-02', endDate: '2026-01-02', progress: 100 },
+        { id: 'floor-b', name: 'Floor B', parentId: 'section', startDate: '2026-01-03', endDate: '2026-01-05', progress: 0 },
+      ]);
+      expect(normalized.find((task) => task.id === 'section')).toMatchObject({ startDate: '2026-01-02', endDate: '2026-01-05', progress: 25 });
+      expect(normalized.find((task) => task.id === 'root')).toMatchObject({ startDate: '2026-01-02', endDate: '2026-01-05', progress: 25 });
+    });
+
     it('recomputes parent dates from children instead of using hardcoded parent dates', () => {
       const tasksWithIncorrectParentDates: Task[] = [
         { id: '1', name: 'Parent', startDate: '2026-02-01', endDate: '2026-02-28', progress: 0 },
