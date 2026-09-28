@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.135.8] - 2026-09-28
+
+### Performance
+
+- Build task-list hierarchical numbers in one linear pass instead of the O(n²) recursive scan; the two number maps rebuilt for hundreds of milliseconds on every snapshot application at 4k+ tasks, freezing the chart after each drag drop.
+
 ## [0.135.7] - 2026-09-28
 
 ### Performance
