@@ -39,6 +39,14 @@ Override these in any global CSS file to customize the chart appearance. All ove
 | `--gantt-baseline-thickness` | `3px` | Thickness of the baseline line |
 | `--gantt-baseline-offset` | `2px` | Vertical gap between the task bar and the baseline line |
 
+### Composite detail rows
+
+Expanded composite detail rows use a subtle tint derived from the parent task's
+`color` in both the task list and Gantt chart. The shared row-hover layer is
+translucent, so it blends over the parent tint while keeping the underlying
+timeline grid visible. No extra CSS variable is required; set the composite
+task's `color` to change the bar, preview bars, and detail-row tint together.
+
 ## Resource Planner Variables
 
 For full resource planner usage examples, see [Resource Planner Mode](./15-resource-planner.md).

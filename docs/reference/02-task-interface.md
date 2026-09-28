@@ -12,6 +12,7 @@ interface Task {
   color?: string;
   progress?: number;
   accepted?: boolean;
+  composite?: boolean;
   dependencies?: TaskDependency[];
   locked?: boolean;
   synced?: boolean;
@@ -32,6 +33,7 @@ interface Task {
 | `color` | `string` | no | `'#3b82f6'` | Any valid CSS color value (hex, rgb, named color). Applied as the task bar background color. |
 | `progress` | `number` | no | `undefined` | Range: 0–100. Decimal values are rounded for display. `0` or `undefined` means no progress bar is rendered. Progress is purely visual — it does not restrict drag behavior. |
 | `accepted` | `boolean` | no | `undefined` | Only meaningful when `progress === 100`. `true` renders a green progress bar. `false` or `undefined` at 100% renders a yellow bar. Has no effect when progress is not 100. |
+| `composite` | `boolean` | no | `false` | Marks a task as a composite Gantt bar whose direct children (tasks with `parentId` equal to this task's `id`) form its detail rows. The bar range is derived from the children. Hover previews child mini-bars; clicking the bar or its task-list disclosure button expands compact rows in both panes. |
 | `dependencies` | `TaskDependency[]` | no | `undefined` | Array of predecessor links. Dependencies are defined on the **successor** task, pointing to the predecessor via `taskId`. See Section 5 and Section 6. |
 | `locked` | `boolean` | no | `undefined` | When `true`, the task cannot be dragged or resized. Task name and dates cannot be edited in the task list. Independent of `progress` and `accepted` — consumer controls locking separately. |
 | `synced` | `boolean` | no | `undefined` | When `false`, the task bar renders with a dashed border indicating it was modified outside the central scheduling engine and has not yet been re-synced. `undefined` or `true` renders normally. Only relevant in projects using the Locations Layer (work templates / locations / assignments). |
@@ -102,6 +104,25 @@ interface Task {
   parentId?: string; // ID of parent task
 }
 ```
+
+### Composite Gantt Tasks
+
+`composite` adds an expandable Gantt presentation to a task hierarchy without
+changing the `parentId` relationship:
+
+- Direct children are rendered as compact detail rows when the composite is expanded.
+- The Gantt bar's date range follows the earliest child start and latest child end.
+- Hovering the bar previews child intervals. Click the bar or the disclosure icon
+  in the task-list row to expand or collapse; clicking the task name keeps its
+  standard selection and scroll behavior.
+- Detail rows appear in both the task list and chart and use a subtle tint of the
+  parent task's `color`. Their hover state is synchronized across both panes.
+- Dragging the composite bar moves the group; dragging a detail bar edits that child.
+- For controlled expansion, pass `collapsedParentIds` and update it in
+  `onToggleCollapse`.
+
+See the [Composite Tasks example](../../README.md#составная-работа-gantt-accordion)
+for a minimal data setup.
 
 **Key Features:**
 

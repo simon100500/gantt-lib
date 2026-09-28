@@ -93,6 +93,28 @@ export default function App() {
 }
 ```
 
+## Composite Tasks (Gantt Accordion)
+
+Set `composite: true` on a task and link its detail rows with `parentId`. The
+composite bar spans the dates of its children. Hovering the bar previews their
+mini-bars; clicking the bar or the dedicated disclosure button in the task list
+expands compact detail rows in both the table and Gantt chart. Clicking the task
+name keeps its normal select/scroll behavior. Preview mini-bars and subtle
+detail-row fills use the composite task color, and row hover stays synchronized
+between the table and chart. Dragging the composite task moves the group;
+dragging a child edits that child schedule.
+
+```tsx
+const tasks: Task[] = [
+  { id: "flooring", name: "Flooring", composite: true, color: "#0f9caf", startDate: "2026-10-01", endDate: "2026-10-10" },
+  { id: "floor-1", parentId: "flooring", name: "Floor 1", startDate: "2026-10-01", endDate: "2026-10-03" },
+  { id: "floor-2", parentId: "flooring", name: "Floor 2", startDate: "2026-10-05", endDate: "2026-10-10" },
+];
+```
+
+When using controlled `collapsedParentIds`, provide `onToggleCollapse` to update
+the collapsed parent IDs in application state.
+
 ## Resource Planner Mode
 
 Use `mode="resource-planner"` when the primary rows are people, equipment, rooms, or other resources instead of tasks. Omitted `mode` still renders the default task Gantt chart.
