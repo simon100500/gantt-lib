@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.135.5] - 2026-09-28
+
+### Performance
+
+- Keep large-chart drag motion local to the selected row, avoiding chart-wide React updates on every pointer frame.
+
 ## [0.135.4] - 2026-09-28
 
 ### Performance
