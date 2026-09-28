@@ -25,20 +25,24 @@ interface DependencyCreationOverlayProps {
   height: number;
 }
 
+// Keep two decimals so the path meets the overlay circles at their exact
+// (fractional) anchor centers — rounding to whole pixels visibly shifted the
+// line tip ~1px off the port dot.
+const fmt = (n: number) => Math.round(n * 100) / 100;
+
 function getPath(drag: DependencyCreationDrag): string {
   const from = drag.source;
   const to = drag.current;
   const direction = to.y >= from.y ? 1 : -1;
   const bend = Math.max(18, Math.abs(to.y - from.y) * 0.45);
-  const middleX = Math.round((from.x + to.x) / 2);
 
   if (Math.abs(to.y - from.y) < 2) {
-    return `M ${Math.round(from.x)} ${Math.round(from.y)} H ${Math.round(to.x)}`;
+    return `M ${fmt(from.x)} ${fmt(from.y)} H ${fmt(to.x)}`;
   }
 
   return [
-    `M ${Math.round(from.x)} ${Math.round(from.y)}`,
-    `C ${Math.round(from.x)} ${Math.round(from.y + bend * direction)}, ${Math.round(to.x)} ${Math.round(to.y - bend * direction)}, ${Math.round(to.x)} ${Math.round(to.y)}`,
+    `M ${fmt(from.x)} ${fmt(from.y)}`,
+    `C ${fmt(from.x)} ${fmt(from.y + bend * direction)}, ${fmt(to.x)} ${fmt(to.y - bend * direction)}, ${fmt(to.x)} ${fmt(to.y)}`,
   ].join(' ');
 }
 

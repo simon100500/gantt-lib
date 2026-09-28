@@ -762,11 +762,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const rect = element.getBoundingClientRect();
     const side = element.getAttribute('data-port-side');
     return {
-      // The port hit-area is flush against the bar (left button ends at the
-      // bar's left edge, right button starts at its right edge), so the
-      // adjacent button edge is exactly the bar boundary the line anchors to.
-      x: Math.round((side === 'left' ? rect.right : rect.left) - chartRect.left),
-      y: Math.round(rect.top + rect.height / 2 - chartRect.top),
+      // Anchor the preview at the port dot's center so the dragged polyline
+      // ends exactly on the link handle. The dot core is 8px and sits 4px
+      // inside the 24px zone from the bar side (see TaskRow.css), which puts
+      // its center 8px off the button edge adjacent to the bar. No rounding:
+      // the CSS ball centers at a fractional position, and a rounded SVG
+      // coordinate landed ~1px off it.
+      x: (side === 'left' ? rect.right - 8 : rect.left + 8) - chartRect.left,
+      y: rect.top + rect.height / 2 - chartRect.top,
     };
   }, []);
 

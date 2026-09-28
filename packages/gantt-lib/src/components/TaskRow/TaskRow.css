@@ -183,8 +183,11 @@
   align-items: center;
 }
 
-/* Dependency creation ports intentionally grow out of the bar edges. They stay
-   quiet until the row is hovered, so the chart keeps its dense visual rhythm. */
+/* Dependency creation ports grow out of the bar edges as quiet anchor dots.
+   Each 24px zone is invisible until the row is hovered, keeping the chart's
+   dense rhythm. The zone itself has no chrome — the only response is the dot
+   blooming a soft halo while the cursor is inside, so nothing competes with
+   the bars. Bar edges stay reserved for resize. */
 .gantt-tr-dependencyPort {
   position: absolute;
   top: 50%;
@@ -193,12 +196,11 @@
   height: var(--gantt-dependency-port-height, var(--gantt-task-bar-height, 28px));
   padding: 0;
   border: 0;
-  border-radius: 8px;
   background: transparent;
   transform: translateY(-50%);
   cursor: crosshair;
   opacity: 0;
-  transition: opacity 140ms ease, background-color 140ms ease, transform 140ms ease;
+  transition: opacity 150ms ease;
   /* The full hit area lives outside the task bar, preserving resize handles. */
 }
 
@@ -208,22 +210,24 @@
   opacity: 1;
 }
 
+/* Anchor dot: solid center with a crisp background ring so it reads cleanly
+   over both the grid and neighboring bars. */
 .gantt-tr-dependencyPort::after {
   content: "";
   position: absolute;
   top: 50%;
   width: 8px;
   height: 8px;
-  border: 2px solid var(--gantt-dependency-port-color, #7c3aed);
   border-radius: 50%;
-  background: var(--gantt-cell-background, #fff);
-  transform: translateY(-50%) scale(.75);
-  transition: transform 140ms cubic-bezier(.2, 0, 0, 1), background-color 140ms ease;
+  background: var(--gantt-dependency-port-color, #7c3aed);
+  box-shadow: 0 0 0 2px var(--gantt-cell-background, #fff);
+  transform: translateY(-50%) scale(.8);
+  transition: transform 160ms cubic-bezier(.2, 0, 0, 1), box-shadow 160ms ease;
+  pointer-events: none;
 }
 
 .gantt-tr-dependencyPort:hover,
 .gantt-tr-dependencyPort:focus-visible {
-  background: color-mix(in srgb, var(--gantt-dependency-port-color, #7c3aed) 12%, transparent);
   outline: none;
 }
 
@@ -231,25 +235,21 @@
 .gantt-tr-dependencyPort:focus-visible::after,
 .gantt-tr-dependencyPortDragActive::after {
   transform: translateY(-50%) scale(1);
-  background: var(--gantt-dependency-port-color, #7c3aed);
+  box-shadow:
+    0 0 0 2px var(--gantt-cell-background, #fff),
+    0 0 0 5px color-mix(in srgb, var(--gantt-dependency-port-color, #7c3aed) 24%, transparent);
 }
 
-.gantt-tr-dependencyPortLeft {
-  /* Entirely outside the bar: left edge is bar edge minus the port width. */
-}
-
-.gantt-tr-dependencyPort::after {
-  pointer-events: none;
-}
-
-/* The dots sit at the outer end of each port zone so they never cover the
-   bar edge itself — that edge belongs to the resize zones. */
+/* Dots hug the bar edges (2px off), matching where the dependency line
+   actually anchors — no gap between the visual anchor and the attach point.
+   The painted dot (8px core + 2px ring) stays fully outside the bar, so the
+   edge itself remains free for the resize zones. */
 .gantt-tr-dependencyPortLeft::after {
-  left: 0;
+  left: 12px;
 }
 
 .gantt-tr-dependencyPortRight::after {
-  left: 12px;
+  left: 4px;
 }
 
 .gantt-tr-dependencyPortMilestone {
@@ -261,10 +261,6 @@
   top: calc(50% - 4px);
   height: var(--gantt-parent-bar-height, 14px);
   transform: translateY(-50%);
-}
-
-.gantt-tr-dependencyPortDragActive {
-  background: color-mix(in srgb, var(--gantt-dependency-port-color, #7c3aed) 10%, transparent);
 }
 
 /* Dependency linking is a precise drag interaction and is not usable alongside
