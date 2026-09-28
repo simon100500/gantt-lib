@@ -242,8 +242,8 @@
   z-index: 3;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   padding: 2px;
   transform: translateY(-50%);
   border: 0;
@@ -254,12 +254,18 @@
 }
 
 .gantt-tl-compositeToggle:hover {
-  background: var(--gantt-row-hover-background, rgba(59, 130, 246, .08));
+  background: var(--gantt-control-hover-background, rgba(15, 23, 42, .08));
+}
+
+.gantt-tl-compositeToggle:focus-visible,
+.gantt-tl-collapse-btn:focus-visible {
+  outline: 2px solid var(--gantt-focus-ring-color, #64748b);
+  outline-offset: 1px;
 }
 
 .gantt-tl-compositeToggle svg {
-  width: 18px;
-  height: 18px;
+  width: 13px;
+  height: 13px;
 }
 
 
@@ -306,8 +312,8 @@
   top: 50%;
   transform: translateY(-50%);
   z-index: 2;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border: none;
   background: transparent;
   border-radius: 4px;
@@ -321,7 +327,7 @@
 }
 
 .gantt-tl-collapse-btn:hover {
-  background-color: transparent;
+  background-color: var(--gantt-control-hover-background, rgba(15, 23, 42, .08));
 }
 
 .gantt-tl-collapse-btn svg {

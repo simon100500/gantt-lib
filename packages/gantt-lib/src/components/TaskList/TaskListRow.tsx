@@ -2190,7 +2190,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                   type="button"
                   className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
                   onClick={handleToggleCollapse}
-                  style={{ left: `${nestingDepth * 20 + 1}px` }}
+                  style={{ left: `${nestingDepth * 20 - 2}px` }}
                   aria-label={isCollapsed ? "Expand children" : "Collapse children"}
                 >
                   <ChevronRightIcon />
@@ -2220,7 +2220,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               type="button"
               className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
               onClick={handleToggleCollapse}
-              style={{ left: `${nestingDepth * 20 + 1}px` }}
+              style={{ left: `${nestingDepth * 20 - 2}px` }}
               aria-label={isCollapsed ? "Expand children" : "Collapse children"}
             >
               <ChevronRightIcon />
@@ -2246,14 +2246,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 type="button"
                 className="gantt-tl-compositeToggle"
                 onClick={handleToggleCollapse}
-                style={{ left: `${nestingDepth * 20 + 2}px` }}
+                style={{ left: `${nestingDepth * 20 - 3}px` }}
                 aria-label={isCollapsed ? `Раскрыть ${task.name}` : `Свернуть ${task.name}`}
                 aria-expanded={!isCollapsed}
                 title={isCollapsed ? "Раскрыть этажи" : "Свернуть этажи"}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 5h8" /><path d="M3 12h8" /><path d="M3 19h8" />
-                  {isCollapsed ? <><path d="m15 8 3-3 3 3" /><path d="m15 16 3 3 3-3" /></> : <><path d="m15 5 3 3 3-3" /><path d="m15 19 3-3 3 3" /></>}
+                  {isCollapsed ? <><path d="M21 5H11" /><path d="M21 12H11" /><path d="M21 19H11" /><path d="m3 8 4 4-4 4" /></> : <path d="m6 9 6 6 6-6" />}
                 </svg>
               </button>
             )}

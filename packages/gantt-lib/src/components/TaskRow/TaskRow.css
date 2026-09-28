@@ -134,6 +134,10 @@
   font-weight: 700;
 }
 
+.gantt-tr-compositeBar .gantt-tr-taskDuration {
+  margin-left: 48px;
+}
+
 .gantt-tr-compositeChevron {
   width: 14px;
   height: 14px;
@@ -144,8 +148,21 @@
   transform: rotate(90deg);
 }
 
-.gantt-tr-compositeDuration {
+.gantt-tr-externalDuration.gantt-tr-compositeDuration {
   font-size: 0.72rem;
+}
+
+.gantt-tr-durationBeforeBar {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 40px;
+  padding-right: 4px;
+  transform: translateY(-50%);
+  text-align: right;
+  pointer-events: none;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .gantt-tr-compositeBar .gantt-tr-resizeHandle {

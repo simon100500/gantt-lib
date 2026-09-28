@@ -1131,7 +1131,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     for (const task of visibleTasks) {
       tops.push(top);
       const height = task.parentId && compositeIds.has(task.parentId)
-        ? Math.min(effectiveRowHeight, 26)
+        ? Math.min(effectiveRowHeight, 22)
         : effectiveRowHeight;
       heights.push(height);
       top += height;

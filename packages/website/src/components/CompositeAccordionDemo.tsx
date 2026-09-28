@@ -7,7 +7,7 @@ const day = (offset: number) =>
   new Date(Date.UTC(2026, 8, 28 + offset)).toISOString().slice(0, 10);
 
 const floorWork = (id: string, name: string, count: number, offset: number, color: string, predecessor?: string): Task[] => [
-  { id, name: `${name} · ${count} этажей`, startDate: day(offset), endDate: day(offset + Math.floor((count - 1) / 2) * 3 + 2), composite: true, color },
+  { id, name: `${name} · ${count} этажей`, startDate: day(offset), endDate: day(offset + Math.floor((count - 1) / 2) * 3 + 2), composite: true, color, progress: Array.from({ length: count }, (_, index) => Math.max(0, 100 - index * 10)).reduce((sum, progress) => sum + progress, 0) / count },
   ...Array.from({ length: count }, (_, index): Task => {
     const start = offset + Math.floor(index / 2) * 3;
     return {
@@ -17,6 +17,7 @@ const floorWork = (id: string, name: string, count: number, offset: number, colo
       startDate: day(start),
       endDate: day(start + 2),
       color,
+      progress: Math.max(0, 100 - index * 10),
       synced: true,
       dependencies: predecessor && index === 0 ? [{ taskId: `${predecessor}-floor-${count}`, type: "FS", lag: 0 }] : undefined,
     };
@@ -70,7 +71,7 @@ export default function CompositeAccordionDemo() {
           dayWidth={16}
           rowHeight={40}
           taskListWidth={530}
-          hiddenTaskListColumns={['startDate', 'endDate', 'duration', 'progress', 'dependencies']}
+          hiddenTaskListColumns={['startDate', 'endDate', 'duration', 'dependencies']}
           containerHeight={570}
           showTaskDateLabels={false}
           showTaskNames

@@ -415,7 +415,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           lane,
         };
       });
-    }, [task.composite, compositeChildren, monthStart, dayWidth, left, width]);
+    }, [task.composite, compositeChildren, monthStart, dayWidth, left, width, displayLeft]);
     const compositeLaneCount = Math.max(1, ...compositeSegments.map(segment => segment.lane + 1));
     const showCompositeSegments = task.composite && compositeSegments.length > 0
       && visualWidth / compositeSegments.length >= 22;
@@ -466,8 +466,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Determine if duration fits inside the bar
     // For 1-day tasks: always show duration outside (too narrow)
     // Parent bars: child count label is longer — need more space
-    const MIN_DURATION_WIDTH = isVisualParent ? 80 : 50;
-    const showDurationInside = !compactDetail && !task.composite && !milestone && durationDays >= 2 && displayWidth > MIN_DURATION_WIDTH;
+    const MIN_DURATION_WIDTH = isVisualParent ? 80 : task.composite ? 92 : 50;
+    const showDurationInside = !compactDetail && !milestone && durationDays >= 2 && displayWidth > MIN_DURATION_WIDTH;
     return (
       <div
         data-filter-match={isFilterMatch ? 'true' : 'false'}
@@ -593,7 +593,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 {childCount}
               </span>
             )}
-            {!task.composite && showDurationInside && (
+            {showDurationInside && (
               <span className="gantt-tr-taskDuration">
                 {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
               </span>
@@ -693,6 +693,14 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
             </svg>
           )}
+          {!showDurationInside && !milestone && (
+            <span
+              className={`gantt-tr-externalDuration gantt-tr-durationBeforeBar${compactDetail ? ' gantt-tr-compositeDuration' : ''}`}
+              style={{ left: `${visualLeft - 46}px`, color: isParent ? (task.color || defaultParentBarColor) : barColor }}
+            >
+              {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
+            </span>
+          )}
           <div
             className="gantt-tr-rightLabels"
             style={{
@@ -700,11 +708,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               color: isParent ? (task.color || defaultParentBarColor) : barColor,
             }}
           >
-            {(!showDurationInside || task.composite) && !milestone && (
-              <span className={`gantt-tr-externalDuration${task.composite || compactDetail ? ' gantt-tr-compositeDuration' : ''}`}>
-                {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
-              </span>
-            )}
             {progressWidth > 0 && !showProgressInside && (
               <span className="gantt-tr-externalProgress">
                 {progressWidth}%

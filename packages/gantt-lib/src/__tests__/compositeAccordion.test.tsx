@@ -73,7 +73,7 @@ describe('composite Gantt accordion', () => {
     expect((rows()[3].parentElement as HTMLElement).style.top).toBe('92px');
     const tableDoor = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="doors"]');
     expect((tableDoor?.parentElement as HTMLElement).style.top).toBe('92px');
-    expect((rows()[1] as HTMLElement).style.height).toBe('26px');
+    expect((rows()[1] as HTMLElement).style.height).toBe('22px');
 
     const expandedBar = rows()[0].querySelector('[data-taskbar]')!;
     fireEvent.mouseDown(expandedBar, { clientX: 200, clientY: 20 });
