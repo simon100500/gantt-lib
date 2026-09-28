@@ -2541,6 +2541,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         onTasksChange={handleTaskChange as (tasks: Task[]) => void}
                         onDragStateChange={(state) => {
                           if (state.isDragging) {
+                            // On large charts the row owns its live bar position. Keeping
+                            // guide/dependency overrides in chart state would rerender the
+                            // entire chart on every pointer frame.
+                            if (normalizedTasks.length >= 1000) return;
                             setDragGuideLines((current) => (
                               current &&
                               current.isDragging === state.isDragging &&
