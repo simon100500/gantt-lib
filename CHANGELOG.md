@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.136.0] - 2026-09-29
+
+### Added
+
+- Add expandable composite Gantt bars with child interval previews and compact detail rows shared by the chart and task list.
+- Tint composite detail rows and preview mini-bars with the parent task color; synchronize row hover between the table and chart.
+
+### Fixes
+
+- Keep composite disclosure separate from task-name selection, align duration labels and controls, and preserve dependency rendering for collapsed detail rows.
+- Match Gantt row-hover blending to the task list so parent-color tints remain visible beneath the hover layer.
+
+### Documentation
+
+- Document the `composite` task field, expansion controls, color inheritance, and synchronized detail rows.
+
 ## [0.135.9] - 2026-09-28
 
 ### Fixes
