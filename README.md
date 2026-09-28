@@ -66,6 +66,27 @@ npm run dev
 
 ## Быстрый старт
 
+### Составная работа (Gantt Accordion)
+
+Укажите `composite: true` у родительской задачи и свяжите позиции через `parentId`.
+В обычном состоянии дочерние строки скрыты. Наведение на полосу показывает краткий
+список, клик раскрывает детали одновременно в таблице и на шкале. Даты полосы
+вычисляются из дат дочерних задач. Перетаскивание родителя сдвигает группу,
+перетаскивание дочерней полосы меняет её расписание. При изменении детали
+`onTasksChange` получает `synced: false`; при `onScheduleIntent` событие содержит
+`localOverride: true`, чтобы серверный пересчёт мог сохранить ручную правку.
+
+```tsx
+const tasks: Task[] = [
+  { id: 'laminate', name: 'Ламинат', composite: true, startDate: '2026-10-01', endDate: '2026-10-10' },
+  { id: 'floor-1', parentId: 'laminate', name: 'Этаж 1', startDate: '2026-10-01', endDate: '2026-10-03' },
+  { id: 'floor-2', parentId: 'laminate', name: 'Этаж 2', startDate: '2026-10-05', endDate: '2026-10-10' },
+];
+```
+
+При управляемом `collapsedParentIds` приложение само задаёт начальное состояние
+свёрнутости и обрабатывает `onToggleCollapse`.
+
 ```tsx
 import { GanttChart, type Task } from 'gantt-lib';
 import 'gantt-lib/styles.css';

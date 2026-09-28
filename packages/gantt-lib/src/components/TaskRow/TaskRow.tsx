@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useSyncExternalStore } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
 import { calculateMilestoneGeometry, calculateTaskBar, pixelsToDate } from '../../utils/geometry';
 import { isTaskExpired } from '../../utils/expired';
@@ -96,6 +96,8 @@ export interface TaskRowProps {
   showTaskDateLabels?: boolean;
   /** Render the task name to the right of the task bar (default: true). */
   showTaskNames?: boolean;
+  /** Open or close the composite detail rows. */
+  onCompositeToggle?: () => void;
 }
 
 /**
@@ -145,6 +147,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.highlightExpiredTasks === nextProps.highlightExpiredTasks &&
     prevProps.isCritical === nextProps.isCritical &&
     prevProps.showBaseline === nextProps.showBaseline &&
+    prevProps.onCompositeToggle === nextProps.onCompositeToggle &&
     prevProps.isFilterMatch === nextProps.isFilterMatch &&
     prevProps.businessDays === nextProps.businessDays &&
     prevProps.customDays === nextProps.customDays &&
@@ -166,8 +169,14 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, onCompositeToggle }) => {
     const defaultParentBarColor = '#782FC4';
+    const [showCompositePreview, setShowCompositePreview] = useState(false);
+    const pointerStart = useRef<{ x: number; y: number } | null>(null);
+    const compositeChildren = useMemo(
+      () => task.composite ? (allTasks ?? []).filter(child => child.parentId === task.id) : [],
+      [allTasks, task.composite, task.id]
+    );
     // Extract divider from task prop
     const { divider: taskDivider } = task;
 
@@ -460,7 +469,16 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }}
             onMouseDown={dragHandleProps.onMouseDown}
             onMouseMove={dragHandleProps.onMouseMove}
-            onMouseLeave={dragHandleProps.onMouseLeave}
+            onMouseLeave={() => { dragHandleProps.onMouseLeave(); setShowCompositePreview(false); }}
+            onMouseEnter={task.composite ? () => setShowCompositePreview(true) : undefined}
+            onMouseDownCapture={task.composite ? event => { pointerStart.current = { x: event.clientX, y: event.clientY }; } : undefined}
+            onClick={task.composite ? event => {
+              const start = pointerStart.current;
+              if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) < 4) {
+                onCompositeToggle?.();
+              }
+              pointerStart.current = null;
+            } : undefined}
           >
             {!milestone && progressWidth > 0 && progressWidth < 100 && (
               <div
@@ -488,6 +506,23 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             )}
             {!milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
           </div>
+          {task.composite && showCompositePreview && compositeChildren.length > 0 && !isDragging && (
+            <div
+              className="gantt-tr-compositePreview"
+              style={{ left: `${visualLeft}px`, top: `${rowHeight - 4}px` }}
+              onMouseLeave={() => setShowCompositePreview(false)}
+              role="tooltip"
+            >
+              <strong>{task.name}</strong>
+              {compositeChildren.slice(0, 12).map(child => (
+                <div key={child.id} className="gantt-tr-compositePreviewRow">
+                  <span>{child.name}</span>
+                  <span>{parseUTCDate(child.startDate).toISOString().slice(0, 10)} – {parseUTCDate(child.endDate).toISOString().slice(0, 10)}</span>
+                </div>
+              ))}
+              {compositeChildren.length > 12 && <div>+{compositeChildren.length - 12}</div>}
+            </div>
+          )}
           {!disableDependencyEditing && onDependencyPortPointerDown && (
             <>
               <button

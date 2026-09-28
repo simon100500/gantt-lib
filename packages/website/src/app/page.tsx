@@ -8,6 +8,7 @@ import PlanFactDemo from "@/components/PlanFactDemo";
 import ResourcePlannerExample from "@/components/ResourcePlannerExample";
 import NoLinksCriticalPathDemo from "@/components/NoLinksCriticalPathDemo";
 import GenerationSkeletonDemo from "@/components/GenerationSkeletonDemo";
+import CompositeAccordionDemo from "@/components/CompositeAccordionDemo";
 
 export default function Home() {
   return (
@@ -18,6 +19,9 @@ export default function Home() {
           <p>Drag task bars to move or resize. Dependency links, cascade shifting, and expired task highlighting included.</p>
           <div className="demo-hero-actions">
             <code>npm install gantt-lib</code>
+            <a className="demo-link-btn demo-link-btn-secondary" href="#gantt-accordion">
+              Gantt Accordion
+            </a>
             <Link className="demo-link-btn" href="/perf-1000">
               1000-row stress test
             </Link>
@@ -31,6 +35,7 @@ export default function Home() {
         </header>
 
         <ConstructionChart />
+        <CompositeAccordionDemo />
         <AdditionalColumnsChart />
         <FinancePlanMatrixDemo />
         <PlanFactDemo />

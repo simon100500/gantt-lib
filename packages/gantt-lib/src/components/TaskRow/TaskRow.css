@@ -51,6 +51,30 @@
   cursor: grab;
 }
 
+.gantt-tr-compositePreview {
+  position: absolute;
+  z-index: 30;
+  min-width: 260px;
+  max-width: 380px;
+  max-height: 300px;
+  overflow: hidden;
+  padding: 10px 12px;
+  border: 1px solid var(--gantt-grid-line-color, #ddd);
+  border-radius: 8px;
+  background: var(--gantt-background, #fff);
+  color: var(--gantt-text-color, #222);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+  pointer-events: none;
+  font-size: 12px;
+}
+
+.gantt-tr-compositePreviewRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 5px;
+}
+
 /* Critical path task bar: solid red repaint handled in TaskRow.tsx
    (barStyle). No hatching — rows get the yellow filter-match highlight. */
 

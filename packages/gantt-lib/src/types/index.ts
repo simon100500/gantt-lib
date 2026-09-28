@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 
 export type GanttScheduleIntent =
-  | { type: 'move_task'; taskId: string; startDate: string }
-  | { type: 'resize_task'; taskId: string; anchor: 'start' | 'end'; date: string }
+  | { type: 'move_task'; taskId: string; startDate: string; localOverride?: boolean }
+  | { type: 'resize_task'; taskId: string; anchor: 'start' | 'end'; date: string; localOverride?: boolean }
   | {
       type: 'change_duration';
       taskId: string;
@@ -10,6 +10,7 @@ export type GanttScheduleIntent =
       anchor: 'start' | 'end';
       /** Explicit target type for milestone <-> task transitions from the duration editor. */
       taskType?: 'task' | 'milestone';
+      localOverride?: boolean;
     };
 
 export type GanttChartMode = 'gantt' | 'table-matrix' | 'plan-fact' | 'resource-planner';
@@ -195,6 +196,8 @@ export interface Task {
   type?: 'task' | 'milestone';
   /** Optional parent task ID for hierarchy relationship */
   parentId?: string;
+  /** Show this parent as a compact composite bar, collapsed until opened. */
+  composite?: boolean;
   /**
    * Optional progress value from 0-100
    * - Decimal values are allowed and rounded to nearest integer for display

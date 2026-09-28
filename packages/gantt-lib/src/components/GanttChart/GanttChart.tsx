@@ -286,6 +286,8 @@ export interface Task {
   type?: 'task' | 'milestone';
   /** Optional parent task ID for hierarchy relationship */
   parentId?: string;
+  /** Render this parent as a compact accordion bar. Its children remain ordinary tasks. */
+  composite?: boolean;
   /**
    * Optional progress value from 0-100
    * - Decimal values are allowed and rounded to nearest integer for display
@@ -963,7 +965,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [internalCollapsedParentIds, setInternalCollapsedParentIds] = useState<Set<string>>(new Set());
 
   // Use external collapsedParentIds if provided (controlled mode), otherwise use internal state
-  const collapsedParentIds = externalCollapsedParentIds ?? internalCollapsedParentIds;
+  const [expandedCompositeIds, setExpandedCompositeIds] = useState<Set<string>>(new Set());
 
   // Track editing task ID for auto-edit mode after insert
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -976,7 +978,36 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     [resolvedRowContentLines, rowHeight]
   );
 
-  const normalizedTasks = useMemo(() => normalizeHierarchyTasks(tasks), [tasks]);
+  const normalizedTasks = useMemo(() => {
+    const ordered = normalizeHierarchyTasks(tasks);
+    const ranges = new Map<string, { start: number; end: number }>();
+    for (const task of ordered) {
+      if (!task.parentId) continue;
+      const start = parseUTCDate(task.startDate).getTime();
+      const end = parseUTCDate(task.endDate).getTime();
+      const range = ranges.get(task.parentId);
+      ranges.set(task.parentId, {
+        start: Math.min(range?.start ?? start, start),
+        end: Math.max(range?.end ?? end, end),
+      });
+    }
+    return ordered.map(task => {
+      const range = task.composite ? ranges.get(task.id) : undefined;
+      return range ? {
+        ...task,
+        startDate: new Date(range.start).toISOString().slice(0, 10),
+        endDate: new Date(range.end).toISOString().slice(0, 10),
+      } : task;
+    });
+  }, [tasks]);
+  const collapsedParentIds = useMemo(() => {
+    if (externalCollapsedParentIds) return externalCollapsedParentIds;
+    const ids = new Set(internalCollapsedParentIds);
+    for (const task of normalizedTasks) {
+      if (task.composite && !expandedCompositeIds.has(task.id)) ids.add(task.id);
+    }
+    return ids;
+  }, [externalCollapsedParentIds, internalCollapsedParentIds, normalizedTasks, expandedCompositeIds]);
   const controlledScheduleIdentity = useMemo(
     () => buildControlledScheduleIdentity(normalizedTasks),
     [normalizedTasks]
@@ -1404,9 +1435,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
    * Single task = array of 1 element (batch of size 1).
    */
   const handleTaskChange = useCallback((updatedTasks: Task[], durationEdit?: { duration: number; anchor: 'start' | 'end' }) => {
-    const updatedTask = updatedTasks[0];
+    let updatedTask = updatedTasks[0];
     if (!updatedTask) return;
-    const originalTask = tasks.find(t => t.id === updatedTask.id);
+    const originalTask = normalizedTasks.find(t => t.id === updatedTask.id);
     if (!originalTask) {
       // New task or task not found - pass all tasks as-is
       onTasksChange?.(updatedTasks as TTask[]);
@@ -1421,6 +1452,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const newStart = new Date(updatedTask.startDate as string);
     const newEnd = new Date(updatedTask.endDate as string);
     const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
+    const isCompositeDetail = datesChanged && tasks.some(task => task.id === updatedTask.parentId && task.composite);
+    if (isCompositeDetail) updatedTask = { ...updatedTask, synced: false };
 
     if (!datesChanged) {
       // Special case: parent progress cascade (multiple tasks, no date changes)
@@ -1510,9 +1543,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       // is re-derived from the shifted children. universalCascade must see the
       // ORIGINAL parent dates to compute those deltas, so the snapshot is
       // passed WITHOUT the moved task substituted in.
-      const movedParentCascade = disableConstraints
+      const movedParentCascade = disableConstraints && !originalTask.composite
         ? [updatedTask]
-        : universalCascade(updatedTask, newStart, newEnd, tasks, businessDays, isCustomWeekend);
+        : universalCascade(updatedTask, newStart, newEnd, normalizedTasks, businessDays, isCustomWeekend);
       if (onScheduleIntent) {
         onScheduleIntent({
           type: 'move_task',
@@ -1547,6 +1580,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
           duration: durationEdit.duration,
           anchor: durationEdit.anchor,
           taskType: updatedTask.type ?? 'task',
+          ...(isCompositeDetail ? { localOverride: true } : {}),
         });
       } else {
         onTasksChange?.(cascadedTasks as TTask[]);
@@ -1559,6 +1593,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
           type: 'move_task',
           taskId: updatedTask.id,
           startDate: newStart.toISOString().split('T')[0],
+          ...(isCompositeDetail ? { localOverride: true } : {}),
         });
       } else {
         const anchor: 'start' | 'end' = startChanged ? 'end' : 'start';
@@ -1567,12 +1602,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
           taskId: updatedTask.id,
           anchor,
           date: (startChanged ? newStart : newEnd).toISOString().split('T')[0],
+          ...(isCompositeDetail ? { localOverride: true } : {}),
         });
       }
     } else {
       onTasksChange?.(cascadedTasks as TTask[]);
     }
-  }, [tasks, onTasksChange, onScheduleIntent, disableConstraints, editingTaskId, businessDays, isCustomWeekend, onSubtreeScaleResult]);
+  }, [tasks, normalizedTasks, onTasksChange, onScheduleIntent, disableConstraints, editingTaskId, businessDays, isCustomWeekend, onSubtreeScaleResult]);
 
   const handleTaskDurationChange = useCallback((task: Task, duration: number) => {
     const updatedTask = {
@@ -1878,7 +1914,16 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Hierarchy callbacks
   // Use external onToggleCollapse if provided (controlled mode), otherwise use internal handler
-  const handleToggleCollapse = externalOnToggleCollapse ?? useCallback((parentId: string) => {
+  const handleToggleCollapse = externalOnToggleCollapse ?? ((parentId: string) => {
+    if (normalizedTasks.some(task => task.id === parentId && task.composite)) {
+      setExpandedCompositeIds(prev => {
+        const next = new Set(prev);
+        if (next.has(parentId)) next.delete(parentId);
+        else next.add(parentId);
+        return next;
+      });
+      return;
+    }
     setInternalCollapsedParentIds(prev => {
       const next = new Set(prev);
       if (next.has(parentId)) {
@@ -1888,7 +1933,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       }
       return next;
     });
-  }, []);
+  });
 
   // Get all parent task IDs (tasks that have children)
   const allParentIds = useMemo(() => {
@@ -1901,12 +1946,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const handleCollapseAll = useCallback(() => {
     if (externalCollapsedParentIds) return; // Don't modify external state
     setInternalCollapsedParentIds(allParentIds);
+    setExpandedCompositeIds(new Set());
   }, [allParentIds, externalCollapsedParentIds]);
 
   const handleExpandAll = useCallback(() => {
     if (externalCollapsedParentIds) return; // Don't modify external state
     setInternalCollapsedParentIds(new Set());
-  }, [externalCollapsedParentIds]);
+    setExpandedCompositeIds(new Set(normalizedTasks.filter(task => task.composite).map(task => task.id)));
+  }, [externalCollapsedParentIds, normalizedTasks]);
 
   const exportToPdf = useCallback(async (options?: ExportToPdfOptions) => {
     const sourceContainer = containerRef.current;
@@ -2596,6 +2643,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         viewMode={viewMode}
                         showTaskDateLabels={showTaskDateLabels}
                         showTaskNames={showTaskNames}
+                        onCompositeToggle={task.composite ? () => handleToggleCollapse(task.id) : undefined}
                       />
                     </div>
                   ))}
