@@ -9,6 +9,7 @@ import ResourcePlannerExample from "@/components/ResourcePlannerExample";
 import NoLinksCriticalPathDemo from "@/components/NoLinksCriticalPathDemo";
 import GenerationSkeletonDemo from "@/components/GenerationSkeletonDemo";
 import CompositeAccordionDemo from "@/components/CompositeAccordionDemo";
+import CompositeSegmentsDemo from "@/components/CompositeSegmentsDemo";
 
 export default function Home() {
   return (
@@ -36,6 +37,7 @@ export default function Home() {
 
         <ConstructionChart />
         <CompositeAccordionDemo />
+        <CompositeSegmentsDemo />
         <AdditionalColumnsChart />
         <FinancePlanMatrixDemo />
         <PlanFactDemo />

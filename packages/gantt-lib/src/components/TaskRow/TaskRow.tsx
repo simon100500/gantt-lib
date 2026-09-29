@@ -13,6 +13,9 @@ import type { GanttScheduleIntent } from '../../types';
 import type { TaskPreviewPositionStore } from '../GanttChart/previewStore';
 import './TaskRow.css';
 
+// Минимальный шаг между отсечками состава: реже — рисками мельчим.
+const COMPOSITE_SEGMENT_CUT_MIN_PX = 10;
+
 const formatCompositePreviewDate = (date: Date): string => {
   const month = new Intl.DateTimeFormat('ru-RU', { month: 'short', timeZone: 'UTC' })
     .format(date)
@@ -414,11 +417,16 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const visualWidth = milestone ? displayMilestoneGeometry.size : displayWidth;
     const compositeSegments = useMemo(() => {
       if (!task.composite || width <= 0) return [];
+      // Порядок состава не меняем: обходим детей в порядке списка, при наслоении
+      // спускаемся в новый поток, встык — расширяем текущий. Освободившиеся
+      // верхние потоки не переиспользуем, даже если там есть место.
       const laneEnds: number[] = [];
-      return compositeChildren.map(child => {
+      const segments = compositeChildren.map(child => {
         const segment = calculateTaskBar(parseUTCDate(child.startDate), parseUTCDate(child.endDate), monthStart, dayWidth);
-        let lane = laneEnds.findIndex(end => end <= segment.left);
-        if (lane < 0) lane = laneEnds.length;
+        let lane = Math.max(0, laneEnds.length - 1);
+        if (laneEnds.length > 0 && segment.left < laneEnds[lane]) {
+          lane = laneEnds.length;
+        }
         laneEnds[lane] = segment.left + segment.width;
         return {
           id: child.id,
@@ -426,8 +434,20 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           left: (segment.left - left) / width * 100,
           width: segment.width / width * 100,
           lane,
+          pxLeft: segment.left - left,
+          cut: false,
         };
       });
+      // Отсечка живёт в границах своего потока (lane): высота — полоса сегмента,
+      // у левого края работы; внутри потока риски не дублируем чаще
+      // чем через COMPOSITE_SEGMENT_CUT_MIN_PX.
+      const lastCutByLane: number[] = [];
+      for (const segment of [...segments].sort((a, b) => a.pxLeft - b.pxLeft)) {
+        segment.cut = segment.pxLeft >= 1
+          && segment.pxLeft - (lastCutByLane[segment.lane] ?? 0) >= COMPOSITE_SEGMENT_CUT_MIN_PX;
+        if (segment.cut) lastCutByLane[segment.lane] = segment.pxLeft;
+      }
+      return segments;
     }, [task.composite, compositeChildren, monthStart, dayWidth, left, width, displayLeft]);
     const compositeLaneCount = Math.max(1, ...compositeSegments.map(segment => segment.lane + 1));
     const showCompositeSegments = task.composite && compositeSegments.length > 0
@@ -598,6 +618,21 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                       height: `${100 / compositeLaneCount}%`,
                     }}
                   />
+                ))}
+                {compositeSegments.map(segment => (
+                  segment.cut
+                    ? (
+                      <span
+                        key={`${segment.id}-cut`}
+                        className="gantt-tr-compositeSegmentCut"
+                        style={{
+                          left: `${segment.left}%`,
+                          top: `${segment.lane / compositeLaneCount * 100}%`,
+                          height: `${100 / compositeLaneCount}%`,
+                        }}
+                      />
+                    )
+                    : null
                 ))}
               </span>
             )}
