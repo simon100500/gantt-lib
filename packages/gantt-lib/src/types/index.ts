@@ -172,6 +172,24 @@ export interface ValidationResult {
 }
 
 /**
+ * A single work bar rendered inside a multi-activity task row.
+ * Activities are visual bars packed into sub-lanes of one row — no hierarchy,
+ * no dependencies, no progress of their own.
+ */
+export interface TaskActivity {
+  /** Unique identifier within the host task */
+  id: string;
+  /** Display name rendered inside the activity bar */
+  name: string;
+  /** Activity start date (ISO string or Date object) */
+  startDate: string | Date;
+  /** Activity end date (ISO string or Date object) */
+  endDate: string | Date;
+  /** Optional color; falls back to the default task bar color */
+  color?: string;
+}
+
+/**
  * Task data structure for Gantt chart
  */
 export interface Task {
@@ -233,6 +251,12 @@ export interface Task {
   planByDate?: Record<string, number>;
   /** Optional actual quantities keyed by ISO date (YYYY-MM-DD), used by plan-fact mode. */
   factByDate?: Record<string, number>;
+  /**
+   * Optional list of works rendered as bars packed into sub-lanes of this row
+   * (e.g. finishing works on one floor). Replaces the main bar for the row and
+   * grows the row height to fit concurrent activities. Works in gantt mode only.
+   */
+  activities?: TaskActivity[];
 }
 
 /**

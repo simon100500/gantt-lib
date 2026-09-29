@@ -625,3 +625,71 @@
   right: 0;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 40% 100%);
 }
+
+/* Дорожки работ внутри одной строки (activities): N брусков вместо главного. */
+.gantt-tr-activityLanes {
+  position: absolute;
+  inset: 0;
+}
+
+.gantt-tr-activityBar {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  box-sizing: border-box;
+  border-radius: var(--gantt-task-bar-border-radius);
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.15s ease;
+}
+
+.gantt-tr-activityBar .gantt-tr-resizeHandle {
+  cursor: ew-resize;
+}
+
+.gantt-tr-activityBar-dragging {
+  z-index: 3;
+  cursor: grabbing;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.gantt-tr-activityBar-locked {
+  cursor: default;
+}
+
+.gantt-tr-activityName {
+  color: var(--gantt-task-bar-text-color);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Подсказка работы: имя, диапазон дат и длительность (следует за курсором при drag). */
+.gantt-tr-activityTip {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  padding: 5px 10px 6px;
+  border: 1px solid var(--gantt-grid-line-color, #ddd);
+  border-radius: 8px;
+  background: var(--gantt-background, #fff);
+  color: var(--gantt-text-color, #222);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.gantt-tr-activityTipName {
+  font-weight: 600;
+}
+
+.gantt-tr-activityTipDates {
+  margin-top: 1px;
+  color: #64748b;
+  font-size: 11px;
+}

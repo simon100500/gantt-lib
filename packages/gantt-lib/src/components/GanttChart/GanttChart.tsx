@@ -3,6 +3,7 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getDateRangeDays, getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
+import { activityLanesExtraHeight, computeActivityLanes } from '../../utils/activities';
 import {
   validateDependencies,
   cascadeByLinks,
@@ -328,6 +329,30 @@ export interface Task {
   divider?: 'top' | 'bottom';
   /** Whether task dates match the linked work template (visual indicator only) */
   synced?: boolean;
+  /**
+   * Optional list of works rendered as bars packed into sub-lanes of this row
+   * (e.g. finishing works on one floor). Replaces the main bar for the row and
+   * grows the row height to fit concurrent activities. Works in gantt mode only.
+   */
+  activities?: TaskActivity[];
+}
+
+/**
+ * A single work bar rendered inside a multi-activity task row.
+ * Activities are visual bars packed into sub-lanes of one row — no hierarchy,
+ * no dependencies, no progress of their own.
+ */
+export interface TaskActivity {
+  /** Unique identifier within the host task */
+  id: string;
+  /** Display name rendered inside the activity bar */
+  name: string;
+  /** Activity start date (ISO string or Date object) */
+  startDate: string | Date;
+  /** Activity end date (ISO string or Date object) */
+  endDate: string | Date;
+  /** Optional color; falls back to the default task bar color */
+  color?: string;
 }
 
 /**
@@ -1049,19 +1074,26 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return getPlanFactRangeTasks(normalizedTasks);
     }
 
-    if (!showBaseline) {
-      return normalizedTasks;
+    const rangeTasks: Array<{ startDate: string | Date; endDate: string | Date }> = [];
+    for (const task of normalizedTasks) {
+      if (showBaseline) {
+        rangeTasks.push({
+          startDate: task.baselineStartDate && parseUTCDate(task.baselineStartDate).getTime() < parseUTCDate(task.startDate).getTime()
+            ? task.baselineStartDate
+            : task.startDate,
+          endDate: task.baselineEndDate && parseUTCDate(task.baselineEndDate).getTime() > parseUTCDate(task.endDate).getTime()
+            ? task.baselineEndDate
+            : task.endDate,
+        });
+      } else {
+        rangeTasks.push(task);
+      }
+      // Row activities may reach outside the task's own dates — the grid must cover them.
+      for (const activity of task.activities ?? []) {
+        rangeTasks.push({ startDate: activity.startDate, endDate: activity.endDate });
+      }
     }
-
-    return normalizedTasks.map(task => ({
-      ...task,
-      startDate: task.baselineStartDate && parseUTCDate(task.baselineStartDate).getTime() < parseUTCDate(task.startDate).getTime()
-        ? task.baselineStartDate
-        : task.startDate,
-      endDate: task.baselineEndDate && parseUTCDate(task.baselineEndDate).getTime() > parseUTCDate(task.endDate).getTime()
-        ? task.baselineEndDate
-        : task.endDate,
-    }));
+    return rangeTasks;
   }, [isPlanFactMode, normalizedTasks, showBaseline]);
 
   // Calculate multi-month date range from normalized tasks
@@ -1125,6 +1157,29 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     return tasks;
   }, [normalizedTasks, collapsedParentIds, filterMode, taskFilter, criticalPathMode, criticalTaskIds]);
 
+  // Get month start for calculations (first day of date range)
+  const monthStart = useMemo(() => {
+    if (dateRange.length === 0) {
+      return new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
+    }
+    const firstDay = dateRange[0];
+    if (explicitDateRange && !isPlanFactMode) {
+      return new Date(firstDay);
+    }
+    return new Date(Date.UTC(firstDay.getUTCFullYear(), firstDay.getUTCMonth(), 1));
+  }, [dateRange, explicitDateRange, isPlanFactMode]);
+
+  // Works packed into sub-lanes of one row: the row must grow to fit the busiest day.
+  const activityLaneCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const task of visibleTasks) {
+      if (task.activities && task.activities.length > 0) {
+        counts.set(task.id, computeActivityLanes(task.activities, monthStart, dayWidth).laneCount);
+      }
+    }
+    return counts;
+  }, [visibleTasks, monthStart, dayWidth]);
+
   // Expanded composite details occupy compact, real rows in both panes.
   const compositeRowLayout = useMemo(() => {
     const compositeIds = new Set(normalizedTasks.filter(task => task.composite).map(task => task.id));
@@ -1135,12 +1190,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       tops.push(top);
       const height = task.parentId && compositeIds.has(task.parentId)
         ? Math.min(effectiveRowHeight, 22)
-        : effectiveRowHeight;
+        : Math.max(effectiveRowHeight, activityLanesExtraHeight(activityLaneCounts.get(task.id) ?? 0));
       heights.push(height);
       top += height;
     }
     return { tops, heights, totalHeight: top };
-  }, [normalizedTasks, visibleTasks, effectiveRowHeight]);
+  }, [normalizedTasks, visibleTasks, effectiveRowHeight, activityLaneCounts]);
   const compositeParentsById = useMemo(
     () => new Map(normalizedTasks.filter(task => task.composite).map(task => [task.id, task])),
     [normalizedTasks]
@@ -1190,18 +1245,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
     return `calc(${containerHeight} - ${timelineHeaderHeight}px)`;
   }, [containerHeight, isPlanFactMode, isTableMatrixMode, timelineHeaderHeight]);
-
-  // Get month start for calculations (first day of date range)
-  const monthStart = useMemo(() => {
-    if (dateRange.length === 0) {
-      return new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
-    }
-    const firstDay = dateRange[0];
-    if (explicitDateRange && !isPlanFactMode) {
-      return new Date(firstDay);
-    }
-    return new Date(Date.UTC(firstDay.getUTCFullYear(), firstDay.getUTCMonth(), 1));
-  }, [dateRange, explicitDateRange, isPlanFactMode]);
 
   const todayIndex = useMemo(() => {
     const today = getTodayLocalUtcDate();

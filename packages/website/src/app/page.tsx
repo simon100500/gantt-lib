@@ -10,6 +10,7 @@ import NoLinksCriticalPathDemo from "@/components/NoLinksCriticalPathDemo";
 import GenerationSkeletonDemo from "@/components/GenerationSkeletonDemo";
 import CompositeAccordionDemo from "@/components/CompositeAccordionDemo";
 import CompositeSegmentsDemo from "@/components/CompositeSegmentsDemo";
+import FlowLineDemo from "@/components/FlowLineDemo";
 
 export default function Home() {
   return (
@@ -22,6 +23,9 @@ export default function Home() {
             <code>npm install gantt-lib</code>
             <a className="demo-link-btn demo-link-btn-secondary" href="#gantt-accordion">
               Gantt Accordion
+            </a>
+            <a className="demo-link-btn demo-link-btn-secondary" href="#gantt-lob">
+              Flow line
             </a>
             <Link className="demo-link-btn" href="/perf-1000">
               1000-row stress test
@@ -38,6 +42,7 @@ export default function Home() {
         <ConstructionChart />
         <CompositeAccordionDemo />
         <CompositeSegmentsDemo />
+        <FlowLineDemo />
         <AdditionalColumnsChart />
         <FinancePlanMatrixDemo />
         <PlanFactDemo />

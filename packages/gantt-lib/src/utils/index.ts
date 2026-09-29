@@ -1,4 +1,5 @@
 // Utility functions barrel export
+export * from './activities';
 export * from './dateUtils';
 export * from './dependencyUtils';
 export * from './expired';

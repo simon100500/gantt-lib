@@ -4,10 +4,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExtern
 import { createPortal } from 'react-dom';
 import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
 import { calculateMilestoneGeometry, calculateTaskBar, pixelsToDate } from '../../utils/geometry';
+import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, type ActivitySegment } from '../../utils/activities';
 import { isTaskExpired } from '../../utils/expired';
 import { isMilestoneTask, normalizeTaskDatesForType } from '../../utils/taskType';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
-import { isTaskParent, getChildren, getBusinessDaysCount } from '../../core/scheduling';
+import { isTaskParent, getChildren, getBusinessDaysCount, DAY_MS } from '../../core/scheduling';
 import type { Task } from '../GanttChart';
 import type { GanttScheduleIntent } from '../../types';
 import type { TaskPreviewPositionStore } from '../GanttChart/previewStore';
@@ -15,6 +16,16 @@ import './TaskRow.css';
 
 // Минимальный шаг между отсечками состава: реже — рисками мельчим.
 const COMPOSITE_SEGMENT_CUT_MIN_PX = 10;
+
+type ActivityDragMode = 'move' | 'resize-left' | 'resize-right';
+
+const toIsoDay = (date: Date): string => date.toISOString().slice(0, 10);
+
+const shiftActivityDay = (value: string | Date, days: number): Date =>
+  new Date(parseUTCDate(value).getTime() + days * DAY_MS);
+
+const activityDurationDays = (activity: { startDate: string | Date; endDate: string | Date }): number =>
+  Math.max(1, Math.round((parseUTCDate(activity.endDate).getTime() - parseUTCDate(activity.startDate).getTime()) / DAY_MS) + 1);
 
 const formatCompositePreviewDate = (date: Date): string => {
   const month = new Intl.DateTimeFormat('ru-RU', { month: 'short', timeZone: 'UTC' })
@@ -152,6 +163,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.task.color === nextProps.task.color &&
     prevProps.task.progress === nextProps.task.progress &&
     prevProps.task.accepted === nextProps.task.accepted &&
+    prevProps.task.activities === nextProps.task.activities &&
     prevProps.monthStart.getTime() === nextProps.monthStart.getTime() &&
     prevProps.dayWidth === nextProps.dayWidth &&
     prevProps.rowHeight === nextProps.rowHeight &&
@@ -458,6 +470,121 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const shouldRenderBaseline = showBaseline && baselineGeometry !== null;
     const hasPreviewPosition = isDragging || effectiveOverridePosition !== undefined;
 
+    // Multi-activity row: works packed into sub-lanes replace the main bar.
+    const activityLayout = useMemo(
+      () => (task.activities && task.activities.length > 0
+        ? computeActivityLanes(task.activities, monthStart, dayWidth)
+        : null),
+      [task.activities, monthStart, dayWidth]
+    );
+    const renderActivities = activityLayout !== null && !compactDetail;
+    const activityTopOffset = activityLayout
+      ? Math.max(0, (rowHeight - activityLayout.laneCount * ACTIVITY_LANE_STEP) / 2)
+      : 0;
+    const activityDragEnabled = !task.locked && !disableTaskDrag;
+    const [activityDrag, setActivityDrag] = useState<{ id: string; mode: ActivityDragMode; dayDelta: number } | null>(null);
+    const [activityTipId, setActivityTipId] = useState<string | null>(null);
+    const [activityTipPosition, setActivityTipPosition] = useState<{ left: number; top: number } | null>(null);
+    const activityDragStart = useRef<{ x: number; durationDays: number } | null>(null);
+
+    // Drag/resize of one activity: day-snapped, committed as a whole updated task.
+    useEffect(() => {
+      if (!activityDrag) return;
+      const startInfo = activityDragStart.current;
+      if (!startInfo) return;
+      const onMove = (event: MouseEvent) => {
+        const rawDelta = Math.round((event.clientX - startInfo.x) / dayWidth);
+        setActivityDrag(current => {
+          if (!current) return current;
+          if (current.mode === 'resize-left') {
+            return { ...current, dayDelta: Math.min(rawDelta, startInfo.durationDays - 1) };
+          }
+          if (current.mode === 'resize-right') {
+            return { ...current, dayDelta: Math.max(rawDelta, -(startInfo.durationDays - 1)) };
+          }
+          return { ...current, dayDelta: rawDelta };
+        });
+        setActivityTipPosition({
+          left: Math.min(event.clientX + 14, window.innerWidth - 200),
+          top: Math.min(event.clientY + 18, window.innerHeight - 60),
+        });
+      };
+      const onUp = () => {
+        if (activityDrag.dayDelta !== 0) {
+          const clampLeft = Math.min(activityDrag.dayDelta, startInfo.durationDays - 1);
+          const clampRight = Math.max(activityDrag.dayDelta, -(startInfo.durationDays - 1));
+          const updatedActivities = (task.activities ?? []).map(activity => {
+            if (activity.id !== activityDrag.id) return activity;
+            if (activityDrag.mode === 'move') {
+              return {
+                ...activity,
+                startDate: toIsoDay(shiftActivityDay(activity.startDate, activityDrag.dayDelta)),
+                endDate: toIsoDay(shiftActivityDay(activity.endDate, activityDrag.dayDelta)),
+              };
+            }
+            if (activityDrag.mode === 'resize-left') {
+              return { ...activity, startDate: toIsoDay(shiftActivityDay(activity.startDate, clampLeft)) };
+            }
+            return { ...activity, endDate: toIsoDay(shiftActivityDay(activity.endDate, clampRight)) };
+          });
+          onTasksChange?.([{ ...normalizedTask, activities: updatedActivities }]);
+        }
+        setActivityDrag(null);
+        activityDragStart.current = null;
+        document.body.style.cursor = '';
+      };
+      document.body.style.cursor = activityDrag.mode === 'move' ? 'grabbing' : 'ew-resize';
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      return () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        document.body.style.cursor = '';
+      };
+    }, [activityDrag, dayWidth, normalizedTask, onTasksChange, task.activities]);
+
+    const handleActivityPointerDown = (segment: ActivitySegment, mode: ActivityDragMode) => (event: React.MouseEvent) => {
+      if (!activityDragEnabled) return;
+      event.preventDefault();
+      event.stopPropagation();
+      activityDragStart.current = {
+        x: event.clientX,
+        durationDays: Math.max(1, Math.round(segment.width / dayWidth) - 1),
+      };
+      setActivityDrag({ id: segment.id, mode, dayDelta: 0 });
+    };
+
+    const liveActivityGeometry = (segment: ActivitySegment): { left: number; width: number } => {
+      if (!activityDrag || activityDrag.id !== segment.id || activityDrag.dayDelta === 0) return segment;
+      if (activityDrag.mode === 'move') {
+        return { left: segment.left + activityDrag.dayDelta * dayWidth, width: segment.width };
+      }
+      if (activityDrag.mode === 'resize-left') {
+        return { left: segment.left + activityDrag.dayDelta * dayWidth, width: segment.width - activityDrag.dayDelta * dayWidth };
+      }
+      return { left: segment.left, width: segment.width + activityDrag.dayDelta * dayWidth };
+    };
+
+    const activityTipData = useMemo(() => {
+      if (!activityTipId || !activityTipPosition || !task.activities) return null;
+      const activity = task.activities.find(item => item.id === activityTipId);
+      if (!activity) return null;
+      let start = parseUTCDate(activity.startDate);
+      let end = parseUTCDate(activity.endDate);
+      if (activityDrag && activityDrag.id === activity.id && activityDrag.dayDelta !== 0) {
+        start = shiftActivityDay(start, activityDrag.dayDelta);
+        end = shiftActivityDay(end, activityDrag.dayDelta);
+      }
+      return {
+        name: activity.name,
+        start,
+        end,
+        durationDays: activityDurationDays({ startDate: start, endDate: end }),
+        left: activityTipPosition.left,
+        top: activityTipPosition.top,
+      };
+    }, [activityDrag, activityTipId, activityTipPosition, task.activities]);
+
     // Format date labels for display - update in real-time for direct drag and cascade preview.
     const currentStartDate = hasPreviewPosition
       ? pixelsToDate(displayLeft, monthStart, dayWidth)
@@ -516,7 +643,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       >
         {taskDivider === 'top' && <div className="gantt-tr-divider gantt-tr-divider-top" />}
         <div className="gantt-tr-taskContainer">
-          {shouldRenderBaseline && (
+          {shouldRenderBaseline && !renderActivities && (
             <div
               className={`gantt-tr-baseline ${isParent ? 'gantt-tr-baseline-parent' : ''} ${milestone ? 'gantt-tr-baseline-milestone' : ''}`}
               style={{
@@ -525,6 +652,61 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               }}
             />
           )}
+          {renderActivities && activityLayout && (
+            <div className="gantt-tr-activityLanes">
+              {activityLayout.segments.map(segment => {
+                const live = liveActivityGeometry(segment);
+                const isDraggingActivity = activityDrag?.id === segment.id;
+                return (
+                  <div
+                    key={segment.id}
+                    data-activity-id={segment.id}
+                    className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
+                    style={{
+                      left: `${live.left}px`,
+                      width: `${live.width}px`,
+                      top: `${activityTopOffset + segment.lane * ACTIVITY_LANE_STEP + (ACTIVITY_LANE_STEP - ACTIVITY_LANE_BAR_HEIGHT) / 2}px`,
+                      height: `${ACTIVITY_LANE_BAR_HEIGHT}px`,
+                      backgroundColor: segment.color || 'var(--gantt-task-bar-default-color)',
+                    }}
+                    onMouseDown={event => {
+                      const target = event.target as HTMLElement;
+                      const mode: ActivityDragMode = target.closest('.gantt-tr-resizeHandleLeft')
+                        ? 'resize-left'
+                        : target.closest('.gantt-tr-resizeHandleRight')
+                          ? 'resize-right'
+                          : 'move';
+                      handleActivityPointerDown(segment, mode)(event);
+                    }}
+                    onMouseEnter={event => {
+                      if (activityDrag) return;
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      setActivityTipPosition({
+                        left: Math.max(8, Math.min(rect.left, window.innerWidth - 200)),
+                        top: rect.bottom + 54 < window.innerHeight ? rect.bottom + 6 : Math.max(8, rect.top - 54),
+                      });
+                      setActivityTipId(segment.id);
+                    }}
+                    onMouseLeave={() => {
+                      if (!activityDrag) {
+                        setActivityTipId(current => (current === segment.id ? null : current));
+                        setActivityTipPosition(null);
+                      }
+                    }}
+                  >
+                    <span className="gantt-tr-activityName">{segment.name}</span>
+                    {activityDragEnabled && (
+                      <>
+                        <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
+                        <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {!renderActivities && (
           <div
             data-taskbar
             role={task.composite ? 'button' : undefined}
@@ -658,6 +840,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             )}
             {!milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleRight" />}
           </div>
+          )}
           {task.composite && showCompositePreview && compositePreviewPosition && compositeChildren.length > 0 && !isDragging && typeof document !== 'undefined' && createPortal(
             <div
               className="gantt-tr-compositePreview"
@@ -687,7 +870,20 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             </div>,
             document.body
           )}
-          {!disableDependencyEditing && onDependencyPortPointerDown && (
+          {activityTipData && typeof document !== 'undefined' && createPortal(
+            <div
+              className="gantt-tr-activityTip"
+              style={{ left: `${activityTipData.left}px`, top: `${activityTipData.top}px` }}
+              role="tooltip"
+            >
+              <div className="gantt-tr-activityTipName">{activityTipData.name}</div>
+              <div className="gantt-tr-activityTipDates">
+                {formatDateRangeLabel(activityTipData.start, activityTipData.end)} · {activityTipData.durationDays} д
+              </div>
+            </div>,
+            document.body
+          )}
+          {!disableDependencyEditing && onDependencyPortPointerDown && !renderActivities && (
             <>
               <button
                 type="button"
@@ -713,7 +909,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               />
             </>
           )}
-          {showTaskDateLabels && (
+          {showTaskDateLabels && !renderActivities && (
             <div
               className={`gantt-tr-leftLabels ${task.locked ? 'gantt-tr-leftLabels-locked' : ''}`}
               style={{
@@ -725,7 +921,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               </span>
             </div>
           )}
-          {task.locked && (
+          {task.locked && !renderActivities && (
             <svg
               className="gantt-tr-lockIcon"
               style={{
@@ -746,7 +942,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
             </svg>
           )}
-          {!showDurationInside && !milestone && (
+          {!showDurationInside && !milestone && !renderActivities && (
             <span
               className={`gantt-tr-externalDuration gantt-tr-durationBeforeBar${compactDetail ? ' gantt-tr-compositeDuration' : ''}`}
               style={{ left: `${visualLeft - 46}px`, color: isParent ? (task.color || defaultParentBarColor) : barColor }}
@@ -754,6 +950,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
             </span>
           )}
+          {!renderActivities && (
           <div
             className="gantt-tr-rightLabels"
             style={{
@@ -775,6 +972,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               </span>
             )}
           </div>
+          )}
         </div>
         {taskDivider === 'bottom' && <div className="gantt-tr-divider gantt-tr-divider-bottom" />}
       </div>
