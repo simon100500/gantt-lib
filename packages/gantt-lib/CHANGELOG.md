@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.136.1] - 2026-09-29
+
+### Fixes
+
+- Respect the configured `rowHeight` directly when `rowContentLines` is 0 outside plan-fact mode, so compact single-line rows (level-planning mini-Gantts) keep their height instead of inflating to 28px.
+
 ## [0.136.0] - 2026-09-29
 
 ### Features
