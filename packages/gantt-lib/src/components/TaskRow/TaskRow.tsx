@@ -110,6 +110,8 @@ export interface TaskRowProps {
   showTaskDateLabels?: boolean;
   /** Render the task name to the right of the task bar (default: true). */
   showTaskNames?: boolean;
+  /** Render composite child mini-bars inside the parent bar (default: true). */
+  showCompositeSegments?: boolean;
   /** Open or close the composite detail rows. */
   onCompositeToggle?: (source: 'release' | 'click' | 'keyboard') => void;
   compactDetail?: boolean;
@@ -178,7 +180,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.isDependencyDragActive === nextProps.isDependencyDragActive &&
     prevProps.viewMode === nextProps.viewMode &&
     prevProps.showTaskDateLabels === nextProps.showTaskDateLabels &&
-    prevProps.showTaskNames === nextProps.showTaskNames
+    prevProps.showTaskNames === nextProps.showTaskNames &&
+    prevProps.showCompositeSegments === nextProps.showCompositeSegments
     // onTasksChange, onCascadeProgress, onCascade excluded - see note above
   );
 };
@@ -190,7 +193,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
@@ -450,7 +453,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       return segments;
     }, [task.composite, compositeChildren, monthStart, dayWidth, left, width, displayLeft]);
     const compositeLaneCount = Math.max(1, ...compositeSegments.map(segment => segment.lane + 1));
-    const showCompositeSegments = task.composite && compositeSegments.length > 0
+    const shouldRenderCompositeSegments = showCompositeSegmentsProp && task.composite && compositeSegments.length > 0
       && visualWidth / compositeSegments.length >= 22;
     const shouldRenderBaseline = showBaseline && baselineGeometry !== null;
     const hasPreviewPosition = isDragging || effectiveOverridePosition !== undefined;
@@ -605,7 +608,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             )}
             {/* Parents are resizable: the resize scales the whole subtree proportionally. */}
             {!milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
-            {showCompositeSegments && (
+            {shouldRenderCompositeSegments && (
               <span className="gantt-tr-compositeSegments" aria-hidden="true">
                 {compositeSegments.map(segment => (
                   <span

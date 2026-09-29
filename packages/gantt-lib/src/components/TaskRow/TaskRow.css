@@ -107,6 +107,9 @@
 .gantt-tr-compositeSegments {
   position: absolute;
   inset: 0;
+  /* Тот же слой, что у .gantt-tr-progressBar: ниже в DOM — прогресс, выше — состав,
+     чтобы тёмная заливка прогресса не перекрывала мини-полосы. */
+  z-index: 1;
   pointer-events: none;
 }
 

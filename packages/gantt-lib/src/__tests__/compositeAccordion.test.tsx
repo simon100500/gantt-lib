@@ -111,4 +111,15 @@ describe('composite Gantt accordion', () => {
     expect(chartChild.classList.contains('gantt-tr-row-hovered')).toBe(true);
     expect(tableChild.classList.contains('gantt-tl-row-hovered')).toBe(true);
   });
+
+  it('hides parent mini-bars when showCompositeSegments is off and keeps them by default', () => {
+    const baseProps = { dayWidth: 32, rowHeight: 40, headerHeight: 40, containerHeight: 400 } as const;
+    const segments = (container: HTMLElement) => container.querySelectorAll('.gantt-tr-compositeSegment');
+
+    const onByDefault = render(<GanttChart tasks={tasks} showTaskList {...baseProps} />);
+    expect(segments(onByDefault.container)).toHaveLength(2);
+
+    const off = render(<GanttChart tasks={tasks} showTaskList showCompositeSegments={false} {...baseProps} />);
+    expect(segments(off.container)).toHaveLength(0);
+  });
 });

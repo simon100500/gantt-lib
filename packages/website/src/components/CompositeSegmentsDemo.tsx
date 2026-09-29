@@ -88,6 +88,23 @@ export default function CompositeSegmentsDemo() {
           showTaskNames
         />
       </div>
+      <div className="demo-chart-card">
+        <GanttChart
+          tasks={tasks}
+          showTaskList
+          showChart
+          businessDays={false}
+          dateRange={{ start: new Date(Date.UTC(2026, 8, 21)), end: new Date(Date.UTC(2026, 11, 31)) }}
+          dayWidth={36}
+          rowHeight={40}
+          taskListWidth={280}
+          hiddenTaskListColumns={['startDate', 'endDate', 'duration', 'dependencies']}
+          containerHeight={200}
+          showTaskDateLabels={false}
+          showTaskNames
+          showCompositeSegments={false}
+        />
+      </div>
     </section>
   );
 }

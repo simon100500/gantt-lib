@@ -466,6 +466,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   showTaskDateLabels?: boolean;
   /** Render task names to the right of task bars in Gantt mode (default: true). */
   showTaskNames?: boolean;
+  /** Render composite child mini-bars inside the parent bar (default: true). */
+  showCompositeSegments?: boolean;
   /** Optional vertical timeline markers such as deadlines and checkpoints. */
   timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
@@ -697,6 +699,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     skeletonStartJitterDays = 0,
     showTaskDateLabels = true,
     showTaskNames = true,
+    showCompositeSegments = true,
     timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
@@ -2692,6 +2695,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         viewMode={viewMode}
                         showTaskDateLabels={showTaskDateLabels}
                         showTaskNames={showTaskNames}
+                        showCompositeSegments={showCompositeSegments}
                         onCompositeToggle={task.composite ? source => handleCompositeBarToggle(task.id, source) : undefined}
                         compositeExpanded={task.composite ? !collapsedParentIds.has(task.id) : undefined}
                       />
