@@ -977,8 +977,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const resolvedRowContentLines = isPlanFactMode ? Math.max(2, Math.floor(rowContentLines)) : Math.max(1, Math.floor(rowContentLines));
   const shouldFillParentRowsInTaskList = fillParentRowsInTaskList ?? isPlanFactMode;
   const effectiveRowHeight = useMemo(
-    () => Math.max(rowHeight, 10 + resolvedRowContentLines * 18),
-    [resolvedRowContentLines, rowHeight]
+    () => rowContentLines === 0 && !isPlanFactMode ? rowHeight : Math.max(rowHeight, 10 + resolvedRowContentLines * 18),
+    [isPlanFactMode, resolvedRowContentLines, rowContentLines, rowHeight]
   );
 
   const normalizedTasks = useMemo(() => {
