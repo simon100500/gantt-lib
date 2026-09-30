@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.141.0] - 2026-10-01
+
+### Features
+
+- Add display-only `TaskDependency.hidden`: omit arrows, predecessor chips and print labels while preserving validation, constraints and cascades.
+
 ## [0.140.0] - 2026-10-01
 
 ### Features

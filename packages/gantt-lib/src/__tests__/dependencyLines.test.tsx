@@ -3,10 +3,34 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DependencyLines } from '../components/DependencyLines';
 import type { Task } from '../components/GanttChart';
+import { cascadeByLinks } from '../core/scheduling/cascade';
 
 const isWeekend = (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6;
 
 describe('DependencyLines', () => {
+  it('still cascades successors through a hidden dependency', () => {
+    const tasks: Task[] = [
+      { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-02' },
+      { id: 'b', name: 'B', startDate: '2026-03-03', endDate: '2026-03-04', dependencies: [{ taskId: 'a', type: 'FS', lag: 0, hidden: true }] },
+    ];
+    const result = cascadeByLinks('a', new Date('2026-03-10T00:00:00Z'), new Date('2026-03-11T00:00:00Z'), tasks);
+    expect(new Date(result.find(task => task.id === 'b')!.startDate).toISOString().slice(0, 10)).toBe('2026-03-12');
+  });
+  it('hides system arrows while retaining manual arrows and the full input graph', () => {
+    const tasks: Task[] = [
+      { id: 'system', name: 'System', startDate: '2026-03-01', endDate: '2026-03-02' },
+      { id: 'manual', name: 'Manual', startDate: '2026-03-01', endDate: '2026-03-02' },
+      { id: 'target', name: 'Target', startDate: '2026-03-03', endDate: '2026-03-04', dependencies: [
+        { taskId: 'system', type: 'FS', lag: 9, hidden: true },
+        { taskId: 'manual', type: 'SS', lag: 2 },
+      ] },
+    ];
+    const { container } = render(<DependencyLines tasks={tasks} allTasks={tasks} monthStart={new Date('2026-03-01T00:00:00Z')} dayWidth={40} rowHeight={40} gridWidth={1240} />);
+    expect(container.querySelectorAll('.gantt-dependency-path')).toHaveLength(1);
+    expect(container.textContent).toContain('+2');
+    expect(container.textContent).not.toContain('+9');
+    expect(tasks[2].dependencies).toHaveLength(2);
+  });
   it('draws a dashed link between children of two collapsed composite works', () => {
     const allTasks: Task[] = [
       { id: 'work-a', name: 'Work A', composite: true, startDate: '2026-03-01', endDate: '2026-03-04' },

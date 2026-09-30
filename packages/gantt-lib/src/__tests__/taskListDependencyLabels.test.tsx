@@ -2,7 +2,7 @@
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 // PURPOSE: Verify compact dependency labels exposed for print/export task lists.
-// SCOPE: Cover predecessor numbering, Russian link abbreviations, lag signs, zero-lag omission, and the default interactive-chip path.
+// SCOPE: Cover predecessor numbering, link labels, lag signs, interactive chips, and visual-only hidden links.
 // INPUTS: GanttChart tasks with typed dependencies and printDependencyLabels.
 // OUTPUTS: Regression evidence for the published print dependency-label contract.
 // END_MODULE_CONTRACT
@@ -13,6 +13,17 @@ import { describe, expect, it } from 'vitest';
 import { GanttChart, type Task } from '../components/GanttChart';
 
 describe('TaskList dependency print labels', () => {
+  it.each([false, true])('omits hidden links from chips and print labels (print=%s)', (printDependencyLabels) => {
+    const input: Task[] = [
+      { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-02' },
+      { id: 'b', name: 'B', startDate: '2026-03-03', endDate: '2026-03-04', dependencies: [{ taskId: 'a', type: 'FS', lag: 9, hidden: true }] },
+    ];
+    const { container } = render(<GanttChart tasks={input} showTaskList showChart={false} disableDependencyEditing printDependencyLabels={printDependencyLabels} />);
+    expect(container.querySelector('.gantt-tl-dep-chip')).toBeNull();
+    expect(container.querySelector('.gantt-tl-dep-summary-chip')).toBeNull();
+    expect(container.textContent).not.toContain('+9');
+    expect(input[1].dependencies).toHaveLength(1);
+  });
   const tasks: Task[] = [
     {
       id: 'section',

@@ -2,7 +2,7 @@
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render the shared native dependency paths for tasks and projected activity bars.
-// SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels.
+// SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels; hidden dependencies stay in the graph but have no visual path.
 // INPUTS: Task-shaped nodes, explicit row geometry and label visibility.
 // OUTPUTS: Native SVG dependency paths and interactions.
 // END_MODULE_CONTRACT
@@ -292,6 +292,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       }
 
       for (const dependency of successorTaskForEdges.dependencies) {
+        if (dependency.hidden) continue;
         if (!taskPositions.has(dependency.taskId)) {
           continue;
         }

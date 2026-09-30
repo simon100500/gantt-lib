@@ -590,3 +590,7 @@ activityDependencyHighlight={{
   mode: 'chain-incoming',
 }}
 ```
+
+### Hidden system dependencies
+
+Set TaskDependency.hidden to true to omit its arrow, predecessor chip and print label. The full dependency remains available to validation, drag constraints and cascading; this is a presentation flag, not a scheduling switch.

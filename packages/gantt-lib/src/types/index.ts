@@ -145,6 +145,8 @@ export interface TaskDependency {
   type: LinkType;
   /** Lag in days (positive or negative integer) */
   lag: number;
+  /** Hide arrows and predecessor labels only; scheduling and validation still use this link. */
+  hidden?: boolean;
 }
 
 /**

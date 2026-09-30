@@ -2,7 +2,7 @@
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render one task-list row, including editable dependency controls and print-friendly dependency labels.
-// SCOPE: Render task fields, hierarchy/actions, dependency editing, and the optional compact dependency text used by exported documents.
+// SCOPE: Render task fields, hierarchy/actions, dependency editing, and print labels; hidden dependencies remain in editing/scheduling inputs but are excluded from predecessor chips and print labels.
 // DEPENDS: GanttChart task types, scheduling helpers, TaskList column definitions, and UI popovers.
 // ROLE: RUNTIME
 // MAP_MODE: LOCALS
@@ -1202,7 +1202,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     // Chip data: always reflect the persisted business lag, not the visual calendar gap.
     const chips = useMemo(() => {
       const taskById = new Map((allTasks ?? []).map((t) => [t.id, t]));
-      return (task.dependencies ?? []).map((dep) => {
+      return (task.dependencies ?? []).filter((dep) => !dep.hidden).map((dep) => {
         const pred = taskById.get(dep.taskId);
         const lag = getDependencyLag(dep);
         return { dep, lag, predecessorName: pred?.name ?? dep.taskId };

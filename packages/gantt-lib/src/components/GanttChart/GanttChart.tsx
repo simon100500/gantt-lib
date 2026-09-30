@@ -63,6 +63,7 @@ import { createTaskPreviewPositionStore, createActivityPreviewStore, createActiv
 import './GanttChart.css';
 
 // START_MODULE_CONTRACT
+// PRESENTATION_INVARIANT: TaskDependency.hidden suppresses arrows/chips/print labels only; the full graph remains the input to scheduling and validation.
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
 // SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; index parent IDs without repeated task scans; reconcile transient drag geometry with controlled task updates; control optional task date/name labels; render explicit host-scoped activity edges and chain/incoming/outgoing selection through native DependencyLines.
 // DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
@@ -399,6 +400,8 @@ export interface TaskActivity {
  * Task dependency definition
  */
 export interface TaskDependency {
+  /** Presentation only: hide arrows and predecessor labels, retaining constraints and cascades. */
+  hidden?: boolean;
   /** ID of the predecessor task */
   taskId: string;
   /** Link type: FS, SS, FF, or SF */
