@@ -55,7 +55,7 @@ import { ResourceTimelineChart } from '../ResourceTimelineChart';
 import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup, type TableMatrixDateOverlay } from '../TableMatrix';
 import { PlanFactMatrix, type PlanFactCellCommitContext } from '../PlanFactMatrix';
 import { printGanttChart } from './print';
-import { createTaskPreviewPositionStore, createActivityPreviewStore, type TaskPreviewPositionStore, type ActivityPreviewStore } from './previewStore';
+import { createTaskPreviewPositionStore, createActivityPreviewStore, createActivityBlockStore, createActivityDragOwner, type TaskPreviewPositionStore, type ActivityPreviewStore, type ActivityBlockStore, type ActivityDragOwner } from './previewStore';
 import './GanttChart.css';
 
 // START_MODULE_CONTRACT
@@ -784,6 +784,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const hasAutoScrolledToTodayRef = useRef(false);
   const previewPositionStoreRef = useRef<TaskPreviewPositionStore | null>(null);
   const activityPreviewStoreRef = useRef<ActivityPreviewStore | null>(null);
+  const activityBlockStoreRef = useRef<ActivityBlockStore | null>(null);
+  const activityDragOwnerRef = useRef<ActivityDragOwner | null>(null);
   const renderedTaskIdsRef = useRef<Set<string>>(new Set());
   if (previewPositionStoreRef.current === null) {
     previewPositionStoreRef.current = createTaskPreviewPositionStore();
@@ -791,8 +793,16 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   if (activityPreviewStoreRef.current === null) {
     activityPreviewStoreRef.current = createActivityPreviewStore();
   }
+  if (activityBlockStoreRef.current === null) {
+    activityBlockStoreRef.current = createActivityBlockStore();
+  }
+  if (activityDragOwnerRef.current === null) {
+    activityDragOwnerRef.current = createActivityDragOwner();
+  }
   const previewPositionStore = previewPositionStoreRef.current;
   const activityPreviewStore = activityPreviewStoreRef.current;
+  const activityBlockStore = activityBlockStoreRef.current;
+  const activityDragOwner = activityDragOwnerRef.current;
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -1507,11 +1517,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
     previewPositionStore.clear();
     activityPreviewStore.clear();
+    activityBlockStore.clear();
+    activityDragOwner.set(null);
     setCascadeOverrides((current) => (current.size === 0 ? current : new Map()));
     setPreviewTasksById((current) => (current.size === 0 ? current : new Map()));
     setDraggedTaskOverride((current) => (current === null ? current : null));
     setDragGuideLines((current) => (current === null ? current : null));
-  }, [controlledScheduleIdentity, previewPositionStore, activityPreviewStore]);
+  }, [controlledScheduleIdentity, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner]);
 
   // Validate dependencies when tasks change
   useEffect(() => {
@@ -1526,7 +1538,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
     previewPositionStore.clear();
     activityPreviewStore.clear();
-  }, [previewPositionStore, activityPreviewStore]);
+    activityBlockStore.clear();
+    activityDragOwner.set(null);
+  }, [previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner]);
 
   /**
    * Callback when tasks are modified.
@@ -2755,6 +2769,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         deferCascadePreview={normalizedTasks.length >= 1000}
                         previewPositionStore={previewPositionStore}
                         activityPreviewStore={activityPreviewStore}
+                        activityBlockStore={activityBlockStore}
+                        activityDragOwner={activityDragOwner}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}
                         onScheduleIntent={onScheduleIntent}

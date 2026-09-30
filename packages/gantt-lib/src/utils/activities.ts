@@ -20,6 +20,8 @@ export interface ActivitySegment {
   left: number;
   /** Width in px, end date inclusive */
   width: number;
+  /** Обязательный технологический зазор перед стартом работы (в днях). */
+  lag?: number;
 }
 
 export interface ActivityLanesLayout {
@@ -67,6 +69,7 @@ export function computeActivityLanes(
       id: activity.id,
       name: activity.name,
       color: activity.color,
+      lag: activity.lag,
       start: bar.left,
       end: bar.left + bar.width,
       left: bar.left,
@@ -75,7 +78,7 @@ export function computeActivityLanes(
   }));
 
   return {
-    segments: packed.map(({ id, name, color, lane, left, width }) => ({ id, name, color, lane, left, width })),
+    segments: packed.map(({ id, name, color, lag, lane, left, width }) => ({ id, name, color, lag, lane, left, width })),
     laneCount: Math.max(...packed.map(item => item.lane + 1)),
   };
 }
@@ -141,7 +144,8 @@ interface ChainGraph {
 /**
  * Граф невидимых связей конвейера: внутри строки работы идут друг за другом,
  * одинаковые (тот же id) работы соседних цепочных строк связаны между собой.
- * Лаг принадлежит преемнику — это его обязательный зазор перед началом.
+ * Лаг принадлежит преемнику — это его обязательный зазор перед началом, и живёт
+ * он только на связи с предыдущей работой той же строки (этажа).
  */
 function buildChainGraph(orderedTasks: ActivityChainTask[]): ChainGraph {
   const successors = new Map<string, Array<{ key: string; lag: number }>>();
@@ -184,7 +188,10 @@ function buildChainGraph(orderedTasks: ActivityChainTask[]): ChainGraph {
     const next = flagged[f + 1];
     for (const activity of current.activities) {
       const twin = next.activities.find(candidate => candidate.id === activity.id || candidate.name === activity.name);
-      if (twin) link(chainKey(current.id, activity.id), chainKey(next.id, twin.id), twin.lag ?? 0);
+      // Лаг работы — зазор перед ней на своём этаже (между её и предыдущей работой
+      // этой же строки). Вертикальная связь «та же работа этажом выше» лага не несёт:
+      // следующий этаж подхватывает ровно с окончания работы сверху.
+      if (twin) link(chainKey(current.id, activity.id), chainKey(next.id, twin.id), 0);
     }
   }
   return { successors, predecessors, info };
@@ -256,6 +263,53 @@ export function shiftActivityChain(
 }
 
 /**
+ * Ограничение старта работы входящими связями конвейера: минимальный день начала
+ * и работы-предшественники, которые этот минимум задают. Используется и для
+ * жёсткого ограничения перетаскивания, и для визуальной подсказки «почему не едет».
+ */
+export interface ActivityStartConstraint {
+  /** Минимально допустимый день старта (включительно). */
+  minStartDay: number;
+  /** Дельта в днях от текущего старта до минимума (может быть отрицательной). */
+  minStartDelta: number;
+  /** Предшественники, задающие минимум (несколько при равном ограничении). */
+  blockers: Array<{ taskId: string; activityId: string }>;
+  /** Зазор ограничивающей связи (в днях). */
+  lag: number;
+}
+
+export function activityStartConstraint(
+  orderedTasks: ActivityChainTask[],
+  taskId: string,
+  activityId: string,
+): ActivityStartConstraint | null {
+  const graph = buildChainGraph(orderedTasks);
+  const key = chainKey(taskId, activityId);
+  const node = graph.info.get(key);
+  if (!node) return null;
+  const candidates: Array<{ taskId: string; activityId: string; min: number; lag: number }> = [];
+  let minStart = Number.NEGATIVE_INFINITY;
+  for (const pred of graph.predecessors.get(key) ?? []) {
+    const predNode = graph.info.get(pred.key);
+    if (!predNode) continue;
+    const min = predNode.startDay + predNode.durationDays + pred.lag;
+    candidates.push({ taskId: predNode.taskId, activityId: predNode.activityId, min, lag: pred.lag });
+    if (min > minStart) minStart = min;
+  }
+  if (!Number.isFinite(minStart)) return null;
+  const blockers = candidates.filter(candidate => candidate.min === minStart);
+  return {
+    minStartDay: minStart,
+    minStartDelta: minStart - node.startDay,
+    blockers: blockers.map(({ taskId: blockerTaskId, activityId: blockerActivityId }) => ({
+      taskId: blockerTaskId,
+      activityId: blockerActivityId,
+    })),
+    lag: Math.max(0, ...blockers.map(blocker => blocker.lag)),
+  };
+}
+
+/**
  * Минимальная дельта перетаскивания (в днях), при которой начало работы не
  * нарушает входящие связи конвейера (конец предыдущей + лаг). null — входящих нет.
  */
@@ -264,18 +318,7 @@ export function activityChainMinStartDelta(
   taskId: string,
   activityId: string,
 ): number | null {
-  const graph = buildChainGraph(orderedTasks);
-  const key = chainKey(taskId, activityId);
-  const node = graph.info.get(key);
-  if (!node) return null;
-  let minStart = Number.NEGATIVE_INFINITY;
-  for (const pred of graph.predecessors.get(key) ?? []) {
-    const predNode = graph.info.get(pred.key);
-    if (!predNode) continue;
-    minStart = Math.max(minStart, predNode.startDay + predNode.durationDays + pred.lag);
-  }
-  if (!Number.isFinite(minStart)) return null;
-  return minStart - node.startDay;
+  return activityStartConstraint(orderedTasks, taskId, activityId)?.minStartDelta ?? null;
 }
 
 export interface ActivityChainPushResult {

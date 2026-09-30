@@ -326,7 +326,13 @@
   right: 4px;
 }
 
-.gantt-tr-row:hover .gantt-tr-resizeHandle::before {
+/* Grips light up for ONE bar at a time: the row's main bar on row hover, and
+   activity bars only under the cursor (or while that very bar is dragged).
+   A row can carry dozens of activity bars — lighting every handle at once
+   buries the chart in chrome. */
+.gantt-tr-row:hover .gantt-tr-taskBar .gantt-tr-resizeHandle::before,
+.gantt-tr-activityBar:hover .gantt-tr-resizeHandle::before,
+.gantt-tr-activityBar-dragging .gantt-tr-resizeHandle::before {
   opacity: 1;
 }
 
@@ -714,11 +720,14 @@
   text-overflow: ellipsis;
 }
 
-/* Горизонтальная стрелка в зазоре между последовательными работами одной дорожки. */
+/* Горизонтальная стрелка в зазоре между последовательными работами одной дорожки.
+   Стиль повторяет обычные связи (DependencyLines): линия 1px и треугольная стрелка
+   с геометрией маркера #arrowhead (points "0 0, 8 3, 0 6", refX=7 — остриё на 1px
+   дальше конца линии), цвет берётся из того же --gantt-dependency-line-color. */
 .gantt-tr-activityLink {
   position: absolute;
   height: 1px;
-  background: #94a3b8;
+  background: var(--gantt-dependency-line-color, #666666);
   pointer-events: none;
   z-index: 2;
 }
@@ -726,11 +735,58 @@
 .gantt-tr-activityLink::after {
   content: "";
   position: absolute;
-  right: 0;
+  right: -1px;
   top: -2.5px;
   width: 0;
   height: 0;
-  border-left: 5px solid #94a3b8;
+  border-left: 8px solid var(--gantt-dependency-line-color, #666666);
   border-top: 3px solid transparent;
   border-bottom: 3px solid transparent;
+}
+
+/* Лаг связи между работами: подпись «+N» в стиле лаг-подписи обычных связей
+   (DependencyLines): мелкий серый текст без фона, у острия стрелки. */
+.gantt-tr-activityLag {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -13px);
+  color: var(--gantt-dependency-line-color, #666666);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.85;
+}
+
+/* Работа, в которую упёрлась буксируемая полоса. */
+.gantt-tr-activityBar-blocking {
+  outline: 2px solid var(--gantt-conflict-color, #dc2626);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gantt-conflict-color, #dc2626) 25%, transparent);
+}
+
+/* Буксируемая полоса, доехавшая до предела: дальше не пускает связь. */
+.gantt-tr-activityBar-atLimit {
+  cursor: not-allowed;
+  box-shadow: inset 3px 0 0 var(--gantt-conflict-color, #dc2626), 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.gantt-tr-activityTipBlocked {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--gantt-conflict-color, #dc2626) 30%, transparent);
+  color: var(--gantt-conflict-color, #dc2626);
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: normal;
+  max-width: 220px;
+}
+
+.gantt-tr-activityTipBlockedIcon {
+  flex-shrink: 0;
 }

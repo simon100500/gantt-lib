@@ -4,6 +4,7 @@ import {
   ACTIVITY_LANE_BAR_HEIGHT,
   ACTIVITY_LANE_STEP,
   activityChainMinStartDelta,
+  activityStartConstraint,
   computeActivityLanes,
   packIntervals,
   pushActivityChain,
@@ -171,6 +172,33 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
     expect(activityChainMinStartDelta(tasks, 'floor-1', 'w1')).toBe(0);
   });
 
+  it('keeps the work lag on the same-floor link only (cross-floor link carries no lag)', () => {
+    const tasks: Array<{ id: string; activityChain: boolean | 'push'; activities: TaskActivity[] }> = [
+      {
+        id: 'floor-1',
+        activityChain: 'push',
+        activities: [
+          { id: 'w0', name: 'W0', startDate: '2026-03-01', endDate: '2026-03-03' },
+          { id: 'w1', name: 'W1', startDate: '2026-03-10', endDate: '2026-03-14' },
+        ],
+      },
+      {
+        id: 'floor-2',
+        activityChain: 'push',
+        activities: [
+          // Внутри строки зазор закрывается рано: конец 03-03 + лаг 4 → старт 03-08.
+          { id: 'w0', name: 'W0', startDate: '2026-03-02', endDate: '2026-03-03' },
+          // Та же работа этажом выше кончается 03-14; без лага минимум 03-15, а не 03-19.
+          { id: 'w1', name: 'W1', startDate: '2026-03-20', endDate: '2026-03-22', lag: 4 },
+        ],
+      },
+    ];
+    const constraint = activityStartConstraint(tasks, 'floor-2', 'w1')!;
+    expect(constraint.blockers).toEqual([{ taskId: 'floor-1', activityId: 'w1' }]);
+    expect(constraint.lag).toBe(0);
+    expect(activityChainMinStartDelta(tasks, 'floor-2', 'w1')).toBe(-5);
+  });
+
   it('commits pushed followers after a live conveyor drag (push mode)', () => {
     const onTasksChange = vi.fn();
     // Этаж 1: w4 1–4, w5 7–10 (лаг 2). Этаж 2: та же лестница с запасом.
@@ -233,6 +261,111 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
     const arrows = container.querySelectorAll('.gantt-tr-activityLink');
     expect(arrows).toHaveLength(1);
     expect(parseInt((arrows[0] as HTMLElement).style.width, 10)).toBe(80); // 2 дня × 40px
+  });
+
+  it('labels a lag gap with its day count', () => {
+    const tasks: Task[] = [{
+      id: 'floor-1',
+      name: 'Этаж 1',
+      startDate: '2026-03-01',
+      endDate: '2026-03-10',
+      activities: [
+        { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-03' },
+        // Лаг 2 дня — постоянный технологический зазор перед стартом B.
+        { id: 'b', name: 'B', startDate: '2026-03-06', endDate: '2026-03-08', lag: 2 },
+      ],
+    }];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+    const label = container.querySelector<HTMLElement>('.gantt-tr-activityLag');
+    expect(label).not.toBeNull();
+    // Подпись в стиле лаг-подписи связей: «+N», без кружка.
+    expect(label!.textContent).toBe('+2');
+    expect(label!.title).toBe('Зазор 2 д');
+    // Стоит у острия стрелки: конец связи минус 14px.
+    const arrow = container.querySelector<HTMLElement>('.gantt-tr-activityLink')!;
+    expect(parseInt(label!.style.left, 10)).toBe(parseInt(arrow.style.left, 10) + parseInt(arrow.style.width, 10) - 14);
+  });
+
+  it('shows the lag as a tooltip field when it is not overridden', () => {
+    const tasks: Task[] = [{
+      id: 'floor-1',
+      name: 'Этаж 1',
+      startDate: '2026-03-01',
+      endDate: '2026-03-10',
+      activities: [
+        { id: 'b', name: 'B', startDate: '2026-03-06', endDate: '2026-03-08', lag: 2 },
+      ],
+    }];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+    fireEvent.mouseEnter(container.querySelector<HTMLElement>('[data-activity-id="b"]')!, { clientX: 300, clientY: 20 });
+    const tip = document.querySelector('.gantt-tr-activityTip')!;
+    expect(tip.textContent).toContain('Зазор');
+    expect(tip.textContent).toContain('2 д');
+  });
+
+  it('stops the dragged bar at the blocking predecessor live (no drop rollback)', () => {
+    const onTasksChange = vi.fn();
+    const tasks: Task[] = [
+      {
+        id: 'floor-1', name: 'Этаж 1', startDate: '2026-03-01', endDate: '2026-03-10', activityChain: 'push',
+        activities: [
+          { id: 'w4', name: 'W4', startDate: '2026-03-01', endDate: '2026-03-04' },
+          { id: 'w5', name: 'W5', startDate: '2026-03-07', endDate: '2026-03-10', lag: 2 },
+        ],
+      },
+      {
+        id: 'floor-2', name: 'Этаж 2', startDate: '2026-03-11', endDate: '2026-03-21', activityChain: 'push',
+        activities: [
+          { id: 'w4', name: 'W4', startDate: '2026-03-11', endDate: '2026-03-14' },
+          // Старт 18 → минимум 17 (конец W4 этажа 2 + лаг 2) → можно влево на 1 день.
+          { id: 'w5', name: 'W5', startDate: '2026-03-18', endDate: '2026-03-21', lag: 2 },
+        ],
+      },
+    ];
+    const { container } = render(
+      <GanttChart tasks={tasks} onTasksChange={onTasksChange} dayWidth={40} rowHeight={40} containerHeight={400} businessDays={false} />
+    );
+    const dragged = container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-2"] [data-activity-id="w5"]')!;
+    const blocker = container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-2"] [data-activity-id="w4"]')!;
+    const before = parseInt(dragged.style.left, 10);
+
+    // Просим -3 дня, но связь пускает ровно на 1 день влево.
+    fireEvent.mouseDown(dragged, { clientX: 500, clientY: 20 });
+    fireEvent.mouseMove(window, { clientX: 380, clientY: 20 });
+
+    expect(parseInt(dragged.style.left, 10)).toBe(before - 40);
+    expect(dragged.className).toContain('gantt-tr-activityBar-atLimit');
+    expect(blocker.className).toContain('gantt-tr-activityBar-blocking');
+
+    fireEvent.mouseUp(window);
+    // На отпускании полоса не откатывается: фиксируется достигнутый предел.
+    const floor2 = (onTasksChange.mock.calls[0][0] as Task[]).find(task => task.id === 'floor-2')!;
+    expect(floor2.activities!.find(activity => activity.id === 'w5')!.startDate).toBe('2026-03-17');
+  });
+
+  it('leaves a non-chained activity free to move past its lane neighbours', () => {
+    const onTasksChange = vi.fn();
+    const tasks: Task[] = [{
+      id: 'floor-1', name: 'Этаж 1', startDate: '2026-03-01', endDate: '2026-03-10',
+      activities: [
+        { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-03' },
+        { id: 'b', name: 'B', startDate: '2026-03-06', endDate: '2026-03-08', lag: 2 },
+      ],
+    }];
+    const { container } = render(
+      <GanttChart tasks={tasks} onTasksChange={onTasksChange} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+    const bar = container.querySelector<HTMLElement>('[data-activity-id="b"]')!;
+    const before = parseInt(bar.style.left, 10);
+    fireEvent.mouseDown(bar, { clientX: 500, clientY: 20 });
+    fireEvent.mouseMove(window, { clientX: 380, clientY: 20 });
+    expect(parseInt(bar.style.left, 10)).toBe(before - 120);
+    expect(bar.className).not.toContain('gantt-tr-activityBar-atLimit');
+    fireEvent.mouseUp(window);
   });
 });
 
@@ -481,5 +614,36 @@ describe('multi-activity rows in GanttChart', () => {
 
     fireEvent.mouseLeave(bar);
     expect(document.querySelector('.gantt-tr-activityTip')).toBeNull();
+  });
+
+  it('suppresses hover tooltips elsewhere while an activity is dragged', () => {
+    const tasks: Task[] = [
+      {
+        id: 'floor-1', name: 'Этаж 1', startDate: '2026-03-01', endDate: '2026-03-05',
+        activities: [{ id: 'a', name: 'A1', startDate: '2026-03-01', endDate: '2026-03-02' }],
+      },
+      {
+        id: 'floor-2', name: 'Этаж 2', startDate: '2026-03-03', endDate: '2026-03-06',
+        activities: [{ id: 'b', name: 'B2', startDate: '2026-03-03', endDate: '2026-03-04' }],
+      },
+    ];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={300} businessDays={false} />
+    );
+    const dragged = container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-1"] [data-activity-id="a"]')!;
+    const other = container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-2"] [data-activity-id="b"]')!;
+
+    fireEvent.mouseDown(dragged, { clientX: 500, clientY: 20 });
+    fireEvent.mouseMove(window, { clientX: 540, clientY: 20 });
+    // Наведение на работу другой строки не открывает вторую подсказку.
+    fireEvent.mouseEnter(other, { clientX: 300, clientY: 60 });
+
+    const tips = document.querySelectorAll('.gantt-tr-activityTip');
+    expect(tips).toHaveLength(1);
+    expect(tips[0].textContent).toContain('A1');
+
+    fireEvent.mouseUp(window);
+    // После переноса подсказка скрыта, а не висит на экране.
+    expect(document.querySelectorAll('.gantt-tr-activityTip')).toHaveLength(0);
   });
 });

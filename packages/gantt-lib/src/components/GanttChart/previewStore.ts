@@ -160,3 +160,100 @@ export function createActivityPreviewStore(): ActivityPreviewStore {
     },
   };
 }
+
+/**
+ * Works that currently stop the dragged work (its binding chain predecessors).
+ * The dragged row publishes the blockers; every row renders the matching work
+ * with a "blocked" affordance so the reason a bar refuses to move is visible.
+ */
+export interface ActivityBlockStore {
+  subscribeTask: (taskId: string, listener: () => void) => () => void;
+  /** Ids of works in the task that currently block the dragged work. */
+  getTaskBlockers: (taskId: string) => Set<string> | undefined;
+  setBlockers: (blockers: Map<string, Set<string>>) => void;
+  clear: () => void;
+}
+
+export function createActivityBlockStore(): ActivityBlockStore {
+  let blockersByTask = new Map<string, Set<string>>();
+  const listenersByTaskId = new Map<string, Set<() => void>>();
+
+  function notify(taskIds: Set<string>) {
+    for (const taskId of taskIds) {
+      for (const listener of listenersByTaskId.get(taskId) ?? []) {
+        listener();
+      }
+    }
+  }
+
+  return {
+    subscribeTask(taskId, listener) {
+      const listeners = listenersByTaskId.get(taskId) ?? new Set<() => void>();
+      listeners.add(listener);
+      listenersByTaskId.set(taskId, listeners);
+
+      return () => {
+        listeners.delete(listener);
+        if (listeners.size === 0) {
+          listenersByTaskId.delete(taskId);
+        }
+      };
+    },
+
+    getTaskBlockers(taskId) {
+      return blockersByTask.get(taskId);
+    },
+
+    setBlockers(nextBlockers) {
+      const changedTaskIds = new Set<string>(nextBlockers.keys());
+      for (const taskId of blockersByTask.keys()) {
+        changedTaskIds.add(taskId);
+      }
+      if ([...changedTaskIds].every(taskId => {
+        const current = blockersByTask.get(taskId);
+        const next = nextBlockers.get(taskId);
+        if (!current || !next || current.size !== next.size) return false;
+        return [...next].every(activityId => current.has(activityId));
+      })) {
+        return;
+      }
+
+      blockersByTask = new Map([...nextBlockers].map(([taskId, ids]) => [taskId, new Set(ids)]));
+      notify(changedTaskIds);
+    },
+
+    clear() {
+      if (blockersByTask.size === 0) {
+        return;
+      }
+
+      const changedTaskIds = new Set(blockersByTask.keys());
+      blockersByTask = new Map();
+      notify(changedTaskIds);
+    },
+  };
+}
+
+/**
+ * Which row activity is being dragged right now — `taskId \0 activityId`.
+ * Hover handlers read it synchronously so a drag in one row never lets another
+ * row mount a competing tooltip. It deliberately has no subscription: nothing
+ * needs to re-render when the owner changes, only the next hover is gated.
+ */
+export interface ActivityDragOwner {
+  get: () => string | null;
+  set: (ownerKey: string | null) => void;
+}
+
+export const activityOwnerKey = (taskId: string, activityId: string): string =>
+  `${taskId}\u0000${activityId}`;
+
+export function createActivityDragOwner(): ActivityDragOwner {
+  let ownerKey: string | null = null;
+  return {
+    get: () => ownerKey,
+    set: (nextOwnerKey) => {
+      ownerKey = nextOwnerKey;
+    },
+  };
+}

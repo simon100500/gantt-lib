@@ -141,9 +141,18 @@ work translates the whole downstream chain by the same delta. `'push'` —
 immediately; when it moves later, successors stay put (the gap stretches) until
 the predecessor's end crosses their start — then they get pushed. An activity's
 `lag` (days) sets a constant gap before its start (e.g. technological curing):
-both fill and push keep «predecessor end + lag» exactly. Starts are clamped so
+both fill and push keep «predecessor end + lag» exactly. The lag belongs to the
+same-floor sequence only — the vertical «same work on the floor above» link
+carries no lag. Starts are clamped so
 a dragged work cannot violate its own incoming links. Gaps wider than zero are
 drawn as horizontal arrows between consecutive works of one lane.
+
+In `'push'` mode the clamp is live and visible: the bar physically stops at the
+binding predecessor instead of snapping back on drop, the blocking work gets a
+red outline, and the dragged bar shows a stop edge with an «Упёрлась: … · зазор
+N д» line in the tooltip. The binding gap is labelled «+N» at the arrow head in
+the dependency-line colour, matching the dependency lag labels, and the tooltip
+appends a «Зазор» field unless a custom one overrides it.
 
 ```tsx
 const tasks: Task[] = [

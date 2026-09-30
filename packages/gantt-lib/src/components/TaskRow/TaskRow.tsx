@@ -4,14 +4,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExtern
 import { createPortal } from 'react-dom';
 import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
 import { calculateMilestoneGeometry, calculateTaskBar, pixelsToDate } from '../../utils/geometry';
-import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, pushActivityChain, shiftActivityChain, activityChainMinStartDelta, type ActivitySegment } from '../../utils/activities';
+import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, pushActivityChain, shiftActivityChain, activityStartConstraint, type ActivitySegment, type ActivityStartConstraint } from '../../utils/activities';
 import { isTaskExpired } from '../../utils/expired';
 import { isMilestoneTask, normalizeTaskDatesForType } from '../../utils/taskType';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { isTaskParent, getChildren, getBusinessDaysCount, DAY_MS } from '../../core/scheduling';
 import type { Task } from '../GanttChart';
 import type { GanttScheduleIntent } from '../../types';
-import type { TaskPreviewPositionStore, ActivityPreviewStore } from '../GanttChart/previewStore';
+import { activityOwnerKey, type TaskPreviewPositionStore, type ActivityPreviewStore, type ActivityBlockStore, type ActivityDragOwner } from '../GanttChart/previewStore';
 import './TaskRow.css';
 
 // Минимальный шаг между отсечками состава: реже — рисками мельчим.
@@ -82,6 +82,10 @@ export interface TaskRowProps {
   previewPositionStore?: TaskPreviewPositionStore;
   /** Live day-shifts of chained row activities in other rows during a conveyor drag. */
   activityPreviewStore?: ActivityPreviewStore;
+  /** Works that currently stop the dragged work — highlighted while a drag is blocked. */
+  activityBlockStore?: ActivityBlockStore;
+  /** Owner of the in-flight activity drag, so other rows mute their hover tooltips. */
+  activityDragOwner?: ActivityDragOwner;
   /** Called each RAF during cascade drag with override positions for non-dragged chain tasks */
   onCascadeProgress?: (
     overrides: Map<string, { left: number; width: number }>,
@@ -173,6 +177,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.overridePosition?.width === nextProps.overridePosition?.width &&
     prevProps.previewPositionStore === nextProps.previewPositionStore &&
     prevProps.activityPreviewStore === nextProps.activityPreviewStore &&
+    prevProps.activityBlockStore === nextProps.activityBlockStore &&
+    prevProps.activityDragOwner === nextProps.activityDragOwner &&
     prevProps.allTasks === nextProps.allTasks &&
     prevProps.disableConstraints === nextProps.disableConstraints &&
     prevProps.deferCascadePreview === nextProps.deferCascadePreview &&
@@ -208,7 +214,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
@@ -489,6 +495,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const [activityTipId, setActivityTipId] = useState<string | null>(null);
     const [activityTipPosition, setActivityTipPosition] = useState<{ left: number; top: number } | null>(null);
     const activityDragStart = useRef<{ x: number; durationDays: number } | null>(null);
+    // Входящее ограничение старта, посчитанное один раз на старте перетаскивания:
+    // предшественники за время буксировки не двигаются, граф пересобирать не нужно.
+    const activityConstraintRef = useRef<ActivityStartConstraint | null>(null);
+    // Почему работа упёрлась: имена работ-блокеров и зазор ограничивающей связи.
+    const [activityBlockedBy, setActivityBlockedBy] = useState<{ names: string[]; lag: number } | null>(null);
 
     const subscribeActivityOverrides = useCallback(
       (listener: () => void) => activityPreviewStore?.subscribeTask(task.id, listener) ?? (() => { }),
@@ -501,6 +512,21 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const activityOverrides = useSyncExternalStore(
       subscribeActivityOverrides,
       getActivityOverridesSnapshot,
+      () => undefined
+    );
+
+    // Работы этой строки, которые сейчас упираются в перетаскиваемую (подсветка).
+    const subscribeActivityBlock = useCallback(
+      (listener: () => void) => activityBlockStore?.subscribeTask(task.id, listener) ?? (() => { }),
+      [activityBlockStore, task.id]
+    );
+    const getActivityBlockSnapshot = useCallback(
+      () => activityBlockStore?.getTaskBlockers(task.id),
+      [activityBlockStore, task.id]
+    );
+    const blockedActivityIds = useSyncExternalStore(
+      subscribeActivityBlock,
+      getActivityBlockSnapshot,
       () => undefined
     );
 
@@ -521,7 +547,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       if (task.activityChain === 'push') {
         let delta = dayDelta;
         if (mode !== 'resize-right') {
-          const minDelta = activityChainMinStartDelta(allTasks ?? [], task.id, draggedId);
+          const minDelta = activityConstraintRef.current?.minStartDelta ?? null;
           if (minDelta !== null) delta = Math.max(delta, minDelta);
         }
         shifts = delta === 0
@@ -551,12 +577,52 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       if (!activityDrag) return;
       const startInfo = activityDragStart.current;
       if (!startInfo) return;
+      // Публикует работы-блокеры (для подсветки) и причину упора («ждёт X, зазор N д»).
+      const publishBlockers = (blocked: boolean) => {
+        const constraint = activityConstraintRef.current;
+        if (!activityBlockStore) return;
+        if (!blocked || !constraint) {
+          activityBlockStore.clear();
+          setActivityBlockedBy(current => (current === null ? current : null));
+          return;
+        }
+        const blockers = new Map<string, Set<string>>();
+        const names: string[] = [];
+        for (const blocker of constraint.blockers) {
+          const set = blockers.get(blocker.taskId) ?? new Set<string>();
+          set.add(blocker.activityId);
+          blockers.set(blocker.taskId, set);
+          const source = (allTasks ?? []).find(candidate => candidate.id === blocker.taskId);
+          const work = source?.activities?.find(activity => activity.id === blocker.activityId);
+          const workName = work?.name ?? source?.name ?? blocker.activityId;
+          // Одноимённые работы повторяются на каждом этаже — для чужой строки
+          // показываем этаж, иначе «Работа 5» ничего не объясняет.
+          names.push(blocker.taskId === task.id ? workName : `${source?.name ?? blocker.taskId} · ${workName}`);
+        }
+        activityBlockStore.setBlockers(blockers);
+        setActivityBlockedBy(current => (
+          current && current.lag === constraint.lag && current.names.length === names.length
+            && current.names.every((name, index) => name === names[index])
+            ? current
+            : { names, lag: constraint.lag }
+        ));
+      };
       const onMove = (event: MouseEvent) => {
         const rawDelta = Math.round((event.clientX - startInfo.x) / dayWidth);
-        let clamped = rawDelta;
-        if (activityDrag.mode === 'resize-left') clamped = Math.min(rawDelta, startInfo.durationDays - 1);
-        if (activityDrag.mode === 'resize-right') clamped = Math.max(rawDelta, -(startInfo.durationDays - 1));
+        let requested = rawDelta;
+        if (activityDrag.mode === 'resize-left') requested = Math.min(rawDelta, startInfo.durationDays - 1);
+        if (activityDrag.mode === 'resize-right') requested = Math.max(rawDelta, -(startInfo.durationDays - 1));
+        // «Выталкивание»: полоса физически упирается в предшественника
+        // (конец + лаг) и дальше не едет — откат на отпускании не нужен.
+        const constraint = activityConstraintRef.current;
+        let clamped = requested;
+        let blocked = false;
+        if (constraint && activityDrag.mode !== 'resize-right' && requested < constraint.minStartDelta) {
+          clamped = constraint.minStartDelta;
+          blocked = true;
+        }
         setActivityDrag(current => (current ? { ...current, dayDelta: clamped } : current));
+        publishBlockers(blocked);
         setActivityTipPosition({
           left: Math.min(event.clientX + 14, window.innerWidth - 200),
           top: Math.min(event.clientY + 18, window.innerHeight - 60),
@@ -565,12 +631,18 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       };
       const onUp = () => {
         activityPreviewStore?.clear();
+        activityBlockStore?.clear();
+        activityDragOwner?.set(null);
+        setActivityBlockedBy(null);
+        // Подсказка не должна «висеть» после переноса — прячем, вернётся на новом наведении.
+        setActivityTipId(null);
+        setActivityTipPosition(null);
         if (activityDrag.dayDelta !== 0) {
           const chainPush = task.activityChain === 'push';
           // «Выталкивание»: старт не раньше конца предыдущей + лаг.
           let delta = activityDrag.dayDelta;
           if (chainPush && activityDrag.mode !== 'resize-right') {
-            const minDelta = activityChainMinStartDelta(allTasks ?? [], task.id, activityDrag.id);
+            const minDelta = activityConstraintRef.current?.minStartDelta ?? null;
             if (minDelta !== null) delta = Math.max(delta, minDelta);
           }
           const clampLeft = Math.min(delta, startInfo.durationDays - 1);
@@ -620,6 +692,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         }
         setActivityDrag(null);
         activityDragStart.current = null;
+        activityConstraintRef.current = null;
         document.body.style.cursor = '';
       };
       document.body.style.cursor = activityDrag.mode === 'move' ? 'grabbing' : 'ew-resize';
@@ -630,7 +703,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         window.removeEventListener('mouseup', onUp);
         document.body.style.cursor = '';
       };
-    }, [activityDrag, activityPreviewStore, allTasks, dayWidth, normalizedTask, onTasksChange, publishChainPreview, task.activities]);
+    }, [activityDrag, activityPreviewStore, activityBlockStore, activityDragOwner, allTasks, dayWidth, normalizedTask, onTasksChange, publishChainPreview, task.activities]);
 
     const handleActivityPointerDown = (segment: ActivitySegment, mode: ActivityDragMode) => (event: React.MouseEvent) => {
       if (!activityDragEnabled) return;
@@ -640,6 +713,14 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         x: event.clientX,
         durationDays: Math.max(1, Math.round(segment.width / dayWidth) - 1),
       };
+      // Входящее ограничение старта считаем один раз: во время буксировки
+      // предшественники не двигаются.
+      activityConstraintRef.current = task.activityChain === 'push' && mode !== 'resize-right'
+        ? activityStartConstraint(allTasks ?? [], task.id, segment.id)
+        : null;
+      activityDragOwner?.set(activityOwnerKey(task.id, segment.id));
+      setActivityBlockedBy(null);
+      setActivityTipId(segment.id);
       setActivityDrag({ id: segment.id, mode, dayDelta: 0 });
     };
 
@@ -661,15 +742,15 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         const geometry = liveActivityGeometry(segment);
         const chainDelta = activityOverrides?.get(segment.id) ?? 0;
         const left = geometry.left + (chainDelta !== 0 ? chainDelta * dayWidth : 0);
-        return { id: segment.id, lane: segment.lane, left, right: left + geometry.width };
+        return { id: segment.id, lane: segment.lane, left, right: left + geometry.width, lag: segment.lag ?? 0 };
       });
-      const gaps: Array<{ key: string; left: number; width: number; lane: number }> = [];
+      const gaps: Array<{ key: string; left: number; width: number; lane: number; lag: number }> = [];
       for (let i = 0; i < live.length - 1; i += 1) {
         const a = live[i];
         const b = live[i + 1];
         if (a.lane !== b.lane) continue;
         const width = b.left - a.right;
-        if (width >= 1) gaps.push({ key: `${a.id}->${b.id}`, left: a.right, width, lane: a.lane });
+        if (width >= 1) gaps.push({ key: `${a.id}->${b.id}`, left: a.right, width, lane: a.lane, lag: b.lag });
       }
       return gaps;
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -691,6 +772,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         end,
         durationDays: activityDurationDays({ startDate: start, endDate: end }),
         fields: activity.tooltipFields,
+        // Лаг показываем сами, если он задан и его не перекрывает своё поле «Зазор».
+        lag: activity.lag && activity.lag > 0 ? activity.lag : 0,
         left: activityTipPosition.left,
         top: activityTipPosition.top,
       };
@@ -771,11 +854,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 const chainDelta = activityOverrides?.get(segment.id) ?? 0;
                 const liveLeft = live.left + (chainDelta !== 0 ? chainDelta * dayWidth : 0);
                 const isDraggingActivity = activityDrag?.id === segment.id;
+                const isBlockingActivity = blockedActivityIds?.has(segment.id) ?? false;
+                const isAtLimit = isDraggingActivity && activityBlockedBy !== null;
                 return (
                   <div
                     key={segment.id}
                     data-activity-id={segment.id}
-                    className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
+                    className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${isBlockingActivity ? ' gantt-tr-activityBar-blocking' : ''}${isAtLimit ? ' gantt-tr-activityBar-atLimit' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
                     style={{
                       left: `${liveLeft}px`,
                       width: `${live.width}px`,
@@ -793,7 +878,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                       handleActivityPointerDown(segment, mode)(event);
                     }}
                     onMouseEnter={event => {
-                      if (activityDrag) return;
+                      if (activityDrag || activityDragOwner?.get()) return;
                       const rect = event.currentTarget.getBoundingClientRect();
                       setActivityTipPosition({
                         left: Math.max(8, Math.min(rect.left, window.innerWidth - 200)),
@@ -819,16 +904,29 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 );
               })}
               {activityLinkGaps.map(gap => (
-                <span
-                  key={gap.key}
-                  className="gantt-tr-activityLink"
-                  aria-hidden="true"
-                  style={{
-                    left: `${gap.left}px`,
-                    width: `${gap.width}px`,
-                    top: `${activityTopOffset + gap.lane * ACTIVITY_LANE_STEP + ACTIVITY_LANE_STEP / 2}px`,
-                  }}
-                />
+                <React.Fragment key={gap.key}>
+                  <span
+                    className="gantt-tr-activityLink"
+                    aria-hidden="true"
+                    style={{
+                      left: `${gap.left}px`,
+                      width: `${gap.width}px`,
+                      top: `${activityTopOffset + gap.lane * ACTIVITY_LANE_STEP + ACTIVITY_LANE_STEP / 2}px`,
+                    }}
+                  />
+                  {gap.lag > 0 && (
+                    <span
+                      className="gantt-tr-activityLag"
+                      title={`Зазор ${gap.lag} д`}
+                      style={{
+                        left: `${gap.left + gap.width - 14}px`,
+                        top: `${activityTopOffset + gap.lane * ACTIVITY_LANE_STEP + ACTIVITY_LANE_STEP / 2}px`,
+                      }}
+                    >
+                      +{gap.lag}
+                    </span>
+                  )}
+                </React.Fragment>
               ))}
             </div>
           )}
@@ -1012,6 +1110,22 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                   <span className="gantt-tr-activityTipFieldValue">{field.value}</span>
                 </div>
               ))}
+              {activityTipData.lag > 0
+                && !(activityTipData.fields ?? []).some(field => field.label === 'Зазор') && (
+                  <div className="gantt-tr-activityTipField">
+                    <span className="gantt-tr-activityTipFieldLabel">Зазор</span>
+                    <span className="gantt-tr-activityTipFieldValue">{activityTipData.lag} д</span>
+                  </div>
+                )}
+              {activityBlockedBy && (
+                <div className="gantt-tr-activityTipBlocked">
+                  <span className="gantt-tr-activityTipBlockedIcon" aria-hidden="true">⛔</span>
+                  <span>
+                    Упёрлась: {activityBlockedBy.names.join(', ')}
+                    {activityBlockedBy.lag > 0 ? ` · зазор ${activityBlockedBy.lag} д` : ''}
+                  </span>
+                </div>
+              )}
             </div>,
             document.body
           )}

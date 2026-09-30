@@ -23,9 +23,10 @@ const day = (offset: number) => new Date(EPOCH + offset * 24 * 60 * 60 * 1000).t
 /**
  * Невидимые связи двух направлений, зашитые в расписание:
  *  1) последовательно по работам этажа: start(K, i) >= end(K, i-1) + lag(i);
- *  2) та же работа между этажами: start(K, i) >= end(K-1, i) + lag(i) —
+ *  2) та же работа между этажами: start(K, i) >= end(K-1, i) —
  *     на следующем этаже нельзя начать, пока предыдущий не закончил.
- * В режиме «выталкивания» часть работ получает лаг (технологический зазор).
+ * В режиме «выталкивания» часть работ получает лаг (технологический зазор
+ * перед работой на своём этаже).
  */
 function buildConveyor(mode: "rigid" | "push"): { tasks: Task[]; totalDays: number } {
   const rand = mulberry32(20260302);
@@ -39,7 +40,7 @@ function buildConveyor(mode: "rigid" | "push"): { tasks: Task[]; totalDays: numb
     starts[floor] = [];
     for (let work = 0; work < WORKS_PER_FLOOR; work += 1) {
       const afterPreviousWork = work > 0 ? starts[floor][work - 1] + durations[floor][work - 1] + lagFor(work) : 0;
-      const afterSameWorkAbove = floor > 0 ? starts[floor - 1][work] + durations[floor - 1][work] + lagFor(work) : 0;
+      const afterSameWorkAbove = floor > 0 ? starts[floor - 1][work] + durations[floor - 1][work] : 0;
       starts[floor][work] = Math.max(afterPreviousWork, afterSameWorkAbove);
     }
     totalDays = Math.max(totalDays, starts[floor][WORKS_PER_FLOOR - 1] + durations[floor][WORKS_PER_FLOOR - 1]);
@@ -99,7 +100,9 @@ export default function FlowLineStressDemo() {
         Каждая строка — этаж (1…25 сверху вниз), внутри 40 последовательных работ с длительностями
         3–10 дней. Невидимые связи двух направлений: работа следует за предыдущей на своём этаже и
         за той же работой этажом выше — ниже нельзя начать, пока выше не закончили.
-        Наведи курсор — подсказка с подрядчиком; зазор между полосами подсвечен стрелкой.
+        Наведи курсор — подсказка с подрядчиком; зазор между полосами подсвечен стрелкой,
+        лаг подписан числом дней. В режиме «выталкивания» полоса упирается в предшественника
+        и останавливается на зазоре.
       </p>
       <label style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: "0 0 8px", fontSize: 13 }}>
         <input type="checkbox" checked={mode === "push"} onChange={toggleMode} />
