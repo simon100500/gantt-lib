@@ -24,6 +24,33 @@ const toIsoDay = (date: Date): string => date.toISOString().slice(0, 10);
 const shiftActivityDay = (value: string | Date, days: number): Date =>
   new Date(parseUTCDate(value).getTime() + days * DAY_MS);
 
+// Порог яркости фона, выше которого текст инвертируется в тёмный.
+const ACTIVITY_TEXT_LUMINANCE_THRESHOLD = 0.55;
+
+/** Относительная яркость #RRGGBB (WCAG). */
+const relativeLuminance = (hex: string): number => {
+  const channels = [1, 3, 5].map(index => {
+    const value = parseInt(hex.slice(index, index + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+};
+
+/** Цвет подписи работы по яркости фона: тёмный на светлых полосах, светлый на тёмных. */
+const activityTextColor = (background?: string): string => {
+  const lightText = 'var(--gantt-task-bar-text-color, #ffffff)';
+  if (!background) return lightText;
+  const value = background.trim();
+  if (value.startsWith('#')) {
+    return relativeLuminance(value) > ACTIVITY_TEXT_LUMINANCE_THRESHOLD ? '#111111' : '#ffffff';
+  }
+  const oklch = /oklch\(\s*([0-9.]+)/i.exec(value);
+  if (oklch) {
+    return Number(oklch[1]) > 0.66 ? '#111111' : '#ffffff';
+  }
+  return lightText;
+};
+
 const formatCompositePreviewDate = (date: Date): string => {
   const month = new Intl.DateTimeFormat('ru-RU', { month: 'short', timeZone: 'UTC' })
     .format(date)
@@ -941,7 +968,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                       }
                     }}
                   >
-                    <span className="gantt-tr-activityName">{segment.name}</span>
+                    <span className="gantt-tr-activityName" style={{ color: activityTextColor(segment.color) }}>{segment.name}</span>
                     {activityDragEnabled && (
                       <>
                         <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
