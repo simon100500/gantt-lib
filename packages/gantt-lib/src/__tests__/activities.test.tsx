@@ -792,7 +792,7 @@ describe('multi-activity rows in GanttChart', () => {
       },
     ];
     const { container } = render(
-      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={300} businessDays={false} />
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={300} businessDays={false} dimInactiveActivities />
     );
     const bar = (floor: string, id: string) => container.querySelector<HTMLElement>(
       `[data-gantt-task-row-id="${floor}"] [data-activity-id="${id}"]`
@@ -808,5 +808,24 @@ describe('multi-activity rows in GanttChart', () => {
     expect(bar('floor-2', 'a').className).not.toContain('gantt-tr-activityBar-dimmed');
     expect(bar('floor-1', 'b').className).toContain('gantt-tr-activityBar-dimmed');
     expect(bar('floor-2', 'b').className).toContain('gantt-tr-activityBar-dimmed');
+  });
+
+  it('does not dim activities unless dimInactiveActivities is set', () => {
+    const tasks: Task[] = [
+      {
+        id: 'floor-1', name: 'Этаж 1', startDate: '2026-03-02', endDate: '2026-03-06',
+        activities: [
+          { id: 'a', name: 'A', startDate: '2026-03-02', endDate: '2026-03-03' },
+          { id: 'b', name: 'B', startDate: '2026-03-04', endDate: '2026-03-05' },
+        ],
+      },
+    ];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+    const bar = container.querySelector<HTMLElement>('[data-activity-id="a"]')!;
+    fireEvent.mouseDown(bar, { clientX: 500, clientY: 20 });
+    fireEvent.mouseUp(window);
+    expect(container.querySelectorAll('.gantt-tr-activityBar-dimmed')).toHaveLength(0);
   });
 });

@@ -524,6 +524,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   showTaskNames?: boolean;
   /** Render composite child mini-bars inside the parent bar (default: true). */
   showCompositeSegments?: boolean;
+  /** Dim all other work types while an activity is click-activated (default: false). */
+  dimInactiveActivities?: boolean;
   /** Optional vertical timeline markers such as deadlines and checkpoints. */
   timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
@@ -756,6 +758,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     showTaskDateLabels = true,
     showTaskNames = true,
     showCompositeSegments = true,
+    dimInactiveActivities = false,
     timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
@@ -2824,6 +2827,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         activityBlockStore={activityBlockStore}
                         activityDragOwner={activityDragOwner}
                         activityActivationStore={activityActivationStore}
+                        dimInactiveActivities={dimInactiveActivities}
                         horizontalWindow={horizontalWindow}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}

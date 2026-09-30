@@ -112,6 +112,8 @@ export interface TaskRowProps {
   activityDragOwner?: ActivityDragOwner;
   /** Tracks which activity bar is click-activated; only an active bar can be dragged. */
   activityActivationStore?: ActivityActivationStore;
+  /** Dim other work types while an activity is activated (default: false). */
+  dimInactiveActivities?: boolean;
   /** Visible horizontal pixel window; activity bars outside it are not rendered (pan optimization). */
   horizontalWindow?: { startPx: number; endPx: number };
   /** Called each RAF during cascade drag with override positions for non-dragged chain tasks */
@@ -208,6 +210,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.activityBlockStore === nextProps.activityBlockStore &&
     prevProps.activityDragOwner === nextProps.activityDragOwner &&
     prevProps.activityActivationStore === nextProps.activityActivationStore &&
+    prevProps.dimInactiveActivities === nextProps.dimInactiveActivities &&
     prevProps.horizontalWindow?.startPx === nextProps.horizontalWindow?.startPx &&
     prevProps.horizontalWindow?.endPx === nextProps.horizontalWindow?.endPx &&
     prevProps.allTasks === nextProps.allTasks &&
@@ -245,7 +248,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore, dimInactiveActivities = false, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
@@ -1008,8 +1011,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 const isActiveActivity = activeActivityKey === activityOwnerKey(task.id, segment.id);
                 const isSameWorkType = activeWork !== null
                   && (segment.id === activeWork.id || (activeWork.name !== null && segment.name === activeWork.name));
-                // Что-то активно и это не работа-цепочка → приглушаем.
-                const isDimmed = activeWork !== null && !isSameWorkType;
+                // Что-то активно и это не работа-цепочка → приглушаем (если включено).
+                const isDimmed = dimInactiveActivities && activeWork !== null && !isSameWorkType;
                 return (
                   <div
                     key={segment.id}
