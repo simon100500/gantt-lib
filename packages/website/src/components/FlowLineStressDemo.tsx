@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { GanttChart, type Task } from "gantt-lib";
+import { GanttChart, type Task, type ActivityTooltipContext } from "gantt-lib";
 
 const EPOCH = Date.UTC(2026, 2, 2); // пн 2 мар 2026
 const FLOORS = 25;
@@ -218,6 +218,12 @@ export default function FlowLineStressDemo() {
     setDataset(buildConveyor(mode, paletteColors(palette, next, loopPalette)));
   }, [mode, palette, loopPalette]);
 
+  // Универсальная подсказка: базово «этаж · работа», сверху дописываем даты и длительность.
+  const renderActivityTooltip = useCallback((context: ActivityTooltipContext) => {
+    const format = (date: Date) => `${String(date.getUTCDate()).padStart(2, "0")}.${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    return `${format(context.startDate)} – ${format(context.endDate)} · ${context.durationDays} д`;
+  }, []);
+
   const toggleLoopPalette = useCallback(() => {
     setLoopPalette(current => {
       const next = !current;
@@ -305,6 +311,7 @@ export default function FlowLineStressDemo() {
           viewMode={viewMode}
           activityClickToDrag
           activityActivationMode="dim"
+          activityTooltip={renderActivityTooltip}
           rowHeight={40}
           taskListWidth={150}
           hiddenTaskListColumns={["startDate", "endDate", "duration", "dependencies", "progress"]}
