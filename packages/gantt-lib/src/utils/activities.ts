@@ -105,7 +105,7 @@ export function shiftActivityDate(value: string | Date, days: number): string | 
 
 export interface ActivityChainTask {
   id: string;
-  activityChain?: boolean;
+  activityChain?: boolean | 'push';
   activities?: TaskActivity[];
 }
 
@@ -114,10 +114,120 @@ export interface ActivityChainShift {
   activities: TaskActivity[];
   /** Ids of the activities that were actually shifted (chain successors). */
   shiftedIds: Set<string>;
+  /** Per-activity day delta applied (successor id → days). */
+  deltas: Map<string, number>;
+}
+
+const CHAIN_KEY_SEPARATOR = '\u0000';
+const chainKey = (taskId: string, activityId: string) => `${taskId}${CHAIN_KEY_SEPARATOR}${activityId}`;
+const toDayNumber = (value: string | Date) => Math.round(parseUTCDate(value).getTime() / DAY_MS);
+
+interface ChainGraphNode {
+  taskId: string;
+  activityId: string;
+  startDay: number;
+  durationDays: number;
+  floorIdx: number;
+  workIdx: number;
+}
+
+interface ChainGraph {
+  /** Соседи по направлению цепочки: key → [{ key преемника, лаг преемника }] */
+  successors: Map<string, Array<{ key: string; lag: number }>>;
+  predecessors: Map<string, Array<{ key: string; lag: number }>>;
+  info: Map<string, ChainGraphNode>;
 }
 
 /**
- * ОН-конвейер: работы едут вслед за изменённой.
+ * Граф невидимых связей конвейера: внутри строки работы идут друг за другом,
+ * одинаковые (тот же id) работы соседних цепочных строк связаны между собой.
+ * Лаг принадлежит преемнику — это его обязательный зазор перед началом.
+ */
+function buildChainGraph(orderedTasks: ActivityChainTask[]): ChainGraph {
+  const successors = new Map<string, Array<{ key: string; lag: number }>>();
+  const predecessors = new Map<string, Array<{ key: string; lag: number }>>();
+  const info = new Map<string, ChainGraphNode>();
+  const link = (from: string, to: string, lag: number) => {
+    const list = successors.get(from);
+    if (list) {
+      if (!list.some(edge => edge.key === to)) list.push({ key: to, lag });
+    } else {
+      successors.set(from, [{ key: to, lag }]);
+    }
+    const back = predecessors.get(to);
+    if (back) {
+      if (!back.some(edge => edge.key === from)) back.push({ key: from, lag });
+    } else {
+      predecessors.set(to, [{ key: from, lag }]);
+    }
+  };
+
+  const flagged = orderedTasks.filter((task): task is ActivityChainTask & { activities: TaskActivity[] } =>
+    Boolean(task.activityChain) && Array.isArray(task.activities) && task.activities.length > 0);
+  flagged.forEach((task, floorIdx) => {
+    task.activities.forEach((activity, workIdx) => {
+      info.set(chainKey(task.id, activity.id), {
+        taskId: task.id,
+        activityId: activity.id,
+        startDay: toDayNumber(activity.startDate),
+        durationDays: Math.max(1, toDayNumber(activity.endDate) - toDayNumber(activity.startDate) + 1),
+        floorIdx,
+        workIdx,
+      });
+    });
+    for (let i = 0; i < task.activities.length - 1; i += 1) {
+      link(chainKey(task.id, task.activities[i].id), chainKey(task.id, task.activities[i + 1].id), task.activities[i + 1].lag ?? 0);
+    }
+  });
+  for (let f = 0; f < flagged.length - 1; f += 1) {
+    const current = flagged[f];
+    const next = flagged[f + 1];
+    for (const activity of current.activities) {
+      const twin = next.activities.find(candidate => candidate.id === activity.id || candidate.name === activity.name);
+      if (twin) link(chainKey(current.id, activity.id), chainKey(next.id, twin.id), twin.lag ?? 0);
+    }
+  }
+  return { successors, predecessors, info };
+}
+
+function collectDownstream(graph: ChainGraph, startKey: string): Set<string> {
+  const visited = new Set<string>();
+  const queue = [...(graph.successors.get(startKey) ?? []).map(edge => edge.key)];
+  while (queue.length > 0) {
+    const key = queue.shift() as string;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    queue.push(...(graph.successors.get(key) ?? []).map(edge => edge.key));
+  }
+  return visited;
+}
+
+function shiftsFromDeltas(
+  orderedTasks: ActivityChainTask[],
+  deltasByTask: Map<string, Map<string, number>>,
+): ActivityChainShift[] {
+  const shifts: ActivityChainShift[] = [];
+  for (const task of orderedTasks) {
+    const deltas = deltasByTask.get(task.id);
+    if (!deltas || deltas.size === 0) continue;
+    shifts.push({
+      taskId: task.id,
+      shiftedIds: new Set(deltas.keys()),
+      deltas,
+      activities: (task.activities ?? []).map(activity => deltas.has(activity.id)
+        ? {
+          ...activity,
+          startDate: shiftActivityDate(activity.startDate, deltas.get(activity.id)!),
+          endDate: shiftActivityDate(activity.endDate, deltas.get(activity.id)!),
+        }
+        : activity),
+    });
+  }
+  return shifts;
+}
+
+/**
+ * ОН-конвейер (жёсткий режим): работы едут вслед за изменённой.
  * Рёбра цепочки: внутри строки работы идут друг за другом (окончание–начало),
  * одинаковые (тот же id или имя) работы соседних строк-этажей связаны между собой.
  * Весь конвейер ниже изменённой работы сдвигается на ту же дельту (жёстко, без пересчёта).
@@ -131,66 +241,114 @@ export function shiftActivityChain(
 ): ActivityChainShift[] {
   if (deltaDays === 0) return [];
 
-  const keyOf = (taskId: string, activityId: string) => `${taskId}\u0000${activityId}`;
-  const successors = new Map<string, string[]>();
-  const link = (from: string, to: string) => {
-    const list = successors.get(from);
-    if (list) {
-      if (!list.includes(to)) list.push(to);
-    } else {
-      successors.set(from, [to]);
-    }
+  const graph = buildChainGraph(orderedTasks);
+  const shifted = collectDownstream(graph, chainKey(draggedTaskId, draggedActivityId));
+  if (shifted.size === 0) return [];
+
+  const deltasByTask = new Map<string, Map<string, number>>();
+  for (const key of shifted) {
+    const node = graph.info.get(key)!;
+    const set = deltasByTask.get(node.taskId);
+    if (set) set.set(node.activityId, deltaDays);
+    else deltasByTask.set(node.taskId, new Map([[node.activityId, deltaDays]]));
+  }
+  return shiftsFromDeltas(orderedTasks, deltasByTask);
+}
+
+/**
+ * Минимальная дельта перетаскивания (в днях), при которой начало работы не
+ * нарушает входящие связи конвейера (конец предыдущей + лаг). null — входящих нет.
+ */
+export function activityChainMinStartDelta(
+  orderedTasks: ActivityChainTask[],
+  taskId: string,
+  activityId: string,
+): number | null {
+  const graph = buildChainGraph(orderedTasks);
+  const key = chainKey(taskId, activityId);
+  const node = graph.info.get(key);
+  if (!node) return null;
+  let minStart = Number.NEGATIVE_INFINITY;
+  for (const pred of graph.predecessors.get(key) ?? []) {
+    const predNode = graph.info.get(pred.key);
+    if (!predNode) continue;
+    minStart = Math.max(minStart, predNode.startDay + predNode.durationDays + pred.lag);
+  }
+  if (!Number.isFinite(minStart)) return null;
+  return minStart - node.startDay;
+}
+
+export interface ActivityChainPushResult {
+  shifts: ActivityChainShift[];
+  draggedDeltaDays: number;
+}
+
+/**
+ * Режим «выталкивания» (принцип «как можно раньше»), асимметрично:
+ *  — предок ушёл влево → последователь подтягивается за ним (промежуток заполняется),
+ *    но не левее своих других связей;
+ *  — предок ушёл вправо → последователь стоит (зазор тянется), пока конец предка
+ *    не пересёк его старт — тогда выталкивается;
+ *  — лаг преемника — минимальный зазор: при заполнении и выталкивании держится
+ *    ровно «конец предка + лаг» (постоянный, например технология).
+ * Пересчёт каскадом вниз по цепочке от изменённой работы; работы вне достижимого
+ * подмножества не трогаются. Ограничение старта самой изменённой работы —
+ * на вызывающем (activityChainMinStartDelta).
+ */
+export function pushActivityChain(
+  orderedTasks: ActivityChainTask[],
+  draggedTaskId: string,
+  draggedActivityId: string,
+  requestedDeltaDays: number,
+): ActivityChainPushResult {
+  const graph = buildChainGraph(orderedTasks);
+  const draggedKey = chainKey(draggedTaskId, draggedActivityId);
+  if (!graph.info.has(draggedKey)) {
+    return { shifts: [], draggedDeltaDays: requestedDeltaDays };
+  }
+  const downstream = collectDownstream(graph, draggedKey);
+  if (downstream.size === 0) {
+    return { shifts: [], draggedDeltaDays: requestedDeltaDays };
+  }
+
+  const newStart = new Map<string, number>();
+  const dragged = graph.info.get(draggedKey)!;
+  newStart.set(draggedKey, dragged.startDay + requestedDeltaDays);
+  const endOfDay = (key: string) => {
+    const node = graph.info.get(key)!;
+    return (newStart.get(key) ?? node.startDay) + node.durationDays;
   };
 
-  const flagged = orderedTasks.filter((task): task is ActivityChainTask & { activities: TaskActivity[] } =>
-    Boolean(task.activityChain) && Array.isArray(task.activities) && task.activities.length > 0);
-  for (const task of flagged) {
-    for (let i = 0; i < task.activities.length - 1; i += 1) {
-      link(keyOf(task.id, task.activities[i].id), keyOf(task.id, task.activities[i + 1].id));
+  const order = [...downstream]
+    .map(key => ({ key, node: graph.info.get(key)! }))
+    .sort((a, b) => a.node.workIdx - b.node.workIdx || a.node.floorIdx - b.node.floorIdx);
+  for (const { key, node } of order) {
+    let earliest = Number.NEGATIVE_INFINITY;
+    let oldEarliest = Number.NEGATIVE_INFINITY;
+    for (const pred of graph.predecessors.get(key) ?? []) {
+      const predNode = graph.info.get(pred.key)!;
+      earliest = Math.max(earliest, endOfDay(pred.key) + pred.lag);
+      oldEarliest = Math.max(oldEarliest, predNode.startDay + predNode.durationDays + pred.lag);
     }
-  }
-  for (let i = 0; i < flagged.length - 1; i += 1) {
-    const current = flagged[i];
-    const next = flagged[i + 1];
-    for (const activity of current.activities) {
-      const twin = next.activities.find(candidate => candidate.id === activity.id || candidate.name === activity.name);
-      if (twin) link(keyOf(current.id, activity.id), keyOf(next.id, twin.id));
+    let nextStart: number;
+    if (earliest > node.startDay) {
+      nextStart = earliest; // коллизия — выталкивание
+    } else if (earliest < oldEarliest) {
+      nextStart = earliest; // предок ушёл влево — заполняем промежуток
+    } else {
+      nextStart = node.startDay; // предок вправо в пределах запаса — зазор тянется
     }
+    newStart.set(key, nextStart);
   }
 
-  const visited = new Set<string>();
-  const queue = [...(successors.get(keyOf(draggedTaskId, draggedActivityId)) ?? [])];
-  while (queue.length > 0) {
-    const key = queue.shift() as string;
-    if (visited.has(key)) continue;
-    visited.add(key);
-    queue.push(...(successors.get(key) ?? []));
+  const deltasByTask = new Map<string, Map<string, number>>();
+  for (const key of downstream) {
+    const node = graph.info.get(key)!;
+    const delta = (newStart.get(key) ?? node.startDay) - node.startDay;
+    if (delta === 0) continue;
+    const set = deltasByTask.get(node.taskId);
+    if (set) set.set(node.activityId, delta);
+    else deltasByTask.set(node.taskId, new Map([[node.activityId, delta]]));
   }
-  if (visited.size === 0) return [];
-
-  const shiftedByTask = new Map<string, Set<string>>();
-  for (const key of visited) {
-    const [taskId, activityId] = key.split('\u0000');
-    const set = shiftedByTask.get(taskId);
-    if (set) set.add(activityId);
-    else shiftedByTask.set(taskId, new Set([activityId]));
-  }
-
-  const shifts: ActivityChainShift[] = [];
-  for (const task of orderedTasks) {
-    const shiftedIds = shiftedByTask.get(task.id);
-    if (!shiftedIds) continue;
-    shifts.push({
-      taskId: task.id,
-      shiftedIds: shiftedIds,
-      activities: (task.activities ?? []).map(activity => shiftedIds.has(activity.id)
-        ? {
-          ...activity,
-          startDate: shiftActivityDate(activity.startDate, deltaDays),
-          endDate: shiftActivityDate(activity.endDate, deltaDays),
-        }
-        : activity),
-    });
-  }
-  return shifts;
+  return { shifts: shiftsFromDeltas(orderedTasks, deltasByTask), draggedDeltaDays: requestedDeltaDays };
 }

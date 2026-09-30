@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExtern
 import { createPortal } from 'react-dom';
 import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
 import { calculateMilestoneGeometry, calculateTaskBar, pixelsToDate } from '../../utils/geometry';
-import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, shiftActivityChain, type ActivitySegment } from '../../utils/activities';
+import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, pushActivityChain, shiftActivityChain, activityChainMinStartDelta, type ActivitySegment } from '../../utils/activities';
 import { isTaskExpired } from '../../utils/expired';
 import { isMilestoneTask, normalizeTaskDatesForType } from '../../utils/taskType';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
@@ -513,18 +513,34 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
     const publishChainPreview = useCallback((draggedId: string, mode: ActivityDragMode, dayDelta: number) => {
       if (!activityPreviewStore) return;
-      const endDelta = task.activityChain
-        ? chainEndDeltaDays(mode, dayDelta, activityDragStart.current?.durationDays ?? 1)
-        : 0;
-      if (endDelta === 0) {
+      if (!task.activityChain) {
         activityPreviewStore.clear();
         return;
       }
-      const shifts = shiftActivityChain(allTasks ?? [], task.id, draggedId, endDelta);
+      let shifts;
+      if (task.activityChain === 'push') {
+        let delta = dayDelta;
+        if (mode !== 'resize-right') {
+          const minDelta = activityChainMinStartDelta(allTasks ?? [], task.id, draggedId);
+          if (minDelta !== null) delta = Math.max(delta, minDelta);
+        }
+        shifts = delta === 0
+          ? []
+          : pushActivityChain(allTasks ?? [], task.id, draggedId, delta).shifts;
+      } else {
+        const endDelta = chainEndDeltaDays(mode, dayDelta, activityDragStart.current?.durationDays ?? 1);
+        shifts = endDelta === 0 ? [] : shiftActivityChain(allTasks ?? [], task.id, draggedId, endDelta);
+      }
+      if (shifts.length === 0) {
+        activityPreviewStore.clear();
+        return;
+      }
       const overrides = new Map<string, Map<string, number>>();
       for (const shift of shifts) {
         const deltas = new Map<string, number>();
-        for (const id of shift.shiftedIds) deltas.set(id, endDelta);
+        for (const [id, d] of shift.deltas) {
+          if (d !== 0) deltas.set(id, d);
+        }
         if (deltas.size > 0) overrides.set(shift.taskId, deltas);
       }
       activityPreviewStore.setOverrides(overrides);
@@ -550,15 +566,22 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       const onUp = () => {
         activityPreviewStore?.clear();
         if (activityDrag.dayDelta !== 0) {
-          const clampLeft = Math.min(activityDrag.dayDelta, startInfo.durationDays - 1);
-          const clampRight = Math.max(activityDrag.dayDelta, -(startInfo.durationDays - 1));
+          const chainPush = task.activityChain === 'push';
+          // «Выталкивание»: старт не раньше конца предыдущей + лаг.
+          let delta = activityDrag.dayDelta;
+          if (chainPush && activityDrag.mode !== 'resize-right') {
+            const minDelta = activityChainMinStartDelta(allTasks ?? [], task.id, activityDrag.id);
+            if (minDelta !== null) delta = Math.max(delta, minDelta);
+          }
+          const clampLeft = Math.min(delta, startInfo.durationDays - 1);
+          const clampRight = Math.max(delta, -(startInfo.durationDays - 1));
           const updatedActivities = (task.activities ?? []).map(activity => {
             if (activity.id !== activityDrag.id) return activity;
             if (activityDrag.mode === 'move') {
               return {
                 ...activity,
-                startDate: toIsoDay(shiftActivityDay(activity.startDate, activityDrag.dayDelta)),
-                endDate: toIsoDay(shiftActivityDay(activity.endDate, activityDrag.dayDelta)),
+                startDate: toIsoDay(shiftActivityDay(activity.startDate, delta)),
+                endDate: toIsoDay(shiftActivityDay(activity.endDate, delta)),
               };
             }
             if (activityDrag.mode === 'resize-left') {
@@ -566,12 +589,14 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }
             return { ...activity, endDate: toIsoDay(shiftActivityDay(activity.endDate, clampRight)) };
           });
-          // ОН-конвейер: последующие работы строки и те же работы нижних этажей
-          // сдвигаются на изменение окончания изменённой работы.
-          const endDeltaDays = chainEndDeltaDays(activityDrag.mode, activityDrag.dayDelta, startInfo.durationDays);
-          const chainShifts = endDeltaDays !== 0
-            ? shiftActivityChain(allTasks ?? [], task.id, activityDrag.id, endDeltaDays)
-            : [];
+          // ОН-конвейер: жёсткий режим тянет цепочку той же дельтой, «выталкивание»
+          // пересчитывает ранние старты вниз по цепочке.
+          const chainShifts = chainPush
+            ? (delta !== 0 ? pushActivityChain(allTasks ?? [], task.id, activityDrag.id, delta).shifts : [])
+            : (() => {
+              const endDeltaDays = chainEndDeltaDays(activityDrag.mode, delta, startInfo.durationDays);
+              return endDeltaDays !== 0 ? shiftActivityChain(allTasks ?? [], task.id, activityDrag.id, endDeltaDays) : [];
+            })();
           const changedTasks: Task[] = [];
           let hostHandled = false;
           for (const shift of chainShifts) {
@@ -628,6 +653,27 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       }
       return { left: segment.left, width: segment.width + activityDrag.dayDelta * dayWidth };
     };
+
+    // Горизонтальные стрелки в зазорах между последовательными работами одной дорожки.
+    const activityLinkGaps = useMemo(() => {
+      if (!renderActivities || !activityLayout || activityLayout.segments.length < 2) return [];
+      const live = activityLayout.segments.map(segment => {
+        const geometry = liveActivityGeometry(segment);
+        const chainDelta = activityOverrides?.get(segment.id) ?? 0;
+        const left = geometry.left + (chainDelta !== 0 ? chainDelta * dayWidth : 0);
+        return { id: segment.id, lane: segment.lane, left, right: left + geometry.width };
+      });
+      const gaps: Array<{ key: string; left: number; width: number; lane: number }> = [];
+      for (let i = 0; i < live.length - 1; i += 1) {
+        const a = live[i];
+        const b = live[i + 1];
+        if (a.lane !== b.lane) continue;
+        const width = b.left - a.right;
+        if (width >= 1) gaps.push({ key: `${a.id}->${b.id}`, left: a.right, width, lane: a.lane });
+      }
+      return gaps;
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [renderActivities, activityLayout, activityOverrides, activityDrag, dayWidth]);
 
     const activityTipData = useMemo(() => {
       if (!activityTipId || !activityTipPosition || !task.activities) return null;
@@ -772,6 +818,18 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                   </div>
                 );
               })}
+              {activityLinkGaps.map(gap => (
+                <span
+                  key={gap.key}
+                  className="gantt-tr-activityLink"
+                  aria-hidden="true"
+                  style={{
+                    left: `${gap.left}px`,
+                    width: `${gap.width}px`,
+                    top: `${activityTopOffset + gap.lane * ACTIVITY_LANE_STEP + ACTIVITY_LANE_STEP / 2}px`,
+                  }}
+                />
+              ))}
             </div>
           )}
           {!renderActivities && (

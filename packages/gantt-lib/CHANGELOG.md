@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Add the `activityChain` flag (ОН-conveyor): dragging a work pulls its row successors and the identical works of consecutive chained rows (floors), translating the whole downstream flow rigidly — the preview moves live during the drag and commits on drop.
 - Top-align the task list label and row number in grown multi-activity rows so the label sits next to the first activity lane instead of floating mid-cell.
 - Make the activity hover tooltip a template with configurable fields: `tooltipFields` on an activity renders extra label–value rows (e.g. contractor) with any React node as the value.
+- Add the `'push'` conveyor mode for `activityChain` (выталкивание, ASAP): earlier moves fill downstream gaps at once, later moves push followers only after a collision, and `lag` on an activity pins a constant gap; dragged starts are clamped against incoming links. Gaps wider than zero render as horizontal arrows between consecutive works of a lane.
 
 ## [0.136.1] - 2026-09-29
 

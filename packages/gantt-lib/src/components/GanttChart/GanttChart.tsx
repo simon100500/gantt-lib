@@ -338,9 +338,12 @@ export interface Task {
   /**
    * ОН-конвейер (finish-to-start chain) for row activities. Inside the row every
    * work follows the previous one; identical works of consecutive chained rows
-   * (floors) are linked too, so dragging one work pulls the whole conveyor below.
+   * (floors) are linked too. `true` — жёсткий конвейер: перетаскивание сдвигает
+   * всю цепочку ниже на ту же дельту. `'push'` — режим «выталкивания» (ASAP):
+   * промежутки заполняются при движении вверх по потоку, вниз последователь
+   * сдвигается только после коллизии; лаг работы держит зазор постоянным.
    */
-  activityChain?: boolean;
+  activityChain?: boolean | 'push';
 }
 
 /**
@@ -366,6 +369,13 @@ export interface TaskActivity {
   endDate: string | Date;
   /** Optional color; falls back to the default task bar color */
   color?: string;
+  /**
+   * Обязательный зазор в днях между концом предыдущей работы цепочки и началом
+   * этой (например технологическая выдержка). Задан — зазор постоянный;
+   * не задан — последователь подтягивается вплотную («как можно раньше»),
+   * а зазор тянется, пока его держит другая связь.
+   */
+  lag?: number;
   /** Extra fields rendered in the hover tooltip under name/dates (e.g. contractor). */
   tooltipFields?: TaskActivityTooltipField[];
 }

@@ -3,11 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   ACTIVITY_LANE_BAR_HEIGHT,
   ACTIVITY_LANE_STEP,
+  activityChainMinStartDelta,
   computeActivityLanes,
   packIntervals,
+  pushActivityChain,
   shiftActivityChain,
 } from '../utils/activities';
-import { GanttChart, type Task } from '../components/GanttChart';
+import { GanttChart, type Task, type TaskActivity } from '../components/GanttChart';
 
 describe('packIntervals', () => {
   it('keeps strictly sequential works in one lane', () => {
@@ -99,6 +101,138 @@ describe('shiftActivityChain (ОН-конвейер)', () => {
     tasks[1] = { ...tasks[1], activityChain: false };
     const shifts = shiftActivityChain(tasks, 'floor-1', 'w0', 2);
     expect(shifts.map(shift => shift.taskId)).toEqual(['floor-1', 'floor-3']);
+  });
+});
+
+describe('pushActivityChain (выталкивание, ASAP)', () => {
+  // Этаж 1: Стяжка 1–3, Обои 4–6 (вплотную). Этаж 2: Стяжка 11–13, Обои 21–23 (запас перед Обои).
+  const buildPushTasks = (): Array<{ id: string; activityChain: boolean | 'push'; activities: TaskActivity[] }> => [
+    {
+      id: 'floor-1',
+      activityChain: true as boolean | 'push',
+      activities: [
+        { id: 'w0', name: 'Стяжка', startDate: '2026-03-01', endDate: '2026-03-03' },
+        { id: 'w1', name: 'Обои', startDate: '2026-03-04', endDate: '2026-03-06' },
+      ],
+    },
+    {
+      id: 'floor-2',
+      activityChain: true as boolean | 'push',
+      activities: [
+        { id: 'w0', name: 'Стяжка', startDate: '2026-03-11', endDate: '2026-03-13' },
+        { id: 'w1', name: 'Обои', startDate: '2026-03-21', endDate: '2026-03-23' },
+      ],
+    },
+  ];
+
+  it('fills gaps along the whole downstream when a work moves earlier', () => {
+    const { shifts } = pushActivityChain(buildPushTasks(), 'floor-1', 'w0', -2);
+    // Стяжка этажа 1 ушла влево: Обои этажа 1 подтянулись вплотную.
+    const floor1 = shifts.find(shift => shift.taskId === 'floor-1')!;
+    expect(floor1.deltas.get('w1')).toBe(-2);
+    // Этаж 2: Стяжка заполняет промежуток за изменённой (-9), Обои за ней (-16) —
+    // все промежутки вниз по цепочке схлопываются.
+    const floor2 = shifts.find(shift => shift.taskId === 'floor-2')!;
+    expect(floor2.deltas.get('w0')).toBe(-9);
+    expect(floor2.deltas.get('w1')).toBe(-16);
+  });
+
+  it('pushes successors only after a collision', () => {
+    // +5 дней: конец Стяжки этажа 2 = 18, до Обои 21 ещё запас — ничего не едет (зазор тянется).
+    const slack = pushActivityChain(buildPushTasks(), 'floor-2', 'w0', 5);
+    expect(slack.shifts).toEqual([]);
+
+    // +10 дней: Стяжка этажа 2 дотянулась до Обои (21) — Обои вытолкнулась на 24.
+    const collision = pushActivityChain(buildPushTasks(), 'floor-2', 'w0', 10);
+    const floor2 = collision.shifts.find(shift => shift.taskId === 'floor-2')!;
+    expect(floor2.deltas.get('w1')).toBe(3);
+  });
+
+  it('keeps the lag gap constant on both fill and push', () => {
+    const tasks = buildPushTasks();
+    tasks[1].activities![1].lag = 3;
+    // Стяжка этажа 2 ушла влево на 2: Обои подтягиваются, держа зазор 3 (конец 11 + 3 = старт 14).
+    const filled = pushActivityChain(tasks, 'floor-2', 'w0', -2);
+    const floor2Filled = filled.shifts.find(shift => shift.taskId === 'floor-2')!;
+    expect(floor2Filled.deltas.get('w1')).toBe(-6);
+
+    // Стяжка вытолкнула Обои: старт 19, конец 21, зазор 3 → Обои на 24 (дельта +4).
+    const pushed = pushActivityChain(tasks, 'floor-2', 'w0', 8);
+    const floor2Pushed = pushed.shifts.find(shift => shift.taskId === 'floor-2')!;
+    expect(floor2Pushed.deltas.get('w1')).toBe(4);
+  });
+
+  it('clamps the dragged start against incoming links', () => {
+    const tasks = buildPushTasks();
+    tasks[1].activities![1].lag = 3;
+    // Обои этажа 2: входящие — Стяжка этажа 2 (конец 13) + лаг 3 → минимум 16; данные 21 → можно -4.
+    expect(activityChainMinStartDelta(tasks, 'floor-2', 'w1')).toBe(-4);
+    // Обои этажа 1: входящая Стяжка этажа 1 (конец 3) → минимум день 4; данные 4 → 0.
+    expect(activityChainMinStartDelta(tasks, 'floor-1', 'w1')).toBe(0);
+  });
+
+  it('commits pushed followers after a live conveyor drag (push mode)', () => {
+    const onTasksChange = vi.fn();
+    // Этаж 1: w4 1–4, w5 7–10 (лаг 2). Этаж 2: та же лестница с запасом.
+    const tasks: Task[] = [
+      {
+        id: 'floor-1', name: 'Этаж 1', startDate: '2026-03-01', endDate: '2026-03-10', activityChain: 'push',
+        activities: [
+          { id: 'w4', name: 'W4', startDate: '2026-03-01', endDate: '2026-03-04' },
+          { id: 'w5', name: 'W5', startDate: '2026-03-07', endDate: '2026-03-10', lag: 2 },
+        ],
+      },
+      {
+        id: 'floor-2', name: 'Этаж 2', startDate: '2026-03-11', endDate: '2026-03-20', activityChain: 'push',
+        activities: [
+          { id: 'w4', name: 'W4', startDate: '2026-03-11', endDate: '2026-03-14' },
+          { id: 'w5', name: 'W5', startDate: '2026-03-17', endDate: '2026-03-20', lag: 2 },
+        ],
+      },
+    ];
+    const { container } = render(
+      <GanttChart tasks={tasks} onTasksChange={onTasksChange} dayWidth={40} rowHeight={40} containerHeight={400} businessDays={false} />
+    );
+    const dragged = container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-1"] [data-activity-id="w4"]')!;
+    const w5 = () => container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-1"] [data-activity-id="w5"]')!;
+    const w4floor2 = () => container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-2"] [data-activity-id="w4"]')!;
+    const w5Before = parseInt(w5().style.left, 10);
+
+    // +2 дня: конец w4 пересекает старт w5 - лаг → w5 выталкивается в реальном времени.
+    fireEvent.mouseDown(dragged, { clientX: 500, clientY: 20 });
+    fireEvent.mouseMove(window, { clientX: 580, clientY: 20 });
+    expect(parseInt(w5().style.left, 10)).toBe(w5Before + 80);
+
+    fireEvent.mouseUp(window);
+    expect(onTasksChange).toHaveBeenCalledTimes(1);
+    const changed = onTasksChange.mock.calls[0][0] as Task[];
+    const floor1 = changed.find(task => task.id === 'floor-1')!;
+    expect(floor1.activities!.find(activity => activity.id === 'w4')!.startDate).toBe('2026-03-03');
+    expect(floor1.activities!.find(activity => activity.id === 'w5')!.startDate).toBe('2026-03-09');
+    // Этаж 2 имеет запас 7 дней: зазор тянется — ничего не поехало (отличие от жёсткого режима).
+    expect(changed.find(task => task.id === 'floor-2')).toBeUndefined();
+  });
+
+  it('renders gap arrows between sequential works of one lane', () => {
+    const tasks: Task[] = [{
+      id: 'floor-1',
+      name: 'Этаж 1',
+      startDate: '2026-03-01',
+      endDate: '2026-03-10',
+      activities: [
+        { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-03' },
+        // Зазор 2 дня → стрелка.
+        { id: 'b', name: 'B', startDate: '2026-03-06', endDate: '2026-03-08' },
+        // Вплотную → стрелки нет.
+        { id: 'c', name: 'C', startDate: '2026-03-09', endDate: '2026-03-10' },
+      ],
+    }];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+    const arrows = container.querySelectorAll('.gantt-tr-activityLink');
+    expect(arrows).toHaveLength(1);
+    expect(parseInt((arrows[0] as HTMLElement).style.width, 10)).toBe(80); // 2 дня × 40px
   });
 });
 

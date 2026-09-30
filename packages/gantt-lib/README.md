@@ -135,6 +135,16 @@ The hover tooltip is a template with configurable fields: add
 `tooltipFields` to any activity to render extra label–value rows (contractor,
 crew, cost — anything, values accept any React node).
 
+Two conveyor modes are available via `activityChain`. `true` — rigid: dragging a
+work translates the whole downstream chain by the same delta. `'push'` —
+выталкивание (ASAP): when a work moves earlier the downstream gaps fill in
+immediately; when it moves later, successors stay put (the gap stretches) until
+the predecessor's end crosses their start — then they get pushed. An activity's
+`lag` (days) sets a constant gap before its start (e.g. technological curing):
+both fill and push keep «predecessor end + lag» exactly. Starts are clamped so
+a dragged work cannot violate its own incoming links. Gaps wider than zero are
+drawn as horizontal arrows between consecutive works of one lane.
+
 ```tsx
 const tasks: Task[] = [
   {
