@@ -105,6 +105,8 @@ export interface DependencyLinesProps {
     x: number;
     y: number;
   }) => void;
+  /** Visible horizontal pixel window; lines fully outside it are not rendered. */
+  horizontalWindow?: { startPx: number; endPx: number };
 }
 
 /**
@@ -138,6 +140,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   businessDays = true,
   weekendPredicate,
   onDependencyClick,
+  horizontalWindow,
 }) => {
   const [hoveredLineId, setHoveredLineId] = useState<string | null>(null);
   // Use allTasks for virtual position calculation if provided, otherwise use tasks
@@ -417,6 +420,16 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     return lines;
   }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, collapsedParentIds, criticalTaskIds]);
 
+  // Horizontal window: skip lines fully outside the visible band so panning does
+  // not repaint the whole SVG overlay.
+  const visibleLines = useMemo(() => {
+    if (!horizontalWindow) return lines;
+    return lines.filter(line => (
+      Math.max(line.fromX, line.toX) >= horizontalWindow.startPx &&
+      Math.min(line.fromX, line.toX) <= horizontalWindow.endPx
+    ));
+  }, [lines, horizontalWindow?.startPx, horizontalWindow?.endPx]);
+
   // Calculate SVG height based on visible tasks (not all tasks)
   const svgHeight = totalHeight ?? (tasks.length * rowHeight);
 
@@ -510,7 +523,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         </marker>
       </defs>
 
-      {lines.map(({ id, predecessorId, successorId, linkType, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual, isCritical }) => {
+      {visibleLines.map(({ id, predecessorId, successorId, linkType, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual, isCritical }) => {
         const isHovered = hoveredLineId === id;
         const isSelected =
           selectedDep != null &&

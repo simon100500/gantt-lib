@@ -70,6 +70,12 @@ import './GanttChart.css';
 
 const SCROLL_TO_ROW_CONTEXT_ROWS = 2;
 const TASK_ROW_OVERSCAN = 8;
+// Скролл пишется в состояние не по пикселю, а «бакетами»: перерисовка графика
+// (и окно рендера) обновляются раз в N px, а не на каждом кадре панорамирования.
+// Запас перерисовки строк/колонок перекрывает величину бакета с лихвой.
+const SCROLL_TOP_BUCKET_PX = 64;
+const HORIZONTAL_WINDOW_BUCKET_PX = 480;
+const HORIZONTAL_WINDOW_OVERSCAN_PX = 960;
 const PLAN_FACT_COLUMN_OVERSCAN = 24;
 const PLAN_FACT_COLUMN_WINDOW_STEP = 14;
 const DEFAULT_INITIAL_VIEWPORT_HEIGHT = 768;
@@ -811,6 +817,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [scrollViewport, setScrollViewport] = useState(() => ({
     scrollTop: 0,
     viewportHeight: getInitialScrollViewportHeight(containerHeight, headerHeight + 1),
+    // Ширина видимой области графика и «бакетированный» горизонтальный скролл —
+    // основа горизонтального окна рендера (см. horizontalWindow).
+    viewportWidth: 0,
+    chartScrollLeft: 0,
   }));
   const [forceFullRenderForPrint, setForceFullRenderForPrint] = useState(false);
   const [planFactDateWindow, setPlanFactDateWindow] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
@@ -1341,17 +1351,33 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       const nextScrollTop = container.scrollTop;
       const nextScrollLeft = container.scrollLeft;
       const nextChartScrollLeft = Math.max(0, nextScrollLeft);
+      // Бакеты: состояние (а значит и перерисовка графика + окно рендера)
+      // обновляются раз в N px, а не на каждом кадре панорамирования.
+      const bucketedScrollTop = Math.floor(nextScrollTop / SCROLL_TOP_BUCKET_PX) * SCROLL_TOP_BUCKET_PX;
+      const bucketedChartScrollLeft = Math.floor(nextChartScrollLeft / HORIZONTAL_WINDOW_BUCKET_PX) * HORIZONTAL_WINDOW_BUCKET_PX;
 
       setTaskListHasRightShadow((previous) =>
         previous === nextHasRightShadow ? previous : nextHasRightShadow
       );
-      setScrollViewport((previous) =>
-        previous.viewportHeight > 0 && nextViewportHeight === 0
-          ? { scrollTop: nextScrollTop, viewportHeight: previous.viewportHeight }
-          : previous.scrollTop === nextScrollTop && previous.viewportHeight === nextViewportHeight
-          ? previous
-          : { scrollTop: nextScrollTop, viewportHeight: nextViewportHeight }
-      );
+      setScrollViewport((previous) => {
+        const resolvedViewportHeight = previous.viewportHeight > 0 && nextViewportHeight === 0
+          ? previous.viewportHeight
+          : nextViewportHeight;
+        if (
+          previous.scrollTop === bucketedScrollTop &&
+          previous.viewportHeight === resolvedViewportHeight &&
+          previous.viewportWidth === nextViewportWidth &&
+          previous.chartScrollLeft === bucketedChartScrollLeft
+        ) {
+          return previous;
+        }
+        return {
+          scrollTop: bucketedScrollTop,
+          viewportHeight: resolvedViewportHeight,
+          viewportWidth: nextViewportWidth,
+          chartScrollLeft: bucketedChartScrollLeft,
+        };
+      });
       setPlanFactDateWindow((previous) => {
         if (!isPlanFactMode || dateRange.length === 0 || nextViewportWidth <= 0) {
           return previous;
@@ -1883,6 +1909,19 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
     return ids;
   }, [draggedTaskOverride]);
+
+  // Горизонтальное окно рендера в координатах полосы графика: видимая часть плюс
+  // запас. Пока ширина области неизвестна (скрытый график, SSR) — не отсекаем
+  // ничего, чтобы не терять строки/сетку до первого замера.
+  const horizontalWindow = useMemo(() => {
+    const width = scrollViewport.viewportWidth;
+    if (width <= 0) return undefined;
+    const left = scrollViewport.chartScrollLeft;
+    return {
+      startPx: Math.max(0, left - HORIZONTAL_WINDOW_OVERSCAN_PX),
+      endPx: left + width + HORIZONTAL_WINDOW_OVERSCAN_PX,
+    };
+  }, [scrollViewport.chartScrollLeft, scrollViewport.viewportWidth]);
 
   const visibleTaskWindowIndices = useMemo(() => {
     const totalTasks = visibleTasks.length;
@@ -2598,6 +2637,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     totalHeight={totalGridHeight}
                     viewMode={viewMode}
                     isCustomWeekend={isCustomWeekend}
+                    horizontalWindow={horizontalWindow}
                   />
 
                   {todayInRange && (
@@ -2636,6 +2676,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     selectedDep={selectedChip}
                     businessDays={businessDays}
                     weekendPredicate={isCustomWeekend}
+                    horizontalWindow={horizontalWindow}
                     onDependencyClick={handleDependencyLineClick}
                     criticalTaskIds={criticalPathMode ? criticalTaskIds : undefined}
                   />
@@ -2771,6 +2812,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         activityPreviewStore={activityPreviewStore}
                         activityBlockStore={activityBlockStore}
                         activityDragOwner={activityDragOwner}
+                        horizontalWindow={horizontalWindow}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}
                         onScheduleIntent={onScheduleIntent}

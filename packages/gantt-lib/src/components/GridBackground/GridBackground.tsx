@@ -22,6 +22,8 @@ export interface GridBackgroundProps {
   showWeekendBlocks?: boolean;
   /** Whether to render vertical grid lines. */
   showGridLines?: boolean;
+  /** Visible horizontal pixel window in timeline coordinates; offscreen grid DOM is skipped. */
+  horizontalWindow?: { startPx: number; endPx: number };
 }
 
 /**
@@ -36,7 +38,11 @@ const arePropsEqual = (prevProps: GridBackgroundProps, nextProps: GridBackground
     prevProps.dateRange.length === nextProps.dateRange.length &&
     prevProps.totalHeight === nextProps.totalHeight && // skip re-render only when totalHeight unchanged
     prevProps.viewMode === nextProps.viewMode &&
-    prevProps.isCustomWeekend === nextProps.isCustomWeekend
+    prevProps.isCustomWeekend === nextProps.isCustomWeekend &&
+    prevProps.showWeekendBlocks === nextProps.showWeekendBlocks &&
+    prevProps.showGridLines === nextProps.showGridLines &&
+    prevProps.horizontalWindow?.startPx === nextProps.horizontalWindow?.startPx &&
+    prevProps.horizontalWindow?.endPx === nextProps.horizontalWindow?.endPx
   );
 };
 
@@ -57,7 +63,7 @@ const arePropsEqual = (prevProps: GridBackgroundProps, nextProps: GridBackground
  * - week: per-week grid lines only (no weekend blocks, lines every 7 days)
  */
 const GridBackground: React.FC<GridBackgroundProps> = React.memo(
-  ({ dateRange, dayWidth, totalHeight, viewMode = 'day', isCustomWeekend, className, showWeekendBlocks = true, showGridLines = true }) => {
+  ({ dateRange, dayWidth, totalHeight, viewMode = 'day', isCustomWeekend, className, showWeekendBlocks = true, showGridLines = true, horizontalWindow }) => {
     // Week-view: grid lines at each 7-day boundary
     const weekGridLines = useMemo(() => {
       if (viewMode !== 'week') return [];
@@ -82,6 +88,28 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
       return calculateWeekendBlocks(dateRange, dayWidth, isCustomWeekend);
     }, [dateRange, dayWidth, viewMode, isCustomWeekend]);
 
+    // Horizontal window: skip grid DOM that is far outside the visible band so
+    // panning does not repaint thousands of offscreen lines.
+    const inHorizontalWindow = (left: number, width = 1) => (
+      !horizontalWindow || (left <= horizontalWindow.endPx && left + width >= horizontalWindow.startPx)
+    );
+    const visibleWeekendBlocks = useMemo(
+      () => weekendBlocks.filter(block => inHorizontalWindow(block.left, block.width)),
+      [weekendBlocks, horizontalWindow?.startPx, horizontalWindow?.endPx]
+    );
+    const visibleWeekGridLines = useMemo(
+      () => weekGridLines.filter(line => inHorizontalWindow(line.x)),
+      [weekGridLines, horizontalWindow?.startPx, horizontalWindow?.endPx]
+    );
+    const visibleMonthGridLines = useMemo(
+      () => monthGridLines.filter(line => inHorizontalWindow(line.x)),
+      [monthGridLines, horizontalWindow?.startPx, horizontalWindow?.endPx]
+    );
+    const visibleGridLines = useMemo(
+      () => gridLines.filter(line => inHorizontalWindow(line.x)),
+      [gridLines, horizontalWindow?.startPx, horizontalWindow?.endPx]
+    );
+
     // Calculate total grid width (formula must not change — Pitfall 3)
     const gridWidth = useMemo(() => {
       return Math.round(dateRange.length * dayWidth);
@@ -96,7 +124,7 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
         }}
       >
         {/* Weekend backgrounds (rendered first, behind lines) — day-view only */}
-        {showWeekendBlocks && weekendBlocks.map((block, index) => (
+        {showWeekendBlocks && visibleWeekendBlocks.map((block, index) => (
           <div
             key={`weekend-${index}`}
             className="gantt-gb-weekendBlock"
@@ -110,7 +138,7 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
         {/* Vertical grid lines */}
         {showGridLines && (viewMode === 'week' ? (
           // Week-view: one line per week column boundary
-          weekGridLines.map((line, index) => {
+          visibleWeekGridLines.map((line, index) => {
             const lineClass = line.isMonthStart
               ? 'gantt-gb-monthSeparator'
               : 'gantt-gb-weekSeparator';
@@ -124,7 +152,7 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
           })
         ) : viewMode === 'month' ? (
           // Month-view: thin line at each month boundary, thick at year boundary
-          monthGridLines.map((line, index) => {
+          visibleMonthGridLines.map((line, index) => {
             const lineClass = line.isMonthStart
               ? 'gantt-gb-monthSeparator'
               : 'gantt-gb-weekSeparator';
@@ -137,8 +165,8 @@ const GridBackground: React.FC<GridBackgroundProps> = React.memo(
             );
           })
         ) : (
-          // Day-view: existing code (unchanged)
-          gridLines.map((line, index) => {
+          // Day-view: render only the lines inside the horizontal window.
+          visibleGridLines.map((line, index) => {
             const lineClass = line.isMonthStart
               ? 'gantt-gb-monthSeparator'
               : line.isWeekStart

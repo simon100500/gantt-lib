@@ -15,6 +15,10 @@ All notable changes to this project will be documented in this file.
 
 - Make the activity tooltip a narrow one-liner above the bar: it shows the work name, while dates, duration, `tooltipFields` and lag moved to the bar's native `title`, so the tooltip no longer covers chart data. During a drag the stop reason is appended to the same line.
 
+### Performance
+
+- Remove panning jank: scroll is recorded in state in buckets (the chart re-renders every N px instead of every frame), and grid lines, dependency lines and activity bars outside the visible band are not rendered (an overscanned horizontal window). On the 1000-bar stress demo this cuts the DOM roughly threefold.
+
 ## [0.136.1] - 2026-09-29
 
 ### Fixes

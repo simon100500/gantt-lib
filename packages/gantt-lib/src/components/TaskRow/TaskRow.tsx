@@ -86,6 +86,8 @@ export interface TaskRowProps {
   activityBlockStore?: ActivityBlockStore;
   /** Owner of the in-flight activity drag, so other rows mute their hover tooltips. */
   activityDragOwner?: ActivityDragOwner;
+  /** Visible horizontal pixel window; activity bars outside it are not rendered (pan optimization). */
+  horizontalWindow?: { startPx: number; endPx: number };
   /** Called each RAF during cascade drag with override positions for non-dragged chain tasks */
   onCascadeProgress?: (
     overrides: Map<string, { left: number; width: number }>,
@@ -179,6 +181,8 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.activityPreviewStore === nextProps.activityPreviewStore &&
     prevProps.activityBlockStore === nextProps.activityBlockStore &&
     prevProps.activityDragOwner === nextProps.activityDragOwner &&
+    prevProps.horizontalWindow?.startPx === nextProps.horizontalWindow?.startPx &&
+    prevProps.horizontalWindow?.endPx === nextProps.horizontalWindow?.endPx &&
     prevProps.allTasks === nextProps.allTasks &&
     prevProps.disableConstraints === nextProps.disableConstraints &&
     prevProps.deferCascadePreview === nextProps.deferCascadePreview &&
@@ -214,7 +218,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
@@ -504,6 +508,19 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Почему работа упёрлась: имена работ-блокеров и зазор ограничивающей связи.
     const [activityBlockedBy, setActivityBlockedBy] = useState<{ names: string[]; lag: number } | null>(null);
 
+    // Горизонтальное окно: полосы за пределами видимой части не рендерим (панорама
+    // не перерисовывает тысячи offscreen-брусков). Перетаскиваемую держим всегда.
+    const visibleActivitySegments = useMemo(() => {
+      if (!activityLayout) return [];
+      const window = horizontalWindow;
+      if (!window) return activityLayout.segments;
+      const draggedId = activityDrag?.id;
+      return activityLayout.segments.filter(segment => (
+        segment.id === draggedId ||
+        (segment.left <= window.endPx && segment.left + segment.width >= window.startPx)
+      ));
+    }, [activityLayout, horizontalWindow, activityDrag?.id]);
+
     const subscribeActivityOverrides = useCallback(
       (listener: () => void) => activityPreviewStore?.subscribeTask(task.id, listener) ?? (() => { }),
       [activityPreviewStore, task.id]
@@ -761,8 +778,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
 
     // Горизонтальные стрелки в зазорах между последовательными работами одной дорожки.
     const activityLinkGaps = useMemo(() => {
-      if (!renderActivities || !activityLayout || activityLayout.segments.length < 2) return [];
-      const live = activityLayout.segments.map(segment => {
+      if (!renderActivities || visibleActivitySegments.length < 2) return [];
+      const live = visibleActivitySegments.map(segment => {
         const geometry = liveActivityGeometry(segment);
         const chainDelta = activityOverrides?.get(segment.id) ?? 0;
         const left = geometry.left + (chainDelta !== 0 ? chainDelta * dayWidth : 0);
@@ -778,7 +795,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       }
       return gaps;
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [renderActivities, activityLayout, activityOverrides, activityDrag, dayWidth]);
+    }, [renderActivities, visibleActivitySegments, activityOverrides, activityDrag, dayWidth]);
 
     const activityTipData = useMemo(() => {
       if (!activityTipId || !task.activities) return null;
@@ -793,9 +810,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       const durationDays = activityDurationDays({ startDate: start, endDate: end });
       const fields = activity.tooltipFields ?? [];
       const lag = activity.lag && activity.lag > 0 ? activity.lag : 0;
-      // Узкая подсказка — одна строка с названием работы. Остальное (даты,
-      // длительность, поля, зазор) уходит в нативный title полосы, чтобы
-      // подсказка не закрывала данные.
       return {
         name: activity.name,
         details: [
@@ -880,7 +894,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           )}
           {renderActivities && activityLayout && (
             <div className="gantt-tr-activityLanes">
-              {activityLayout.segments.map(segment => {
+              {visibleActivitySegments.map(segment => {
                 const live = liveActivityGeometry(segment);
                 // Чужой конвейерный drag: живой сдвиг полосы из preview-стора.
                 const chainDelta = activityOverrides?.get(segment.id) ?? 0;
