@@ -22,6 +22,8 @@ export interface ActivitySegment {
   width: number;
   /** Обязательный технологический зазор перед стартом работы (в днях). */
   lag?: number;
+  /** Прогресс работы 0–100. */
+  progress?: number;
 }
 
 export interface ActivityLanesLayout {
@@ -70,6 +72,7 @@ export function computeActivityLanes(
       name: activity.name,
       color: activity.color,
       lag: activity.lag,
+      progress: activity.progress,
       start: bar.left,
       end: bar.left + bar.width,
       left: bar.left,
@@ -78,9 +81,31 @@ export function computeActivityLanes(
   }));
 
   return {
-    segments: packed.map(({ id, name, color, lag, lane, left, width }) => ({ id, name, color, lag, lane, left, width })),
+    segments: packed.map(({ id, name, color, lag, progress, lane, left, width }) => ({ id, name, color, lag, progress, lane, left, width })),
     laneCount: Math.max(...packed.map(item => item.lane + 1)),
   };
+}
+
+/**
+ * Границы строки по её работам: [min start, max end]. Возвращает ISO-дни или
+ * null, если работ нет. Нужны, чтобы строка-этаж (и её родители) зависели
+ * сроками от своих activities.
+ */
+export function activityBounds(
+  activities: TaskActivity[] | undefined
+): { startDate: string; endDate: string } | null {
+  if (!activities || activities.length === 0) return null;
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  for (const activity of activities) {
+    const start = parseUTCDate(activity.startDate).getTime();
+    const end = parseUTCDate(activity.endDate).getTime();
+    if (start < min) min = start;
+    if (end > max) max = end;
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+  const toIso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  return { startDate: toIso(min), endDate: toIso(max) };
 }
 
 /**

@@ -684,12 +684,27 @@
   cursor: default;
 }
 
+/* Прогресс работы: заполнение слева направо, под названием. Тёмная заливка
+   работает на любой палитре; цвет переопределяется переменной. */
+.gantt-tr-activityProgress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--gantt-activity-progress-color, rgba(0, 0, 0, 0.4));
+  border-radius: var(--gantt-task-bar-border-radius) 0 0 var(--gantt-task-bar-border-radius);
+}
+
 .gantt-tr-activityName {
   color: var(--gantt-task-bar-text-color);
   font-size: 0.8125rem;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
+  position: relative;
+  z-index: 1;
 }
 
 /* Узкая подсказка работы: одна строка с названием, вплотную над полосой (в

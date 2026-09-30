@@ -356,7 +356,7 @@ export interface Task {
 /**
  * A single work bar rendered inside a multi-activity task row.
  * Activities are visual bars packed into sub-lanes of one row — no hierarchy,
- * no dependencies, no progress of their own.
+ * no dependencies; each may carry its own visual progress (0–100).
  */
 export interface TaskActivityTooltipField {
   /** Field caption, e.g. "Подрядчик" */
@@ -385,6 +385,11 @@ export interface TaskActivity {
   lag?: number;
   /** Extra fields rendered in the hover tooltip under name/dates (e.g. contractor). */
   tooltipFields?: TaskActivityTooltipField[];
+  /**
+   * Прогресс работы 0–100: полоса заполняется слева, в подсказке появляется
+   * строка «Готовность». Только визуал, как у Task.progress.
+   */
+  progress?: number;
 }
 
 /**

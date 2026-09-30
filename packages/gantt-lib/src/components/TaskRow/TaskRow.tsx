@@ -789,6 +789,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           if (!hostHandled) {
             changedTasks.unshift({ ...normalizedTask, activities: updatedActivities });
           }
+          // Даты задачи намеренно НЕ меняем: иначе handleTaskChange принял бы это за
+          // перенос задачи и пересобрал батч, потеряв соседей конвейера. Границы
+          // строки по её activities выводятся в normalizeHierarchyTasks.
           onTasksChange?.(changedTasks);
         }
         setActivityDrag(null);
@@ -927,16 +930,24 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         startDate = shiftActivityDay(startDate, activityDrag.dayDelta);
         endDate = shiftActivityDay(endDate, activityDrag.dayDelta);
       }
+      const progress = activity.progress === undefined
+        ? undefined
+        : Math.min(100, Math.max(0, Math.round(activity.progress)));
       return {
         floor: task.name,
         name: activity.name,
-        fields: activity.tooltipFields ?? [],
+        // Готовность — первой строкой подсказки, дальше пользовательские поля.
+        fields: [
+          ...(progress !== undefined ? [{ label: 'Готовность', value: `${progress}%` }] : []),
+          ...(activity.tooltipFields ?? []),
+        ],
         context: {
           task,
           activity,
           startDate,
           endDate,
           durationDays: activityDurationDays({ startDate, endDate }),
+          progress,
         } as ActivityTooltipContext,
       };
     }, [activityDrag, activityTipId, task, task.activities, task.name]);
@@ -1040,6 +1051,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 const live = liveActivityGeometry(segment);
                 // Чужой конвейерный drag: живой сдвиг полосы из preview-стора.
                 const chainDelta = activityOverrides?.get(segment.id) ?? 0;
+                const activityProgress = segment.progress === undefined
+                  ? 0
+                  : Math.min(100, Math.max(0, Math.round(segment.progress)));
                 const liveLeft = live.left + (chainDelta !== 0 ? chainDelta * dayWidth : 0);
                 const isDraggingActivity = activityDrag?.id === segment.id;
                 const isBlockingActivity = blockedActivityIds?.has(segment.id) ?? false;
@@ -1093,6 +1107,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                       }
                     }}
                   >
+                    {activityProgress > 0 && (
+                      <span
+                        className="gantt-tr-activityProgress"
+                        style={{ width: `${activityProgress}%` }}
+                      />
+                    )}
                     <span className="gantt-tr-activityName" style={{ color: activityTextColor(segment.color) }}>{segment.name}</span>
                     {activityDragEnabled && (
                       <>

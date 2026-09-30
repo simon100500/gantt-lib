@@ -8,6 +8,7 @@
 // END_MODULE_CONTRACT
 import type { Task } from '../types';
 import { normalizeTaskDates } from './dateUtils';
+import { activityBounds } from './activities';
 
 type HierarchyTask = Task & {
   sortOrder?: number;
@@ -81,8 +82,14 @@ export function flattenHierarchy<T extends HierarchyTask>(tasks: T[]): T[] {
  */
 export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[]): T[] {
   const orderedTasks = flattenHierarchy(tasks).map((task) => {
-    // Normalize dates for all tasks (swap if endDate < startDate)
-    const { startDate, endDate } = normalizeTaskDates(task.startDate, task.endDate);
+    // Строка с работами сама зависит сроками от них: её границы — это охват
+    // activities. Иначе родитель (секция/этаж) считался бы от устаревших дат
+    // задачи после переноса отдельной работы. Затем — обычная нормализация дат.
+    const bounds = activityBounds(task.activities);
+    const { startDate, endDate } = normalizeTaskDates(
+      bounds?.startDate ?? task.startDate,
+      bounds?.endDate ?? task.endDate,
+    );
     return { ...task, startDate: startDate as T['startDate'], endDate: endDate as T['endDate'] };
   }) as T[];
 

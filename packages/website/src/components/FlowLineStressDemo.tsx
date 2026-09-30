@@ -163,6 +163,16 @@ function buildConveyor(mode: "rigid" | "push", colors: string[]): { tasks: Task[
   const sectionOf = (floor: number) => Math.floor(floor / FLOORS_PER_SECTION) + 1;
   const lastDay = Math.max(0, totalDays - 1);
 
+  // «Сегодня» — детерминированно (доля расписания), чтобы данные совпадали на
+  // сервере и клиенте. Прогресс работы: слева (давно в прошлом) — 100%, ближе к
+  // текущей дате — меньше, после неё — 0%.
+  const progressToday = Math.round(totalDays * 0.55);
+  const progressFor = (startOffset: number, duration: number): number => {
+    if (progressToday <= startOffset) return 0;
+    const done = (progressToday - startOffset + 1) / duration;
+    return Math.max(0, Math.min(100, Math.round(done * 100)));
+  };
+
   // Даты родителей не задаём по существу: normalizeHierarchyTasks пересчитает их
   // из детей. Значения ниже — заглушка.
   const parents: Task[] = [
@@ -189,6 +199,7 @@ function buildConveyor(mode: "rigid" | "push", colors: string[]): { tasks: Task[
       startDate: day(starts[floor][work]),
       endDate: day(starts[floor][work] + durations[floor][work] - 1),
       color: colors[work % colors.length],
+      progress: progressFor(starts[floor][work], durations[floor][work]),
       lag: lagFor(work) || undefined,
       tooltipFields: [
         { label: "Подрядчик", value: CONTRACTORS[(floor + work) % CONTRACTORS.length] },
@@ -273,6 +284,8 @@ export default function FlowLineStressDemo() {
         не связаны, у каждой секции свой независимый конвейер. Наведи курсор — подсказка
         с подрядчиком; зазор между полосами подсвечен стрелкой, лаг подписан числом дней.
         В режиме «выталкивания» полоса упирается в предшественника и останавливается на зазоре.
+        Каждая работа заполнена прогрессом: слева (давно в прошлом) — 100%, ближе к текущей
+        дате готовность падает, после неё — 0%. В подсказке — строка «Готовность».
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, margin: "0 0 8px" }}>
         <label style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: 0, fontSize: 13 }}>

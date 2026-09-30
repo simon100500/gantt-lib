@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   ACTIVITY_LANE_BAR_HEIGHT,
   ACTIVITY_LANE_STEP,
+  activityBounds,
   activityChainMinStartDelta,
   activityStartConstraint,
   computeActivityLanes,
@@ -10,6 +11,7 @@ import {
   pushActivityChain,
   shiftActivityChain,
 } from '../utils/activities';
+import { normalizeHierarchyTasks } from '../utils/hierarchyOrder';
 import { GanttChart, type Task, type TaskActivity } from '../components/GanttChart';
 
 // Полоса работы тащится только после клика-активации: перед драгом кликаем её.
@@ -961,5 +963,60 @@ describe('multi-activity rows in GanttChart', () => {
     );
     expect(noLag.container.querySelector('.gantt-tr-activityLink')).not.toBeNull();
     expect(noLag.container.querySelector('.gantt-tr-activityLag')).toBeNull();
+  });
+});
+
+describe('activity progress and row bounds', () => {
+  it('activityBounds returns the min start and max end across works', () => {
+    expect(activityBounds([
+      { id: 'a', name: 'A', startDate: '2026-03-05', endDate: '2026-03-07' },
+      { id: 'b', name: 'B', startDate: '2026-03-02', endDate: '2026-03-10' },
+    ])).toEqual({ startDate: '2026-03-02', endDate: '2026-03-10' });
+  });
+
+  it('activityBounds returns null without works', () => {
+    expect(activityBounds(undefined)).toBeNull();
+    expect(activityBounds([])).toBeNull();
+  });
+
+  it('fills an activity bar with progress and shows it in the tooltip', () => {
+    const tasks: Task[] = [{
+      id: 'floor-1', name: 'Этаж 1', startDate: '2026-03-01', endDate: '2026-03-05',
+      activities: [{ id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-04', progress: 50 }],
+    }];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+
+    const fill = container.querySelector<HTMLElement>('.gantt-tr-activityProgress');
+    expect(fill).not.toBeNull();
+    expect(fill!.style.width).toBe('50%');
+
+    const bar = container.querySelector<HTMLElement>('[data-activity-id="a"]')!;
+    fireEvent.mouseEnter(bar, { clientX: 300, clientY: 20 });
+    const tip = document.querySelector('.gantt-tr-activityTip')!;
+    expect(tip.querySelector('.gantt-tr-activityTipFieldLabel')?.textContent).toBe('Готовность');
+    expect(tip.querySelector('.gantt-tr-activityTipFieldValue')?.textContent).toBe('50%');
+  });
+
+  it('rolls a parent up from its children works-derived bounds', () => {
+    const tasks: Task[] = [
+      { id: 'section', name: 'Секция', startDate: '2026-03-01', endDate: '2026-03-01' },
+      {
+        id: 'f1', name: 'Этаж 1', parentId: 'section', startDate: '2026-01-01', endDate: '2026-01-01',
+        activities: [
+          { id: 'a', name: 'A', startDate: '2026-03-05', endDate: '2026-03-09' },
+          { id: 'b', name: 'B', startDate: '2026-03-07', endDate: '2026-03-12' },
+        ],
+      },
+    ];
+    const normalized = normalizeHierarchyTasks(tasks);
+    const floor = normalized.find(task => task.id === 'f1')!;
+    // Даты строки пересчитаны по работам, а не по её исходным 2026-01-01.
+    expect(floor.startDate).toBe('2026-03-05');
+    expect(floor.endDate).toBe('2026-03-12');
+    const section = normalized.find(task => task.id === 'section')!;
+    expect(section.startDate).toBe('2026-03-05');
+    expect(section.endDate).toBe('2026-03-12');
   });
 });

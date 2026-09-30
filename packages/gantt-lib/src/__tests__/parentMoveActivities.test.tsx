@@ -84,9 +84,10 @@ describe('parent bar drag moves child activities in parallel', () => {
     const f1 = byId.get('f1')!;
     expect(f1.startDate).toBe('2026-03-03');
     expect(f1.endDate).toBe('2026-03-07');
+    // Границы строки выводятся из её работ: f2 охватывает только 04–06 (+2 = 06–08).
     const f2 = byId.get('f2')!;
     expect(f2.startDate).toBe('2026-03-06');
-    expect(f2.endDate).toBe('2026-03-12');
+    expect(f2.endDate).toBe('2026-03-08');
 
     // И их видимые работы — тоже (параллельно, внутренние зазоры сохранены).
     expect(f1.activities!.map(a => [a.startDate, a.endDate])).toEqual([

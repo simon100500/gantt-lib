@@ -204,6 +204,11 @@ export interface TaskActivity {
   lag?: number;
   /** Extra rows rendered in the hover tooltip under the header (e.g. contractor). */
   tooltipFields?: TaskActivityTooltipField[];
+  /**
+   * Прогресс работы 0–100 (визуальное заполнение полосы слева направо и строка
+   * «Готовность» в подсказке). Как и у Task.progress — только визуал.
+   */
+  progress?: number;
 }
 
 /**
@@ -216,6 +221,8 @@ export interface ActivityTooltipContext {
   startDate: Date;
   endDate: Date;
   durationDays: number;
+  /** Прогресс работы 0–100, если задан. */
+  progress?: number;
 }
 
 /**
