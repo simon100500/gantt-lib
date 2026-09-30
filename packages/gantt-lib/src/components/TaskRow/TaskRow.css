@@ -326,12 +326,11 @@
   right: 4px;
 }
 
-/* Grips light up for ONE bar at a time: the row's main bar on row hover, and
-   activity bars only under the cursor (or while that very bar is dragged).
-   A row can carry dozens of activity bars — lighting every handle at once
-   buries the chart in chrome. */
+/* Grips light up for ONE bar at a time: the row's main bar on row hover, and a
+   work bar only after click-activation (or while it is dragged). Random handles
+   no longer clutter the chart. */
 .gantt-tr-row:hover .gantt-tr-taskBar .gantt-tr-resizeHandle::before,
-.gantt-tr-activityBar:hover .gantt-tr-resizeHandle::before,
+.gantt-tr-activityBar-active .gantt-tr-resizeHandle::before,
 .gantt-tr-activityBar-dragging .gantt-tr-resizeHandle::before {
   opacity: 1;
 }
@@ -663,6 +662,13 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
+/* Полоса, активированная кликом: только её тянет драг, остальной драг панорамирует холст. */
+.gantt-tr-activityBar-active {
+  z-index: 2;
+  outline: 2px solid var(--gantt-text-color, #111111);
+  outline-offset: 1px;
+}
+
 .gantt-tr-activityBar-locked {
   cursor: default;
 }
@@ -675,23 +681,22 @@
   text-overflow: ellipsis;
 }
 
-/* Узкая подсказка работы: одна строка с названием, висит над полосой (в
-   вертикальном зазоре между работами), поэтому не закрывает данные. Причины
-   упора при переносе добавляются в ту же строку. Детали — в нативном title. */
+/* Узкая подсказка работы: одна строка с названием, вплотную над полосой (в
+   вертикальном зазоре между работами), чёрная, низкая по высоте — поэтому не
+   закрывает данные. Причины упора при переносе добавляются в ту же строку. */
 .gantt-tr-activityTip {
   position: fixed;
   z-index: 10000;
   pointer-events: none;
-  padding: 3px 8px;
-  border: 1px solid var(--gantt-grid-line-color, #ddd);
-  border-radius: 6px;
-  background: var(--gantt-background, #fff);
-  color: var(--gantt-text-color, #222);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #111111;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
   font-size: 12px;
-  line-height: 1.25;
+  line-height: 1.2;
   white-space: nowrap;
-  /* inline-top задаёт низ подсказки: тянем её вверх, в зазор над полосой. */
+  /* inline-top задаёт низ подсказки: тянем её вверх, к полосе. */
   transform: translateY(-100%);
 }
 
@@ -706,7 +711,7 @@
 
 .gantt-tr-activityTipReason {
   margin-left: 6px;
-  color: var(--gantt-conflict-color, #dc2626);
+  color: #fca5a5;
 }
 
 /* Горизонтальная стрелка в зазоре между последовательными работами одной дорожки.

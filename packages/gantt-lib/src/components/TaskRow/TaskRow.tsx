@@ -11,7 +11,7 @@ import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { isTaskParent, getChildren, getBusinessDaysCount, DAY_MS } from '../../core/scheduling';
 import type { Task } from '../GanttChart';
 import type { GanttScheduleIntent } from '../../types';
-import { activityOwnerKey, type TaskPreviewPositionStore, type ActivityPreviewStore, type ActivityBlockStore, type ActivityDragOwner } from '../GanttChart/previewStore';
+import { activityOwnerKey, type TaskPreviewPositionStore, type ActivityPreviewStore, type ActivityBlockStore, type ActivityDragOwner, type ActivityActivationStore } from '../GanttChart/previewStore';
 import './TaskRow.css';
 
 // Минимальный шаг между отсечками состава: реже — рисками мельчим.
@@ -23,9 +23,6 @@ const toIsoDay = (date: Date): string => date.toISOString().slice(0, 10);
 
 const shiftActivityDay = (value: string | Date, days: number): Date =>
   new Date(parseUTCDate(value).getTime() + days * DAY_MS);
-
-const activityDurationDays = (activity: { startDate: string | Date; endDate: string | Date }): number =>
-  Math.max(1, Math.round((parseUTCDate(activity.endDate).getTime() - parseUTCDate(activity.startDate).getTime()) / DAY_MS) + 1);
 
 const formatCompositePreviewDate = (date: Date): string => {
   const month = new Intl.DateTimeFormat('ru-RU', { month: 'short', timeZone: 'UTC' })
@@ -86,6 +83,8 @@ export interface TaskRowProps {
   activityBlockStore?: ActivityBlockStore;
   /** Owner of the in-flight activity drag, so other rows mute their hover tooltips. */
   activityDragOwner?: ActivityDragOwner;
+  /** Tracks which activity bar is click-activated; only an active bar can be dragged. */
+  activityActivationStore?: ActivityActivationStore;
   /** Visible horizontal pixel window; activity bars outside it are not rendered (pan optimization). */
   horizontalWindow?: { startPx: number; endPx: number };
   /** Called each RAF during cascade drag with override positions for non-dragged chain tasks */
@@ -181,6 +180,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.activityPreviewStore === nextProps.activityPreviewStore &&
     prevProps.activityBlockStore === nextProps.activityBlockStore &&
     prevProps.activityDragOwner === nextProps.activityDragOwner &&
+    prevProps.activityActivationStore === nextProps.activityActivationStore &&
     prevProps.horizontalWindow?.startPx === nextProps.horizontalWindow?.startPx &&
     prevProps.horizontalWindow?.endPx === nextProps.horizontalWindow?.endPx &&
     prevProps.allTasks === nextProps.allTasks &&
@@ -218,7 +218,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
@@ -550,6 +550,21 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       () => undefined
     );
 
+    // Клик-активация полосы: пока полоса не активна, её драг панорамирует холст.
+    const subscribeActivation = useCallback(
+      (listener: () => void) => activityActivationStore?.subscribe(listener) ?? (() => { }),
+      [activityActivationStore]
+    );
+    const getActivationSnapshot = useCallback(
+      () => activityActivationStore?.getActiveKey() ?? null,
+      [activityActivationStore]
+    );
+    const activeActivityKey = useSyncExternalStore(
+      subscribeActivation,
+      getActivationSnapshot,
+      () => null
+    );
+
     // Изменение окончания изменённой работы: левый край конец не двигает — конвейер спит.
     const chainEndDeltaDays = (mode: ActivityDragMode, dayDelta: number, durationDays: number): number => {
       if (mode === 'resize-left') return 0;
@@ -738,7 +753,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       const below = rect.top < 34;
       const anchor = {
         left: Math.max(8, Math.min(rect.left, window.innerWidth - 160)),
-        top: below ? rect.bottom + 6 : rect.top - 6,
+        // Вплотную к полосе (1px зазора), сверху или снизу при нехватке места.
+        top: below ? rect.bottom + 1 : rect.top - 1,
         below,
       };
       activityTipAnchor.current = anchor;
@@ -801,29 +817,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       if (!activityTipId || !task.activities) return null;
       const activity = task.activities.find(item => item.id === activityTipId);
       if (!activity) return null;
-      let start = parseUTCDate(activity.startDate);
-      let end = parseUTCDate(activity.endDate);
-      if (activityDrag && activityDrag.id === activity.id && activityDrag.dayDelta !== 0) {
-        start = shiftActivityDay(start, activityDrag.dayDelta);
-        end = shiftActivityDay(end, activityDrag.dayDelta);
-      }
-      const durationDays = activityDurationDays({ startDate: start, endDate: end });
-      const fields = activity.tooltipFields ?? [];
-      const lag = activity.lag && activity.lag > 0 ? activity.lag : 0;
-      return {
-        name: activity.name,
-        details: [
-          formatDateRangeLabel(start, end),
-          `${durationDays} д`,
-          ...fields.map(field => (
-            typeof field.value === 'string' || typeof field.value === 'number'
-              ? `${field.label}: ${field.value}`
-              : field.label
-          )),
-          lag > 0 && !fields.some(field => field.label === 'Зазор') ? `Зазор: ${lag} д` : null,
-        ].filter((part): part is string => Boolean(part)).join(' · '),
-      };
-    }, [activityDrag, activityTipId, task.activities]);
+      // Узкая подсказка — одна строка с названием работы; детали не дублируем.
+      return { name: activity.name };
+    }, [activityTipId, task.activities]);
 
     // Format date labels for display - update in real-time for direct drag and cascade preview.
     const currentStartDate = hasPreviewPosition
@@ -902,12 +898,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 const isDraggingActivity = activityDrag?.id === segment.id;
                 const isBlockingActivity = blockedActivityIds?.has(segment.id) ?? false;
                 const isAtLimit = isDraggingActivity && activityBlockedBy !== null;
+                const isActiveActivity = activeActivityKey === activityOwnerKey(task.id, segment.id);
                 return (
                   <div
                     key={segment.id}
                     data-activity-id={segment.id}
-                    title={activityTipId === segment.id ? activityTipData?.details : undefined}
-                    className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${isBlockingActivity ? ' gantt-tr-activityBar-blocking' : ''}${isAtLimit ? ' gantt-tr-activityBar-atLimit' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
+                    className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${isBlockingActivity ? ' gantt-tr-activityBar-blocking' : ''}${isAtLimit ? ' gantt-tr-activityBar-atLimit' : ''}${isActiveActivity ? ' gantt-tr-activityBar-active' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
                     style={{
                       left: `${liveLeft}px`,
                       width: `${live.width}px`,
@@ -916,6 +912,14 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                       backgroundColor: segment.color || 'var(--gantt-task-bar-default-color)',
                     }}
                     onMouseDown={event => {
+                      if (!activityDragEnabled) return; // заблокированную полосу не тащим и не активируем
+                      const activationKey = activityOwnerKey(task.id, segment.id);
+                      // Первый клик только активирует полосу: драг не начинаем и событие
+                      // не глушим, чтобы холст мог панорамироваться.
+                      if (activityActivationStore && activityActivationStore.getActiveKey() !== activationKey) {
+                        activityActivationStore.setActiveKey(activationKey);
+                        return;
+                      }
                       const target = event.target as HTMLElement;
                       const mode: ActivityDragMode = target.closest('.gantt-tr-resizeHandleLeft')
                         ? 'resize-left'

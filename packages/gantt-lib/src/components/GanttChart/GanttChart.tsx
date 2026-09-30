@@ -55,7 +55,7 @@ import { ResourceTimelineChart } from '../ResourceTimelineChart';
 import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup, type TableMatrixDateOverlay } from '../TableMatrix';
 import { PlanFactMatrix, type PlanFactCellCommitContext } from '../PlanFactMatrix';
 import { printGanttChart } from './print';
-import { createTaskPreviewPositionStore, createActivityPreviewStore, createActivityBlockStore, createActivityDragOwner, type TaskPreviewPositionStore, type ActivityPreviewStore, type ActivityBlockStore, type ActivityDragOwner } from './previewStore';
+import { createTaskPreviewPositionStore, createActivityPreviewStore, createActivityBlockStore, createActivityDragOwner, createActivityActivationStore, type TaskPreviewPositionStore, type ActivityPreviewStore, type ActivityBlockStore, type ActivityDragOwner, type ActivityActivationStore } from './previewStore';
 import './GanttChart.css';
 
 // START_MODULE_CONTRACT
@@ -792,6 +792,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const activityPreviewStoreRef = useRef<ActivityPreviewStore | null>(null);
   const activityBlockStoreRef = useRef<ActivityBlockStore | null>(null);
   const activityDragOwnerRef = useRef<ActivityDragOwner | null>(null);
+  const activityActivationStoreRef = useRef<ActivityActivationStore | null>(null);
   const renderedTaskIdsRef = useRef<Set<string>>(new Set());
   if (previewPositionStoreRef.current === null) {
     previewPositionStoreRef.current = createTaskPreviewPositionStore();
@@ -805,10 +806,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   if (activityDragOwnerRef.current === null) {
     activityDragOwnerRef.current = createActivityDragOwner();
   }
+  if (activityActivationStoreRef.current === null) {
+    activityActivationStoreRef.current = createActivityActivationStore();
+  }
   const previewPositionStore = previewPositionStoreRef.current;
   const activityPreviewStore = activityPreviewStoreRef.current;
   const activityBlockStore = activityBlockStoreRef.current;
   const activityDragOwner = activityDragOwnerRef.current;
+  const activityActivationStore = activityActivationStoreRef.current;
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -1545,11 +1550,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     activityPreviewStore.clear();
     activityBlockStore.clear();
     activityDragOwner.set(null);
+    activityActivationStore.setActiveKey(null);
     setCascadeOverrides((current) => (current.size === 0 ? current : new Map()));
     setPreviewTasksById((current) => (current.size === 0 ? current : new Map()));
     setDraggedTaskOverride((current) => (current === null ? current : null));
     setDragGuideLines((current) => (current === null ? current : null));
-  }, [controlledScheduleIdentity, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner]);
+  }, [controlledScheduleIdentity, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore]);
 
   // Validate dependencies when tasks change
   useEffect(() => {
@@ -1566,7 +1572,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     activityPreviewStore.clear();
     activityBlockStore.clear();
     activityDragOwner.set(null);
-  }, [previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner]);
+    activityActivationStore.setActiveKey(null);
+  }, [previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore]);
 
   /**
    * Callback when tasks are modified.
@@ -2375,6 +2382,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     // Only pan on left click, skip if clicking on a task bar, input, or task list
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
+    // Клик мимо активной полосы работы снимает активацию (полоса тащится только активной).
+    if (!target.closest('.gantt-tr-activityBar')) {
+      activityActivationStore.setActiveKey(null);
+    }
     if (target.closest('[data-taskbar]')) return;
     if (target.closest('input, button, textarea, [contenteditable]')) return;
     if (target.closest('.gantt-tl-overlay')) return;
@@ -2398,7 +2409,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
     container.style.cursor = 'grabbing';
     e.preventDefault();
-  }, []);
+  }, [activityActivationStore]);
 
   useEffect(() => {
     const flushPanMove = () => {
@@ -2812,6 +2823,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         activityPreviewStore={activityPreviewStore}
                         activityBlockStore={activityBlockStore}
                         activityDragOwner={activityDragOwner}
+                        activityActivationStore={activityActivationStore}
                         horizontalWindow={horizontalWindow}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}

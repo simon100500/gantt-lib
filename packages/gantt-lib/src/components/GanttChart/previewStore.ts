@@ -257,3 +257,34 @@ export function createActivityDragOwner(): ActivityDragOwner {
     },
   };
 }
+
+/**
+ * Which activity bar is currently activated by a click. A bar can only be
+ * dragged after activation, so a stray drag pans the canvas instead of
+ * nudging a work. `null` means nothing is activated.
+ */
+export interface ActivityActivationStore {
+  subscribe: (listener: () => void) => () => void;
+  getActiveKey: () => string | null;
+  setActiveKey: (ownerKey: string | null) => void;
+}
+
+export function createActivityActivationStore(): ActivityActivationStore {
+  let activeKey: string | null = null;
+  const listeners = new Set<() => void>();
+
+  return {
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    getActiveKey: () => activeKey,
+    setActiveKey(nextKey) {
+      if (activeKey === nextKey) return;
+      activeKey = nextKey;
+      for (const listener of listeners) listener();
+    },
+  };
+}
