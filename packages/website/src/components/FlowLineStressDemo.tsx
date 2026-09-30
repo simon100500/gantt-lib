@@ -4,9 +4,16 @@ import { useCallback, useMemo, useState } from "react";
 import { GanttChart, type Task, type ActivityTooltipContext } from "gantt-lib";
 
 const EPOCH = Date.UTC(2026, 2, 2); // пн 2 мар 2026
-const FLOORS = 25;
 const WORKS_PER_FLOOR = 40;
 const CONTRACTORS = ["СК Строй", "Отделка-Профи", "МонтажСервис", "РемМастер", "СтройГарант"];
+
+// Стандартная иерархия: Корпус → Секция → Этажи. Этаж остаётся строкой-локацией
+// с работами в activities; Корпус и Секция — обычные parentId-родители.
+// Каждая секция — свой поток: 25 этажей, связи этажей только внутри секции.
+const SECTIONS = 5;
+const FLOORS_PER_SECTION = 25;
+const FLOORS = SECTIONS * FLOORS_PER_SECTION;
+const BUILDING_ID = "building-1";
 
 // ── Наборы цветов ─────────────────────────────────────────────────────────
 // Стандартные, проверенно различимые шкалы: последовательные палитры
@@ -138,19 +145,41 @@ function buildConveyor(mode: "rigid" | "push", colors: string[]): { tasks: Task[
   );
   const starts: number[][] = [];
   let totalDays = 0;
-  for (let floor = 0; floor < FLOORS; floor += 1) {
-    starts[floor] = [];
-    for (let work = 0; work < WORKS_PER_FLOOR; work += 1) {
-      const afterPreviousWork = work > 0 ? starts[floor][work - 1] + durations[floor][work - 1] + lagFor(work) : 0;
-      const afterSameWorkAbove = floor > 0 ? starts[floor - 1][work] + durations[floor - 1][work] : 0;
-      starts[floor][work] = Math.max(afterPreviousWork, afterSameWorkAbove);
+  // Секции считаются независимо: «работа этажом выше» ограничивает только внутри
+  // секции, на границе секции поток стартует заново (этажи разных секций не связаны).
+  for (let section = 0; section < SECTIONS; section += 1) {
+    for (let floorInSection = 0; floorInSection < FLOORS_PER_SECTION; floorInSection += 1) {
+      const floor = section * FLOORS_PER_SECTION + floorInSection;
+      starts[floor] = [];
+      for (let work = 0; work < WORKS_PER_FLOOR; work += 1) {
+        const afterPreviousWork = work > 0 ? starts[floor][work - 1] + durations[floor][work - 1] + lagFor(work) : 0;
+        const afterSameWorkAbove = floorInSection > 0 ? starts[floor - 1][work] + durations[floor - 1][work] : 0;
+        starts[floor][work] = Math.max(afterPreviousWork, afterSameWorkAbove);
+      }
+      totalDays = Math.max(totalDays, starts[floor][WORKS_PER_FLOOR - 1] + durations[floor][WORKS_PER_FLOOR - 1]);
     }
-    totalDays = Math.max(totalDays, starts[floor][WORKS_PER_FLOOR - 1] + durations[floor][WORKS_PER_FLOOR - 1]);
   }
 
-  const tasks: Task[] = Array.from({ length: FLOORS }, (_, floor) => ({
+  const sectionOf = (floor: number) => Math.floor(floor / FLOORS_PER_SECTION) + 1;
+  const lastDay = Math.max(0, totalDays - 1);
+
+  // Даты родителей не задаём по существу: normalizeHierarchyTasks пересчитает их
+  // из детей. Значения ниже — заглушка.
+  const parents: Task[] = [
+    { id: BUILDING_ID, name: "Корпус 1", startDate: day(0), endDate: day(lastDay), color: "#475569" },
+    ...Array.from({ length: SECTIONS }, (_, index): Task => ({
+      id: `section-${index + 1}`,
+      parentId: BUILDING_ID,
+      name: `Секция ${index + 1}`,
+      startDate: day(0),
+      endDate: day(lastDay),
+    })),
+  ];
+
+  const floorTasks: Task[] = Array.from({ length: FLOORS }, (_, floor) => ({
     id: `floor-${floor + 1}`,
-    name: `Этаж ${floor + 1}`,
+    parentId: `section-${sectionOf(floor)}`,
+    name: `Этаж ${(floor % FLOORS_PER_SECTION) + 1}`,
     startDate: day(starts[floor][0]),
     endDate: day(starts[floor][WORKS_PER_FLOOR - 1] + durations[floor][WORKS_PER_FLOOR - 1] - 1),
     activityChain: mode === "push" ? "push" : true,
@@ -169,7 +198,7 @@ function buildConveyor(mode: "rigid" | "push", colors: string[]): { tasks: Task[
     })),
   }));
 
-  return { tasks, totalDays };
+  return { tasks: [...parents, ...floorTasks], totalDays };
 }
 
 export default function FlowLineStressDemo() {
@@ -234,14 +263,16 @@ export default function FlowLineStressDemo() {
 
   return (
     <section className="demo-section" id="flow-line-stress">
-      <h2 className="demo-section-title">Конвейер 25 этажей × 40 работ (1000 полос)</h2>
+      <h2 className="demo-section-title">Корпус → 5 секций × 25 этажей × 40 работ</h2>
       <p className="demo-section-desc">
-        Каждая строка — этаж (1…25 сверху вниз), внутри 40 последовательных работ с длительностями
-        3–10 дней. Невидимые связи двух направлений: работа следует за предыдущей на своём этаже и
-        за той же работой этажом выше — ниже нельзя начать, пока выше не закончили.
-        Наведи курсор — подсказка с подрядчиком; зазор между полосами подсвечен стрелкой,
-        лаг подписан числом дней. В режиме «выталкивания» полоса упирается в предшественника
-        и останавливается на зазоре.
+        Стандартная иерархия по <code>parentId</code>: Корпус → 5 Секций → по 25 Этажей
+        (125 строк, 5000 полос). Корпус и Секция — обычные родители (сворачиваются, даты
+        сводятся из детей). Строка этажа — локация с 40 последовательными работами (3–10 дней).
+        Невидимые связи двух направлений: работа следует за предыдущей на своём этаже и
+        за той же работой этажом выше. Поток замкнут внутри секции — этажи соседних секций
+        не связаны, у каждой секции свой независимый конвейер. Наведи курсор — подсказка
+        с подрядчиком; зазор между полосами подсвечен стрелкой, лаг подписан числом дней.
+        В режиме «выталкивания» полоса упирается в предшественника и останавливается на зазоре.
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, margin: "0 0 8px" }}>
         <label style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: 0, fontSize: 13 }}>
@@ -313,7 +344,7 @@ export default function FlowLineStressDemo() {
           activityActivationMode="dim"
           activityTooltip={renderActivityTooltip}
           rowHeight={40}
-          taskListWidth={150}
+          taskListWidth={210}
           hiddenTaskListColumns={["startDate", "endDate", "duration", "dependencies", "progress"]}
           showTaskDateLabels={false}
           showTaskNames={false}

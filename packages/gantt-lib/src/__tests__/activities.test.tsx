@@ -111,6 +111,54 @@ describe('shiftActivityChain (ОН-конвейер)', () => {
   });
 });
 
+describe('activity chain scoped by parentId (секции)', () => {
+  interface SectionFloor { id: string; parentId?: string; activityChain: boolean | 'push'; activities: TaskActivity[] }
+  const buildSections = (): SectionFloor[] => [
+    {
+      id: 's1-f1', parentId: 's1', activityChain: true,
+      activities: [
+        { id: 'w0', name: 'W0', startDate: '2026-03-01', endDate: '2026-03-03' },
+        { id: 'w1', name: 'W1', startDate: '2026-03-04', endDate: '2026-03-06' },
+      ],
+    },
+    {
+      id: 's1-f2', parentId: 's1', activityChain: true,
+      activities: [
+        { id: 'w0', name: 'W0', startDate: '2026-03-04', endDate: '2026-03-06' },
+        { id: 'w1', name: 'W1', startDate: '2026-03-07', endDate: '2026-03-09' },
+      ],
+    },
+    {
+      id: 's2-f1', parentId: 's2', activityChain: true,
+      activities: [
+        { id: 'w0', name: 'W0', startDate: '2026-03-01', endDate: '2026-03-03' },
+        { id: 'w1', name: 'W1', startDate: '2026-03-04', endDate: '2026-03-06' },
+      ],
+    },
+  ];
+
+  it('does not pull the same work of the next section on a rigid shift', () => {
+    const shifts = shiftActivityChain(buildSections(), 's1-f1', 'w0', 2);
+    expect(shifts.map(shift => shift.taskId)).toEqual(['s1-f1', 's1-f2']);
+  });
+
+  it('keeps the flat (no-parent) behavior linking every floor', () => {
+    const flat = buildSections().map(({ parentId, ...task }) => task);
+    const shifts = shiftActivityChain(flat, 's1-f1', 'w0', 2);
+    expect(shifts.map(shift => shift.taskId)).toEqual(['s1-f1', 's1-f2', 's2-f1']);
+  });
+
+  it('has no incoming constraint on the first floor of a section', () => {
+    // Внутри строки W0 — первая; вертикальная связь из чужой секции не создаётся.
+    expect(activityChainMinStartDelta(buildSections(), 's2-f1', 'w0')).toBeNull();
+  });
+
+  it('still constrains the same work inside one section', () => {
+    const constraint = activityStartConstraint(buildSections(), 's1-f2', 'w0');
+    expect(constraint?.blockers).toEqual([{ taskId: 's1-f1', activityId: 'w0' }]);
+  });
+});
+
 describe('pushActivityChain (выталкивание, ASAP)', () => {
   // Этаж 1: Стяжка 1–3, Обои 4–6 (вплотную). Этаж 2: Стяжка 11–13, Обои 21–23 (запас перед Обои).
   const buildPushTasks = (): Array<{ id: string; activityChain: boolean | 'push'; activities: TaskActivity[] }> => [

@@ -108,6 +108,9 @@ export function shiftActivityDate(value: string | Date, days: number): string | 
 
 export interface ActivityChainTask {
   id: string;
+  /** Родитель строки. Вертикальная связь «та же работа этажом выше» рвётся на
+   *  границе родителя: конвейер не перетекает из одной секции в другую. */
+  parentId?: string;
   activityChain?: boolean | 'push';
   activities?: TaskActivity[];
 }
@@ -186,6 +189,9 @@ function buildChainGraph(orderedTasks: ActivityChainTask[]): ChainGraph {
   for (let f = 0; f < flagged.length - 1; f += 1) {
     const current = flagged[f];
     const next = flagged[f + 1];
+    // Разные родители (Корпус/Секция) — разные потоки: этажи связываются только
+    // внутри своей секции. Без родителя (плоский график) поведение прежнее.
+    if (current.parentId !== next.parentId) continue;
     for (const activity of current.activities) {
       const twin = next.activities.find(candidate => candidate.id === activity.id || candidate.name === activity.name);
       // Лаг работы — зазор перед ней на своём этаже (между её и предыдущей работой

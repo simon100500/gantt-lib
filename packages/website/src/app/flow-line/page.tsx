@@ -6,11 +6,13 @@ export default function FlowLinePage() {
     <main>
       <div className="demo-page">
         <header className="demo-hero">
-          <h1>Flow line conveyor · 25 floors × 40 works</h1>
+          <h1>Flow line conveyor · 5 sections × 25 floors × 40 works</h1>
           <p>
-            Line-of-balance stress case: 1000 activity bars, invisible chains in two directions —
-            sequentially within a floor and the same work across floors. Drag any bar: the whole
-            downstream conveyor follows in real time.
+            Line-of-balance stress case: 5000 activity bars across 125 rows (Корпус → 5 Секций →
+            25 Этажей). Invisible chains in two directions — sequentially within a floor and the
+            same work across floors, locked inside a section (the flow does not cross section
+            boundaries). Drag any bar: the whole downstream conveyor of that section follows in
+            real time.
           </p>
           <div className="demo-hero-actions">
             <Link className="demo-link-btn demo-link-btn-secondary" href="/">

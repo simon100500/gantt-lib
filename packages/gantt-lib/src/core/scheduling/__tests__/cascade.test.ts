@@ -122,6 +122,36 @@ describe('cascade', () => {
       expect(c2?.endDate).toBe('2026-02-20');
     });
 
+    it('shifts descendant activities together with the child rows when a parent moves', () => {
+      const tasks: Task[] = [
+        makeTask('P', '2026-02-10', '2026-02-20'),
+        {
+          id: 'F1',
+          name: 'F1',
+          startDate: '2026-02-10',
+          endDate: '2026-02-14',
+          parentId: 'P',
+          activities: [
+            { id: 'w0', name: 'W0', startDate: '2026-02-10', endDate: '2026-02-12' },
+            { id: 'w1', name: 'W1', startDate: '2026-02-13', endDate: '2026-02-14' },
+          ],
+        },
+      ];
+
+      const result = universalCascade(
+        { ...tasks[0], startDate: '2026-02-12', endDate: '2026-02-22' },
+        new Date(Date.UTC(2026, 1, 12)),
+        new Date(Date.UTC(2026, 1, 22)),
+        tasks
+      );
+
+      const f1 = result.find(t => t.id === 'F1')!;
+      // Строка уехала на +2 дня — видимые работы едут той же дельтой (параллельно).
+      expect(f1.startDate).toBe('2026-02-12');
+      expect(f1.activities!.map(a => a.startDate)).toEqual(['2026-02-12', '2026-02-15']);
+      expect(f1.activities!.map(a => a.endDate)).toEqual(['2026-02-14', '2026-02-16']);
+    });
+
     it('keeps the explicitly moved parent range when children do not fill its wrapper', () => {
       const tasks: Task[] = [
         makeTask('P', '2026-08-01', '2026-08-20'),

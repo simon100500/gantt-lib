@@ -18,6 +18,10 @@ import {
   normalizeUTCDate,
   getTaskDuration,
   alignToWorkingDay,
+  parseDateOnly,
+  getBusinessDayOffset,
+  shiftBusinessDayOffset,
+  DAY_MS,
 } from './dateMath';
 import {
   calculateSuccessorDate,
@@ -36,6 +40,56 @@ function parseCascadeDateInput(date: string | Date): Date {
     return normalizeUTCDate(date);
   }
   return normalizeUTCDate(new Date(`${date.split('T')[0]}T00:00:00.000Z`));
+}
+
+/** Проектная (бизнес- или календарная) дельта в днях между двумя датами. */
+function projectDayDelta(
+  from: Date,
+  to: Date,
+  businessDays: boolean,
+  weekendPredicate?: (date: Date) => boolean,
+): number {
+  if (businessDays && weekendPredicate) {
+    return getBusinessDayOffset(from, to, weekendPredicate);
+  }
+  return Math.round((to.getTime() - from.getTime()) / DAY_MS);
+}
+
+/**
+ * Сдвинуть работы строки на ту же проектную дельту, что и саму строку.
+ * Нужно, чтобы перемещение родителя тащило видимые полосы детей (``activities``)
+ * параллельно, а не только даты задачи. Тип даты сохраняется (ISO остаётся ISO).
+ */
+function shiftTaskActivities(
+  activities: Task['activities'],
+  dayDelta: number,
+  businessDays: boolean,
+  weekendPredicate?: (date: Date) => boolean,
+): Task['activities'] | undefined {
+  if (!activities || activities.length === 0 || dayDelta === 0) return undefined;
+  const shiftDate = (value: string | Date): string | Date => {
+    const base = parseDateOnly(value);
+    const shifted = businessDays && weekendPredicate
+      ? shiftBusinessDayOffset(base, dayDelta, weekendPredicate)
+      : new Date(base.getTime() + dayDelta * DAY_MS);
+    return typeof value === 'string' ? shifted.toISOString().slice(0, 10) : shifted;
+  };
+  return activities.map(activity => ({
+    ...activity,
+    startDate: shiftDate(activity.startDate),
+    endDate: shiftDate(activity.endDate),
+  }));
+}
+
+/** Патч `{ activities }` для спреда в задачу, либо пустой объект, если сдвиг не нужен. */
+function shiftedActivitiesPatch(
+  activities: Task['activities'],
+  dayDelta: number,
+  businessDays: boolean,
+  weekendPredicate?: (date: Date) => boolean,
+): Partial<Pick<Task, 'activities'>> {
+  const shifted = shiftTaskActivities(activities, dayDelta, businessDays, weekendPredicate);
+  return shifted ? { activities: shifted } : {};
 }
 
 export interface CascadeContext {
@@ -154,6 +208,7 @@ export function cascadeByLinks(
           ...child,
           startDate: newChildStart.toISOString().split('T')[0],
           endDate: newChildEnd.toISOString().split('T')[0],
+          ...shiftedActivitiesPatch(child.activities, Math.round(parentStartDelta / DAY_MS), false),
         }));
         queue.push(child.id);
       }
@@ -356,6 +411,13 @@ export function universalCascade(
           ...child,
           startDate: childNewStart.toISOString().split('T')[0],
           endDate:   childNewEnd.toISOString().split('T')[0],
+          // Дети едут параллельно: вместе с датами строки сдвигаются и её работы.
+          ...shiftedActivitiesPatch(
+            child.activities,
+            projectDayDelta(childOrigStart, childNewStart, businessDays, weekendPredicate),
+            businessDays,
+            weekendPredicate,
+          ),
         }));
       }
     }
@@ -449,6 +511,12 @@ export function universalCascade(
         ...task,
         startDate: succNewStart.toISOString().split('T')[0],
         endDate:   succNewEnd.toISOString().split('T')[0],
+        ...shiftedActivitiesPatch(
+          task.activities,
+          projectDayDelta(origStart, succNewStart, businessDays, weekendPredicate),
+          businessDays,
+          weekendPredicate,
+        ),
       }));
     }
   }
