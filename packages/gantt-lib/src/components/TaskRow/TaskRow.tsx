@@ -10,7 +10,7 @@ import { isMilestoneTask, normalizeTaskDatesForType } from '../../utils/taskType
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { isTaskParent, getChildren, getBusinessDaysCount, DAY_MS } from '../../core/scheduling';
 import type { Task } from '../GanttChart';
-import type { GanttScheduleIntent } from '../../types';
+import type { GanttScheduleIntent, ActivityTooltipContext } from '../../types';
 import { activityOwnerKey, type TaskPreviewPositionStore, type ActivityPreviewStore, type ActivityBlockStore, type ActivityDragOwner, type ActivityActivationStore } from '../GanttChart/previewStore';
 import './TaskRow.css';
 
@@ -23,6 +23,9 @@ const toIsoDay = (date: Date): string => date.toISOString().slice(0, 10);
 
 const shiftActivityDay = (value: string | Date, days: number): Date =>
   new Date(parseUTCDate(value).getTime() + days * DAY_MS);
+
+const activityDurationDays = (activity: { startDate: string | Date; endDate: string | Date }): number =>
+  Math.max(1, Math.round((parseUTCDate(activity.endDate).getTime() - parseUTCDate(activity.startDate).getTime()) / DAY_MS) + 1);
 
 // Порог яркости фона, выше которого текст инвертируется в тёмный.
 const ACTIVITY_TEXT_LUMINANCE_THRESHOLD = 0.55;
@@ -120,6 +123,8 @@ export interface TaskRowProps {
   showActivityLinks?: boolean;
   /** Label the lag on work links (default: true). */
   showActivityLag?: boolean;
+  /** Render extra tooltip content for a work (dates, crew — anything). */
+  activityTooltip?: (context: ActivityTooltipContext) => React.ReactNode;
   /** Visible horizontal pixel window; activity bars outside it are not rendered (pan optimization). */
   horizontalWindow?: { startPx: number; endPx: number };
   /** Called each RAF during cascade drag with override positions for non-dragged chain tasks */
@@ -257,7 +262,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore, activityClickToDrag = false, activityActivationMode = 'none', showActivityLinks = true, showActivityLag = true, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore, activityClickToDrag = false, activityActivationMode = 'none', showActivityLinks = true, showActivityLag = true, activityTooltip, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
@@ -915,9 +920,26 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       if (!activityTipId || !task.activities) return null;
       const activity = task.activities.find(item => item.id === activityTipId);
       if (!activity) return null;
-      // Узкая подсказка: сначала этаж строки, через круглую точку — работа.
-      return { floor: task.name, name: activity.name };
-    }, [activityTipId, task.activities, task.name]);
+      // Даты живые во время перетаскивания, чтобы совпадать с полосой.
+      let startDate = parseUTCDate(activity.startDate);
+      let endDate = parseUTCDate(activity.endDate);
+      if (activityDrag && activityDrag.id === activity.id && activityDrag.dayDelta !== 0) {
+        startDate = shiftActivityDay(startDate, activityDrag.dayDelta);
+        endDate = shiftActivityDay(endDate, activityDrag.dayDelta);
+      }
+      return {
+        floor: task.name,
+        name: activity.name,
+        fields: activity.tooltipFields ?? [],
+        context: {
+          task,
+          activity,
+          startDate,
+          endDate,
+          durationDays: activityDurationDays({ startDate, endDate }),
+        } as ActivityTooltipContext,
+      };
+    }, [activityDrag, activityTipId, task, task.activities, task.name]);
 
     // Format date labels for display - update in real-time for direct drag and cascade preview.
     const currentStartDate = hasPreviewPosition
@@ -1281,6 +1303,19 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               <span className="gantt-tr-activityTipName">{activityTipData.floor}</span>
               <span className="gantt-tr-activityTipDot" aria-hidden="true">·</span>
               <span className="gantt-tr-activityTipWork">{activityTipData.name}</span>
+              {activityTooltip && (
+                <div className="gantt-tr-activityTipExtra">{activityTooltip(activityTipData.context)}</div>
+              )}
+              {activityTipData.fields.length > 0 && (
+                <div className="gantt-tr-activityTipFields">
+                  {activityTipData.fields.map(field => (
+                    <div key={field.label} className="gantt-tr-activityTipField">
+                      <span className="gantt-tr-activityTipFieldLabel">{field.label}</span>
+                      <span className="gantt-tr-activityTipFieldValue">{field.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {activityBlockedBy && (
                 <span className="gantt-tr-activityTipReason">
                   · Блок: {activityBlockedBy.names.join(', ')}

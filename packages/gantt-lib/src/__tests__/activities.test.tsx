@@ -642,7 +642,7 @@ describe('multi-activity rows in GanttChart', () => {
     expect(floor2.activities!.find(activity => activity.id === 'wallpaper')!.startDate).toBe('2026-03-11');
   });
 
-  it('shows the floor and work without extra fields', () => {
+  it('renders tooltipFields rows for a work', () => {
     const tasks: Task[] = [{
       id: 'floor-1',
       name: 'Этаж 1',
@@ -664,12 +664,38 @@ describe('multi-activity rows in GanttChart', () => {
     const bar = container.querySelector<HTMLElement>('[data-activity-id="wallpaper"]')!;
     fireEvent.mouseEnter(bar, { clientX: 300, clientY: 20 });
 
-    const tip = document.querySelector('.gantt-tr-activityTip');
-    expect(tip).not.toBeNull();
-    // Узкая подсказка — этаж и работа; полей и системного title нет.
-    expect(tip!.querySelector('.gantt-tr-activityTipWork')?.textContent).toBe('Обои');
-    expect(tip!.querySelector('.gantt-tr-activityTipField')).toBeNull();
+    const tip = document.querySelector('.gantt-tr-activityTip')!;
+    expect(tip.querySelector('.gantt-tr-activityTipWork')?.textContent).toBe('Обои');
+    expect(tip.querySelector('.gantt-tr-activityTipFieldLabel')?.textContent).toBe('Подрядчик');
+    expect(tip.querySelector('.gantt-tr-activityTipFieldValue')?.textContent).toBe('ООО СК Строй');
     expect(bar.getAttribute('title')).toBeNull();
+  });
+
+  it('renders extra tooltip content via the activityTooltip render prop', () => {
+    const tasks: Task[] = [{
+      id: 'floor-1',
+      name: 'Этаж 1',
+      startDate: '2026-03-02',
+      endDate: '2026-03-13',
+      activities: [
+        { id: 'wallpaper', name: 'Обои', startDate: '2026-03-04', endDate: '2026-03-08' },
+      ],
+    }];
+    const { container } = render(
+      <GanttChart
+        tasks={tasks}
+        dayWidth={40}
+        rowHeight={40}
+        containerHeight={200}
+        businessDays={false}
+        activityTooltip={context => `даты: ${context.durationDays} д`}
+      />
+    );
+    const bar = container.querySelector<HTMLElement>('[data-activity-id="wallpaper"]')!;
+    fireEvent.mouseEnter(bar, { clientX: 300, clientY: 20 });
+    const extra = document.querySelector('.gantt-tr-activityTipExtra');
+    expect(extra).not.toBeNull();
+    expect(extra!.textContent).toBe('даты: 5 д');
   });
 
   it('shows a hover tooltip with the activity name and dates', () => {

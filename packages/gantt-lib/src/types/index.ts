@@ -202,8 +202,20 @@ export interface TaskActivity {
    * связь «та же работа этажом выше» лаг не переносится.
    */
   lag?: number;
-  /** Extra fields rendered in the hover tooltip under name/dates (e.g. contractor). */
+  /** Extra rows rendered in the hover tooltip under the header (e.g. contractor). */
   tooltipFields?: TaskActivityTooltipField[];
+}
+
+/**
+ * Context handed to the `activityTooltip` render prop: everything needed to
+ * compose a custom activity tooltip (dates, duration, host task, work).
+ */
+export interface ActivityTooltipContext {
+  task: Task;
+  activity: TaskActivity;
+  startDate: Date;
+  endDate: Date;
+  durationDays: number;
 }
 
 /**

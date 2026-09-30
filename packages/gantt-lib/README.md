@@ -121,9 +121,10 @@ Give a row `activities` to turn it into a multi-bar lane — several works insid
 one row, packed into sub-lanes (e.g. finishing works on one floor). Sequential
 works share a lane; concurrent ones stack below and the row grows to fit the
 busiest day. Activities are plain bars: drag to move, drag an edge to resize,
-both snap to days. A UI tooltip shows the name, date range, and duration on
-hover. No hierarchy, dependencies, or per-activity progress — works in the
-default gantt mode only.
+both snap to days. The hover tooltip is a narrow one-liner pinned above the bar:
+the row (floor) name, a middle dot, then the work name — e.g. `Floor 12 ·
+Wallpaper`; there is no native `title`. No hierarchy, dependencies, or
+per-activity progress — works in the default gantt mode only.
 
 Set `activityChain: true` to enable the ОН-conveyor (finish-to-start chain):
 inside the row every work follows the previous one, and identical works (same
@@ -131,9 +132,26 @@ inside the row every work follows the previous one, and identical works (same
 work pulls the whole conveyor below — live, while the pointer moves, like every
 other bar in the chart — the classic line-of-balance flow.
 
-The hover tooltip is a template with configurable fields: add
-`tooltipFields` to any activity to render extra label–value rows (contractor,
-crew, cost — anything, values accept any React node).
+Consecutive works of a lane are linked: a plain gap is drawn as a horizontal
+arrow with the lag («+N») at its head, while overlapping works (or works in
+different lanes) get the standard orthogonal Gantt connector, routed down when
+the successor drops to a lower lane. Turn links and lag labels off with
+`showActivityLinks` and `showActivityLag`.
+
+Click-activation is opt-in via `activityClickToDrag`: the first click arms a
+work (a plain drag pans the canvas) and only the armed work is dragged.
+`activityActivationMode` picks the activation visual — `'none'` (default),
+`'dim'` (other work types fade) or `'highlight'` (the chain of the same work,
+matched by `id` or `name` across rows, is outlined). Appearance is tuned with
+`--gantt-activity-dim-opacity`, `--gantt-activity-active-outline`,
+`--gantt-activity-chain-outline`, `--gantt-activity-tip-bg` and
+`--gantt-activity-tip-color`.
+
+The tooltip header (`row · work`) is fixed; extend it with declarative
+`tooltipFields` on the activity (label–value rows, any React node as the value)
+and/or the `activityTooltip(context)` render prop, whose context carries
+`{ task, activity, startDate, endDate, durationDays }` — use it to show dates,
+duration, crew, anything.
 
 Two conveyor modes are available via `activityChain`. `true` — rigid: dragging a
 work translates the whole downstream chain by the same delta. `'push'` —
@@ -149,10 +167,9 @@ drawn as horizontal arrows between consecutive works of one lane.
 
 In `'push'` mode the clamp is live and visible: the bar physically stops at the
 binding predecessor instead of snapping back on drop, the blocking work gets a
-red outline, and the dragged bar shows a stop edge with an «Упёрлась: … · зазор
-N д» line in the tooltip. The binding gap is labelled «+N» at the arrow head in
-the dependency-line colour, matching the dependency lag labels, and the tooltip
-appends a «Зазор» field unless a custom one overrides it.
+red outline, and the dragged bar shows a stop edge with a «Блок: … · зазор N д»
+line in the tooltip. The binding gap is labelled «+N» at the arrow head in the
+dependency-line colour, matching the dependency lag labels.
 
 ```tsx
 const tasks: Task[] = [
@@ -167,6 +184,7 @@ const tasks: Task[] = [
       { id: "wallpaper", name: "Wallpaper", startDate: "2026-03-27", endDate: "2026-03-30", color: "#f59e0b" },
       {
         id: "doors", name: "Doors", startDate: "2026-03-31", endDate: "2026-04-01", color: "#10b981",
+        lag: 1, // constant gap (days) before this work starts — same-row chain only
         tooltipFields: [{ label: "Contractor", value: "SK Stroy" }],
       },
     ],
@@ -278,7 +296,8 @@ interface Task {
   divider?: 'top' | 'bottom';
   parentId?: string;
   activities?: TaskActivity[]; // multi-bar lane mode for the row
-  activityChain?: boolean; // ОН-conveyor: chained dragging of row activities
+  activityChain?: boolean | 'push'; // ОН-conveyor: chained dragging; 'push' = ASAP с выталкиванием
+  // Gantt props: activityClickToDrag, activityActivationMode, showActivityLinks, showActivityLag, activityTooltip
 }
 ```
 

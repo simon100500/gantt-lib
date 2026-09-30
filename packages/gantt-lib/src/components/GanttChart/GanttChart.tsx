@@ -38,6 +38,7 @@ import type {
   GanttScheduleIntent,
   GanttDateRange,
   ValidationResult,
+  ActivityTooltipContext,
 } from '../../types';
 import { TaskPredicate } from '../../filters';
 import type { TaskListColumn, TaskListColumnId, TaskListColumnWidthMap } from '../TaskList/columns/types';
@@ -532,6 +533,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   showActivityLinks?: boolean;
   /** Label the lag («+N») on work links (default: true). */
   showActivityLag?: boolean;
+  /** Render extra tooltip content for a work (dates, crew — anything). */
+  activityTooltip?: (context: ActivityTooltipContext) => React.ReactNode;
   /** Optional vertical timeline markers such as deadlines and checkpoints. */
   timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
@@ -768,6 +771,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     activityActivationMode = 'none',
     showActivityLinks = true,
     showActivityLag = true,
+    activityTooltip,
     timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
@@ -2840,6 +2844,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         activityActivationMode={activityActivationMode}
                         showActivityLinks={showActivityLinks}
                         showActivityLag={showActivityLag}
+                        activityTooltip={activityTooltip}
                         horizontalWindow={horizontalWindow}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}
