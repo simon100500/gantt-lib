@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.137.0] - 2026-09-30
+
+### Features
+
+- Add row activities (`task.activities`): a multi-bar lane mode where one row hosts several works packed into sub-lanes — sequential works share a lane, concurrent ones stack below, and the row grows to fit the busiest day. Activity bars are draggable and resizable with day snapping and a hover tooltip (name, dates, duration); the grid range extends to cover activity dates.
+- Add the `activityChain` flag (ОН-conveyor): dragging a work pulls its row successors and the identical works of consecutive chained rows (floors), translating the whole downstream flow rigidly — the preview moves live during the drag and commits on drop.
+- Top-align the task list label and row number in grown multi-activity rows so the label sits next to the first activity lane instead of floating mid-cell.
+- Add the `'push'` conveyor mode for `activityChain` (выталкивание, ASAP): earlier moves fill downstream gaps at once, later moves push followers only after a collision, and `lag` on an activity pins a constant gap; dragged starts are clamped against incoming links. Gaps wider than zero render as horizontal arrows between consecutive works of a lane.
+- Stop a pushed work at its blocking predecessor: in `'push'` mode the bar halts live at «predecessor end + lag» and no longer snaps back on drop. The reason is visible — the blocking work gets a red outline, the dragged bar shows a stop edge, and the tooltip gains a «Блок: … · зазор N д» line. A lag gap is labelled «+N» at the arrow head in the dependency-line colour, matching the dependency lag labels. A work's lag belongs to its own floor sequence: the vertical «same work on the floor above» link carries no lag. While a drag is in flight other rows' hover tooltips stay mute, and the dragged work's tooltip is dismissed on drop, so nothing hangs. The lane-gap connector is a hairline centred on the bar.
+
+- Make the activity tooltip a narrow one-liner above the bar: the row (floor) name first, a middle dot, then the work name; the native `title` is gone and the stop reason is appended to the same line during a drag.
+- Expose work settings as props and CSS variables: `activityClickToDrag` (arm a work with a click before dragging), `activityActivationMode` (`'none' | 'dim' | 'highlight'` — dim other work types or outline the chain of the same type), `showActivityLinks` and `showActivityLag`. Appearance is tuned with `--gantt-activity-dim-opacity`, `--gantt-activity-active-outline`, `--gantt-activity-chain-outline`, `--gantt-activity-tip-bg`, `--gantt-activity-tip-color`. The activity tooltip extends via `tooltipFields` rows (label–value, any React node) and the `activityTooltip(context)` render prop with `{ task, activity, startDate, endDate, durationDays }` — e.g. to show dates and duration.
+
+### Performance
+
+- Remove panning jank: scroll is recorded in state in buckets (the chart re-renders every N px instead of every frame), and grid lines, dependency lines and activity bars outside the visible band are not rendered (an overscanned horizontal window). On the 1000-bar stress demo this cuts the DOM roughly threefold.
+
 ## [0.136.1] - 2026-09-29
 
 ### Fixes
