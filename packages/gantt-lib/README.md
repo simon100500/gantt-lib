@@ -562,3 +562,22 @@ MIT
 ## GitHub
 
 [https://github.com/simon100500/gantt-lib](https://github.com/simon100500/gantt-lib)
+
+### Explicit activity dependencies
+
+`activityDependencies` defines the visual activity graph using host task IDs and activity IDs (activity IDs may repeat in different hosts). It uses the same native dependency renderer as ordinary Gantt tasks. Supplying a graph, including an empty array, replaces inferred links between consecutive activities. It does not change the scheduling policy; the host owns the activity dates.
+
+```tsx
+<GanttChart
+  tasks={floorRows}
+  activityDependencies={[{
+    predecessorTaskId: 'floor-1', predecessorActivityId: 'walls',
+    successorTaskId: 'floor-2', successorActivityId: 'walls',
+    type: 'FS', lag: 0,
+  }]}
+  showActivityLinks
+  showActivityLag
+/>
+```
+
+All four dependency types (`FS`, `SS`, `FF`, `SF`), signed lags, cross-row links, packed lanes and filtered/virtualized rows are supported. `showActivityLinks={false}` hides the graph; `showActivityLag={false}` hides its lag labels.

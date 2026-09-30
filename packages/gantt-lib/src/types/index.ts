@@ -183,6 +183,20 @@ export interface TaskActivityTooltipField {
   value: ReactNode;
 }
 
+// START_MODULE_CONTRACT_ACTIVITY_DEPENDENCY
+// PURPOSE: Describe an explicit visual dependency between two host-scoped activity bars.
+// SCOPE: FS/SS/FF/SF and optional signed day lag; no implicit scheduling or adjacency.
+// INPUTS: Host task and activity identities. OUTPUTS: Native activity dependency edge.
+// END_MODULE_CONTRACT_ACTIVITY_DEPENDENCY
+export interface TaskActivityDependency {
+  predecessorTaskId: string;
+  predecessorActivityId: string;
+  successorTaskId: string;
+  successorActivityId: string;
+  type: TaskDependency['type'];
+  lag?: number;
+}
+
 export interface TaskActivity {
   /** Unique identifier within the host task */
   id: string;

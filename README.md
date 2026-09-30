@@ -311,3 +311,22 @@ packages/
 **Паттерн состояния:** `onTasksChange` отдаёт только изменённые задачи, а consumer сам мержит их в своё состояние. Это legacy-путь. Для серверного сохранения scheduling-действий используйте `onScheduleIntent`: он различает `move_task`, `resize_task` и `change_duration`, а `changedTasks` остаётся preview/result.
 
 **Даты:** Все внутренние вычисления дат выполняются в UTC, чтобы избежать смещений из-за перехода на летнее время. Для надёжности передавайте даты как ISO-строки (`'2026-02-01'`).
+
+### Explicit activity dependencies
+
+`activityDependencies` defines the visual activity graph using host task IDs and activity IDs (activity IDs may repeat in different hosts). It uses the same native dependency renderer as ordinary Gantt tasks. Supplying a graph, including an empty array, replaces inferred links between consecutive activities. It does not change the scheduling policy; the host owns the activity dates.
+
+```tsx
+<GanttChart
+  tasks={floorRows}
+  activityDependencies={[{
+    predecessorTaskId: 'floor-1', predecessorActivityId: 'walls',
+    successorTaskId: 'floor-2', successorActivityId: 'walls',
+    type: 'FS', lag: 0,
+  }]}
+  showActivityLinks
+  showActivityLag
+/>
+```
+
+All four dependency types (`FS`, `SS`, `FF`, `SF`), signed lags, cross-row links, packed lanes and filtered/virtualized rows are supported. `showActivityLinks={false}` hides the graph; `showActivityLag={false}` hides its lag labels.

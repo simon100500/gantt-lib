@@ -39,6 +39,7 @@ import type {
   GanttDateRange,
   ValidationResult,
   ActivityTooltipContext,
+  TaskActivityDependency,
 } from '../../types';
 import { TaskPredicate } from '../../filters';
 import type { TaskListColumn, TaskListColumnId, TaskListColumnWidthMap } from '../TaskList/columns/types';
@@ -49,6 +50,7 @@ import TimelineMarkers from '../TimelineMarkers';
 import GridBackground from '../GridBackground';
 import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
+import { ActivityDependencyLines } from '../DependencyLines/ActivityDependencyLines';
 import { DependencyCreationOverlay, type DependencyCreationDrag } from '../DependencyCreationOverlay';
 import { TaskList } from '../TaskList';
 import { GenerationSkeletonRows } from '../GenerationSkeleton';
@@ -61,7 +63,7 @@ import './GanttChart.css';
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
-// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; index parent IDs without repeated task scans; reconcile transient drag geometry with controlled task updates; control optional task date/name labels.
+// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; index parent IDs without repeated task scans; reconcile transient drag geometry with controlled task updates; control optional task date/name labels; render explicit host-scoped activity edges through native DependencyLines.
 // DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
 // INPUTS: GanttChartProps including showTaskDateLabels, showTaskNames, printDependencyLabels, and an optional exact dateRange.
 // OUTPUTS: Interactive task list/chart with configurable external task labels and print-friendly dependency text.
@@ -536,6 +538,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   activityActivationMode?: 'none' | 'dim' | 'highlight';
   /** Draw links between consecutive works of a row (default: true). */
   showActivityLinks?: boolean;
+  /** Explicit visual activity graph. When provided (including []), replaces implicit consecutive-row activity links. */
+  activityDependencies?: readonly TaskActivityDependency[];
   /** Label the lag («+N») on work links (default: true). */
   showActivityLag?: boolean;
   /** Render extra tooltip content for a work (dates, crew — anything). */
@@ -775,6 +779,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     activityClickToDrag = false,
     activityActivationMode = 'none',
     showActivityLinks = true,
+    activityDependencies,
     showActivityLag = true,
     activityTooltip,
     timelineMarkers,
@@ -2691,6 +2696,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     />
                   )}
 
+                  {showActivityLinks && activityDependencies !== undefined && (
+                    <ActivityDependencyLines tasks={visibleTasks} renderedTaskIds={renderedTaskIdsRef.current} dependencies={activityDependencies} monthStart={monthStart} dayWidth={dayWidth} rowHeight={effectiveRowHeight} gridWidth={renderGridWidth} totalHeight={totalGridHeight} rowIndexByTaskId={visibleTaskIndexMap} rowTops={compositeRowLayout.tops} rowHeights={compositeRowLayout.heights} showLag={showActivityLag} previewStore={activityPreviewStore} horizontalWindow={horizontalWindow} />
+                  )}
+
                   {/* Dependency lines SVG overlay */}
                   <DependencyLines
                     tasks={renderedDependencyTasks}
@@ -2847,7 +2856,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         activityActivationStore={activityActivationStore}
                         activityClickToDrag={activityClickToDrag}
                         activityActivationMode={activityActivationMode}
-                        showActivityLinks={showActivityLinks}
+                        showActivityLinks={showActivityLinks && activityDependencies === undefined}
                         showActivityLag={showActivityLag}
                         activityTooltip={activityTooltip}
                         horizontalWindow={horizontalWindow}

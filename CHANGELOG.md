@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.139.0] - 2026-10-01
+
+### Features
+
+- Add `activityDependencies` for explicit, host-scoped FS/SS/FF/SF links within and between activity rows. Supplying this graph replaces implicit consecutive-activity links.
+- Activity arrows use the existing native `DependencyLines` renderer: directional top/bottom ports, Gantt corners, markers, hover, lag toggle and virtualized rows. No host SVG overlay or DOM measurement is required.
+
 ## [0.138.0] - 2026-09-30
 
 ### Features

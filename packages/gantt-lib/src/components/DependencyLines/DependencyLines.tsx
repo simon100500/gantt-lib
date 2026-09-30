@@ -1,5 +1,11 @@
 'use client';
 
+// START_MODULE_CONTRACT
+// PURPOSE: Render the shared native dependency paths for tasks and projected activity bars.
+// SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels.
+// INPUTS: Task-shaped nodes, explicit row geometry and label visibility.
+// OUTPUTS: Native SVG dependency paths and interactions.
+// END_MODULE_CONTRACT
 import React, { useMemo, useState } from 'react';
 import { Task } from '../../types';
 import { calculateDependencyPath, resolveTaskHorizontalGeometry } from '../../utils/geometry';
@@ -95,6 +101,9 @@ export interface DependencyLinesProps {
   selectedDep?: { predecessorId: string; successorId: string; linkType: string } | null;
   /** Ids of tasks on the critical path. Lines with both ends critical are highlighted. */
   criticalTaskIds?: Set<string>;
+  showLag?: boolean;
+  /** Activity lanes use their physical Y position; same-lane edges stay horizontal. */
+  activityEndpoints?: boolean;
   businessDays?: boolean;
   weekendPredicate?: (date: Date) => boolean;
   /** Called when an existing dependency line is clicked. */
@@ -137,6 +146,8 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   dragOverrides,
   selectedDep,
   criticalTaskIds,
+  showLag = true,
+  activityEndpoints = false,
   businessDays = true,
   weekendPredicate,
   onDependencyClick,
@@ -329,7 +340,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       // Determine if tasks are in reverse order (predecessor appears below successor)
       // For virtual tasks, use the predecessor's rowTop for comparison
       let reverseOrder = false;
-      if (predecessorIndex !== undefined && successorIndex !== undefined) {
+      if (!activityEndpoints && predecessorIndex !== undefined && successorIndex !== undefined) {
         reverseOrder = predecessorIndex > successorIndex;
       } else {
         // One or both are virtual - use rowTop for comparison
@@ -340,7 +351,10 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       let fromY: number;
       let toY: number;
 
-      if (reverseOrder) {
+      if (activityEndpoints && predecessor.rowTop === successor.rowTop) {
+        fromY = predecessor.rowTop + predecessor.rowHeight / 2;
+        toY = successor.rowTop + successor.rowHeight / 2;
+      } else if (reverseOrder) {
         // Arrow goes UP: exit from top of parent bar, enter at bottom of child bar
         fromY = predecessor.rowTop + 10;               // 8px from top of parent bar
         toY = successor.rowTop + successor.rowHeight - 6;        // 8px from bottom of child bar
@@ -418,7 +432,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     }
 
     return lines;
-  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, collapsedParentIds, criticalTaskIds]);
+  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, collapsedParentIds, criticalTaskIds, activityEndpoints]);
 
   // Horizontal window: skip lines fully outside the visible band so panning does
   // not repaint the whole SVG overlay.
@@ -578,7 +592,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
                 markerEnd={markerEnd}
               />
             </g>
-            {lag !== 0 && (
+            {showLag && lag !== 0 && (
               <text
                 className="gantt-dependency-lag-label"
                 x={lag < 0 ? toX + 14 : toX - 14}

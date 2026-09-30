@@ -73,6 +73,7 @@ export type {
   TaskBarGeometry,
   TaskActivity,
   TaskActivityTooltipField,
+  TaskActivityDependency,
   ActivityTooltipContext,
   GridConfig,
   MonthSpan,
