@@ -1872,7 +1872,10 @@ export const TaskList: React.FC<TaskListProps> = ({
                   taskListMenuCommands={taskListMenuCommands}
                   hideTaskListRowActions={hideTaskListRowActions}
                   rowClassName={[task.parentId && compositeParentIds.has(task.parentId)
-                    ? 'gantt-tl-row-composite-detail' : '', getTaskListRowClassName?.(task)].filter(Boolean).join(' ')}
+                    ? 'gantt-tl-row-composite-detail' : '',
+                  (task.activities?.length ?? 0) > 0 && (rowHeights?.[index] ?? rowHeight) > rowHeight
+                    ? 'gantt-tl-row-activities' : '',
+                  getTaskListRowClassName?.(task)].filter(Boolean).join(' ')}
                   compositeParentColor={task.parentId ? compositeParentsById.get(task.parentId)?.color : undefined}
                   getTaskListNamePrefixIcon={getTaskListNamePrefixIcon}
                   taskDateChangeMode={taskDateChangeMode}

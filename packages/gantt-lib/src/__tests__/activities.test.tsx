@@ -5,6 +5,7 @@ import {
   ACTIVITY_LANE_STEP,
   computeActivityLanes,
   packIntervals,
+  shiftActivityChain,
 } from '../utils/activities';
 import { GanttChart, type Task } from '../components/GanttChart';
 
@@ -62,6 +63,42 @@ describe('computeActivityLanes', () => {
 
   it('returns zero lanes for an empty list', () => {
     expect(computeActivityLanes([], monthStart, 40)).toEqual({ segments: [], laneCount: 0 });
+  });
+});
+
+describe('shiftActivityChain (ОН-конвейер)', () => {
+  const buildChainedTasks = () => [1, 2, 3].map(floor => ({
+    id: `floor-${floor}`,
+    activityChain: true as boolean,
+    activities: [
+      { id: 'w0', name: 'Стяжка', startDate: `2026-03-0${floor}`, endDate: `2026-03-0${floor + 2}` },
+      { id: 'w1', name: 'Обои', startDate: `2026-03-0${floor + 3}`, endDate: `2026-03-0${floor + 4}` },
+    ],
+  }));
+
+  it('pulls row successors and the same works of lower floors', () => {
+    const shifts = shiftActivityChain(buildChainedTasks(), 'floor-1', 'w0', 2);
+    expect(shifts.map(shift => shift.taskId)).toEqual(['floor-1', 'floor-2', 'floor-3']);
+    const floor1 = shifts.find(shift => shift.taskId === 'floor-1')!;
+    expect(floor1.activities.find(activity => activity.id === 'w1')!.startDate).toBe('2026-03-06');
+    const floor3 = shifts.find(shift => shift.taskId === 'floor-3')!;
+    expect(floor3.activities.find(activity => activity.id === 'w0')!.startDate).toBe('2026-03-05');
+  });
+
+  it('returns nothing when the dragged task is not chained', () => {
+    const tasks = buildChainedTasks().map(task => ({ ...task, activityChain: false }));
+    expect(shiftActivityChain(tasks, 'floor-1', 'w0', 2)).toEqual([]);
+  });
+
+  it('returns nothing for zero delta (resize of the left edge)', () => {
+    expect(shiftActivityChain(buildChainedTasks(), 'floor-1', 'w0', 0)).toEqual([]);
+  });
+
+  it('skips a row without the chain flag and links the next flagged floor', () => {
+    const tasks = buildChainedTasks();
+    tasks[1] = { ...tasks[1], activityChain: false };
+    const shifts = shiftActivityChain(tasks, 'floor-1', 'w0', 2);
+    expect(shifts.map(shift => shift.taskId)).toEqual(['floor-1', 'floor-3']);
   });
 });
 
@@ -185,6 +222,113 @@ describe('multi-activity rows in GanttChart', () => {
     const resized = changedTask.activities!.find(activity => activity.id === 'wallpaper')!;
     expect(resized.startDate).toBe('2026-03-10');
     expect(resized.endDate).toBe('2026-03-14');
+  });
+
+  it('moves the conveyor live during the drag, before the commit', () => {
+    const onTasksChange = vi.fn();
+    const chained = buildTasks().map(task => ({ ...task, activityChain: true }));
+    const { container } = render(
+      <GanttChart
+        tasks={chained}
+        onTasksChange={onTasksChange}
+        dayWidth={40}
+        rowHeight={40}
+        containerHeight={400}
+        businessDays={false}
+      />
+    );
+    const dragged = container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-1"] [data-activity-id="screed"]')!;
+    const follower = () => container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-2"] [data-activity-id="screed"]')!;
+    const before = parseInt(follower().style.left, 10);
+
+    fireEvent.mouseDown(dragged, { clientX: 500, clientY: 20 });
+    fireEvent.mouseMove(window, { clientX: 540, clientY: 20 });
+
+    // Still dragging: the floor below has already shifted by one day (40px).
+    expect(parseInt(follower().style.left, 10)).toBe(before + 40);
+    expect(onTasksChange).not.toHaveBeenCalled();
+
+    fireEvent.mouseUp(window);
+    expect(onTasksChange).toHaveBeenCalledTimes(1);
+    // After the commit the store is cleared: no double shift from props + overrides.
+    expect(parseInt(follower().style.left, 10)).toBe(before);
+  });
+
+  it('marks tall activity rows so the task list label aligns to the top', () => {
+    const { container } = render(
+      <GanttChart
+        tasks={buildTasks()}
+        showTaskList
+        dayWidth={40}
+        rowHeight={40}
+        containerHeight={400}
+        businessDays={false}
+      />
+    );
+    // floor-1 has overlapping works → 2 lanes → row taller than rowHeight.
+    const tallRow = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="floor-1"]');
+    expect(tallRow?.className).toContain('gantt-tl-row-activities');
+    // floor-2 works are sequential → normal height, no alignment class.
+    const shortRow = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="floor-2"]');
+    expect(shortRow?.className).not.toContain('gantt-tl-row-activities');
+  });
+
+  it('pulls the whole conveyor when dragging a chained row', () => {
+    const onTasksChange = vi.fn();
+    const chained = buildTasks().map(task => ({ ...task, activityChain: true }));
+    const { container } = render(
+      <GanttChart
+        tasks={chained}
+        onTasksChange={onTasksChange}
+        dayWidth={40}
+        rowHeight={40}
+        containerHeight={400}
+        businessDays={false}
+      />
+    );
+    const bar = container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-1"] [data-activity-id="screed"]')!;
+    fireEvent.mouseDown(bar, { clientX: 500, clientY: 20 });
+    fireEvent.mouseMove(window, { clientX: 540, clientY: 20 });
+    fireEvent.mouseUp(window);
+
+    expect(onTasksChange).toHaveBeenCalledTimes(1);
+    const changed = onTasksChange.mock.calls[0][0] as Task[];
+    expect(changed.map(task => task.id)).toEqual(['floor-1', 'floor-2']);
+    const floor1 = changed.find(task => task.id === 'floor-1')!;
+    // Row successors follow the dragged Стяжка.
+    expect(floor1.activities!.find(activity => activity.id === 'wallpaper')!.startDate).toBe('2026-03-05');
+    const floor2 = changed.find(task => task.id === 'floor-2')!;
+    // The same work on the floor below is pulled too, together with its row chain.
+    expect(floor2.activities!.find(activity => activity.id === 'screed')!.startDate).toBe('2026-03-07');
+    expect(floor2.activities!.find(activity => activity.id === 'wallpaper')!.startDate).toBe('2026-03-11');
+  });
+
+  it('shows custom tooltip fields like the contractor', () => {
+    const tasks: Task[] = [{
+      id: 'floor-1',
+      name: 'Этаж 1',
+      startDate: '2026-03-02',
+      endDate: '2026-03-13',
+      activities: [
+        {
+          id: 'wallpaper',
+          name: 'Обои',
+          startDate: '2026-03-04',
+          endDate: '2026-03-08',
+          tooltipFields: [{ label: 'Подрядчик', value: 'ООО СК Строй' }],
+        },
+      ],
+    }];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+    const bar = container.querySelector<HTMLElement>('[data-activity-id="wallpaper"]')!;
+    fireEvent.mouseEnter(bar, { clientX: 300, clientY: 20 });
+
+    const tip = document.querySelector('.gantt-tr-activityTip');
+    expect(tip).not.toBeNull();
+    expect(tip!.querySelector('.gantt-tr-activityTipFieldLabel')?.textContent).toBe('Подрядчик');
+    expect(tip!.querySelector('.gantt-tr-activityTipFieldValue')?.textContent).toBe('ООО СК Строй');
   });
 
   it('shows a hover tooltip with the activity name and dates', () => {

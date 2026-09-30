@@ -115,6 +115,46 @@ const tasks: Task[] = [
 When using controlled `collapsedParentIds`, provide `onToggleCollapse` to update
 the collapsed parent IDs in application state.
 
+## Row Activities (Flow Line)
+
+Give a row `activities` to turn it into a multi-bar lane — several works inside
+one row, packed into sub-lanes (e.g. finishing works on one floor). Sequential
+works share a lane; concurrent ones stack below and the row grows to fit the
+busiest day. Activities are plain bars: drag to move, drag an edge to resize,
+both snap to days. A UI tooltip shows the name, date range, and duration on
+hover. No hierarchy, dependencies, or per-activity progress — works in the
+default gantt mode only.
+
+Set `activityChain: true` to enable the ОН-conveyor (finish-to-start chain):
+inside the row every work follows the previous one, and identical works (same
+`id` or `name`) of consecutive chained rows are linked as well, so dragging one
+work pulls the whole conveyor below — live, while the pointer moves, like every
+other bar in the chart — the classic line-of-balance flow.
+
+The hover tooltip is a template with configurable fields: add
+`tooltipFields` to any activity to render extra label–value rows (contractor,
+crew, cost — anything, values accept any React node).
+
+```tsx
+const tasks: Task[] = [
+  {
+    id: "floor-12",
+    name: "Floor 12",
+    startDate: "2026-03-24",
+    endDate: "2026-04-02",
+    activityChain: true,
+    activities: [
+      { id: "screed", name: "Screed", startDate: "2026-03-24", endDate: "2026-03-26", color: "#8b5cf6" },
+      { id: "wallpaper", name: "Wallpaper", startDate: "2026-03-27", endDate: "2026-03-30", color: "#f59e0b" },
+      {
+        id: "doors", name: "Doors", startDate: "2026-03-31", endDate: "2026-04-01", color: "#10b981",
+        tooltipFields: [{ label: "Contractor", value: "SK Stroy" }],
+      },
+    ],
+  },
+];
+```
+
 ## Resource Planner Mode
 
 Use `mode="resource-planner"` when the primary rows are people, equipment, rooms, or other resources instead of tasks. Omitted `mode` still renders the default task Gantt chart.
@@ -218,6 +258,8 @@ interface Task {
   locked?: boolean;
   divider?: 'top' | 'bottom';
   parentId?: string;
+  activities?: TaskActivity[]; // multi-bar lane mode for the row
+  activityChain?: boolean; // ОН-conveyor: chained dragging of row activities
 }
 ```
 

@@ -4,14 +4,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExtern
 import { createPortal } from 'react-dom';
 import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
 import { calculateMilestoneGeometry, calculateTaskBar, pixelsToDate } from '../../utils/geometry';
-import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, type ActivitySegment } from '../../utils/activities';
+import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, shiftActivityChain, type ActivitySegment } from '../../utils/activities';
 import { isTaskExpired } from '../../utils/expired';
 import { isMilestoneTask, normalizeTaskDatesForType } from '../../utils/taskType';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { isTaskParent, getChildren, getBusinessDaysCount, DAY_MS } from '../../core/scheduling';
 import type { Task } from '../GanttChart';
 import type { GanttScheduleIntent } from '../../types';
-import type { TaskPreviewPositionStore } from '../GanttChart/previewStore';
+import type { TaskPreviewPositionStore, ActivityPreviewStore } from '../GanttChart/previewStore';
 import './TaskRow.css';
 
 // Минимальный шаг между отсечками состава: реже — рисками мельчим.
@@ -80,6 +80,8 @@ export interface TaskRowProps {
   overridePosition?: { left: number; width: number };
   /** External per-task preview store used to avoid chart-wide renders during cascade drag */
   previewPositionStore?: TaskPreviewPositionStore;
+  /** Live day-shifts of chained row activities in other rows during a conveyor drag. */
+  activityPreviewStore?: ActivityPreviewStore;
   /** Called each RAF during cascade drag with override positions for non-dragged chain tasks */
   onCascadeProgress?: (
     overrides: Map<string, { left: number; width: number }>,
@@ -170,6 +172,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.overridePosition?.left === nextProps.overridePosition?.left &&
     prevProps.overridePosition?.width === nextProps.overridePosition?.width &&
     prevProps.previewPositionStore === nextProps.previewPositionStore &&
+    prevProps.activityPreviewStore === nextProps.activityPreviewStore &&
     prevProps.allTasks === nextProps.allTasks &&
     prevProps.disableConstraints === nextProps.disableConstraints &&
     prevProps.deferCascadePreview === nextProps.deferCascadePreview &&
@@ -205,7 +208,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
@@ -487,6 +490,46 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const [activityTipPosition, setActivityTipPosition] = useState<{ left: number; top: number } | null>(null);
     const activityDragStart = useRef<{ x: number; durationDays: number } | null>(null);
 
+    const subscribeActivityOverrides = useCallback(
+      (listener: () => void) => activityPreviewStore?.subscribeTask(task.id, listener) ?? (() => { }),
+      [activityPreviewStore, task.id]
+    );
+    const getActivityOverridesSnapshot = useCallback(
+      () => activityPreviewStore?.getTaskOverrides(task.id),
+      [activityPreviewStore, task.id]
+    );
+    const activityOverrides = useSyncExternalStore(
+      subscribeActivityOverrides,
+      getActivityOverridesSnapshot,
+      () => undefined
+    );
+
+    // Изменение окончания изменённой работы: левый край конец не двигает — конвейер спит.
+    const chainEndDeltaDays = (mode: ActivityDragMode, dayDelta: number, durationDays: number): number => {
+      if (mode === 'resize-left') return 0;
+      if (mode === 'resize-right') return Math.max(dayDelta, -(durationDays - 1));
+      return dayDelta;
+    };
+
+    const publishChainPreview = useCallback((draggedId: string, mode: ActivityDragMode, dayDelta: number) => {
+      if (!activityPreviewStore) return;
+      const endDelta = task.activityChain
+        ? chainEndDeltaDays(mode, dayDelta, activityDragStart.current?.durationDays ?? 1)
+        : 0;
+      if (endDelta === 0) {
+        activityPreviewStore.clear();
+        return;
+      }
+      const shifts = shiftActivityChain(allTasks ?? [], task.id, draggedId, endDelta);
+      const overrides = new Map<string, Map<string, number>>();
+      for (const shift of shifts) {
+        const deltas = new Map<string, number>();
+        for (const id of shift.shiftedIds) deltas.set(id, endDelta);
+        if (deltas.size > 0) overrides.set(shift.taskId, deltas);
+      }
+      activityPreviewStore.setOverrides(overrides);
+    }, [activityPreviewStore, allTasks, task.activityChain, task.id]);
+
     // Drag/resize of one activity: day-snapped, committed as a whole updated task.
     useEffect(() => {
       if (!activityDrag) return;
@@ -494,22 +537,18 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       if (!startInfo) return;
       const onMove = (event: MouseEvent) => {
         const rawDelta = Math.round((event.clientX - startInfo.x) / dayWidth);
-        setActivityDrag(current => {
-          if (!current) return current;
-          if (current.mode === 'resize-left') {
-            return { ...current, dayDelta: Math.min(rawDelta, startInfo.durationDays - 1) };
-          }
-          if (current.mode === 'resize-right') {
-            return { ...current, dayDelta: Math.max(rawDelta, -(startInfo.durationDays - 1)) };
-          }
-          return { ...current, dayDelta: rawDelta };
-        });
+        let clamped = rawDelta;
+        if (activityDrag.mode === 'resize-left') clamped = Math.min(rawDelta, startInfo.durationDays - 1);
+        if (activityDrag.mode === 'resize-right') clamped = Math.max(rawDelta, -(startInfo.durationDays - 1));
+        setActivityDrag(current => (current ? { ...current, dayDelta: clamped } : current));
         setActivityTipPosition({
           left: Math.min(event.clientX + 14, window.innerWidth - 200),
           top: Math.min(event.clientY + 18, window.innerHeight - 60),
         });
+        publishChainPreview(activityDrag.id, activityDrag.mode, clamped);
       };
       const onUp = () => {
+        activityPreviewStore?.clear();
         if (activityDrag.dayDelta !== 0) {
           const clampLeft = Math.min(activityDrag.dayDelta, startInfo.durationDays - 1);
           const clampRight = Math.max(activityDrag.dayDelta, -(startInfo.durationDays - 1));
@@ -527,7 +566,32 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             }
             return { ...activity, endDate: toIsoDay(shiftActivityDay(activity.endDate, clampRight)) };
           });
-          onTasksChange?.([{ ...normalizedTask, activities: updatedActivities }]);
+          // ОН-конвейер: последующие работы строки и те же работы нижних этажей
+          // сдвигаются на изменение окончания изменённой работы.
+          const endDeltaDays = chainEndDeltaDays(activityDrag.mode, activityDrag.dayDelta, startInfo.durationDays);
+          const chainShifts = endDeltaDays !== 0
+            ? shiftActivityChain(allTasks ?? [], task.id, activityDrag.id, endDeltaDays)
+            : [];
+          const changedTasks: Task[] = [];
+          let hostHandled = false;
+          for (const shift of chainShifts) {
+            if (shift.taskId === task.id) {
+              hostHandled = true;
+              changedTasks.push({
+                ...normalizedTask,
+                activities: shift.activities.map(activity => activity.id === activityDrag.id
+                  ? (updatedActivities.find(item => item.id === activityDrag.id) ?? activity)
+                  : activity),
+              });
+            } else {
+              const source = (allTasks ?? []).find(candidate => candidate.id === shift.taskId);
+              changedTasks.push({ ...(source ?? { id: shift.taskId }), activities: shift.activities } as Task);
+            }
+          }
+          if (!hostHandled) {
+            changedTasks.unshift({ ...normalizedTask, activities: updatedActivities });
+          }
+          onTasksChange?.(changedTasks);
         }
         setActivityDrag(null);
         activityDragStart.current = null;
@@ -541,7 +605,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         window.removeEventListener('mouseup', onUp);
         document.body.style.cursor = '';
       };
-    }, [activityDrag, dayWidth, normalizedTask, onTasksChange, task.activities]);
+    }, [activityDrag, activityPreviewStore, allTasks, dayWidth, normalizedTask, onTasksChange, publishChainPreview, task.activities]);
 
     const handleActivityPointerDown = (segment: ActivitySegment, mode: ActivityDragMode) => (event: React.MouseEvent) => {
       if (!activityDragEnabled) return;
@@ -580,6 +644,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         start,
         end,
         durationDays: activityDurationDays({ startDate: start, endDate: end }),
+        fields: activity.tooltipFields,
         left: activityTipPosition.left,
         top: activityTipPosition.top,
       };
@@ -656,6 +721,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             <div className="gantt-tr-activityLanes">
               {activityLayout.segments.map(segment => {
                 const live = liveActivityGeometry(segment);
+                // Чужой конвейерный drag: живой сдвиг полосы из preview-стора.
+                const chainDelta = activityOverrides?.get(segment.id) ?? 0;
+                const liveLeft = live.left + (chainDelta !== 0 ? chainDelta * dayWidth : 0);
                 const isDraggingActivity = activityDrag?.id === segment.id;
                 return (
                   <div
@@ -663,7 +731,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                     data-activity-id={segment.id}
                     className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
                     style={{
-                      left: `${live.left}px`,
+                      left: `${liveLeft}px`,
                       width: `${live.width}px`,
                       top: `${activityTopOffset + segment.lane * ACTIVITY_LANE_STEP + (ACTIVITY_LANE_STEP - ACTIVITY_LANE_BAR_HEIGHT) / 2}px`,
                       height: `${ACTIVITY_LANE_BAR_HEIGHT}px`,
@@ -880,6 +948,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               <div className="gantt-tr-activityTipDates">
                 {formatDateRangeLabel(activityTipData.start, activityTipData.end)} · {activityTipData.durationDays} д
               </div>
+              {(activityTipData.fields ?? []).map(field => (
+                <div key={field.label} className="gantt-tr-activityTipField">
+                  <span className="gantt-tr-activityTipFieldLabel">{field.label}</span>
+                  <span className="gantt-tr-activityTipFieldValue">{field.value}</span>
+                </div>
+              ))}
             </div>,
             document.body
           )}

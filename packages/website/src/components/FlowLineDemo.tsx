@@ -6,6 +6,7 @@ import { GanttChart, type Task, type TimelineMarker } from "gantt-lib";
 const START = Date.UTC(2026, 2, 2); // пн 2 мар 2026, ось «д.0»
 
 const day = (offset: number) => new Date(START + offset * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const dayDate = (offset: number) => new Date(START + offset * 24 * 60 * 60 * 1000);
 
 // Работы отделки этажа: цвет = вид работы. Каждая начинается после предыдущей.
 type WorkKind = { name: string; duration: number; color: string };
@@ -16,6 +17,8 @@ const WORKS: WorkKind[] = [
   { name: "Обои", duration: 3, color: "#f59e0b" },
   { name: "Двери", duration: 2, color: "#10b981" },
 ];
+
+const CONTRACTORS = ["СК Строй", "Отделка-Профи", "МонтажСервис", "РемМастер"];
 
 interface FloorPlan {
   /** Смещение начала работ этажа от д.0 */
@@ -48,7 +51,17 @@ const buildTasks = (plans: FloorPlan[]): Task[] =>
       const activities = WORKS.map((work, workIndex) => {
         const start = cursor;
         cursor = start + work.duration + (plan.overlaps?.[workIndex] ?? 0);
-        return { id: `w${workIndex}`, name: work.name, startDate: day(start), endDate: day(start + work.duration - 1), color: work.color };
+        return {
+          id: `w${workIndex}`,
+          name: work.name,
+          startDate: day(start),
+          endDate: day(start + work.duration - 1),
+          color: work.color,
+          tooltipFields: [
+            { label: "Подрядчик", value: CONTRACTORS[(index + workIndex) % CONTRACTORS.length] },
+            { label: "Бригада", value: `${index + 1}-${workIndex + 1}` },
+          ],
+        };
       });
       return {
         id: `floor-${index + 1}`,
@@ -68,7 +81,7 @@ const chartProps = {
   showTaskList: true,
   showChart: true,
   businessDays: false,
-  dateRange: { start: day(-6), end: day(64) },
+  dateRange: { start: dayDate(-6), end: dayDate(64) },
   dayWidth: 26,
   rowHeight: 40,
   taskListWidth: 190,
@@ -79,6 +92,7 @@ const chartProps = {
 };
 
 export default function FlowLineDemo() {
+  const [chainOn, setChainOn] = useState(false);
   const [sequentialTasks, setSequentialTasks] = useState(() => buildTasks(sequentialFloors(12)));
   const [parallelTasks, setParallelTasks] = useState(() => buildTasks(parallelFloors(12)));
 
@@ -94,6 +108,10 @@ export default function FlowLineDemo() {
   const handleSequentialChange = useCallback((changed: Task[]) => mergeTasks(setSequentialTasks)(changed), []);
   const handleParallelChange = useCallback((changed: Task[]) => mergeTasks(setParallelTasks)(changed), []);
 
+  const sequentialWithChain = chainOn
+    ? sequentialTasks.map(task => ({ ...task, activityChain: true }))
+    : sequentialTasks;
+
   return (
     <section className="demo-section" id="gantt-lob">
       <h2 className="demo-section-title">Flow line · работы этажа в одной строке</h2>
@@ -104,9 +122,18 @@ export default function FlowLineDemo() {
         Ось — дни от начала проекта; маркер Д 18.
       </p>
       <div className="demo-chart-card">
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: "0 0 8px", fontSize: 13 }}>
+          <input
+            type="checkbox"
+            checked={chainOn}
+            onChange={event => setChainOn(event.target.checked)}
+          />
+          ОН-конвейер (<code>activityChain</code>): перетаскивание тянет цепочку работ по этажу
+          и те же работы на этажах ниже
+        </label>
         <GanttChart
           {...chartProps}
-          tasks={sequentialTasks}
+          tasks={sequentialWithChain}
           onTasksChange={handleSequentialChange}
           containerHeight={560}
         />

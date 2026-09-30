@@ -55,7 +55,7 @@ import { ResourceTimelineChart } from '../ResourceTimelineChart';
 import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup, type TableMatrixDateOverlay } from '../TableMatrix';
 import { PlanFactMatrix, type PlanFactCellCommitContext } from '../PlanFactMatrix';
 import { printGanttChart } from './print';
-import { createTaskPreviewPositionStore, type TaskPreviewPositionStore } from './previewStore';
+import { createTaskPreviewPositionStore, createActivityPreviewStore, type TaskPreviewPositionStore, type ActivityPreviewStore } from './previewStore';
 import './GanttChart.css';
 
 // START_MODULE_CONTRACT
@@ -335,6 +335,12 @@ export interface Task {
    * grows the row height to fit concurrent activities. Works in gantt mode only.
    */
   activities?: TaskActivity[];
+  /**
+   * ОН-конвейер (finish-to-start chain) for row activities. Inside the row every
+   * work follows the previous one; identical works of consecutive chained rows
+   * (floors) are linked too, so dragging one work pulls the whole conveyor below.
+   */
+  activityChain?: boolean;
 }
 
 /**
@@ -342,6 +348,13 @@ export interface Task {
  * Activities are visual bars packed into sub-lanes of one row — no hierarchy,
  * no dependencies, no progress of their own.
  */
+export interface TaskActivityTooltipField {
+  /** Field caption, e.g. "Подрядчик" */
+  label: string;
+  /** Field value — any renderable content (string, badge, icon, JSX) */
+  value: React.ReactNode;
+}
+
 export interface TaskActivity {
   /** Unique identifier within the host task */
   id: string;
@@ -353,6 +366,8 @@ export interface TaskActivity {
   endDate: string | Date;
   /** Optional color; falls back to the default task bar color */
   color?: string;
+  /** Extra fields rendered in the hover tooltip under name/dates (e.g. contractor). */
+  tooltipFields?: TaskActivityTooltipField[];
 }
 
 /**
@@ -758,11 +773,16 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const clearSelectedTaskTimeoutRef = useRef<number | null>(null);
   const hasAutoScrolledToTodayRef = useRef(false);
   const previewPositionStoreRef = useRef<TaskPreviewPositionStore | null>(null);
+  const activityPreviewStoreRef = useRef<ActivityPreviewStore | null>(null);
   const renderedTaskIdsRef = useRef<Set<string>>(new Set());
   if (previewPositionStoreRef.current === null) {
     previewPositionStoreRef.current = createTaskPreviewPositionStore();
   }
+  if (activityPreviewStoreRef.current === null) {
+    activityPreviewStoreRef.current = createActivityPreviewStore();
+  }
   const previewPositionStore = previewPositionStoreRef.current;
+  const activityPreviewStore = activityPreviewStoreRef.current;
 
   // Track selected task ID for highlighting in both TaskList and TaskRow
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -1476,11 +1496,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
 
     previewPositionStore.clear();
+    activityPreviewStore.clear();
     setCascadeOverrides((current) => (current.size === 0 ? current : new Map()));
     setPreviewTasksById((current) => (current.size === 0 ? current : new Map()));
     setDraggedTaskOverride((current) => (current === null ? current : null));
     setDragGuideLines((current) => (current === null ? current : null));
-  }, [controlledScheduleIdentity, previewPositionStore]);
+  }, [controlledScheduleIdentity, previewPositionStore, activityPreviewStore]);
 
   // Validate dependencies when tasks change
   useEffect(() => {
@@ -1494,7 +1515,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       window.clearTimeout(clearSelectedTaskTimeoutRef.current);
     }
     previewPositionStore.clear();
-  }, [previewPositionStore]);
+    activityPreviewStore.clear();
+  }, [previewPositionStore, activityPreviewStore]);
 
   /**
    * Callback when tasks are modified.
@@ -2711,6 +2733,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                             setDragGuideLines((current) => (current === null ? current : null));
                             setDraggedTaskOverride((current) => (current === null ? current : null));
                             previewPositionStore.clear();
+                            activityPreviewStore.clear();
                             setCascadeOverrides((current) => (current.size === 0 ? current : new Map()));
                             setPreviewTasksById((current) => (current.size === 0 ? current : new Map()));
                           }
@@ -2721,6 +2744,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         disableConstraints={disableConstraints ?? false}
                         deferCascadePreview={normalizedTasks.length >= 1000}
                         previewPositionStore={previewPositionStore}
+                        activityPreviewStore={activityPreviewStore}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}
                         onScheduleIntent={onScheduleIntent}

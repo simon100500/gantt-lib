@@ -693,3 +693,23 @@
   color: #64748b;
   font-size: 11px;
 }
+
+/* Настраиваемые поля подсказки работы (например, подрядчик). */
+.gantt-tr-activityTipField {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.gantt-tr-activityTipFieldLabel {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.gantt-tr-activityTipFieldValue {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

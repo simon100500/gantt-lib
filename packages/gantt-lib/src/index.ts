@@ -72,6 +72,7 @@ export type {
   GanttDateRange,
   TaskBarGeometry,
   TaskActivity,
+  TaskActivityTooltipField,
   GridConfig,
   MonthSpan,
   GridLine,

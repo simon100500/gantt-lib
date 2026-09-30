@@ -3,6 +3,7 @@ export { ResourceTimelineChart } from '../ResourceTimelineChart';
 export type {
   Task,
   TaskActivity,
+  TaskActivityTooltipField,
   TaskDependency,
   GanttScheduleIntent,
   TaskListMenuCommand,

@@ -176,6 +176,13 @@ export interface ValidationResult {
  * Activities are visual bars packed into sub-lanes of one row — no hierarchy,
  * no dependencies, no progress of their own.
  */
+export interface TaskActivityTooltipField {
+  /** Field caption, e.g. "Подрядчик" */
+  label: string;
+  /** Field value — any renderable content (string, badge, icon, JSX) */
+  value: ReactNode;
+}
+
 export interface TaskActivity {
   /** Unique identifier within the host task */
   id: string;
@@ -187,6 +194,8 @@ export interface TaskActivity {
   endDate: string | Date;
   /** Optional color; falls back to the default task bar color */
   color?: string;
+  /** Extra fields rendered in the hover tooltip under name/dates (e.g. contractor). */
+  tooltipFields?: TaskActivityTooltipField[];
 }
 
 /**
@@ -257,6 +266,12 @@ export interface Task {
    * grows the row height to fit concurrent activities. Works in gantt mode only.
    */
   activities?: TaskActivity[];
+  /**
+   * ОН-конвейер (finish-to-start chain) for row activities. Inside the row every
+   * work follows the previous one; identical works of consecutive chained rows
+   * (floors) are linked too, so dragging one work pulls the whole conveyor below.
+   */
+  activityChain?: boolean;
 }
 
 /**

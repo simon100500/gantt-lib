@@ -96,3 +96,101 @@ export function activitySpanMs(activity: Pick<TaskActivity, 'startDate' | 'endDa
     end: parseUTCDate(activity.endDate).getTime() + DAY_MS,
   };
 }
+
+/** Сдвиг даты на N дней с сохранением типа (ISO-строка остаётся ISO-строкой). */
+export function shiftActivityDate(value: string | Date, days: number): string | Date {
+  const shifted = new Date(parseUTCDate(value).getTime() + days * DAY_MS);
+  return typeof value === 'string' ? shifted.toISOString().slice(0, 10) : shifted;
+}
+
+export interface ActivityChainTask {
+  id: string;
+  activityChain?: boolean;
+  activities?: TaskActivity[];
+}
+
+export interface ActivityChainShift {
+  taskId: string;
+  activities: TaskActivity[];
+  /** Ids of the activities that were actually shifted (chain successors). */
+  shiftedIds: Set<string>;
+}
+
+/**
+ * ОН-конвейер: работы едут вслед за изменённой.
+ * Рёбра цепочки: внутри строки работы идут друг за другом (окончание–начало),
+ * одинаковые (тот же id или имя) работы соседних строк-этажей связаны между собой.
+ * Весь конвейер ниже изменённой работы сдвигается на ту же дельту (жёстко, без пересчёта).
+ * Возвращает только реально изменившиеся задачи; сама изменённая работа не сдвигается.
+ */
+export function shiftActivityChain(
+  orderedTasks: ActivityChainTask[],
+  draggedTaskId: string,
+  draggedActivityId: string,
+  deltaDays: number,
+): ActivityChainShift[] {
+  if (deltaDays === 0) return [];
+
+  const keyOf = (taskId: string, activityId: string) => `${taskId}\u0000${activityId}`;
+  const successors = new Map<string, string[]>();
+  const link = (from: string, to: string) => {
+    const list = successors.get(from);
+    if (list) {
+      if (!list.includes(to)) list.push(to);
+    } else {
+      successors.set(from, [to]);
+    }
+  };
+
+  const flagged = orderedTasks.filter((task): task is ActivityChainTask & { activities: TaskActivity[] } =>
+    Boolean(task.activityChain) && Array.isArray(task.activities) && task.activities.length > 0);
+  for (const task of flagged) {
+    for (let i = 0; i < task.activities.length - 1; i += 1) {
+      link(keyOf(task.id, task.activities[i].id), keyOf(task.id, task.activities[i + 1].id));
+    }
+  }
+  for (let i = 0; i < flagged.length - 1; i += 1) {
+    const current = flagged[i];
+    const next = flagged[i + 1];
+    for (const activity of current.activities) {
+      const twin = next.activities.find(candidate => candidate.id === activity.id || candidate.name === activity.name);
+      if (twin) link(keyOf(current.id, activity.id), keyOf(next.id, twin.id));
+    }
+  }
+
+  const visited = new Set<string>();
+  const queue = [...(successors.get(keyOf(draggedTaskId, draggedActivityId)) ?? [])];
+  while (queue.length > 0) {
+    const key = queue.shift() as string;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    queue.push(...(successors.get(key) ?? []));
+  }
+  if (visited.size === 0) return [];
+
+  const shiftedByTask = new Map<string, Set<string>>();
+  for (const key of visited) {
+    const [taskId, activityId] = key.split('\u0000');
+    const set = shiftedByTask.get(taskId);
+    if (set) set.add(activityId);
+    else shiftedByTask.set(taskId, new Set([activityId]));
+  }
+
+  const shifts: ActivityChainShift[] = [];
+  for (const task of orderedTasks) {
+    const shiftedIds = shiftedByTask.get(task.id);
+    if (!shiftedIds) continue;
+    shifts.push({
+      taskId: task.id,
+      shiftedIds: shiftedIds,
+      activities: (task.activities ?? []).map(activity => shiftedIds.has(activity.id)
+        ? {
+          ...activity,
+          startDate: shiftActivityDate(activity.startDate, deltaDays),
+          endDate: shiftActivityDate(activity.endDate, deltaDays),
+        }
+        : activity),
+    });
+  }
+  return shifts;
+}

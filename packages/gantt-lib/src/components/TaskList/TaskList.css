@@ -2111,3 +2111,19 @@
 .gantt-tl-cell-new-name {
   padding: 2px 4px;
 }
+
+/* Многоополосные строки (activities): подпись и номер прижаты к верху ячейки,
+   напротив первой дорожки, а не центрированы в высокой строке. */
+.gantt-tl-row-activities .gantt-tl-cell {
+  align-items: flex-start;
+}
+
+.gantt-tl-row-activities .gantt-tl-name-trigger {
+  align-items: flex-start;
+  padding-top: 4px;
+}
+
+.gantt-tl-row-activities .gantt-tl-drag-handle {
+  align-items: flex-start;
+  padding-top: 4px;
+}
