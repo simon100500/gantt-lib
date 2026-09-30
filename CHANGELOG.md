@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.138.0] - 2026-09-30
+
+### Features
+
+- Row activities gain `progress` (0–100): the bar fills left-to-right and the tooltip leads with «Готовность» before the custom fields. The fill colour is tuned with a CSS variable and never covers the work name.
+- Row and parent dates are now computed as min start / max end over the row's works during hierarchy normalization, so a moved parent no longer leaves child rows stretched beyond their works; dragging a work deliberately leaves the task dates to the normalizer.
+
+### Fixes
+
+- Dragging a parent bar now shifts the works of child rows by the same project delta in parallel (calendar or business days, preserving internal gaps) — child dates used to change while the activity bars stayed put.
+- The duration label no longer sticks out to the left of regular bars: it renders inside the bar when it fits and in the right label group otherwise (duration, then progress and name); the «before the bar» spot remains only for composite accordion mini-bars. Dates and dependency ports keep the left side to themselves.
+
 ## [0.137.0] - 2026-09-30
 
 ### Features
