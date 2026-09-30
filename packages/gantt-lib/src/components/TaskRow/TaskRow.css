@@ -721,27 +721,30 @@
 }
 
 /* Горизонтальная стрелка в зазоре между последовательными работами одной дорожки.
-   Стиль повторяет обычные связи (DependencyLines): линия 1px и треугольная стрелка
-   с геометрией маркера #arrowhead (points "0 0, 8 3, 0 6", refX=7 — остриё на 1px
-   дальше конца линии), цвет берётся из того же --gantt-dependency-line-color. */
+   Стиль повторяет обычные связи (DependencyLines): линия и треугольная стрелка,
+   цвет берётся из того же --gantt-dependency-line-color. Линия волосяная (0.5px —
+   тонкая на HiDPI, ~1px на обычном экране), а transform: translateY(-50%) ставит
+   её ровно по центру бруска (inline top задаёт центр дорожки). */
 .gantt-tr-activityLink {
   position: absolute;
-  height: 1px;
+  height: 0.5px;
   background: var(--gantt-dependency-line-color, #666666);
   pointer-events: none;
   z-index: 2;
+  transform: translateY(-50%);
 }
 
 .gantt-tr-activityLink::after {
   content: "";
   position: absolute;
   right: -1px;
-  top: -2.5px;
+  /* Центр треугольника совпадает с центром линии: top = высота/2 − полувысота. */
+  top: -1.75px;
   width: 0;
   height: 0;
-  border-left: 8px solid var(--gantt-dependency-line-color, #666666);
-  border-top: 3px solid transparent;
-  border-bottom: 3px solid transparent;
+  border-left: 6px solid var(--gantt-dependency-line-color, #666666);
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
 }
 
 /* Лаг связи между работами: подпись «+N» в стиле лаг-подписи обычных связей

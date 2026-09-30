@@ -6,8 +6,18 @@ import { GanttChart, type Task } from "gantt-lib";
 const EPOCH = Date.UTC(2026, 2, 2); // пн 2 мар 2026
 const FLOORS = 25;
 const WORKS_PER_FLOOR = 40;
-const PALETTE = ["#8b5cf6", "#38bdf8", "#f59e0b", "#10b981", "#ef4444", "#6366f1", "#d946ef", "#14b8a6"];
 const CONTRACTORS = ["СК Строй", "Отделка-Профи", "МонтажСервис", "РемМастер", "СтройГарант"];
+
+// Плавная шкала: соседние работы отличаются тоном на один шаг и не разлетаются
+// по комплементарным цветам. Яркость чередуется в шахматном порядке — соседние
+// работы заметно разные, но строка остаётся ровной; повтор через HUE_STEPS работ.
+const HUE_STEPS = 18;
+const activityColor = (work: number): string => {
+  const step = work % HUE_STEPS;
+  const hue = Math.round(step * (360 / HUE_STEPS));
+  const lightness = step % 2 === 0 ? 0.46 : 0.62;
+  return `oklch(${lightness} 0.15 ${hue})`;
+};
 
 // Детерминированный PRNG: одинаковые данные на сервере и клиенте (без hydration-мисматчей).
 const mulberry32 = (seed: number) => () => {
@@ -57,7 +67,7 @@ function buildConveyor(mode: "rigid" | "push"): { tasks: Task[]; totalDays: numb
       name: `Работа ${work + 1}`,
       startDate: day(starts[floor][work]),
       endDate: day(starts[floor][work] + durations[floor][work] - 1),
-      color: PALETTE[work % PALETTE.length],
+      color: activityColor(work),
       lag: lagFor(work) || undefined,
       tooltipFields: [
         { label: "Подрядчик", value: CONTRACTORS[(floor + work) % CONTRACTORS.length] },
@@ -72,8 +82,11 @@ function buildConveyor(mode: "rigid" | "push"): { tasks: Task[]; totalDays: numb
 
 export default function FlowLineStressDemo() {
   const [mode, setMode] = useState<"rigid" | "push">("rigid");
+  const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
   const [dataset, setDataset] = useState(() => buildConveyor("rigid"));
   const tasks = dataset.tasks;
+  // Стандартные ширины сайта: день — рабочий размер, неделя/месяц — обзорные.
+  const dayWidth = viewMode === "month" ? 2.5 : viewMode === "week" ? 8 : 24;
 
   const handleTasksChange = useCallback((changed: Task[]) => {
     setDataset(current => ({
@@ -104,12 +117,34 @@ export default function FlowLineStressDemo() {
         лаг подписан числом дней. В режиме «выталкивания» полоса упирается в предшественника
         и останавливается на зазоре.
       </p>
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: "0 0 8px", fontSize: 13 }}>
-        <input type="checkbox" checked={mode === "push"} onChange={toggleMode} />
-        Режим «выталкивания» (<code>activityChain: &apos;push&apos;</code>): промежутки заполняются
-        (как можно раньше), сдвижка — только после коллизии; у каждой 5-й работы лаг 2 дня —
-        зазор постоянный. Данные пересобираются под режим.
-      </label>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, margin: "0 0 8px" }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: 0, fontSize: 13 }}>
+          <input type="checkbox" checked={mode === "push"} onChange={toggleMode} />
+          Режим «выталкивания» (<code>activityChain: &apos;push&apos;</code>): промежутки заполняются
+          (как можно раньше), сдвижка — только после коллизии; у каждой 5-й работы лаг 2 дня —
+          зазор постоянный. Данные пересобираются под режим.
+        </label>
+        <div style={{ display: "inline-flex", gap: 6 }}>
+          <button
+            className={`demo-btn ${viewMode === "day" ? "demo-btn-active" : "demo-btn-muted"}`}
+            onClick={() => setViewMode("day")}
+          >
+            По дням
+          </button>
+          <button
+            className={`demo-btn ${viewMode === "week" ? "demo-btn-active" : "demo-btn-muted"}`}
+            onClick={() => setViewMode("week")}
+          >
+            По неделям
+          </button>
+          <button
+            className={`demo-btn ${viewMode === "month" ? "demo-btn-active" : "demo-btn-muted"}`}
+            onClick={() => setViewMode("month")}
+          >
+            По месяцам
+          </button>
+        </div>
+      </div>
       <div className="demo-chart-card">
         <GanttChart
           tasks={tasks}
@@ -118,7 +153,8 @@ export default function FlowLineStressDemo() {
           showChart
           businessDays={false}
           dateRange={{ start: new Date(EPOCH - 7 * 24 * 60 * 60 * 1000), end: new Date(EPOCH + (dataset.totalDays + 10) * 24 * 60 * 60 * 1000) }}
-          dayWidth={14}
+          dayWidth={dayWidth}
+          viewMode={viewMode}
           rowHeight={40}
           taskListWidth={150}
           hiddenTaskListColumns={["startDate", "endDate", "duration", "dependencies", "progress"]}
