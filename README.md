@@ -330,3 +330,12 @@ packages/
 ```
 
 All four dependency types (`FS`, `SS`, `FF`, `SF`), signed lags, cross-row links, packed lanes and filtered/virtualized rows are supported. `showActivityLinks={false}` hides the graph; `showActivityLag={false}` hides its lag labels.
+
+To control which links remain visible while a chain is active, pass `activityDependencyHighlight`. The selection uses host-scoped identities; `mode` is `chain` (default), `chain-incoming`, `chain-outgoing`, or `chain-all`. Omit the prop when deselecting to restore all links.
+
+```tsx
+activityDependencyHighlight={{
+  activities: [{taskId: 'floor-1', activityId: 'walls'}, {taskId: 'floor-2', activityId: 'walls'}],
+  mode: 'chain-incoming',
+}}
+```

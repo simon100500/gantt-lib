@@ -185,9 +185,16 @@ export interface TaskActivityTooltipField {
 
 // START_MODULE_CONTRACT_ACTIVITY_DEPENDENCY
 // PURPOSE: Describe an explicit visual dependency between two host-scoped activity bars.
-// SCOPE: FS/SS/FF/SF and optional signed day lag; no implicit scheduling or adjacency.
+// SCOPE: FS/SS/FF/SF, optional signed day lag and explicit chain highlight with incoming/outgoing boundaries; no implicit scheduling or adjacency.
 // INPUTS: Host task and activity identities. OUTPUTS: Native activity dependency edge.
 // END_MODULE_CONTRACT_ACTIVITY_DEPENDENCY
+export interface ActivityDependencyHighlight {
+  /** All activity bars in the selected chain, scoped by host row. */
+  activities: readonly { taskId: string; activityId: string }[];
+  /** Show internal chain edges, optionally also edges entering/leaving the chain. */
+  mode?: 'chain' | 'chain-incoming' | 'chain-outgoing' | 'chain-all';
+}
+
 export interface TaskActivityDependency {
   predecessorTaskId: string;
   predecessorActivityId: string;

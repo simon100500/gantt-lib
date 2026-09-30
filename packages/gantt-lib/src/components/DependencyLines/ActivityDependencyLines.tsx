@@ -3,18 +3,18 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Render explicit activity dependencies through the existing native Gantt dependency renderer.
 // SCOPE: Host-scoped activity IDs, packed lanes, FS/SS/FF/SF endpoints, lag visibility, virtualized rows and controlled/live chain geometry.
-// INPUTS: Visible row tasks, explicit activity edges, row offsets/heights and optional activity preview store.
+// INPUTS: Visible row tasks, explicit activity edges, row offsets/heights and optional activity preview store and controlled chain/boundary highlight.
 // OUTPUTS: Native DependencyLines paths, markers, hover and lag labels; no DOM measurements or separate SVG implementation.
 // DEPENDS: DependencyLines, computeActivityLanes, ActivityPreviewStore
 // END_MODULE_CONTRACT
 import React, { useEffect, useMemo, useReducer } from 'react';
-import type { Task, TaskActivityDependency } from '../../types';
+import type { Task, TaskActivityDependency, ActivityDependencyHighlight } from '../../types';
 import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, shiftActivityDate } from '../../utils/activities';
 import type { ActivityPreviewStore } from '../GanttChart/previewStore';
 import { DependencyLines } from './DependencyLines';
 
 type Props = {
-  tasks: Task[]; renderedTaskIds: Set<string>; dependencies: readonly TaskActivityDependency[];
+  tasks: Task[]; renderedTaskIds: Set<string>; dependencies: readonly TaskActivityDependency[]; highlight?: ActivityDependencyHighlight;
   monthStart: Date; dayWidth: number; rowHeight: number; gridWidth: number; totalHeight: number;
   rowIndexByTaskId: Map<string, number>; rowTops: number[]; rowHeights: number[];
   showLag: boolean; previewStore?: ActivityPreviewStore;
@@ -33,7 +33,17 @@ export function ActivityDependencyLines(props: Props) {
     const flattened: Task[] = [], rendered: Task[] = [], tops: number[] = [], heights: number[] = [];
     const indices = new Map<string, number>();
     const incoming = new Map<string, NonNullable<Task['dependencies']>>();
+    const selected = props.highlight ? new Set(props.highlight.activities.map(activity => activityKey(activity.taskId, activity.activityId))) : undefined;
+    const highlightMode = props.highlight?.mode ?? 'chain';
     for (const edge of dependencies) {
+      if (selected) {
+        const fromSelected = selected.has(activityKey(edge.predecessorTaskId, edge.predecessorActivityId));
+        const toSelected = selected.has(activityKey(edge.successorTaskId, edge.successorActivityId));
+        const internal = fromSelected && toSelected;
+        const incoming = !fromSelected && toSelected && (highlightMode === 'chain-incoming' || highlightMode === 'chain-all');
+        const outgoing = fromSelected && !toSelected && (highlightMode === 'chain-outgoing' || highlightMode === 'chain-all');
+        if (!internal && !incoming && !outgoing) continue;
+      }
       const id = activityKey(edge.successorTaskId, edge.successorActivityId);
       const values = incoming.get(id) ?? [];
       values.push({ taskId: activityKey(edge.predecessorTaskId, edge.predecessorActivityId), type: edge.type, lag: edge.lag });
@@ -60,6 +70,6 @@ export function ActivityDependencyLines(props: Props) {
       }
     }
     return { flattened, rendered, indices, tops, heights };
-  }, [tasks, dependencies, monthStart, dayWidth, props.rowIndexByTaskId, props.rowTops, props.rowHeights, props.rowHeight, props.renderedTaskIds, previewStore, previewVersion]);
+  }, [tasks, dependencies, props.highlight, monthStart, dayWidth, props.rowIndexByTaskId, props.rowTops, props.rowHeights, props.rowHeight, props.renderedTaskIds, previewStore, previewVersion]);
   return <DependencyLines tasks={layout.rendered} allTasks={layout.flattened} monthStart={monthStart} dayWidth={dayWidth} rowHeight={ACTIVITY_LANE_BAR_HEIGHT} gridWidth={props.gridWidth} totalHeight={props.totalHeight} rowIndexByTaskId={layout.indices} rowTops={layout.tops} rowHeights={layout.heights} horizontalWindow={props.horizontalWindow} showLag={props.showLag} activityEndpoints />;
 }

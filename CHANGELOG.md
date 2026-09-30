@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.140.0] - 2026-10-01
+
+### Features
+
+- Add controlled `activityDependencyHighlight`: select host-scoped chain activities and choose internal links only, chain plus incoming, chain plus outgoing, or both boundary directions. Clearing selection restores the complete graph.
+
 ## [0.139.0] - 2026-10-01
 
 ### Features

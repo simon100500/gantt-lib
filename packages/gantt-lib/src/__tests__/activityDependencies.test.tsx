@@ -8,7 +8,7 @@ import React from 'react';
 import { render, cleanup } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { GanttChart } from '../components/GanttChart';
-import type { Task, TaskActivityDependency } from '../types';
+import type { Task, TaskActivityDependency, ActivityDependencyHighlight } from '../types';
 import { calculateDependencyPath } from '../utils/geometry';
 
 afterEach(cleanup);
@@ -16,6 +16,17 @@ const task = (id: string, date: string): Task => ({ id, name: id, startDate: dat
 const edge: TaskActivityDependency = { predecessorTaskId: 'one', predecessorActivityId: 'work', successorTaskId: 'two', successorActivityId: 'work', type: 'FS', lag: 3 };
 const chart = (tasks: Task[], edges: TaskActivityDependency[], showLag = true) => <GanttChart tasks={tasks} activityDependencies={edges} dateRange={{start:new Date('2026-10-01T00:00:00Z'),end:new Date('2026-10-31T00:00:00Z')}} dayWidth={24} rowHeight={40} containerHeight={400} showActivityLag={showLag} businessDays={false} />;
 describe('native explicit activity dependencies', () => {
+  it.each([['chain',1],['chain-incoming',2],['chain-outgoing',2],['chain-all',3]] as const)('selects %s without leaking unrelated links', (mode,count) => {
+    const tasks=[task('before','2026-10-01'),task('one','2026-10-03'),task('two','2026-10-06'),task('after','2026-10-09'),task('unrelated','2026-10-12')];
+    const edges=[edge,{...edge,predecessorTaskId:'before',successorTaskId:'one',lag:11},{...edge,predecessorTaskId:'two',successorTaskId:'after',lag:22},{...edge,predecessorTaskId:'after',successorTaskId:'unrelated',lag:33}];
+    const highlight:ActivityDependencyHighlight={activities:[{taskId:'one',activityId:'work'},{taskId:'two',activityId:'work'}],mode};
+    const {container,rerender}=render(<GanttChart tasks={tasks} activityDependencies={edges} activityDependencyHighlight={highlight} dayWidth={24} rowHeight={40} containerHeight={400} businessDays={false} />);
+    expect(container.querySelectorAll('.gantt-dependency-path')).toHaveLength(count);
+    const labels=[...container.querySelectorAll('.gantt-dependency-lag-label')].map(label=>label.textContent);
+    expect(labels).toContain('+3');expect(labels.includes('+11')).toBe(mode==='chain-incoming'||mode==='chain-all');expect(labels.includes('+22')).toBe(mode==='chain-outgoing'||mode==='chain-all');expect(labels).not.toContain('+33');
+    rerender(<GanttChart tasks={tasks} activityDependencies={edges} dayWidth={24} rowHeight={40} containerHeight={400} businessDays={false} />);
+    expect(container.querySelectorAll('.gantt-dependency-path')).toHaveLength(4);
+  });
   it('uses top/bottom native ports and corners, even when IDs repeat in different rows', () => {
     const { container, rerender } = render(chart([task('one','2026-10-01'),task('two','2026-10-03')],[edge]));
     const paths=()=>container.querySelectorAll('.gantt-dependency-path');

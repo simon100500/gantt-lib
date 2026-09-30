@@ -40,6 +40,7 @@ import type {
   ValidationResult,
   ActivityTooltipContext,
   TaskActivityDependency,
+  ActivityDependencyHighlight,
 } from '../../types';
 import { TaskPredicate } from '../../filters';
 import type { TaskListColumn, TaskListColumnId, TaskListColumnWidthMap } from '../TaskList/columns/types';
@@ -63,7 +64,7 @@ import './GanttChart.css';
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
-// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; index parent IDs without repeated task scans; reconcile transient drag geometry with controlled task updates; control optional task date/name labels; render explicit host-scoped activity edges through native DependencyLines.
+// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; index parent IDs without repeated task scans; reconcile transient drag geometry with controlled task updates; control optional task date/name labels; render explicit host-scoped activity edges and chain/incoming/outgoing selection through native DependencyLines.
 // DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
 // INPUTS: GanttChartProps including showTaskDateLabels, showTaskNames, printDependencyLabels, and an optional exact dateRange.
 // OUTPUTS: Interactive task list/chart with configurable external task labels and print-friendly dependency text.
@@ -540,6 +541,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   showActivityLinks?: boolean;
   /** Explicit visual activity graph. When provided (including []), replaces implicit consecutive-row activity links. */
   activityDependencies?: readonly TaskActivityDependency[];
+  /** Controlled chain selection: internal edges only, with optional incoming/outgoing edges. Undefined shows the whole graph. */
+  activityDependencyHighlight?: ActivityDependencyHighlight;
   /** Label the lag («+N») on work links (default: true). */
   showActivityLag?: boolean;
   /** Render extra tooltip content for a work (dates, crew — anything). */
@@ -780,6 +783,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     activityActivationMode = 'none',
     showActivityLinks = true,
     activityDependencies,
+    activityDependencyHighlight,
     showActivityLag = true,
     activityTooltip,
     timelineMarkers,
@@ -2697,7 +2701,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                   )}
 
                   {showActivityLinks && activityDependencies !== undefined && (
-                    <ActivityDependencyLines tasks={visibleTasks} renderedTaskIds={renderedTaskIdsRef.current} dependencies={activityDependencies} monthStart={monthStart} dayWidth={dayWidth} rowHeight={effectiveRowHeight} gridWidth={renderGridWidth} totalHeight={totalGridHeight} rowIndexByTaskId={visibleTaskIndexMap} rowTops={compositeRowLayout.tops} rowHeights={compositeRowLayout.heights} showLag={showActivityLag} previewStore={activityPreviewStore} horizontalWindow={horizontalWindow} />
+                    <ActivityDependencyLines tasks={visibleTasks} renderedTaskIds={renderedTaskIdsRef.current} dependencies={activityDependencies} highlight={activityDependencyHighlight} monthStart={monthStart} dayWidth={dayWidth} rowHeight={effectiveRowHeight} gridWidth={renderGridWidth} totalHeight={totalGridHeight} rowIndexByTaskId={visibleTaskIndexMap} rowTops={compositeRowLayout.tops} rowHeights={compositeRowLayout.heights} showLag={showActivityLag} previewStore={activityPreviewStore} horizontalWindow={horizontalWindow} />
                   )}
 
                   {/* Dependency lines SVG overlay */}
