@@ -524,8 +524,14 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   showTaskNames?: boolean;
   /** Render composite child mini-bars inside the parent bar (default: true). */
   showCompositeSegments?: boolean;
-  /** Dim all other work types while an activity is click-activated (default: false). */
-  dimInactiveActivities?: boolean;
+  /** Click a work to arm it before dragging; a plain drag then pans the canvas (default: false). */
+  activityClickToDrag?: boolean;
+  /** Visual of the activated work: 'none' | 'dim' others | 'highlight' its chain (default: 'none'). */
+  activityActivationMode?: 'none' | 'dim' | 'highlight';
+  /** Draw links between consecutive works of a row (default: true). */
+  showActivityLinks?: boolean;
+  /** Label the lag («+N») on work links (default: true). */
+  showActivityLag?: boolean;
   /** Optional vertical timeline markers such as deadlines and checkpoints. */
   timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
@@ -758,7 +764,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     showTaskDateLabels = true,
     showTaskNames = true,
     showCompositeSegments = true,
-    dimInactiveActivities = false,
+    activityClickToDrag = false,
+    activityActivationMode = 'none',
+    showActivityLinks = true,
+    showActivityLag = true,
     timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
@@ -2827,7 +2836,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         activityBlockStore={activityBlockStore}
                         activityDragOwner={activityDragOwner}
                         activityActivationStore={activityActivationStore}
-                        dimInactiveActivities={dimInactiveActivities}
+                        activityClickToDrag={activityClickToDrag}
+                        activityActivationMode={activityActivationMode}
+                        showActivityLinks={showActivityLinks}
+                        showActivityLag={showActivityLag}
                         horizontalWindow={horizontalWindow}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}

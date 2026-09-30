@@ -303,7 +303,8 @@ export default function FlowLineStressDemo() {
           dateRange={{ start: new Date(EPOCH - 7 * 24 * 60 * 60 * 1000), end: new Date(EPOCH + (dataset.totalDays + 10) * 24 * 60 * 60 * 1000) }}
           dayWidth={dayWidth}
           viewMode={viewMode}
-          dimInactiveActivities
+          activityClickToDrag
+          activityActivationMode="dim"
           rowHeight={40}
           taskListWidth={150}
           hiddenTaskListColumns={["startDate", "endDate", "duration", "dependencies", "progress"]}

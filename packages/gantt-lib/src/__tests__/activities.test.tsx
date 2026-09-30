@@ -752,7 +752,7 @@ describe('multi-activity rows in GanttChart', () => {
   it('drags an activity only after it is click-activated', () => {
     const onTasksChange = vi.fn();
     const { container } = render(
-      <GanttChart tasks={buildTasks()} onTasksChange={onTasksChange} dayWidth={40} rowHeight={40} containerHeight={400} businessDays={false} />
+      <GanttChart tasks={buildTasks()} onTasksChange={onTasksChange} dayWidth={40} rowHeight={40} containerHeight={400} businessDays={false} activityClickToDrag />
     );
     const bar = () => container.querySelector<HTMLElement>('[data-gantt-task-row-id="floor-2"] [data-activity-id="wallpaper"]')!;
     const before = parseInt(bar().style.left, 10);
@@ -792,7 +792,7 @@ describe('multi-activity rows in GanttChart', () => {
       },
     ];
     const { container } = render(
-      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={300} businessDays={false} dimInactiveActivities />
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={300} businessDays={false} activityActivationMode="dim" />
     );
     const bar = (floor: string, id: string) => container.querySelector<HTMLElement>(
       `[data-gantt-task-row-id="${floor}"] [data-activity-id="${id}"]`
@@ -810,7 +810,7 @@ describe('multi-activity rows in GanttChart', () => {
     expect(bar('floor-2', 'b').className).toContain('gantt-tr-activityBar-dimmed');
   });
 
-  it('does not dim activities unless dimInactiveActivities is set', () => {
+  it('does not dim activities when activityActivationMode is off', () => {
     const tasks: Task[] = [
       {
         id: 'floor-1', name: 'Этаж 1', startDate: '2026-03-02', endDate: '2026-03-06',
@@ -827,5 +827,65 @@ describe('multi-activity rows in GanttChart', () => {
     fireEvent.mouseDown(bar, { clientX: 500, clientY: 20 });
     fireEvent.mouseUp(window);
     expect(container.querySelectorAll('.gantt-tr-activityBar-dimmed')).toHaveLength(0);
+  });
+
+  it('highlights the chain without dimming when activityActivationMode is highlight', () => {
+    const tasks: Task[] = [
+      {
+        id: 'floor-1', name: 'Этаж 1', startDate: '2026-03-02', endDate: '2026-03-06',
+        activities: [
+          { id: 'a', name: 'A', startDate: '2026-03-02', endDate: '2026-03-03' },
+          { id: 'b', name: 'B', startDate: '2026-03-04', endDate: '2026-03-05' },
+        ],
+      },
+      {
+        id: 'floor-2', name: 'Этаж 2', startDate: '2026-03-04', endDate: '2026-03-08',
+        activities: [
+          { id: 'a', name: 'A', startDate: '2026-03-04', endDate: '2026-03-05' },
+          { id: 'b', name: 'B', startDate: '2026-03-06', endDate: '2026-03-07' },
+        ],
+      },
+    ];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={300} businessDays={false} activityActivationMode="highlight" />
+    );
+    const bar = (floor: string, id: string) => container.querySelector<HTMLElement>(
+      `[data-gantt-task-row-id="${floor}"] [data-activity-id="${id}"]`
+    )!;
+
+    fireEvent.mouseDown(bar('floor-1', 'a'), { clientX: 500, clientY: 20 });
+    fireEvent.mouseUp(window);
+
+    expect(bar('floor-1', 'a').className).toContain('gantt-tr-activityBar-chain');
+    expect(bar('floor-2', 'a').className).toContain('gantt-tr-activityBar-chain');
+    expect(bar('floor-1', 'b').className).not.toContain('gantt-tr-activityBar-chain');
+    // Остальные не гаснут.
+    expect(container.querySelectorAll('.gantt-tr-activityBar-dimmed')).toHaveLength(0);
+  });
+
+  it('can hide work links and lag labels', () => {
+    const tasks: Task[] = [{
+      id: 'floor-1', name: 'Этаж 1', startDate: '2026-03-01', endDate: '2026-03-10',
+      activities: [
+        { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-03' },
+        { id: 'b', name: 'B', startDate: '2026-03-06', endDate: '2026-03-08', lag: 2 },
+      ],
+    }];
+    const shown = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+    expect(shown.container.querySelector('.gantt-tr-activityLink')).not.toBeNull();
+    expect(shown.container.querySelector('.gantt-tr-activityLag')).not.toBeNull();
+
+    const hidden = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} showActivityLinks={false} />
+    );
+    expect(hidden.container.querySelector('.gantt-tr-activityLink')).toBeNull();
+
+    const noLag = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} showActivityLag={false} />
+    );
+    expect(noLag.container.querySelector('.gantt-tr-activityLink')).not.toBeNull();
+    expect(noLag.container.querySelector('.gantt-tr-activityLag')).toBeNull();
   });
 });

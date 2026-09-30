@@ -655,7 +655,12 @@
 /* При активации работы её цепочка (тот же вид на других этажах) остаётся
    яркой, а остальные виды приглушаются — видно именно цепочку. */
 .gantt-tr-activityBar-dimmed {
-  opacity: 0.55;
+  opacity: var(--gantt-activity-dim-opacity, 0.55);
+}
+
+/* Режим 'highlight': цепочка этого вида работы обводится, остальные не гаснут. */
+.gantt-tr-activityBar-chain {
+  box-shadow: 0 0 0 2px var(--gantt-activity-chain-outline, #ffffff);
 }
 
 .gantt-tr-activityBar .gantt-tr-resizeHandle {
@@ -671,7 +676,7 @@
 /* Полоса, активированная кликом: только её тянет драг, остальной драг панорамирует холст. */
 .gantt-tr-activityBar-active {
   z-index: 2;
-  outline: 2px solid var(--gantt-text-color, #111111);
+  outline: 2px solid var(--gantt-activity-active-outline, var(--gantt-text-color, #111111));
   outline-offset: 1px;
 }
 
@@ -696,8 +701,8 @@
   pointer-events: none;
   padding: 2px 7px;
   border-radius: 4px;
-  background: #111111;
-  color: #ffffff;
+  background: var(--gantt-activity-tip-bg, #111111);
+  color: var(--gantt-activity-tip-color, #ffffff);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
   font-size: 12px;
   line-height: 1.2;

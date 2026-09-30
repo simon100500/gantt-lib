@@ -112,8 +112,14 @@ export interface TaskRowProps {
   activityDragOwner?: ActivityDragOwner;
   /** Tracks which activity bar is click-activated; only an active bar can be dragged. */
   activityActivationStore?: ActivityActivationStore;
-  /** Dim other work types while an activity is activated (default: false). */
-  dimInactiveActivities?: boolean;
+  /** Click a work to arm it before dragging (default: false). */
+  activityClickToDrag?: boolean;
+  /** Visual of the activated work: 'none' | 'dim' | 'highlight' (default: 'none'). */
+  activityActivationMode?: 'none' | 'dim' | 'highlight';
+  /** Draw links between consecutive works of a row (default: true). */
+  showActivityLinks?: boolean;
+  /** Label the lag on work links (default: true). */
+  showActivityLag?: boolean;
   /** Visible horizontal pixel window; activity bars outside it are not rendered (pan optimization). */
   horizontalWindow?: { startPx: number; endPx: number };
   /** Called each RAF during cascade drag with override positions for non-dragged chain tasks */
@@ -210,7 +216,10 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.activityBlockStore === nextProps.activityBlockStore &&
     prevProps.activityDragOwner === nextProps.activityDragOwner &&
     prevProps.activityActivationStore === nextProps.activityActivationStore &&
-    prevProps.dimInactiveActivities === nextProps.dimInactiveActivities &&
+    prevProps.activityClickToDrag === nextProps.activityClickToDrag &&
+    prevProps.activityActivationMode === nextProps.activityActivationMode &&
+    prevProps.showActivityLinks === nextProps.showActivityLinks &&
+    prevProps.showActivityLag === nextProps.showActivityLag &&
     prevProps.horizontalWindow?.startPx === nextProps.horizontalWindow?.startPx &&
     prevProps.horizontalWindow?.endPx === nextProps.horizontalWindow?.endPx &&
     prevProps.allTasks === nextProps.allTasks &&
@@ -248,7 +257,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
  * The task bar is positioned absolutely based on start/end dates.
  */
 const TaskRow: React.FC<TaskRowProps> = React.memo(
-  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore, dimInactiveActivities = false, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
+  ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore, activityClickToDrag = false, activityActivationMode = 'none', showActivityLinks = true, showActivityLag = true, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
@@ -605,6 +614,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       return { id: activeActivityId, name: activity?.name ?? null };
     }, [activeActivityKey, allTasks]);
 
+    // Активация: клик-вооружение перед драгом и/или визуальная подсветка цепочки.
+    const activationVisualEnabled = activityClickToDrag || activityActivationMode !== 'none';
+    const dimOthers = activityActivationMode === 'dim';
+    const highlightChain = activityActivationMode === 'highlight';
+
     // Изменение окончания изменённой работы: левый край конец не двигает — конвейер спит.
     const chainEndDeltaDays = (mode: ActivityDragMode, dayDelta: number, durationDays: number): number => {
       if (mode === 'resize-left') return 0;
@@ -837,7 +851,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const activityLinks = useMemo(() => {
       const gaps: Array<{ key: string; left: number; width: number; lane: number; lag: number }> = [];
       const elbows: Array<{ key: string; d: string; lagX: number; lagY: number; lag: number }> = [];
-      if (!renderActivities || !activityLayout) return { gaps, elbows };
+      if (!showActivityLinks || !renderActivities || !activityLayout) return { gaps, elbows };
 
       const activities = task.activities ?? [];
       const segmentById = new Map(activityLayout.segments.map(segment => [segment.id, segment]));
@@ -895,7 +909,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       }
       return { gaps, elbows };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [renderActivities, activityLayout, visibleActivitySegments, activityTopOffset, activityOverrides, activityDrag, dayWidth, task.activities]);
+    }, [showActivityLinks, renderActivities, activityLayout, visibleActivitySegments, activityTopOffset, activityOverrides, activityDrag, dayWidth, task.activities]);
 
     const activityTipData = useMemo(() => {
       if (!activityTipId || !task.activities) return null;
@@ -984,7 +998,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                   {activityLinks.elbows.map(link => (
                     <g key={link.key}>
                       <path className="gantt-dependency-path" d={link.d} markerEnd="url(#arrowhead)" />
-                      {link.lag !== 0 && (
+                      {showActivityLag && link.lag !== 0 && (
                         <text
                           className="gantt-dependency-lag-label"
                           x={link.lagX}
@@ -1008,16 +1022,17 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 const isDraggingActivity = activityDrag?.id === segment.id;
                 const isBlockingActivity = blockedActivityIds?.has(segment.id) ?? false;
                 const isAtLimit = isDraggingActivity && activityBlockedBy !== null;
-                const isActiveActivity = activeActivityKey === activityOwnerKey(task.id, segment.id);
+                const isActiveActivity = activationVisualEnabled && activeActivityKey === activityOwnerKey(task.id, segment.id);
                 const isSameWorkType = activeWork !== null
                   && (segment.id === activeWork.id || (activeWork.name !== null && segment.name === activeWork.name));
-                // Что-то активно и это не работа-цепочка → приглушаем (если включено).
-                const isDimmed = dimInactiveActivities && activeWork !== null && !isSameWorkType;
+                // Приглушение остальных видов / подсветка цепочки этого вида.
+                const isDimmed = dimOthers && activeWork !== null && !isSameWorkType;
+                const isChainHighlighted = highlightChain && activeWork !== null && isSameWorkType;
                 return (
                   <div
                     key={segment.id}
                     data-activity-id={segment.id}
-                    className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${isBlockingActivity ? ' gantt-tr-activityBar-blocking' : ''}${isAtLimit ? ' gantt-tr-activityBar-atLimit' : ''}${isActiveActivity ? ' gantt-tr-activityBar-active' : ''}${isDimmed ? ' gantt-tr-activityBar-dimmed' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
+                    className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${isBlockingActivity ? ' gantt-tr-activityBar-blocking' : ''}${isAtLimit ? ' gantt-tr-activityBar-atLimit' : ''}${isActiveActivity ? ' gantt-tr-activityBar-active' : ''}${isDimmed ? ' gantt-tr-activityBar-dimmed' : ''}${isChainHighlighted ? ' gantt-tr-activityBar-chain' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
                     style={{
                       left: `${liveLeft}px`,
                       width: `${live.width}px`,
@@ -1028,12 +1043,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                     onMouseDown={event => {
                       if (!activityDragEnabled) return; // заблокированную полосу не тащим и не активируем
                       const activationKey = activityOwnerKey(task.id, segment.id);
-                      // Первый клик только активирует полосу: драг не начинаем и событие
-                      // не глушим, чтобы холст мог панорамироваться.
-                      if (activityActivationStore && activityActivationStore.getActiveKey() !== activationKey) {
-                        activityActivationStore.setActiveKey(activationKey);
-                        return;
+                      const isActive = activityActivationStore?.getActiveKey() === activationKey;
+                      if (activationVisualEnabled && !isActive) {
+                        activityActivationStore?.setActiveKey(activationKey);
                       }
+                      // Клик-вооружение: первый клик только активирует полосу, драг не
+                      // начинаем и событие не глушим, чтобы холст мог панорамироваться.
+                      if (activityClickToDrag && !isActive) return;
                       const target = event.target as HTMLElement;
                       const mode: ActivityDragMode = target.closest('.gantt-tr-resizeHandleLeft')
                         ? 'resize-left'
@@ -1076,7 +1092,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                       top: `${activityTopOffset + gap.lane * ACTIVITY_LANE_STEP + ACTIVITY_LANE_STEP / 2}px`,
                     }}
                   />
-                  {gap.lag > 0 && (
+                  {showActivityLag && gap.lag > 0 && (
                     <span
                       className="gantt-tr-activityLag"
                       title={`Зазор ${gap.lag} д`}
