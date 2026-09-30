@@ -493,7 +493,10 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     const activityDragEnabled = !task.locked && !disableTaskDrag;
     const [activityDrag, setActivityDrag] = useState<{ id: string; mode: ActivityDragMode; dayDelta: number } | null>(null);
     const [activityTipId, setActivityTipId] = useState<string | null>(null);
-    const [activityTipPosition, setActivityTipPosition] = useState<{ left: number; top: number } | null>(null);
+    const [activityTipPosition, setActivityTipPosition] = useState<{ left: number; top: number; below: boolean } | null>(null);
+    // Якорь подсказки — прямоугольник полосы на момент наведения: подсказка
+    // висит над работой и едет вместе с ней, а не за курсором.
+    const activityTipAnchor = useRef<{ left: number; top: number; below: boolean } | null>(null);
     const activityDragStart = useRef<{ x: number; durationDays: number } | null>(null);
     // Входящее ограничение старта, посчитанное один раз на старте перетаскивания:
     // предшественники за время буксировки не двигаются, граф пересобирать не нужно.
@@ -623,10 +626,16 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         }
         setActivityDrag(current => (current ? { ...current, dayDelta: clamped } : current));
         publishBlockers(blocked);
-        setActivityTipPosition({
-          left: Math.min(event.clientX + 14, window.innerWidth - 200),
-          top: Math.min(event.clientY + 18, window.innerHeight - 60),
-        });
+        // Подсказка едет вместе с полосой: сдвигаем якорь на ту же дельту.
+        const anchor = activityTipAnchor.current;
+        if (anchor) {
+          const shiftPx = activityDrag.mode === 'resize-right' ? 0 : clamped * dayWidth;
+          setActivityTipPosition({
+            left: Math.max(8, Math.min(anchor.left + shiftPx, window.innerWidth - 160)),
+            top: anchor.top,
+            below: anchor.below,
+          });
+        }
         publishChainPreview(activityDrag.id, activityDrag.mode, clamped);
       };
       const onUp = () => {
@@ -636,6 +645,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         setActivityBlockedBy(null);
         // Подсказка не должна «висеть» после переноса — прячем, вернётся на новом наведении.
         setActivityTipId(null);
+        activityTipAnchor.current = null;
         setActivityTipPosition(null);
         if (activityDrag.dayDelta !== 0) {
           const chainPush = task.activityChain === 'push';
@@ -705,6 +715,19 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       };
     }, [activityDrag, activityPreviewStore, activityBlockStore, activityDragOwner, allTasks, dayWidth, normalizedTask, onTasksChange, publishChainPreview, task.activities]);
 
+    // Подсказка висит над полосой (в вертикальном зазоре), а не под курсором,
+    // и не закрывает соседние работы. Близко к верху окна — показываем под полосой.
+    const anchorActivityTip = (rect: DOMRect) => {
+      const below = rect.top < 34;
+      const anchor = {
+        left: Math.max(8, Math.min(rect.left, window.innerWidth - 160)),
+        top: below ? rect.bottom + 6 : rect.top - 6,
+        below,
+      };
+      activityTipAnchor.current = anchor;
+      return anchor;
+    };
+
     const handleActivityPointerDown = (segment: ActivitySegment, mode: ActivityDragMode) => (event: React.MouseEvent) => {
       if (!activityDragEnabled) return;
       event.preventDefault();
@@ -720,6 +743,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         : null;
       activityDragOwner?.set(activityOwnerKey(task.id, segment.id));
       setActivityBlockedBy(null);
+      setActivityTipPosition(anchorActivityTip(event.currentTarget.getBoundingClientRect()));
       setActivityTipId(segment.id);
       setActivityDrag({ id: segment.id, mode, dayDelta: 0 });
     };
@@ -757,7 +781,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     }, [renderActivities, activityLayout, activityOverrides, activityDrag, dayWidth]);
 
     const activityTipData = useMemo(() => {
-      if (!activityTipId || !activityTipPosition || !task.activities) return null;
+      if (!activityTipId || !task.activities) return null;
       const activity = task.activities.find(item => item.id === activityTipId);
       if (!activity) return null;
       let start = parseUTCDate(activity.startDate);
@@ -766,18 +790,26 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
         start = shiftActivityDay(start, activityDrag.dayDelta);
         end = shiftActivityDay(end, activityDrag.dayDelta);
       }
+      const durationDays = activityDurationDays({ startDate: start, endDate: end });
+      const fields = activity.tooltipFields ?? [];
+      const lag = activity.lag && activity.lag > 0 ? activity.lag : 0;
+      // Узкая подсказка — одна строка с названием работы. Остальное (даты,
+      // длительность, поля, зазор) уходит в нативный title полосы, чтобы
+      // подсказка не закрывала данные.
       return {
         name: activity.name,
-        start,
-        end,
-        durationDays: activityDurationDays({ startDate: start, endDate: end }),
-        fields: activity.tooltipFields,
-        // Лаг показываем сами, если он задан и его не перекрывает своё поле «Зазор».
-        lag: activity.lag && activity.lag > 0 ? activity.lag : 0,
-        left: activityTipPosition.left,
-        top: activityTipPosition.top,
+        details: [
+          formatDateRangeLabel(start, end),
+          `${durationDays} д`,
+          ...fields.map(field => (
+            typeof field.value === 'string' || typeof field.value === 'number'
+              ? `${field.label}: ${field.value}`
+              : field.label
+          )),
+          lag > 0 && !fields.some(field => field.label === 'Зазор') ? `Зазор: ${lag} д` : null,
+        ].filter((part): part is string => Boolean(part)).join(' · '),
       };
-    }, [activityDrag, activityTipId, activityTipPosition, task.activities]);
+    }, [activityDrag, activityTipId, task.activities]);
 
     // Format date labels for display - update in real-time for direct drag and cascade preview.
     const currentStartDate = hasPreviewPosition
@@ -860,6 +892,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                   <div
                     key={segment.id}
                     data-activity-id={segment.id}
+                    title={activityTipId === segment.id ? activityTipData?.details : undefined}
                     className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${isBlockingActivity ? ' gantt-tr-activityBar-blocking' : ''}${isAtLimit ? ' gantt-tr-activityBar-atLimit' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
                     style={{
                       left: `${liveLeft}px`,
@@ -879,16 +912,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                     }}
                     onMouseEnter={event => {
                       if (activityDrag || activityDragOwner?.get()) return;
-                      const rect = event.currentTarget.getBoundingClientRect();
-                      setActivityTipPosition({
-                        left: Math.max(8, Math.min(rect.left, window.innerWidth - 200)),
-                        top: rect.bottom + 54 < window.innerHeight ? rect.bottom + 6 : Math.max(8, rect.top - 54),
-                      });
+                      setActivityTipPosition(anchorActivityTip(event.currentTarget.getBoundingClientRect()));
                       setActivityTipId(segment.id);
                     }}
                     onMouseLeave={() => {
                       if (!activityDrag) {
                         setActivityTipId(current => (current === segment.id ? null : current));
+                        activityTipAnchor.current = null;
                         setActivityTipPosition(null);
                       }
                     }}
@@ -1094,37 +1124,18 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             </div>,
             document.body
           )}
-          {activityTipData && typeof document !== 'undefined' && createPortal(
+          {activityTipData && activityTipPosition && typeof document !== 'undefined' && createPortal(
             <div
-              className="gantt-tr-activityTip"
-              style={{ left: `${activityTipData.left}px`, top: `${activityTipData.top}px` }}
+              className={`gantt-tr-activityTip${activityTipPosition.below ? ' gantt-tr-activityTip-below' : ''}`}
+              style={{ left: `${activityTipPosition.left}px`, top: `${activityTipPosition.top}px` }}
               role="tooltip"
             >
-              <div className="gantt-tr-activityTipName">{activityTipData.name}</div>
-              <div className="gantt-tr-activityTipDates">
-                {formatDateRangeLabel(activityTipData.start, activityTipData.end)} · {activityTipData.durationDays} д
-              </div>
-              {(activityTipData.fields ?? []).map(field => (
-                <div key={field.label} className="gantt-tr-activityTipField">
-                  <span className="gantt-tr-activityTipFieldLabel">{field.label}</span>
-                  <span className="gantt-tr-activityTipFieldValue">{field.value}</span>
-                </div>
-              ))}
-              {activityTipData.lag > 0
-                && !(activityTipData.fields ?? []).some(field => field.label === 'Зазор') && (
-                  <div className="gantt-tr-activityTipField">
-                    <span className="gantt-tr-activityTipFieldLabel">Зазор</span>
-                    <span className="gantt-tr-activityTipFieldValue">{activityTipData.lag} д</span>
-                  </div>
-                )}
+              <span className="gantt-tr-activityTipName">{activityTipData.name}</span>
               {activityBlockedBy && (
-                <div className="gantt-tr-activityTipBlocked">
-                  <span className="gantt-tr-activityTipBlockedIcon" aria-hidden="true">⛔</span>
-                  <span>
-                    Упёрлась: {activityBlockedBy.names.join(', ')}
-                    {activityBlockedBy.lag > 0 ? ` · зазор ${activityBlockedBy.lag} д` : ''}
-                  </span>
-                </div>
+                <span className="gantt-tr-activityTipReason">
+                  · упёрлась: {activityBlockedBy.names.join(', ')}
+                  {activityBlockedBy.lag > 0 ? ` · зазор ${activityBlockedBy.lag} д` : ''}
+                </span>
               )}
             </div>,
             document.body

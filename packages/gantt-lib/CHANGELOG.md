@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
 - Add the `'push'` conveyor mode for `activityChain` (выталкивание, ASAP): earlier moves fill downstream gaps at once, later moves push followers only after a collision, and `lag` on an activity pins a constant gap; dragged starts are clamped against incoming links. Gaps wider than zero render as horizontal arrows between consecutive works of a lane.
 - Stop a pushed work at its blocking predecessor: in `'push'` mode the bar halts live at «predecessor end + lag» and no longer snaps back on drop. The reason is visible — the blocking work gets a red outline, the dragged bar shows a stop edge, and the tooltip gains an «Упёрлась: … · зазор N д» line. A lag gap is labelled «+N» at the arrow head in the dependency-line colour, matching the dependency lag labels, and the activity tooltip appends a «Зазор» field unless a custom one overrides it. A work's lag belongs to its own floor sequence: the vertical «same work on the floor above» link carries no lag. While a drag is in flight other rows' hover tooltips stay mute, and the dragged work's tooltip is dismissed on drop, so nothing hangs. The lane-gap connector is a hairline centred on the bar.
 
+- Make the activity tooltip a narrow one-liner above the bar: it shows the work name, while dates, duration, `tooltipFields` and lag moved to the bar's native `title`, so the tooltip no longer covers chart data. During a drag the stop reason is appended to the same line.
+
 ## [0.136.1] - 2026-09-29
 
 ### Fixes

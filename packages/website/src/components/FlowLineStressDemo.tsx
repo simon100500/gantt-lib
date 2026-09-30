@@ -8,16 +8,11 @@ const FLOORS = 25;
 const WORKS_PER_FLOOR = 40;
 const CONTRACTORS = ["СК Строй", "Отделка-Профи", "МонтажСервис", "РемМастер", "СтройГарант"];
 
-// Плавная шкала: соседние работы отличаются тоном на один шаг и не разлетаются
-// по комплементарным цветам. Яркость чередуется в шахматном порядке — соседние
-// работы заметно разные, но строка остаётся ровной; повтор через HUE_STEPS работ.
-const HUE_STEPS = 18;
-const activityColor = (work: number): string => {
-  const step = work % HUE_STEPS;
-  const hue = Math.round(step * (360 / HUE_STEPS));
-  const lightness = step % 2 === 0 ? 0.46 : 0.62;
-  return `oklch(${lightness} 0.15 ${hue})`;
-};
+// Оттенок идёт по кругу крупным ровным шагом, а светлота и насыщенность
+// постоянные — меняется только тон; повтор через HUE_STEPS работ.
+const HUE_STEPS = 12;
+const activityColor = (work: number): string =>
+  `oklch(0.6 0.17 ${Math.round((work % HUE_STEPS) * (360 / HUE_STEPS))})`;
 
 // Детерминированный PRNG: одинаковые данные на сервере и клиенте (без hydration-мисматчей).
 const mulberry32 = (seed: number) => () => {

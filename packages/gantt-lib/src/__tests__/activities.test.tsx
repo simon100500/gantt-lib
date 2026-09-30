@@ -301,10 +301,11 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
     const { container } = render(
       <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
     );
-    fireEvent.mouseEnter(container.querySelector<HTMLElement>('[data-activity-id="b"]')!, { clientX: 300, clientY: 20 });
-    const tip = document.querySelector('.gantt-tr-activityTip')!;
-    expect(tip.textContent).toContain('Зазор');
-    expect(tip.textContent).toContain('2 д');
+    const bar = container.querySelector<HTMLElement>('[data-activity-id="b"]')!;
+    fireEvent.mouseEnter(bar, { clientX: 300, clientY: 20 });
+    // Зазор уходит в нативный title полосы, подсказка остаётся узкой.
+    expect(bar.getAttribute('title')).toContain('Зазор: 2 д');
+    expect(document.querySelector('.gantt-tr-activityTip')!.textContent).toBe('B');
   });
 
   it('stops the dragged bar at the blocking predecessor live (no drop rollback)', () => {
@@ -594,8 +595,9 @@ describe('multi-activity rows in GanttChart', () => {
 
     const tip = document.querySelector('.gantt-tr-activityTip');
     expect(tip).not.toBeNull();
-    expect(tip!.querySelector('.gantt-tr-activityTipFieldLabel')?.textContent).toBe('Подрядчик');
-    expect(tip!.querySelector('.gantt-tr-activityTipFieldValue')?.textContent).toBe('ООО СК Строй');
+    // Узкая подсказка — только имя; настраиваемые поля уходят в нативный title полосы.
+    expect(tip!.querySelector('.gantt-tr-activityTipField')).toBeNull();
+    expect(bar.getAttribute('title')).toContain('ООО СК Строй');
   });
 
   it('shows a hover tooltip with the activity name and dates', () => {
@@ -609,8 +611,11 @@ describe('multi-activity rows in GanttChart', () => {
 
     const tip = document.querySelector('.gantt-tr-activityTip');
     expect(tip).not.toBeNull();
-    expect(tip!.textContent).toContain('Обои');
-    expect(tip!.textContent).toContain('5 д');
+    // Узкая подсказка — одна строка с названием.
+    expect(tip!.textContent).toBe('Обои');
+    expect(tip!.querySelector('.gantt-tr-activityTipName')?.textContent).toBe('Обои');
+    // Даты и длительность — в нативном title полосы.
+    expect(bar.getAttribute('title')).toContain('5 д');
 
     fireEvent.mouseLeave(bar);
     expect(document.querySelector('.gantt-tr-activityTip')).toBeNull();
