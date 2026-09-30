@@ -706,6 +706,17 @@
 }
 
 .gantt-tr-activityTipName {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* Круглая точка-разделитель между этажом и работой. */
+.gantt-tr-activityTipDot {
+  margin: 0 5px;
+  opacity: 0.6;
+}
+
+.gantt-tr-activityTipWork {
   font-weight: 600;
 }
 
@@ -740,6 +751,17 @@
   border-left: 8px solid var(--gantt-dependency-line-color, #666666);
   border-top: 3px solid transparent;
   border-bottom: 3px solid transparent;
+}
+
+/* Связи работ (наложение или разные дорожки) — оверлей как у связей Ганта:
+   тот же класс пути gantt-dependency-path, маркер #arrowhead и лаг-подпись. */
+.gantt-tr-activityLinksSvg {
+  position: absolute;
+  inset: 0;
+  /* Как у связей Ганта (.gantt-dependencies-svg): оверлей поверх полос. */
+  z-index: 5;
+  overflow: visible;
+  pointer-events: none;
 }
 
 /* Лаг связи между работами: подпись «+N» в стиле лаг-подписи обычных связей

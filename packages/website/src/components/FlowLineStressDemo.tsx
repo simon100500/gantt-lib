@@ -31,6 +31,19 @@ const PUOR = ["#2D004B", "#542788", "#8073AC", "#B2ABD2", "#D8DAEB", "#F7F7F7", 
 const TABLEAU10 = ["#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948", "#B07AA1", "#FF9DA7", "#9C755F", "#BAB0AC"];
 const SET3 = ["#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5", "#D9D9D9", "#BC80BD", "#CCEBC5", "#FFED6F"];
 
+/** Тон hex-цвета (0–360) — чтобы разложить набор по радуге. */
+const hueOf = (hex: string): number => {
+  const [r, g, b] = [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  if (delta === 0) return 0;
+  let hue = max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  hue *= 60;
+  return hue < 0 ? hue + 360 : hue;
+};
+const rainbowOrder = (colors: string[]): string[] => [...colors].sort((a, b) => hueOf(a) - hueOf(b));
+
 const PALETTES: Array<{ key: string; label: string; anchors?: string[]; fixed?: string[]; hue?: boolean }> = [
   { key: "sunset", label: "Закат: фиолетовый → коричневый → золото", anchors: SUNSET },
   { key: "plasma", label: "Plasma: фиолетово-жёлтая (matplotlib)", anchors: PLASMA },
@@ -39,6 +52,7 @@ const PALETTES: Array<{ key: string; label: string; anchors?: string[]; fixed?: 
   { key: "cividis", label: "Cividis: сине-жёлтая, дальтоник-френдли", anchors: CIVIDIS },
   { key: "puor", label: "PuOr: фиолетово-оранжевая (ColorBrewer)", anchors: PUOR },
   { key: "tableau", label: "Tableau 10: категориальная", fixed: TABLEAU10 },
+  { key: "tableau-rainbow", label: "Tableau 10 по радуге", fixed: rainbowOrder(TABLEAU10) },
   { key: "set3", label: "Set3: пастельная (ColorBrewer)", fixed: SET3 },
   { key: "rainbow", label: "Радуга: тон по кругу", hue: true },
 ];

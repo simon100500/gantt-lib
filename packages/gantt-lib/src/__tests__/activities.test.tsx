@@ -295,7 +295,33 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
     expect(parseInt(label!.style.left, 10)).toBe(parseInt(arrow.style.left, 10) + parseInt(arrow.style.width, 10) - 14);
   });
 
-  it('keeps the tooltip to the work name only', () => {
+  it('draws a standard elbow link with lag when works overlap', () => {
+    const tasks: Task[] = [{
+      id: 'floor-1',
+      name: 'Этаж 1',
+      startDate: '2026-03-05',
+      endDate: '2026-03-12',
+      activities: [
+        // B начинается (03-08) раньше конца A (03-10) — работы наслаиваются,
+        // уходят в разные дорожки, прямая стрелка невозможна.
+        { id: 'a', name: 'A', startDate: '2026-03-05', endDate: '2026-03-10' },
+        { id: 'b', name: 'B', startDate: '2026-03-08', endDate: '2026-03-12', lag: 2 },
+      ],
+    }];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+    // Прямой стрелки нет — связь рисуется ортогональным путём Ганта.
+    expect(container.querySelector('.gantt-tr-activityLink')).toBeNull();
+    const paths = container.querySelectorAll('.gantt-tr-activityLinksSvg .gantt-dependency-path');
+    expect(paths).toHaveLength(1);
+    expect(paths[0].getAttribute('d')).toContain('M');
+    expect(paths[0].getAttribute('marker-end')).toBe('url(#arrowhead)');
+    // И лаг подписан на этой связи — тем же классом, что у связей Ганта.
+    expect(container.querySelector('.gantt-dependency-lag-label')?.textContent).toBe('+2');
+  });
+
+  it('shows the floor and the work in the tooltip', () => {
     const tasks: Task[] = [{
       id: 'floor-1',
       name: 'Этаж 1',
@@ -311,7 +337,7 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
     const bar = container.querySelector<HTMLElement>('[data-activity-id="b"]')!;
     fireEvent.mouseEnter(bar, { clientX: 300, clientY: 20 });
     expect(bar.getAttribute('title')).toBeNull();
-    expect(document.querySelector('.gantt-tr-activityTip')!.textContent).toBe('B');
+    expect(document.querySelector('.gantt-tr-activityTip')!.textContent).toBe('Этаж 1·B');
   });
 
   it('stops the dragged bar at the blocking predecessor live (no drop rollback)', () => {
@@ -583,7 +609,7 @@ describe('multi-activity rows in GanttChart', () => {
     expect(floor2.activities!.find(activity => activity.id === 'wallpaper')!.startDate).toBe('2026-03-11');
   });
 
-  it('shows only the work name in the narrow tooltip', () => {
+  it('shows the floor and work without extra fields', () => {
     const tasks: Task[] = [{
       id: 'floor-1',
       name: 'Этаж 1',
@@ -607,8 +633,8 @@ describe('multi-activity rows in GanttChart', () => {
 
     const tip = document.querySelector('.gantt-tr-activityTip');
     expect(tip).not.toBeNull();
-    // Узкая подсказка — только имя; системного title нет.
-    expect(tip!.textContent).toBe('Обои');
+    // Узкая подсказка — этаж и работа; полей и системного title нет.
+    expect(tip!.querySelector('.gantt-tr-activityTipWork')?.textContent).toBe('Обои');
     expect(tip!.querySelector('.gantt-tr-activityTipField')).toBeNull();
     expect(bar.getAttribute('title')).toBeNull();
   });
@@ -624,9 +650,10 @@ describe('multi-activity rows in GanttChart', () => {
 
     const tip = document.querySelector('.gantt-tr-activityTip');
     expect(tip).not.toBeNull();
-    // Узкая подсказка — одна строка с названием.
-    expect(tip!.textContent).toBe('Обои');
-    expect(tip!.querySelector('.gantt-tr-activityTipName')?.textContent).toBe('Обои');
+    // Узкая подсказка: этаж · работа, одной строкой.
+    expect(tip!.querySelector('.gantt-tr-activityTipName')?.textContent).toBe('Этаж 1');
+    expect(tip!.querySelector('.gantt-tr-activityTipDot')?.textContent).toBe('·');
+    expect(tip!.querySelector('.gantt-tr-activityTipWork')?.textContent).toBe('Обои');
     expect(bar.getAttribute('title')).toBeNull();
 
     fireEvent.mouseLeave(bar);
@@ -652,9 +679,9 @@ describe('multi-activity rows in GanttChart', () => {
     fireEvent.mouseEnter(bar, { clientX: 300, clientY: 20 });
 
     const tip = document.querySelector('.gantt-tr-activityTip')!;
-    expect(tip.textContent).toBe('Монтаж металлоконструкций');
+    expect(tip.querySelector('.gantt-tr-activityTipWork')?.textContent).toBe('Монтаж металлоконструкций');
     // Одна строка — без переносов.
-    expect(tip.querySelectorAll('.gantt-tr-activityTipName')).toHaveLength(1);
+    expect(tip.querySelectorAll('.gantt-tr-activityTipWork')).toHaveLength(1);
   });
 
   it('suppresses hover tooltips elsewhere while an activity is dragged', () => {
