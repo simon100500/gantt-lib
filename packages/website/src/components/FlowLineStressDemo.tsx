@@ -44,6 +44,24 @@ const hueOf = (hex: string): number => {
 };
 const rainbowOrder = (colors: string[]): string[] => [...colors].sort((a, b) => hueOf(a) - hueOf(b));
 
+/** Вставить по `perGap` интерполированных оттенков между соседними цветами. */
+const extendRamp = (colors: string[], perGap: number): string[] => {
+  const extended: string[] = [];
+  for (let index = 0; index < colors.length; index += 1) {
+    extended.push(colors[index]);
+    if (index < colors.length - 1) {
+      for (let step = 1; step <= perGap; step += 1) {
+        extended.push(mixHex(colors[index], colors[index + 1], step / (perGap + 1)));
+      }
+    }
+  }
+  return extended;
+};
+
+// Tableau 10, разложенный по радуге, с двумя промежуточными оттенками в каждом
+// стыке; в конец — холодный серый, чтобы расширить шкалу.
+const TABLEAU_EXTENDED = [...extendRamp(rainbowOrder(TABLEAU10), 2), "#6B7A99"];
+
 const PALETTES: Array<{ key: string; label: string; anchors?: string[]; fixed?: string[]; hue?: boolean }> = [
   { key: "sunset", label: "Закат: фиолетовый → коричневый → золото", anchors: SUNSET },
   { key: "plasma", label: "Plasma: фиолетово-жёлтая (matplotlib)", anchors: PLASMA },
@@ -53,12 +71,13 @@ const PALETTES: Array<{ key: string; label: string; anchors?: string[]; fixed?: 
   { key: "puor", label: "PuOr: фиолетово-оранжевая (ColorBrewer)", anchors: PUOR },
   { key: "tableau", label: "Tableau 10: категориальная", fixed: TABLEAU10 },
   { key: "tableau-rainbow", label: "Tableau 10 по радуге", fixed: rainbowOrder(TABLEAU10) },
+  { key: "tableau-extended", label: "Tableau 10 расширенная (интерполяция + серый)", fixed: TABLEAU_EXTENDED },
   { key: "set3", label: "Set3: пастельная (ColorBrewer)", fixed: SET3 },
   { key: "rainbow", label: "Радуга: тон по кругу", hue: true },
 ];
 
 const MIN_COLOR_STEPS = 4;
-const MAX_COLOR_STEPS = 24;
+const MAX_COLOR_STEPS = 32;
 
 /**
  * Развернуть набор в нужное число цветов. «Замкнутая» палитра сэмплируется по
