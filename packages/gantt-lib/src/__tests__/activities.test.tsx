@@ -321,6 +321,39 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
     expect(container.querySelector('.gantt-dependency-lag-label')?.textContent).toBe('+2');
   });
 
+  it('points the overlap link down while a work is dragged over its neighbour', () => {
+    const tasks: Task[] = [{
+      id: 'floor-1',
+      name: 'Этаж 1',
+      startDate: '2026-03-01',
+      endDate: '2026-03-04',
+      activities: [
+        { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-02' },
+        { id: 'b', name: 'B', startDate: '2026-03-03', endDate: '2026-03-04' },
+      ],
+    }];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+    const bar = container.querySelector<HTMLElement>('[data-activity-id="b"]')!;
+
+    // Пока всё встык — связи нет.
+    expect(container.querySelector('.gantt-dependency-path')).toBeNull();
+
+    activateActivity(bar);
+    fireEvent.mouseDown(bar, { clientX: 500, clientY: 20 });
+    fireEvent.mouseMove(window, { clientX: 460, clientY: 20 });
+
+    const path = container.querySelector('.gantt-tr-activityLinksSvg .gantt-dependency-path');
+    expect(path).not.toBeNull();
+    const d = path!.getAttribute('d')!;
+    const startY = Number(/^M\s+\S+\s+(\S+)/.exec(d)![1]);
+    const endY = Number(/V\s+(\S+)/.exec(d)![1]);
+    // Будущая накладка: стрелка уходит вниз (работа скинется на дорожку ниже).
+    expect(endY).toBeGreaterThan(startY);
+    fireEvent.mouseUp(window);
+  });
+
   it('shows the floor and the work in the tooltip', () => {
     const tasks: Task[] = [{
       id: 'floor-1',
@@ -739,5 +772,41 @@ describe('multi-activity rows in GanttChart', () => {
     expect(parseInt(bar().style.left, 10)).toBe(before + 40);
     fireEvent.mouseUp(window);
     expect(onTasksChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('dims other work types when a work is activated', () => {
+    const tasks: Task[] = [
+      {
+        id: 'floor-1', name: 'Этаж 1', startDate: '2026-03-02', endDate: '2026-03-06',
+        activities: [
+          { id: 'a', name: 'A', startDate: '2026-03-02', endDate: '2026-03-03' },
+          { id: 'b', name: 'B', startDate: '2026-03-04', endDate: '2026-03-05' },
+        ],
+      },
+      {
+        id: 'floor-2', name: 'Этаж 2', startDate: '2026-03-04', endDate: '2026-03-08',
+        activities: [
+          { id: 'a', name: 'A', startDate: '2026-03-04', endDate: '2026-03-05' },
+          { id: 'b', name: 'B', startDate: '2026-03-06', endDate: '2026-03-07' },
+        ],
+      },
+    ];
+    const { container } = render(
+      <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={300} businessDays={false} />
+    );
+    const bar = (floor: string, id: string) => container.querySelector<HTMLElement>(
+      `[data-gantt-task-row-id="${floor}"] [data-activity-id="${id}"]`
+    )!;
+
+    expect(container.querySelectorAll('.gantt-tr-activityBar-dimmed')).toHaveLength(0);
+
+    fireEvent.mouseDown(bar('floor-1', 'a'), { clientX: 500, clientY: 20 });
+    fireEvent.mouseUp(window);
+
+    // Цепочка «A» на обоих этажах остаётся яркой, «B» приглушены.
+    expect(bar('floor-1', 'a').className).not.toContain('gantt-tr-activityBar-dimmed');
+    expect(bar('floor-2', 'a').className).not.toContain('gantt-tr-activityBar-dimmed');
+    expect(bar('floor-1', 'b').className).toContain('gantt-tr-activityBar-dimmed');
+    expect(bar('floor-2', 'b').className).toContain('gantt-tr-activityBar-dimmed');
   });
 });

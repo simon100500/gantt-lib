@@ -649,7 +649,13 @@
   white-space: nowrap;
   cursor: grab;
   user-select: none;
-  transition: box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+/* При активации работы её цепочка (тот же вид на других этажах) остаётся
+   яркой, а остальные виды приглушаются — видно именно цепочку. */
+.gantt-tr-activityBar-dimmed {
+  opacity: 0.55;
 }
 
 .gantt-tr-activityBar .gantt-tr-resizeHandle {

@@ -592,6 +592,16 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       () => null
     );
 
+    // Включённая работа (id/имя) — по ней подсвечиваем всю её цепочку на всех этажах,
+    // а остальные виды работ приглушаем.
+    const activeWork = useMemo(() => {
+      if (!activeActivityKey) return null;
+      const [activeTaskId, activeActivityId] = activeActivityKey.split('\u0000');
+      const source = (allTasks ?? []).find(candidate => candidate.id === activeTaskId);
+      const activity = source?.activities?.find(candidate => candidate.id === activeActivityId);
+      return { id: activeActivityId, name: activity?.name ?? null };
+    }, [activeActivityKey, allTasks]);
+
     // Изменение окончания изменённой работы: левый край конец не двигает — конвейер спит.
     const chainEndDeltaDays = (mode: ActivityDragMode, dayDelta: number, durationDays: number): number => {
       if (mode === 'resize-left') return 0;
@@ -857,17 +867,19 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           continue;
         }
 
-        // Наложение или разные дорожки — ортогональная связь ровно как в Ганте:
-        // выход из низа предшественника, вход в верх преемника, маркер-стрелка и лаг.
+        // Наложение или разные дорожки — ортогональная связь как в Ганте.
+        // Накладка в одной дорожке → работа «скинется» на дорожку ниже, поэтому
+        // стрелку по умолчанию ведём вниз (вход в верх на дорожку ниже).
         const predecessorLaneTop = laneTopY(predecessor.lane);
         const successorLaneTop = laneTopY(successor.lane);
-        const reverseOrder = successorLaneTop < predecessorLaneTop;
+        const sameLane = predecessor.lane === successor.lane;
+        const reverseOrder = !sameLane && successorLaneTop < predecessorLaneTop;
         const fromY = reverseOrder
           ? predecessorLaneTop + 6
           : predecessorLaneTop + ACTIVITY_LANE_BAR_HEIGHT - 6;
         const toY = reverseOrder
           ? successorLaneTop + ACTIVITY_LANE_BAR_HEIGHT - 6
-          : successorLaneTop + 6;
+          : successorLaneTop + (sameLane ? ACTIVITY_LANE_STEP : 0) + 6;
         const fromX = predRect.right;
         const toX = succRect.left;
         elbows.push({
@@ -994,11 +1006,15 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 const isBlockingActivity = blockedActivityIds?.has(segment.id) ?? false;
                 const isAtLimit = isDraggingActivity && activityBlockedBy !== null;
                 const isActiveActivity = activeActivityKey === activityOwnerKey(task.id, segment.id);
+                const isSameWorkType = activeWork !== null
+                  && (segment.id === activeWork.id || (activeWork.name !== null && segment.name === activeWork.name));
+                // Что-то активно и это не работа-цепочка → приглушаем.
+                const isDimmed = activeWork !== null && !isSameWorkType;
                 return (
                   <div
                     key={segment.id}
                     data-activity-id={segment.id}
-                    className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${isBlockingActivity ? ' gantt-tr-activityBar-blocking' : ''}${isAtLimit ? ' gantt-tr-activityBar-atLimit' : ''}${isActiveActivity ? ' gantt-tr-activityBar-active' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
+                    className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${isBlockingActivity ? ' gantt-tr-activityBar-blocking' : ''}${isAtLimit ? ' gantt-tr-activityBar-atLimit' : ''}${isActiveActivity ? ' gantt-tr-activityBar-active' : ''}${isDimmed ? ' gantt-tr-activityBar-dimmed' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
                     style={{
                       left: `${liveLeft}px`,
                       width: `${live.width}px`,
@@ -1248,7 +1264,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               <span className="gantt-tr-activityTipWork">{activityTipData.name}</span>
               {activityBlockedBy && (
                 <span className="gantt-tr-activityTipReason">
-                  · упёрлась: {activityBlockedBy.names.join(', ')}
+                  · Блок: {activityBlockedBy.names.join(', ')}
                   {activityBlockedBy.lag > 0 ? ` · зазор ${activityBlockedBy.lag} д` : ''}
                 </span>
               )}
