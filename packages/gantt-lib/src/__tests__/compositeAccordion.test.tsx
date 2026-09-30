@@ -1,7 +1,12 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { GanttChart, type Task } from '../components/GanttChart';
+
+beforeAll(() => {
+  // jsdom не реализует прокрутку у элементов — автоскролл к раскрытой задаче в таблице
+  Element.prototype.scrollTo = () => {};
+});
 
 const tasks: Task[] = [
   { id: 'floor-work', name: 'Floor work', startDate: '2026-03-02', endDate: '2026-03-04', composite: true },
@@ -53,7 +58,7 @@ describe('composite Gantt accordion', () => {
     expect(document.querySelectorAll('.gantt-tr-compositePreviewBar')).toHaveLength(2);
     expect(container.querySelectorAll('.gantt-tr-compositeSegment')).toHaveLength(2);
     expect(rows()).toHaveLength(2);
-    expect(rows()[0].querySelector('.gantt-tr-compositeDuration')?.textContent).toBe('6 д');
+    expect(rows()[0].querySelector('.gantt-tr-taskDuration')?.textContent).toBe('6 д');
     expect(rows()[0].querySelector('.gantt-tr-externalTaskName')?.textContent).toBe('Floor work');
 
     fireEvent.mouseDown(bar, { clientX: 200, clientY: 20 });
@@ -70,9 +75,9 @@ describe('composite Gantt accordion', () => {
     ]);
     expect(rows()[1].querySelector('.gantt-tr-externalDuration')?.textContent).toBe('3 д');
     expect(rows()[1].querySelector('.gantt-tr-taskDuration')).toBeNull();
-    expect((rows()[3].parentElement as HTMLElement).style.top).toBe('92px');
+    expect((rows()[3].parentElement as HTMLElement).style.top).toBe('84px');
     const tableDoor = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="doors"]');
-    expect((tableDoor?.parentElement as HTMLElement).style.top).toBe('92px');
+    expect((tableDoor?.parentElement as HTMLElement).style.top).toBe('84px');
     expect((rows()[1] as HTMLElement).style.height).toBe('22px');
 
     const expandedBar = rows()[0].querySelector('[data-taskbar]')!;
@@ -81,14 +86,14 @@ describe('composite Gantt accordion', () => {
     fireEvent.click(expandedBar, { clientX: 200, clientY: 20 });
     expect(rows()).toHaveLength(2);
 
-    const tableName = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="floor-work"] .gantt-tl-name-trigger')!;
-    fireEvent.click(tableName);
+    const tableToggle = container.querySelector('.gantt-tl-row[data-gantt-task-row-id="floor-work"] .gantt-tl-compositeToggle')!;
+    expect(tableToggle.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(tableToggle);
     expect(rows()).toHaveLength(4);
-    expect(tableName.getAttribute('aria-expanded')).toBe('true');
-    expect(tableName.querySelector('path[d="m15 5 3 3 3-3"]')).not.toBeNull();
-    fireEvent.click(tableName);
+    expect(tableToggle.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(tableToggle);
     expect(rows()).toHaveLength(2);
-    expect(tableName.querySelector('path[d="m15 8 3-3 3 3"]')).not.toBeNull();
+    expect(tableToggle.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('tints composite detail rows in both panes and shares row hover across the full chart row', () => {

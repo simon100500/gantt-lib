@@ -77,6 +77,21 @@ describe('GanttChart showChart', () => {
     expect(container.querySelector('.gantt-tr-externalTaskName')?.textContent).toBe('Task 1');
   });
 
+  it('shows narrow regular task duration in right labels, never before the bar', () => {
+    const oneDayTasks: Task[] = [
+      { id: 'short-1', name: 'Short 1', startDate: '2026-02-01', endDate: '2026-02-01' },
+      { id: 'short-2', name: 'Short 2', startDate: '2026-02-02', endDate: '2026-02-02' },
+    ];
+    const { container } = render(<GanttChart tasks={oneDayTasks} />);
+
+    // «Перед полосой» подпись осталась только у мини-баров бар-аккордеона (compactDetail)
+    expect(container.querySelector('.gantt-tr-durationBeforeBar')).toBeNull();
+    const row = container.querySelector('.gantt-tr-row[data-gantt-task-row-id="short-1"]') as HTMLElement;
+    const rightLabels = row.querySelector('.gantt-tr-rightLabels') as HTMLElement;
+    expect(rightLabels.querySelector('.gantt-tr-externalDuration')?.textContent).toBe('1 д');
+    expect(row.querySelector('.gantt-tr-taskDuration')).toBeNull();
+  });
+
   it('hydrates vh-height virtualized task lists without row-count mismatch', async () => {
     const manyTasks: Task[] = Array.from({ length: 60 }, (_, index) => ({
       id: `task-${index + 1}`,

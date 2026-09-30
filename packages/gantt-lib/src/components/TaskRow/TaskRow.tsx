@@ -1404,9 +1404,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
             </svg>
           )}
-          {!showDurationInside && !milestone && !renderActivities && (
+          {compactDetail && !milestone && (
             <span
-              className={`gantt-tr-externalDuration gantt-tr-durationBeforeBar${compactDetail ? ' gantt-tr-compositeDuration' : ''}`}
+              className="gantt-tr-externalDuration gantt-tr-durationBeforeBar gantt-tr-compositeDuration"
               style={{ left: `${visualLeft - 46}px`, color: isParent ? (task.color || defaultParentBarColor) : barColor }}
             >
               {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
@@ -1420,6 +1420,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
               color: isParent ? (task.color || defaultParentBarColor) : barColor,
             }}
           >
+            {!compactDetail && !showDurationInside && !milestone && (
+              <span className="gantt-tr-externalDuration">
+                {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
+              </span>
+            )}
             {progressWidth > 0 && !showProgressInside && (
               <span className="gantt-tr-externalProgress">
                 {progressWidth}%
