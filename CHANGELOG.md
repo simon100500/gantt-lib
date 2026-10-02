@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.141.1] - 2026-10-02
+
+### Fixes
+
+- Preserve dependency-column edits before controlled scheduling when creating a link also snaps successor dates. Both predecessor and successor selection now retain the edge on the first attempt.
+
 ## [0.141.0] - 2026-10-01
 
 ### Features

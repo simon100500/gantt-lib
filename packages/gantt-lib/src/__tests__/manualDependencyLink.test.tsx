@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Verify manual links preserve structural edits with and without controlled scheduling.
+// SCOPE: Connection ports, column picker and dependency-before-schedule callback ordering.
+// INPUTS: Two tasks, native picker events and host callbacks.
+// OUTPUTS: Retained edge and exclusive schedule intent with original dates in structural changes.
+// END_MODULE_CONTRACT
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import React from 'react';
@@ -16,6 +22,23 @@ vi.mock('../components/ui/Calendar', () => ({
 }));
 
 describe('manual dependency linking', () => {
+  it.each(['predecessor', 'successor'] as const)('preserves a column-created edge before its schedule intent in %s mode', direction => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const onTasksChange = vi.fn();
+    const onScheduleIntent = vi.fn();
+    const tasks: Task[] = [
+      { id: 'pred', name: 'Predecessor', startDate: '2026-03-02', endDate: '2026-03-04' },
+      { id: 'succ', name: 'Successor', startDate: '2026-03-10', endDate: '2026-03-12' },
+    ];
+    const { container } = render(<GanttChart tasks={tasks} showTaskList businessDays={false} onTasksChange={onTasksChange} onScheduleIntent={onScheduleIntent} />);
+    const row = container.querySelectorAll('.gantt-tl-row')[direction === 'predecessor' ? 1 : 0] as HTMLElement;
+    fireEvent.click(within(row).getByRole('button', { name: 'Добавить связь' }));
+    if (direction === 'predecessor') fireEvent.click(screen.getByRole('button', { name: 'Предшественник' }));
+    fireEvent.click(screen.getByRole('button', { name: direction === 'predecessor' ? /^1\. Predecessor$/i : /^2\. Successor$/i }));
+    expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([{ ...tasks[1], dependencies: [{ taskId: 'pred', type: 'FS', lag: 0 }] }]);
+    expect(onScheduleIntent).toHaveBeenCalledExactlyOnceWith({ type: 'move_task', taskId: 'succ', startDate: '2026-03-05' });
+    expect(onTasksChange.mock.invocationCallOrder[0]).toBeLessThan(onScheduleIntent.mock.invocationCallOrder[0]);
+  });
   it('removes dependency-link hit targets on touch/coarse-pointer devices', () => {
     const stylesheet = readFileSync(resolve(process.cwd(), 'src/components/TaskRow/TaskRow.css'), 'utf8');
 

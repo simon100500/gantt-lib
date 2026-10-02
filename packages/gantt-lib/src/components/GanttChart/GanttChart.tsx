@@ -70,6 +70,7 @@ import './GanttChart.css';
 // INPUTS: GanttChartProps including showTaskDateLabels, showTaskNames, printDependencyLabels, and an optional exact dateRange.
 // OUTPUTS: Interactive task list/chart with configurable external task labels and print-friendly dependency text.
 // INVARIANT: onScheduleIntent suppresses scheduling persistence through onTasksChange/onCascade.
+// INVARIANT: Dependency edits accompanied by date snapping emit their structural change with original dates before the schedule-only intent.
 // INVARIANT: Any controlled task schedule replacement, including one outside an active drag, invalidates every transient drag/cascade coordinate before dependency geometry is retained.
 // END_MODULE_CONTRACT
 
@@ -1631,6 +1632,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const newStart = new Date(updatedTask.startDate as string);
     const newEnd = new Date(updatedTask.endDate as string);
     const datesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
+    // START_BLOCK_PRESERVE_DEPENDENCY_CHANGE
+    // PURPOSE: Preserve a dependency-column edit before date snapping emits a schedule-only intent.
+    // INPUTS: Previous and edited dependency lists plus the controlled scheduling callback.
+    // OUTPUTS: Structural edit reaches the host before its schedule intent; dates remain host-owned.
+    if (datesChanged && onScheduleIntent && JSON.stringify(originalTask.dependencies ?? []) !== JSON.stringify(updatedTask.dependencies ?? [])) {
+      onTasksChange?.([{ ...updatedTask, startDate: originalTask.startDate, endDate: originalTask.endDate } as TTask]);
+    }
+    // END_BLOCK_PRESERVE_DEPENDENCY_CHANGE
     const isCompositeDetail = datesChanged && tasks.some(task => task.id === updatedTask.parentId && task.composite);
     if (isCompositeDetail) updatedTask = { ...updatedTask, synced: false };
 
