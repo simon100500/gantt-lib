@@ -1,3 +1,8 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Verify dependency rendering, isolation across mounted charts and hover marker ownership.
+// INPUTS: Hidden and visible charts with the same linked tasks.
+// OUTPUTS: Unique stable markers resolving inside each owning SVG, including hover and selected edges.
+// END_MODULE_CONTRACT
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -150,4 +155,30 @@ describe('DependencyLines', () => {
     expect(container.querySelectorAll('.gantt-dependency-selected')).toHaveLength(1);
     expect(container.querySelectorAll('.gantt-dependency-selected-outline')).toHaveLength(0);
   });
+});
+
+it('keeps markers local and stable with a hidden sibling chart, including hover and selection', () => {
+ const tasks: Task[] = [{id:'a',name:'A',startDate:'2026-03-01',endDate:'2026-03-02'}, {id:'b',name:'B',startDate:'2026-03-03',endDate:'2026-03-04',dependencies:[{taskId:'a',type:'FS',lag:0}]}];
+ const props = {tasks,monthStart:new Date('2026-03-01T00:00:00Z'),dayWidth:40,rowHeight:40,gridWidth:1240};
+ const charts = (selected = false) => <><div style={{display:'none'}}><DependencyLines {...props}/></div><DependencyLines {...props} selectedDep={selected ? {predecessorId:'a',successorId:'b',linkType:'FS'} : undefined}/></>;
+ const {container,rerender} = render(charts());
+ const svgs = container.querySelectorAll('svg');
+ const ids = Array.from(container.querySelectorAll('marker'), marker => marker.id);
+ expect(new Set(ids).size).toBe(ids.length);
+ const assertLocal = () => {
+  for (const svg of svgs) for (const path of svg.querySelectorAll('.gantt-dependency-path')) {
+   const id = path.getAttribute('marker-end')!.slice(5,-1);
+   expect(Array.from(svg.querySelectorAll('marker')).some(marker => marker.id === id)).toBe(true);
+  }
+ };
+ assertLocal();
+ const line = svgs[1].querySelector('.gantt-dependency-line')!;
+ fireEvent.pointerEnter(line);
+ expect(svgs[1].querySelector('.gantt-dependency-path')?.getAttribute('marker-end')).toContain('arrowhead-hover');
+ assertLocal();
+ fireEvent.pointerLeave(line);
+ rerender(charts(true));
+ expect(svgs[1].querySelector('.gantt-dependency-path')?.getAttribute('marker-end')).toContain('arrowhead-selected');
+ expect(Array.from(container.querySelectorAll('marker'), marker => marker.id)).toEqual(ids);
+ assertLocal();
 });

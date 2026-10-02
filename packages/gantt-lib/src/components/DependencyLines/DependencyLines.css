@@ -70,7 +70,7 @@
 .gantt-dependency-line-hovered .gantt-dependency-path {
   stroke: var(--gantt-dependency-hover-color, #ef4444);
   stroke-width: 2;
-  marker-end: url(#arrowhead-hover);
+  /* The component supplies the instance-scoped hover marker. */
 }
 
 /* Arrow markers */

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.141.2] - 2026-10-03
+
+### Fixes
+
+- Keep dependency arrowheads visible when multiple charts are mounted, including hidden views. Give every chart stable private SVG marker ids and preserve hover/selected arrows.
+
 ## [0.141.1] - 2026-10-02
 
 ### Fixes

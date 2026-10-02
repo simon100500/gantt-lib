@@ -2,11 +2,12 @@
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render the shared native dependency paths for tasks and projected activity bars.
+// MARKER_IDENTITY: Each mounted chart owns stable unique SVG marker ids; hidden sibling charts must never capture its arrow references.
 // SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels; hidden dependencies stay in the graph but have no visual path.
 // INPUTS: Task-shaped nodes, explicit row geometry and label visibility.
 // OUTPUTS: Native SVG dependency paths and interactions.
 // END_MODULE_CONTRACT
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { Task } from '../../types';
 import { calculateDependencyPath, resolveTaskHorizontalGeometry } from '../../utils/geometry';
 import { isMilestoneTask } from '../../utils/taskType';
@@ -153,6 +154,10 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   onDependencyClick,
   horizontalWindow,
 }) => {
+  // START_BLOCK_INSTANCE_MARKER_IDS
+  const markerPrefix = `gantt-dependency-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  const markerId = (kind: string) => `${markerPrefix}-${kind}`;
+  // END_BLOCK_INSTANCE_MARKER_IDS
   const [hoveredLineId, setHoveredLineId] = useState<string | null>(null);
   // Use allTasks for virtual position calculation if provided, otherwise use tasks
   const tasksForPositions = allTasks ?? tasks;
@@ -459,7 +464,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       <defs>
         {/* Arrow marker for dependency lines */}
         <marker
-          id="arrowhead"
+          id={markerId('arrowhead')}
           markerWidth="8"
           markerHeight="6"
           markerUnits="userSpaceOnUse"
@@ -475,7 +480,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
         {/* Red arrow marker for circular dependencies */}
         <marker
-          id="arrowhead-cycle"
+          id={markerId('arrowhead-cycle')}
           markerWidth="8"
           markerHeight="6"
           markerUnits="userSpaceOnUse"
@@ -491,7 +496,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
         {/* Red arrow marker for selected dependency */}
         <marker
-          id="arrowhead-selected"
+          id={markerId('arrowhead-selected')}
           markerWidth="8"
           markerHeight="6"
           markerUnits="userSpaceOnUse"
@@ -507,7 +512,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
         {/* Red arrow marker for hovered dependency */}
         <marker
-          id="arrowhead-hover"
+          id={markerId('arrowhead-hover')}
           markerWidth="8"
           markerHeight="6"
           markerUnits="userSpaceOnUse"
@@ -523,7 +528,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
         {/* Red arrow marker for critical path dependency */}
         <marker
-          id="arrowhead-critical"
+          id={markerId('arrowhead-critical')}
           markerWidth="8"
           markerHeight="6"
           markerUnits="userSpaceOnUse"
@@ -551,10 +556,11 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         if (isVirtual && !isSelected) pathClassName += ' gantt-dependency-virtual';
 
         let markerEnd: string;
-        if (isSelected) markerEnd = 'url(#arrowhead-selected)';
-        else if (hasCycle) markerEnd = 'url(#arrowhead-cycle)';
-        else if (isCritical) markerEnd = 'url(#arrowhead-critical)';
-        else markerEnd = 'url(#arrowhead)';
+        if (isHovered) markerEnd = `url(#${markerId('arrowhead-hover')})`;
+        else if (isSelected) markerEnd = `url(#${markerId('arrowhead-selected')})`;
+        else if (hasCycle) markerEnd = `url(#${markerId('arrowhead-cycle')})`;
+        else if (isCritical) markerEnd = `url(#${markerId('arrowhead-critical')})`;
+        else markerEnd = `url(#${markerId('arrowhead')})`;
 
         const lagColor = isSelected
           ? '#ef4444'
