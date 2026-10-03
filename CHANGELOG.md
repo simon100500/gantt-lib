@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.143.0] - 2026-10-03
+
+### Refactor
+
+- Split activity link rendering between rows and a chart-wide overlay. The derived row sequence draws a clean seam for touching works and a gap-width link across a gap; the explicit activity graph renders in the overlay as orthogonal paths with arrows, lag labels and joints, and chain highlighting follows the shared dependency styling.
+- Make activity links purely visual: no hit zones, button role, hover or click handling, even when clicking on ordinary dependencies is enabled.
+- Compute lane packing, ports and link paths once for the whole activity graph and reuse them during horizontal, vertical and diagonal scrolling. Mount only visible edges, rebuild the graph on vertical scroll only, and scope arrow markers per chart.
+
+### Documentation
+
+- Document row activities and visual activity links in the API reference: task interface, props and dependencies sections.
+
 ## [0.142.2] - 2026-10-03
 
 ### Fixes
