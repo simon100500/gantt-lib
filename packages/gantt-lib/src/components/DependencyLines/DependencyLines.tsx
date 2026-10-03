@@ -3,6 +3,7 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Render the shared native dependency paths for tasks and projected activity bars.
 // MARKER_IDENTITY: Each mounted chart owns stable unique SVG marker ids; hidden sibling charts must never capture its arrow references.
+// PAN_COST: Stable empty collapse state keeps geometry memoized during hover and horizontal scroll.
 // TOUCH_COUPLING: Only explicit same-lane FS activity edges with zero lag and coincident side ports render a clickable joint; adjacency never infers an edge.
 // ACTIVITY_PORTS: Cross-row/lane activities use ports inset 6px from the top/bottom like the flow-line demo; same-lane activities use side centers. Ordinary task row padding remains unchanged.
 // SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels; hidden dependencies stay in the graph but have no visual path.
@@ -77,6 +78,8 @@ function areBothHiddenInSameParent(
   return predVisibleAncestor.id === succVisibleAncestor.id;
 }
 
+const EMPTY_COLLAPSED_PARENT_IDS = new Set<string>();
+
 export interface DependencyLinesProps {
   /** Visible tasks only (for row calculation) */
   tasks: Task[];
@@ -137,7 +140,7 @@ export interface DependencyLinesProps {
 export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   tasks,
   allTasks,
-  collapsedParentIds = new Set<string>(),
+  collapsedParentIds = EMPTY_COLLAPSED_PARENT_IDS,
   monthStart,
   dayWidth,
   rowHeight,

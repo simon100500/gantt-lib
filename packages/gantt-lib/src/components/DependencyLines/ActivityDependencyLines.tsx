@@ -2,6 +2,7 @@
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render explicit activity dependencies through the existing native Gantt dependency renderer.
+// PAN_COST: Project only rows incident to a rendered edge; keep offscreen endpoint rows for boundary links, and memoize topology separately from hover/pan.
 // SCOPE: Host-scoped activity IDs, packed lanes, FS/SS/FF/SF endpoints, lag visibility, virtualized rows and controlled/live chain geometry.
 // INPUTS: Visible row tasks, explicit activity edges, row offsets/heights and optional activity preview store and controlled chain/boundary highlight.
 // OUTPUTS: Native DependencyLines paths, markers, hover and lag labels; no DOM measurements or separate SVG implementation.
@@ -32,10 +33,12 @@ export function ActivityDependencyLines(props: Props) {
   const layout = useMemo(() => {
     const flattened: Task[] = [], rendered: Task[] = [], tops: number[] = [], heights: number[] = [];
     const indices = new Map<string, number>();
+    const neededRows = new Set<string>();
     const incoming = new Map<string, NonNullable<Task['dependencies']>>();
     const selected = props.highlight ? new Set(props.highlight.activities.map(activity => activityKey(activity.taskId, activity.activityId))) : undefined;
     const highlightMode = props.highlight?.mode ?? 'chain';
     for (const edge of dependencies) {
+      if (!props.renderedTaskIds.has(edge.predecessorTaskId) && !props.renderedTaskIds.has(edge.successorTaskId)) continue;
       if (selected) {
         const fromSelected = selected.has(activityKey(edge.predecessorTaskId, edge.predecessorActivityId));
         const toSelected = selected.has(activityKey(edge.successorTaskId, edge.successorActivityId));
@@ -44,12 +47,15 @@ export function ActivityDependencyLines(props: Props) {
         const outgoing = fromSelected && !toSelected && (highlightMode === 'chain-outgoing' || highlightMode === 'chain-all');
         if (!internal && !incoming && !outgoing) continue;
       }
+      neededRows.add(edge.predecessorTaskId);
+      neededRows.add(edge.successorTaskId);
       const id = activityKey(edge.successorTaskId, edge.successorActivityId);
       const values = incoming.get(id) ?? [];
       values.push({ taskId: activityKey(edge.predecessorTaskId, edge.predecessorActivityId), type: edge.type, lag: edge.lag });
       incoming.set(id, values);
     }
     for (const task of tasks) {
+      if (!neededRows.has(task.id)) continue;
       const row = props.rowIndexByTaskId.get(task.id);
       if (row === undefined || !task.activities?.length) continue;
       const height = props.rowHeights[row] ?? props.rowHeight;

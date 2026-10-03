@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.142.2] - 2026-10-03
+
+### Fixes
+
+- Keep flow panning bounded to rendered rows and their dependency endpoints on the 5000-bar demo. Reuse activity geometry during hover and horizontal scrolling instead of rebuilding it for a fresh empty collapse set.
+
 ## [0.142.1] - 2026-10-03
 
 ### Fixes
