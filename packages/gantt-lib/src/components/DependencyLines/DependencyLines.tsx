@@ -197,7 +197,19 @@ const DependencyLineView = React.memo(function DependencyLineView({
     </React.Fragment>
   );
 }, (prev, next) => (
-  prev.line === next.line &&
+  // Сравнение по значению, а не по ссылке линии: пересчёт геометрии на каждом
+  // бакете вертикальной прокрутки создаёт новые объекты линий с той же
+  // геометрией — пере-рендерить их нельзя, иначе пан дёргается.
+  prev.line.id === next.line.id &&
+  prev.line.path === next.line.path &&
+  prev.line.hasCycle === next.line.hasCycle &&
+  prev.line.lag === next.line.lag &&
+  prev.line.toX === next.line.toX &&
+  prev.line.fromY === next.line.fromY &&
+  prev.line.reverseOrder === next.line.reverseOrder &&
+  prev.line.isVirtual === next.line.isVirtual &&
+  prev.line.isCritical === next.line.isCritical &&
+  prev.line.isCoupling === next.line.isCoupling &&
   prev.hovered === next.hovered &&
   prev.selected === next.selected &&
   prev.showLag === next.showLag &&
@@ -591,10 +603,15 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
   // Calculate SVG height based on visible tasks (not all tasks)
   const svgHeight = totalHeight ?? (tasks.length * rowHeight);
+  // HIT_COST: интерактив слоя имеет смысл только когда хост обрабатывает клик
+  // по связи. Без обработчика сотни stroke-хит-путей превращаются в чистый
+  // налог на каждый mousemove (геометрическая проверка всех путей, мимо
+  // которых прошёл курсор) — слой рендерится статичным.
+  const interactive = onDependencyClick !== undefined;
 
   return (
     <svg
-      className="gantt-dependencies-svg"
+      className={`gantt-dependencies-svg${interactive ? '' : ' gantt-dependencies-svg-static'}`}
       data-testid="dependency-lines-svg"
       width={gridWidth}
       height={svgHeight}

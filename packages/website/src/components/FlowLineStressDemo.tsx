@@ -226,6 +226,7 @@ export default function FlowLineStressDemo() {
   const palette = PALETTES.find(item => item.key === paletteKey) ?? PALETTES[0];
   const [colorSteps, setColorSteps] = useState(18);
   const [loopPalette, setLoopPalette] = useState(true);
+  const [showLinks, setShowLinks] = useState(true);
   const colors = useMemo(
     () => paletteColors(palette, colorSteps, loopPalette),
     [palette, colorSteps, loopPalette],
@@ -349,6 +350,10 @@ export default function FlowLineStressDemo() {
           <input type="checkbox" checked={loopPalette} onChange={toggleLoopPalette} />
           Замыкать палитру (плавный стык повтора)
         </label>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: 0, fontSize: 13 }}>
+          <input type="checkbox" checked={showLinks} onChange={() => setShowLinks(current => !current)} />
+          Связи работ (стрелки зазоров и переходов)
+        </label>
       </div>
       <div className="demo-chart-card">
         <GanttChart
@@ -362,6 +367,7 @@ export default function FlowLineStressDemo() {
           viewMode={viewMode}
           activityClickToDrag
           activityActivationMode="dim"
+          showActivityLinks={showLinks}
           activityTooltip={renderActivityTooltip}
           rowHeight={40}
           taskListWidth={210}

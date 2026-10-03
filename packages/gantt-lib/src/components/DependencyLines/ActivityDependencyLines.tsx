@@ -10,7 +10,7 @@
 // OUTPUTS: Native DependencyLines paths, markers, hover and lag labels; no DOM measurements or separate SVG implementation.
 // DEPENDS: DependencyLines, computeActivityLanes, ActivityPreviewStore
 // END_MODULE_CONTRACT
-import React, { useEffect, useMemo, useReducer } from 'react';
+import React, { useEffect, useMemo, useReducer, useRef } from 'react';
 import type { Task, TaskActivityDependency, ActivityDependencyHighlight } from '../../types';
 import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, shiftActivityDate } from '../../utils/activities';
 import type { ActivityPreviewStore } from '../GanttChart/previewStore';
@@ -26,6 +26,32 @@ type Props = {
 };
 const activityKey = (taskId: string, activityId: string) => JSON.stringify([taskId, activityId]);
 
+// PAN_COST: вертикальная прокрутка меняет набор видимых строк на каждом бакете,
+// но дорожки уже спроектированных строк меняться не должны. Кэш по задаче
+// переживает смену окна рендера и перестраивается только при смене данных,
+// геометрии или превью этой задачи.
+type TaskLayoutCache = {
+  activities: NonNullable<Task['activities']>;
+  monthStartMs: number;
+  dayWidth: number;
+  overrides: Map<string, number> | undefined;
+  range: { startDate: Date; endDate: Date } | undefined;
+  laneCount: number;
+  lanes: Map<string, number>;
+  /** Raw activity ids aligned with `nodes` — lane keys are raw, node ids are host-scoped. */
+  rawIds: string[];
+  nodes: Task[];
+};
+
+const sameDependencies = (left: NonNullable<Task['dependencies']> | undefined, right: NonNullable<Task['dependencies']> | undefined): boolean => {
+  if (left === right) return true;
+  if (!left || !right || left.length !== right.length) return false;
+  return left.every((dep, index) => {
+    const other = right[index];
+    return dep.taskId === other.taskId && dep.type === other.type && dep.lag === other.lag && dep.hidden === other.hidden;
+  });
+};
+
 export function ActivityDependencyLines(props: Props) {
   const { tasks, dependencies, monthStart, dayWidth, previewStore } = props;
   const [previewVersion, refresh] = useReducer(value => value + 1, 0);
@@ -39,12 +65,13 @@ export function ActivityDependencyLines(props: Props) {
     for (const edge of dependencies) {
       const id=activityKey(edge.successorTaskId,edge.successorActivityId);
       const values=incoming.get(id) ?? [];
-      values.push({taskId:activityKey(edge.predecessorTaskId,edge.predecessorActivityId),type:edge.type,lag:edge.lag});incoming.set(id,values);
+      values.push({taskId:activityKey(edge.predecessorTaskId,edge.predecessorActivityId),type:edge.type,lag:edge.lag ?? 0});incoming.set(id,values);
     }
     const nodes=tasks.flatMap(task=>(task.activities ?? []).map(activity=>({id:activityKey(task.id,activity.id),name:activity.name,startDate:activity.startDate,endDate:activity.endDate,dependencies:incoming.get(activityKey(task.id,activity.id))})));
     return new Set(detectCycles(nodes).cyclePath ?? []);
   }, [tasks,dependencies]);
   // END_BLOCK_STABLE_ACTIVITY_CYCLE_GRAPH
+  const layoutCacheRef = useRef(new Map<string, TaskLayoutCache>());
   const layout = useMemo(() => {
     const flattened: Task[] = [], rendered: Task[] = [], tops: number[] = [], heights: number[] = [];
     const indices = new Map<string, number>();
@@ -54,6 +81,10 @@ export function ActivityDependencyLines(props: Props) {
     const highlightMode = props.highlight?.mode ?? 'chain';
     for (const edge of dependencies) {
       if (!props.renderedTaskIds.has(edge.predecessorTaskId) && !props.renderedTaskIds.has(edge.successorTaskId)) continue;
+      // Вертикальные (межстрочные) связи показываем и обновляем только когда
+      // выделена цепочка; без выделения основная картинка — связи по строкам.
+      const isCrossRow = edge.predecessorTaskId !== edge.successorTaskId;
+      if (isCrossRow && !props.highlight) continue;
       if (selected) {
         const fromSelected = selected.has(activityKey(edge.predecessorTaskId, edge.predecessorActivityId));
         const toSelected = selected.has(activityKey(edge.successorTaskId, edge.successorActivityId));
@@ -66,33 +97,70 @@ export function ActivityDependencyLines(props: Props) {
       neededRows.add(edge.successorTaskId);
       const id = activityKey(edge.successorTaskId, edge.successorActivityId);
       const values = incoming.get(id) ?? [];
-      values.push({ taskId: activityKey(edge.predecessorTaskId, edge.predecessorActivityId), type: edge.type, lag: edge.lag });
+      values.push({ taskId: activityKey(edge.predecessorTaskId, edge.predecessorActivityId), type: edge.type, lag: edge.lag ?? 0 });
       incoming.set(id, values);
     }
+    const monthStartMs = monthStart.getTime();
+    const cache = layoutCacheRef.current;
     for (const task of tasks) {
       if (!neededRows.has(task.id)) continue;
       const row = props.rowIndexByTaskId.get(task.id);
       if (row === undefined || !task.activities?.length) continue;
       const height = props.rowHeights[row] ?? props.rowHeight;
       if (height < props.rowHeight) continue; // Compact composite rows do not render activity bars.
-      const liveActivities = task.activities.map(activity => {
-        const range = previewStore?.getActivityRange?.(task.id, activity.id);
-        const delta = previewStore?.getTaskOverrides(task.id)?.get(activity.id) ?? 0;
-        return {...activity, startDate:range?.startDate ?? shiftActivityDate(activity.startDate,delta), endDate:range?.endDate ?? shiftActivityDate(activity.endDate,delta)};
-      });
-      const packed = computeActivityLanes(liveActivities, monthStart, dayWidth);
-      const offset = Math.max(0, (height - packed.laneCount * ACTIVITY_LANE_STEP) / 2);
-      const segments = new Map(packed.segments.map(segment => [segment.id, segment]));
-      for (const activity of liveActivities) {
-        const segment = segments.get(activity.id)!;
-        const id = activityKey(task.id, activity.id), index = flattened.length;
-        const node: Task = { id, name: activity.name, startDate: activity.startDate, endDate: activity.endDate, dependencies: incoming.get(id) };
+      const activities = task.activities;
+      const overrides = previewStore?.getTaskOverrides(task.id);
+      let range: TaskLayoutCache['range'];
+      for (const activity of activities) {
+        const current = previewStore?.getActivityRange?.(task.id, activity.id);
+        if (current) { range = current; break; }
+      }
+      let entry = cache.get(task.id);
+      const reusable = entry
+        && entry.activities === activities
+        && entry.monthStartMs === monthStartMs
+        && entry.dayWidth === dayWidth
+        && entry.overrides === overrides
+        && entry.range === range
+        && entry.nodes.length === activities.length
+        && entry.nodes.every((node, index) => (
+          node.name === activities[index].name
+          && node.startDate === activities[index].startDate
+          && node.endDate === activities[index].endDate
+          && sameDependencies(node.dependencies, incoming.get(node.id))
+        ));
+      if (!entry || !reusable) {
+        // LIVE_RANGE: точный диапазон перетаскиваемой работы приоритетнее сдвига цепочки.
+        const liveActivities = activities.map(activity => {
+          const activityRange = previewStore?.getActivityRange?.(task.id, activity.id);
+          if (activityRange) return { ...activity, startDate: activityRange.startDate, endDate: activityRange.endDate };
+          const delta = overrides?.get(activity.id) ?? 0;
+          if (delta === 0) return activity;
+          return { ...activity, startDate: shiftActivityDate(activity.startDate, delta), endDate: shiftActivityDate(activity.endDate, delta) };
+        });
+        const packed = computeActivityLanes(liveActivities, monthStart, dayWidth);
+        const lanes = new Map(packed.segments.map(segment => [segment.id, segment.lane]));
+        const rawIds = liveActivities.map(activity => activity.id);
+        const nodes = liveActivities.map(activity => ({
+          id: activityKey(task.id, activity.id),
+          name: activity.name,
+          startDate: activity.startDate,
+          endDate: activity.endDate,
+          dependencies: incoming.get(activityKey(task.id, activity.id)),
+        }));
+        entry = { activities, monthStartMs, dayWidth, overrides, range, laneCount: packed.laneCount, lanes, rawIds, nodes };
+        cache.set(task.id, entry);
+      }
+      const offset = Math.max(0, (height - entry.laneCount * ACTIVITY_LANE_STEP) / 2);
+      entry.nodes.forEach((node, nodeIndex) => {
+        const lane = entry.lanes.get(entry.rawIds[nodeIndex]) ?? 0;
+        const index = flattened.length;
         flattened.push(node);
         if (props.renderedTaskIds.has(task.id)) rendered.push(node);
-        indices.set(id, index);
-        tops.push((props.rowTops[row] ?? row * props.rowHeight) + offset + segment.lane * ACTIVITY_LANE_STEP + (ACTIVITY_LANE_STEP - ACTIVITY_LANE_BAR_HEIGHT) / 2);
+        indices.set(node.id, index);
+        tops.push((props.rowTops[row] ?? row * props.rowHeight) + offset + lane * ACTIVITY_LANE_STEP + (ACTIVITY_LANE_STEP - ACTIVITY_LANE_BAR_HEIGHT) / 2);
         heights.push(ACTIVITY_LANE_BAR_HEIGHT);
-      }
+      });
     }
     return { flattened, rendered, indices, tops, heights };
   }, [tasks, dependencies, props.highlight, monthStart, dayWidth, props.rowIndexByTaskId, props.rowTops, props.rowHeights, props.rowHeight, props.renderedTaskIds, previewStore, previewVersion]);

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
-import { calculateMilestoneGeometry, calculateTaskBar, pixelsToDate } from '../../utils/geometry';
+import { calculateMilestoneGeometry, calculateTaskBar, calculateDependencyPath, pixelsToDate } from '../../utils/geometry';
 import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, pushActivityChain, shiftActivityChain, activityStartConstraint, type ActivitySegment, type ActivityStartConstraint } from '../../utils/activities';
 import { isTaskExpired } from '../../utils/expired';
 import { isMilestoneTask, normalizeTaskDatesForType } from '../../utils/taskType';
@@ -860,6 +860,73 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       return { left: segment.left, width: segment.width + activityDrag.dayDelta * dayWidth };
     };
 
+    // Связи работ в строке: встык/с зазором в одной дорожке — прямая стрелка;
+    // при наложении или разных дорожках — стандартная Г-образная связь Ганта.
+    // Построчный чисто визуальный рендер (без хит-теста): межстрочные связи
+    // показывает общий оверлей, и только для выделенной цепочки.
+    const activityLinks = useMemo(() => {
+      const gaps: Array<{ key: string; left: number; width: number; lane: number; lag: number }> = [];
+      const elbows: Array<{ key: string; d: string; lagX: number; lagY: number; lag: number }> = [];
+      if (!showActivityLinks || !renderActivities || !activityLayout) return { gaps, elbows };
+
+      const activities = task.activities ?? [];
+      const segmentById = new Map(activityLayout.segments.map(segment => [segment.id, segment]));
+      const visibleIds = new Set(visibleActivitySegments.map(segment => segment.id));
+      const laneTopY = (lane: number) =>
+        activityTopOffset + lane * ACTIVITY_LANE_STEP + (ACTIVITY_LANE_STEP - ACTIVITY_LANE_BAR_HEIGHT) / 2;
+      const liveRect = (segment: ActivitySegment) => {
+        const geometry = liveActivityGeometry(segment);
+        const chainDelta = activityOverrides?.get(segment.id) ?? 0;
+        const left = geometry.left + (chainDelta !== 0 ? chainDelta * dayWidth : 0);
+        return { left, right: left + geometry.width };
+      };
+
+      for (let index = 0; index < activities.length - 1; index += 1) {
+        const predecessor = segmentById.get(activities[index].id);
+        const successor = segmentById.get(activities[index + 1].id);
+        if (!predecessor || !successor) continue;
+        if (!visibleIds.has(predecessor.id) || !visibleIds.has(successor.id)) continue;
+
+        const lag = activities[index + 1].lag ?? 0;
+        const predRect = liveRect(predecessor);
+        const succRect = liveRect(successor);
+
+        // Работы стоят друг за другом в одной дорожке — обычная прямая стрелка.
+        if (predecessor.lane === successor.lane && succRect.left >= predRect.right) {
+          const width = succRect.left - predRect.right;
+          if (width >= 1) {
+            gaps.push({ key: `${predecessor.id}->${successor.id}`, left: predRect.right, width, lane: predecessor.lane, lag });
+          }
+          continue;
+        }
+
+        // Наложение или разные дорожки — ортогональная связь как в Ганте.
+        // Накладка в одной дорожке → работа «скинется» на дорожку ниже, поэтому
+        // стрелку по умолчанию ведём вниз (вход в верх на дорожку ниже).
+        const predecessorLaneTop = laneTopY(predecessor.lane);
+        const successorLaneTop = laneTopY(successor.lane);
+        const sameLane = predecessor.lane === successor.lane;
+        const reverseOrder = !sameLane && successorLaneTop < predecessorLaneTop;
+        const fromY = reverseOrder
+          ? predecessorLaneTop + 6
+          : predecessorLaneTop + ACTIVITY_LANE_BAR_HEIGHT - 6;
+        const toY = reverseOrder
+          ? successorLaneTop + ACTIVITY_LANE_BAR_HEIGHT - 6
+          : successorLaneTop + (sameLane ? ACTIVITY_LANE_STEP : 0) + 6;
+        const fromX = predRect.right;
+        const toX = succRect.left;
+        elbows.push({
+          key: `${predecessor.id}->${successor.id}`,
+          d: calculateDependencyPath({ x: fromX, y: fromY }, { x: toX, y: toY }, false),
+          lagX: toX - 14,
+          lagY: reverseOrder ? fromY - 4 : fromY + 12,
+          lag,
+        });
+      }
+      return { gaps, elbows };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showActivityLinks, renderActivities, activityLayout, visibleActivitySegments, activityTopOffset, activityOverrides, activityDrag, dayWidth, task.activities]);
+
     const activityTipData = useMemo(() => {
       if (!activityTipId || !task.activities) return null;
       const activity = task.activities.find(item => item.id === activityTipId);
@@ -962,6 +1029,32 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           )}
           {renderActivities && activityLayout && (
             <div className="gantt-tr-activityLanes">
+              {activityLinks.elbows.length > 0 && (
+                <svg className="gantt-tr-activityLinksSvg" width="100%" height="100%" aria-hidden="true">
+                  <defs>
+                    <marker id="arrowhead" markerWidth="8" markerHeight="6" markerUnits="userSpaceOnUse" refX="7" refY="3" orient="auto">
+                      <polygon points="0 0, 8 3, 0 6" fill="var(--gantt-dependency-line-color, #666666)" />
+                    </marker>
+                  </defs>
+                  {activityLinks.elbows.map(link => (
+                    <g key={link.key}>
+                      <path className="gantt-dependency-path" d={link.d} markerEnd="url(#arrowhead)" />
+                      {showActivityLag && link.lag !== 0 && (
+                        <text
+                          className="gantt-dependency-lag-label"
+                          x={link.lagX}
+                          y={link.lagY}
+                          textAnchor="middle"
+                          fontSize="10"
+                          fill="var(--gantt-dependency-line-color, #666666)"
+                        >
+                          {link.lag > 0 ? `+${link.lag}` : `${link.lag}`}
+                        </text>
+                      )}
+                    </g>
+                  ))}
+                </svg>
+              )}
               {visibleActivitySegments.map(segment => {
                 const live = liveActivityGeometry(segment);
                 // Чужой конвейерный drag: живой сдвиг полосы из preview-стора.
@@ -1038,6 +1131,31 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                   </div>
                 );
               })}
+              {activityLinks.gaps.map(gap => (
+                <React.Fragment key={gap.key}>
+                  <span
+                    className="gantt-tr-activityLink"
+                    aria-hidden="true"
+                    style={{
+                      left: `${gap.left}px`,
+                      width: `${gap.width}px`,
+                      top: `${activityTopOffset + gap.lane * ACTIVITY_LANE_STEP + ACTIVITY_LANE_STEP / 2}px`,
+                    }}
+                  />
+                  {showActivityLag && gap.lag > 0 && (
+                    <span
+                      className="gantt-tr-activityLag"
+                      title={`Зазор ${gap.lag} д`}
+                      style={{
+                        left: `${gap.left + gap.width - 14}px`,
+                        top: `${activityTopOffset + gap.lane * ACTIVITY_LANE_STEP + ACTIVITY_LANE_STEP / 2}px`,
+                      }}
+                    >
+                      +{gap.lag}
+                    </span>
+                  )}
+                </React.Fragment>
+              ))}
 
             </div>
           )}

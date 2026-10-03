@@ -309,21 +309,20 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
     const changed=vi.fn();
     const {container}=render(<GanttChart tasks={[task]} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} onTasksChange={changed} />);
     const bar=container.querySelector<HTMLElement>('[data-activity-id="b"]')!;
-    expect(container.querySelector('.gantt-dependency-coupling')).not.toBeNull();
+    // Встык построчный рендер ничего не рисует — шов чистый.
+    expect(container.querySelector('.gantt-tr-activityLink')).toBeNull();
     activateActivity(bar);
     fireEvent.mouseDown(bar,{clientX:500,clientY:20});
     fireEvent.mouseMove(window,{clientX:580,clientY:20});
     expect(changed).not.toHaveBeenCalled();
-    expect(container.querySelector('.gantt-dependency-coupling')).toBeNull();
-    const path=container.querySelector('path.gantt-dependency-path')!;
-    expect(path).not.toBeNull();
-    const targetX=Number(/H (\d+)/.exec(path.getAttribute('d')!)![1]);
-    expect(targetX).toBe(parseFloat(bar.style.left));
+    // Зазор 2 дня → стрелка-спан шириной 80px.
+    const link=container.querySelector<HTMLElement>('.gantt-tr-activityLink')!;
+    expect(link).not.toBeNull();
+    expect(parseFloat(link.style.width)).toBe(80);
     fireEvent.mouseMove(window,{clientX:500,clientY:20});
-    expect(container.querySelector('path.gantt-dependency-path')).toBeNull();
-    expect(container.querySelector('.gantt-dependency-coupling')).not.toBeNull();
+    expect(container.querySelector('.gantt-tr-activityLink')).toBeNull();
     fireEvent.mouseMove(window,{clientX:540,clientY:20});
-    expect(container.querySelector('path.gantt-dependency-path')).not.toBeNull();
+    expect(parseFloat(container.querySelector<HTMLElement>('.gantt-tr-activityLink')!.style.width)).toBe(40);
     expect(changed).not.toHaveBeenCalled();
     fireEvent.mouseUp(window);
   });
@@ -344,12 +343,11 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
     const { container } = render(
       <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
     );
-    const arrows = container.querySelectorAll('path.gantt-dependency-path');
-    expect(arrows).toHaveLength(1);
-    const d=arrows[0].getAttribute('d')!;
-    const ends=/M (\d+) \S+ H (\d+)/.exec(d)!;
-    expect(Number(ends[2])-Number(ends[1])).toBe(80);
-    expect(container.querySelector('.gantt-dependency-coupling')).not.toBeNull();
+    const links = container.querySelectorAll<HTMLElement>('.gantt-tr-activityLink');
+    // Зазор a→b: 80px; b→c встык — стрелки нет.
+    expect(links).toHaveLength(1);
+    expect(parseFloat(links[0].style.left)).toBe(120);
+    expect(parseFloat(links[0].style.width)).toBe(80);
   });
 
   it('labels a lag gap with its day count', () => {
@@ -367,15 +365,13 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
     const { container } = render(
       <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
     );
-    const label = container.querySelector<HTMLElement>('.gantt-dependency-lag-label');
+    const label = container.querySelector<HTMLElement>('.gantt-tr-activityLag');
     expect(label).not.toBeNull();
     // Подпись в стиле лаг-подписи связей: «+N», без кружка.
     expect(label!.textContent).toBe('+2');
 
-    // Стоит у острия стрелки: конец связи минус 14px.
-    const arrow = container.querySelector<HTMLElement>('path.gantt-dependency-path')!;
-    const endX=Number(/H (\d+)/.exec(arrow.getAttribute('d')!)![1]);
-    expect(Number(label!.getAttribute('x'))).toBe(endX-14);
+    // Стоит у острия стрелки: конец связи минус 14px (зазор 120..200 → 186).
+    expect(parseFloat(label!.style.left)).toBe(186);
   });
 
   it('draws a standard elbow link with lag when works overlap', () => {
@@ -394,13 +390,20 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
     const { container } = render(
       <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
     );
-    // Прямой стрелки нет — связь рисуется ортогональным путём Ганта.
-    const paths = container.querySelectorAll('path.gantt-dependency-path');
+    // Прямой стрелки нет — связь рисуется ортогональным путём в строке.
+    const svg = container.querySelector('svg.gantt-tr-activityLinksSvg')!;
+    expect(svg).not.toBeNull();
+    const paths = svg.querySelectorAll('path.gantt-dependency-path');
     expect(paths).toHaveLength(1);
-    expect(paths[0].getAttribute('d')).toContain('M');
-    expect(paths[0].getAttribute('marker-end')).toMatch(/^url\(#gantt-dependency-.*arrowhead\)$/);
+    const d = paths[0].getAttribute('d')!;
+    expect(d).toContain('M');
+    // Предшественник на дорожке выше — связь уходит вниз.
+    const startY = Number(/^M\s+\S+\s+(\S+)/.exec(d)![1]);
+    const endY = Number(/V\s+(\S+)/.exec(d)![1]);
+    expect(endY).toBeGreaterThan(startY);
+    expect(paths[0].getAttribute('marker-end')).toBe('url(#arrowhead)');
     // И лаг подписан на этой связи — тем же классом, что у связей Ганта.
-    expect(container.querySelector('.gantt-dependency-lag-label')?.textContent).toBe('+2');
+    expect(svg.querySelector('.gantt-dependency-lag-label')?.textContent).toBe('+2');
   });
 
   it('points the overlap link down while a work is dragged over its neighbour', () => {
@@ -421,7 +424,7 @@ describe('pushActivityChain (выталкивание, ASAP)', () => {
 
     // Пока всё встык — связи нет.
     expect(container.querySelector('path.gantt-dependency-path')).toBeNull();
-    expect(container.querySelector('.gantt-dependency-coupling')).not.toBeNull();
+    expect(container.querySelector('.gantt-tr-activityLink')).toBeNull();
 
     activateActivity(bar);
     fireEvent.mouseDown(bar, { clientX: 500, clientY: 20 });
@@ -983,19 +986,19 @@ describe('multi-activity rows in GanttChart', () => {
     const shown = render(
       <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} />
     );
-    expect(shown.container.querySelector('path.gantt-dependency-path')).not.toBeNull();
-    expect(shown.container.querySelector('.gantt-dependency-lag-label')).not.toBeNull();
+    expect(shown.container.querySelector('.gantt-tr-activityLink')).not.toBeNull();
+    expect(shown.container.querySelector('.gantt-tr-activityLag')).not.toBeNull();
 
     const hidden = render(
       <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} showActivityLinks={false} />
     );
-    expect(hidden.container.querySelector('path.gantt-dependency-path')).toBeNull();
+    expect(hidden.container.querySelector('.gantt-tr-activityLink')).toBeNull();
 
     const noLag = render(
       <GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={200} businessDays={false} showActivityLag={false} />
     );
-    expect(noLag.container.querySelector('path.gantt-dependency-path')).not.toBeNull();
-    expect(noLag.container.querySelector('.gantt-dependency-lag-label')).toBeNull();
+    expect(noLag.container.querySelector('.gantt-tr-activityLink')).not.toBeNull();
+    expect(noLag.container.querySelector('.gantt-tr-activityLag')).toBeNull();
   });
 });
 

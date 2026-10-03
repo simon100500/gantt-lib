@@ -21,15 +21,17 @@ import { calculateDependencyPath } from '../utils/geometry';
 afterEach(cleanup);
 const task = (id: string, date: string): Task => ({ id, name: id, startDate: date, endDate: date, activities: [{ id: 'work', name: id, startDate: date, endDate: date }] });
 const edge: TaskActivityDependency = { predecessorTaskId: 'one', predecessorActivityId: 'work', successorTaskId: 'two', successorActivityId: 'work', type: 'FS', lag: 3 };
-const chart = (tasks: Task[], edges: TaskActivityDependency[] | undefined, showLag = true) => <GanttChart tasks={tasks} activityDependencies={edges} dateRange={{start:new Date('2026-10-01T00:00:00Z'),end:new Date('2026-10-31T00:00:00Z')}} dayWidth={24} rowHeight={40} containerHeight={400} showActivityLag={showLag} businessDays={false} />;
+const chainHighlight: ActivityDependencyHighlight = { activities: [{ taskId: 'one', activityId: 'work' }, { taskId: 'two', activityId: 'work' }], mode: 'chain' };
+const chart = (tasks: Task[], edges: TaskActivityDependency[] | undefined, showLag = true, highlight?: ActivityDependencyHighlight) => <GanttChart tasks={tasks} activityDependencies={edges} activityDependencyHighlight={highlight} dateRange={{start:new Date('2026-10-01T00:00:00Z'),end:new Date('2026-10-31T00:00:00Z')}} dayWidth={24} rowHeight={40} containerHeight={400} showActivityLag={showLag} businessDays={false} />;
 describe('native explicit activity dependencies', () => {
   it('does not rebuild the graph across real GanttChart horizontal scroll buckets', () => {
     const tasks:Task[]=Array.from({length:125},(_,r)=>({id:`r${r}`,name:`r${r}`,startDate:'2026-10-01',endDate:'2026-11-09',activities:Array.from({length:40},(_,a)=>({id:`a${a}`,name:`a${a}`,startDate:new Date(Date.UTC(2026,9,1+a)),endDate:new Date(Date.UTC(2026,9,1+a))}))}));
+    const dependencies:TaskActivityDependency[]=tasks.flatMap(t=>t.activities!.slice(1).map((a,i)=>({predecessorTaskId:t.id,predecessorActivityId:t.activities![i].id,successorTaskId:t.id,successorActivityId:a.id,type:'FS',lag:0})));
     let frames:FrameRequestCallback[]=[];
     const raf=vi.spyOn(window,'requestAnimationFrame').mockImplementation(cb=>{frames.push(cb);return frames.length;});
     const ports=vi.spyOn(geometry,'resolveTaskHorizontalGeometry');
     const cycles=vi.spyOn(dependencyUtils,'detectCycles');
-    const {container}=render(<GanttChart tasks={tasks} dayWidth={24} rowHeight={40} containerHeight={400} businessDays={false} />);
+    const {container}=render(<GanttChart tasks={tasks} activityDependencies={dependencies} dayWidth={24} rowHeight={40} containerHeight={400} businessDays={false} />);
     const scroll=container.querySelector<HTMLElement>('.gantt-scrollContainer')!;
     Object.defineProperty(scroll,'clientHeight',{value:400});Object.defineProperty(scroll,'clientWidth',{value:1000});
     const flush=()=>act(()=>{const callbacks=frames;frames=[];callbacks.forEach(cb=>cb(0));});
@@ -73,16 +75,21 @@ describe('native explicit activity dependencies', () => {
     }
     rerender(chart([row],[]));expect(container.querySelector('.gantt-dependency-coupling')).toBeNull();
   });
-  it('uses the same joints and arrow geometry for demo sequence and explicit graphs', () => {
+  it('splits rendering: inferred sequence in the row, explicit graph in the overlay', () => {
     const row:Task={id:'one',name:'one',startDate:'2026-10-01',endDate:'2026-10-04',activities:[{id:'first',name:'first',startDate:'2026-10-01',endDate:'2026-10-01'},{id:'second',name:'second',startDate:'2026-10-02',endDate:'2026-10-02'},{id:'third',name:'third',startDate:'2026-10-02',endDate:'2026-10-04'}]};
+    // Выведенная последовательность — построчный рендер: у касания стрелки нет,
+    // наложение second/third рисуется Г-образной связью в строке, без сцепок.
     const {container,rerender}=render(chart([row],undefined));
-    expect(container.querySelectorAll('.gantt-dependency-coupling')).toHaveLength(1);
-    const route=container.querySelector('path.gantt-dependency-path')?.getAttribute('d');
-    expect(route).toBeTruthy();
+    expect(container.querySelectorAll('.gantt-dependency-coupling')).toHaveLength(0);
+    expect(container.querySelector('svg.gantt-tr-activityLinksSvg')).not.toBeNull();
+    // Явный граф того же вида — оверлей: касание помечается сцепкой.
     rerender(chart([row],[{...edge,predecessorActivityId:'first',successorTaskId:'one',successorActivityId:'second',lag:0},{...edge,predecessorActivityId:'second',successorTaskId:'one',successorActivityId:'third',lag:0}]));
     expect(container.querySelectorAll('.gantt-dependency-coupling')).toHaveLength(1);
-    expect(container.querySelector('path.gantt-dependency-path')?.getAttribute('d')).toBe(route);
-    rerender(chart([row],[]));expect(container.querySelector('.gantt-dependency-path')).toBeNull();
+    // Пустой явный граф — связей нет, построчный вывод тоже не включается
+    // (явный пустой граф запрещает вывод последовательности).
+    rerender(chart([row],[]));
+    expect(container.querySelector('.gantt-tr-activityLinksSvg')).toBeNull();
+    expect(container.querySelector('.gantt-dependency-path')).toBeNull();
   });
   it('keeps same-lane horizontal links on side centers', () => {
     const row:Task={id:'one',name:'one',startDate:'2026-10-01',endDate:'2026-10-04',activities:[{id:'first',name:'first',startDate:'2026-10-01',endDate:'2026-10-01'},{id:'second',name:'second',startDate:'2026-10-03',endDate:'2026-10-04'}]};
@@ -98,28 +105,33 @@ describe('native explicit activity dependencies', () => {
     const labels=[...container.querySelectorAll('.gantt-dependency-lag-label')].map(label=>label.textContent);
     expect(labels).toContain('+3');expect(labels.includes('+11')).toBe(mode==='chain-incoming'||mode==='chain-all');expect(labels.includes('+22')).toBe(mode==='chain-outgoing'||mode==='chain-all');expect(labels).not.toContain('+33');
     rerender(<GanttChart tasks={tasks} activityDependencies={edges} dayWidth={24} rowHeight={40} containerHeight={400} businessDays={false} />);
-    expect(container.querySelectorAll('.gantt-dependency-path')).toHaveLength(4);
+    // Выделение снято: все ребра межстрочные — без выделенной цепочки скрыты.
+    expect(container.querySelectorAll('.gantt-dependency-path')).toHaveLength(0);
   });
-  it('uses top/bottom native ports and corners, even when IDs repeat in different rows', () => {
-    const { container, rerender } = render(chart([task('one','2026-10-01'),task('two','2026-10-03')],[edge]));
+  it('shows cross-row links only while a chain is selected and keeps geometry then', () => {
+    const { container, rerender } = render(chart([task('one','2026-10-01'),task('two','2026-10-03')],[edge],true,chainHighlight));
     const paths=()=>container.querySelectorAll('.gantt-dependency-path');
+    // Выделенная цепочка: вертикальная связь видна и держит порты краёв полос.
     expect(paths()).toHaveLength(1);
     // A 24px bar sits at y=8 in a 40px row: down-route exits at 26 and enters at 54 (6px insets).
     expect(paths()[0].getAttribute('d')).toBe(calculateDependencyPath({x:24,y:26},{x:48,y:54},false));
     expect(paths()[0].getAttribute('d')).not.toContain('20');
     expect(container.querySelector('.gantt-dependency-lag-label')?.textContent).toBe('+3');
-    rerender(chart([task('one','2026-10-01'),task('two','2026-10-03')],[edge],false));
+    rerender(chart([task('one','2026-10-01'),task('two','2026-10-03')],[edge],false,chainHighlight));
     expect(container.querySelector('.gantt-dependency-lag-label')).toBeNull();
+    // Выделение снято: межстрочные связи скрыты («основное — по строкам»).
+    rerender(chart([task('one','2026-10-01'),task('two','2026-10-03')],[edge]));
+    expect(paths()).toHaveLength(0);
     rerender(chart([task('one','2026-10-01'),task('two','2026-10-03')],[]));
     expect(paths()).toHaveLength(0);
   });
   it.each(['FS','SS','FF','SF'] as const)('honors %s endpoints and controlled date changes', type => {
-    const { container, rerender }=render(chart([task('one','2026-10-01'),task('two','2026-10-03')],[{...edge,type}]));
+    const { container, rerender }=render(chart([task('one','2026-10-01'),task('two','2026-10-03')],[{...edge,type}],true,chainHighlight));
     const x1=type==='SS'||type==='SF'?0:24, x2=type==='FF'||type==='SF'?72:48;
     expect(container.querySelector('.gantt-dependency-path')?.getAttribute('d')).toBe(calculateDependencyPath({x:x1,y:26},{x:x2,y:54},type==='FF'||type==='SF'));
-    rerender(chart([task('one','2026-10-04'),task('two','2026-10-03')],[{...edge,type}]));
+    rerender(chart([task('one','2026-10-04'),task('two','2026-10-03')],[{...edge,type}],true,chainHighlight));
     expect(container.querySelector('.gantt-dependency-path')?.getAttribute('d')).toBe(calculateDependencyPath({x:x1+72,y:26},{x:x2,y:54},type==='FF'||type==='SF'));
-    rerender(chart([task('two','2026-10-03'),task('one','2026-10-04')],[{...edge,type}]));
+    rerender(chart([task('two','2026-10-03'),task('one','2026-10-04')],[{...edge,type}],true,chainHighlight));
     expect(container.querySelector('.gantt-dependency-path')?.getAttribute('d')).toBe(calculateDependencyPath({x:x1+72,y:54},{x:x2,y:26},type==='FF'||type==='SF'));
   });
   it('routes packed lanes by actual vertical position and does not infer extra links', () => {

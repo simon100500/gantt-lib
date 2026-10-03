@@ -15,6 +15,13 @@
   overflow: visible;
 }
 
+/* Статичный слой (хост не обрабатывает клик по связи): хит-пути и сцепки не
+   ловят курсор, и браузер не проверяет геометрически сотни путей на каждый
+   mousemove. */
+.gantt-dependencies-svg-static * {
+  pointer-events: none;
+}
+
 /* Interactive wrapper for one dependency line */
 .gantt-dependency-line {
   pointer-events: visibleStroke;

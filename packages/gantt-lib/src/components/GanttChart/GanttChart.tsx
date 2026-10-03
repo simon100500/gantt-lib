@@ -807,17 +807,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     printDependencyLabels = false,
   } = props;
   // START_BLOCK_SHARED_ACTIVITY_EDGES
-  const resolvedActivityDependencies = useMemo<readonly TaskActivityDependency[]>(() => {
-    if (activityDependencies !== undefined) return activityDependencies;
-    return tasks.flatMap(task => (task.activities ?? []).slice(1).map((successor, index) => ({
-      predecessorTaskId: task.id,
-      predecessorActivityId: task.activities![index].id,
-      successorTaskId: task.id,
-      successorActivityId: successor.id,
-      type: 'FS' as const,
-      lag: successor.lag ?? 0,
-    })));
-  }, [tasks, activityDependencies]);
+  // Общий оверлей связей работает только с явными activityDependencies: связи
+  // работ в строке рисует сама строка (лёгкий построчный рендер), а межстрочные
+  // (вертикальные) связи оверлей показывает и обновляет только при выделенной
+  // цепочке — см. ActivityDependencyLines.
   // END_BLOCK_SHARED_ACTIVITY_EDGES
   const dayWidth = !isTableMatrixMode ? props.dayWidth ?? 40 : 40;
   const criticalPathMode = !isTableMatrixMode && !isPlanFactMode ? props.criticalPathMode : undefined;
@@ -2467,6 +2460,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
+    // PAN_COST: пока пан активен, курсор скользит по едущему под ним холсту.
+    // Hit-test SVG-связей и hover полос на каждый mousemove съедает кадр —
+    // интерактивные слои гасятся атрибутом (см. CSS [data-panning]).
+    container.setAttribute('data-panning', 'true');
     container.style.cursor = 'grabbing';
     e.preventDefault();
   }, [activityActivationStore]);
@@ -2510,7 +2507,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       }
       panStateRef.current = null;
       const container = scrollContainerRef.current;
-      if (container) container.style.cursor = '';
+      if (container) {
+        container.removeAttribute('data-panning');
+        container.style.cursor = '';
+      }
     };
 
     window.addEventListener('mousemove', handlePanMove);
@@ -2730,9 +2730,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     />
                   )}
 
-                  {showActivityLinks && resolvedActivityDependencies.length > 0 && (
-                    <ActivityDependencyLines tasks={visibleTasks} renderedTaskIds={renderedTaskIdsRef.current} dependencies={resolvedActivityDependencies} highlight={activityDependencyHighlight} monthStart={monthStart} dayWidth={dayWidth} rowHeight={effectiveRowHeight} gridWidth={renderGridWidth} totalHeight={totalGridHeight} rowIndexByTaskId={visibleTaskIndexMap} rowTops={compositeRowLayout.tops} rowHeights={compositeRowLayout.heights} showLag={showActivityLag} previewStore={activityPreviewStore} horizontalWindow={horizontalWindow} />
-                  )}
+                    {showActivityLinks && activityDependencies !== undefined && (
+                      <ActivityDependencyLines tasks={previewVisibleTasks} renderedTaskIds={renderedTaskIdsRef.current} dependencies={activityDependencies} highlight={activityDependencyHighlight} monthStart={monthStart} dayWidth={dayWidth} rowHeight={effectiveRowHeight} gridWidth={renderGridWidth} totalHeight={totalGridHeight} rowIndexByTaskId={visibleTaskIndexMap} rowTops={compositeRowLayout.tops} rowHeights={compositeRowLayout.heights} showLag={showActivityLag} previewStore={activityPreviewStore} horizontalWindow={horizontalWindow} />
+                    )}
 
                   {/* Dependency lines SVG overlay */}
                   <DependencyLines
@@ -2890,7 +2890,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         activityActivationStore={activityActivationStore}
                         activityClickToDrag={activityClickToDrag}
                         activityActivationMode={activityActivationMode}
-                        showActivityLinks={false}
+                        showActivityLinks={showActivityLinks && activityDependencies === undefined}
                         showActivityLag={showActivityLag}
                         activityTooltip={activityTooltip}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
