@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Share transient task/activity preview state without replacing the controlled graph.
+// SCOPE: Row-scoped subscriptions, chain day shifts and exact dragged activity date ranges.
+// INPUTS: Gesture preview deltas and controlled row ids.
+// OUTPUTS: Only affected-row notifications; clear removes every transient range.
+// END_MODULE_CONTRACT
 export interface TaskPreviewPosition {
   left: number;
   width: number;
@@ -97,12 +103,15 @@ export function createTaskPreviewPositionStore(): TaskPreviewPositionStore {
 export interface ActivityPreviewStore {
   subscribeTask: (taskId: string, listener: () => void) => () => void;
   getTaskOverrides: (taskId: string) => Map<string, number> | undefined;
+  getActivityRange?: (taskId: string, activityId: string) => { startDate: Date; endDate: Date } | undefined;
+  setActivityRange?: (taskId: string, activityId: string, range: { startDate: Date; endDate: Date }) => void;
   setOverrides: (overrides: Map<string, Map<string, number>>) => void;
   clear: () => void;
 }
 
 export function createActivityPreviewStore(): ActivityPreviewStore {
   let overridesByTask = new Map<string, Map<string, number>>();
+  let draggedRange: {taskId:string; activityId:string; startDate:Date; endDate:Date} | undefined;
   const listenersByTaskId = new Map<string, Set<() => void>>();
 
   function notify(taskIds: Set<string>) {
@@ -127,6 +136,16 @@ export function createActivityPreviewStore(): ActivityPreviewStore {
       };
     },
 
+    getActivityRange(taskId, activityId) {
+      return draggedRange?.taskId === taskId && draggedRange.activityId === activityId ? draggedRange : undefined;
+    },
+    setActivityRange(taskId, activityId, range) {
+      if (draggedRange?.taskId === taskId && draggedRange.activityId === activityId && draggedRange.startDate.getTime() === range.startDate.getTime() && draggedRange.endDate.getTime() === range.endDate.getTime()) return;
+      const changed = new Set([taskId]);
+      if (draggedRange) changed.add(draggedRange.taskId);
+      draggedRange = {taskId, activityId, ...range};
+      notify(changed);
+    },
     getTaskOverrides(taskId) {
       return overridesByTask.get(taskId);
     },
@@ -150,11 +169,10 @@ export function createActivityPreviewStore(): ActivityPreviewStore {
     },
 
     clear() {
-      if (overridesByTask.size === 0) {
-        return;
-      }
-
+      if (overridesByTask.size === 0 && !draggedRange) return;
       const changedTaskIds = new Set(overridesByTask.keys());
+      if (draggedRange) changedTaskIds.add(draggedRange.taskId);
+      draggedRange = undefined;
       overridesByTask = new Map();
       notify(changedTaskIds);
     },

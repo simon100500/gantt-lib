@@ -1,6 +1,6 @@
 /* START_MODULE_CONTRACT
  PURPOSE: Style native dependency routes and interactive touching-activity joints.
- SCOPE: SVG paths, hit areas, joint fill and hover/selection states.
+ SCOPE: SVG paths, hit areas, 12x3px rounded dash joints at 50 percent opacity and hover/selection states.
  INPUTS: DependencyLines class names and theme variables.
  OUTPUTS: Visible routes with larger transparent hit targets.
  END_MODULE_CONTRACT */
@@ -104,8 +104,30 @@
   pointer-events: all;
   cursor: pointer;
 }
+/* One subtle horizontal dash across the seam, distinct from circular link
+   handles and vertical resize grips. Keep the existing r=12 click target. */
 .gantt-dependency-coupling {
-  fill: var(--gantt-container-background, #fff);
-  stroke-width: 1.5;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+.gantt-dependency-line-hovered .gantt-dependency-coupling {
+  stroke: var(--gantt-dependency-hover-color, #ef4444);
+  stroke-width: 3;
+  opacity: 1;
+}
+.gantt-dependency-selected.gantt-dependency-coupling {
+  stroke: #ef4444;
+  opacity: 1;
+}
+.gantt-dependency-cycle.gantt-dependency-coupling {
+  stroke: var(--gantt-dependency-cycle-color, #ef4444);
+  opacity: 1;
+}
+.gantt-dependency-critical.gantt-dependency-coupling {
+  stroke: var(--gantt-critical-path-color, #dc2626);
+  opacity: 1;
 }
 /* END_BLOCK_TOUCH_COUPLING */

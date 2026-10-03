@@ -2,6 +2,8 @@
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render explicit activity dependencies through the existing native Gantt dependency renderer.
+// CYCLE_TOPOLOGY: Detect cycles once on the full graph; viewport projection cannot change cycle membership.
+// LIVE_RANGE: Exact gesture ranges take priority over chain shifts; packing follows preview overlap and resize.
 // PAN_COST: Project only rows incident to a rendered edge; keep offscreen endpoint rows for boundary links, and memoize topology separately from hover/pan.
 // SCOPE: Host-scoped activity IDs, packed lanes, FS/SS/FF/SF endpoints, lag visibility, virtualized rows and controlled/live chain geometry.
 // INPUTS: Visible row tasks, explicit activity edges, row offsets/heights and optional activity preview store and controlled chain/boundary highlight.
@@ -12,6 +14,7 @@ import React, { useEffect, useMemo, useReducer } from 'react';
 import type { Task, TaskActivityDependency, ActivityDependencyHighlight } from '../../types';
 import { ACTIVITY_LANE_BAR_HEIGHT, ACTIVITY_LANE_STEP, computeActivityLanes, shiftActivityDate } from '../../utils/activities';
 import type { ActivityPreviewStore } from '../GanttChart/previewStore';
+import { detectCycles } from '../../utils/dependencyUtils';
 import { DependencyLines } from './DependencyLines';
 
 type Props = {
@@ -30,6 +33,18 @@ export function ActivityDependencyLines(props: Props) {
     const cleanups = tasks.filter(task => task.activities?.length).map(task => previewStore?.subscribeTask(task.id, refresh));
     return () => cleanups.forEach(cleanup => cleanup?.());
   }, [tasks, previewStore]);
+  // START_BLOCK_STABLE_ACTIVITY_CYCLE_GRAPH
+  const cycleTaskIds = useMemo(() => {
+    const incoming = new Map<string, NonNullable<Task['dependencies']>>();
+    for (const edge of dependencies) {
+      const id=activityKey(edge.successorTaskId,edge.successorActivityId);
+      const values=incoming.get(id) ?? [];
+      values.push({taskId:activityKey(edge.predecessorTaskId,edge.predecessorActivityId),type:edge.type,lag:edge.lag});incoming.set(id,values);
+    }
+    const nodes=tasks.flatMap(task=>(task.activities ?? []).map(activity=>({id:activityKey(task.id,activity.id),name:activity.name,startDate:activity.startDate,endDate:activity.endDate,dependencies:incoming.get(activityKey(task.id,activity.id))})));
+    return new Set(detectCycles(nodes).cyclePath ?? []);
+  }, [tasks,dependencies]);
+  // END_BLOCK_STABLE_ACTIVITY_CYCLE_GRAPH
   const layout = useMemo(() => {
     const flattened: Task[] = [], rendered: Task[] = [], tops: number[] = [], heights: number[] = [];
     const indices = new Map<string, number>();
@@ -60,14 +75,18 @@ export function ActivityDependencyLines(props: Props) {
       if (row === undefined || !task.activities?.length) continue;
       const height = props.rowHeights[row] ?? props.rowHeight;
       if (height < props.rowHeight) continue; // Compact composite rows do not render activity bars.
-      const packed = computeActivityLanes(task.activities, monthStart, dayWidth);
+      const liveActivities = task.activities.map(activity => {
+        const range = previewStore?.getActivityRange?.(task.id, activity.id);
+        const delta = previewStore?.getTaskOverrides(task.id)?.get(activity.id) ?? 0;
+        return {...activity, startDate:range?.startDate ?? shiftActivityDate(activity.startDate,delta), endDate:range?.endDate ?? shiftActivityDate(activity.endDate,delta)};
+      });
+      const packed = computeActivityLanes(liveActivities, monthStart, dayWidth);
       const offset = Math.max(0, (height - packed.laneCount * ACTIVITY_LANE_STEP) / 2);
       const segments = new Map(packed.segments.map(segment => [segment.id, segment]));
-      for (const activity of task.activities) {
+      for (const activity of liveActivities) {
         const segment = segments.get(activity.id)!;
         const id = activityKey(task.id, activity.id), index = flattened.length;
-        const delta = previewStore?.getTaskOverrides(task.id)?.get(activity.id) ?? 0;
-        const node: Task = { id, name: activity.name, startDate: shiftActivityDate(activity.startDate, delta), endDate: shiftActivityDate(activity.endDate, delta), dependencies: incoming.get(id) };
+        const node: Task = { id, name: activity.name, startDate: activity.startDate, endDate: activity.endDate, dependencies: incoming.get(id) };
         flattened.push(node);
         if (props.renderedTaskIds.has(task.id)) rendered.push(node);
         indices.set(id, index);
@@ -77,5 +96,5 @@ export function ActivityDependencyLines(props: Props) {
     }
     return { flattened, rendered, indices, tops, heights };
   }, [tasks, dependencies, props.highlight, monthStart, dayWidth, props.rowIndexByTaskId, props.rowTops, props.rowHeights, props.rowHeight, props.renderedTaskIds, previewStore, previewVersion]);
-  return <DependencyLines tasks={layout.rendered} allTasks={layout.flattened} monthStart={monthStart} dayWidth={dayWidth} rowHeight={ACTIVITY_LANE_BAR_HEIGHT} gridWidth={props.gridWidth} totalHeight={props.totalHeight} rowIndexByTaskId={layout.indices} rowTops={layout.tops} rowHeights={layout.heights} horizontalWindow={props.horizontalWindow} showLag={props.showLag} activityEndpoints />;
+  return <DependencyLines tasks={layout.rendered} allTasks={layout.flattened} monthStart={monthStart} dayWidth={dayWidth} rowHeight={ACTIVITY_LANE_BAR_HEIGHT} gridWidth={props.gridWidth} totalHeight={props.totalHeight} rowIndexByTaskId={layout.indices} rowTops={layout.tops} rowHeights={layout.heights} horizontalWindow={props.horizontalWindow} showLag={props.showLag} cycleTaskIds={cycleTaskIds} activityEndpoints />;
 }

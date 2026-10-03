@@ -3,14 +3,16 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Render the shared native dependency paths for tasks and projected activity bars.
 // MARKER_IDENTITY: Each mounted chart owns stable unique SVG marker ids; hidden sibling charts must never capture its arrow references.
+// CYCLE_TOPOLOGY: Optional cycleTaskIds comes from the stable full activity graph, independent of scroll windows and drag geometry.
 // PAN_COST: Stable empty collapse state keeps geometry memoized during hover and horizontal scroll.
 // TOUCH_COUPLING: Only explicit same-lane FS activity edges with zero lag and coincident side ports render a clickable joint; adjacency never infers an edge.
+// COUPLING_STYLE: One rounded white dash, 12x3px including caps at 50 percent opacity; the invisible hit target and dependency identity remain unchanged.
 // ACTIVITY_PORTS: Cross-row/lane activities use ports inset 6px from the top/bottom like the flow-line demo; same-lane activities use side centers. Ordinary task row padding remains unchanged.
 // SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels; hidden dependencies stay in the graph but have no visual path.
 // INPUTS: Task-shaped nodes, explicit row geometry and label visibility.
 // OUTPUTS: Native SVG dependency paths and interactions.
 // END_MODULE_CONTRACT
-import React, { useId, useMemo, useState } from 'react';
+import React, { useCallback, useId, useMemo, useState } from 'react';
 import { Task } from '../../types';
 import { calculateDependencyPath, resolveTaskHorizontalGeometry } from '../../utils/geometry';
 import { isMilestoneTask } from '../../utils/taskType';
@@ -80,6 +82,128 @@ function areBothHiddenInSameParent(
 
 const EMPTY_COLLAPSED_PARENT_IDS = new Set<string>();
 
+type DependencyLine = {
+  id: string;
+  predecessorId: string;
+  successorId: string;
+  linkType: string;
+  path: string;
+  hasCycle: boolean;
+  lag: number;
+  fromX: number;
+  toX: number;
+  fromY: number;
+  reverseOrder: boolean;
+  isVirtual: boolean;
+  isCritical: boolean;
+  isCoupling: boolean;
+};
+
+type DependencyLineViewProps = {
+  line: DependencyLine;
+  hovered: boolean;
+  selected: boolean;
+  showLag: boolean;
+  markerPrefix: string;
+  onLineHover: (id: string) => void;
+  onLineLeave: (id: string) => void;
+  onDependencyClick?: DependencyLinesProps['onDependencyClick'];
+};
+
+/**
+ * One dependency route (path or touching-activity joint) as an isolated memo node.
+ *
+ * PAN_COST: the `lines` array keeps object identity while only the horizontal
+ * render window moves, so a pan step re-renders just the lines entering or
+ * leaving the window instead of rebuilding every group in the overlay.
+ */
+const DependencyLineView = React.memo(function DependencyLineView({
+  line,
+  hovered,
+  selected,
+  showLag,
+  markerPrefix,
+  onLineHover,
+  onLineLeave,
+  onDependencyClick,
+}: DependencyLineViewProps) {
+  const { id, predecessorId, successorId, linkType, path, hasCycle, lag, toX, fromY, reverseOrder, isVirtual, isCoupling } = line;
+
+  let pathClassName = 'gantt-dependency-path';
+  if (selected) pathClassName += ' gantt-dependency-selected';
+  else if (hasCycle) pathClassName += ' gantt-dependency-cycle';
+  else if (line.isCritical) pathClassName += ' gantt-dependency-critical';
+  if (isVirtual && !selected) pathClassName += ' gantt-dependency-virtual';
+
+  let markerEnd: string;
+  if (hovered) markerEnd = `url(#${markerPrefix}-arrowhead-hover)`;
+  else if (selected) markerEnd = `url(#${markerPrefix}-arrowhead-selected)`;
+  else if (hasCycle) markerEnd = `url(#${markerPrefix}-arrowhead-cycle)`;
+  else if (line.isCritical) markerEnd = `url(#${markerPrefix}-arrowhead-critical)`;
+  else markerEnd = `url(#${markerPrefix}-arrowhead)`;
+
+  const lagColor = selected
+    ? '#ef4444'
+    : hasCycle
+      ? 'var(--gantt-dependency-cycle-color, #ef4444)'
+      : line.isCritical
+        ? 'var(--gantt-critical-path-color, #dc2626)'
+        : 'var(--gantt-dependency-line-color, #666666)';
+
+  return (
+    <React.Fragment>
+      <g
+        className={`gantt-dependency-line${hovered ? ' gantt-dependency-line-hovered' : ''}`}
+        onPointerEnter={() => onLineHover(id)}
+        onPointerLeave={() => onLineLeave(id)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDependencyClick?.({
+            predecessorId,
+            successorId,
+            linkType,
+            x: toX,
+            y: reverseOrder ? fromY - 4 : fromY + 12,
+          });
+        }}
+        role="button"
+        aria-label={`Связь ${linkType}`}
+      >
+        {isCoupling ? (
+          <>
+            <title>После окончания · без лага</title>
+            <circle cx={toX} cy={fromY} r={12} className="gantt-dependency-coupling-hit-area" />
+            <line x1={toX - 4.5} y1={fromY} x2={toX + 4.5} y2={fromY} className={`${pathClassName} gantt-dependency-coupling`} />
+          </>
+        ) : (
+          <>
+            <path d={path} className="gantt-dependency-hit-area" />
+            <path d={path} className={pathClassName} markerEnd={markerEnd} />
+          </>
+        )}
+      </g>
+      {showLag && lag !== 0 && (
+        <text
+          className="gantt-dependency-lag-label"
+          x={lag < 0 ? toX + 14 : toX - 14}
+          y={reverseOrder ? fromY - 4 : fromY + 12}
+          textAnchor="middle"
+          fontSize="10"
+          fill={lagColor}
+        >
+          {lag > 0 ? `+${lag}` : `${lag}`}
+        </text>
+      )}
+    </React.Fragment>
+  );
+}, (prev, next) => (
+  prev.line === next.line &&
+  prev.hovered === next.hovered &&
+  prev.selected === next.selected &&
+  prev.showLag === next.showLag &&
+  prev.markerPrefix === next.markerPrefix
+));
+
 export interface DependencyLinesProps {
   /** Visible tasks only (for row calculation) */
   tasks: Task[];
@@ -107,6 +231,7 @@ export interface DependencyLinesProps {
   selectedDep?: { predecessorId: string; successorId: string; linkType: string } | null;
   /** Ids of tasks on the critical path. Lines with both ends critical are highlighted. */
   criticalTaskIds?: Set<string>;
+  cycleTaskIds?: ReadonlySet<string>;
   showLag?: boolean;
   /** Activity lanes use their physical Y position; same-lane edges stay horizontal. */
   activityEndpoints?: boolean;
@@ -152,6 +277,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   dragOverrides,
   selectedDep,
   criticalTaskIds,
+  cycleTaskIds,
   showLag = true,
   activityEndpoints = false,
   businessDays = true,
@@ -164,6 +290,8 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   const markerId = (kind: string) => `${markerPrefix}-${kind}`;
   // END_BLOCK_INSTANCE_MARKER_IDS
   const [hoveredLineId, setHoveredLineId] = useState<string | null>(null);
+  const handleLineHover = useCallback((id: string) => setHoveredLineId(id), []);
+  const handleLineLeave = useCallback((id: string) => setHoveredLineId((current) => current === id ? null : current), []);
   // Use allTasks for virtual position calculation if provided, otherwise use tasks
   const tasksForPositions = allTasks ?? tasks;
 
@@ -268,10 +396,11 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   // including it re-ran the full-graph detection per frame and froze panning.
   const tasksForCycleDetection = allTasks ?? tasks;
   const cycleInfo = useMemo(() => {
+    if (cycleTaskIds) return cycleTaskIds;
     const result = detectCycles(tasksForCycleDetection);
-    const cycleTaskIds = new Set(result.cyclePath || []);
-    return cycleTaskIds;
-  }, [tasksForCycleDetection]);
+    const detectedCycleIds = new Set(result.cyclePath || []);
+    return detectedCycleIds;
+  }, [tasksForCycleDetection, cycleTaskIds]);
 
   // Calculate all dependency line paths (use allTasks if available)
   const lines = useMemo(() => {
@@ -553,78 +682,23 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         </marker>
       </defs>
 
-      {visibleLines.map(({ id, predecessorId, successorId, linkType, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual, isCritical, isCoupling }) => {
-        const isHovered = hoveredLineId === id;
+      {visibleLines.map((line) => {
         const isSelected =
           selectedDep != null &&
-          id === `${selectedDep.predecessorId}-${selectedDep.successorId}-${selectedDep.linkType}`;
-
-        let pathClassName = 'gantt-dependency-path';
-        if (isSelected) pathClassName += ' gantt-dependency-selected';
-        else if (hasCycle) pathClassName += ' gantt-dependency-cycle';
-        else if (isCritical) pathClassName += ' gantt-dependency-critical';
-        if (isVirtual && !isSelected) pathClassName += ' gantt-dependency-virtual';
-
-        let markerEnd: string;
-        if (isHovered) markerEnd = `url(#${markerId('arrowhead-hover')})`;
-        else if (isSelected) markerEnd = `url(#${markerId('arrowhead-selected')})`;
-        else if (hasCycle) markerEnd = `url(#${markerId('arrowhead-cycle')})`;
-        else if (isCritical) markerEnd = `url(#${markerId('arrowhead-critical')})`;
-        else markerEnd = `url(#${markerId('arrowhead')})`;
-
-        const lagColor = isSelected
-          ? '#ef4444'
-          : hasCycle
-            ? 'var(--gantt-dependency-cycle-color, #ef4444)'
-            : isCritical
-              ? 'var(--gantt-critical-path-color, #dc2626)'
-              : 'var(--gantt-dependency-line-color, #666666)';
+          line.id === `${selectedDep.predecessorId}-${selectedDep.successorId}-${selectedDep.linkType}`;
 
         return (
-          <React.Fragment key={id}>
-            <g
-              className={`gantt-dependency-line${isHovered ? ' gantt-dependency-line-hovered' : ''}`}
-              onPointerEnter={() => setHoveredLineId(id)}
-              onPointerLeave={() => setHoveredLineId((current) => current === id ? null : current)}
-              onClick={(event) => {
-                event.stopPropagation();
-                onDependencyClick?.({
-                  predecessorId,
-                  successorId,
-                  linkType,
-                  x: toX,
-                  y: reverseOrder ? fromY - 4 : fromY + 12,
-                });
-              }}
-              role="button"
-              aria-label={`Связь ${linkType}`}
-            >
-              {isCoupling ? (
-                <>
-                  <title>После окончания · без лага</title>
-                  <circle cx={toX} cy={fromY} r={12} className="gantt-dependency-coupling-hit-area" />
-                  <circle cx={toX} cy={fromY} r={4} className={`${pathClassName} gantt-dependency-coupling`} />
-                </>
-              ) : (
-                <>
-                  <path d={path} className="gantt-dependency-hit-area" />
-                  <path d={path} className={pathClassName} markerEnd={markerEnd} />
-                </>
-              )}
-            </g>
-            {showLag && lag !== 0 && (
-              <text
-                className="gantt-dependency-lag-label"
-                x={lag < 0 ? toX + 14 : toX - 14}
-                y={reverseOrder ? fromY - 4 : fromY + 12}
-                textAnchor="middle"
-                fontSize="10"
-                fill={lagColor}
-              >
-                {lag > 0 ? `+${lag}` : `${lag}`}
-              </text>
-            )}
-          </React.Fragment>
+          <DependencyLineView
+            key={line.id}
+            line={line}
+            hovered={hoveredLineId === line.id}
+            selected={isSelected}
+            showLag={showLag}
+            markerPrefix={markerPrefix}
+            onLineHover={handleLineHover}
+            onLineLeave={handleLineLeave}
+            onDependencyClick={onDependencyClick}
+          />
         );
       })}
     </svg>

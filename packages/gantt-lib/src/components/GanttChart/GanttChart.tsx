@@ -1,9 +1,3 @@
-// START_MODULE_CONTRACT
-// PURPOSE: Compose controlled Gantt rows, interactions and shared dependency rendering.
-// SCOPE: Explicit activity graphs and legacy within-row activity sequences use one renderer.
-// INPUTS: Tasks, optional activityDependencies, view and editing callbacks.
-// OUTPUTS: Native chart; explicit empty activity graph suppresses inferred sequence edges.
-// END_MODULE_CONTRACT
 'use client';
 
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
@@ -69,6 +63,8 @@ import { createTaskPreviewPositionStore, createActivityPreviewStore, createActiv
 import './GanttChart.css';
 
 // START_MODULE_CONTRACT
+// SHARED_ACTIVITY_EDGES: Explicit graphs and legacy within-row sequences share DependencyLines; explicit empty graphs never infer adjacency.
+// PAN_COST: Row virtualization depends on vertical position/height only, keeping row identity stable during horizontal pan.
 // PRESENTATION_INVARIANT: TaskDependency.hidden suppresses arrows/chips/print labels only; the full graph remains the input to scheduling and validation.
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
 // SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; index parent IDs without repeated task scans; reconcile transient drag geometry with controlled task updates; control optional task date/name labels; render explicit host-scoped activity edges and chain/incoming/outgoing selection through native DependencyLines.
@@ -1981,6 +1977,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // Горизонтальное окно рендера в координатах полосы графика: видимая часть плюс
   // запас. Пока ширина области неизвестна (скрытый график, SSR) — не отсекаем
   // ничего, чтобы не терять строки/сетку до первого замера.
+  // Строкам оно не передаётся: вертикальная виртуализация уже ограничивает их
+  // число, а скользящее окно вынуждало бы каждую видимую строку заново создавать
+  // все свои полосы на каждом бакете пана.
   const horizontalWindow = useMemo(() => {
     const width = scrollViewport.viewportWidth;
     if (width <= 0) return undefined;
@@ -2038,7 +2037,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
 
     return Array.from(indices).sort((left, right) => left - right);
-  }, [compositeRowLayout, forceFullRenderForPrint, forcedRenderedTaskIds, scrollViewport, visibleTaskIndexMap, visibleTasks.length]);
+  }, [compositeRowLayout, forceFullRenderForPrint, forcedRenderedTaskIds, scrollViewport.scrollTop, scrollViewport.viewportHeight, visibleTaskIndexMap, visibleTasks.length]);
 
   const visiblePlanFactDateIndices = useMemo(() => {
     if (forceFullRenderForPrint) {
@@ -2894,7 +2893,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         showActivityLinks={false}
                         showActivityLag={showActivityLag}
                         activityTooltip={activityTooltip}
-                        horizontalWindow={horizontalWindow}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}
                         onScheduleIntent={onScheduleIntent}

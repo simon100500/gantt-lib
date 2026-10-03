@@ -1,4 +1,11 @@
 "use client";
+// START_MODULE_CONTRACT
+// PURPOSE: Exercise the public GanttChart with a 5000-activity conveyor dataset.
+// SCOPE: Shared activity rendering, chain gestures, palettes and real-date progress.
+// INPUTS: Local demo controls and current UTC calendar day.
+// OUTPUTS: Native GanttChart with no separate dependency rendering.
+// PROGRESS: Readiness uses the actual current day, never a synthetic percentage of total schedule.
+// END_MODULE_CONTRACT
 
 import { useCallback, useMemo, useState } from "react";
 import { GanttChart, type Task, type ActivityTooltipContext } from "gantt-lib";
@@ -163,10 +170,10 @@ function buildConveyor(mode: "rigid" | "push", colors: string[]): { tasks: Task[
   const sectionOf = (floor: number) => Math.floor(floor / FLOORS_PER_SECTION) + 1;
   const lastDay = Math.max(0, totalDays - 1);
 
-  // «Сегодня» — детерминированно (доля расписания), чтобы данные совпадали на
-  // сервере и клиенте. Прогресс работы: слева (давно в прошлом) — 100%, ближе к
+  // Готовность привязана к настоящему календарному дню, как индикатор сегодня.
+  // Прогресс работы: слева (давно в прошлом) — 100%, ближе к
   // текущей дате — меньше, после неё — 0%.
-  const progressToday = Math.round(totalDays * 0.55);
+  const progressToday = Math.floor((Date.now() - EPOCH) / (24 * 60 * 60 * 1000));
   const progressFor = (startOffset: number, duration: number): number => {
     if (progressToday <= startOffset) return 0;
     const done = (progressToday - startOffset + 1) / duration;

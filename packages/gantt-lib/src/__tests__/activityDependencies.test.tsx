@@ -4,17 +4,18 @@
 // INPUTS: Controlled GanttChart tasks and activityDependencies.
 // OUTPUTS: Native renderer route and visibility assertions.
 // PAN_COST: A 5000-bar graph projects only incident visible rows; hover and horizontal window changes reuse geometry.
-// TOUCH_COUPLING: Verify touching FS zero-lag joints, exclusions, and enlarged hit targets.
+// TOUCH_COUPLING: Verify touching FS zero-lag rounded dash joints, exclusions, and enlarged hit targets.
 // ACTIVITY_PORTS: Cross-row/lane links use demo-compatible 6px top/bottom insets in both vertical directions; same-lane links remain centered on side edges.
 // END_MODULE_CONTRACT
 import React from 'react';
-import { render, cleanup, fireEvent } from '@testing-library/react';
+import { render, cleanup, fireEvent, act } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GanttChart } from '../components/GanttChart';
 import type { Task, TaskActivityDependency, ActivityDependencyHighlight } from '../types';
 import { ActivityDependencyLines } from '../components/DependencyLines/ActivityDependencyLines';
 import * as activityGeometry from '../utils/activities';
 import * as geometry from '../utils/geometry';
+import * as dependencyUtils from '../utils/dependencyUtils';
 import { calculateDependencyPath } from '../utils/geometry';
 
 afterEach(cleanup);
@@ -22,6 +23,29 @@ const task = (id: string, date: string): Task => ({ id, name: id, startDate: dat
 const edge: TaskActivityDependency = { predecessorTaskId: 'one', predecessorActivityId: 'work', successorTaskId: 'two', successorActivityId: 'work', type: 'FS', lag: 3 };
 const chart = (tasks: Task[], edges: TaskActivityDependency[] | undefined, showLag = true) => <GanttChart tasks={tasks} activityDependencies={edges} dateRange={{start:new Date('2026-10-01T00:00:00Z'),end:new Date('2026-10-31T00:00:00Z')}} dayWidth={24} rowHeight={40} containerHeight={400} showActivityLag={showLag} businessDays={false} />;
 describe('native explicit activity dependencies', () => {
+  it('does not rebuild the graph across real GanttChart horizontal scroll buckets', () => {
+    const tasks:Task[]=Array.from({length:125},(_,r)=>({id:`r${r}`,name:`r${r}`,startDate:'2026-10-01',endDate:'2026-11-09',activities:Array.from({length:40},(_,a)=>({id:`a${a}`,name:`a${a}`,startDate:new Date(Date.UTC(2026,9,1+a)),endDate:new Date(Date.UTC(2026,9,1+a))}))}));
+    let frames:FrameRequestCallback[]=[];
+    const raf=vi.spyOn(window,'requestAnimationFrame').mockImplementation(cb=>{frames.push(cb);return frames.length;});
+    const ports=vi.spyOn(geometry,'resolveTaskHorizontalGeometry');
+    const cycles=vi.spyOn(dependencyUtils,'detectCycles');
+    const {container}=render(<GanttChart tasks={tasks} dayWidth={24} rowHeight={40} containerHeight={400} businessDays={false} />);
+    const scroll=container.querySelector<HTMLElement>('.gantt-scrollContainer')!;
+    Object.defineProperty(scroll,'clientHeight',{value:400});Object.defineProperty(scroll,'clientWidth',{value:1000});
+    const flush=()=>act(()=>{const callbacks=frames;frames=[];callbacks.forEach(cb=>cb(0));});
+    flush();
+    const initial=ports.mock.calls.length;
+    const initialCycles=cycles.mock.calls.length;
+    scroll.scrollLeft=480;fireEvent.scroll(scroll);flush();
+    expect(ports.mock.calls.length).toBe(initial);
+    scroll.scrollLeft=960;fireEvent.scroll(scroll);flush();
+    expect(ports.mock.calls.length).toBe(initial);
+    scroll.scrollTop=640;fireEvent.scroll(scroll);flush();
+    expect(ports.mock.calls.length).toBeGreaterThan(initial);
+    expect(container.querySelectorAll('.gantt-dependency-coupling').length).toBeGreaterThan(0);
+    expect(cycles.mock.calls.length).toBe(initialCycles);
+    ports.mockRestore();cycles.mockRestore();raf.mockRestore();
+  });
   it('keeps pan/hover geometry bounded on the 5000-bar demo', () => {
     const tasks:Task[]=Array.from({length:125},(_,r)=>({id:`r${r}`,name:`r${r}`,startDate:'2026-10-01',endDate:'2026-11-09',activities:Array.from({length:40},(_,a)=>({id:`a${a}`,name:`a${a}`,startDate:new Date(Date.UTC(2026,9,1+a)),endDate:new Date(Date.UTC(2026,9,1+a))}))}));
     const dependencies:TaskActivityDependency[]=tasks.flatMap(t=>t.activities!.slice(1).map((a,i)=>({predecessorTaskId:t.id,predecessorActivityId:t.activities![i].id,successorTaskId:t.id,successorActivityId:a.id,type:'FS',lag:0})));
@@ -41,7 +65,7 @@ describe('native explicit activity dependencies', () => {
     const touching={...edge,predecessorActivityId:'first',successorTaskId:'one',successorActivityId:'second',lag:0};
     const {container,rerender}=render(<GanttChart tasks={[row]} activityDependencies={[touching]} dayWidth={24} rowHeight={40} businessDays={false} dateRange={{start:new Date('2026-10-01T00:00:00Z'),end:new Date('2026-10-31T00:00:00Z')}} />);
     const joint=container.querySelector('.gantt-dependency-coupling')!;
-    expect(joint.tagName).toBe('circle');expect(joint.getAttribute('cx')).toBe('24');expect(joint.getAttribute('cy')).toBe('20');
+    expect(joint.tagName).toBe('line');expect(joint.getAttribute('x1')).toBe('19.5');expect(joint.getAttribute('x2')).toBe('28.5');expect(joint.getAttribute('y1')).toBe('20');expect(joint.getAttribute('y2')).toBe('20');
     expect(container.querySelector('path.gantt-dependency-path')).toBeNull();
     expect(container.querySelector('.gantt-dependency-coupling-hit-area')?.getAttribute('r')).toBe('12');
     for(const dependency of [{...touching,lag:1},{...touching,type:'SS' as const}]) {

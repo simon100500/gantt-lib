@@ -1,9 +1,3 @@
-// START_MODULE_CONTRACT
-// PURPOSE: Render task and activity bars and native editing handles.
-// SCOPE: Activity geometry and pointer gestures; dependency overlays belong to GanttChart.
-// INPUTS: Task, row geometry and controlled callbacks.
-// OUTPUTS: Task/activity bars without a second activity dependency renderer.
-// END_MODULE_CONTRACT
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -71,6 +65,7 @@ const formatCompositePreviewDate = (date: Date): string => {
 };
 
 // START_MODULE_CONTRACT
+// ACTIVITY_LINKS: Bars and gestures live here; all activity dependency overlays are owned by GanttChart.
 // PURPOSE: Render one Gantt task row, including its bar, scheduling affordances, and optional external labels.
 // SCOPE: Calculate task geometry, render duration/progress/name/date labels, and preserve drag/dependency interactions with optional deferred cascade preview.
 // DEPENDS: core scheduling, geometry, useTaskDrag, GanttChart presentation props.
@@ -734,6 +729,11 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           });
         }
         publishChainPreview(activityDrag.id, activityDrag.mode, clamped);
+        const sourceActivity = task.activities?.find(activity => activity.id === activityDrag.id);
+        if (sourceActivity) activityPreviewStore?.setActivityRange?.(task.id, activityDrag.id, {
+          startDate: shiftActivityDay(sourceActivity.startDate, activityDrag.mode === 'resize-right' ? 0 : clamped),
+          endDate: shiftActivityDay(sourceActivity.endDate, activityDrag.mode === 'resize-left' ? 0 : clamped),
+        });
       };
       const onUp = () => {
         activityPreviewStore?.clear();
