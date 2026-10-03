@@ -3,6 +3,7 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Render the shared native dependency paths for tasks and projected activity bars.
 // MARKER_IDENTITY: Each mounted chart owns stable unique SVG marker ids; hidden sibling charts must never capture its arrow references.
+// TOUCH_COUPLING: Only explicit same-lane FS activity edges with zero lag and coincident side ports render a clickable joint; adjacency never infers an edge.
 // ACTIVITY_PORTS: Cross-row/lane activities use actual top/bottom bar edges; same-lane activities use side centers. Ordinary task row padding remains unchanged.
 // SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels; hidden dependencies stay in the graph but have no visual path.
 // INPUTS: Task-shaped nodes, explicit row geometry and label visibility.
@@ -289,6 +290,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       reverseOrder: boolean;
       isVirtual: boolean;
       isCritical: boolean;
+      isCoupling: boolean;
     }> = [];
 
     for (const successorId of positionedTaskIds) {
@@ -437,6 +439,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         reverseOrder,
         isVirtual,
         isCritical,
+        isCoupling: activityEndpoints && predecessor.rowTop === successor.rowTop && edge.type === 'FS' && edge.lag === 0 && Math.abs(fromX - finalToX) < 0.01 && !isVirtual,
       });
       }
     }
@@ -547,7 +550,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         </marker>
       </defs>
 
-      {visibleLines.map(({ id, predecessorId, successorId, linkType, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual, isCritical }) => {
+      {visibleLines.map(({ id, predecessorId, successorId, linkType, path, hasCycle, lag, fromX, toX, fromY, reverseOrder, isVirtual, isCritical, isCoupling }) => {
         const isHovered = hoveredLineId === id;
         const isSelected =
           selectedDep != null &&
@@ -593,15 +596,18 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
               role="button"
               aria-label={`Связь ${linkType}`}
             >
-              <path
-                d={path}
-                className="gantt-dependency-hit-area"
-              />
-              <path
-                d={path}
-                className={pathClassName}
-                markerEnd={markerEnd}
-              />
+              {isCoupling ? (
+                <>
+                  <title>После окончания · без лага</title>
+                  <circle cx={toX} cy={fromY} r={12} className="gantt-dependency-coupling-hit-area" />
+                  <circle cx={toX} cy={fromY} r={4} className={`${pathClassName} gantt-dependency-coupling`} />
+                </>
+              ) : (
+                <>
+                  <path d={path} className="gantt-dependency-hit-area" />
+                  <path d={path} className={pathClassName} markerEnd={markerEnd} />
+                </>
+              )}
             </g>
             {showLag && lag !== 0 && (
               <text

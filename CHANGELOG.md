@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.142.0] - 2026-10-03
+
+### Features
+
+- Render a small circular joint instead of an arrow for explicit touching FS activity links without lag in the same lane. Preserve arrows for gaps, other link types and vertical links.
+
 ## [0.141.3] - 2026-10-03
 
 ### Fixes

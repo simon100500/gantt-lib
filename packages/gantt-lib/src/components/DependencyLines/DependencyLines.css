@@ -1,3 +1,9 @@
+/* START_MODULE_CONTRACT
+ PURPOSE: Style native dependency routes and interactive touching-activity joints.
+ SCOPE: SVG paths, hit areas, joint fill and hover/selection states.
+ INPUTS: DependencyLines class names and theme variables.
+ OUTPUTS: Visible routes with larger transparent hit targets.
+ END_MODULE_CONTRACT */
 /* SVG overlay for dependency lines */
 .gantt-dependencies-svg {
   position: absolute;
@@ -90,3 +96,16 @@
   user-select: none;
   opacity: 0.85;
 }
+
+/* START_BLOCK_TOUCH_COUPLING */
+.gantt-dependency-coupling-hit-area {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+  cursor: pointer;
+}
+.gantt-dependency-coupling {
+  fill: var(--gantt-container-background, #fff);
+  stroke-width: 1.5;
+}
+/* END_BLOCK_TOUCH_COUPLING */
