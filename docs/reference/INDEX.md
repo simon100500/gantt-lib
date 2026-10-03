@@ -1,12 +1,12 @@
 # gantt-lib API Reference
 
-**Version:** 0.128.2
+**Version:** 0.143.0
 
 ## Getting Started
 
 - [Installation](./01-installation.md) — npm install, CSS import, minimal example
-- [Task Interface](./02-task-interface.md) — Task properties and hierarchy
-- [Dependencies](./03-dependencies.md) — FS/SS/FF/SF link types
+- [Task Interface](./02-task-interface.md) — Task properties, hierarchy, row activities
+- [Dependencies](./03-dependencies.md) — FS/SS/FF/SF link types, visual activity links
 
 ## Core API
 

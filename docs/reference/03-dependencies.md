@@ -99,4 +99,37 @@ When `enableAutoSchedule={true}` and a predecessor is dragged:
 
 ---
 
+## Activity Links (v0.143.0)
+
+Works inside a row (`Task.activities`) and explicit activity graphs are joined
+by links rendered through the same renderer as ordinary Gantt dependencies, so
+styles, arrow markers and chain highlighting match. Rendering is split in two:
+
+- **Row-local sequence** — consecutive works of a row are drawn on the row
+  itself. Touching works leave a clean seam without an arrow; a gap produces a
+  link exactly the width of that gap. The lag label (`+N`) is a row-local
+  element.
+- **Explicit graph overlay** — `activityDependencies` (host task IDs + activity
+  IDs) is drawn in a chart-wide overlay as orthogonal paths with arrows, lag
+  labels and joints. Supplying it (including `[]`) replaces the implicit
+  consecutive-row links.
+
+Key properties:
+
+- **Purely visual** — activity links have no hit zones, no button role and no
+  hover/click handlers, even when clicking on ordinary dependencies is enabled.
+  They never participate in scheduling; `activityChain` governs conveyor
+  behavior instead.
+- **Joints** — touching FS zero-lag works in the same lane render a small
+  rounded dashed joint instead of an arrow.
+- **Performance** — lane packing, ports and link paths are computed once for
+  the whole graph and reused during horizontal, vertical and diagonal
+  scrolling; only visible edges are mounted. The dependency graph rebuilds on
+  vertical scroll only.
+- **Highlighting** — `activityDependencyHighlight` scopes the drawn edges to a
+  selected chain (`'chain'`, `'chain-incoming'`, `'chain-outgoing'`,
+  `'chain-all'`).
+
+---
+
 [← Back to API Reference](./INDEX.md)

@@ -18,6 +18,8 @@ interface Task {
   synced?: boolean;
   divider?: 'top' | 'bottom';
   parentId?: string;
+  activities?: TaskActivity[];
+  activityChain?: boolean | 'push';
 }
 ```
 
@@ -39,6 +41,8 @@ interface Task {
 | `synced` | `boolean` | no | `undefined` | When `false`, the task bar renders with a dashed border indicating it was modified outside the central scheduling engine and has not yet been re-synced. `undefined` or `true` renders normally. Only relevant in projects using the Locations Layer (work templates / locations / assignments). |
 | `divider` | `'top' \| 'bottom'` | no | `undefined` | Optional horizontal divider line for visual grouping. `'top'` renders a bold line above the task row. `'bottom'` renders a bold line below the task row. Spans the full grid width. |
 | `parentId` | `string` | no | `undefined` | ID of the parent task for hierarchy (parent-child relationships). Child tasks are indented in the task list. Parent tasks display with a gradient background and collapse/expand button. Dragging a task between child tasks automatically assigns it the same parent. **Unlimited nesting depth** is supported. Hierarchical numbering (1, 1.1, 1.1.1, 2...) is displayed in the task list's № column. |
+| `activities` | `TaskActivity[]` | no | `undefined` | Optional list of work bars rendered as lanes packed into sub-lanes of this row (e.g. finishing works on one floor). Replaces the main bar for the row and grows the row height to fit concurrent activities. Works in gantt mode only — see [Row Activities](#row-activities-v01390). |
+| `activityChain` | `boolean \| 'push'` | no | `undefined` | ОН-конвейер (finish-to-start chain) for row activities. Inside the row every work follows the previous one; identical works of consecutive chained rows (floors) are linked too. `true` — hard conveyor: dragging shifts the whole chain below by the same delta. `'push'` — ASAP "pushing" mode: gaps fill when moving up the flow, a successor shifts down only after a collision; an activity's `lag` keeps its gap constant. |
 
 ---
 
@@ -252,5 +256,38 @@ const handleDemoteTask = useCallback((taskId: string, newParentId: string) => {
 **Note:** If `onPromoteTask` and `onDemoteTask` are not provided, the library uses internal default logic.
 
 ---
+
+## Row Activities (v0.139.0+)
+
+A task can carry its own list of works rendered as bars packed into sub-lanes of
+one row. `activities` **replaces the main bar** for that row: the row height
+grows to fit concurrent activities, and first-fit lane packing decides which
+sub-lane each work occupies.
+
+```typescript
+interface TaskActivity {
+  id: string;                      // unique within the host task
+  name: string;                    // rendered inside the bar
+  startDate: string | Date;
+  endDate: string | Date;          // same inclusive-day rules as Task
+  color?: string;                  // falls back to the default task bar color
+  lag?: number;                    // required gap in days from the previous chain work
+  tooltipFields?: TaskActivityTooltipField[]; // extra rows in the hover tooltip
+  progress?: number;               // 0–100, fills the bar, adds "Готовность" to the tooltip
+}
+```
+
+Behavior notes:
+
+- **Visual bars only** — activities carry no hierarchy and no host-side
+  dependencies; the host owns their dates. Progress is visual like `Task.progress`.
+- **Conveyor** — `activityChain: true` keeps the finish-to-start chain rigid:
+  dragging a work shifts the whole chain below by the same delta.
+  `activityChain: 'push'` compacts gaps ASAP while a set `lag` keeps its gap
+  constant.
+- **Links** — consecutive works of a row are joined visually (see
+  [Dependencies → Activity Links](./03-dependencies.md#activity-links));
+  the optional explicit graph is passed via the `activityDependencies` prop and
+  is also purely visual.
 
 [← Back to API Reference](./INDEX.md)

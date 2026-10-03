@@ -308,6 +308,22 @@ Use `fillParentRowsInTaskList` with a predicate when only specific parent levels
 
 This example fills only top-level parent rows. Child parent rows stay unfilled.
 
+## Row Activities Props
+
+Props for tasks that carry `activities` (work bars packed into the row's
+sub-lanes). See [Task Interface → Row Activities](./02-task-interface.md#row-activities-v01390)
+and [Dependencies → Activity Links](./03-dependencies.md#activity-links-v01430).
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `activityClickToDrag` | `boolean` | `false` | When `true`, clicking a work arms it before dragging; a plain drag then pans the canvas. |
+| `activityActivationMode` | `'none' \| 'dim' \| 'highlight'` | `'none'` | Visual of the activated work: `'none'` — plain, `'dim'` — dim other works, `'highlight'` — highlight its chain. |
+| `showActivityLinks` | `boolean` | `true` | Draws links between consecutive works of a row. Ignored when `activityDependencies` is provided — the explicit graph replaces implicit links. |
+| `activityDependencies` | `readonly TaskActivityDependency[]` | `undefined` | Explicit visual activity graph: `predecessorTaskId`/`predecessorActivityId` → `successorTaskId`/`successorActivityId` plus `type` (FS/SS/FF/SF) and optional `lag`. Activity IDs may repeat across host tasks. Supplying it (including `[]`) replaces implicit consecutive-row links. Purely visual — it does not change scheduling. |
+| `activityDependencyHighlight` | `ActivityDependencyHighlight` | `undefined` | Controlled chain selection: `{ activities: { taskId, activityId }[], mode?: 'chain' \| 'chain-incoming' \| 'chain-outgoing' \| 'chain-all' }`. Internal edges only by default; incoming/outgoing modes include edges entering/leaving the chain. `undefined` shows the whole graph. |
+| `showActivityLag` | `boolean` | `true` | Labels the lag (`+N`) on work links. |
+| `activityTooltip` | `(context: ActivityTooltipContext) => React.ReactNode` | `undefined` | Extra tooltip content for a work. Receives `{ task, activity, startDate, endDate, durationDays, progress? }` on top of the built-in name/dates and `tooltipFields`. |
+
 ## Table Matrix Props
 
 For a complete guide with examples, grouped headers, and clickable cells, see [Table Matrix Mode](./16-table-matrix.md).
