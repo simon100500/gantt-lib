@@ -7,6 +7,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DependencyLines } from '../components/DependencyLines';
+import { GanttChart } from '../components/GanttChart';
 import type { Task } from '../components/GanttChart';
 import { cascadeByLinks } from '../core/scheduling/cascade';
 
@@ -212,4 +213,43 @@ it('keeps markers local and stable with a hidden sibling chart, including hover 
  expect(svgs[1].querySelector('.gantt-dependency-path')?.getAttribute('marker-end')).toContain('arrowhead-selected');
  expect(Array.from(container.querySelectorAll('marker'), marker => marker.id)).toEqual(ids);
  assertLocal();
+});
+
+// Обычный Гант: клик по связи открывает меню удаления. Пан-подавление
+// pointer-events включается только реальным движением — mousedown (начало
+// клика) не глушит слой связей, иначе mouseup таргетится мимо SVG и click
+// до линии не доходит.
+describe('regular Gantt dependency selection', () => {
+  it('opens the delete menu on click while pan suppression stays movement-gated', () => {
+    const tasks: Task[] = [
+      { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-02' },
+      { id: 'b', name: 'B', startDate: '2026-03-03', endDate: '2026-03-04', dependencies: [{ taskId: 'a', type: 'FS', lag: 0 }] },
+    ];
+    const onTasksChange = vi.fn();
+    const { container } = render(
+      <GanttChart tasks={tasks} onTasksChange={onTasksChange}
+        dateRange={{ start: new Date('2026-03-01T00:00:00Z'), end: new Date('2026-03-31T00:00:00Z') }}
+        dayWidth={24} rowHeight={40} containerHeight={200} businessDays={false} />
+    );
+    const scroll = container.querySelector<HTMLElement>('.gantt-scrollContainer')!;
+    const line = container.querySelector('.gantt-dependency-line')!;
+    expect(line).not.toBeNull();
+
+    fireEvent.mouseDown(line);
+    expect(scroll.hasAttribute('data-panning')).toBe(false);
+
+    fireEvent.click(line);
+    expect(container.querySelector('.gantt-dependencyLineMenu')).not.toBeNull();
+
+    fireEvent.click(container.querySelector('.gantt-dependencyLineMenuDelete')!);
+    expect(onTasksChange).toHaveBeenCalledTimes(1);
+    expect(onTasksChange.mock.calls[0][0][0].dependencies).toHaveLength(0);
+
+    // Реальное движение включает подавление, mouseup снимает его.
+    fireEvent.mouseDown(scroll);
+    fireEvent.mouseMove(window, { clientX: 12, clientY: 0 });
+    expect(scroll.getAttribute('data-panning')).toBe('true');
+    fireEvent.mouseUp(window);
+    expect(scroll.hasAttribute('data-panning')).toBe(false);
+  });
 });

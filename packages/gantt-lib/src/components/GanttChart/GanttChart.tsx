@@ -2428,7 +2428,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     currentX: number;
     currentY: number;
     frameId: number | null;
+    suppressed: boolean;
   } | null>(null);
+
+  // Клик по SVG-связи должен дойти до её обработчика: цель click — ближайший
+  // общий предок целей mousedown/mouseup. Если на mousedown уже глушить
+  // pointer-events, mouseup таргетится мимо слоя связей и click до линии не
+  // доходит. Подавление включается только на реальном движении (порог ниже),
+  // поэтому простой клик остаётся кликом, а пан гасит слои как раньше.
+  const PAN_SUPPRESS_PX = 3;
 
   const handlePanStart = useCallback((e: React.MouseEvent) => {
     // Only pan on left click, skip if clicking on a task bar, input, or task list
@@ -2454,15 +2462,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       currentX: e.clientX,
       currentY: e.clientY,
       frameId: null,
+      suppressed: false,
     };
     // Blur any focused input so onBlur save handlers fire before pan starts
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    // PAN_COST: пока пан активен, курсор скользит по едущему под ним холсту.
-    // Hit-test SVG-связей и hover полос на каждый mousemove съедает кадр —
-    // интерактивные слои гасятся атрибутом (см. CSS [data-panning]).
-    container.setAttribute('data-panning', 'true');
     container.style.cursor = 'grabbing';
     e.preventDefault();
   }, [activityActivationStore]);
@@ -2494,6 +2499,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       if (!pan?.active) return;
       pan.currentX = e.clientX;
       pan.currentY = e.clientY;
+      // PAN_COST: пока пан реально едет, курсор скользит по холсту. Hit-test
+      // SVG-связей и hover полос на каждый mousemove съедает кадр — интерактивные
+      // слои гасятся атрибутом (см. CSS [data-panning]) только после того, как
+      // движение превысило порог клика.
+      if (!pan.suppressed &&
+          Math.abs(pan.currentX - pan.startX) + Math.abs(pan.currentY - pan.startY) >= PAN_SUPPRESS_PX) {
+        pan.suppressed = true;
+        scrollContainerRef.current?.setAttribute('data-panning', 'true');
+      }
       if (pan.frameId !== null) return;
       pan.frameId = window.requestAnimationFrame(flushPanMove);
     };
