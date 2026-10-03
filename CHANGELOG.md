@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.141.3] - 2026-10-03
+
+### Fixes
+
+- Attach vertical activity dependencies to the actual top and bottom bar edges in both directions. Preserve side-center ports for horizontal links within a floor.
+
 ## [0.141.2] - 2026-10-03
 
 ### Fixes

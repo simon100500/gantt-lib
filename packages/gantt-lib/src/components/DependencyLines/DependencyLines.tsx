@@ -3,6 +3,7 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Render the shared native dependency paths for tasks and projected activity bars.
 // MARKER_IDENTITY: Each mounted chart owns stable unique SVG marker ids; hidden sibling charts must never capture its arrow references.
+// ACTIVITY_PORTS: Cross-row/lane activities use actual top/bottom bar edges; same-lane activities use side centers. Ordinary task row padding remains unchanged.
 // SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels; hidden dependencies stay in the graph but have no visual path.
 // INPUTS: Task-shaped nodes, explicit row geometry and label visibility.
 // OUTPUTS: Native SVG dependency paths and interactions.
@@ -360,6 +361,9 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       if (activityEndpoints && predecessor.rowTop === successor.rowTop) {
         fromY = predecessor.rowTop + predecessor.rowHeight / 2;
         toY = successor.rowTop + successor.rowHeight / 2;
+      } else if (activityEndpoints) {
+        fromY = reverseOrder ? predecessor.rowTop : predecessor.rowTop + predecessor.rowHeight;
+        toY = reverseOrder ? successor.rowTop + successor.rowHeight : successor.rowTop;
       } else if (reverseOrder) {
         // Arrow goes UP: exit from top of parent bar, enter at bottom of child bar
         fromY = predecessor.rowTop + 10;               // 8px from top of parent bar
