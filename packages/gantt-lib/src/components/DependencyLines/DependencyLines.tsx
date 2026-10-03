@@ -4,7 +4,7 @@
 // PURPOSE: Render the shared native dependency paths for tasks and projected activity bars.
 // MARKER_IDENTITY: Each mounted chart owns stable unique SVG marker ids; hidden sibling charts must never capture its arrow references.
 // TOUCH_COUPLING: Only explicit same-lane FS activity edges with zero lag and coincident side ports render a clickable joint; adjacency never infers an edge.
-// ACTIVITY_PORTS: Cross-row/lane activities use actual top/bottom bar edges; same-lane activities use side centers. Ordinary task row padding remains unchanged.
+// ACTIVITY_PORTS: Cross-row/lane activities use ports inset 6px from the top/bottom like the flow-line demo; same-lane activities use side centers. Ordinary task row padding remains unchanged.
 // SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels; hidden dependencies stay in the graph but have no visual path.
 // INPUTS: Task-shaped nodes, explicit row geometry and label visibility.
 // OUTPUTS: Native SVG dependency paths and interactions.
@@ -364,8 +364,8 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         fromY = predecessor.rowTop + predecessor.rowHeight / 2;
         toY = successor.rowTop + successor.rowHeight / 2;
       } else if (activityEndpoints) {
-        fromY = reverseOrder ? predecessor.rowTop : predecessor.rowTop + predecessor.rowHeight;
-        toY = reverseOrder ? successor.rowTop + successor.rowHeight : successor.rowTop;
+        fromY = reverseOrder ? predecessor.rowTop + 6 : predecessor.rowTop + predecessor.rowHeight - 6;
+        toY = reverseOrder ? successor.rowTop + successor.rowHeight - 6 : successor.rowTop + 6;
       } else if (reverseOrder) {
         // Arrow goes UP: exit from top of parent bar, enter at bottom of child bar
         fromY = predecessor.rowTop + 10;               // 8px from top of parent bar

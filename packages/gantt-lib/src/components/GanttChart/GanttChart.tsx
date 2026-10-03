@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Compose controlled Gantt rows, interactions and shared dependency rendering.
+// SCOPE: Explicit activity graphs and legacy within-row activity sequences use one renderer.
+// INPUTS: Tasks, optional activityDependencies, view and editing callbacks.
+// OUTPUTS: Native chart; explicit empty activity graph suppresses inferred sequence edges.
+// END_MODULE_CONTRACT
 'use client';
 
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
@@ -804,6 +810,19 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onTaskDateChangeModeChange: externalOnTaskDateChangeModeChange,
     printDependencyLabels = false,
   } = props;
+  // START_BLOCK_SHARED_ACTIVITY_EDGES
+  const resolvedActivityDependencies = useMemo<readonly TaskActivityDependency[]>(() => {
+    if (activityDependencies !== undefined) return activityDependencies;
+    return tasks.flatMap(task => (task.activities ?? []).slice(1).map((successor, index) => ({
+      predecessorTaskId: task.id,
+      predecessorActivityId: task.activities![index].id,
+      successorTaskId: task.id,
+      successorActivityId: successor.id,
+      type: 'FS' as const,
+      lag: successor.lag ?? 0,
+    })));
+  }, [tasks, activityDependencies]);
+  // END_BLOCK_SHARED_ACTIVITY_EDGES
   const dayWidth = !isTableMatrixMode ? props.dayWidth ?? 40 : 40;
   const criticalPathMode = !isTableMatrixMode && !isPlanFactMode ? props.criticalPathMode : undefined;
   const onSubtreeScaleResult = !isTableMatrixMode && !isPlanFactMode ? props.onSubtreeScaleResult : undefined;
@@ -2712,8 +2731,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     />
                   )}
 
-                  {showActivityLinks && activityDependencies !== undefined && (
-                    <ActivityDependencyLines tasks={visibleTasks} renderedTaskIds={renderedTaskIdsRef.current} dependencies={activityDependencies} highlight={activityDependencyHighlight} monthStart={monthStart} dayWidth={dayWidth} rowHeight={effectiveRowHeight} gridWidth={renderGridWidth} totalHeight={totalGridHeight} rowIndexByTaskId={visibleTaskIndexMap} rowTops={compositeRowLayout.tops} rowHeights={compositeRowLayout.heights} showLag={showActivityLag} previewStore={activityPreviewStore} horizontalWindow={horizontalWindow} />
+                  {showActivityLinks && resolvedActivityDependencies.length > 0 && (
+                    <ActivityDependencyLines tasks={visibleTasks} renderedTaskIds={renderedTaskIdsRef.current} dependencies={resolvedActivityDependencies} highlight={activityDependencyHighlight} monthStart={monthStart} dayWidth={dayWidth} rowHeight={effectiveRowHeight} gridWidth={renderGridWidth} totalHeight={totalGridHeight} rowIndexByTaskId={visibleTaskIndexMap} rowTops={compositeRowLayout.tops} rowHeights={compositeRowLayout.heights} showLag={showActivityLag} previewStore={activityPreviewStore} horizontalWindow={horizontalWindow} />
                   )}
 
                   {/* Dependency lines SVG overlay */}
@@ -2872,7 +2891,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         activityActivationStore={activityActivationStore}
                         activityClickToDrag={activityClickToDrag}
                         activityActivationMode={activityActivationMode}
-                        showActivityLinks={showActivityLinks && activityDependencies === undefined}
+                        showActivityLinks={false}
                         showActivityLag={showActivityLag}
                         activityTooltip={activityTooltip}
                         horizontalWindow={horizontalWindow}

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.142.1] - 2026-10-03
+
+### Fixes
+
+- Unify demo activity sequences and explicit activity graphs under the shared dependency renderer. Show touching joints in both modes and use the flow-line demo's 6px inset ports for cross-lane arrows. Remove the duplicate row-local renderer.
+
 ## [0.142.0] - 2026-10-03
 
 ### Features

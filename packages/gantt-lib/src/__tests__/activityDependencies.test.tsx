@@ -4,7 +4,7 @@
 // INPUTS: Controlled GanttChart tasks and activityDependencies.
 // OUTPUTS: Native renderer route and visibility assertions.
 // TOUCH_COUPLING: Verify touching FS zero-lag joints, exclusions, and enlarged hit targets.
-// ACTIVITY_PORTS: Cross-row/lane links attach to actual bar edges in both vertical directions; same-lane links remain centered on side edges.
+// ACTIVITY_PORTS: Cross-row/lane links use demo-compatible 6px top/bottom insets in both vertical directions; same-lane links remain centered on side edges.
 // END_MODULE_CONTRACT
 import React from 'react';
 import { render, cleanup } from '@testing-library/react';
@@ -16,7 +16,7 @@ import { calculateDependencyPath } from '../utils/geometry';
 afterEach(cleanup);
 const task = (id: string, date: string): Task => ({ id, name: id, startDate: date, endDate: date, activities: [{ id: 'work', name: id, startDate: date, endDate: date }] });
 const edge: TaskActivityDependency = { predecessorTaskId: 'one', predecessorActivityId: 'work', successorTaskId: 'two', successorActivityId: 'work', type: 'FS', lag: 3 };
-const chart = (tasks: Task[], edges: TaskActivityDependency[], showLag = true) => <GanttChart tasks={tasks} activityDependencies={edges} dateRange={{start:new Date('2026-10-01T00:00:00Z'),end:new Date('2026-10-31T00:00:00Z')}} dayWidth={24} rowHeight={40} containerHeight={400} showActivityLag={showLag} businessDays={false} />;
+const chart = (tasks: Task[], edges: TaskActivityDependency[] | undefined, showLag = true) => <GanttChart tasks={tasks} activityDependencies={edges} dateRange={{start:new Date('2026-10-01T00:00:00Z'),end:new Date('2026-10-31T00:00:00Z')}} dayWidth={24} rowHeight={40} containerHeight={400} showActivityLag={showLag} businessDays={false} />;
 describe('native explicit activity dependencies', () => {
   it('renders a joint only for an explicit touching FS edge without lag', () => {
     const row:Task={id:'one',name:'one',startDate:'2026-10-01',endDate:'2026-10-04',activities:[{id:'first',name:'first',startDate:'2026-10-01',endDate:'2026-10-01'},{id:'second',name:'second',startDate:'2026-10-02',endDate:'2026-10-04'}]};
@@ -30,6 +30,17 @@ describe('native explicit activity dependencies', () => {
       rerender(chart([row],[dependency]));expect(container.querySelector('.gantt-dependency-coupling')).toBeNull();expect(container.querySelector('path.gantt-dependency-path')).not.toBeNull();
     }
     rerender(chart([row],[]));expect(container.querySelector('.gantt-dependency-coupling')).toBeNull();
+  });
+  it('uses the same joints and arrow geometry for demo sequence and explicit graphs', () => {
+    const row:Task={id:'one',name:'one',startDate:'2026-10-01',endDate:'2026-10-04',activities:[{id:'first',name:'first',startDate:'2026-10-01',endDate:'2026-10-01'},{id:'second',name:'second',startDate:'2026-10-02',endDate:'2026-10-02'},{id:'third',name:'third',startDate:'2026-10-02',endDate:'2026-10-04'}]};
+    const {container,rerender}=render(chart([row],undefined));
+    expect(container.querySelectorAll('.gantt-dependency-coupling')).toHaveLength(1);
+    const route=container.querySelector('path.gantt-dependency-path')?.getAttribute('d');
+    expect(route).toBeTruthy();
+    rerender(chart([row],[{...edge,predecessorActivityId:'first',successorTaskId:'one',successorActivityId:'second',lag:0},{...edge,predecessorActivityId:'second',successorTaskId:'one',successorActivityId:'third',lag:0}]));
+    expect(container.querySelectorAll('.gantt-dependency-coupling')).toHaveLength(1);
+    expect(container.querySelector('path.gantt-dependency-path')?.getAttribute('d')).toBe(route);
+    rerender(chart([row],[]));expect(container.querySelector('.gantt-dependency-path')).toBeNull();
   });
   it('keeps same-lane horizontal links on side centers', () => {
     const row:Task={id:'one',name:'one',startDate:'2026-10-01',endDate:'2026-10-04',activities:[{id:'first',name:'first',startDate:'2026-10-01',endDate:'2026-10-01'},{id:'second',name:'second',startDate:'2026-10-03',endDate:'2026-10-04'}]};
@@ -51,8 +62,8 @@ describe('native explicit activity dependencies', () => {
     const { container, rerender } = render(chart([task('one','2026-10-01'),task('two','2026-10-03')],[edge]));
     const paths=()=>container.querySelectorAll('.gantt-dependency-path');
     expect(paths()).toHaveLength(1);
-    // A 24px bar sits at y=8 in a 40px row: down-route exits at bottom 32 and enters at top 48.
-    expect(paths()[0].getAttribute('d')).toBe(calculateDependencyPath({x:24,y:32},{x:48,y:48},false));
+    // A 24px bar sits at y=8 in a 40px row: down-route exits at 26 and enters at 54 (6px insets).
+    expect(paths()[0].getAttribute('d')).toBe(calculateDependencyPath({x:24,y:26},{x:48,y:54},false));
     expect(paths()[0].getAttribute('d')).not.toContain('20');
     expect(container.querySelector('.gantt-dependency-lag-label')?.textContent).toBe('+3');
     rerender(chart([task('one','2026-10-01'),task('two','2026-10-03')],[edge],false));
@@ -63,11 +74,11 @@ describe('native explicit activity dependencies', () => {
   it.each(['FS','SS','FF','SF'] as const)('honors %s endpoints and controlled date changes', type => {
     const { container, rerender }=render(chart([task('one','2026-10-01'),task('two','2026-10-03')],[{...edge,type}]));
     const x1=type==='SS'||type==='SF'?0:24, x2=type==='FF'||type==='SF'?72:48;
-    expect(container.querySelector('.gantt-dependency-path')?.getAttribute('d')).toBe(calculateDependencyPath({x:x1,y:32},{x:x2,y:48},type==='FF'||type==='SF'));
+    expect(container.querySelector('.gantt-dependency-path')?.getAttribute('d')).toBe(calculateDependencyPath({x:x1,y:26},{x:x2,y:54},type==='FF'||type==='SF'));
     rerender(chart([task('one','2026-10-04'),task('two','2026-10-03')],[{...edge,type}]));
-    expect(container.querySelector('.gantt-dependency-path')?.getAttribute('d')).toBe(calculateDependencyPath({x:x1+72,y:32},{x:x2,y:48},type==='FF'||type==='SF'));
+    expect(container.querySelector('.gantt-dependency-path')?.getAttribute('d')).toBe(calculateDependencyPath({x:x1+72,y:26},{x:x2,y:54},type==='FF'||type==='SF'));
     rerender(chart([task('two','2026-10-03'),task('one','2026-10-04')],[{...edge,type}]));
-    expect(container.querySelector('.gantt-dependency-path')?.getAttribute('d')).toBe(calculateDependencyPath({x:x1+72,y:48},{x:x2,y:32},type==='FF'||type==='SF'));
+    expect(container.querySelector('.gantt-dependency-path')?.getAttribute('d')).toBe(calculateDependencyPath({x:x1+72,y:54},{x:x2,y:26},type==='FF'||type==='SF'));
   });
   it('routes packed lanes by actual vertical position and does not infer extra links', () => {
     const row: Task={id:'one',name:'one',startDate:'2026-10-01',endDate:'2026-10-05',activities:[{id:'later',name:'later',startDate:'2026-10-03',endDate:'2026-10-05'},{id:'early',name:'early',startDate:'2026-10-01',endDate:'2026-10-04'}]};
@@ -75,7 +86,7 @@ describe('native explicit activity dependencies', () => {
     const bars=[...container.querySelectorAll<HTMLElement>('[data-activity-id]')];
     const early=bars.find(b=>b.dataset.activityId==='early')!,later=bars.find(b=>b.dataset.activityId==='later')!;
     expect(parseFloat(early.style.top)).toBeLessThan(parseFloat(later.style.top));
-    const from={x:96,y:parseFloat(early.style.top)+24},to={x:48,y:parseFloat(later.style.top)};
+    const from={x:96,y:parseFloat(early.style.top)+18},to={x:48,y:parseFloat(later.style.top)+6};
     expect(container.querySelector('.gantt-dependency-path')?.getAttribute('d')).toBe(calculateDependencyPath(from,to,false));
     expect(container.querySelectorAll('.gantt-dependency-path')).toHaveLength(1);
   });
