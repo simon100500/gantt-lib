@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.143.1] - 2026-10-03
+
+### Fixes
+
+- Restore dependency link selection on the regular Gantt: pan pointer suppression engaged on every mousedown, so the browser retargeted mouseup away from the dependency SVG and the click never reached the link — no hover, no selection, no delete menu. Suppression now arms only after real movement (3px threshold): a plain click stays a click, while real panning still mutes the interactive layers.
+
 ## [0.143.0] - 2026-10-03
 
 ### Refactor
