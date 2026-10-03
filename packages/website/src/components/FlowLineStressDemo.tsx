@@ -9,6 +9,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { GanttChart, type Task, type ActivityTooltipContext } from "gantt-lib";
+import { buildFlowLineDependencies } from "./flowLineDependencies";
 
 const EPOCH = Date.UTC(2026, 2, 2); // пн 2 мар 2026
 const WORKS_PER_FLOOR = 40;
@@ -233,6 +234,7 @@ export default function FlowLineStressDemo() {
   );
   const [dataset, setDataset] = useState(() => buildConveyor("rigid", paletteColors(PALETTES[0], 18, true)));
   const tasks = dataset.tasks;
+  const activityDependencies = useMemo(() => buildFlowLineDependencies(tasks), [tasks]);
   // Стандартные ширины сайта: день — рабочий размер, неделя/месяц — обзорные.
   const dayWidth = viewMode === "month" ? 2.5 : viewMode === "week" ? 8 : 24;
 
@@ -291,6 +293,7 @@ export default function FlowLineStressDemo() {
         за той же работой этажом выше. Поток замкнут внутри секции — этажи соседних секций
         не связаны, у каждой секции свой независимый конвейер. Наведи курсор — подсказка
         с подрядчиком; зазор между полосами подсвечен стрелкой, лаг подписан числом дней.
+        Работы встык соединены толстой сцепкой с закруглёнными концами, без кликов и подсветки при наведении.
         В режиме «выталкивания» полоса упирается в предшественника и останавливается на зазоре.
         Каждая работа заполнена прогрессом: слева (давно в прошлом) — 100%, ближе к текущей
         дате готовность падает, после неё — 0%. В подсказке — строка «Готовность».
@@ -352,7 +355,7 @@ export default function FlowLineStressDemo() {
         </label>
         <label style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: 0, fontSize: 13 }}>
           <input type="checkbox" checked={showLinks} onChange={() => setShowLinks(current => !current)} />
-          Связи работ (стрелки зазоров и переходов)
+          Связи работ (стрелки и сцепки)
         </label>
       </div>
       <div className="demo-chart-card">
@@ -368,6 +371,7 @@ export default function FlowLineStressDemo() {
           activityClickToDrag
           activityActivationMode="dim"
           showActivityLinks={showLinks}
+          activityDependencies={activityDependencies}
           activityTooltip={renderActivityTooltip}
           rowHeight={40}
           taskListWidth={210}

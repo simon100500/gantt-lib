@@ -5,8 +5,8 @@
 // MARKER_IDENTITY: Each mounted chart owns stable unique SVG marker ids; hidden sibling charts must never capture its arrow references.
 // CYCLE_TOPOLOGY: Optional cycleTaskIds comes from the stable full activity graph, independent of scroll windows and drag geometry.
 // PAN_COST: Stable empty collapse state keeps geometry memoized during hover and horizontal scroll.
-// TOUCH_COUPLING: Only explicit same-lane FS activity edges with zero lag and coincident side ports render a clickable joint; adjacency never infers an edge.
-// COUPLING_STYLE: One rounded white dash, 12x3px including caps at 50 percent opacity; the invisible hit target and dependency identity remain unchanged.
+// TOUCH_COUPLING: Only explicit same-lane FS activity edges with zero lag and coincident side ports render a visual-only joint; adjacency never infers an edge.
+// COUPLING_STYLE: One rounded white dash, 12x3px including caps at 50 percent opacity; no hit target or hover/click handlers.
 // ACTIVITY_PORTS: Cross-row/lane activities use ports inset 6px from the top/bottom like the flow-line demo; same-lane activities use side centers. Ordinary task row padding remains unchanged.
 // SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels; hidden dependencies stay in the graph but have no visual path.
 // INPUTS: Task-shaped nodes, explicit row geometry and label visibility.
@@ -128,6 +128,7 @@ const DependencyLineView = React.memo(function DependencyLineView({
   onDependencyClick,
 }: DependencyLineViewProps) {
   const { id, predecessorId, successorId, linkType, path, hasCycle, lag, toX, fromY, reverseOrder, isVirtual, isCoupling } = line;
+  const interactive = !isCoupling && onDependencyClick !== undefined;
 
   let pathClassName = 'gantt-dependency-path';
   if (selected) pathClassName += ' gantt-dependency-selected';
@@ -153,10 +154,10 @@ const DependencyLineView = React.memo(function DependencyLineView({
   return (
     <React.Fragment>
       <g
-        className={`gantt-dependency-line${hovered ? ' gantt-dependency-line-hovered' : ''}`}
-        onPointerEnter={() => onLineHover(id)}
-        onPointerLeave={() => onLineLeave(id)}
-        onClick={(event) => {
+        className={`gantt-dependency-line${interactive ? '' : ' gantt-dependency-line-static'}${hovered && interactive ? ' gantt-dependency-line-hovered' : ''}`}
+        onPointerEnter={interactive ? () => onLineHover(id) : undefined}
+        onPointerLeave={interactive ? () => onLineLeave(id) : undefined}
+        onClick={interactive ? (event) => {
           event.stopPropagation();
           onDependencyClick?.({
             predecessorId,
@@ -165,19 +166,15 @@ const DependencyLineView = React.memo(function DependencyLineView({
             x: toX,
             y: reverseOrder ? fromY - 4 : fromY + 12,
           });
-        }}
-        role="button"
-        aria-label={`Связь ${linkType}`}
+        } : undefined}
+        role={interactive ? 'button' : undefined}
+        aria-label={interactive ? `Связь ${linkType}` : undefined}
       >
         {isCoupling ? (
-          <>
-            <title>После окончания · без лага</title>
-            <circle cx={toX} cy={fromY} r={12} className="gantt-dependency-coupling-hit-area" />
-            <line x1={toX - 4.5} y1={fromY} x2={toX + 4.5} y2={fromY} className={`${pathClassName} gantt-dependency-coupling`} />
-          </>
+          <line x1={toX - 4.5} y1={fromY} x2={toX + 4.5} y2={fromY} className={`${pathClassName} gantt-dependency-coupling`} />
         ) : (
           <>
-            <path d={path} className="gantt-dependency-hit-area" />
+            {interactive && <path d={path} className="gantt-dependency-hit-area" />}
             <path d={path} className={pathClassName} markerEnd={markerEnd} />
           </>
         )}
@@ -201,6 +198,9 @@ const DependencyLineView = React.memo(function DependencyLineView({
   // бакете вертикальной прокрутки создаёт новые объекты линий с той же
   // геометрией — пере-рендерить их нельзя, иначе пан дёргается.
   prev.line.id === next.line.id &&
+  prev.line.predecessorId === next.line.predecessorId &&
+  prev.line.successorId === next.line.successorId &&
+  prev.line.linkType === next.line.linkType &&
   prev.line.path === next.line.path &&
   prev.line.hasCycle === next.line.hasCycle &&
   prev.line.lag === next.line.lag &&
@@ -213,7 +213,10 @@ const DependencyLineView = React.memo(function DependencyLineView({
   prev.hovered === next.hovered &&
   prev.selected === next.selected &&
   prev.showLag === next.showLag &&
-  prev.markerPrefix === next.markerPrefix
+  prev.markerPrefix === next.markerPrefix &&
+  prev.onLineHover === next.onLineHover &&
+  prev.onLineLeave === next.onLineLeave &&
+  prev.onDependencyClick === next.onDependencyClick
 ));
 
 export interface DependencyLinesProps {
@@ -306,6 +309,9 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   const handleLineLeave = useCallback((id: string) => setHoveredLineId((current) => current === id ? null : current), []);
   // Use allTasks for virtual position calculation if provided, otherwise use tasks
   const tasksForPositions = allTasks ?? tasks;
+  // Activity rows provide a stable full projection. Keep positions and paths
+  // independent of the scrolling `tasks` subset; only cull at the final step.
+  const geometryTasks = activityEndpoints ? tasksForPositions : tasks;
 
   // Create a lookup map for task positions and their indices
   const { taskPositions, taskIndices, hiddenTaskIds } = useMemo(() => {
@@ -314,7 +320,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     const hidden = new Set<string>();
     const taskMap = new Map(tasksForPositions.map(t => [t.id, t]));
     // First pass: Calculate positions for visible tasks (existing logic)
-    tasks.forEach((task, index) => {
+    geometryTasks.forEach((task, index) => {
       // Use real-time pixel override if available (during drag)
       const override = dragOverrides?.get(task.id);
       const computed = resolveTaskHorizontalGeometry(task, monthStart, dayWidth, override);
@@ -400,7 +406,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     }
 
     return { taskPositions: positions, taskIndices: indices, hiddenTaskIds: hidden };
-  }, [tasks, tasksForPositions, allTasks, collapsedParentIds, monthStart, dayWidth, rowHeight, rowTops, rowHeights, dragOverrides, rowIndexByTaskId]);
+  }, [geometryTasks, tasksForPositions, allTasks, collapsedParentIds, monthStart, dayWidth, rowHeight, rowTops, rowHeights, dragOverrides, rowIndexByTaskId]);
 
   // Detect cycles for highlighting (use allTasks for accurate cycle detection).
   // Keyed on the detection input only: with allTasks supplied (the stable full task
@@ -416,10 +422,10 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
   // Calculate all dependency line paths (use allTasks if available)
   const lines = useMemo(() => {
-    const tasksForEdges = allTasks ?? tasks;
+    const tasksForEdges = allTasks ?? geometryTasks;
     const taskMap = new Map(tasksForEdges.map(task => [task.id, task]));
     const positionedTaskIds = Array.from(taskPositions.keys());
-    const renderedTaskIdSet = new Set(tasks.map(t => t.id));
+    const renderedTaskIdSet = new Set(geometryTasks.map(t => t.id));
     const lines: Array<{
       id: string;
       predecessorId: string;
@@ -589,17 +595,20 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     }
 
     return lines;
-  }, [tasks, allTasks, taskPositions, taskIndices, cycleInfo, collapsedParentIds, criticalTaskIds, activityEndpoints]);
+  }, [geometryTasks, allTasks, taskPositions, taskIndices, cycleInfo, collapsedParentIds, criticalTaskIds, activityEndpoints]);
 
   // Horizontal window: skip lines fully outside the visible band so panning does
   // not repaint the whole SVG overlay.
   const visibleLines = useMemo(() => {
-    if (!horizontalWindow) return lines;
-    return lines.filter(line => (
-      Math.max(line.fromX, line.toX) >= horizontalWindow.startPx &&
-      Math.min(line.fromX, line.toX) <= horizontalWindow.endPx
-    ));
-  }, [lines, horizontalWindow?.startPx, horizontalWindow?.endPx]);
+    const renderedIds = activityEndpoints ? new Set(tasks.map(task => task.id)) : undefined;
+    return lines.filter(line => {
+      if (renderedIds && !renderedIds.has(line.predecessorId) && !renderedIds.has(line.successorId)) return false;
+      return !horizontalWindow || (
+        Math.max(line.fromX, line.toX) >= horizontalWindow.startPx &&
+        Math.min(line.fromX, line.toX) <= horizontalWindow.endPx
+      );
+    });
+  }, [lines, activityEndpoints, tasks, horizontalWindow?.startPx, horizontalWindow?.endPx]);
 
   // Calculate SVG height based on visible tasks (not all tasks)
   const svgHeight = totalHeight ?? (tasks.length * rowHeight);

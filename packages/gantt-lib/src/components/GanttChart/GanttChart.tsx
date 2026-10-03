@@ -1970,9 +1970,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // Горизонтальное окно рендера в координатах полосы графика: видимая часть плюс
   // запас. Пока ширина области неизвестна (скрытый график, SSR) — не отсекаем
   // ничего, чтобы не терять строки/сетку до первого замера.
-  // Строкам оно не передаётся: вертикальная виртуализация уже ограничивает их
-  // число, а скользящее окно вынуждало бы каждую видимую строку заново создавать
-  // все свои полосы на каждом бакете пана.
+  // Обе оси обязательны: иначе вертикальный скачок монтирует все работы новых
+  // строк, в том числе сотни полос далеко за горизонтальной границей экрана.
   const horizontalWindow = useMemo(() => {
     const width = scrollViewport.viewportWidth;
     if (width <= 0) return undefined;
@@ -2893,6 +2892,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         showActivityLinks={showActivityLinks && activityDependencies === undefined}
                         showActivityLag={showActivityLag}
                         activityTooltip={activityTooltip}
+                        horizontalWindow={forceFullRenderForPrint ? undefined : horizontalWindow}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}
                         onScheduleIntent={onScheduleIntent}

@@ -553,19 +553,6 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
     // Почему работа упёрлась: имена работ-блокеров и зазор ограничивающей связи.
     const [activityBlockedBy, setActivityBlockedBy] = useState<{ names: string[]; lag: number } | null>(null);
 
-    // Горизонтальное окно: полосы за пределами видимой части не рендерим (панорама
-    // не перерисовывает тысячи offscreen-брусков). Перетаскиваемую держим всегда.
-    const visibleActivitySegments = useMemo(() => {
-      if (!activityLayout) return [];
-      const window = horizontalWindow;
-      if (!window) return activityLayout.segments;
-      const draggedId = activityDrag?.id;
-      return activityLayout.segments.filter(segment => (
-        segment.id === draggedId ||
-        (segment.left <= window.endPx && segment.left + segment.width >= window.startPx)
-      ));
-    }, [activityLayout, horizontalWindow, activityDrag?.id]);
-
     const subscribeActivityOverrides = useCallback(
       (listener: () => void) => activityPreviewStore?.subscribeTask(task.id, listener) ?? (() => { }),
       [activityPreviewStore, task.id]
@@ -579,6 +566,18 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       getActivityOverridesSnapshot,
       () => undefined
     );
+
+    // Cull against live chain positions, not just persisted dates: a conveyor
+    // preview can bring an offscreen work into view. Keep the dragged bar mounted.
+    const visibleActivitySegments = useMemo(() => {
+      if (!activityLayout) return [];
+      if (!horizontalWindow) return activityLayout.segments;
+      return activityLayout.segments.filter(segment => {
+        if (segment.id === activityDrag?.id) return true;
+        const left = segment.left + (activityOverrides?.get(segment.id) ?? 0) * dayWidth;
+        return left <= horizontalWindow.endPx && left + segment.width >= horizontalWindow.startPx;
+      });
+    }, [activityLayout, horizontalWindow, activityDrag?.id, activityOverrides, dayWidth]);
 
     // Работы этой строки, которые сейчас упираются в перетаскиваемую (подсветка).
     const subscribeActivityBlock = useCallback(

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { GanttChart, type Task, type TimelineMarker } from "gantt-lib";
+import { buildFlowLineDependencies } from "./flowLineDependencies";
 
 const START = Date.UTC(2026, 2, 2); // пн 2 мар 2026, ось «д.0»
 
@@ -95,6 +96,8 @@ export default function FlowLineDemo() {
   const [chainOn, setChainOn] = useState(false);
   const [sequentialTasks, setSequentialTasks] = useState(() => buildTasks(sequentialFloors(12)));
   const [parallelTasks, setParallelTasks] = useState(() => buildTasks(parallelFloors(12)));
+  const sequentialDependencies = useMemo(() => buildFlowLineDependencies(sequentialTasks), [sequentialTasks]);
+  const parallelDependencies = useMemo(() => buildFlowLineDependencies(parallelTasks), [parallelTasks]);
 
   const mergeTasks = (
     setter: Dispatch<SetStateAction<Task[]>>,
@@ -117,7 +120,8 @@ export default function FlowLineDemo() {
       <h2 className="demo-section-title">Flow line · работы этажа в одной строке</h2>
       <p className="demo-section-desc">
         Каждая строка — этаж, каждый брусок — работа (<code>task.activities</code>). Полосы двигаются
-        и растягиваются с привязкой к дням (связей между работами нет). Последовательные работы
+        и растягиваются с привязкой к дням. Связи встык показаны толстыми сцепками с закруглёнными
+        концами, зазоры и пересечения — стрелками. Сцепки не перехватывают мышь. Последовательные работы
         делят одну дорожку, параллельные разводятся вниз, строка растёт сама.
         Ось — дни от начала проекта; маркер Д 18.
       </p>
@@ -134,6 +138,7 @@ export default function FlowLineDemo() {
         <GanttChart
           {...chartProps}
           tasks={sequentialWithChain}
+          activityDependencies={sequentialDependencies}
           onTasksChange={handleSequentialChange}
           containerHeight={560}
         />
@@ -145,6 +150,7 @@ export default function FlowLineDemo() {
         <GanttChart
           {...chartProps}
           tasks={parallelTasks}
+          activityDependencies={parallelDependencies}
           onTasksChange={handleParallelChange}
           containerHeight={620}
         />

@@ -4,7 +4,7 @@
 // PURPOSE: Render explicit activity dependencies through the existing native Gantt dependency renderer.
 // CYCLE_TOPOLOGY: Detect cycles once on the full graph; viewport projection cannot change cycle membership.
 // LIVE_RANGE: Exact gesture ranges take priority over chain shifts; packing follows preview overlap and resize.
-// PAN_COST: Project only rows incident to a rendered edge; keep offscreen endpoint rows for boundary links, and memoize topology separately from hover/pan.
+// PAN_COST: Project the graph on data/geometry changes only. Pan selects cached row nodes, never repacks lanes or rebuilds edge geometry.
 // SCOPE: Host-scoped activity IDs, packed lanes, FS/SS/FF/SF endpoints, lag visibility, virtualized rows and controlled/live chain geometry.
 // INPUTS: Visible row tasks, explicit activity edges, row offsets/heights and optional activity preview store and controlled chain/boundary highlight.
 // OUTPUTS: Native DependencyLines paths, markers, hover and lag labels; no DOM measurements or separate SVG implementation.
@@ -73,14 +73,14 @@ export function ActivityDependencyLines(props: Props) {
   // END_BLOCK_STABLE_ACTIVITY_CYCLE_GRAPH
   const layoutCacheRef = useRef(new Map<string, TaskLayoutCache>());
   const layout = useMemo(() => {
-    const flattened: Task[] = [], rendered: Task[] = [], tops: number[] = [], heights: number[] = [];
+    const flattened: Task[] = [], tops: number[] = [], heights: number[] = [];
+    const nodesByTaskId = new Map<string, Task[]>();
     const indices = new Map<string, number>();
     const neededRows = new Set<string>();
     const incoming = new Map<string, NonNullable<Task['dependencies']>>();
     const selected = props.highlight ? new Set(props.highlight.activities.map(activity => activityKey(activity.taskId, activity.activityId))) : undefined;
     const highlightMode = props.highlight?.mode ?? 'chain';
     for (const edge of dependencies) {
-      if (!props.renderedTaskIds.has(edge.predecessorTaskId) && !props.renderedTaskIds.has(edge.successorTaskId)) continue;
       // Вертикальные (межстрочные) связи показываем и обновляем только когда
       // выделена цепочка; без выделения основная картинка — связи по строкам.
       const isCrossRow = edge.predecessorTaskId !== edge.successorTaskId;
@@ -152,17 +152,28 @@ export function ActivityDependencyLines(props: Props) {
         cache.set(task.id, entry);
       }
       const offset = Math.max(0, (height - entry.laneCount * ACTIVITY_LANE_STEP) / 2);
+      nodesByTaskId.set(task.id, entry.nodes);
       entry.nodes.forEach((node, nodeIndex) => {
         const lane = entry.lanes.get(entry.rawIds[nodeIndex]) ?? 0;
         const index = flattened.length;
         flattened.push(node);
-        if (props.renderedTaskIds.has(task.id)) rendered.push(node);
         indices.set(node.id, index);
         tops.push((props.rowTops[row] ?? row * props.rowHeight) + offset + lane * ACTIVITY_LANE_STEP + (ACTIVITY_LANE_STEP - ACTIVITY_LANE_BAR_HEIGHT) / 2);
         heights.push(ACTIVITY_LANE_BAR_HEIGHT);
       });
     }
-    return { flattened, rendered, indices, tops, heights };
-  }, [tasks, dependencies, props.highlight, monthStart, dayWidth, props.rowIndexByTaskId, props.rowTops, props.rowHeights, props.rowHeight, props.renderedTaskIds, previewStore, previewVersion]);
-  return <DependencyLines tasks={layout.rendered} allTasks={layout.flattened} monthStart={monthStart} dayWidth={dayWidth} rowHeight={ACTIVITY_LANE_BAR_HEIGHT} gridWidth={props.gridWidth} totalHeight={props.totalHeight} rowIndexByTaskId={layout.indices} rowTops={layout.tops} rowHeights={layout.heights} horizontalWindow={props.horizontalWindow} showLag={props.showLag} cycleTaskIds={cycleTaskIds} activityEndpoints />;
+    for (const taskId of cache.keys()) {
+      if (!nodesByTaskId.has(taskId)) cache.delete(taskId);
+    }
+    return { flattened, nodesByTaskId, indices, tops, heights };
+  }, [tasks, dependencies, props.highlight, monthStart, dayWidth, props.rowIndexByTaskId, props.rowTops, props.rowHeights, props.rowHeight, previewStore, previewVersion]);
+  const rendered = useMemo(() => {
+    const nodes: Task[] = [];
+    for (const taskId of props.renderedTaskIds) {
+      const rowNodes = layout.nodesByTaskId.get(taskId);
+      if (rowNodes) nodes.push(...rowNodes);
+    }
+    return nodes;
+  }, [layout, props.renderedTaskIds]);
+  return <DependencyLines tasks={rendered} allTasks={layout.flattened} monthStart={monthStart} dayWidth={dayWidth} rowHeight={ACTIVITY_LANE_BAR_HEIGHT} gridWidth={props.gridWidth} totalHeight={props.totalHeight} rowIndexByTaskId={layout.indices} rowTops={layout.tops} rowHeights={layout.heights} horizontalWindow={props.horizontalWindow} showLag={props.showLag} cycleTaskIds={cycleTaskIds} activityEndpoints />;
 }

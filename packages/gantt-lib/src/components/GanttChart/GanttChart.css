@@ -18,10 +18,12 @@
    SVG-связи (сотни stroke-путей) и полосы, плюс срабатывают hover-состояния.
    На время пана интерактивные слои гасятся — hit-test разрешается на строке,
    а не на геометрии линий. */
-.gantt-scrollContainer[data-panning='true'] .gantt-dependencies-svg,
-.gantt-scrollContainer[data-panning='true'] .gantt-dependencyCreation-svg,
+.gantt-scrollContainer[data-panning='true'] .gantt-dependencies-svg *,
+.gantt-scrollContainer[data-panning='true'] .gantt-dependencyCreation-svg *,
 .gantt-scrollContainer[data-panning='true'] .gantt-tr-activityBar,
-.gantt-scrollContainer[data-panning='true'] .gantt-tr-taskBar {
+.gantt-scrollContainer[data-panning='true'] .gantt-tr-activityBar *,
+.gantt-scrollContainer[data-panning='true'] .gantt-tr-taskBar,
+.gantt-scrollContainer[data-panning='true'] .gantt-tr-taskBar * {
   pointer-events: none;
 }
 /* END_BLOCK_PAN_POINTER_SUPPRESSION */

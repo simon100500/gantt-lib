@@ -13,6 +13,37 @@ import { cascadeByLinks } from '../core/scheduling/cascade';
 const isWeekend = (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6;
 
 describe('DependencyLines', () => {
+  it('keeps couplings visual-only even when ordinary dependency clicks are enabled', () => {
+    const tasks: Task[] = [
+      { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-01' },
+      { id: 'b', name: 'B', startDate: '2026-03-02', endDate: '2026-03-02', dependencies: [{ taskId: 'a', type: 'FS', lag: 0 }] },
+    ];
+    const click = vi.fn();
+    const { container } = render(<DependencyLines tasks={tasks} allTasks={tasks} activityEndpoints
+      monthStart={new Date('2026-03-01T00:00:00Z')} dayWidth={24} rowHeight={24} rowTops={[0, 0]}
+      gridWidth={1000} onDependencyClick={click} />);
+    const coupling = container.querySelector('.gantt-dependency-coupling')!;
+    expect(coupling).not.toBeNull();
+    expect(container.querySelector('.gantt-dependency-coupling-hit-area')).toBeNull();
+    expect(container.querySelector('[role="button"]')).toBeNull();
+    fireEvent.pointerEnter(coupling.parentElement!);
+    fireEvent.click(coupling);
+    expect(container.querySelector('.gantt-dependency-line-hovered')).toBeNull();
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it('does not mount hit paths or hover handlers for a static overlay', () => {
+    const tasks: Task[] = [
+      { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-01' },
+      { id: 'b', name: 'B', startDate: '2026-03-03', endDate: '2026-03-03', dependencies: [{ taskId: 'a', type: 'FS', lag: 0 }] },
+    ];
+    const { container } = render(<DependencyLines tasks={tasks} monthStart={new Date('2026-03-01T00:00:00Z')}
+      dayWidth={24} rowHeight={40} gridWidth={1000} />);
+    expect(container.querySelector('.gantt-dependency-hit-area')).toBeNull();
+    expect(container.querySelector('[role="button"]')).toBeNull();
+    fireEvent.pointerEnter(container.querySelector('.gantt-dependency-line')!);
+    expect(container.querySelector('.gantt-dependency-path')?.getAttribute('marker-end')).not.toContain('hover');
+  });
   it('still cascades successors through a hidden dependency', () => {
     const tasks: Task[] = [
       { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-02' },
@@ -159,7 +190,7 @@ describe('DependencyLines', () => {
 
 it('keeps markers local and stable with a hidden sibling chart, including hover and selection', () => {
  const tasks: Task[] = [{id:'a',name:'A',startDate:'2026-03-01',endDate:'2026-03-02'}, {id:'b',name:'B',startDate:'2026-03-03',endDate:'2026-03-04',dependencies:[{taskId:'a',type:'FS',lag:0}]}];
- const props = {tasks,monthStart:new Date('2026-03-01T00:00:00Z'),dayWidth:40,rowHeight:40,gridWidth:1240};
+ const props = {tasks,monthStart:new Date('2026-03-01T00:00:00Z'),dayWidth:40,rowHeight:40,gridWidth:1240,onDependencyClick:vi.fn()};
  const charts = (selected = false) => <><div style={{display:'none'}}><DependencyLines {...props}/></div><DependencyLines {...props} selectedDep={selected ? {predecessorId:'a',successorId:'b',linkType:'FS'} : undefined}/></>;
  const {container,rerender} = render(charts());
  const svgs = container.querySelectorAll('svg');

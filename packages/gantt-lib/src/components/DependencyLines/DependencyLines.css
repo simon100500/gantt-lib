@@ -1,8 +1,8 @@
 /* START_MODULE_CONTRACT
- PURPOSE: Style native dependency routes and interactive touching-activity joints.
+ PURPOSE: Style native dependency routes and visual-only touching-activity joints.
  SCOPE: SVG paths, hit areas, 12x3px rounded dash joints at 50 percent opacity and hover/selection states.
  INPUTS: DependencyLines class names and theme variables.
- OUTPUTS: Visible routes with larger transparent hit targets.
+ OUTPUTS: Visible routes; only editable non-coupling links have hit targets.
  END_MODULE_CONTRACT */
 /* SVG overlay for dependency lines */
 .gantt-dependencies-svg {
@@ -18,8 +18,11 @@
 /* Статичный слой (хост не обрабатывает клик по связи): хит-пути и сцепки не
    ловят курсор, и браузер не проверяет геометрически сотни путей на каждый
    mousemove. */
-.gantt-dependencies-svg-static * {
+.gantt-dependencies-svg.gantt-dependencies-svg-static *,
+.gantt-dependency-line.gantt-dependency-line-static,
+.gantt-dependency-line.gantt-dependency-line-static * {
   pointer-events: none;
+  cursor: inherit;
 }
 
 /* Interactive wrapper for one dependency line */
@@ -105,14 +108,8 @@
 }
 
 /* START_BLOCK_TOUCH_COUPLING */
-.gantt-dependency-coupling-hit-area {
-  fill: transparent;
-  stroke: none;
-  pointer-events: all;
-  cursor: pointer;
-}
 /* One subtle horizontal dash across the seam, distinct from circular link
-   handles and vertical resize grips. Keep the existing r=12 click target. */
+   handles and vertical resize grips. It never intercepts canvas panning. */
 .gantt-dependency-coupling {
   fill: none;
   stroke: #fff;
