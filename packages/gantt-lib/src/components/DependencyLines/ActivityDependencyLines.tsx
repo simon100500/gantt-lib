@@ -80,6 +80,9 @@ export function ActivityDependencyLines(props: Props) {
     const incoming = new Map<string, NonNullable<Task['dependencies']>>();
     const selected = props.highlight ? new Set(props.highlight.activities.map(activity => activityKey(activity.taskId, activity.activityId))) : undefined;
     const highlightMode = props.highlight?.mode ?? 'chain';
+    // CHAIN_DIM: исключённые рёбра либо пропускаются, либо рисуются затемнёнными —
+    // набор затемнённых line-id считается здесь же, чтобы не пересекать граф дважды.
+    const dimmedLineIds = props.highlight?.dimExcluded ? new Set<string>() : undefined;
     for (const edge of dependencies) {
       // Вертикальные (межстрочные) связи показываем и обновляем только когда
       // выделена цепочка; без выделения основная картинка — связи по строкам.
@@ -91,7 +94,10 @@ export function ActivityDependencyLines(props: Props) {
         const internal = fromSelected && toSelected;
         const incoming = !fromSelected && toSelected && (highlightMode === 'chain-incoming' || highlightMode === 'chain-all');
         const outgoing = fromSelected && !toSelected && (highlightMode === 'chain-outgoing' || highlightMode === 'chain-all');
-        if (!internal && !incoming && !outgoing) continue;
+        if (!internal && !incoming && !outgoing) {
+          if (dimmedLineIds) dimmedLineIds.add(`${activityKey(edge.predecessorTaskId, edge.predecessorActivityId)}-${activityKey(edge.successorTaskId, edge.successorActivityId)}-${edge.type}`);
+          else continue;
+        }
       }
       neededRows.add(edge.predecessorTaskId);
       neededRows.add(edge.successorTaskId);
@@ -165,7 +171,7 @@ export function ActivityDependencyLines(props: Props) {
     for (const taskId of cache.keys()) {
       if (!nodesByTaskId.has(taskId)) cache.delete(taskId);
     }
-    return { flattened, nodesByTaskId, indices, tops, heights };
+    return { flattened, nodesByTaskId, indices, tops, heights, dimmedLineIds };
   }, [tasks, dependencies, props.highlight, monthStart, dayWidth, props.rowIndexByTaskId, props.rowTops, props.rowHeights, props.rowHeight, previewStore, previewVersion]);
   const rendered = useMemo(() => {
     const nodes: Task[] = [];
@@ -175,5 +181,5 @@ export function ActivityDependencyLines(props: Props) {
     }
     return nodes;
   }, [layout, props.renderedTaskIds]);
-  return <DependencyLines tasks={rendered} allTasks={layout.flattened} monthStart={monthStart} dayWidth={dayWidth} rowHeight={ACTIVITY_LANE_BAR_HEIGHT} gridWidth={props.gridWidth} totalHeight={props.totalHeight} rowIndexByTaskId={layout.indices} rowTops={layout.tops} rowHeights={layout.heights} horizontalWindow={props.horizontalWindow} showLag={props.showLag} cycleTaskIds={cycleTaskIds} activityEndpoints />;
+  return <DependencyLines tasks={rendered} allTasks={layout.flattened} monthStart={monthStart} dayWidth={dayWidth} rowHeight={ACTIVITY_LANE_BAR_HEIGHT} gridWidth={props.gridWidth} totalHeight={props.totalHeight} rowIndexByTaskId={layout.indices} rowTops={layout.tops} rowHeights={layout.heights} horizontalWindow={props.horizontalWindow} showLag={props.showLag} cycleTaskIds={cycleTaskIds} activityEndpoints dimmedLineIds={layout.dimmedLineIds} />;
 }

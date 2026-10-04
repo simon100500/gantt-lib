@@ -127,6 +127,19 @@ describe('native explicit activity dependencies', () => {
     // Выделение снято: все ребра межстрочные — без выделенной цепочки скрыты.
     expect(container.querySelectorAll('.gantt-dependency-path')).toHaveLength(0);
   });
+  it('renders excluded edges dimmed instead of hidden when dimExcluded is set', () => {
+    const tasks=[task('before','2026-10-01'),task('one','2026-10-03'),task('two','2026-10-06'),task('after','2026-10-09'),task('unrelated','2026-10-12')];
+    const edges=[edge,{...edge,predecessorTaskId:'before',successorTaskId:'one',lag:11},{...edge,predecessorTaskId:'two',successorTaskId:'after',lag:22},{...edge,predecessorTaskId:'after',successorTaskId:'unrelated',lag:33}];
+    const highlight:ActivityDependencyHighlight={activities:[{taskId:'one',activityId:'work'},{taskId:'two',activityId:'work'}],mode:'chain',dimExcluded:true};
+    const {container}=render(<GanttChart tasks={tasks} activityDependencies={edges} activityDependencyHighlight={highlight} dayWidth={24} rowHeight={40} containerHeight={400} businessDays={false} />);
+    expect(container.querySelectorAll('.gantt-dependency-path')).toHaveLength(4);
+    expect(container.querySelectorAll('.gantt-dependency-line-dimmed')).toHaveLength(3);
+    expect(container.querySelectorAll('.gantt-dependency-line:not(.gantt-dependency-line-dimmed)')).toHaveLength(1);
+    expect(container.querySelectorAll('.gantt-dependency-lag-dimmed')).toHaveLength(3);
+    const rerendered=render(<GanttChart tasks={tasks} activityDependencies={edges} activityDependencyHighlight={{...highlight, dimExcluded:undefined}} dayWidth={24} rowHeight={40} containerHeight={400} businessDays={false} />);
+    expect(rerendered.container.querySelectorAll('.gantt-dependency-path')).toHaveLength(1);
+    expect(rerendered.container.querySelectorAll('.gantt-dependency-line-dimmed')).toHaveLength(0);
+  });
   it('shows cross-row links only while a chain is selected and keeps geometry then', () => {
     const { container, rerender } = render(chart([task('one','2026-10-01'),task('two','2026-10-03')],[edge],true,chainHighlight));
     const paths=()=>container.querySelectorAll('.gantt-dependency-path');

@@ -195,6 +195,8 @@ export interface ActivityDependencyHighlight {
   activities: readonly { taskId: string; activityId: string }[];
   /** Show internal chain edges, optionally also edges entering/leaving the chain. */
   mode?: 'chain' | 'chain-incoming' | 'chain-outgoing' | 'chain-all';
+  /** Render edges outside the chain at reduced opacity instead of omitting them. */
+  dimExcluded?: boolean;
 }
 
 export interface TaskActivityDependency {

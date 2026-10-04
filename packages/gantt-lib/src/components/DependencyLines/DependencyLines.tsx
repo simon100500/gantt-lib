@@ -103,6 +103,7 @@ type DependencyLineViewProps = {
   line: DependencyLine;
   hovered: boolean;
   selected: boolean;
+  dimmed: boolean;
   showLag: boolean;
   markerPrefix: string;
   onLineHover: (id: string) => void;
@@ -121,6 +122,7 @@ const DependencyLineView = React.memo(function DependencyLineView({
   line,
   hovered,
   selected,
+  dimmed,
   showLag,
   markerPrefix,
   onLineHover,
@@ -154,7 +156,7 @@ const DependencyLineView = React.memo(function DependencyLineView({
   return (
     <React.Fragment>
       <g
-        className={`gantt-dependency-line${interactive ? '' : ' gantt-dependency-line-static'}${hovered && interactive ? ' gantt-dependency-line-hovered' : ''}`}
+        className={`gantt-dependency-line${interactive ? '' : ' gantt-dependency-line-static'}${hovered && interactive ? ' gantt-dependency-line-hovered' : ''}${dimmed ? ' gantt-dependency-line-dimmed' : ''}`}
         onPointerEnter={interactive ? () => onLineHover(id) : undefined}
         onPointerLeave={interactive ? () => onLineLeave(id) : undefined}
         onClick={interactive ? (event) => {
@@ -181,7 +183,7 @@ const DependencyLineView = React.memo(function DependencyLineView({
       </g>
       {showLag && lag !== 0 && (
         <text
-          className="gantt-dependency-lag-label"
+          className={`gantt-dependency-lag-label${dimmed ? ' gantt-dependency-lag-dimmed' : ''}`}
           x={lag < 0 ? toX + 14 : toX - 14}
           y={reverseOrder ? fromY - 4 : fromY + 12}
           textAnchor="middle"
@@ -212,6 +214,7 @@ const DependencyLineView = React.memo(function DependencyLineView({
   prev.line.isCoupling === next.line.isCoupling &&
   prev.hovered === next.hovered &&
   prev.selected === next.selected &&
+  prev.dimmed === next.dimmed &&
   prev.showLag === next.showLag &&
   prev.markerPrefix === next.markerPrefix &&
   prev.onLineHover === next.onLineHover &&
@@ -247,6 +250,8 @@ export interface DependencyLinesProps {
   /** Ids of tasks on the critical path. Lines with both ends critical are highlighted. */
   criticalTaskIds?: Set<string>;
   cycleTaskIds?: ReadonlySet<string>;
+  /** Line ids rendered at reduced opacity (chain focus dims everything else). View-only flag: never part of geometry memo deps. */
+  dimmedLineIds?: ReadonlySet<string>;
   showLag?: boolean;
   /** Activity lanes use their physical Y position; same-lane edges stay horizontal. */
   activityEndpoints?: boolean;
@@ -293,6 +298,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
   selectedDep,
   criticalTaskIds,
   cycleTaskIds,
+  dimmedLineIds,
   showLag = true,
   activityEndpoints = false,
   businessDays = true,
@@ -720,6 +726,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
             hovered={hoveredLineId === line.id}
             selected={isSelected}
             showLag={showLag}
+            dimmed={dimmedLineIds?.has(line.id) ?? false}
             markerPrefix={markerPrefix}
             onLineHover={handleLineHover}
             onLineLeave={handleLineLeave}

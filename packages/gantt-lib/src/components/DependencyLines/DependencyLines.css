@@ -58,6 +58,20 @@
   opacity: 0.6;
 }
 
+/* Chain focus: edges outside the selected chain stay visible but recede.
+   Hover restores full opacity so inspecting a dimmed link still works. */
+.gantt-dependency-line-dimmed {
+  opacity: var(--gantt-dependency-dim-opacity, 0.16);
+}
+
+.gantt-dependency-line-dimmed.gantt-dependency-line-hovered {
+  opacity: 1;
+}
+
+.gantt-dependency-lag-dimmed {
+  opacity: 0.4;
+}
+
 /* Circular dependency highlighting */
 .gantt-dependency-cycle {
   stroke: var(--gantt-dependency-cycle-color, #ef4444);
