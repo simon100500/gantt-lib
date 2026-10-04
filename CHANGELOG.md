@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.144.0] - 2026-10-04
+
+### Features
+
+- Add `dimExcluded` to `activityDependencyHighlight`: edges outside the selected chain render at reduced opacity (CSS var `--gantt-dependency-dim-opacity`, default 0.16; lag labels at 0.4) instead of being omitted, so chain focus keeps the full graph in view. The dim set is computed in the existing layout memo and applied as a view-only `DependencyLines` prop — geometry memoization, per-line memo and the pan render window are untouched.
+
 ## [0.143.1] - 2026-10-03
 
 ### Fixes
