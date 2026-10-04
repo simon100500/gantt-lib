@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Verify hierarchy date and progress normalization.
+// SCOPE: Default child-duration rollups and opt-in manual parent progress.
+// INPUTS: Nested task fixtures.
+// OUTPUTS: Manual percentages survive hierarchy normalization while dates still aggregate.
+// END_MODULE_CONTRACT
 import { describe, it, expect } from 'vitest';
 import {
   getChildren,
@@ -201,4 +207,18 @@ describe('hierarchy utilities', () => {
       expect(result).toBe(50);
     });
   });
+});
+
+it('preserves opt-in manual parent progress while dates still aggregate and ancestors keep automatic rollups', () => {
+ const tasks: Task[] = [
+  {id:'root',name:'root',startDate:'2026-10-01',endDate:'2026-10-01'},
+  {id:'work',name:'work',parentId:'root',startDate:'2026-10-01',endDate:'2026-10-01',progress:9.4,progressAggregation:'manual'},
+  {id:'s1',name:'s1',parentId:'work',startDate:'2026-10-01',endDate:'2026-10-10',progress:50},
+  {id:'s2',name:'s2',parentId:'work',startDate:'2026-10-11',endDate:'2026-10-30',progress:0},
+ ];
+ const result=normalizeHierarchyTasks(tasks);
+ expect(result.find(task=>task.id==='work')).toMatchObject({startDate:'2026-10-01',endDate:'2026-10-30',progress:9.4});
+ expect(result.find(task=>task.id==='root')?.progress).toBe(9.4);
+ expect(normalizeHierarchyTasks(tasks.map(task=>({...task,progressAggregation:undefined}))).find(task=>task.id==='work')?.progress).toBe(16.7);
+ expect(tasks[1].endDate).toBe('2026-10-01');
 });

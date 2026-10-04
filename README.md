@@ -222,6 +222,7 @@ interface Task {
   baselineEndDate?: string | Date;
   type?: 'task' | 'milestone';
   color?: string;           // Необязательный цвет, например '#3b82f6'
+  progressAggregation?: 'manual' | 'duration-weighted'; // manual сохраняет переданный процент родителя при группировке; даты по-прежнему считаются от детей.
   progress?: number;        // Прогресс 0–100. Отображает полосу прогресса внутри задачи.
   accepted?: boolean;       // Только при progress === 100. true = зелёная полоса, false/undefined = жёлтая.
   dependencies?: TaskDependency[];

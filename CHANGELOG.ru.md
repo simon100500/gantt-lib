@@ -2,6 +2,12 @@
 
 Все значительные изменения проекта будут задокументированы в этом файле.
 
+## [0.144.1] - 2026-10-05
+
+### Fixes
+
+- Add opt-in `Task.progressAggregation: "manual"` for view-only parent rows: preserve authoritative progress when display grouping changes, while parent dates and default duration-weighted rollups retain their existing behavior.
+
 ## [0.144.0] - 2026-10-04
 
 ### Функции

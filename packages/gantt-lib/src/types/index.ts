@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Define public scheduling and rendering types.
+// SCOPE: Task/chart contracts, including manual display progress for projected parent rows.
+// INPUTS: Consumer task data and chart options.
+// OUTPUTS: Typed public API; manual progress never changes parent date aggregation.
+// END_MODULE_CONTRACT
 import type { ReactNode } from 'react';
 
 export type GanttScheduleIntent =
@@ -285,6 +291,8 @@ export interface Task {
    * - Progress is visual-only, no user interaction
    */
   progress?: number;
+  /** Preserve supplied parent progress for display-only grouping; default recomputes from child durations. */
+  progressAggregation?: 'manual' | 'duration-weighted';
   /**
    * Optional flag indicating if task is accepted
    * - Only meaningful when progress is 100%

@@ -1,6 +1,8 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Order task hierarchies and roll parent dates/progress from direct children.
-// SCOPE: Stable depth-first ordering and one indexed bottom-up normalization pass.
+// SCOPE: Stable depth-first ordering and one indexed bottom-up normalization pass; manual progress preserves a projected parent percentage without changing rolled-up dates.
+// INPUTS: Task hierarchy and optional per-parent progressAggregation.
+// OUTPUTS: Normalized hierarchy with unchanged default duration-weighted progress semantics.
 // DEPENDS: scheduling types, dateUtils
 // LINKS: M-SCHEDULE, fn-normalizeHierarchyTasks
 // ROLE: RUNTIME
@@ -76,7 +78,7 @@ export function flattenHierarchy<T extends HierarchyTask>(tasks: T[]): T[] {
 
 /**
  * Normalize hierarchy-aware display fields.
- * Parent task dates and progress are always recomputed from children,
+ * Parent dates are recomputed from children; progress is recomputed unless manual aggregation is requested,
  * taking precedence over any hardcoded parent values from the input.
  * Also normalizes task dates to ensure startDate is always before or equal to endDate.
  */
@@ -124,7 +126,9 @@ export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[]): T[
       ...orderedTasks[index],
       startDate: new Date(minStart).toISOString().split('T')[0] as T['startDate'],
       endDate: new Date(maxEnd).toISOString().split('T')[0] as T['endDate'],
-      progress: (totalWeight === 0 ? 0 : Math.round((weightedProgress / totalWeight) * 10) / 10) as T['progress'],
+      progress: (orderedTasks[index].progressAggregation === 'manual'
+        ? orderedTasks[index].progress
+        : totalWeight === 0 ? 0 : Math.round((weightedProgress / totalWeight) * 10) / 10) as T['progress'],
     };
   }
 

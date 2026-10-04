@@ -1,4 +1,10 @@
 'use client';
+// START_MODULE_CONTRACT
+// PURPOSE: Render shared chart modes and native scheduling interactions.
+// SCOPE: Task hierarchy/date normalization and opt-in manual display progress for projected parent rows.
+// INPUTS: Chart props and task progressAggregation policies.
+// OUTPUTS: Parent dates continue to roll up; manual percentages survive presentation grouping.
+// END_MODULE_CONTRACT
 
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getDateRangeDays, getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
@@ -311,6 +317,8 @@ export interface Task {
    * - Progress is visual-only, no user interaction
    */
   progress?: number;
+  /** Preserve supplied parent readiness under display grouping; dates still roll up from children. */
+  progressAggregation?: 'manual' | 'duration-weighted';
   /**
    * Optional flag indicating if task is accepted
    * - Only meaningful when progress is 100%
