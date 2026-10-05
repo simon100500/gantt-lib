@@ -132,4 +132,17 @@ Key properties:
 
 ---
 
+## Editing Dependencies in the Task List (v0.146.0)
+
+With `disableDependencyEditing={false}` (default), dependencies are editable inline in the task list:
+
+- **Chip** — each dependency renders as a chip (`[ОН/НН/ОО/НО] predecessor`). Clicking a chip selects it (the chart highlights the link); clicking again deselects.
+- **Edit popover** — a selected chip shows an edit button that opens the dependency popover: a lag stepper (−/value/+ with a plain-language sentence like "start 2 days after start"), the successor and predecessor names, and an actions row.
+- **Link type switcher (v0.146.0)** — the compact `[icon] type ▾` button in the bottom-left corner of the popover opens the list of all four link types. The current type is highlighted; a type that already exists between the same task pair is disabled (no duplicate links). Choosing a type updates the dependency **in place** — no delete/re-create needed: the lag value is preserved, the successor dates are rescheduled per the new type's anchor rules, and the popover stays open with the updated sentence and chip.
+- **Delete** — "Удалить связь" removes the dependency; the popover closes.
+
+All of the above is hidden when `disableDependencyEditing={true}`.
+
+---
+
 [← Back to API Reference](./INDEX.md)

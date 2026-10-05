@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.0] - 2026-10-06
+
+### Features
+
+- Link type can now be changed directly in the dependency edit popover. The bottom-left `[icon] type ▾` button opens the list of all four link types (ОН/НН/ОО/НО) with the current one highlighted; a type that already exists between the same task pair is disabled. Switching updates the dependency in place — no delete/re-create needed: the lag is preserved, the successor dates are rescheduled per the new anchor rules, and the popover stays open.
+
 ## [0.145.2] - 2026-10-05
 
 ### Performance

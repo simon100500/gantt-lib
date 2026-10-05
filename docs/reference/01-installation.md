@@ -1,6 +1,6 @@
 # Installation
 
-**Version:** 0.143.0
+**Version:** 0.146.0
 
 ## Package Identity
 
