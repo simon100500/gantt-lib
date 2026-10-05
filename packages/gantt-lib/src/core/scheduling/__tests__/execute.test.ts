@@ -1,4 +1,11 @@
 // @vitest-environment node
+// START_MODULE_CONTRACT
+// PURPOSE: Verify schedule commands preserve constraints, calendars and hierarchy.
+// SCOPE: Cascades, locks, nested rollups, immutable snapshots and bounded parent discovery on large graphs.
+// INPUTS: In-memory schedules and instrumented parent accessors.
+// OUTPUTS: Executable correctness and complexity regressions.
+// LINKS: M-SCHEDULING, fn-recalculateProjectSchedule
+// END_MODULE_CONTRACT
 import { describe, it, expect } from 'vitest';
 import type { Task } from '../types';
 import {
@@ -26,6 +33,25 @@ const isWeekend = (date: Date) => {
   const day = date.getUTCDay();
   return day === 0 || day === 6;
 };
+
+it('project hierarchy discovery scales linearly with leaves and rolls up nested parents', () => {
+  let parentReads = 0;
+  const leaves = Array.from({ length: 4000 }, (_, index) => {
+    const task = makeTask({ id: `leaf-${index}`, startDate: '2024-02-01', endDate: '2024-02-05' });
+    Object.defineProperty(task, 'parentId', { enumerable: true, get: () => { parentReads++; return 'branch'; } });
+    return task;
+  });
+  const snapshot = [makeTask({ id: 'root' }), makeTask({ id: 'branch', parentId: 'root' }), ...leaves];
+  const started = performance.now();
+  const result = recalculateProjectSchedule(snapshot);
+  console.info(`4000-leaf project recalculation: ${Math.round(performance.now() - started)}ms`);
+  expect(parentReads).toBeLessThan(leaves.length * 20);
+  for (const id of ['root', 'branch']) expect(result.changedTasks.find(task => task.id === id)).toMatchObject({ startDate: '2024-02-01', endDate: '2024-02-05' });
+  expect(snapshot[0].startDate).toBe('2024-01-01');
+  const locked = recalculateProjectSchedule([{ ...snapshot[0], locked: true }, ...snapshot.slice(1)]);
+  expect(locked.changedIds).not.toContain('root');
+  expect(locked.changedIds).toContain('branch');
+});
 
 describe('moveTaskWithCascade', () => {
   it('1. FS successor shifts when predecessor moves', () => {

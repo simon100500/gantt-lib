@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.145.2] - 2026-10-05
+
+### Performance
+
+- Full-project scheduling indexes direct children once and consumes the dependency queue without shifting arrays. Parent discovery and rollups no longer scan the full graph per task. A 4000-activity benchmark drops from 72–75ms to 37–38ms with identical results; nested parents, locks, calendars and sparse updates retain their semantics.
+
 ## [0.145.1] - 2026-10-05
 
 ### Fixes

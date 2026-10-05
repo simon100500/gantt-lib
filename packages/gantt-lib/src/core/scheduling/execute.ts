@@ -7,6 +7,9 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Execute authoritative task and project schedule recalculations.
 //   SCOPE: Move, resize, dependency recalculation, cascade, and full-project scheduling.
+//   INPUTS: Immutable task snapshot and scheduling calendar.
+//   OUTPUTS: Sparse changed-task result preserving bottom-up direct-child rollups and locks.
+//   PROJECT_COST: Build child adjacency once; consume dependency queue by index. Parent discovery and date rollup never rescan the complete snapshot per task.
 //   DEPENDS: commands, cascade, dateMath, dependencies, hierarchy, scheduling types
 //   LINKS: M-SCHEDULING, fn-recalculateTaskFromDependencies, fn-recalculateProjectSchedule
 //   ROLE: RUNTIME
@@ -18,7 +21,6 @@ import { moveTaskRange, recalculateIncomingLags, buildTaskRangeFromEnd, buildTas
 import { universalCascade } from './cascade';
 import { parseDateOnly } from './dateMath';
 import { calculateSuccessorDate, getDependencyLag, normalizePredecessorDates } from './dependencies';
-import { computeParentDates, isTaskParent } from './hierarchy';
 
 function toIsoDate(date: Date): string {
   return date.toISOString().split('T')[0];
@@ -346,8 +348,8 @@ export function recalculateProjectSchedule(
     .filter(task => (indegree.get(task.id) ?? 0) === 0)
     .map(task => task.id);
 
-  while (queue.length > 0) {
-    const currentId = queue.shift()!;
+  for (let queueIndex = 0; queueIndex < queue.length; queueIndex++) {
+    const currentId = queue[queueIndex];
 
     for (const successorId of successorIdsByTask.get(currentId) ?? []) {
       const nextIndegree = (indegree.get(successorId) ?? 0) - 1;
@@ -419,8 +421,15 @@ export function recalculateProjectSchedule(
     }
   }
 
+  // START_BLOCK_PROJECT_PARENT_INDEX
+  const childrenByParent = new Map<string, string[]>();
+  for (const task of snapshot) if (task.parentId) {
+    const children = childrenByParent.get(task.parentId) ?? [];
+    children.push(task.id);
+    childrenByParent.set(task.parentId, children);
+  }
   const parentsByDepth = snapshot
-    .filter(task => isTaskParent(task.id, snapshot))
+    .filter(task => childrenByParent.has(task.id))
     .map(task => {
       let depth = 0;
       let current = task.parentId ? workingMap.get(task.parentId) : undefined;
@@ -432,21 +441,25 @@ export function recalculateProjectSchedule(
     })
     .sort((left, right) => right.depth - left.depth);
 
-  const workingTasks = () => Array.from(workingMap.values());
-
   for (const { taskId } of parentsByDepth) {
     const parent = workingMap.get(taskId);
     if (!parent || parent.locked) {
       continue;
     }
 
-    const { startDate, endDate } = computeParentDates(taskId, workingTasks());
+    let startTime = Infinity, endTime = -Infinity;
+    for (const childId of childrenByParent.get(taskId)!) {
+      const child = workingMap.get(childId)!;
+      startTime = Math.min(startTime, new Date(child.startDate).getTime());
+      endTime = Math.max(endTime, new Date(child.endDate).getTime());
+    }
     workingMap.set(taskId, {
       ...parent,
-      startDate: toIsoDate(startDate),
-      endDate: toIsoDate(endDate),
+      startDate: toIsoDate(new Date(startTime)),
+      endDate: toIsoDate(new Date(endTime)),
     });
   }
+  // END_BLOCK_PROJECT_PARENT_INDEX
 
   return createChangedResult(snapshot, Array.from(workingMap.values()));
 }
