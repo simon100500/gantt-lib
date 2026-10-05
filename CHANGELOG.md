@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.145.1] - 2026-10-05
+
+### Fixes
+
+- Optional TaskActivity.laneGroup keeps parallel activity branches in stable lanes across gaps. True overlaps still use separate lanes; bars, row heights and dependency ports share the same layout.
+
 ## [0.145.0] - 2026-10-05
 
 ### Breaking changes
