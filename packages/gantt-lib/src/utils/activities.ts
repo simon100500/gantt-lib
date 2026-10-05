@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Lay out activity intervals and visual chains without altering their schedule.
+// SCOPE: Ungrouped first-fit packing; optional laneGroup reserves compatible intervals together, preventing parallel branches from swapping lanes across gaps. Overlapping members still occupy separate lanes.
+// INPUTS: Activity intervals, optional visual lane groups and timeline geometry.
+// OUTPUTS: Non-overlapping lane indices shared by bars, row heights and dependency ports.
+// END_MODULE_CONTRACT
 import { calculateTaskBar } from './geometry';
 import { parseUTCDate } from './dateUtils';
 import type { TaskActivity } from '../types';
@@ -32,15 +38,36 @@ export interface ActivityLanesLayout {
 }
 
 /**
- * Pack intervals into the smallest number of lanes greedily (first fit):
- * a sequential work lands in the first lane free at its start, a concurrent
- * one opens a new lane below. Lane count therefore equals the maximum number
- * of simultaneous activities.
+ * Without laneGroup, first-fit packing uses the peak concurrency count.
+ * Grouped intervals reserve compatible lanes across gaps to retain branch
+ * continuity; that visual preference may use more lanes than peak concurrency.
  */
-export function packIntervals<T extends { start: number; end: number }>(
+export function packIntervals<T extends { start: number; end: number; laneGroup?: string }>(
   intervals: T[]
 ): Array<T & { lane: number }> {
   const sorted = [...intervals].sort((a, b) => a.start - b.start);
+  // START_BLOCK_GROUPED_ACTIVITY_LANES
+  if (intervals.some(item => item.laneGroup !== undefined)) {
+    const groups = new Map<string | T, T[]>();
+    for (const item of intervals) {
+      const key = item.laneGroup ?? item;
+      const group = groups.get(key) ?? []; group.push(item); groups.set(key, group);
+    }
+    const lanes: T[][] = [];
+    const assigned = new Map<T, number>();
+    for (const group of groups.values()) {
+      const compatible = lanes.findIndex(lane => group.every(item => !lane.some(other => item.start < other.end && other.start < item.end)));
+      const preferred = compatible < 0 ? lanes.length : compatible;
+      for (const item of [...group].sort((a, b) => a.start - b.start)) {
+        const free = (lane: number) => !lanes[lane]?.some(other => item.start < other.end && other.start < item.end);
+        let lane = free(preferred) ? preferred : lanes.findIndex((_, index) => free(index));
+        if (lane < 0) lane = lanes.length;
+        (lanes[lane] ??= []).push(item); assigned.set(item, lane);
+      }
+    }
+    return sorted.map(item => ({ ...item, lane: assigned.get(item)! }));
+  }
+  // END_BLOCK_GROUPED_ACTIVITY_LANES
   const laneEnds: number[] = [];
   return sorted.map(item => {
     let lane = 0;
@@ -69,6 +96,7 @@ export function computeActivityLanes(
     const bar = calculateTaskBar(parseUTCDate(activity.startDate), parseUTCDate(activity.endDate), monthStart, dayWidth);
     return {
       id: activity.id,
+      laneGroup: activity.laneGroup,
       name: activity.name,
       color: activity.color,
       lag: activity.lag,

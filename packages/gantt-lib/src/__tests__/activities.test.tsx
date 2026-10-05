@@ -1,6 +1,7 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Preserve native activity packing, chain movement, drag previews, lag and readiness behavior.
 // SCOPE: Existing activity features through the shared dependency renderer without functional downgrade.
+// BRANCH_LANES: Reserve branch intervals across gaps; overlapping members remain non-overlapping and ungrouped layouts keep their compact first-fit behavior.
 // INPUTS: Native GanttChart gestures and controlled activity data.
 // OUTPUTS: Geometry and persisted gesture assertions.
 // END_MODULE_CONTRACT
@@ -27,6 +28,35 @@ const activateActivity = (element: HTMLElement) => {
 };
 
 describe('packIntervals', () => {
+  it('uses grouped packing for native activity geometry at every zoom', () => {
+    const activities: TaskActivity[]=[
+      {id:'a1',name:'a1',startDate:'2026-10-01',endDate:'2026-10-05',laneGroup:'a'},
+      {id:'a2',name:'a2',startDate:'2026-10-11',endDate:'2026-10-15',laneGroup:'a'},
+      {id:'b1',name:'b1',startDate:'2026-10-01',endDate:'2026-10-08',laneGroup:'b'},
+      {id:'b2',name:'b2',startDate:'2026-10-09',endDate:'2026-10-13',laneGroup:'b'},
+    ];
+    for(const width of [2.5,8,30]) {
+      const layout=computeActivityLanes(activities,new Date('2026-10-01T00:00:00Z'),width);
+      expect(layout.laneCount).toBe(2);
+      expect(Object.fromEntries(layout.segments.map(item=>[item.id,item.lane]))).toEqual({a1:0,a2:0,b1:1,b2:1});
+    }
+  });
+  it('keeps parallel branches in their lanes when one branch has a gap', () => {
+    const packed = packIntervals([
+      {id:'a1',start:0,end:10,laneGroup:'a'}, {id:'a2',start:20,end:30,laneGroup:'a'},
+      {id:'b1',start:0,end:15,laneGroup:'b'}, {id:'b2',start:15,end:25,laneGroup:'b'},
+    ]);
+    expect(Object.fromEntries(packed.map(item=>[item.id,item.lane]))).toEqual({a1:0,a2:0,b1:1,b2:1});
+  });
+  it('reserves the entire branch even when its first interval fits a gap in another lane', () => {
+    const packed=packIntervals([{id:'a1',start:10,end:20,laneGroup:'a'},{id:'b1',start:0,end:5,laneGroup:'b'},{id:'b2',start:15,end:25,laneGroup:'b'}]);
+    expect(packed.find(item=>item.id==='b1')!.lane).toBe(packed.find(item=>item.id==='b2')!.lane);
+    for(const item of packed) for(const other of packed) if(item!==other && item.lane===other.lane) expect(item.start>=other.end || other.start>=item.end).toBe(true);
+  });
+  it('separates genuinely overlapping members and returns to the branch lane afterward', () => {
+    const packed=packIntervals([{start:0,end:10,laneGroup:'a'},{start:5,end:15,laneGroup:'a'},{start:15,end:20,laneGroup:'a'}]);
+    expect(packed.map(item=>item.lane)).toEqual([0,1,0]);
+  });
   it('keeps strictly sequential works in one lane', () => {
     const packed = packIntervals([
       { id: 'a', start: 0, end: 4 },

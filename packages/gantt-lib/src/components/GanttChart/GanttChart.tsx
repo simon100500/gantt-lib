@@ -383,6 +383,8 @@ export interface TaskActivityTooltipField {
 }
 
 export interface TaskActivity {
+  /** Visual branch identity: keep compatible activities together across gaps; never changes dates. */
+  laneGroup?: string;
   /** Unique identifier within the host task */
   id: string;
   /** Display name rendered inside the activity bar */
