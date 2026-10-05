@@ -55,3 +55,4 @@ packages/storybook/storybook-static/*
 .gsd-id
 .openchamber
 .artifacts
+tmp/*

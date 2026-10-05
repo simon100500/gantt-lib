@@ -305,6 +305,7 @@ const DepChip: React.FC<DepChipProps> = ({
   weekendPredicate,
 }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const lagAbs = Math.abs(lag ?? 0);
   const [inputAbs, setInputAbs] = useState(lagAbs === 0 ? "" : String(lagAbs));
   useEffect(() => {
@@ -448,6 +449,81 @@ const DepChip: React.FC<DepChipProps> = ({
   const Icon = LINK_TYPE_ICONS[dep.type];
   const depName = predecessorName ?? dep.taskId;
   const effectiveLag = lag ?? 0;
+
+  const handleTypeChange = useCallback(
+    (newType: LinkType) => {
+      if (newType === dep.type) return;
+      if (!onTasksChange || !allTasks) return;
+      // A link of the new type already exists between this pair — switching
+      // would create a duplicate, so the option stays a no-op (dimmed in UI).
+      if ((task.dependencies ?? []).some((d) => d.taskId === dep.taskId && d.type === newType)) return;
+
+      const taskById = new Map(allTasks.map((t) => [t.id, t]));
+      const predecessor = taskById.get(dep.taskId);
+      if (!predecessor) return;
+
+      const predStart = parseUTCDate(predecessor.startDate);
+      // Milestone predecessors have zero duration — treat end = start
+      const predEnd = predecessor.type === 'milestone' ? predStart : parseUTCDate(predecessor.endDate);
+      const origStart = parseUTCDate(task.startDate);
+      const origEnd = parseUTCDate(task.endDate);
+      const durationMs = origEnd.getTime() - origStart.getTime();
+      const normalizedLag = normalizeDependencyLag(
+        newType,
+        effectiveLag,
+        predStart,
+        predEnd,
+        businessDays,
+        weekendPredicate,
+        task.type,
+      );
+
+      const constraintDate = calculateSuccessorDate(
+        predStart,
+        predEnd,
+        newType,
+        normalizedLag,
+        businessDays,
+        weekendPredicate,
+        task.type,
+      );
+
+      let newStart: Date, newEnd: Date;
+      if (newType === "FS" || newType === "SS") {
+        newStart = constraintDate;
+        if (businessDays) {
+          const businessDuration = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
+          newEnd = addBusinessDays(constraintDate, businessDuration, weekendPredicate);
+        } else {
+          newEnd = new Date(constraintDate.getTime() + durationMs);
+        }
+      } else {
+        newEnd = constraintDate;
+        if (businessDays) {
+          const businessDuration = getBusinessDaysCount(origStart, origEnd, weekendPredicate);
+          newStart = subtractBusinessDays(constraintDate, businessDuration, weekendPredicate);
+        } else {
+          newStart = new Date(constraintDate.getTime() - durationMs);
+        }
+      }
+
+      onTasksChange([
+        {
+          ...task,
+          startDate: newStart.toISOString().split("T")[0],
+          endDate: newEnd.toISOString().split("T")[0],
+          dependencies: (task.dependencies ?? []).map((existingDep) =>
+            existingDep.taskId === dep.taskId && existingDep.type === dep.type
+              ? { ...existingDep, type: newType, lag: normalizedLag }
+              : existingDep
+          ),
+        },
+      ]);
+      // Re-point the selection at the new type so the editor stays open
+      onChipSelect?.({ successorId: taskId, predecessorId: dep.taskId, linkType: newType });
+    },
+    [dep.type, dep.taskId, task, allTasks, onTasksChange, businessDays, weekendPredicate, effectiveLag, onChipSelect, taskId],
+  );
 
   // Derive action verb, preWord and afterWhat (sign-dependent for FS/FF/SS)
   const actionVerb =
@@ -598,23 +674,75 @@ const DepChip: React.FC<DepChipProps> = ({
             <>
               <hr className="gantt-tl-dep-edit-divider" />
               <div className="gantt-tl-dep-edit-actions">
-                <button
-                  type="button"
-                  className="gantt-tl-dep-edit-close"
-                  onClick={() => {
-                    setPopoverOpen(false);
-                    onChipSelectClear();
-                  }}
-                >
-                  Закрыть
-                </button>
-                <button
-                  type="button"
-                  className="gantt-tl-dep-edit-delete"
-                  onClick={handleTrashClick}
-                >
-                  Удалить связь
-                </button>
+                <Popover open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="gantt-tl-dep-edit-type-trigger"
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="Изменить тип связи"
+                      title="Изменить тип связи"
+                    >
+                      <Icon />
+                      <span>{LINK_TYPE_LABELS_RU[dep.type]}</span>
+                      <span className="gantt-tl-dep-edit-type-caret" aria-hidden="true">
+                        &#9662;
+                      </span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent portal={true} align="start">
+                    <div className="gantt-tl-dep-type-menu">
+                      {LINK_TYPE_ORDER.map((linkType) => {
+                        const TypeIcon = LINK_TYPE_ICONS[linkType];
+                        const isCurrent = linkType === dep.type;
+                        const isDuplicate =
+                          !isCurrent &&
+                          (task.dependencies ?? []).some(
+                            (d) => d.taskId === dep.taskId && d.type === linkType
+                          );
+                        return (
+                          <button
+                            key={linkType}
+                            type="button"
+                            className={`gantt-tl-dep-type-option${isCurrent ? " active" : ""}${isDuplicate ? " gantt-tl-dep-type-option-duplicate" : ""}`}
+                            disabled={isDuplicate}
+                            onClick={() => {
+                              handleTypeChange(linkType);
+                              setTypeMenuOpen(false);
+                            }}
+                            title={
+                              isDuplicate
+                                ? "Связь такого типа уже есть"
+                                : `Тип связи ${LINK_TYPE_LABELS_RU[linkType]}`
+                            }
+                          >
+                            <TypeIcon />
+                            <span>{LINK_TYPE_LABELS_RU[linkType]}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <div className="gantt-tl-dep-edit-actions-right">
+                  <button
+                    type="button"
+                    className="gantt-tl-dep-edit-close"
+                    onClick={() => {
+                      setPopoverOpen(false);
+                      onChipSelectClear();
+                    }}
+                  >
+                    Закрыть
+                  </button>
+                  <button
+                    type="button"
+                    className="gantt-tl-dep-edit-delete"
+                    onClick={handleTrashClick}
+                  >
+                    Удалить связь
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -2470,9 +2598,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                     className="gantt-tl-dep-overflow-list"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {chips.map(({ dep, lag, predecessorName }) => (
+                    {chips.map(({ dep, lag, predecessorName }, chipIndex) => (
                       <DepChip
-                        key={`${dep.taskId}-${dep.type}`}
+                        key={`${dep.taskId}-${chipIndex}`}
                         lag={lag}
                         dep={dep}
                         taskId={task.id}
@@ -2499,6 +2627,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             ) : chips.length === 1 ? (
               /* Single chip — unified DepChip */
               <DepChip
+                key={chips[0].dep.taskId}
                 lag={chips[0].lag}
                 dep={chips[0].dep}
                 taskId={task.id}

@@ -1506,6 +1506,38 @@
   background: #e5e7eb;
 }
 
+/* Link-type dropdown inside the dep edit popover */
+.gantt-tl-dep-edit-type-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #f9fafb;
+  color: #374151;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.gantt-tl-dep-edit-type-trigger:hover {
+  background: #e5e7eb;
+}
+
+.gantt-tl-dep-edit-type-caret {
+  color: #6b7280;
+  font-size: 0.65rem;
+}
+
+.gantt-tl-dep-type-option-duplicate,
+.gantt-tl-dep-type-option-duplicate:hover {
+  color: #9ca3af;
+  background: transparent;
+  cursor: not-allowed;
+}
+
 
 .gantt-tl-dep-edit-input {
   width: 56px;
@@ -1585,6 +1617,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.gantt-tl-dep-edit-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .gantt-tl-dep-edit-close {
