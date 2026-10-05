@@ -594,3 +594,41 @@ activityDependencyHighlight={{
 ### Hidden system dependencies
 
 Set TaskDependency.hidden to true to omit its arrow, predecessor chip and print label. The full dependency remains available to validation, drag constraints and cascading; this is a presentation flag, not a scheduling switch.
+
+
+### Consumer-owned task controls (0.145.0)
+
+Task callbacks no longer add implicit menu items or row buttons. `taskListMenuCommands`
+continues to render explicitly configured commands (scope, visibility, disabled state,
+icons, dividers and close behavior). An empty command list produces no menu trigger.
+`enableAddTask` now defaults to `false`; set it to `true` with `onAdd` to show the footer.
+
+Use `renderTaskListActions(context)` for arbitrary row buttons and
+`renderTaskListMenu(context, commands)` to replace or compose the entire menu.
+Return `null` to omit either surface for a row. `hideTaskListRowActions` suppresses
+both slots and commands. Context contains `task`, `isParent`, `canPromote`,
+`canDemote`, `closeMenu`, and optional `insertAfter`, `promote`, `demote`, `duplicate`,
+`delete`, `ungroup` operations. Unsupported operations are `undefined`.
+The library retains scheduling, hierarchy and inline-insert behavior; the consumer
+owns labels, icons, colors, menu composition and business actions.
+
+```tsx
+<GanttChart tasks={tasks} showTaskList onTasksChange={setChangedTasks}
+  onAdd={addTask} onInsertAfter={insertTask} onDelete={deleteTask}
+  enableAddTask
+  renderTaskListActions={({ insertAfter, promote, demote }) => <>
+    {insertAfter && <button onClick={insertAfter}>+</button>}
+    {promote && <button onClick={promote}>Promote</button>}
+    {demote && <button onClick={demote}>Demote</button>}
+  </>}
+  renderTaskListMenu={({ task, delete: remove, closeMenu }, commands) => <>
+    {commands}
+    {remove && <button onClick={() => { closeMenu(); remove(); }}>Delete {task.name}</button>}
+  </>}
+/>
+```
+
+Migrate color selection into the application, emitting changed task copies through
+`onTasksChange`. To preserve the previous parent-color behavior, include descendants.
+Do not mutate the context task. Use the optional operation callbacks to preserve the
+library's descendant deletion, duplication and hierarchy scheduling semantics.

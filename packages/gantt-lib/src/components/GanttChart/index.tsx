@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Export configurable task action API.
+// SCOPE: Public chart exports.
+// INPUTS: Optional consumer action/menu renderers and task callbacks.
+// OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
+// END_MODULE_CONTRACT
 export { GanttChart } from './GanttChart';
 export { ResourceTimelineChart } from '../ResourceTimelineChart';
 export type {
@@ -6,6 +12,7 @@ export type {
   TaskActivityTooltipField,
   TaskDependency,
   GanttScheduleIntent,
+  TaskListActionContext,
   TaskListMenuCommand,
   GanttChartMode,
   GanttModeProps,

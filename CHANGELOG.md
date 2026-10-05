@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.145.0] - 2026-10-05
+
+### Breaking changes
+
+- Task menus and row action buttons are consumer-owned: configure `renderTaskListActions`, `renderTaskListMenu` or `taskListMenuCommands`; mutation callbacks no longer insert implicit UI. Footer task creation now requires `enableAddTask={true}`.
+
+### Features
+
+- Export `TaskListActionContext` with capability-checked native insert, promote, demote, duplicate, ungroup and delete operations. Custom renderers can compose existing commands or return null per row.
+
 ## [0.144.1] - 2026-10-05
 
 ### Fixes

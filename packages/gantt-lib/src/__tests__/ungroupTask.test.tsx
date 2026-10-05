@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Verify consumer-owned task actions and native operation capabilities.
+// SCOPE: Optional slots, menu commands and hierarchy behavior.
+// INPUTS: Chart props and consumer renderers.
+// OUTPUTS: Explicit UI and callback assertions.
+// END_MODULE_CONTRACT
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -58,6 +64,8 @@ describe('GanttChart ungroup task', () => {
         tasks={[parent, firstChild, secondChild, grandChild, dependent]}
         showTaskList
         showChart={false}
+        renderTaskListActions={context => context.promote ? <button title="Повысить уровень" onClick={context.promote}>Promote</button> : null}
+        renderTaskListMenu={context => context.ungroup ? <button onClick={context.ungroup}>Разгруппировать</button> : null}
         onTasksChange={onTasksChange}
         onDelete={onDelete}
       />
@@ -110,6 +118,8 @@ describe('GanttChart promote task', () => {
         tasks={[parent, firstChild, lastChild, nextRoot]}
         showTaskList
         showChart={false}
+        renderTaskListActions={context => context.promote ? <button title="Повысить уровень" onClick={context.promote}>Promote</button> : null}
+        renderTaskListMenu={context => context.ungroup ? <button onClick={context.ungroup}>Разгруппировать</button> : null}
         onTasksChange={onTasksChange}
       />
     );

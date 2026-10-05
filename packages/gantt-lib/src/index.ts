@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Export configurable task action API.
+// SCOPE: Public chart exports.
+// INPUTS: Optional consumer action/menu renderers and task callbacks.
+// OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
+// END_MODULE_CONTRACT
 'use client';
 
 // CSS import triggers tsup to emit dist/index.css (renamed to dist/styles.css by onSuccess)
@@ -9,6 +15,7 @@ export {
   type Task,
   type TaskDependency,
   type GanttScheduleIntent,
+  type TaskListActionContext,
   type TaskListMenuCommand,
   type GanttChartMode,
   type GanttModeProps,

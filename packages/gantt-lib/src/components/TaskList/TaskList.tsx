@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import type { Task, TaskDependency, TaskListMenuCommand } from '../GanttChart';
+import type { Task, TaskDependency, TaskListActionContext, TaskListMenuCommand } from '../GanttChart';
 import type { LinkType } from '../../types';
 import type { TaskDateChangeMode } from '../../types';
 import type { CustomDayConfig } from '../../utils/dateUtils';
@@ -25,6 +25,8 @@ import './TaskList.css';
 // PURPOSE: Render task-list edits and preserve their scheduling-vs-field-edit boundary.
 // SCOPE: Route duration edits through the parent scheduling adapter while retaining legacy onTasksChange; optionally render compact dependency labels for print/export layouts.
 // DEPENDS: TaskListRow and GanttChart callbacks.
+// INPUTS: Optional consumer action/menu renderers and task callbacks.
+// OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
 // END_MODULE_CONTRACT
 
 export { LINK_TYPE_ICONS };
@@ -251,6 +253,8 @@ export interface TaskListProps {
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   /** Additional commands rendered in each row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
+  renderTaskListActions?: (context: TaskListActionContext<Task>) => React.ReactNode;
+  renderTaskListMenu?: (context: TaskListActionContext<Task>, commands: React.ReactNode) => React.ReactNode;
   /** Hide row action controls such as insert, hierarchy action buttons, and the context menu trigger. */
   hideTaskListRowActions?: boolean;
   /** Returns an extra CSS class name for a TaskList row. */
@@ -378,7 +382,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   disableTaskDrag = false,
   disableTaskListReorder = false,
   editingTaskId: propEditingTaskId,
-  enableAddTask = true,
+  enableAddTask = false,
   addTaskLabel = 'Добавить работу',
   defaultTaskDurationDays = DEFAULT_TASK_DURATION_DAYS,
   collapsedParentIds: externalCollapsedParentIds,
@@ -404,6 +408,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   taskListColumnWidths,
   onTaskListColumnWidthsChange,
   taskListMenuCommands,
+  renderTaskListActions,
+  renderTaskListMenu,
   hideTaskListRowActions = false,
   getTaskListRowClassName,
   getTaskListNamePrefixIcon,
@@ -1833,7 +1839,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   onScrollToTask={onScrollToTask}
                   onDelete={onDelete}
                   onAdd={onAdd}
-                  onInsertAfter={handleStartInsertAfter}
+                  onInsertAfter={onInsertAfter ? handleStartInsertAfter : undefined}
                   editingTaskId={propEditingTaskId}
                   isDragging={!reorderDisabled && draggingIndex === index}
                   isDragOver={!reorderDisabled && dragOverTarget?.index === index}
@@ -1870,6 +1876,8 @@ export const TaskList: React.FC<TaskListProps> = ({
                   activeCustomCell={activeCustomCell}
                   onActiveCustomCellChange={setActiveCustomCell}
                   taskListMenuCommands={taskListMenuCommands}
+                  renderTaskListActions={renderTaskListActions}
+                  renderTaskListMenu={renderTaskListMenu}
                   hideTaskListRowActions={hideTaskListRowActions}
                   rowClassName={[task.parentId && compositeParentIds.has(task.parentId)
                     ? 'gantt-tl-row-composite-detail' : '',

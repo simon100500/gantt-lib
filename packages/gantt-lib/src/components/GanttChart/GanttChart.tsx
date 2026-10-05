@@ -4,6 +4,8 @@
 // SCOPE: Task hierarchy/date normalization and opt-in manual display progress for projected parent rows.
 // INPUTS: Chart props and task progressAggregation policies.
 // OUTPUTS: Parent dates continue to roll up; manual percentages survive presentation grouping.
+// INPUTS: Optional consumer action/menu renderers and task callbacks.
+// OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
 // END_MODULE_CONTRACT
 
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
@@ -421,6 +423,21 @@ export interface TaskDependency {
   lag: number;
 }
 
+/** Capability-checked operations for a consumer-owned task action surface. */
+export interface TaskListActionContext<TTask extends Task = Task> {
+  task: TTask;
+  isParent: boolean;
+  canPromote: boolean;
+  canDemote: boolean;
+  insertAfter?: () => void;
+  promote?: () => void;
+  demote?: () => void;
+  duplicate?: () => void;
+  delete?: () => void;
+  ungroup?: () => void;
+  closeMenu: () => void;
+}
+
 export interface TaskListMenuCommand<TTask extends Task = Task> {
   /** Stable command id for React keys and consumer bookkeeping */
   id: string;
@@ -573,6 +590,10 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   /** Additional commands rendered in the TaskList row three-dots menu */
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
+  /** No buttons render unless this slot is supplied. */
+  renderTaskListActions?: (context: TaskListActionContext<TTask>) => React.ReactNode;
+  /** Replace/compose the menu; commands contains the configured taskListMenuCommands UI. */
+  renderTaskListMenu?: (context: TaskListActionContext<TTask>, commands: React.ReactNode) => React.ReactNode;
   /** Hide row action controls in the TaskList for table-like read/edit presentations. */
   hideTaskListRowActions?: boolean;
   /** Returns an extra CSS class name for a TaskList row. */
@@ -773,7 +794,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     onPromoteTask,
     onDemoteTask,
     onUngroupTask,
-    enableAddTask = true,
+    enableAddTask = false,
     addTaskLabel = 'Добавить работу',
     defaultTaskDurationDays,
     taskFilter,
@@ -806,6 +827,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     taskListColumnWidths,
     onTaskListColumnWidthsChange,
     taskListMenuCommands,
+    renderTaskListActions,
+    renderTaskListMenu,
     hideTaskListRowActions = false,
     getTaskListRowClassName,
     getTaskListNamePrefixIcon,
@@ -2584,9 +2607,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             )}
             selectedChip={selectedChip}
             onAdd={onAdd as ((task: Task) => void) | undefined}
-            onDelete={handleDelete}
-            onInsertAfter={handleInsertAfter as ((taskId: string, newTask: Task) => void) | undefined}
-            onReorder={handleReorder as ((tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void) | undefined}
+            onDelete={onDelete ? handleDelete : undefined}
+            onInsertAfter={(onInsertAfter ? handleInsertAfter : undefined) as ((taskId: string, newTask: Task) => void) | undefined}
+            onReorder={(onReorder || onTasksChange ? handleReorder : undefined) as ((tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void) | undefined}
             disableTaskDrag={disableTaskDrag || disableTaskListReorder}
             editingTaskId={editingTaskId}
             enableAddTask={enableAddTask}
@@ -2594,9 +2617,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             defaultTaskDurationDays={defaultTaskDurationDays}
             collapsedParentIds={collapsedParentIds}
             onToggleCollapse={handleToggleCollapse}
-            onPromoteTask={onPromoteTask ?? handlePromoteTask}
-            onDemoteTask={onDemoteTask ?? handleDemoteTask}
-            onUngroupTask={onUngroupTask ?? handleUngroupTask}
+            onPromoteTask={onPromoteTask ?? (onTasksChange ? handlePromoteTask : undefined)}
+            onDemoteTask={onDemoteTask ?? (onTasksChange ? handleDemoteTask : undefined)}
+            onUngroupTask={onUngroupTask ?? (onTasksChange ? handleUngroupTask : undefined)}
             highlightedTaskIds={taskListHighlightedTaskIds}
             fillParentRows={shouldFillParentRowsInTaskList as boolean | ((task: Task) => boolean)}
             enableTaskMultiSelect={enableTaskMultiSelect}
@@ -2615,6 +2638,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             taskListColumnWidths={taskListColumnWidths}
             onTaskListColumnWidthsChange={onTaskListColumnWidthsChange}
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
+            renderTaskListActions={renderTaskListActions as ((context: TaskListActionContext<Task>) => React.ReactNode) | undefined}
+            renderTaskListMenu={renderTaskListMenu as ((context: TaskListActionContext<Task>, commands: React.ReactNode) => React.ReactNode) | undefined}
             hideTaskListRowActions={hideTaskListRowActions}
             getTaskListRowClassName={getTaskListRowClassName as ((task: Task) => string | undefined) | undefined}
             getTaskListNamePrefixIcon={getTaskListNamePrefixIcon as ((task: Task) => React.ReactNode) | undefined}

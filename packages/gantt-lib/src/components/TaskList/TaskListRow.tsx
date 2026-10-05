@@ -6,6 +6,8 @@
 // DEPENDS: GanttChart task types, scheduling helpers, TaskList column definitions, and UI popovers.
 // ROLE: RUNTIME
 // MAP_MODE: LOCALS
+// INPUTS: Optional consumer action/menu renderers and task callbacks.
+// OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
 // END_MODULE_CONTRACT
 
 import React, {
@@ -15,7 +17,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import type { Task, TaskListMenuCommand } from "../GanttChart";
+import type { Task, TaskListActionContext, TaskListMenuCommand } from "../GanttChart";
 import type { LinkType, TaskDateChangeMode } from "../../types";
 import type { CustomDayConfig } from "../../utils/dateUtils";
 import { parseUTCDate, normalizeTaskDates, createCustomDayPredicate } from "../../utils/dateUtils";
@@ -211,30 +213,6 @@ const UngroupIcon = () => (
   </svg>
 );
 
-const TASK_COLOR_PALETTE = [
-  // { label: "Палисандр", value: "#A61E4D" },
-  // { label: "Киноварь", value: "#E8590C" },
-  // { label: "Жёлт", value: "#eec45c" },
-  { label: "Киноварь2", value: "#fe724e" },
-  // { label: "Оранжевый", value: "#F08C00" },
-  { label: "Оранжевый2", value: "#ff991f" },
-  { label: "Золотой", value: "#e5c800" },
-  { label: "Бирюза", value: "#58d8a3" },
-  { label: "Палисандр", value: "#d64a7b" },
-  { label: "Песочный", value: "#997B10" },
-  { label: "Шартрез", value: "#A3BE00" },
-  { label: "Голубой", value: "#03c7e6" },
-  { label: "Виноград2", value: "#8678d9" },
-  { label: "Серый2", value: "#6b778c" },
-  { label: "Лесной", value: "#2B8A3E" },
-  // { label: "Лесной3", value: "#60b838" },
-  // { label: "Бирюза", value: "#0B7285" },
-  // { label: "Серый", value: "#495057" },
-  // { label: "Океан", value: "#5244ff" },
-  // { label: "Океан2", value: "#0626ba" },
-  // { label: "Виноград", value: "#AE3EC9" },
-] as const;
-
 const ChevronRightIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -271,100 +249,6 @@ function formatDependencyPrintLabel(
   const lagSuffix = effectiveLag === 0 ? "" : effectiveLag > 0 ? `+${effectiveLag}` : String(effectiveLag);
   return `[${predecessorTaskNumber ?? dep.taskId}]${LINK_TYPE_LABELS_RU[dep.type]}${lagSuffix}`;
 }
-
-// ---------------------------------------------------------------------------
-// HierarchyButton — Single button with left/right arrows for hierarchy navigation
-// ---------------------------------------------------------------------------
-interface HierarchyButtonProps {
-  /** Whether the task is a child (can be promoted) */
-  isChild: boolean;
-  /** Row index - first row cannot demote */
-  rowIndex: number;
-  /** Whether demote action should be shown for this row */
-  canDemote: boolean;
-  /** Callback when promote is clicked (left arrow) */
-  onPromote?: (e: React.MouseEvent) => void;
-  /** Callback when demote is clicked (right arrow) */
-  onDemote?: (e: React.MouseEvent) => void;
-}
-
-const ArrowLeft = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="m12 19-7-7 7-7" />
-    <path d="M19 12H5" />
-  </svg>
-);
-
-const ArrowRight = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M5 12h14" />
-    <path d="m12 5 7 7-7 7" />
-  </svg>
-);
-
-const HierarchyButton: React.FC<HierarchyButtonProps> = ({
-  isChild,
-  rowIndex: _rowIndex,
-  canDemote,
-  onPromote,
-  onDemote,
-}) => {
-  const canPromote = isChild && onPromote;
-  const showDemote = canDemote && !!onDemote;
-
-  if (!canPromote && !showDemote) return null;
-
-  return (
-    <>
-      {canPromote && (
-        <button
-          type="button"
-          className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPromote!(e);
-          }}
-          title="Повысить уровень"
-        >
-          <ArrowLeft />
-        </button>
-      )}
-      {showDemote && (
-        <button
-          type="button"
-          className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDemote!(e);
-          }}
-          title="Понизить уровень"
-        >
-          <ArrowRight />
-        </button>
-      )}
-    </>
-  );
-};
 
 function formatDepDescription(type: LinkType, lag: number | undefined): string {
   const effectiveLag = lag ?? 0;
@@ -879,6 +763,8 @@ export interface TaskListRowProps {
   onActiveCustomCellChange?: (cell: { taskId: string; columnId: string } | null) => void;
   /** Additional commands rendered in the three-dots row menu */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
+  renderTaskListActions?: (context: TaskListActionContext<Task>) => React.ReactNode;
+  renderTaskListMenu?: (context: TaskListActionContext<Task>, commands: React.ReactNode) => React.ReactNode;
   /** Hide row action controls such as insert, hierarchy action buttons, and context menu trigger. */
   hideTaskListRowActions?: boolean;
   /** Extra CSS class name for the rendered task-list row. */
@@ -985,6 +871,14 @@ const areTaskListRowPropsEqual = (prevProps: TaskListRowProps, nextProps: TaskLi
     prevProps.isTaskSelected === nextProps.isTaskSelected &&
     resolveActiveCustomCellForRow(prevProps) === resolveActiveCustomCellForRow(nextProps) &&
     prevProps.taskListMenuCommands === nextProps.taskListMenuCommands &&
+    prevProps.onInsertAfter === nextProps.onInsertAfter &&
+    prevProps.onPromoteTask === nextProps.onPromoteTask &&
+    prevProps.onDemoteTask === nextProps.onDemoteTask &&
+    prevProps.onDuplicateTask === nextProps.onDuplicateTask &&
+    prevProps.onDelete === nextProps.onDelete &&
+    prevProps.onUngroupTask === nextProps.onUngroupTask &&
+    prevProps.renderTaskListActions === nextProps.renderTaskListActions &&
+    prevProps.renderTaskListMenu === nextProps.renderTaskListMenu &&
     prevProps.hideTaskListRowActions === nextProps.hideTaskListRowActions &&
     prevProps.rowClassName === nextProps.rowClassName &&
     prevProps.getTaskListNamePrefixIcon === nextProps.getTaskListNamePrefixIcon &&
@@ -1055,6 +949,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     activeCustomCell,
     onActiveCustomCellChange,
     taskListMenuCommands = [],
+    renderTaskListActions,
+    renderTaskListMenu,
     hideTaskListRowActions = false,
     rowClassName,
     compositeParentColor,
@@ -1107,7 +1003,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const progressInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
     const [contextMenuOpen, setContextMenuOpen] = useState(false);
-    const [colorMenuOpen, setColorMenuOpen] = useState(false);
     const nameConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const durationConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const progressConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
@@ -1737,62 +1632,6 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [task.id, onToggleCollapse],
     );
 
-    // Hierarchy handlers - promote/demote
-    const handlePromote = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onPromoteTask?.(task.id);
-      },
-      [task.id, onPromoteTask],
-    );
-
-    const handleDemote = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        // The parent calculation is done in TaskList.tsx's handleDemoteWrapper,
-        // which has access to the ordered visible task list and implements the
-        // "previous visible task becomes parent" principle.
-        // Pass empty string as placeholder — the wrapper ignores this value.
-        onDemoteTask?.(task.id, "");
-      },
-      [task.id, onDemoteTask],
-    );
-
-    const closeColorMenu = useCallback(() => {
-      setColorMenuOpen(false);
-    }, []);
-
-    const handleApplyColor = useCallback(
-      (color?: string) => {
-        if (!onTasksChange) return;
-
-        const descendantIds = new Set(
-          isParent ? getAllDescendants(task.id, allTasks).map(descendant => descendant.id) : []
-        );
-
-        const updatedTasks: Task[] = [
-          { ...task, color },
-          ...allTasks
-            .filter(candidate => descendantIds.has(candidate.id))
-            .map(candidate => ({ ...candidate, color })),
-        ];
-
-        onTasksChange(updatedTasks);
-        closeColorMenu();
-        setContextMenuOpen(false);
-      },
-      [allTasks, closeColorMenu, isParent, onTasksChange, task],
-    );
-
-    const handleUngroup = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setContextMenuOpen(false);
-        onUngroupTask?.(task.id);
-      },
-      [onUngroupTask, task.id],
-    );
-
     const visibleCustomMenuCommands = useMemo(
       () =>
         taskListMenuCommands.filter(
@@ -1807,27 +1646,41 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [taskListMenuCommands, task, isParent, isMilestoneRow],
     );
 
-    const hasContextMenu =
-      !hideTaskListRowActions && (
-        visibleCustomMenuCommands.length > 0 ||
-        !!onDuplicateTask ||
-        !!onDelete ||
-        !!onTasksChange ||
-        (isParent && !!onUngroupTask)
-      );
-
-    const handleCustomMenuCommandClick = useCallback(
-      (command: TaskListMenuCommand<Task>) =>
-        (e: React.MouseEvent<HTMLButtonElement>) => {
-          e.stopPropagation();
-          if (command.closeOnSelect !== false) {
-            setContextMenuOpen(false);
-            closeColorMenu();
-          }
-          command.onSelect(task);
-        },
-      [closeColorMenu, task],
-    );
+    const actionContext: TaskListActionContext<Task> = {
+      task,
+      isParent,
+      canPromote: isChild && !!onPromoteTask,
+      canDemote: canDemoteTask && !!onDemoteTask,
+      insertAfter: onInsertAfter ? () => {
+        const range = buildDefaultTaskDateRange(getTodayISODate(), {
+          businessDays, defaultTaskDurationDays, weekendPredicate,
+        });
+        onInsertAfter(task.id, { id: crypto.randomUUID(), name: "Новая работа", ...range, parentId: task.parentId });
+      } : undefined,
+      promote: isChild && onPromoteTask ? () => onPromoteTask(task.id) : undefined,
+      demote: canDemoteTask && onDemoteTask ? () => onDemoteTask(task.id, "") : undefined,
+      duplicate: onDuplicateTask ? () => onDuplicateTask(task.id) : undefined,
+      delete: onDelete ? () => onDelete(task.id) : undefined,
+      ungroup: isParent && onUngroupTask ? () => onUngroupTask(task.id) : undefined,
+      closeMenu: () => setContextMenuOpen(false),
+    };
+    const commandContent = visibleCustomMenuCommands.length ? visibleCustomMenuCommands.map(command => (
+      <React.Fragment key={command.id}>
+        {command.divider === "top" && <hr className="gantt-tl-context-menu-divider" />}
+        <button type="button"
+          className={`gantt-tl-context-menu-item${command.danger ? " gantt-tl-context-menu-item-danger" : ""}`}
+          disabled={command.isDisabled?.(task) ?? false}
+          onClick={event => {
+            event.stopPropagation();
+            if (command.closeOnSelect !== false) actionContext.closeMenu();
+            command.onSelect(task);
+          }}>{command.icon}{command.label}</button>
+        {command.divider === "bottom" && <hr className="gantt-tl-context-menu-divider" />}
+      </React.Fragment>
+    )) : null;
+    const menuContent = hideTaskListRowActions ? null : renderTaskListMenu ? renderTaskListMenu(actionContext, commandContent) : commandContent;
+    const actionContent = hideTaskListRowActions ? null : renderTaskListActions?.(actionContext);
+    const hasContextMenu = menuContent !== null && menuContent !== undefined && menuContent !== false;
 
     // Dependency handlers
     const handleAddClick = useCallback(
@@ -2331,184 +2184,21 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             aria-hidden="true"
           />
         )}
-        {!editingName && !hideTaskListRowActions && (onInsertAfter || onDelete || onPromoteTask || onDemoteTask || onUngroupTask || onDuplicateTask || onTasksChange || hasContextMenu) && (
-          <div className={`gantt-tl-name-actions${contextMenuOpen ? " gantt-tl-name-actions-open" : ""}`}>
-            {onInsertAfter && (
-              <button
-                type="button"
-                className="gantt-tl-name-action-btn gantt-tl-action-insert"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const range = buildDefaultTaskDateRange(getTodayISODate(), {
-                    businessDays,
-                    defaultTaskDurationDays,
-                    weekendPredicate,
-                  });
-                  const newTask: Task = {
-                    id: crypto.randomUUID(),
-                    name: "Новая работа",
-                    startDate: range.startDate,
-                    endDate: range.endDate,
-                    parentId: task.parentId,
-                  };
-                  onInsertAfter(task.id, newTask);
-                }}
-                aria-label="Вставить работу после этой"
-              >
-                <PlusIcon />
-              </button>
-            )}
-            <HierarchyButton
-              isChild={isChild}
-              rowIndex={rowIndex}
-              canDemote={canDemoteTask}
-              onPromote={onPromoteTask ? handlePromote : undefined}
-              onDemote={onDemoteTask ? handleDemote : undefined}
-            />
-            {hasContextMenu && (
-              <Popover open={contextMenuOpen} onOpenChange={(open) => {
-                setContextMenuOpen(open);
-                if (!open) closeColorMenu();
-              }}>
+        {!editingName && !hideTaskListRowActions && (actionContent || hasContextMenu) ? (
+          <div className={`gantt-tl-name-actions${contextMenuOpen ? " gantt-tl-name-actions-open" : ""}`} onClick={event => event.stopPropagation()}>
+            {actionContent}
+            {hasContextMenu ? (
+              <Popover open={contextMenuOpen} onOpenChange={setContextMenuOpen}>
                 <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="gantt-tl-name-action-btn gantt-tl-action-context"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setContextMenuOpen((v) => !v);
-                    }}
-                    aria-label="Дополнительно"
-                  >
-                    <VerticalDotsIcon />
-                  </button>
+                  <button type="button" className="gantt-tl-name-action-btn gantt-tl-action-context"
+                    onClick={event => { event.stopPropagation(); setContextMenuOpen(value => !value); }}
+                    aria-label="Дополнительно"><VerticalDotsIcon /></button>
                 </PopoverTrigger>
-                <PopoverContent className="gantt-tl-context-menu" portal={true} align="end">
-                  {onTasksChange && (
-                    <div
-                      className="gantt-tl-context-menu-section gantt-tl-context-submenu-wrap"
-                      onMouseLeave={(e) => {
-                        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-                          closeColorMenu();
-                        }
-                      }}
-                      onBlur={(e) => {
-                        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-                          closeColorMenu();
-                        }
-                      }}
-                    >
-                      <button
-                        type="button"
-                        className="gantt-tl-context-menu-item gantt-tl-context-menu-item-toggle"
-                        onMouseEnter={() => setColorMenuOpen(true)}
-                        aria-expanded={colorMenuOpen}
-                        aria-haspopup="menu"
-                      >
-                        <span className="gantt-tl-context-menu-item-main">
-                          {task.color && (
-                            <span
-                              className="gantt-tl-color-swatch gantt-tl-color-swatch-inline"
-                              style={{ backgroundColor: task.color }}
-                              aria-hidden="true"
-                            />
-                          )}
-                          Цвет
-                        </span>
-                        <ChevronRightIcon />
-                      </button>
-                      {colorMenuOpen && (
-                        <div className="gantt-tl-context-submenu" role="menu" aria-label="Выбор цвета">
-                          <div className="gantt-tl-color-grid">
-                            <button
-                              type="button"
-                              className={`gantt-tl-color-swatch gantt-tl-color-swatch-clear${!task.color ? " is-selected" : ""}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApplyColor(undefined);
-                              }}
-                              aria-label="Сбросить цвет"
-                              title="Сбросить цвет"
-                            >
-                              <span className="gantt-tl-color-swatch-clear-line" />
-                            </button>
-                            {TASK_COLOR_PALETTE.map((paletteColor) => (
-                              <button
-                                key={paletteColor.value}
-                                type="button"
-                                className={`gantt-tl-color-swatch${task.color === paletteColor.value ? " is-selected" : ""}`}
-                                style={{ backgroundColor: paletteColor.value }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleApplyColor(paletteColor.value);
-                                }}
-                                aria-label={`Выбрать цвет ${paletteColor.label}`}
-                                title={paletteColor.label}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {onDuplicateTask && (
-                    <button
-                      type="button"
-                      className="gantt-tl-context-menu-item"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setContextMenuOpen(false);
-                        onDuplicateTask(task.id);
-                      }}
-                    >
-                      <CopyIcon />
-                      Дублировать
-                    </button>
-                  )}
-                  {visibleCustomMenuCommands.map((command) => (
-                    <React.Fragment key={command.id}>
-                      {command.divider === "top" && <hr className="gantt-tl-context-menu-divider" />}
-                      <button
-                        type="button"
-                        className={`gantt-tl-context-menu-item${command.danger ? " gantt-tl-context-menu-item-danger" : ""}`}
-                        onClick={handleCustomMenuCommandClick(command)}
-                        disabled={command.isDisabled?.(task) ?? false}
-                      >
-                        {command.icon}
-                        {command.label}
-                      </button>
-                      {command.divider === "bottom" && <hr className="gantt-tl-context-menu-divider" />}
-                    </React.Fragment>
-                  ))}
-                  {isParent && onUngroupTask && (
-                    <button
-                      type="button"
-                      className="gantt-tl-context-menu-item"
-                      onClick={handleUngroup}
-                    >
-                      <UngroupIcon />
-                      Разгруппировать
-                    </button>
-                  )}
-                  {onDelete && (
-                    <button
-                      type="button"
-                      className="gantt-tl-context-menu-item gantt-tl-context-menu-item-danger"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setContextMenuOpen(false);
-                        onDelete(task.id);
-                      }}
-                    >
-                      <TrashIcon />
-                      Удалить работу
-                    </button>
-                  )}
-                </PopoverContent>
+                <PopoverContent className="gantt-tl-context-menu" portal={true} align="end">{menuContent}</PopoverContent>
               </Popover>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
     );
 

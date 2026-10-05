@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Verify consumer-owned task actions and native operation capabilities.
+// SCOPE: Optional slots, menu commands and hierarchy behavior.
+// INPUTS: Chart props and consumer renderers.
+// OUTPUTS: Explicit UI and callback assertions.
+// END_MODULE_CONTRACT
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -338,43 +344,10 @@ describe('TaskListRow hierarchy rendering', () => {
     expect(colorDot?.style.backgroundColor).toBe('rgb(11, 114, 133)');
   });
 
-  it('applies selected color to a parent and all descendants', () => {
-    const onTasksChange = vi.fn();
-    const parent: Task = {
-      id: 'parent',
-      name: 'Parent task',
-      startDate: '2026-03-01',
-      endDate: '2026-03-05',
-      progress: 0,
-    };
-    const child: Task = {
-      id: 'child',
-      name: 'Child task',
-      startDate: '2026-03-02',
-      endDate: '2026-03-04',
-      progress: 0,
-      parentId: 'parent',
-    };
-
-    render(
-      <TaskListRow
-        task={parent}
-        allTasks={[parent, child]}
-        rowIndex={0}
-        rowHeight={40}
-        onTasksChange={onTasksChange}
-        onRowClick={() => {}}
-        onChipSelect={() => {}}
-        resolvedColumns={resolvedColumns}
-      />
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /Цвет/i }));
-    fireEvent.click(screen.getByLabelText('Выбрать цвет Палисандр'));
-
-    expect(onTasksChange).toHaveBeenCalledWith([
-      { ...parent, color: '#d64a7b' },
-      { ...child, color: '#d64a7b' },
-    ]);
+  it('does not invent a color menu for editable parent rows', () => {
+    const parent: Task = { id: 'parent', name: 'Parent', startDate: '2026-03-01', endDate: '2026-03-05' };
+    render(<TaskListRow task={parent} allTasks={[parent]} rowIndex={0} rowHeight={40}
+      onTasksChange={vi.fn()} resolvedColumns={resolvedColumns} />);
+    expect(screen.queryByText('Цвет')).toBeNull();
   });
 });
