@@ -61,6 +61,8 @@ interface GanttModeProps<TTask extends Task = Task> {
   taskListColumnWidths?: TaskListColumnWidthMap;
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
+  renderTaskListActions?: (context: TaskListActionContext<TTask>) => React.ReactNode;
+  renderTaskListMenu?: (context: TaskListActionContext<TTask>, commands: React.ReactNode) => React.ReactNode;
   hideTaskListRowActions?: boolean;
   fillParentRowsInTaskList?: boolean | ((task: TTask) => boolean);
   getTaskListNamePrefixIcon?: (task: TTask) => React.ReactNode;
@@ -114,6 +116,8 @@ interface TableMatrixModeProps<TTask extends Task = Task> {
   taskListColumnWidths?: TaskListColumnWidthMap;
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
+  renderTaskListActions?: (context: TaskListActionContext<TTask>) => React.ReactNode;
+  renderTaskListMenu?: (context: TaskListActionContext<TTask>, commands: React.ReactNode) => React.ReactNode;
   hideTaskListRowActions?: boolean;
   fillParentRowsInTaskList?: boolean | ((task: TTask) => boolean);
   getTaskListNamePrefixIcon?: (task: TTask) => React.ReactNode;
@@ -217,7 +221,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `highlightExpiredTasks` | `boolean` | `false` | When `true`, tasks that are behind schedule are visually highlighted. An expired task is one where today's date is within the task's date range and the current progress is less than the elapsed percentage. Expired tasks render with the `--gantt-expired-color` background. |
 | `collapsedParentIds` | `Set<string>` | `undefined` | Set of parent task IDs that are collapsed (children hidden). Pass `undefined` for uncontrolled mode (internal state). |
 | `onToggleCollapse` | `(parentId: string) => void` | `undefined` | Called when user clicks collapse/expand button on a parent task. Receives the `parentId` of the parent being toggled. Required for controlled mode when providing `collapsedParentIds`. |
-| `enableAddTask` | `boolean` | `true` | When `true`, shows the "+ Добавить задачу" button at the bottom of the task list for adding new tasks. |
+| `enableAddTask` | `boolean` | `false` | When `true`, shows the "+ Добавить задачу" button at the bottom of the task list for adding new tasks. |
 | `addTaskLabel` | `string` | `'Добавить работу'` | Text of the add task button at the bottom of the task list. The "+ " prefix is added automatically. Pass an empty string to show only the "+" sign. |
 | `taskFilter` | `TaskPredicate` | `undefined` | Predicate function to filter tasks. Receives a `Task | undefined`, returns `true` to show the task, `false` to hide it. **Import:** `import { type TaskPredicate } from 'gantt-lib'`. See Section 7.3 for usage and ready-made filters. |
 | `highlightedTaskIds` | `Set<string>` | `undefined` | Task IDs to highlight in the task list. Useful for external search results or navigation state without hiding other rows. Used with `filterMode='highlight'`. |
@@ -234,7 +238,7 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `hiddenTaskListColumns` | `TaskListColumnId[]` | `undefined` | Built-in or custom TaskList column IDs to hide after column placement is resolved. Works for built-in columns such as `'duration'` and custom `additionalColumns` ids. |
 | `taskListColumnWidths` | `TaskListColumnWidthMap` | `undefined` | Initial or controlled width overrides for built-in and custom TaskList columns, keyed by column id. Example: `{ name: 280, assignee: 180 }`. |
 | `onTaskListColumnWidthsChange` | `(widths: TaskListColumnWidthMap) => void` | `undefined` | Called when the user drags a TaskList header resize handle. Use with `taskListColumnWidths` to persist widths outside the component. |
-| `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Additional commands for the TaskList three-dots menu. Each command receives the current row in `onSelect(row)`, can render an `icon`, may render a visual `divider: 'top' | 'bottom'`, and may be restricted by `scope`: `'group'`, `'linear'`, `'milestone'`, or `'all'`. When `scope` is omitted, the command is shown for all task types. |
+| `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Explicit commands for the optional TaskList three-dots menu. Each command receives the current row in `onSelect(row)`, can render an `icon`, may render a visual `divider: 'top' | 'bottom'`, and may be restricted by `scope`: `'group'`, `'linear'`, `'milestone'`, or `'all'`. When `scope` is omitted, the command is shown for all task types. |
 | `hideTaskListRowActions` | `boolean` | `false` | Hides row-level TaskList actions such as insert/delete/hierarchy buttons. Useful in spreadsheet-like or read-only table presentations. |
 | `fillParentRowsInTaskList` | `boolean \| ((task: TTask) => boolean)` | `plan-fact: true`, otherwise `false` | Controls parent-row background fill in the left `TaskList`. Pass `true` to fill every parent row, `false` to disable it, or a predicate to fill only selected parent rows such as top-level sections. The predicate is ignored for non-parent rows. |
 | `getTaskListNamePrefixIcon` | `(task: TTask) => React.ReactNode` | `undefined` | Returns an optional icon rendered before the task name in the left `TaskList` row. The callback is evaluated per row, so you can target only root tasks, only milestones, only parents, or any custom condition. Return `undefined` / `null` to render no icon for that row. |
@@ -473,7 +477,9 @@ Resource mode intentionally does not render dependency lines, task list editing,
 
 ## TaskList Menu Commands
 
-Use `taskListMenuCommands` to add custom actions to the standard TaskList row menu (`...`).
+Use `taskListMenuCommands` to configure the optional TaskList row menu (`...`). No color, duplicate, ungroup or delete items are injected.
+
+Use `renderTaskListActions(context)` to supply row controls and `renderTaskListMenu(context, commands)` to compose or replace menu contents. Both receive `TaskListActionContext<TTask>`: the current task, hierarchy flags, `closeMenu`, and supported `insertAfter`, `promote`, `demote`, `duplicate`, `delete`, `ungroup` operations. Unsupported operations are undefined. Return null to omit a surface per row; `hideTaskListRowActions` suppresses both surfaces. See the package README for a migration example.
 
 ```typescript
 type TaskListMenuCommand<TTask extends Task = Task> = {
