@@ -6,6 +6,7 @@
 // CYCLE_TOPOLOGY: Optional cycleTaskIds comes from the stable full activity graph, independent of scroll windows and drag geometry.
 // PAN_COST: Stable empty collapse state keeps geometry memoized during hover and horizontal scroll.
 // TOUCH_COUPLING: Only explicit same-lane FS activity edges with zero lag and coincident side ports render a visual-only joint; adjacency never infers an edge.
+// EDGE_IDENTITY: Exact visible edge replicas share one visual line; distinct lags retain independent React keys without changing public selection and dimming ids.
 // COUPLING_STYLE: One rounded white dash, 12x3px including caps at 50 percent opacity; no hit target or hover/click handlers.
 // ACTIVITY_PORTS: Cross-row/lane activities use ports inset 6px from the top/bottom like the flow-line demo; same-lane activities use side centers. Ordinary task row padding remains unchanged.
 // SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels; hidden dependencies stay in the graph but have no visual path.
@@ -84,6 +85,7 @@ const EMPTY_COLLAPSED_PARENT_IDS = new Set<string>();
 
 type DependencyLine = {
   id: string;
+  renderKey: string;
   predecessorId: string;
   successorId: string;
   linkType: string;
@@ -434,6 +436,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
     const renderedTaskIdSet = new Set(geometryTasks.map(t => t.id));
     const lines: Array<{
       id: string;
+      renderKey: string;
       predecessorId: string;
       successorId: string;
       linkType: string;
@@ -448,6 +451,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
       isCritical: boolean;
       isCoupling: boolean;
     }> = [];
+    const renderedEdgeKeys = new Set<string>();
 
     for (const successorId of positionedTaskIds) {
       const successorTaskForEdges = taskMap.get(successorId);
@@ -467,6 +471,9 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
           type: dependency.type,
           lag: dependency.lag ?? 0,
         };
+        const renderKey = JSON.stringify([edge.predecessorId, edge.successorId, edge.type, edge.lag]);
+        if (renderedEdgeKeys.has(renderKey)) continue;
+        renderedEdgeKeys.add(renderKey);
 
       const predecessor = taskPositions.get(edge.predecessorId);
       const successor = taskPositions.get(edge.successorId);
@@ -583,6 +590,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
       lines.push({
         id: `${edge.predecessorId}-${edge.successorId}-${edge.type}`,
+        renderKey,
         predecessorId: edge.predecessorId,
         successorId: edge.successorId,
         linkType: edge.type,
@@ -721,7 +729,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
 
         return (
           <DependencyLineView
-            key={line.id}
+            key={line.renderKey}
             line={line}
             hovered={hoveredLineId === line.id}
             selected={isSelected}
