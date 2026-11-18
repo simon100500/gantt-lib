@@ -62,6 +62,7 @@ import { DependencyLines } from '../DependencyLines';
 import { ActivityDependencyLines } from '../DependencyLines/ActivityDependencyLines';
 import { DependencyCreationOverlay, type DependencyCreationDrag } from '../DependencyCreationOverlay';
 import { TaskList } from '../TaskList';
+import { SimpleGridTaskList } from '../TaskList/SimpleGridTaskList';
 import { GenerationSkeletonRows } from '../GenerationSkeleton';
 import { ResourceTimelineChart } from '../ResourceTimelineChart';
 import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup, type TableMatrixDateOverlay } from '../TableMatrix';
@@ -75,7 +76,7 @@ import './GanttChart.css';
 // PAN_COST: Row virtualization depends on vertical position/height only, keeping row identity stable during horizontal pan.
 // PRESENTATION_INVARIANT: TaskDependency.hidden suppresses arrows/chips/print labels only; the full graph remains the input to scheduling and validation.
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
-// SCOPE: Emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; index parent IDs without repeated task scans; reconcile transient drag geometry with controlled task updates; control optional task date/name labels; render explicit host-scoped activity edges and chain/incoming/outgoing selection through native DependencyLines.
+// SCOPE: Render a SimpleGrid task list and emit one semantic GanttScheduleIntent; keep materialized cascades as preview/result data; select a deferred cascade preview for large charts; index parent IDs without repeated task scans; reconcile transient drag geometry with controlled task updates; control optional task date/name labels; render explicit host-scoped activity edges and chain/incoming/outgoing selection through native DependencyLines.
 // DEPENDS: TaskList, TaskRow/useTaskDrag, core scheduling preview functions.
 // INPUTS: GanttChartProps including showTaskDateLabels, showTaskNames, printDependencyLabels, and an optional exact dateRange.
 // OUTPUTS: Interactive task list/chart with configurable external task labels and print-friendly dependency text.
@@ -2567,6 +2568,52 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     };
   }, []);
 
+  // START_BLOCK_SIMPLEGRID_TASK_UPDATES
+  // One grid change is one transaction; controlled scheduling accepts only one date intent.
+  const [simpleGridError, setSimpleGridError] = useState('');
+  const handleSimpleGridChange = useCallback((nextVisible: Task[]) => {
+    if (nextVisible.length !== visibleTasks.length || nextVisible.some((task, index) => task.id !== visibleTasks[index]?.id)) {
+      setSimpleGridError('Вставка за пределы существующих задач пока недоступна'); return;
+    }
+    const prior = new Map(visibleTasks.map(task => [task.id, task]));
+    const dateKey = (value: string | Date) => value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+    const changed = nextVisible.filter(task => {
+      const old = prior.get(task.id);
+      return old && (old.name !== task.name || dateKey(old.startDate) !== dateKey(task.startDate) || dateKey(old.endDate) !== dateKey(task.endDate));
+    });
+    if (!changed.length) return;
+    const dated = changed.filter(task => {
+      const old = prior.get(task.id)!;
+      return dateKey(old.startDate) !== dateKey(task.startDate) || dateKey(old.endDate) !== dateKey(task.endDate);
+    });
+    if (changed.some(task => dateKey(task.startDate) > dateKey(task.endDate))) {
+      setSimpleGridError('Начало задачи не может быть позже окончания'); return;
+    }
+    if (onScheduleIntent && dated.length && (changed.length !== 1 || dated[0].name !== prior.get(dated[0].id)!.name || (dateKey(prior.get(dated[0].id)!.startDate) !== dateKey(dated[0].startDate) && dateKey(prior.get(dated[0].id)!.endDate) !== dateKey(dated[0].endDate)))) {
+      setSimpleGridError('Пакетное изменение дат в управляемом режиме пока недоступно'); return;
+    }
+    if (changed.length > 1 && dated.some(task => isTaskParent(task.id, normalizedTasks))) {
+      setSimpleGridError('Пакетное изменение дат родительских задач пока недоступно'); return;
+    }
+    setSimpleGridError('');
+    if (changed.length === 1) { handleTaskChange(changed); return; }
+    if (!dated.length) { onTasksChange?.(changed as TTask[]); return; }
+    let snapshot: Task[] = normalizedTasks.map(task => {
+      const edit = changed.find(item => item.id === task.id);
+      return edit && edit.name !== task.name ? { ...task, name: edit.name } : task;
+    });
+    for (const edit of dated) {
+      const current = snapshot.find(task => task.id === edit.id)!;
+      const updated = { ...current, startDate: edit.startDate, endDate: edit.endDate };
+      const next = disableConstraints ? [updated] : universalCascade(updated, new Date(updated.startDate), new Date(updated.endDate), snapshot.map(task => task.id === updated.id ? updated : task), businessDays, isCustomWeekend);
+      const updates = new Map(next.map(task => [task.id, task]));
+      snapshot = snapshot.map(task => updates.get(task.id) ?? task);
+    }
+    const original = new Map(normalizedTasks.map(task => [task.id, task]));
+    onTasksChange?.(snapshot.filter(task => JSON.stringify(task) !== JSON.stringify(original.get(task.id))) as TTask[]);
+  }, [visibleTasks, normalizedTasks, onScheduleIntent, onTasksChange, handleTaskChange, disableConstraints, businessDays, isCustomWeekend]);
+  // END_BLOCK_SIMPLEGRID_TASK_UPDATES
+
   return (
     <div
       ref={containerRef}
@@ -2586,72 +2633,26 @@ function TaskGanttChartInner<TTask extends Task = Task>(
           onMouseLeave={clearHoveredRows}
         >
           {/* TaskList - sticky left, scrolls with content horizontally */}
-          <TaskList
-            tasks={normalizedTasks}
+          <SimpleGridTaskList
+            tasks={visibleTasks}
+            allTasks={normalizedTasks}
             rowHeight={effectiveRowHeight}
-            rowTops={compositeRowLayout.tops}
             rowHeights={compositeRowLayout.heights}
             headerHeight={headerHeight}
-            taskListWidth={taskListWidth}
-            onTasksChange={handleTaskChange}
-            onDurationChange={handleTaskDurationChange}
-            selectedTaskId={selectedTaskId ?? undefined}
-            onTaskSelect={handleTaskSelect}
+            width={taskListWidth}
             show={showTaskList}
-            hasRightShadow={taskListHasRightShadow}
-            disableTaskNameEditing={disableTaskNameEditing}
-            disableDependencyEditing={disableDependencyEditing}
-            onScrollToTask={scrollToTask}
-            onSelectedChipChange={(chip) => setSelectedChip(
-              chip
-                ? { ...chip, linkType: chip.linkType as TaskDependency['type'] }
-                : null
-            )}
-            selectedChip={selectedChip}
-            onAdd={onAdd as ((task: Task) => void) | undefined}
-            onDelete={onDelete ? handleDelete : undefined}
-            onInsertAfter={(onInsertAfter ? handleInsertAfter : undefined) as ((taskId: string, newTask: Task) => void) | undefined}
-            onReorder={(onReorder || onTasksChange ? handleReorder : undefined) as ((tasks: Task[], movedTaskId?: string, inferredParentId?: string) => void) | undefined}
-            disableTaskDrag={disableTaskDrag || disableTaskListReorder}
-            editingTaskId={editingTaskId}
-            enableAddTask={enableAddTask}
-            addTaskLabel={addTaskLabel}
-            defaultTaskDurationDays={defaultTaskDurationDays}
-            collapsedParentIds={collapsedParentIds}
+            collapsed={collapsedParentIds}
             onToggleCollapse={handleToggleCollapse}
-            onPromoteTask={onPromoteTask ?? (onTasksChange ? handlePromoteTask : undefined)}
-            onDemoteTask={onDemoteTask ?? (onTasksChange ? handleDemoteTask : undefined)}
-            onUngroupTask={onUngroupTask ?? (onTasksChange ? handleUngroupTask : undefined)}
-            highlightedTaskIds={taskListHighlightedTaskIds}
-            fillParentRows={shouldFillParentRowsInTaskList as boolean | ((task: Task) => boolean)}
+            onChange={handleSimpleGridChange}
+            nameReadOnly={disableTaskNameEditing || !onTasksChange}
+            readOnly={!onTasksChange && !onScheduleIntent}
+            hiddenColumns={hiddenTaskListColumns}
+            columnWidths={taskListColumnWidths}
+            error={simpleGridError}
+            onTaskSelect={handleTaskSelect}
             enableTaskMultiSelect={enableTaskMultiSelect}
             selectedTaskIds={selectedTaskIds}
             onSelectedTaskIdsChange={onSelectedTaskIdsChange}
-            customDays={customDays}
-            isWeekend={isWeekend}
-            businessDays={businessDays}
-            filterMode={filterMode}
-            filteredTaskIds={matchedTaskIds}
-            isFilterActive={!!taskFilter}
-            criticalPathMode={criticalPathMode}
-            criticalTaskIds={criticalPathMode === 'hide' ? criticalTaskIds : undefined}
-            additionalColumns={additionalColumns}
-            hiddenTaskListColumns={hiddenTaskListColumns}
-            taskListColumnWidths={taskListColumnWidths}
-            onTaskListColumnWidthsChange={onTaskListColumnWidthsChange}
-            taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
-            renderTaskListActions={renderTaskListActions as ((context: TaskListActionContext<Task>) => React.ReactNode) | undefined}
-            renderTaskListMenu={renderTaskListMenu as ((context: TaskListActionContext<Task>, commands: React.ReactNode) => React.ReactNode) | undefined}
-            hideTaskListRowActions={hideTaskListRowActions}
-            getTaskListRowClassName={getTaskListRowClassName as ((task: Task) => string | undefined) | undefined}
-            getTaskListNamePrefixIcon={getTaskListNamePrefixIcon as ((task: Task) => React.ReactNode) | undefined}
-            rowContentLines={resolvedRowContentLines}
-            bodyMinHeight={tableBodyMinHeight}
-            taskDateChangeMode={taskDateChangeMode}
-            onTaskDateChangeModeChange={handleTaskDateChangeMode}
-            printDependencyLabels={printDependencyLabels}
-            visibleRowIndices={visibleTaskWindowIndices}
-            skeletonRowCount={skeletonRowCount}
           />
 
           {/* Chart area */}
