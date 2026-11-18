@@ -27,6 +27,8 @@ export interface PopoverContentProps {
   collisionPadding?: number;
   /** Callback when user interacts outside the popover */
   onInteractOutside?: (event: CustomEvent) => void;
+  /** Callback when focus leaves the popover; call preventDefault() to keep it open. */
+  onFocusOutside?: (event: CustomEvent) => void;
 }
 
 /**
@@ -56,6 +58,7 @@ export const PopoverContent: React.FC<PopoverContentProps> = ({
   portal = true,
   collisionPadding = 8,
   onInteractOutside,
+  onFocusOutside,
 }) => {
   const content = (
     <RadixPopover.Content
@@ -65,6 +68,7 @@ export const PopoverContent: React.FC<PopoverContentProps> = ({
       collisionPadding={collisionPadding}
       sideOffset={4}
       onInteractOutside={onInteractOutside}
+      onFocusOutside={onFocusOutside}
     >
       {children}
     </RadixPopover.Content>

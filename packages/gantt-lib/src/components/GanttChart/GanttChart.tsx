@@ -2653,6 +2653,16 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             enableTaskMultiSelect={enableTaskMultiSelect}
             selectedTaskIds={selectedTaskIds}
             onSelectedTaskIdsChange={onSelectedTaskIdsChange}
+            onTaskEdit={handleTaskChange}
+            selectedChip={selectedChip}
+            onSelectedChipChange={setSelectedChip}
+            onScrollToTask={scrollToTask}
+            businessDays={businessDays}
+            isWeekend={isCustomWeekend}
+            highlightedTaskIds={taskListHighlightedTaskIds}
+            fillParentRows={shouldFillParentRowsInTaskList}
+            disableDependencyEditing={disableDependencyEditing}
+            getTaskListNamePrefixIcon={getTaskListNamePrefixIcon}
           />
 
           {/* Chart area */}

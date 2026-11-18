@@ -6,3 +6,73 @@
 
 /* Keep row projection and heights owned by the shared Gantt layout. */
 .gantt-simple-grid [data-testid^='sg-menu-'], .gantt-simple-grid .sg-row-resize { display: none; }
+
+/* --- gantt-lib TaskList visuals rendered inside SimpleGrid cells --- */
+
+/* Hierarchy connector lines, chevrons and color stripes are absolutely
+   positioned against the cell; the cell itself must not clip them. */
+.gantt-simple-grid td { overflow: visible; }
+.gantt-simple-grid .gantt-tl-collapse-btn,
+.gantt-simple-grid .gantt-tl-compositeToggle { z-index: 3; }
+
+/* The name text keeps the legacy TaskList metrics inside the grid cell. */
+.gantt-simple-grid .gantt-tl-name-trigger-text { min-width: 0; }
+.gantt-simple-grid .gantt-tl-name-trigger-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: inherit;
+  pointer-events: none;
+}
+.gantt-simple-grid .gantt-tl-name-trigger-icon > * {
+  width: 14px;
+  height: 14px;
+}
+
+/* Dates, duration and progress reuse the legacy cell look. */
+.gantt-simple-grid .gantt-tl-date-display {
+  display: block;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding-top: 3px;
+  font-size: 0.85rem;
+  color: #374151;
+}
+.gantt-simple-grid .gantt-tl-duration-display,
+.gantt-simple-grid .gantt-tl-progress-display {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 22px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+/* The dependencies cell is a full-height overlay inside the cell. */
+.gantt-simple-grid .gantt-tl-cell-deps {
+  width: auto;
+  flex-shrink: 1;
+  box-sizing: border-box;
+  overflow: visible;
+}
+.gantt-simple-grid .gantt-tl-dep-source-picker { z-index: 40; }
+.gantt-simple-grid .gantt-tl-dep-overflow-list {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  z-index: 40;
+  min-width: 140px;
+  padding: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+}
+
+/* Parent rows are bold across the grid like the legacy TaskList rows. */
+.gantt-simple-grid tbody tr:has([data-gantt-row-parent]) td { font-weight: 600; }

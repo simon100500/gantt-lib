@@ -284,7 +284,7 @@ function formatDepDescription(type: LinkType, lag: number | undefined): string {
   return "";
 }
 
-const DepChip: React.FC<DepChipProps> = ({
+export const DepChip: React.FC<DepChipProps> = ({
   lag,
   dep,
   taskId,
@@ -623,6 +623,7 @@ const DepChip: React.FC<DepChipProps> = ({
         className="gantt-tl-dep-edit-popover"
         portal={true}
         align="start"
+        onFocusOutside={(event) => event.preventDefault()}
       >
         <div onClick={(e) => e.stopPropagation()}>
           <div className="gantt-tl-dep-edit-task">
