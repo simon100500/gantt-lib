@@ -598,7 +598,7 @@ export function SimpleGridTaskList<TTask extends Task>({
           {prefixIcon ? (
             <span className="gantt-tl-name-trigger-icon" aria-hidden="true">{prefixIcon}</span>
           ) : null}
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto', minWidth: 0 }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto', minWidth: 0 }} title={task.name}>
             {task.name}
           </span>
         </span>
