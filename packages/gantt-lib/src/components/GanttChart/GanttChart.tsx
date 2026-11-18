@@ -2654,6 +2654,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             selectedTaskIds={selectedTaskIds}
             onSelectedTaskIdsChange={onSelectedTaskIdsChange}
             onTaskEdit={handleTaskChange}
+            onDurationEdit={handleTaskDurationChange}
             selectedChip={selectedChip}
             onSelectedChipChange={setSelectedChip}
             onScrollToTask={scrollToTask}

@@ -24,7 +24,7 @@ import {
   validateDependencies,
 } from '../../core/scheduling';
 import { SimpleGrid } from '../SimpleGridVendor/runtime.js';
-import type { SimpleGridColumn } from '../SimpleGridVendor/types';
+import type { SimpleGridColumn, SimpleGridEditorProps } from '../SimpleGridVendor/types';
 import { buildTaskNumberMap } from './taskNumbering';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
 import { DepChip } from './TaskListRow';
@@ -54,6 +54,81 @@ const getInclusiveDurationDays = (startDate: string | Date, endDate: string | Da
   const start = parseUTCDate(startDate);
   const end = parseUTCDate(endDate);
   return Math.max(1, Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1);
+};
+
+interface DurationEditorData {
+  onDurationEdit?: (task: Task, duration: number) => void;
+}
+
+/**
+ * Legacy TaskList duration editor: a number input with the up/down steppers
+ * overlaying the cell. Duration edits are scheduling mutations, so they are
+ * routed through `editorData.onDurationEdit` (GanttChart's scheduling adapter)
+ * instead of the rectangular grid change channel.
+ */
+const DurationEditor: React.FC<SimpleGridEditorProps> = ({ value, commit, cancel, row, editorData }) => {
+  const data = (editorData ?? {}) as DurationEditorData;
+  const initialDuration = Math.max(0, Math.round(parseInt(value, 10) || 0));
+  const [draft, setDraft] = useState(String(initialDuration));
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+  const commitDraft = useCallback(() => {
+    const next = Math.max(0, Math.round(parseInt(draft, 10) || 0));
+    if (next !== initialDuration) data.onDurationEdit?.(row as Task, next);
+    commit();
+  }, [draft, initialDuration, data, row, commit]);
+  return (
+    <div
+      className="gantt-tl-number-editor"
+      data-sg-editor=""
+      data-testid="sg-duration-editor"
+      onClick={event => event.stopPropagation()}
+      onKeyDown={event => event.stopPropagation()}
+    >
+      <input
+        ref={inputRef}
+        type="number"
+        min={0}
+        step={1}
+        className="gantt-tl-number-input"
+        data-testid="sg-editor-input"
+        value={draft}
+        onChange={event => setDraft(event.target.value)}
+        onBlur={commitDraft}
+        onKeyDown={event => {
+          if (event.key === 'Enter') commitDraft();
+          else if (event.key === 'Escape') cancel();
+        }}
+      />
+      <div className="gantt-tl-number-steppers" aria-hidden="true">
+        <button
+          type="button"
+          className="gantt-tl-number-stepper"
+          tabIndex={-1}
+          onMouseDown={event => event.preventDefault()}
+          onClick={() => setDraft(current => String((parseInt(current, 10) || 0) + 1))}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m18 15-6-6-6 6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="gantt-tl-number-stepper"
+          tabIndex={-1}
+          onMouseDown={event => event.preventDefault()}
+          onClick={() => setDraft(current => String(Math.max(0, (parseInt(current, 10) || 0) - 1)))}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
 };
 
 const ChevronRightIcon = () => (
@@ -94,6 +169,8 @@ interface Props<TTask extends Task> {
   onSelectedTaskIdsChange?: (ids: Set<string>) => void;
   /** Edits that SimpleGrid's rectangular change channel cannot express (dependencies, lags, link types). */
   onTaskEdit?: (updatedTasks: Task[]) => void;
+  /** Legacy scheduling boundary for duration edits (GanttChart.handleTaskDurationChange). */
+  onDurationEdit?: (task: Task, duration: number) => void;
   /** Selected dependency chip shared with the chart arrows. */
   selectedChip?: DependencyChipKey | null;
   onSelectedChipChange?: (chip: DependencyChipKey | null) => void;
@@ -125,7 +202,7 @@ function formatDependencyPrintLabel(
 export function SimpleGridTaskList<TTask extends Task>({
   tasks, allTasks, rowHeight, rowHeights, headerHeight, width, show, collapsed, onToggleCollapse, onChange,
   nameReadOnly, readOnly, hiddenColumns, columnWidths, error, onTaskSelect, enableTaskMultiSelect,
-  selectedTaskIds, onSelectedTaskIdsChange, onTaskEdit, selectedChip, onSelectedChipChange, onScrollToTask,
+  selectedTaskIds, onSelectedTaskIdsChange, onTaskEdit, onDurationEdit, selectedChip, onSelectedChipChange, onScrollToTask,
   businessDays, customDays, isWeekend, highlightedTaskIds, fillParentRows, disableDependencyEditing,
   printDependencyLabels, getTaskListNamePrefixIcon,
 }: Props<TTask>) {
@@ -739,10 +816,10 @@ export function SimpleGridTaskList<TTask extends Task>({
     );
   }, [allTasks, numberMap, dependencyPickMode, dependencySearchQuery, highlightedDependencyIndex, activeLinkType, handleSearchPick, handleSearchRemove]);
 
+  const dependencyEditingDisabled = disableDependencyEditing || !onTaskEdit;
   const renderDependenciesCell = useCallback((task: Task) => {
     const isSourceRow = selectingPredecessorFor === task.id;
     const isPicking = selectingPredecessorFor != null;
-    const dependencyEditingDisabled = disableDependencyEditing || !onTaskEdit;
     const chips = (task.dependencies ?? [])
       .filter(dep => !dep.hidden)
       .map(dep => {
@@ -852,7 +929,7 @@ export function SimpleGridTaskList<TTask extends Task>({
       </span>
     );
   }, [
-    selectingPredecessorFor, disableDependencyEditing, onTaskEdit, byId, numberMap, selectedChip,
+    selectingPredecessorFor, dependencyEditingDisabled, onTaskEdit, byId, numberMap, selectedChip,
     handleChipSelect, onTaskSelect, onScrollToTask, handleRemoveDependency, onSelectedChipChange,
     allTasks, businessDays, weekendPredicate, printDependencyLabels, overflowOpenTaskId,
     dependencyPickMode, activeLinkType, handleAddDependency, renderSourcePicker,
@@ -880,7 +957,12 @@ export function SimpleGridTaskList<TTask extends Task>({
       })),
       {
         id: 'duration', title: businessDays ? 'Дн. (р)' : 'Дн.', width: columnWidths?.duration ?? 60,
-        readOnly: true, getValue: () => '',
+        isDisabled: task => !!task.locked,
+        openOnActivate: true,
+        getValue: task => String(getDurationFor(task)),
+        setValue: task => task,
+        editor: DurationEditor,
+        editorData: { onDurationEdit } as DurationEditorData,
         renderValue: renderDurationCell,
       },
       {
@@ -892,11 +974,19 @@ export function SimpleGridTaskList<TTask extends Task>({
         id: 'dependencies', title: 'Связи', width: columnWidths?.dependencies ?? 100, readOnly: true,
         getValue: task => (task.dependencies ?? []).map(dep => dep.taskId).join(', '),
         renderValue: renderDependenciesCell,
+        columnActions: dependencyEditingDisabled ? undefined : LINK_TYPE_ORDER.map(linkType => ({
+          id: `link-type-${linkType}`,
+          label: `Тип связи ${LINK_TYPE_LABELS[linkType]}`,
+          icon: React.createElement(LINK_TYPE_ICONS[linkType]),
+          disabled: activeLinkType === linkType,
+          onSelect: () => setActiveLinkType(linkType),
+        })),
       },
     ] as SimpleGridColumn<Task>[];
     return list.filter(column => !hiddenColumns?.includes(column.id)) as unknown as SimpleGridColumn<TTask>[];
   }, [
     columnWidths, hiddenColumns, nameReadOnly, businessDays,
+    onDurationEdit, activeLinkType, dependencyEditingDisabled,
     renderNameCell, renderDateCell, renderEndDateCell, renderDurationCell, renderProgressCell, renderDependenciesCell,
   ]);
 
