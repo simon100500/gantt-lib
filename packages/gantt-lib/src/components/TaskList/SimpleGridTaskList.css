@@ -4,6 +4,20 @@
 .gantt-simple-grid thead th { position: sticky; top: 0; z-index: 5; }
 .gantt-simple-grid-error { position: absolute; top: 0; right: 0; z-index: 20; padding: 4px 8px; background: white; color: #9b1c1c; }
 
+/* Grid lines use the shared gantt palette so the task-list lines sit exactly
+   on the chart row lines. */
+.gantt-simple-grid td,
+.gantt-simple-grid thead th {
+  border-color: var(--gantt-grid-line-color, #e0e0e0) !important;
+}
+
+/* The header row keeps the legacy TaskList header look: white, grey labels. */
+.gantt-simple-grid thead th {
+  background: var(--gantt-cell-background, #ffffff) !important;
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
 /* Keep row projection and heights owned by the shared Gantt layout. */
 .gantt-simple-grid [data-testid^='sg-menu-'], .gantt-simple-grid .sg-row-resize { display: none; }
 
@@ -76,3 +90,12 @@
 
 /* Parent rows are bold across the grid like the legacy TaskList rows. */
 .gantt-simple-grid tbody tr:has([data-gantt-row-parent]) td { font-weight: 600; }
+
+/* Shared row hover with the chart: GanttChart marks the row host in the
+   gutter, and the whole grid row receives the same hover tint as the bars. */
+.gantt-simple-grid tbody tr:has([data-gantt-row-hover-host].gantt-tl-row-hovered) td {
+  box-shadow: inset 0 0 0 9999px var(--gantt-row-hover-background, rgba(59, 130, 246, 0.04));
+}
+.gantt-simple-grid tbody tr:has([data-gantt-row-hover-host].gantt-tl-row-hovered[data-gantt-row-filter-match]) td {
+  box-shadow: inset 0 0 0 9999px rgba(250, 204, 21, 0.3);
+}

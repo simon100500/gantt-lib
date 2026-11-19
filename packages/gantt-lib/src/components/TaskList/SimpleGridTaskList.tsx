@@ -253,6 +253,8 @@ export function SimpleGridTaskList<TTask extends Task>({
   }, [selectedChip, highlightedTaskIds, fillParentRows, parents, selectingPredecessorFor]);
   const rowHeaderLabel = useCallback((task: Task) => (
     <span
+      data-gantt-task-row-id={task.id}
+      data-gantt-row-hover-host=""
       data-gantt-row-parent={parents.has(task.id) || undefined}
       data-gantt-row-filter-match={highlightedTaskIds?.has(task.id) || undefined}
       className="gantt-tl-num-label"
@@ -591,7 +593,8 @@ export function SimpleGridTaskList<TTask extends Task>({
         <span
           className="gantt-tl-name-trigger-text"
           style={{
-            display: 'flex', alignItems: 'center', gap: 6, height: rowHeightPx,
+            position: 'absolute', left: 0, right: 0, top: 0,
+            display: 'flex', alignItems: 'center', gap: 6,
             paddingLeft, fontSize: '0.8rem', color: '#374151', minWidth: 0, boxSizing: 'border-box',
           }}
         >

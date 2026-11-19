@@ -30,7 +30,7 @@ describe('GanttChart shared row hover', () => {
     );
 
     const timelineRows = container.querySelectorAll('.gantt-tr-row');
-    const taskListRows = container.querySelectorAll('.gantt-tl-row');
+    const taskListRows = container.querySelectorAll('[data-gantt-row-hover-host]');
     const scrollContent = container.querySelector('.gantt-scrollContent') as HTMLElement;
 
     expect(timelineRows).toHaveLength(2);

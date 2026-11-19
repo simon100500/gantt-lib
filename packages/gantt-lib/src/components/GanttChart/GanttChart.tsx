@@ -2140,7 +2140,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     ).filter((element) => element.dataset.ganttTaskRowId === taskId);
 
     for (const element of nextHoveredRows) {
-      if (element.classList.contains('gantt-tl-row')) {
+      if (element.classList.contains('gantt-tl-row') || element.hasAttribute('data-gantt-row-hover-host')) {
         element.classList.add('gantt-tl-row-hovered');
       }
       if (element.classList.contains('gantt-tr-row')) {

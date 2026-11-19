@@ -48,6 +48,8 @@ describe('SimpleGrid inside GanttChart', () => {
     const { container } = render(<GanttChart tasks={tree} showTaskList onTasksChange={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Свернуть Parent' }));
     expect(container.querySelectorAll('[data-testid^="sg-row-"]')).toHaveLength(1);
-    expect(container.querySelectorAll('[data-gantt-task-row-id]')).toHaveLength(1);
+    // The surviving row is projected twice: the SimpleGrid row host in the task
+    // list gutter and the chart bar row share the same task identity.
+    expect(container.querySelectorAll('[data-gantt-task-row-id]')).toHaveLength(2);
   });
 });
