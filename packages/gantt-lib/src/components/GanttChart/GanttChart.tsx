@@ -1,9 +1,9 @@
 'use client';
 // START_MODULE_CONTRACT
 // PURPOSE: Render shared chart modes and native scheduling interactions.
-// SCOPE: Task hierarchy/date normalization and opt-in manual display progress for projected parent rows.
+// SCOPE: Fixed-aware task hierarchy/date normalization and opt-in manual display progress for projected parent rows.
 // INPUTS: Chart props and task progressAggregation policies.
-// OUTPUTS: Parent dates continue to roll up; manual percentages survive presentation grouping.
+// OUTPUTS: Parent dates and fixed boundaries remain consistent; manual percentages survive presentation grouping.
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
 // OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
 // END_MODULE_CONTRACT
@@ -296,6 +296,9 @@ export interface Task {
   startDate: string | Date;
   /** Task end date (ISO string or Date object) */
   endDate: string | Date;
+  /** Optional fixed date-only boundaries; null or absence leaves the boundary automatic. */
+  fixedStartDate?: string | null;
+  fixedEndDate?: string | null;
   /** Optional baseline start date for planned schedule visualization */
   baselineStartDate?: string | Date;
   /** Optional baseline end date for planned schedule visualization */
@@ -1136,8 +1139,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     [isPlanFactMode, resolvedRowContentLines, rowContentLines, rowHeight]
   );
 
+  const isCustomWeekend = useMemo(
+    () => createCustomDayPredicate({ customDays, isWeekend }),
+    [customDays, isWeekend]
+  );
   const normalizedTasks = useMemo(() => {
-    const ordered = normalizeHierarchyTasks(tasks);
+    const ordered = normalizeHierarchyTasks(tasks, businessDays, isCustomWeekend);
     const ranges = new Map<string, { start: number; end: number }>();
     for (const task of ordered) {
       if (!task.parentId) continue;
@@ -1150,14 +1157,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       });
     }
     return ordered.map(task => {
-      const range = task.composite ? ranges.get(task.id) : undefined;
+      const range = task.composite && !task.fixedStartDate && !task.fixedEndDate ? ranges.get(task.id) : undefined;
       return range ? {
         ...task,
         startDate: new Date(range.start).toISOString().slice(0, 10),
         endDate: new Date(range.end).toISOString().slice(0, 10),
       } : task;
     });
-  }, [tasks]);
+  }, [tasks, businessDays, isCustomWeekend]);
   const collapsedParentIds = useMemo(() => {
     if (externalCollapsedParentIds) return externalCollapsedParentIds;
     const ids = new Set(internalCollapsedParentIds);
@@ -1181,12 +1188,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (controlledScheduleChanged || previewTasksById.size === 0) return normalizedTasks;
     return normalizedTasks.map(task => previewTasksById.get(task.id) ?? task);
   }, [controlledScheduleChanged, normalizedTasks, previewTasksById]);
-
-  // Create custom weekend predicate from props (memoized for performance)
-  const isCustomWeekend = useMemo(
-    () => createCustomDayPredicate({ customDays, isWeekend }),
-    [customDays, isWeekend]
-  );
 
   // Critical path task ids (leaves via CPM + parents lifted up the chain).
   const criticalTaskIds = useMemo(() => {
@@ -1927,14 +1928,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       ...task,
       sortOrder: index,
     }));
-    const normalized = normalizeHierarchyTasks(orderedForCallback);
+    const normalized = normalizeHierarchyTasks(orderedForCallback, businessDays, isCustomWeekend);
     if (onReorder) {
       onReorder(normalized as unknown as TTask[], movedTaskId, inferredParentId);
       return;
     }
 
     onTasksChange?.(normalized as unknown as TTask[]);
-  }, [onTasksChange, onReorder]);
+  }, [onTasksChange, onReorder, businessDays, isCustomWeekend]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
   const dependencyOverrides = useMemo(() => {
@@ -2358,10 +2359,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       ...tasksWithoutPromoted.slice(0, insertIndex),
       promotedTask,
       ...tasksWithoutPromoted.slice(insertIndex)
-    ]);
+    ], businessDays, isCustomWeekend);
 
     onTasksChange?.(reorderedTasks as TTask[]);
-  }, [tasks, onTasksChange, onPromoteTask]);
+  }, [tasks, onTasksChange, onPromoteTask, businessDays, isCustomWeekend]);
 
   const handleDemoteTask = useCallback((taskId: string, newParentId: string) => {
     // If consumer provided custom callback, use it

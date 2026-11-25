@@ -28,7 +28,9 @@
 //   PURPOSE: Proportionally scale a parent task subtree to an exact target duration.
 //   SCOPE: Input validation, working-context indexing, pure layout evaluator,
 //          duration and flexible-gap solving, date materialization with bottom-up
-//          parent rollup, external dependency policies, sparse atomic result.
+//          parent rollup, external dependency policies, fixed-date conflict rejection, sparse atomic result.
+//   INPUTS: Parent task, target duration, task snapshot and calendar options.
+//   OUTPUTS: Atomic scaled tasks or a diagnostic rejection.
 //   DEPENDS: scheduling types, dateMath, dependencies, commands, cascade, validation
 //   LINKS: M-SCHEDULE, fn-scaleTaskSubtreeDuration, PRD-2026-08-23-parent-subtree-duration-scaling
 //   ROLE: RUNTIME
@@ -103,6 +105,7 @@ export type ScaleTaskSubtreeErrorCode =
   | 'INVALID_DEPENDENCIES'
   | 'INVALID_DATES'
   | 'INVALID_MINIMUM'
+  | 'FIXED_DATE_CONFLICT'
   | 'EXTERNAL_DEPENDENCY_CONFLICT';
 
 export type ScaleTaskSubtreeResult =
@@ -1692,6 +1695,12 @@ export function scaleTaskSubtreeDuration(
 
   // Phase 5: materialize dates, roll up parents, apply external policy.
   const finalTasks = buildFinalTasks(ctx, solved.state, solved.layout, space);
+  const fixedConflicts = [...finalTasks.values()].filter(task =>
+    (task.fixedStartDate && isoOfTaskDate(task.startDate) !== task.fixedStartDate) ||
+    (task.fixedEndDate && isoOfTaskDate(task.endDate) !== task.fixedEndDate));
+  if (fixedConflicts.length) {
+    return scaleFailure('FIXED_DATE_CONFLICT', fixedConflicts.map(task => task.id));
+  }
 
   const externalPolicy = resolvedOptions.externalDependencyPolicy ?? 'subtree-only';
   let externalChanged: Task[] = [];

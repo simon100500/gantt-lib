@@ -285,6 +285,8 @@ interface Task {
   name: string;
   startDate: string | Date;
   endDate: string | Date;
+  fixedStartDate?: string | null; // YYYY-MM-DD; omit or null for automatic start
+  fixedEndDate?: string | null;   // YYYY-MM-DD; omit or null for automatic end
   baselineStartDate?: string | Date;
   baselineEndDate?: string | Date;
   type?: 'task' | 'milestone';
@@ -302,6 +304,8 @@ interface Task {
 ```
 
 Tasks accept ISO strings or `Date` objects, but internal calculations are UTC-safe. Milestones use `type: 'milestone'`. Hierarchy uses `parentId`. Locked tasks cannot be dragged or edited.
+
+Fixed dates independently anchor each boundary during scheduling. Parent boundaries without an anchor follow their children and applicable incoming constraints; children may extend outside fixed boundaries. A milestone has one date. Inverted fixed dates are rejected, as are subtree scaling results that would move an anchor (`FIXED_DATE_CONFLICT`). Existing tasks without fixed dates retain their existing behavior.
 
 ### Dependencies
 

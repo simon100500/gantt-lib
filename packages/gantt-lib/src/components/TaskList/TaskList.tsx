@@ -23,7 +23,7 @@ import './TaskList.css';
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render task-list edits and preserve their scheduling-vs-field-edit boundary.
-// SCOPE: Route duration edits through the parent scheduling adapter while retaining legacy onTasksChange; optionally render compact dependency labels for print/export layouts.
+// SCOPE: Render fixed-aware normalized tasks and route duration edits through the parent scheduling adapter while retaining legacy callbacks.
 // DEPENDS: TaskListRow and GanttChart callbacks.
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
 // OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
@@ -476,14 +476,13 @@ export const TaskList: React.FC<TaskListProps> = ({
     });
   }, []);
 
-  const orderedTasks = useMemo(() => {
-    return normalizeHierarchyTasks(tasks);
-  }, [tasks]);
-
   const weekendPredicate = useMemo(
     () => createCustomDayPredicate({ customDays, isWeekend }),
     [customDays, isWeekend]
   );
+  const orderedTasks = useMemo(() => {
+    return normalizeHierarchyTasks(tasks, businessDays, weekendPredicate);
+  }, [tasks, businessDays, weekendPredicate]);
 
   // Filter tasks to hide children of collapsed parents.
   // Checks the full ancestor chain so grandchildren are hidden when any ancestor is collapsed.

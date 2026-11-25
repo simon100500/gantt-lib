@@ -1,8 +1,8 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Define public scheduling and rendering types.
-// SCOPE: Task/chart contracts, including manual display progress for projected parent rows.
+// SCOPE: Task/chart contracts, fixed date boundaries and manual display progress for projected parent rows.
 // INPUTS: Consumer task data and chart options.
-// OUTPUTS: Typed public API; manual progress never changes parent date aggregation.
+// OUTPUTS: Typed public API; fixed dates override their respective automatic boundaries.
 // END_MODULE_CONTRACT
 import type { ReactNode } from 'react';
 
@@ -270,6 +270,9 @@ export interface Task {
   startDate: string | Date;
   /** Task end date (ISO string or Date object) */
   endDate: string | Date;
+  /** Optional fixed date-only boundaries; null or absence leaves the boundary automatic. */
+  fixedStartDate?: string | null;
+  fixedEndDate?: string | null;
   /** Optional baseline start date for planned schedule visualization */
   baselineStartDate?: string | Date;
   /** Optional baseline end date for planned schedule visualization */

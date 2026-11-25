@@ -6,7 +6,9 @@
 
 // START_MODULE_CONTRACT
 //   PURPOSE: Build task ranges and update dependency lags for interactive scheduling commands.
-//   SCOPE: Range construction, incoming FS clamping, and lag recalculation.
+//   SCOPE: Range construction, incoming FS clamping, and lag recalculation without rewriting links into fixed boundaries.
+//   INPUTS: Task ranges, links and scheduling calendar.
+//   OUTPUTS: Date ranges and dependency lags.
 //   DEPENDS: dateMath, dependencies, scheduling types
 //   LINKS: M-SCHEDULING, fn-clampTaskRangeForIncomingFS, fn-recalculateIncomingLags
 //   ROLE: RUNTIME
@@ -184,6 +186,7 @@ export function recalculateIncomingLags(
   taskById?: Map<string, Task>
 ): NonNullable<Task['dependencies']> {
   if (!task.dependencies) return [];
+  if (task.fixedStartDate || task.fixedEndDate) return task.dependencies;
   return task.dependencies.map(dep => {
     const predecessor = taskById?.get(dep.taskId) ?? allTasks.find(candidate => candidate.id === dep.taskId);
     if (!predecessor) {

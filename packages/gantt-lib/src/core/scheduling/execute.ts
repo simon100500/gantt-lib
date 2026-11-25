@@ -6,7 +6,7 @@
 
 // START_MODULE_CONTRACT
 //   PURPOSE: Execute authoritative task and project schedule recalculations.
-//   SCOPE: Move, resize, dependency recalculation, cascade, and full-project scheduling.
+//   SCOPE: Move, resize, dependency recalculation, cascade, and full-project scheduling with optional fixed boundaries.
 //   INPUTS: Immutable task snapshot and scheduling calendar.
 //   OUTPUTS: Sparse changed-task result preserving bottom-up direct-child rollups and locks.
 //   PROJECT_COST: Build child adjacency once; consume dependency queue by index. Parent discovery and date rollup never rescan the complete snapshot per task.
@@ -21,6 +21,8 @@ import { moveTaskRange, recalculateIncomingLags, buildTaskRangeFromEnd, buildTas
 import { universalCascade } from './cascade';
 import { parseDateOnly } from './dateMath';
 import { calculateSuccessorDate, getDependencyLag, normalizePredecessorDates } from './dependencies';
+import { resolveFixedDates, resolveParentFixedDates } from './fixedDates';
+import { computeParentDates } from './hierarchy';
 
 function toIsoDate(date: Date): string {
   return date.toISOString().split('T')[0];
@@ -55,13 +57,14 @@ export function moveTaskWithCascade(
   const weekendPredicate = options?.weekendPredicate;
 
   // Step 1: Calculate new range preserving duration
-  const newRange = moveTaskRange(
+  let newRange = moveTaskRange(
     task.startDate,
     task.endDate,
     newStart,
     businessDays,
     weekendPredicate
   );
+  newRange = resolveFixedDates(task, newRange, snapshot.some(t => t.parentId === task.id), businessDays, weekendPredicate);
 
   // Step 2: Recalculate incoming dependency lags
   const updatedDependencies = recalculateIncomingLags(
@@ -145,6 +148,7 @@ export function resizeTaskWithCascade(
     // anchor='end': end stays fixed, newDate is the requested start.
     newRange = { start: newDate, end: originalEnd };
   }
+  newRange = resolveFixedDates(task, newRange, snapshot.some(t => t.parentId === task.id), businessDays, weekendPredicate, false);
 
   // Recalculate lags
   const updatedDependencies = recalculateIncomingLags(
@@ -266,6 +270,15 @@ export function recalculateTaskFromDependencies(
     };
   }
 
+  const fixedParent = !!(task.fixedStartDate || task.fixedEndDate) && snapshot.some(t => t.parentId === task.id);
+  if (fixedParent) {
+    const rollup = computeParentDates(task.id, snapshot, businessDays, weekendPredicate);
+    constrainedStart = rollup.startDate;
+    constrainedEnd = rollup.endDate;
+  } else {
+    ({ start: constrainedStart, end: constrainedEnd } = resolveFixedDates(task, { start: constrainedStart, end: constrainedEnd }, false, businessDays, weekendPredicate));
+  }
+
   // Recalculate lags for the new position
   const updatedDependencies = recalculateIncomingLags(
     task,
@@ -297,7 +310,9 @@ export function recalculateTaskFromDependencies(
     constrainedEnd,
     snapshot,
     businessDays,
-    weekendPredicate
+    weekendPredicate,
+    undefined,
+    fixedParent
   );
 
   const resultMap = new Map<string, Task>();
@@ -319,6 +334,110 @@ export function recalculateTaskFromDependencies(
  * Returns only tasks whose normalized state changed.
  */
 export function recalculateProjectSchedule(
+  snapshot: Task[],
+  options?: ScheduleCommandOptions
+): ScheduleCommandResult {
+  if (snapshot.some(task => task.fixedStartDate || task.fixedEndDate)) {
+    return recalculateFixedComponents(snapshot, options);
+  }
+  return recalculateProjectScheduleLegacy(snapshot, options);
+}
+
+function recalculateFixedComponents(snapshot: Task[], options?: ScheduleCommandOptions): ScheduleCommandResult {
+  const businessDays = options?.businessDays ?? false;
+  const weekendPredicate = options?.weekendPredicate;
+  const initial = new Map(snapshot.map(task => [task.id, task]));
+  const next = new Map(snapshot.map(task => [task.id, task]));
+  const children = new Map<string, string[]>();
+  const outgoing = new Map(snapshot.map(task => [task.id, new Set<string>()]));
+  const neighbours = new Map(snapshot.map(task => [task.id, new Set<string>()]));
+  const connect = (from: string, to: string, ordered = true) => {
+    if (!initial.has(from) || !initial.has(to)) return;
+    if (ordered) outgoing.get(from)!.add(to);
+    neighbours.get(from)!.add(to);
+    neighbours.get(to)!.add(from);
+  };
+  for (const task of snapshot) {
+    if (task.parentId && initial.has(task.parentId)) {
+      const list = children.get(task.parentId) ?? [];
+      list.push(task.id);
+      children.set(task.parentId, list);
+      connect(task.id, task.parentId);
+    }
+  }
+  for (const task of snapshot) {
+    for (const dependency of task.dependencies ?? []) {
+      const predecessor = initial.get(dependency.taskId);
+      const fixedSource = predecessor?.type === 'milestone'
+        ? predecessor.fixedStartDate ?? predecessor.fixedEndDate
+        : dependency.type === 'FS' || dependency.type === 'FF'
+          ? predecessor?.fixedEndDate : predecessor?.fixedStartDate;
+      const targetFixed = dependency.type === 'FS' || dependency.type === 'SS' ? task.fixedStartDate : task.fixedEndDate;
+      const derivedParent = children.has(task.id) && !task.fixedStartDate && !task.fixedEndDate;
+      connect(dependency.taskId, task.id, !fixedSource && !targetFixed && !derivedParent);
+    }
+  }
+  const affected = new Set(snapshot.filter(task => task.fixedStartDate || task.fixedEndDate).map(task => task.id));
+  const pending = [...affected];
+  for (let i = 0; i < pending.length; i++) {
+    for (const id of neighbours.get(pending[i])!) if (!affected.has(id)) {
+      affected.add(id);
+      pending.push(id);
+    }
+  }
+  const indegree = new Map([...affected].map(id => [id, 0]));
+  for (const id of affected) for (const successor of outgoing.get(id)!) {
+    indegree.set(successor, indegree.get(successor)! + 1);
+  }
+  const queue = [...affected].filter(id => indegree.get(id) === 0);
+  for (let i = 0; i < queue.length; i++) {
+    const id = queue[i];
+    const task = next.get(id)!;
+    const childIds = children.get(id);
+    if (!task.locked) {
+      let range = { start: parseDateOnly(task.startDate), end: parseDateOnly(task.endDate) };
+      if (childIds?.length) {
+        range = {
+          start: new Date(Math.min(...childIds.map(child => +parseDateOnly(next.get(child)!.startDate)))),
+          end: new Date(Math.max(...childIds.map(child => +parseDateOnly(next.get(child)!.endDate)))),
+        };
+        range = resolveParentFixedDates(task, range, key => next.get(key), businessDays, weekendPredicate);
+      } else if (task.dependencies?.length) {
+        const duration = getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
+        let selected: { start: Date; end: Date } | undefined;
+        for (const dependency of task.dependencies) {
+          const predecessor = next.get(dependency.taskId);
+          if (!predecessor) continue;
+          const milestoneAnchor = predecessor.type === 'milestone' ? predecessor.fixedStartDate ?? predecessor.fixedEndDate : undefined;
+          const { predStart, predEnd } = normalizePredecessorDates({
+            ...predecessor,
+            startDate: milestoneAnchor ?? predecessor.fixedStartDate ?? predecessor.startDate,
+            endDate: milestoneAnchor ?? predecessor.fixedEndDate ?? predecessor.endDate,
+          }, parseDateOnly);
+          const date = calculateSuccessorDate(predStart, predEnd, dependency.type, getDependencyLag(dependency), businessDays, weekendPredicate, task.type);
+          const candidate = dependency.type === 'FS' || dependency.type === 'SS'
+            ? buildTaskRangeFromStart(date, duration, businessDays, weekendPredicate)
+            : buildTaskRangeFromEnd(date, duration, businessDays, weekendPredicate);
+          if (!selected || candidate.start > selected.start || (+candidate.start === +selected.start && candidate.end > selected.end)) selected = candidate;
+        }
+        if (selected) range = selected;
+      }
+      range = resolveFixedDates(task, range, !!childIds?.length, businessDays, weekendPredicate);
+      next.set(id, { ...task, startDate: toIsoDate(range.start), endDate: toIsoDate(range.end) });
+    }
+    for (const successor of outgoing.get(id)!) {
+      indegree.set(successor, indegree.get(successor)! - 1);
+      if (indegree.get(successor) === 0) queue.push(successor);
+    }
+  }
+  if (queue.length !== affected.size) throw new Error('Fixed date schedule contains a hierarchy/dependency cycle');
+  for (const task of recalculateProjectScheduleLegacy(snapshot, options).changedTasks) {
+    if (!affected.has(task.id)) next.set(task.id, task);
+  }
+  return createChangedResult(snapshot, [...next.values()]);
+}
+
+function recalculateProjectScheduleLegacy(
   snapshot: Task[],
   options?: ScheduleCommandOptions
 ): ScheduleCommandResult {

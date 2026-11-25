@@ -6,7 +6,9 @@
 
 // START_MODULE_CONTRACT
 //   PURPOSE: Query task hierarchy and build parent/descendant progress updates.
-//   SCOPE: Child/descendant lookup, parent date/progress rollups, and boundary progress batch updates.
+//   SCOPE: Child/descendant lookup, fixed-boundary-aware parent date/progress rollups, and boundary progress batch updates.
+//   INPUTS: Task hierarchy including optional fixed date-only boundaries.
+//   OUTPUTS: Parent ranges and descendant progress updates.
 //   DEPENDS: scheduling types
 //   LINKS: M-SCHEDULE, fn-getAllDescendants, fn-cascadeTaskProgress
 //   ROLE: RUNTIME
@@ -14,6 +16,7 @@
 // END_MODULE_CONTRACT
 
 import type { Task } from './types';
+import { resolveFixedDates, resolveParentFixedDates } from './fixedDates';
 
 /**
  * Get all child tasks of a parent task.
@@ -37,14 +40,15 @@ export function isTaskParent(taskId: string, tasks: Task[]): boolean {
  * - startDate = min(children.startDate) or own startDate if no children
  * - endDate = max(children.endDate) or own endDate if no children
  */
-export function computeParentDates(parentId: string, tasks: Task[]): { startDate: Date; endDate: Date } {
+export function computeParentDates(parentId: string, tasks: Task[], businessDays = false, weekendPredicate?: (date: Date) => boolean): { startDate: Date; endDate: Date } {
   const children = getChildren(parentId, tasks);
 
   if (children.length === 0) {
     const parent = tasks.find(t => t.id === parentId);
     const start = parent ? new Date(parent.startDate) : new Date();
     const end = parent ? new Date(parent.endDate) : new Date();
-    return { startDate: start, endDate: end };
+    const range = parent ? resolveFixedDates(parent, { start, end }, false) : { start, end };
+    return { startDate: range.start, endDate: range.end };
   }
 
   const startDates = children.map(c => new Date(c.startDate));
@@ -53,10 +57,10 @@ export function computeParentDates(parentId: string, tasks: Task[]): { startDate
   const minTime = Math.min(...startDates.map(d => d.getTime()));
   const maxTime = Math.max(...endDates.map(d => d.getTime()));
 
-  return {
-    startDate: new Date(minTime),
-    endDate: new Date(maxTime),
-  };
+  const parent = tasks.find(t => t.id === parentId);
+  const range = { start: new Date(minTime), end: new Date(maxTime) };
+  const resolved = parent ? resolveParentFixedDates(parent, range, id => tasks.find(task => task.id === id), businessDays, weekendPredicate) : range;
+  return { startDate: resolved.start, endDate: resolved.end };
 }
 
 /**

@@ -6,7 +6,9 @@
 
 // START_MODULE_CONTRACT
 //   PURPOSE: Propagate moved task dates through dependency and hierarchy graphs.
-//   SCOPE: Dependency cascades, parent/child propagation, and business-day alignment.
+//   SCOPE: Dependency cascades, parent/child propagation, business-day alignment and fixed boundaries.
+//   INPUTS: Task snapshot, proposed dates and optional scheduling calendar.
+//   OUTPUTS: Changed tasks retaining fixed date boundaries.
 //   DEPENDS: commands, dateMath, dependencies, scheduling types
 //   LINKS: M-SCHEDULING, fn-cascadeByLinks, fn-universalCascade
 //   ROLE: RUNTIME
@@ -14,6 +16,7 @@
 // END_MODULE_CONTRACT
 
 import type { Task, LinkType } from './types';
+import { resolveFixedDates, resolveParentFixedDates } from './fixedDates';
 import {
   normalizeUTCDate,
   getTaskDuration,
@@ -327,9 +330,13 @@ export function universalCascade(
   allTasks: Task[],
   businessDays: boolean = false,
   weekendPredicate?: (date: Date) => boolean,
-  context: CascadeContext = createCascadeContext(allTasks)
+  context: CascadeContext = createCascadeContext(allTasks),
+  rootIsRollup = false,
 ): Task[] {
   const { childrenByParentId, dependentsByPredecessorId, taskById } = context;
+  const originalMovedTask = taskById.get(movedTask.id) ?? movedTask;
+  const sameDelta = +newStart - +parseDateOnly(originalMovedTask.startDate) === +newEnd - +parseDateOnly(originalMovedTask.endDate);
+  ({ start: newStart, end: newEnd } = resolveFixedDates(originalMovedTask, { start: newStart, end: newEnd }, childrenByParentId.has(movedTask.id), businessDays, weekendPredicate, sameDelta));
   const normalizedMovedTask = normalizeTaskDependencyLags({
     ...movedTask,
     startDate: newStart.toISOString().split('T')[0],
@@ -349,8 +356,13 @@ export function universalCascade(
 
   const resultMap = new Map<string, Task>();
   resultMap.set(movedTask.id, normalizedMovedTask);
+  const getCurrentTask = (id: string) => {
+    const task = taskById.get(id);
+    const range = updatedDates.get(id);
+    return task && range ? { ...task, startDate: range.start, endDate: range.end } : task;
+  };
 
-  const queue: Array<[string, ArrivalMode]> = [[movedTask.id, 'direct']];
+  const queue: Array<[string, ArrivalMode]> = [[movedTask.id, rootIsRollup ? 'parent-recalc' : 'direct']];
 
   const childShifted = new Set<string>();
 
@@ -364,7 +376,7 @@ export function universalCascade(
     const currentOriginal = taskById.get(currentId)!;
 
     // RULE 1: Hierarchy children follow their parent
-    if (arrivalMode !== 'parent-recalc') {
+    if (arrivalMode !== 'parent-recalc' && !(arrivalMode === 'dependency' && (currentOriginal.fixedStartDate || currentOriginal.fixedEndDate))) {
       const children = childrenByParentId.get(currentId) ?? [];
       for (const child of children) {
         if (childShifted.has(child.id) || child.locked) continue;
@@ -399,6 +411,7 @@ export function universalCascade(
           childNewEnd = new Date(childOrigEnd.getTime() + endDeltaMs);
         }
 
+        ({ start: childNewStart, end: childNewEnd } = resolveFixedDates(child, { start: childNewStart, end: childNewEnd }, childrenByParentId.has(child.id), businessDays, weekendPredicate));
         const prev = updatedDates.get(child.id);
         if (prev && prev.start.getTime() === childNewStart.getTime() && prev.end.getTime() === childNewEnd.getTime()) {
           continue;
@@ -437,8 +450,10 @@ export function universalCascade(
           return { start: new Date(sib.startDate as string), end: new Date(sib.endDate as string) };
         });
 
-        const minStart = new Date(Math.min(...siblingPositions.map(p => p.start.getTime())));
-        const maxEnd   = new Date(Math.max(...siblingPositions.map(p => p.end.getTime())));
+        const { start: minStart, end: maxEnd } = resolveParentFixedDates(parent, {
+          start: new Date(Math.min(...siblingPositions.map(p => p.start.getTime()))),
+          end: new Date(Math.max(...siblingPositions.map(p => p.end.getTime()))),
+        }, getCurrentTask, businessDays, weekendPredicate);
 
         const prev = updatedDates.get(parentId);
         if (!prev || prev.start.getTime() !== minStart.getTime() || prev.end.getTime() !== maxEnd.getTime()) {
@@ -500,6 +515,16 @@ export function universalCascade(
         ));
       }
 
+      const dependentChildren = childrenByParentId.get(task.id);
+      if (dependentChildren?.length && (task.fixedStartDate || task.fixedEndDate)) {
+        const positions = dependentChildren.map(child => updatedDates.get(child.id) ?? { start: parseDateOnly(child.startDate), end: parseDateOnly(child.endDate) });
+        ({ start: succNewStart, end: succNewEnd } = resolveParentFixedDates(task, {
+          start: new Date(Math.min(...positions.map(position => +position.start))),
+          end: new Date(Math.max(...positions.map(position => +position.end))),
+        }, getCurrentTask, businessDays, weekendPredicate));
+      }
+
+      ({ start: succNewStart, end: succNewEnd } = resolveFixedDates(task, { start: succNewStart, end: succNewEnd }, !!dependentChildren?.length, businessDays, weekendPredicate));
       const prev = updatedDates.get(task.id);
       if (prev && prev.start.getTime() === succNewStart.getTime() && prev.end.getTime() === succNewEnd.getTime()) {
         continue;
