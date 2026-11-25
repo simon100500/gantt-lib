@@ -52,19 +52,19 @@
   cursor: grab;
 }
 
-/* Fixed edges remain visible without intercepting bar gestures. Different vertical
-   positions keep both marks distinct even when the bar is very narrow. */
+/* Inward triangles mark fixed edges without intercepting bar gestures. */
 .gantt-tr-fixedBoundary {
   position: absolute;
   z-index: 4;
-  width: 3px;
-  height: 40%;
+  top: 50%;
+  width: 4px;
+  height: 10px;
+  transform: translateY(-50%);
   background: #fff;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
   pointer-events: none;
 }
-.gantt-tr-fixedBoundary-start { left: 0; top: 2px; }
-.gantt-tr-fixedBoundary-end { right: 0; bottom: 2px; }
+.gantt-tr-fixedBoundary-start { left: 2px; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.gantt-tr-fixedBoundary-end { right: 2px; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
 
 .gantt-tr-compositePreview {
   position: fixed;
