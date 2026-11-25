@@ -2,7 +2,7 @@
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render one task-list row, including editable dependency controls and print-friendly dependency labels.
-// SCOPE: Render task fields, hierarchy/actions, dependency editing, and print labels; hidden dependencies remain in editing/scheduling inputs but are excluded from predecessor chips and print labels.
+// SCOPE: Render task fields, optional consumer date actions, hierarchy/actions, dependency editing and print labels.
 // DEPENDS: GanttChart task types, scheduling helpers, TaskList column definitions, and UI popovers.
 // ROLE: RUNTIME
 // MAP_MODE: LOCALS
@@ -893,6 +893,7 @@ export interface TaskListRowProps {
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   renderTaskListActions?: (context: TaskListActionContext<Task>) => React.ReactNode;
   renderTaskListMenu?: (context: TaskListActionContext<Task>, commands: React.ReactNode) => React.ReactNode;
+  renderTaskDateAction?: (task: Task, boundary: 'start' | 'end') => React.ReactNode;
   /** Hide row action controls such as insert, hierarchy action buttons, and context menu trigger. */
   hideTaskListRowActions?: boolean;
   /** Extra CSS class name for the rendered task-list row. */
@@ -942,6 +943,8 @@ const areTaskListRowPropsEqual = (prevProps: TaskListRowProps, nextProps: TaskLi
     prevTask.name === nextTask.name &&
     prevTask.startDate === nextTask.startDate &&
     prevTask.endDate === nextTask.endDate &&
+    prevTask.fixedStartDate === nextTask.fixedStartDate &&
+    prevTask.fixedEndDate === nextTask.fixedEndDate &&
     prevTask.type === nextTask.type &&
     prevTask.parentId === nextTask.parentId &&
     prevTask.progress === nextTask.progress &&
@@ -1007,6 +1010,7 @@ const areTaskListRowPropsEqual = (prevProps: TaskListRowProps, nextProps: TaskLi
     prevProps.onUngroupTask === nextProps.onUngroupTask &&
     prevProps.renderTaskListActions === nextProps.renderTaskListActions &&
     prevProps.renderTaskListMenu === nextProps.renderTaskListMenu &&
+    prevProps.renderTaskDateAction === nextProps.renderTaskDateAction &&
     prevProps.hideTaskListRowActions === nextProps.hideTaskListRowActions &&
     prevProps.rowClassName === nextProps.rowClassName &&
     prevProps.getTaskListNamePrefixIcon === nextProps.getTaskListNamePrefixIcon &&
@@ -1079,6 +1083,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     taskListMenuCommands = [],
     renderTaskListActions,
     renderTaskListMenu,
+    renderTaskDateAction,
     hideTaskListRowActions = false,
     rowClassName,
     compositeParentColor,
@@ -2346,6 +2351,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           businessDays={businessDays}
           footer={datePickerFooter}
         />
+        {renderTaskDateAction?.(task, 'start')}
       </div>
     );
 
@@ -2365,6 +2371,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           businessDays={businessDays}
           footer={datePickerFooter}
         />
+        {renderTaskDateAction?.(task, 'end')}
       </div>
     );
 

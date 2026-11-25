@@ -1,7 +1,7 @@
 'use client';
 // START_MODULE_CONTRACT
 // PURPOSE: Render shared chart modes and native scheduling interactions.
-// SCOPE: Fixed-aware task hierarchy/date normalization and opt-in manual display progress for projected parent rows.
+// SCOPE: Fixed-aware task hierarchy/date normalization, consumer date actions and manual display progress for projected parent rows.
 // INPUTS: Chart props and task progressAggregation policies.
 // OUTPUTS: Parent dates and fixed boundaries remain consistent; manual percentages survive presentation grouping.
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
@@ -599,6 +599,8 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   renderTaskListActions?: (context: TaskListActionContext<TTask>) => React.ReactNode;
   /** Replace/compose the menu; commands contains the configured taskListMenuCommands UI. */
   renderTaskListMenu?: (context: TaskListActionContext<TTask>, commands: React.ReactNode) => React.ReactNode;
+  /** Optional consumer-owned action beside each task date. */
+  renderTaskDateAction?: (task: TTask, boundary: 'start' | 'end') => React.ReactNode;
   /** Hide row action controls in the TaskList for table-like read/edit presentations. */
   hideTaskListRowActions?: boolean;
   /** Returns an extra CSS class name for a TaskList row. */
@@ -834,6 +836,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     taskListMenuCommands,
     renderTaskListActions,
     renderTaskListMenu,
+    renderTaskDateAction,
     hideTaskListRowActions = false,
     getTaskListRowClassName,
     getTaskListNamePrefixIcon,
@@ -2643,6 +2646,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
             renderTaskListActions={renderTaskListActions as ((context: TaskListActionContext<Task>) => React.ReactNode) | undefined}
             renderTaskListMenu={renderTaskListMenu as ((context: TaskListActionContext<Task>, commands: React.ReactNode) => React.ReactNode) | undefined}
+            renderTaskDateAction={renderTaskDateAction as ((task: Task, boundary: 'start' | 'end') => React.ReactNode) | undefined}
             hideTaskListRowActions={hideTaskListRowActions}
             getTaskListRowClassName={getTaskListRowClassName as ((task: Task) => string | undefined) | undefined}
             getTaskListNamePrefixIcon={getTaskListNamePrefixIcon as ((task: Task) => React.ReactNode) | undefined}

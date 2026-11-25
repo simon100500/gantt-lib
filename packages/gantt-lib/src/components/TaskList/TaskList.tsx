@@ -23,7 +23,7 @@ import './TaskList.css';
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render task-list edits and preserve their scheduling-vs-field-edit boundary.
-// SCOPE: Render fixed-aware normalized tasks and route duration edits through the parent scheduling adapter while retaining legacy callbacks.
+// SCOPE: Render fixed-aware normalized tasks, pass through date actions and route duration edits through the scheduling adapter.
 // DEPENDS: TaskListRow and GanttChart callbacks.
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
 // OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
@@ -255,6 +255,7 @@ export interface TaskListProps {
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   renderTaskListActions?: (context: TaskListActionContext<Task>) => React.ReactNode;
   renderTaskListMenu?: (context: TaskListActionContext<Task>, commands: React.ReactNode) => React.ReactNode;
+  renderTaskDateAction?: (task: Task, boundary: 'start' | 'end') => React.ReactNode;
   /** Hide row action controls such as insert, hierarchy action buttons, and the context menu trigger. */
   hideTaskListRowActions?: boolean;
   /** Returns an extra CSS class name for a TaskList row. */
@@ -410,6 +411,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   taskListMenuCommands,
   renderTaskListActions,
   renderTaskListMenu,
+  renderTaskDateAction,
   hideTaskListRowActions = false,
   getTaskListRowClassName,
   getTaskListNamePrefixIcon,
@@ -1877,6 +1879,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   taskListMenuCommands={taskListMenuCommands}
                   renderTaskListActions={renderTaskListActions}
                   renderTaskListMenu={renderTaskListMenu}
+                  renderTaskDateAction={renderTaskDateAction}
                   hideTaskListRowActions={hideTaskListRowActions}
                   rowClassName={[task.parentId && compositeParentIds.has(task.parentId)
                     ? 'gantt-tl-row-composite-detail' : '',

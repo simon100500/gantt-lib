@@ -307,6 +307,8 @@ Tasks accept ISO strings or `Date` objects, but internal calculations are UTC-sa
 
 Fixed dates independently anchor each boundary during scheduling. Parent boundaries without an anchor follow their children and applicable incoming constraints; children may extend outside fixed boundaries. A milestone has one date. Inverted fixed dates are rejected, as are subtree scaling results that would move an anchor (`FIXED_DATE_CONFLICT`). Existing tasks without fixed dates retain their existing behavior.
 
+Use `renderTaskDateAction(task, boundary)` to render a consumer-owned control next to the start or end date in the task list. The `boundary` is `'start'` or `'end'`.
+
 ### Dependencies
 
 Tasks can have dependencies on predecessor tasks using 4 link types following PM standards:
