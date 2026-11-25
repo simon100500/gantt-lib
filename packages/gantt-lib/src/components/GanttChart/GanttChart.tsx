@@ -33,7 +33,7 @@ import {
   DAY_MS,
 } from '../../core/scheduling';
 import type { ScaleTaskSubtreeResult } from '../../core/scheduling';
-import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
+import { normalizeHierarchyTasks, compactGroupBoundaryClasses } from '../../utils/hierarchyOrder';
 import type {
   ResourceTableColumnWidthMap,
   ResourcePlannerChartProps,
@@ -72,6 +72,7 @@ import './GanttChart.css';
 
 // START_MODULE_CONTRACT
 // SHARED_ACTIVITY_EDGES: Explicit graphs and legacy within-row sequences share DependencyLines; explicit empty graphs never infer adjacency.
+// COMPACT_EDGES: Mark first and last compact rows from full visible order before virtual slicing.
 // PAN_COST: Row virtualization depends on vertical position/height only, keeping row identity stable during horizontal pan.
 // PRESENTATION_INVARIANT: TaskDependency.hidden suppresses arrows/chips/print labels only; the full graph remains the input to scheduling and validation.
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
@@ -2883,6 +2884,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                   {renderedChartTasks.map(({ task, index }) => (
                     <div
                       key={task.id}
+                      className={compactGroupBoundaryClasses(previewVisibleTasks, index, compositeParentsById)}
                       style={{
                         position: 'absolute',
                         top: `${compositeRowLayout.tops[index]}px`,

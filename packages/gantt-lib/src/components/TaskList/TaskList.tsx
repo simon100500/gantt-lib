@@ -7,7 +7,7 @@ import type { TaskDateChangeMode } from '../../types';
 import type { CustomDayConfig } from '../../utils/dateUtils';
 import { createCustomDayPredicate } from '../../utils/dateUtils';
 import { validateDependencies, calculateSuccessorDate, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration, isTaskParent, areTasksHierarchicallyRelated, getChildren } from '../../core/scheduling';
-import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
+import { normalizeHierarchyTasks, compactGroupBoundaryClasses } from '../../utils/hierarchyOrder';
 import { getVisibleReorderPlan, type ReorderDropPlacement } from '../../utils/taskListReorder';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { TaskListRow } from './TaskListRow';
@@ -23,7 +23,7 @@ import './TaskList.css';
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render task-list edits and preserve their scheduling-vs-field-edit boundary.
-// SCOPE: Render fixed-aware normalized tasks, pass through date actions and route duration edits through the scheduling adapter.
+// SCOPE: Render fixed-aware normalized tasks, mark compact group edges from full visible order, pass through date actions and route duration edits through the scheduling adapter.
 // DEPENDS: TaskListRow and GanttChart callbacks.
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
 // OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
@@ -1807,6 +1807,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             return (
               <div
                 key={task.id}
+                className={compactGroupBoundaryClasses(visibleTasks, index, compositeParentsById)}
                 style={{
                   position: 'absolute',
                   top: `${topOffset}px`,

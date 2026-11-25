@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Order task hierarchies and roll parent dates/progress from direct children.
-// SCOPE: Stable depth-first ordering and one indexed bottom-up normalization pass; preserve fixed date boundaries and optional manual parent progress.
+// SCOPE: Compact group boundary classes from full visible order, stable depth-first ordering and one indexed bottom-up normalization pass; preserve fixed date boundaries and optional manual parent progress.
 // INPUTS: Task hierarchy and optional per-parent progressAggregation.
 // OUTPUTS: Normalized hierarchy with unchanged default duration-weighted progress semantics.
 // DEPENDS: scheduling types, dateUtils
@@ -144,4 +144,17 @@ export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[], bus
   }
 
   return orderedTasks;
+}
+
+/** Group edges use the full visible order, not the virtualized DOM window. */
+export function compactGroupBoundaryClasses<T extends { parentId?: string | null }>(
+  tasks: readonly T[], index: number, compositeParents: { has(id: string): boolean },
+): string | undefined {
+  const parentId = tasks[index]?.parentId;
+  if (!parentId || !compositeParents.has(parentId)) return undefined;
+  const classes = [
+    tasks[index - 1]?.parentId !== parentId ? 'gantt-compact-group-start' : '',
+    tasks[index + 1]?.parentId !== parentId ? 'gantt-compact-group-end' : '',
+  ].filter(Boolean).join(' ');
+  return classes || undefined;
 }
