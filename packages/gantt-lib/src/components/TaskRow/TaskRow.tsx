@@ -67,7 +67,7 @@ const formatCompositePreviewDate = (date: Date): string => {
 // START_MODULE_CONTRACT
 // ACTIVITY_LINKS: Bars and gestures live here; all activity dependency overlays are owned by GanttChart.
 // PURPOSE: Render one Gantt task row, including its bar, scheduling affordances, and optional external labels.
-// SCOPE: Calculate task geometry, render duration/progress/name/date labels, and preserve drag/dependency interactions with optional deferred cascade preview.
+// SCOPE: Calculate task geometry, render duration/progress/name/date labels and fixed-boundary markers, and preserve drag/dependency interactions with optional deferred cascade preview.
 // DEPENDS: core scheduling, geometry, useTaskDrag, GanttChart presentation props.
 // LINKS: M-SCHEDULE, GanttChart, type-TaskRowProps, fn-formatDateRangeLabel
 // ROLE: RUNTIME
@@ -1240,6 +1240,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 }}
               />
             )}
+            {!milestone && task.fixedStartDate && <span className="gantt-tr-fixedBoundary gantt-tr-fixedBoundary-start" aria-hidden="true" />}
+            {!milestone && task.fixedEndDate && <span className="gantt-tr-fixedBoundary gantt-tr-fixedBoundary-end" aria-hidden="true" />}
             {/* Parents are resizable: the resize scales the whole subtree proportionally. */}
             {!milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
             {shouldRenderCompositeSegments && (

@@ -4,7 +4,7 @@
 
 /* START_MODULE_CONTRACT */
 /*   PURPOSE: Define task-row layout, bar affordances, and dependency-port presentation. */
-/*   SCOPE: Task row positioning, task bars, resize zones, dependency ports, baseline labels, and touch-device suppression. */
+/*   SCOPE: Task row positioning, task bars and fixed-boundary markers, resize zones, dependency ports, baseline labels, and touch-device suppression. */
 /*   INPUTS: TaskRow DOM classes and CSS custom properties. */
 /*   OUTPUTS: A readable task row with non-overlapping drag, resize, and dependency-link affordances. */
 /*   INVARIANT: Dependency creation ports never participate in touch scrolling or overlap the sticky date header on mobile/touch layouts. */
@@ -51,6 +51,20 @@
   transition: box-shadow 0.15s ease;
   cursor: grab;
 }
+
+/* Fixed edges remain visible without intercepting bar gestures. Different vertical
+   positions keep both marks distinct even when the bar is very narrow. */
+.gantt-tr-fixedBoundary {
+  position: absolute;
+  z-index: 4;
+  width: 3px;
+  height: 40%;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.gantt-tr-fixedBoundary-start { left: 2px; top: 2px; }
+.gantt-tr-fixedBoundary-end { right: 2px; bottom: 2px; }
 
 .gantt-tr-compositePreview {
   position: fixed;
