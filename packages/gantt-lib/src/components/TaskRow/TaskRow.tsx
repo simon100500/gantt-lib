@@ -67,7 +67,7 @@ const formatCompositePreviewDate = (date: Date): string => {
 // START_MODULE_CONTRACT
 // ACTIVITY_LINKS: Bars and gestures live here; all activity dependency overlays are owned by GanttChart.
 // PURPOSE: Render one Gantt task row, including its bar, scheduling affordances, and optional external labels.
-// SCOPE: Calculate task geometry, render duration/progress/name/date labels and fixed-boundary markers, and preserve drag/dependency interactions with optional deferred cascade preview.
+// SCOPE: Calculate task geometry, render themeable task affordances, duration/progress/name/date labels and fixed-boundary markers, and preserve drag/dependency interactions with optional deferred cascade preview.
 // DEPENDS: core scheduling, geometry, useTaskDrag, GanttChart presentation props.
 // LINKS: M-SCHEDULE, GanttChart, type-TaskRowProps, fn-formatDateRangeLabel
 // ROLE: RUNTIME
@@ -1403,7 +1403,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 transform: 'translateY(-50%)',
                 width: '12px',
                 height: '12px',
-                color: '#444',
+                color: 'var(--gantt-text-muted-color, #444)',
                 pointerEvents: 'none',
               }}
               viewBox="0 0 24 24"
@@ -1417,7 +1417,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           {compactDetail && !milestone && (
             <span
               className="gantt-tr-externalDuration gantt-tr-durationBeforeBar gantt-tr-compositeDuration"
-              style={{ left: `${visualLeft - 46}px`, color: isParent ? (task.color || defaultParentBarColor) : barColor }}
+              style={{ left: `${visualLeft - 46}px`, color: `var(--gantt-task-label-color, ${isParent ? (task.color || defaultParentBarColor) : barColor})` }}
             >
               {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
             </span>
@@ -1427,7 +1427,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             className="gantt-tr-rightLabels"
             style={{
               left: `${visualLeft + Math.max(visualWidth, 20) - Math.min(6, Math.max(visualWidth, 20) / 2) + 8}px`,
-              color: isParent ? (task.color || defaultParentBarColor) : barColor,
+              color: `var(--gantt-task-label-color, ${isParent ? (task.color || defaultParentBarColor) : barColor})`,
             }}
           >
             {!compactDetail && !showDurationInside && !milestone && (
@@ -1443,7 +1443,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             {showTaskNames && (
               <span
                 className="gantt-tr-externalTaskName"
-                style={{ color: externalTaskNameColor }}
+                style={{ color: `var(--gantt-task-label-color, ${externalTaskNameColor})` }}
               >
                 {task.name}
               </span>

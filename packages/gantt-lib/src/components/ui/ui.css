@@ -54,7 +54,7 @@
 
 .gantt-input:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--gantt-focus-color, #3b82f6);
   box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
 }
 
@@ -296,7 +296,7 @@
 }
 
 .gantt-day-btn.past.weekend:not(.selected) {
-  color: #fca5a5;
+  color: var(--gantt-warning-foreground, #fca5a5);
 }
 
 .gantt-day-btn.disabled {
@@ -340,12 +340,12 @@
 }
 
 .gantt-datepicker-date-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  border-color: var(--gantt-focus-color, #3b82f6);
+  box-shadow: 0 0 0 2px var(--gantt-focus-overlay, rgba(59, 130, 246, 0.2));
 }
 
 .gantt-datepicker-date-input::selection {
-  background: rgba(59, 130, 246, 0.25);
+  background: var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.25));
 }
 
 .gantt-datepicker-shift-btn {

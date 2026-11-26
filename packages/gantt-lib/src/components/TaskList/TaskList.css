@@ -32,7 +32,7 @@
 }
 
 .gantt-tl-overlay.gantt-tl-overlay-shadowed {
-  box-shadow: 10px 0 18px -14px rgba(15, 23, 42, 0.45);
+  box-shadow: 10px 0 18px -14px var(--gantt-shadow-color, rgba(15, 23, 42, 0.45));
 }
 
 /* Hidden state - animated slide out while preserving layout */
@@ -74,7 +74,7 @@
   padding: 0 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
   box-sizing: border-box;
   border-right: var(--gantt-tl-vertical-separators);
   position: relative;
@@ -112,7 +112,7 @@
 
 .gantt-tl-headerCell:hover .gantt-tl-column-resize-handle::before,
 .gantt-tl-column-resize-handle:focus-visible::before {
-  background: rgba(59, 130, 246, 0.35);
+  background: var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.35));
 }
 
 /* The visual touch affordance must never appear in the desktop table. */
@@ -138,9 +138,9 @@
     height: 24px;
     display: block;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16);
-    color: #2563eb;
+    background: var(--gantt-control-background, rgba(255, 255, 255, 0.94));
+    box-shadow: 0 1px 4px var(--gantt-shadow-color, rgba(15, 23, 42, 0.16));
+    color: var(--gantt-info-foreground, #2563eb);
     opacity: 0;
     pointer-events: none;
     transform: translate(-50%, -50%) scale(0.25);
@@ -155,7 +155,7 @@
   }
 
   .gantt-tl-header[data-column-resize-mode='true'] .gantt-tl-column-resize-handle::before {
-    background: rgba(59, 130, 246, 0.45);
+    background: var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.45));
   }
 }
 
@@ -177,8 +177,8 @@
 }
 
 .gantt-tl-row-filter-match {
-  --gantt-tl-name-actions-bg: #fef3c7;
-  background-color: rgba(250, 204, 21, 0.24);
+  --gantt-tl-name-actions-bg: var(--gantt-warning-background, #fef3c7);
+  background-color: var(--gantt-warning-overlay, rgba(250, 204, 21, 0.24));
 }
 
 .gantt-tl-row:hover,
@@ -189,8 +189,8 @@
 
 .gantt-tl-row-filter-match:hover,
 .gantt-tl-row-filter-match.gantt-tl-row-hovered {
-  --gantt-tl-name-actions-bg: #fde68a;
-  box-shadow: inset 0 0 0 9999px rgba(250, 204, 21, 0.3);
+  --gantt-tl-name-actions-bg: var(--gantt-warning-background, #fde68a);
+  box-shadow: inset 0 0 0 9999px var(--gantt-warning-overlay, rgba(250, 204, 21, 0.3));
 }
 
 .gantt-tl-row-selected {
@@ -198,23 +198,23 @@
 }
 
 .gantt-tl-row-dependency-selected {
-  --gantt-tl-name-actions-bg: #e8effe;
-  box-shadow: inset 0 0 0 9999px rgba(37, 99, 235, 0.12);
+  --gantt-tl-name-actions-bg: var(--gantt-selection-background, #e8effe);
+  box-shadow: inset 0 0 0 9999px var(--gantt-selection-overlay, rgba(37, 99, 235, 0.12));
 }
 
 .gantt-tl-row-dependency-selected:hover {
-  --gantt-tl-name-actions-bg: #e0e9fd;
-  box-shadow: inset 0 0 0 9999px rgba(37, 99, 235, 0.16);
+  --gantt-tl-name-actions-bg: var(--gantt-selection-background, #e0e9fd);
+  box-shadow: inset 0 0 0 9999px var(--gantt-selection-overlay, rgba(37, 99, 235, 0.16));
 }
 
 .gantt-tl-row-dependency-owner {
-  --gantt-tl-name-actions-bg: #e8effe;
-  box-shadow: inset 0 0 0 9999px rgba(37, 99, 235, 0.12);
+  --gantt-tl-name-actions-bg: var(--gantt-selection-background, #e8effe);
+  box-shadow: inset 0 0 0 9999px var(--gantt-focus-overlay, rgba(37, 99, 235, 0.12));
 }
 
 .gantt-tl-row-dependency-owner:hover {
-  --gantt-tl-name-actions-bg: #e0e9fd;
-  box-shadow: inset 0 0 0 9999px rgba(37, 99, 235, 0.16);
+  --gantt-tl-name-actions-bg: var(--gantt-selection-background, #e0e9fd);
+  box-shadow: inset 0 0 0 9999px var(--gantt-focus-overlay, rgba(37, 99, 235, 0.16));
 }
 
 /* Hierarchy row styles */
@@ -233,7 +233,7 @@
 }
 
 .gantt-tl-row-composite-detail .gantt-tl-cell-name {
-  color: #5b4b83;
+  color: var(--gantt-text-muted-color, #5b4b83);
 }
 
 .gantt-tl-compositeToggle {
@@ -387,7 +387,7 @@
   box-sizing: border-box;
   border-right: var(--gantt-tl-vertical-separators);
   font-size: 0.85rem;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
 }
 
 .gantt-tl-cell:last-child {
@@ -406,7 +406,7 @@
   width: 16px;
   height: 16px;
   margin: 0;
-  accent-color: #2563eb;
+  accent-color: var(--gantt-focus-color, #2563eb);
   cursor: pointer;
 }
 
@@ -434,7 +434,7 @@
   justify-content: flex-start;
   padding-left: 8px;
   cursor: grab;
-  color: #9ca3af;
+  color: var(--gantt-text-muted-color, #9ca3af);
   visibility: hidden;
   user-select: none;
   background: transparent;
@@ -462,14 +462,14 @@
 
 /* Dragging row (semi-transparent background, blue text) */
 .gantt-tl-row-dragging {
-  --gantt-tl-name-actions-bg: #d8e7fd;
-  background-color: rgba(59, 130, 246, 0.15);
+  --gantt-tl-name-actions-bg: var(--gantt-selection-background, #d8e7fd);
+  background-color: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.15));
 }
 
 .gantt-tl-row-dragging .gantt-tl-cell,
 .gantt-tl-row-dragging .gantt-tl-name-trigger,
 .gantt-tl-row-dragging .gantt-tl-num-label {
-  color: #3b82f6 !important;
+  color: var(--gantt-info-foreground, #3b82f6) !important;
 }
 
 /* Drop target indicator (blue top border) - uses ::before to avoid layout shift */
@@ -485,7 +485,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background-color: #3b82f6;
+  background-color: var(--gantt-action-solid-background, #3b82f6);
   z-index: 1;
 }
 
@@ -505,7 +505,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background-color: #3b82f6;
+  background-color: var(--gantt-action-solid-background, #3b82f6);
   opacity: 0;
   pointer-events: none;
   transition: opacity 80ms linear;
@@ -523,7 +523,7 @@
   pointer-events: none;
   transition: opacity 80ms linear;
   background:
-    linear-gradient(180deg, rgba(59, 130, 246, 0.26) 0%, rgba(59, 130, 246, 0.08) 68%, rgba(59, 130, 246, 0) 100%);
+    linear-gradient(180deg, var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.26)) 0%, var(--gantt-selection-overlay, rgba(59, 130, 246, 0.08)) 68%, var(--gantt-selection-overlay-clear, rgba(59, 130, 246, 0)) 100%);
 }
 
 .gantt-tl-before-first-drop-zone-active::before,
@@ -547,7 +547,7 @@
   height: 50%;
   opacity: 1;
   background:
-    linear-gradient(180deg, rgba(59, 130, 246, 0.26) 0%, rgba(59, 130, 246, 0.08) 68%, rgba(59, 130, 246, 0) 100%);
+    linear-gradient(180deg, var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.26)) 0%, var(--gantt-selection-overlay, rgba(59, 130, 246, 0.08)) 68%, var(--gantt-selection-overlay-clear, rgba(59, 130, 246, 0)) 100%);
 }
 
 .gantt-tl-row-drag-over-inside {
@@ -573,7 +573,7 @@
   height: 50%;
   opacity: 1;
   background:
-    linear-gradient(0deg, rgba(59, 130, 246, 0.26) 0%, rgba(59, 130, 246, 0.08) 68%, rgba(59, 130, 246, 0) 100%);
+    linear-gradient(0deg, var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.26)) 0%, var(--gantt-selection-overlay, rgba(59, 130, 246, 0.08)) 68%, var(--gantt-selection-overlay-clear, rgba(59, 130, 246, 0)) 100%);
 }
 
 .gantt-tl-row-drag-over-nested::before,
@@ -592,7 +592,7 @@
   left: calc(var(--gantt-tl-nested-inside-drop-left, 49px) - 1px);
   width: 2px;
   height: 50%;
-  background-color: #3b82f6;
+  background-color: var(--gantt-action-solid-background, #3b82f6);
   border-radius: 1px;
 }
 
@@ -604,8 +604,8 @@
   height: 50%;
   opacity: 1;
   background:
-    linear-gradient(#3b82f6, #3b82f6) left bottom / 100% 2px no-repeat,
-    linear-gradient(0deg, rgba(59, 130, 246, 0.26) 0%, rgba(59, 130, 246, 0.08) 68%, rgba(59, 130, 246, 0) 100%);
+    linear-gradient(var(--gantt-action-solid-background, #3b82f6), var(--gantt-action-solid-background, #3b82f6)) left bottom / 100% 2px no-repeat,
+    linear-gradient(0deg, var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.26)) 0%, var(--gantt-selection-overlay, rgba(59, 130, 246, 0.08)) 68%, var(--gantt-selection-overlay-clear, rgba(59, 130, 246, 0)) 100%);
 }
 
 /* Navigate icon removed - single click on task name now selects row */
@@ -675,7 +675,7 @@
 .gantt-tl-cell-duration:focus-within .gantt-tl-duration-display,
 .gantt-tl-cell-date:hover .gantt-datepicker-trigger,
 .gantt-tl-cell-date:focus-within .gantt-datepicker-trigger {
-  background: rgba(107, 114, 128, 0.12);
+  background: var(--gantt-neutral-overlay, rgba(107, 114, 128, 0.12));
 }
 
 /* Progress cell */
@@ -703,7 +703,7 @@
 
 .gantt-tl-cell-progress:hover .gantt-tl-progress-display,
 .gantt-tl-cell-progress:focus-within .gantt-tl-progress-display {
-  background: rgba(107, 114, 128, 0.12);
+  background: var(--gantt-neutral-overlay, rgba(107, 114, 128, 0.12));
 }
 
 .gantt-tl-number-editor {
@@ -716,12 +716,12 @@
   height: 100%;
   padding: 0 18px 0 6px;
   border-width: 1px;
-  border-color: #93c5fd;
+  border-color: var(--gantt-focus-color, #93c5fd);
   border-radius: 8px;
   text-align: left;
   font-size: 0.8rem;
   line-height: 1;
-  box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.35);
+  box-shadow: 0 0 0 1px var(--gantt-focus-overlay, rgba(147, 197, 253, 0.35));
 }
 
 .gantt-tl-number-input::-webkit-outer-spin-button,
@@ -752,20 +752,20 @@
   justify-content: center;
   border: none;
   border-radius: 5px;
-  background: rgba(248, 250, 252, 0.95);
-  color: #64748b;
+  background: var(--gantt-control-background, rgba(248, 250, 252, 0.95));
+  color: var(--gantt-text-muted-color, #64748b);
   padding: 0;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .gantt-tl-number-stepper:hover {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--gantt-info-background, #dbeafe);
+  color: var(--gantt-info-foreground, #1d4ed8);
 }
 
 .gantt-tl-number-stepper:active {
-  background: #bfdbfe;
+  background: var(--gantt-info-background, #bfdbfe);
 }
 
 /* Full-cell button trigger for name edit */
@@ -781,7 +781,7 @@
   line-height: 1.2;
   font-family: inherit;
   font-weight: inherit;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -838,8 +838,8 @@
   min-width: 520px;
   width: 100%;
   border-width: 2px;
-  border-color: #3b82f6;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  border-color: var(--gantt-focus-color, #3b82f6);
+  box-shadow: 0 2px 10px var(--gantt-shadow-color, rgba(0, 0, 0, 0.15));
   white-space: nowrap;
 }
 
@@ -848,7 +848,7 @@
 }
 
 .gantt-tl-name-input:focus {
-  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 10px var(--gantt-focus-overlay, rgba(59, 130, 246, 0.3));
 }
 
 .gantt-tl-name-color-stripe {
@@ -941,7 +941,7 @@
   padding: 2px 8px;
   font-size: 11px;
   border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
-  background: white;
+  background: var(--gantt-control-background, white);
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
@@ -975,7 +975,7 @@
   display: block;
   min-width: 0;
   flex: 1 1 100%;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
   font-size: 0.75rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -984,34 +984,34 @@
 
 /* Insert button styling (blue) */
 .gantt-tl-action-insert {
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--gantt-action-solid-background, #3b82f6);
+  color: var(--gantt-solid-foreground, white);
 }
 
 .gantt-tl-action-insert:hover {
-  background-color: #2563eb;
+  background-color: var(--gantt-action-solid-background, #2563eb);
 }
 
 /* Delete button styling (red) */
 .gantt-tl-action-delete {
-  background-color: #ef4444;
-  color: white;
+  background-color: var(--gantt-danger-solid-background, #ef4444);
+  color: var(--gantt-solid-foreground, white);
 }
 
 .gantt-tl-action-delete:hover {
-  background-color: #dc2626;
+  background-color: var(--gantt-danger-solid-background, #dc2626);
 }
 
 /* Delete button confirmation state — removed, now in context menu */
 
 /* Context menu (three dots) */
 .gantt-tl-action-context {
-  background-color: #e5e7eb;
-  color: #374151;
+  background-color: var(--gantt-header-background, #e5e7eb);
+  color: var(--gantt-text-color, #374151);
 }
 
 .gantt-tl-action-context:hover {
-  background-color: #d1d5db;
+  background-color: var(--gantt-hover-background, #d1d5db);
 }
 
 .gantt-tl-context-menu {
@@ -1033,26 +1033,26 @@
   font-size: 0.8rem;
   font-family: inherit;
   cursor: pointer;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
   white-space: nowrap;
 }
 
 .gantt-tl-context-menu-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--gantt-hover-background, rgba(0, 0, 0, 0.05));
 }
 
 .gantt-tl-context-menu-item-danger {
-  color: #ef4444;
+  color: var(--gantt-danger-foreground, #ef4444);
 }
 
 .gantt-tl-context-menu-item-danger:hover {
-  background-color: rgba(239, 68, 68, 0.08);
-  color: #dc2626;
+  background-color: var(--gantt-danger-overlay, rgba(239, 68, 68, 0.08));
+  color: var(--gantt-danger-foreground, #dc2626);
 }
 
 .gantt-tl-context-menu-divider {
   border: none;
-  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  border-top: 1px solid var(--gantt-control-border-color, rgba(148, 163, 184, 0.22));
   margin: 2px 0;
   width: 100%;
 }
@@ -1062,14 +1062,14 @@
   flex-direction: column;
   gap: 8px;
   padding: 6px 6px 8px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  border-bottom: 1px solid var(--gantt-control-border-color, rgba(148, 163, 184, 0.22));
   margin-bottom: 2px;
 }
 
 .gantt-tl-context-menu-label {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
 }
 
 .gantt-tl-context-menu-item-toggle {
@@ -1095,10 +1095,10 @@
   z-index: 20;
   min-width: 124px;
   padding: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  border: 1px solid var(--gantt-control-border-color, rgba(148, 163, 184, 0.28));
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  background: var(--gantt-cell-background, #ffffff);
+  box-shadow: 0 12px 32px var(--gantt-shadow-color, rgba(15, 23, 42, 0.16));
 }
 
 .gantt-tl-color-grid {
@@ -1111,7 +1111,7 @@
   width: 24px;
   height: 24px;
   border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
+  border: 1px solid var(--gantt-neutral-overlay, rgba(15, 23, 42, 0.12));
   cursor: pointer;
   position: relative;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
@@ -1128,11 +1128,11 @@
 }
 
 .gantt-tl-color-swatch.is-selected {
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 2px var(--gantt-control-background, #ffffff), 0 0 0 4px var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.5));
 }
 
 .gantt-tl-color-swatch-clear {
-  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  background: linear-gradient(135deg, var(--gantt-header-background, #f8fafc), var(--gantt-header-background, #e2e8f0));
 }
 
 .gantt-tl-color-swatch-clear-line {
@@ -1141,7 +1141,7 @@
   left: 50%;
   width: 16px;
   height: 1px;
-  background: rgba(100, 116, 139, 0.7);
+  background: var(--gantt-neutral-overlay, rgba(100, 116, 139, 0.7));
   border-radius: 999px;
   transform: translate(-50%, -50%) rotate(-45deg);
 }
@@ -1154,12 +1154,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: #4b5563;
-  color: white;
+  background-color: var(--gantt-action-solid-background, #4b5563);
+  color: var(--gantt-solid-foreground, white);
 }
 
 .gantt-tl-action-hierarchy:hover {
-  background-color: #374151;
+  background-color: var(--gantt-action-solid-background, #374151);
 }
 
 @media (max-width: 640px) {
@@ -1225,7 +1225,7 @@
   gap: 2px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -1240,7 +1240,7 @@
 }
 
 .gantt-tl-dep-type-trigger:not(:disabled):hover {
-  color: #3b82f6;
+  color: var(--gantt-info-foreground, #3b82f6);
 }
 
 /* Dropdown option buttons inside Popover */
@@ -1263,17 +1263,17 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
 }
 
 .gantt-tl-dep-type-option:hover {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.1));
 }
 
 .gantt-tl-dep-type-option.active {
-  background-color: rgba(59, 130, 246, 0.2);
+  background-color: var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.2));
   font-weight: 600;
-  color: #1d4ed8;
+  color: var(--gantt-info-foreground, #1d4ed8);
 }
 
 /* Dependency chip — clickable to select and trigger predecessor-side delete */
@@ -1287,12 +1287,12 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  background-color: rgba(107, 114, 128, 0.12);
+  background-color: var(--gantt-neutral-overlay, rgba(107, 114, 128, 0.12));
   /* border: 1px solid rgba(107, 114, 128, 0.3); */
   border-radius: 6px;
   padding: 3px 4px;
   font-size: inherit;
-  color: #4b5563;
+  color: var(--gantt-text-muted-color, #4b5563);
   white-space: nowrap;
   line-height: 14px;
   cursor: pointer;
@@ -1324,29 +1324,29 @@
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: #2563eb;
+  color: var(--gantt-info-foreground, #2563eb);
   cursor: pointer;
   transform: translateY(-50%);
 }
 
 .gantt-tl-dep-expand:hover,
 .gantt-tl-dep-expand:focus-visible {
-  background: rgba(37, 99, 235, 0.12);
+  background: var(--gantt-selection-overlay, rgba(37, 99, 235, 0.12));
   outline: none;
 }
 
 .gantt-tl-dep-chip-with-number:hover {
-  background-color: rgba(59, 130, 246, 0.12);
+  background-color: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.12));
 }
 
 .gantt-tl-dep-chip-with-number:hover .gantt-tl-dep-chip-task-number,
 .gantt-tl-dep-chip-with-number:hover .gantt-tl-dep-chip svg,
 .gantt-tl-dep-chip-with-number:hover .gantt-tl-dep-chip-lag {
-  color: #2563eb;
+  color: var(--gantt-info-foreground, #2563eb);
 }
 
 .gantt-tl-dep-chip-with-number:hover .gantt-tl-dep-chip {
-  background-color: rgba(59, 130, 246, 0.18);
+  background-color: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.18));
 }
 
 .gantt-tl-dep-chip-tooltip {
@@ -1361,13 +1361,13 @@
   max-width: min(360px, calc(100vw - 32px));
   padding: 5px 8px;
   border-radius: 4px;
-  background: #111827;
-  color: #fff;
+  background: var(--gantt-inverse-background, #111827);
+  color: var(--gantt-solid-foreground, #fff);
   font-size: 0.75rem;
   line-height: 1.3;
   white-space: normal;
   overflow-wrap: anywhere;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 6px 18px var(--gantt-shadow-color, rgba(15, 23, 42, 0.18));
   pointer-events: none;
 }
 
@@ -1377,33 +1377,33 @@
 }
 
 .gantt-tl-dep-chip-task-number {
-  color: #4b5563;
+  color: var(--gantt-text-muted-color, #4b5563);
   font-weight: 400;
   line-height: 14px;
 }
 
 .gantt-tl-dep-chip svg {
-  color: #4b5563;
+  color: var(--gantt-text-muted-color, #4b5563);
 }
 
 .gantt-tl-dep-chip-lag {
-  color: #9ca3af;
+  color: var(--gantt-text-muted-color, #9ca3af);
   line-height: 14px;
 }
 
 .gantt-tl-dep-chip-with-number-selected {
-  background-color: #2563eb;
-  color: #fff;
+  background-color: var(--gantt-action-solid-background, #2563eb);
+  color: var(--gantt-solid-foreground, #fff);
 }
 
 .gantt-tl-dep-chip-with-number-selected .gantt-tl-dep-chip {
-  background-color: rgba(255, 255, 255, 0.16);
+  background-color: var(--gantt-bar-highlight-color, rgba(255, 255, 255, 0.16));
 }
 
 .gantt-tl-dep-chip-with-number-selected .gantt-tl-dep-chip-task-number,
 .gantt-tl-dep-chip-with-number-selected .gantt-tl-dep-chip svg,
 .gantt-tl-dep-chip-with-number-selected .gantt-tl-dep-chip-lag {
-  color: #fff;
+  color: var(--gantt-solid-foreground, #fff);
 }
 
 .gantt-tl-dep-chip-with-number-selected .gantt-tl-dep-chip-lag {
@@ -1423,12 +1423,12 @@
   align-items: center;
   justify-content: center;
   align-self: stretch;
-  background: #ef4444;
+  background: var(--gantt-danger-solid-background, #ef4444);
   border: none;
   border-radius: 3px;
   padding: 0 4px;
   cursor: pointer;
-  color: #fff;
+  color: var(--gantt-solid-foreground, #fff);
   flex-shrink: 0;
   line-height: 0;
 }
@@ -1439,13 +1439,13 @@
 }
 
 .gantt-tl-dep-chip-trash:hover {
-  background-color: #dc2626;
+  background-color: var(--gantt-danger-solid-background, #dc2626);
 }
 
 /* Dep chip info popover — human-readable dependency description on click */
 .gantt-tl-dep-info-popover {
   font-size: 0.75rem;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
   padding: 6px 10px !important;
   max-width: 260px;
   line-height: 1.4;
@@ -1455,12 +1455,12 @@
 }
 
 .gantt-tl-dep-info-prefix {
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
 }
 
 .gantt-tl-dep-info-name {
   font-weight: 500;
-  color: #111827;
+  color: var(--gantt-text-color, #111827);
   white-space: normal;
   word-break: break-word;
 }
@@ -1468,7 +1468,7 @@
 /* Dep edit popover — interactive lag counter and delete button */
 .gantt-tl-dep-edit-popover {
   font-size: 0.85rem;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
@@ -1493,17 +1493,17 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--gantt-control-border-color, #d1d5db);
   border-radius: 4px;
-  background: #f9fafb;
+  background: var(--gantt-header-background, #f9fafb);
   cursor: pointer;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
   padding: 0;
   line-height: 1;
 }
 
 .gantt-tl-dep-edit-btn:hover {
-  background: #e5e7eb;
+  background: var(--gantt-hover-background, #e5e7eb);
 }
 
 /* Link-type dropdown inside the dep edit popover */
@@ -1511,10 +1511,10 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--gantt-control-border-color, #d1d5db);
   border-radius: 4px;
-  background: #f9fafb;
-  color: #374151;
+  background: var(--gantt-header-background, #f9fafb);
+  color: var(--gantt-text-color, #374151);
   padding: 2px 6px;
   cursor: pointer;
   font-size: 0.75rem;
@@ -1523,17 +1523,17 @@
 }
 
 .gantt-tl-dep-edit-type-trigger:hover {
-  background: #e5e7eb;
+  background: var(--gantt-hover-background, #e5e7eb);
 }
 
 .gantt-tl-dep-edit-type-caret {
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
   font-size: 0.65rem;
 }
 
 .gantt-tl-dep-type-option-duplicate,
 .gantt-tl-dep-type-option-duplicate:hover {
-  color: #9ca3af;
+  color: var(--gantt-text-muted-color, #9ca3af);
   background: transparent;
   cursor: not-allowed;
 }
@@ -1542,11 +1542,11 @@
 .gantt-tl-dep-edit-input {
   width: 56px;
   text-align: center;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.1));
+  border: 1px solid var(--gantt-focus-color, rgba(59, 130, 246, 0.3));
   border-radius: 4px;
   padding: 2px 4px;
-  color: #1d4ed8;
+  color: var(--gantt-info-foreground, #1d4ed8);
   -moz-appearance: textfield;
 }
 
@@ -1558,12 +1558,12 @@
 
 .gantt-tl-dep-edit-input:focus {
   outline: none;
-  border-color: rgba(59, 130, 246, 0.6);
-  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--gantt-focus-color, rgba(59, 130, 246, 0.6));
+  background: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.15));
 }
 
 .gantt-tl-dep-edit-input::placeholder {
-  color: #1d4ed8;
+  color: var(--gantt-info-foreground, #1d4ed8);
   opacity: 0.7;
   font-style: italic;
 }
@@ -1578,7 +1578,7 @@
 
 .gantt-tl-dep-edit-pred {
   font-weight: 500;
-  color: #111827;
+  color: var(--gantt-text-color, #111827);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1589,7 +1589,7 @@
 
 .gantt-tl-dep-edit-divider {
   border: none;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--gantt-control-border-color, #e5e7eb);
   margin: 2px 0;
 }
 
@@ -1599,7 +1599,7 @@
   gap: 6px;
   background: none;
   border: none;
-  color: #ef4444;
+  color: var(--gantt-danger-foreground, #ef4444);
   cursor: pointer;
   padding: 4px 0;
   font-size: 0.8rem;
@@ -1607,7 +1607,7 @@
 }
 
 .gantt-tl-dep-edit-delete:hover {
-  color: #dc2626;
+  color: var(--gantt-danger-foreground, #dc2626);
   text-decoration: underline;
 }
 
@@ -1633,12 +1633,12 @@
   padding: 4px 0;
   font-size: 0.8rem;
   font-family: inherit;
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
   cursor: pointer;
 }
 
 .gantt-tl-dep-edit-close:hover {
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
   text-decoration: underline;
 }
 
@@ -1646,12 +1646,12 @@
 .gantt-tl-dep-summary-chip {
   display: inline-flex;
   align-items: center;
-  background-color: rgba(107, 114, 128, 0.12);
-  border: 0px solid rgba(107, 114, 128, 0.3);
+  background-color: var(--gantt-neutral-overlay, rgba(107, 114, 128, 0.12));
+  border: 0px solid var(--gantt-control-border-color, rgba(107, 114, 128, 0.3));
   border-radius: 6px;
   padding: 4px 4px;
   font-size: 0.7rem;
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
@@ -1660,29 +1660,29 @@
 }
 
 .gantt-tl-dep-summary-chip:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #1d4ed8;
-  border-color: rgba(59, 130, 246, 0.3);
+  background-color: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.1));
+  color: var(--gantt-info-foreground, #1d4ed8);
+  border-color: var(--gantt-focus-color, rgba(59, 130, 246, 0.3));
 }
 
 /* "+N ещё" overflow button */
 .gantt-tl-dep-overflow-trigger {
   display: inline-flex;
   align-items: center;
-  background-color: rgba(107, 114, 128, 0.1);
-  border: 1px solid rgba(107, 114, 128, 0.25);
+  background-color: var(--gantt-neutral-overlay, rgba(107, 114, 128, 0.1));
+  border: 1px solid var(--gantt-control-border-color, rgba(107, 114, 128, 0.25));
   border-radius: 4px;
   padding: 1px 4px;
   font-size: 0.7rem;
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
 }
 
 .gantt-tl-dep-overflow-trigger:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #1d4ed8;
+  background-color: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.1));
+  color: var(--gantt-info-foreground, #1d4ed8);
 }
 
 /* Overflow popover content — list of all deps */
@@ -1702,7 +1702,7 @@
   justify-content: space-between;
   gap: 8px;
   font-size: 0.8rem;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
 }
 
 /* "+" add dependency button */
@@ -1716,13 +1716,13 @@
   transform: translateY(-50%);
   z-index: 2;
   background: transparent;
-  border: 0px solid rgba(59, 130, 246, 0.4);
-  background-color: rgba(59, 130, 246, 0.12);
+  border: 0px solid var(--gantt-focus-color, rgba(59, 130, 246, 0.4));
+  background-color: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.12));
   border-radius: 4px;
   width: 30px;
   height: 23px;
   font-size: 0.9rem;
-  color: #3b82f6;
+  color: var(--gantt-info-foreground, #3b82f6);
   cursor: pointer;
   padding: 0;
   font-family: inherit;
@@ -1748,18 +1748,18 @@
 }
 
 .gantt-tl-dep-add:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-  border-color: #3b82f6;
+  background-color: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.1));
+  border-color: var(--gantt-focus-color, #3b82f6);
 }
 
 /* Picker mode: «Связи» cell on all rows becomes a selection target */
 .gantt-tl-row-picking .gantt-tl-cell-deps {
   cursor: crosshair;
-  background-color: rgba(59, 130, 246, 0.04);
+  background-color: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.04));
 }
 
 .gantt-tl-row-picking .gantt-tl-cell-deps:hover {
-  background-color: rgba(59, 130, 246, 0.15);
+  background-color: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.15));
 }
 
 /* Picker mode: current task's own row — clickable to cancel */
@@ -1770,7 +1770,7 @@
 /* Placeholder text shown in source row's deps cell while picking a predecessor */
 .gantt-tl-dep-source-hint {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
   font-style: italic;
   white-space: normal;
 }
@@ -1788,8 +1788,8 @@
   padding: 12px 10px 10px;
   border: none;
   border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
+  background: var(--gantt-cell-background, #ffffff);
+  box-shadow: 0 18px 40px var(--gantt-shadow-color, rgba(15, 23, 42, 0.28));
 }
 
 .gantt-tl-dep-source-direction {
@@ -1802,7 +1802,7 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #111827;
+  color: var(--gantt-text-color, #111827);
   padding: 6px 8px;
   font-size: 0.75rem;
   font-family: inherit;
@@ -1810,14 +1810,14 @@
 }
 
 .gantt-tl-dep-source-direction-btn:hover {
-  background: rgba(59, 130, 246, 0.08);
-  color: #1d4ed8;
+  background: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.08));
+  color: var(--gantt-info-foreground, #1d4ed8);
 }
 
 .gantt-tl-dep-source-direction-btn-active,
 .gantt-tl-dep-source-direction-btn-active:hover {
-  background: rgba(59, 130, 246, 0.16);
-  color: #1d4ed8;
+  background: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.16));
+  color: var(--gantt-info-foreground, #1d4ed8);
   font-weight: 600;
 }
 
@@ -1836,7 +1836,7 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #111827;
+  color: var(--gantt-text-color, #111827);
   padding: 6px 4px;
   cursor: pointer;
   font-size: 0.7rem;
@@ -1844,19 +1844,19 @@
 }
 
 .gantt-tl-dep-source-type-btn:hover {
-  color: #1d4ed8;
-  background: rgba(59, 130, 246, 0.08);
+  color: var(--gantt-info-foreground, #1d4ed8);
+  background: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.08));
 }
 
 .gantt-tl-dep-source-type-btn-active {
-  background: rgba(59, 130, 246, 0.16);
-  color: #1d4ed8;
+  background: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.16));
+  color: var(--gantt-info-foreground, #1d4ed8);
   font-weight: 600;
 }
 
 .gantt-tl-dep-source-type-btn-active:hover {
-  background: rgba(59, 130, 246, 0.16);
-  color: #1d4ed8;
+  background: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.16));
+  color: var(--gantt-info-foreground, #1d4ed8);
 }
 
 .gantt-tl-dep-source-type-btn span {
@@ -1876,18 +1876,18 @@
   min-width: 0;
   height: 34px;
   padding: 0 10px;
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  border: 1px solid var(--gantt-focus-color, rgba(59, 130, 246, 0.25));
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--gantt-cell-background, #ffffff);
   font-size: 0.82rem;
   font-family: inherit;
-  color: #111827;
+  color: var(--gantt-text-color, #111827);
 }
 
 .gantt-tl-dep-source-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  border-color: var(--gantt-focus-color, #3b82f6);
+  box-shadow: 0 0 0 3px var(--gantt-focus-overlay, rgba(59, 130, 246, 0.12));
 }
 
 .gantt-tl-dep-source-list {
@@ -1906,7 +1906,7 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #1f2937;
+  color: var(--gantt-text-color, #1f2937);
   text-align: left;
   padding: 6px 8px;
   font-size: 0.75rem;
@@ -1923,19 +1923,19 @@
 
 .gantt-tl-dep-source-option:hover,
 .gantt-tl-dep-source-option-active {
-  background: rgba(59, 130, 246, 0.16);
-  color: #1d4ed8;
+  background: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.16));
+  color: var(--gantt-info-foreground, #1d4ed8);
 }
 
 .gantt-tl-dep-source-option-linked {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
+  background: var(--gantt-success-overlay, rgba(16, 185, 129, 0.12));
+  color: var(--gantt-success-foreground, #047857);
 }
 
 .gantt-tl-dep-source-option-linked:hover,
 .gantt-tl-dep-source-option-linked.gantt-tl-dep-source-option-active {
-  color: #047857;
-  background: rgba(16, 185, 129, 0.14);
+  color: var(--gantt-success-foreground, #047857);
+  background: var(--gantt-success-overlay, rgba(16, 185, 129, 0.14));
 }
 
 .gantt-tl-dep-source-option-remove {
@@ -1955,12 +1955,12 @@
 
 .gantt-tl-dep-source-option-linked:hover .gantt-tl-dep-source-option-remove,
 .gantt-tl-dep-source-option-linked.gantt-tl-dep-source-option-active .gantt-tl-dep-source-option-remove {
-  color: #dc2626;
+  color: var(--gantt-danger-foreground, #dc2626);
 }
 
 .gantt-tl-dep-source-option-remove:hover {
-  background: rgba(220, 38, 38, 0.12);
-  color: #dc2626;
+  background: var(--gantt-danger-overlay, rgba(220, 38, 38, 0.12));
+  color: var(--gantt-danger-foreground, #dc2626);
 }
 
 /* Predecessor cell full-replacement: "Зависит от [name]" → hover → "Удалить" */
@@ -1969,14 +1969,14 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  background: #059669;
+  background: var(--gantt-success-solid-background, #059669);
   border: none;
   border-radius: 4px;
   padding: 2px 4px;
   font-size: 0.75rem;
   font-family: inherit;
   cursor: pointer;
-  color: #fff;
+  color: var(--gantt-solid-foreground, #fff);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1984,7 +1984,7 @@
 }
 
 .gantt-tl-dep-delete-label:hover {
-  background: #dc2626;
+  background: var(--gantt-danger-solid-background, #dc2626);
 }
 
 .gantt-tl-dep-delete-label-default {
@@ -1994,7 +1994,7 @@
 
 .gantt-tl-dep-delete-label-hover {
   display: none;
-  color: #fff;
+  color: var(--gantt-solid-foreground, #fff);
   font-weight: 600;
   pointer-events: none;
 }
@@ -2015,13 +2015,13 @@
   right: auto;
   min-width: max-content;
   max-width: min(320px, calc(100vw - 32px));
-  background-color: #fef2f2;
-  border: 1px solid #fca5a5;
+  background-color: var(--gantt-danger-background, #fef2f2);
+  border: 1px solid var(--gantt-danger-foreground, #fca5a5);
   border-radius: 8px;
-  box-shadow: 0 10px 24px rgba(127, 29, 29, 0.16);
+  box-shadow: 0 10px 24px var(--gantt-shadow-color, rgba(127, 29, 29, 0.16));
   padding: 6px 10px;
   font-size: 0.75rem;
-  color: #dc2626;
+  color: var(--gantt-danger-foreground, #dc2626);
   z-index: 30;
   white-space: normal;
   line-height: 1.35;
@@ -2063,7 +2063,7 @@
 }
 
 .gantt-tl-cell-custom[data-custom-column-active="true"] {
-  box-shadow: inset 0 0 0 2px #2563eb;
+  box-shadow: inset 0 0 0 2px var(--gantt-focus-color, #2563eb);
   z-index: 1;
 }
 
@@ -2109,19 +2109,19 @@
   min-height: 100%;
   border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   border-radius: 0;
-  background: #ffffff;
+  background: var(--gantt-cell-background, #ffffff);
   padding: 0 8px;
   font-size: 0.8125rem;
   line-height: 1;
   font-family: inherit;
-  color: #0f172a;
+  color: var(--gantt-text-color, #0f172a);
   box-shadow: none;
 }
 
 .gantt-tl-inline-editor-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.18);
+  border-color: var(--gantt-focus-color, #3b82f6);
+  box-shadow: inset 0 0 0 1px var(--gantt-focus-overlay, rgba(59, 130, 246, 0.18));
 }
 
 .gantt-tl-add-btn:hover {
@@ -2132,8 +2132,8 @@
 /* Blue top border when dragging over the add button */
 .gantt-tl-add-btn-drag-over {
   position: relative;
-  background: rgba(59, 130, 246, 0.08);
-  color: #3b82f6;
+  background: var(--gantt-selection-overlay, rgba(59, 130, 246, 0.08));
+  color: var(--gantt-info-foreground, #3b82f6);
 }
 
 .gantt-tl-add-btn-drag-over::before {
@@ -2143,7 +2143,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background-color: #3b82f6;
+  background-color: var(--gantt-action-solid-background, #3b82f6);
 }
 
 .gantt-tl-cell-new-name {

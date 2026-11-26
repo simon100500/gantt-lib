@@ -79,7 +79,7 @@
 
 /* Selected dependency highlighting */
 .gantt-dependency-selected {
-  stroke: #ef4444;
+  stroke: var(--gantt-dependency-selected-color, #ef4444);
   stroke-width: 2;
 }
 
@@ -126,7 +126,7 @@
    handles and vertical resize grips. It never intercepts canvas panning. */
 .gantt-dependency-coupling {
   fill: none;
-  stroke: #fff;
+  stroke: var(--gantt-solid-foreground, #fff);
   stroke-width: 3;
   stroke-linecap: round;
   opacity: 0.5;
@@ -137,7 +137,7 @@
   opacity: 1;
 }
 .gantt-dependency-selected.gantt-dependency-coupling {
-  stroke: #ef4444;
+  stroke: var(--gantt-dependency-selected-color, #ef4444);
   opacity: 1;
 }
 .gantt-dependency-cycle.gantt-dependency-coupling {

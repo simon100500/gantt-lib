@@ -6,7 +6,7 @@
 /*   PURPOSE: Define task-row layout, bar affordances, and dependency-port presentation. */
 /*   SCOPE: Task row positioning, task bars and fixed-boundary markers, resize zones, dependency ports, baseline labels, and touch-device suppression. */
 /*   INPUTS: TaskRow DOM classes and CSS custom properties. */
-/*   OUTPUTS: A readable task row with non-overlapping drag, resize, and dependency-link affordances. */
+/*   OUTPUTS: A themeable readable task row with non-overlapping drag, resize, and dependency-link affordances. */
 /*   INVARIANT: Dependency creation ports never participate in touch scrolling or overlap the sticky date header on mobile/touch layouts. */
 /* END_MODULE_CONTRACT */
 
@@ -22,7 +22,7 @@
 }
 
 .gantt-tr-row.gantt-tr-row-filter-match {
-  background-color: rgba(250, 204, 21, 0.24);
+  background-color: var(--gantt-warning-overlay, rgba(250, 204, 21, 0.24));
 }
 
 .gantt-tr-row:hover,
@@ -32,8 +32,8 @@
 
 .gantt-tr-row.gantt-tr-row-filter-match:hover,
 .gantt-tr-row.gantt-tr-row-filter-match.gantt-tr-row-hovered {
-  background-color: rgba(250, 204, 21, 0.3);
-  box-shadow: inset 0 0 0 9999px rgba(250, 204, 21, 0.3);
+  background-color: var(--gantt-warning-overlay, rgba(250, 204, 21, 0.3));
+  box-shadow: inset 0 0 0 9999px var(--gantt-warning-overlay, rgba(250, 204, 21, 0.3));
 }
 
 .gantt-tr-taskBar {
@@ -60,7 +60,7 @@
   width: 4px;
   height: 10px;
   transform: translateY(-50%);
-  background: #fff;
+  background: var(--gantt-cell-background, #fff);
   pointer-events: none;
 }
 .gantt-tr-fixedBoundary-start { left: 2px; clip-path: polygon(0 0, 100% 50%, 0 100%); }
@@ -77,7 +77,7 @@
   border-radius: 8px;
   background: var(--gantt-background, #fff);
   color: var(--gantt-text-color, #222);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+  box-shadow: 0 8px 24px var(--gantt-shadow-color, rgba(0, 0, 0, .16));
   pointer-events: none;
   font-size: 12px;
 }
@@ -95,7 +95,7 @@
   display: flex;
   justify-content: space-between;
   margin: 0 0 3px 68px;
-  color: #64748b;
+  color: var(--gantt-text-muted-color, #64748b);
   font-size: 10px;
 }
 
@@ -103,7 +103,7 @@
   position: relative;
   height: 10px;
   border-radius: 2px;
-  background: #f1f5f9;
+  background: var(--gantt-header-background, #f1f5f9);
 }
 
 .gantt-tr-compositePreviewBar {
@@ -130,14 +130,14 @@
 .gantt-tr-compositeSegment {
   position: absolute;
   box-sizing: border-box;
-  background: linear-gradient(90deg, rgba(255, 255, 255, .34), rgba(255, 255, 255, .06));
+  background: linear-gradient(90deg, var(--gantt-bar-highlight-color, rgba(255, 255, 255, .34)), var(--gantt-bar-highlight-soft-color, rgba(255, 255, 255, .06)));
 }
 
 /* Отсечка — в границах полосы своего потока, у левого края работы. */
 .gantt-tr-compositeSegmentCut {
   position: absolute;
   width: 1px;
-  background: rgba(255, 255, 255, .9);
+  background: var(--gantt-bar-highlight-color, rgba(255, 255, 255, .9));
 }
 
 .gantt-tr-compositeHoverChevron {
@@ -153,8 +153,8 @@
   transform: translateY(-50%);
   padding: 0;
   border-radius: 4px;
-  background: rgba(24, 16, 45, .48);
-  color: white;
+  background: var(--gantt-neutral-overlay, rgba(24, 16, 45, .48));
+  color: var(--gantt-solid-foreground, white);
   font-size: 11px;
   font-weight: 700;
   opacity: 0;
@@ -240,7 +240,7 @@
 }
 
 .gantt-tr-milestone:hover {
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 4px var(--gantt-shadow-color, rgba(0, 0, 0, 0.18));
 }
 
 /**
@@ -248,7 +248,7 @@
  * Transition disabled during drag (see .gantt-tr-taskBar.gantt-tr-dragging)
  */
 .gantt-tr-taskBar:hover {
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 4px var(--gantt-shadow-color, rgba(0, 0, 0, 0.15));
 }
 
 /**
@@ -262,7 +262,7 @@
  */
 .gantt-tr-taskBar.gantt-tr-dragging {
   cursor: grabbing;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px var(--gantt-shadow-color, rgba(0, 0, 0, 0.3));
   opacity: 1;
   transition: none !important;
 }
@@ -326,7 +326,7 @@
   bottom: 22%;
   width: 3px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.65);
+  background: var(--gantt-bar-highlight-color, rgba(255, 255, 255, 0.65));
   opacity: 0;
   transition: opacity 140ms ease;
   pointer-events: none;
@@ -468,8 +468,8 @@
   z-index: 2;
   height: var(--gantt-baseline-thickness, 6px);
   /* border-radius: 4px; */
-  border-right: 3px solid rgba(255, 255, 255, 0.8);
-  border-left: 3px solid rgb(255, 255, 255, 0.8);
+  border-right: 3px solid var(--gantt-bar-highlight-color, rgba(255, 255, 255, 0.8));
+  border-left: 3px solid var(--gantt-bar-highlight-color, rgb(255, 255, 255, 0.8));
   /* border: 1px solid rgba(255, 255, 255, 0.689); */
   background-color: var(--gantt-baseline-color, rgba(0, 187, 212, 1));
   pointer-events: none;
@@ -498,7 +498,7 @@
 
 .gantt-tr-dateLabel {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
@@ -578,13 +578,13 @@
 
 /* Unsynced task bar — dashed outline indicates local override from master template */
 .gantt-tr-taskBar.gantt-tr-unsynced {
-  outline: 2px dashed rgba(239, 68, 68, 0.6);
+  outline: 2px dashed var(--gantt-danger-overlay, rgba(239, 68, 68, 0.6));
   outline-offset: -2px;
   opacity: 0.85;
 }
 
 .gantt-tr-taskBar.gantt-tr-unsynced:hover {
-  outline: 2px dashed rgba(239, 68, 68, 0.9);
+  outline: 2px dashed var(--gantt-danger-overlay, rgba(239, 68, 68, 0.9));
 }
 
 /* Divider line for visual grouping of task sets */
@@ -684,7 +684,7 @@
 .gantt-tr-activityBar-dragging {
   z-index: 3;
   cursor: grabbing;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 14px var(--gantt-shadow-color, rgba(0, 0, 0, 0.25));
 }
 
 /* Полоса, активированная кликом: только её тянет драг, остальной драг панорамирует холст. */
@@ -732,7 +732,7 @@
   border-radius: 4px;
   background: var(--gantt-activity-tip-bg, #111111);
   color: var(--gantt-activity-tip-color, #ffffff);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 2px 8px var(--gantt-shadow-color, rgba(0, 0, 0, 0.28));
   font-size: 12px;
   line-height: 1.2;
   white-space: nowrap;
@@ -765,7 +765,7 @@
   margin-top: 3px;
   font-size: 11px;
   line-height: 1.3;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--gantt-solid-foreground, rgba(255, 255, 255, 0.75));
 }
 
 /* Строки tooltipFields работы. */
@@ -780,7 +780,7 @@
 }
 
 .gantt-tr-activityTipFieldLabel {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--gantt-solid-foreground, rgba(255, 255, 255, 0.55));
   flex-shrink: 0;
 }
 
@@ -792,7 +792,7 @@
 
 .gantt-tr-activityTipReason {
   margin-left: 6px;
-  color: #fca5a5;
+  color: var(--gantt-danger-foreground, #fca5a5);
 }
 
 /* Горизонтальная стрелка в зазоре между последовательными работами одной дорожки.
@@ -860,5 +860,5 @@
 /* Буксируемая полоса, доехавшая до предела: дальше не пускает связь. */
 .gantt-tr-activityBar-atLimit {
   cursor: not-allowed;
-  box-shadow: inset 3px 0 0 var(--gantt-conflict-color, #dc2626), 0 4px 14px rgba(0, 0, 0, 0.25);
+  box-shadow: inset 3px 0 0 var(--gantt-conflict-color, #dc2626), 0 4px 14px var(--gantt-shadow-color, rgba(0, 0, 0, 0.25));
 }

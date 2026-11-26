@@ -1217,7 +1217,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const getHierarchyLineColor = useCallback((columnDepth: number) => {
       return columnDepth % 2 === 0
-        ? "#93c5fd"
+        ? "var(--gantt-focus-color, #93c5fd)"
         : "var(--gantt-hierarchy-line-color)";
     }, []);
 
@@ -2536,10 +2536,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               ? { visibility: "hidden", pointerEvents: "none" }
               : task.progress === 100
                 ? {
-                  backgroundColor: "#17c864",
+                  backgroundColor: "var(--gantt-success-solid-background, #17c864)",
                   borderRadius: "4px",
                   padding: "2px 4px",
-                  color: "#ffffff",
+                  color: "var(--gantt-solid-foreground, #ffffff)",
                 }
                 : undefined
           }

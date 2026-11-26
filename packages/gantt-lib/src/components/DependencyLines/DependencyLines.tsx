@@ -148,7 +148,7 @@ const DependencyLineView = React.memo(function DependencyLineView({
   else markerEnd = `url(#${markerPrefix}-arrowhead)`;
 
   const lagColor = selected
-    ? '#ef4444'
+    ? 'var(--gantt-dependency-selected-color, #ef4444)'
     : hasCycle
       ? 'var(--gantt-dependency-cycle-color, #ef4444)'
       : line.isCritical
@@ -685,7 +685,7 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
         >
           <polygon
             points="0 0, 8 3, 0 6"
-            fill="#ef4444"
+            fill="var(--gantt-dependency-selected-color, #ef4444)"
           />
         </marker>
 

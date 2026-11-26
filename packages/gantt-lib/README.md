@@ -498,10 +498,34 @@ interface DependencyError {
 
 ### CSS Variables
 
-Override these CSS variables to customize the appearance:
+Override these CSS variables to customize the appearance. Set theme variables on `:root` when using popovers or task tooltips: these render in a portal under `document.body` and do not inherit variables from a chart container.
 
 ```css
 :root {
+  /* Shared UI colors (each use retains its original light fallback) */
+  --gantt-text-color: #1f2937;
+  --gantt-text-muted-color: #6b7280;
+  --gantt-header-background: #f9fafb;
+  --gantt-hover-background: #f3f4f6;
+  --gantt-control-background: #ffffff;
+  --gantt-control-border-color: #d1d5db;
+  --gantt-focus-color: #3b82f6;
+  --gantt-task-label-color: #1f2937;
+  --gantt-action-solid-background: #3b82f6;
+  --gantt-danger-solid-background: #dc2626;
+  --gantt-success-solid-background: #059669;
+  --gantt-solid-foreground: #ffffff;
+  --gantt-inverse-background: #111827;
+  --gantt-shadow-color: rgba(15, 23, 42, 0.18);
+  --gantt-info-background: #deebff;
+  --gantt-info-foreground: #0747a6;
+  --gantt-success-background: #e3fcef;
+  --gantt-success-foreground: #006644;
+  --gantt-danger-background: #fef2f2;
+  --gantt-danger-foreground: #991b1b;
+  --gantt-selection-background: rgba(37, 99, 235, 0.12);
+  --gantt-selection-foreground: #2563eb;
+
   /* Grid Colors */
   --gantt-grid-line-color: #e0e0e0;
   --gantt-cell-background: #ffffff;
@@ -540,6 +564,10 @@ Override these CSS variables to customize the appearance:
   --gantt-day-line-color: #f3f4f6;
 }
 ```
+
+The legacy input, calendar and popover variables are independent and must also be set for a complete theme: `--gantt-input-bg`, `--gantt-input-text`, `--gantt-input-border`, `--gantt-input-focus-ring`, `--gantt-input-placeholder`, `--gantt-popover-bg`, `--gantt-popover-border`, `--gantt-calendar-bg`, `--gantt-calendar-text`, and the `--gantt-calendar-day-*` and `--gantt-calendar-text-*` state colors. Set `--gantt-task-label-color` for labels outside bars; the bar and its contrast text remain independent. `--gantt-plan-fact-day-line-color` and `--gantt-dependency-selected-color` override those specialized features. `--gantt-bar-highlight-color` controls translucent marks over colored bars.
+
+For translucent states and gradients, supply alpha colors for `--gantt-neutral-overlay`, `--gantt-warning-overlay`, `--gantt-danger-overlay`, `--gantt-success-overlay`, `--gantt-focus-overlay`, `--gantt-selection-overlay` and `--gantt-selection-overlay-strong`; keep `--gantt-selection-overlay-clear` transparent. `--gantt-skeleton-base-color` and `--gantt-skeleton-highlight-color` style loading gradients, while `--gantt-bar-highlight-color` and `--gantt-bar-highlight-soft-color` style marks over colored bars. Each use retains its historical light fallback when a variable is unset. `--gantt-warning-background` styles highlighted rows and `--gantt-warning-foreground` styles warning text.
 
 ### Example: Dark Theme
 
