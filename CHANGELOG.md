@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.10] - 2026-11-26
+
+### Fixes
+
+- Keep plain task and activity labels readable on light-colored bars in dark themes without changing the light theme.
+
 ## [0.146.9] - 2026-11-26
 
 ### Fixes
