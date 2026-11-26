@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.11] - 2026-11-26
+
+### Fixes
+
+- Restore original light-theme resize grips, dependency ports and fixed-date markers while allowing dark-specific styling.
+
 ## [0.146.10] - 2026-11-26
 
 ### Fixes
