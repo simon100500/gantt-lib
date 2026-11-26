@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.14] - 2026-11-26
+
+### Fixes
+
+- Restore duration controls and let users pin or unpin the current date directly from the task calendar.
+
 ## [0.146.13] - 2026-11-26
 
 ### Features

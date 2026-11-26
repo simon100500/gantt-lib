@@ -7,7 +7,7 @@
 // ROLE: RUNTIME
 // MAP_MODE: LOCALS
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
-// OUTPUTS: Capability-checked row operations, fixed-date field updates and checkbox changes that carry the Shift modifier.
+// OUTPUTS: Capability-checked row operations, date pin toggles and duration-aware boundary edits, and Shift-range selection.
 // END_MODULE_CONTRACT
 
 import React, {
@@ -40,7 +40,7 @@ import {
   recalculateIncomingLags,
 } from "../../core/scheduling";
 import { Input } from "../ui/Input";
-import { DatePicker, TaskDatePicker } from "../ui/DatePicker";
+import { DatePicker, type TaskDatePicker } from "../ui/DatePicker";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
 import { LINK_TYPE_ICONS } from "./DepIcons";
 import type { TaskListColumn as NewTaskListColumn } from "./columns/types";
@@ -51,6 +51,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const LINK_TYPE_ORDER: LinkType[] = ["FS", "SS", "FF", "SF"];
 
 export const FixedDateCommitContext = React.createContext<((tasks: Task[]) => void) | null | undefined>(undefined);
+const TaskPicker = DatePicker as React.FC<React.ComponentProps<typeof TaskDatePicker>>;
 
 const getInclusiveDurationDays = (
   startDate: string | Date,
@@ -1736,10 +1737,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [task, onTasksChange, businessDays, getDuration, weekendPredicate, allTasks, isMilestone, emitMilestoneDateChange, taskDateChangeMode],
     );
 
-    const datePickerFooter = onTaskDateChangeModeChange ? (
+    const datePickerFooter = (durationDisabled = isMilestone) => onTaskDateChangeModeChange ? (
       <label className="gantt-datepicker-mode-checkbox">
         <input
           type="checkbox"
+          disabled={durationDisabled}
           checked={taskDateChangeMode === 'preserve-duration'}
           onChange={(event) => onTaskDateChangeModeChange(event.target.checked ? 'preserve-duration' : 'free')}
         />
@@ -1750,11 +1752,22 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const fixedDateCommit = React.useContext(FixedDateCommitContext);
     const onFixedDateChange = fixedDateCommit === undefined ? onTasksChange : fixedDateCommit;
     // START_BLOCK_FIXED_BOUNDARY_PICKER
-    const renderDatePicker = (boundary: 'start' | 'end') => {
+    const renderDatePicker = (boundary: 'start' | 'end', dateAction: React.ReactNode) => {
       const isStart = boundary === 'start';
       const ownAnchor = isStart ? task.fixedStartDate : task.fixedEndDate;
       const oppositeAnchor = isStart ? task.fixedEndDate : task.fixedStartDate;
       const fixedDate = ownAnchor ?? (isMilestone ? oppositeAnchor : null);
+      const currentDate = isStart ? startDateISO : endDateISO;
+      const canTogglePin = !!onFixedDateChange && !task.locked && (!renderTaskDateAction || !!dateAction);
+      const togglePin = () => {
+        const update = { ...task };
+        if (isMilestone && fixedDate) {
+          update.fixedStartDate = update.fixedEndDate = null;
+        } else {
+          update[isStart ? 'fixedStartDate' : 'fixedEndDate'] = fixedDate ? null : currentDate;
+        }
+        onFixedDateChange?.([update]);
+      };
       const pickerProps = {
         format: 'dd.MM.yy',
         portal: true,
@@ -1763,33 +1776,57 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       };
       if (!fixedDate) {
         return (
-          <DatePicker
+          <TaskPicker
             {...pickerProps}
-            value={isStart ? startDateISO : endDateISO}
+            value={currentDate}
             onChange={isStart ? handleStartDateChange : handleEndDateChange}
             disabled={task.locked}
-            footer={datePickerFooter}
+            footer={datePickerFooter()}
+            pinAction={canTogglePin ? { label: 'Закрепить текущую дату', run: togglePin } : undefined}
           />
         );
       }
+      const preserveDuration = taskDateChangeMode === 'preserve-duration';
+      const moveBothPins = !isMilestone && !!oppositeAnchor && preserveDuration;
+      const keepOppositeDate = !isMilestone && !oppositeAnchor && !isParent && !preserveDuration;
       return (
-        <TaskDatePicker
+        <TaskPicker
           {...pickerProps}
           value={fixedDate}
           disabled={task.locked || !onFixedDateChange}
+          pinAction={canTogglePin ? { label: 'Снять закрепление', run: togglePin } : undefined}
+          footer={<>
+            {datePickerFooter(isMilestone || (isParent && !oppositeAnchor))}
+            {moveBothPins && <div className="gantt-datepicker-fixed-note">Обе закреплённые даты сдвинутся.</div>}
+            {isParent && !oppositeAnchor && <div className="gantt-datepicker-fixed-note">Длительность этапа зависит от вложенных работ.</div>}
+          </>}
           fixedDateEdit={{
             title: isMilestone ? 'Закреплённая дата вехи' : isStart ? 'Закреплённое начало' : 'Закреплённое окончание',
             validate: (date) => {
-              if (!oppositeAnchor || isMilestone) return;
-              if (isStart && date > oppositeAnchor) return 'Начало позже закреплённого окончания.';
-              if (!isStart && date < oppositeAnchor) return 'Окончание раньше закреплённого начала.';
+              if (isMilestone || moveBothPins) return;
+              const opposite = oppositeAnchor ?? (keepOppositeDate ? (isStart ? endDateISO : startDateISO) : null);
+              if (!opposite) return;
+              if (isStart && date > opposite) return oppositeAnchor ? 'Начало позже закреплённого окончания.' : 'Начало позже окончания.';
+              if (!isStart && date < opposite) return oppositeAnchor ? 'Окончание раньше закреплённого начала.' : 'Окончание раньше начала.';
             },
           }}
-          onChange={(date) => onFixedDateChange?.([{
-            ...task,
-            fixedStartDate: task.fixedStartDate && (isStart || isMilestone) ? date : task.fixedStartDate,
-            fixedEndDate: task.fixedEndDate && (!isStart || isMilestone) ? date : task.fixedEndDate,
-          }])}
+          onChange={(date) => {
+            const update = {
+              ...task,
+              fixedStartDate: task.fixedStartDate && (isStart || isMilestone) ? date : task.fixedStartDate,
+              fixedEndDate: task.fixedEndDate && (!isStart || isMilestone) ? date : task.fixedEndDate,
+            };
+            if (moveBothPins) {
+              const duration = getDuration(task.startDate, task.endDate);
+              const selected = parseUTCDate(date);
+              if (isStart) update.fixedEndDate = buildTaskRangeFromStart(selected, duration, businessDays, weekendPredicate).end.toISOString().slice(0, 10);
+              else update.fixedStartDate = buildTaskRangeFromEnd(selected, duration, businessDays, weekendPredicate).start.toISOString().slice(0, 10);
+            } else if (keepOppositeDate) {
+              if (isStart) update.startDate = date;
+              else update.endDate = date;
+            }
+            onFixedDateChange?.([update]);
+          }}
         />
       );
     };
@@ -2389,14 +2426,16 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       </div>
     );
 
+    const startDateAction = renderTaskDateAction?.(task, 'start');
+    const endDateAction = renderTaskDateAction?.(task, 'end');
     const startDateCell = (
       <div
         className="gantt-tl-cell gantt-tl-cell-date"
         style={getColumnStyle('startDate', 90)}
         onClick={(e) => e.stopPropagation()}
       >
-        {renderDatePicker('start')}
-        {renderTaskDateAction?.(task, 'start')}
+        {renderDatePicker('start', startDateAction)}
+        {startDateAction}
       </div>
     );
 
@@ -2406,8 +2445,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         style={getColumnStyle('endDate', 90)}
         onClick={(e) => e.stopPropagation()}
       >
-        {renderDatePicker('end')}
-        {renderTaskDateAction?.(task, 'end')}
+        {renderDatePicker('end', endDateAction)}
+        {endDateAction}
       </div>
     );
 

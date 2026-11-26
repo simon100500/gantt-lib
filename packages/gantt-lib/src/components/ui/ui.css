@@ -390,8 +390,15 @@
 
 .gantt-datepicker-fixed-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.gantt-datepicker-fixed-note {
+  margin: 4px 0;
+  color: var(--gantt-calendar-text-muted);
+  font-size: 0.8rem;
 }
 
 .gantt-datepicker-fixed-error {

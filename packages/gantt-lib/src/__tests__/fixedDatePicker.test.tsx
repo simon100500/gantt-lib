@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Verify real date pickers for fixed task boundaries.
-// SCOPE: Explicit apply, keyboard cancellation, range validation, exact calendar dates and milestones.
+// SCOPE: Explicit apply, pin toggling, duration modes, cancellation, validation, exact dates and milestones.
 // INPUTS: Anchored tasks and real chart controls with observed host callbacks.
 // OUTPUTS: Field-only edits for valid dates and no mutations from invalid or discarded drafts.
 // END_MODULE_CONTRACT
@@ -38,6 +38,7 @@ it.each([
     tasks={[task, child]}
     showTaskList
     businessDays={false}
+    taskDateChangeMode="free"
     onTasksChange={onTasksChange}
     onScheduleIntent={onScheduleIntent}
   />);
@@ -53,7 +54,7 @@ it.each([
 
 it('keeps the picker open on a conflicting date and discards the draft on Escape', async () => {
   const onTasksChange = vi.fn();
-  const { container } = render(<GanttChart tasks={[task]} showTaskList businessDays={false} onTasksChange={onTasksChange} />);
+  const { container } = render(<GanttChart tasks={[task]} showTaskList businessDays={false} taskDateChangeMode="free" onTasksChange={onTasksChange} />);
   const trigger = dateTriggers(container)[0]!;
   const picker = await openDate(trigger);
   fireEvent.keyDown(picker.getByRole('textbox'), { key: 'Backspace' });
@@ -90,4 +91,29 @@ it('applies one exact calendar date to both existing anchors of a milestone', as
 it('disables an anchored picker when the chart has only a scheduling callback', () => {
   const { container } = render(<GanttChart tasks={[task]} showTaskList onScheduleIntent={vi.fn()} />);
   expect([...dateTriggers(container)].map((button) => button.disabled)).toEqual([true, true]);
+});
+
+it('shows the duration checkbox and shifts both existing anchors when it is on', async () => {
+  const onTasksChange = vi.fn();
+  const { container } = render(<GanttChart tasks={[task]} showTaskList businessDays={false} onTasksChange={onTasksChange} />);
+  const picker = await openDate(dateTriggers(container)[0]!);
+  expect((picker.getByRole('checkbox', { name: 'Сохранять длительность' }) as HTMLInputElement).checked).toBe(true);
+  expect(picker.getByText('Обе закреплённые даты сдвинутся.')).toBeTruthy();
+  fireEvent.click(picker.getByRole('button', { name: '+1' }));
+  fireEvent.click(picker.getByRole('button', { name: 'Применить' }));
+  expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([expect.objectContaining({
+    fixedStartDate: '2026-10-06', fixedEndDate: '2026-10-10',
+  })]);
+});
+
+it.each([
+  { existing: '2026-10-05', label: 'Снять закрепление', expected: null },
+  { existing: null, label: 'Закрепить текущую дату', expected: '2026-10-05' },
+])('toggles a pin via $label without changing the other boundary', async ({ existing, label, expected }) => {
+  const onTasksChange = vi.fn();
+  const row = { ...task, fixedStartDate: existing };
+  const { container } = render(<GanttChart tasks={[row]} showTaskList onTasksChange={onTasksChange} />);
+  const picker = await openDate(dateTriggers(container)[0]!);
+  fireEvent.click(picker.getByRole('button', { name: label }));
+  expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([expect.objectContaining({ ...row, fixedStartDate: expected })]);
 });

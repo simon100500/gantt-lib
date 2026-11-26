@@ -2,7 +2,7 @@
 
 // START_MODULE_CONTRACT
 // PURPOSE: Edit calendar dates through the segmented input, quick shifts, and calendar.
-// SCOPE: Ordinary date commits and explicit, validated commits for the internal fixed-boundary editor.
+// SCOPE: Ordinary date commits, fixed-boundary confirmation, and the internal task pin action.
 // INPUTS: Selected ISO date, calendar preferences, and an optional internal fixed boundary label and validator.
 // OUTPUTS: A date change callback with the chosen ISO day and inline feedback for invalid fixed dates.
 // END_MODULE_CONTRACT
@@ -37,6 +37,7 @@ export interface DatePickerProps {
 
 interface TaskDatePickerProps extends DatePickerProps {
   fixedDateEdit?: { title: string; validate: (date: string) => string | undefined };
+  pinAction?: { label: string; run: () => void };
 }
 
 const segments = [
@@ -104,6 +105,7 @@ export const TaskDatePicker: React.FC<TaskDatePickerProps> = ({
   businessDays = true,
   footer,
   fixedDateEdit,
+  pinAction,
 }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -443,15 +445,26 @@ export const TaskDatePicker: React.FC<TaskDatePickerProps> = ({
           initialDate={activeDate}
           isWeekend={isWeekend}
         />
-        {fixedDateEdit ? (
+        {(fixedDateEdit || pinAction || footer) && (
           <div className="gantt-datepicker-footer">
+            {footer}
             {fixedDateError && <div className="gantt-datepicker-fixed-error" role="alert">{fixedDateError}</div>}
-            <div className="gantt-datepicker-fixed-actions">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>Отмена</Button>
-              <Button type="button" size="sm" onClick={applyFixedDate}>Применить</Button>
-            </div>
+            {(pinAction || fixedDateEdit) && (
+              <div className="gantt-datepicker-fixed-actions">
+                {pinAction && (
+                  <Button type="button" variant="ghost" size="sm" onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => { pinAction.run(); setOpen(false); }}>
+                    {pinAction.label}
+                  </Button>
+                )}
+                {fixedDateEdit && <>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>Отмена</Button>
+                  <Button type="button" size="sm" onClick={applyFixedDate}>Применить</Button>
+                </>}
+              </div>
+            )}
           </div>
-        ) : footer ? <div className="gantt-datepicker-footer">{footer}</div> : null}
+        )}
       </PopoverContent>
     </Popover>
   );
