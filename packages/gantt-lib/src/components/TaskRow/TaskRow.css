@@ -6,7 +6,7 @@
 /*   PURPOSE: Define task-row layout, bar affordances, and dependency-port presentation. */
 /*   SCOPE: Task row positioning, task bars and fixed-boundary markers, resize zones, dependency ports, baseline labels, and touch-device suppression. */
 /*   INPUTS: TaskRow DOM classes and CSS custom properties. */
-/*   OUTPUTS: A themeable task row with plain in-bar labels and non-overlapping drag, resize, and dependency-link affordances. */
+/*   OUTPUTS: A themeable task row with plain labels and theme-specific fixed markers, resize grips and dependency ports. */
 /*   INVARIANT: Dependency creation ports never participate in touch scrolling or overlap the sticky date header on mobile/touch layouts. */
 /* END_MODULE_CONTRACT */
 
@@ -69,8 +69,8 @@
   position: absolute;
   z-index: 4;
   top: 50%;
-  width: 6px;
-  height: 12px;
+  width: var(--gantt-fixed-marker-width, 4px);
+  height: var(--gantt-fixed-marker-height, 10px);
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -82,9 +82,10 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: var(--gantt-bar-marker-outline, #000);
+  background: var(--gantt-fixed-marker-outline-color, #fff);
 }
 .gantt-tr-fixedBoundary::after {
+  display: var(--gantt-fixed-marker-inner-display, none);
   inset: 2px 1px;
   width: 4px;
   height: 8px;
@@ -184,8 +185,8 @@
   transform: translateY(-50%);
   padding: 0;
   border-radius: 4px;
-  background: var(--gantt-bar-label-background, rgba(0, 0, 0, 0.75));
-  color: var(--gantt-bar-label-foreground, var(--gantt-task-bar-text-color, #fff));
+  background: var(--gantt-composite-chevron-background, rgba(24, 16, 45, .48));
+  color: var(--gantt-composite-chevron-color, white);
   font-size: 11px;
   font-weight: 700;
   opacity: 0;
@@ -357,8 +358,8 @@
   bottom: 22%;
   width: 3px;
   border-radius: 2px;
-  background: var(--gantt-bar-marker-color, #fff);
-  box-shadow: 0 0 0 1px var(--gantt-bar-marker-outline, #000);
+  background: var(--gantt-resize-handle-color, rgba(255, 255, 255, 0.65));
+  box-shadow: var(--gantt-resize-handle-shadow, none);
   opacity: 0;
   transition: opacity 140ms ease;
   pointer-events: none;
@@ -434,7 +435,7 @@
   height: 8px;
   border-radius: 50%;
   background: var(--gantt-dependency-port-color, #7c3aed);
-  box-shadow: 0 0 0 1px var(--gantt-bar-marker-color, #fff), 0 0 0 2px var(--gantt-bar-marker-outline, #000);
+  box-shadow: var(--gantt-dependency-port-shadow, 0 0 0 2px var(--gantt-cell-background, #fff));
   transform: translateY(-50%) scale(.8);
   transition: transform 160ms cubic-bezier(.2, 0, 0, 1), box-shadow 160ms ease;
   pointer-events: none;
@@ -449,10 +450,9 @@
 .gantt-tr-dependencyPort:focus-visible::after,
 .gantt-tr-dependencyPortDragActive::after {
   transform: translateY(-50%) scale(1);
-  box-shadow:
-    0 0 0 1px var(--gantt-bar-marker-color, #fff),
-    0 0 0 2px var(--gantt-bar-marker-outline, #000),
-    0 0 0 5px color-mix(in srgb, var(--gantt-dependency-port-color, #7c3aed) 24%, transparent);
+  box-shadow: var(--gantt-dependency-port-active-shadow,
+    0 0 0 2px var(--gantt-cell-background, #fff),
+    0 0 0 5px color-mix(in srgb, var(--gantt-dependency-port-color, #7c3aed) 24%, transparent));
 }
 
 /* Dots hug the bar edges (2px off), matching where the dependency line

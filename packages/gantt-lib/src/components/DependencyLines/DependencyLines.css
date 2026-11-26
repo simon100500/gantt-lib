@@ -1,6 +1,6 @@
 /* START_MODULE_CONTRACT
  PURPOSE: Style native dependency routes and visual-only touching-activity joints.
- SCOPE: SVG paths, hit areas, 12x3px rounded dash joints with contrasting outline and hover/selection states.
+ SCOPE: SVG paths, hit areas, themeable 12x3px rounded dash joints and hover/selection states.
  INPUTS: DependencyLines class names and theme variables.
  OUTPUTS: Visible routes; only editable non-coupling links have hit targets.
  END_MODULE_CONTRACT */
@@ -123,8 +123,8 @@
   stroke: var(--gantt-bar-marker-color, #fff);
   stroke-width: 3;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 1px var(--gantt-bar-marker-outline, #000));
-  opacity: 1;
+  filter: var(--gantt-dependency-coupling-filter, none);
+  opacity: var(--gantt-dependency-coupling-opacity, 0.5);
 }
 .gantt-dependency-line-hovered .gantt-dependency-coupling {
   stroke: var(--gantt-dependency-hover-color, #ef4444);
