@@ -26,7 +26,7 @@ import './TaskList.css';
 // SCOPE: Render fixed-aware normalized tasks, mark compact group edges from full visible order, pass through date actions and route duration edits through the scheduling adapter.
 // DEPENDS: TaskListRow and GanttChart callbacks.
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
-// OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
+// OUTPUTS: Capability-checked row operations and single-row or Shift-range selection in visible order.
 // END_MODULE_CONTRACT
 
 export { LINK_TYPE_ICONS };
@@ -431,6 +431,11 @@ export const TaskList: React.FC<TaskListProps> = ({
   const columnResizeHeaderRef = useRef<HTMLDivElement>(null);
   const resizeStateRef = useRef<ColumnResizeState | null>(null);
   const effectiveSelectedTaskIds = selectedTaskIds ?? internalSelectedTaskIds;
+  const selectionAnchor = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!enableTaskMultiSelect) selectionAnchor.current = null;
+  }, [enableTaskMultiSelect]);
 
   useEffect(() => {
     if (!isColumnResizeMode) {
@@ -556,17 +561,25 @@ export const TaskList: React.FC<TaskListProps> = ({
   const areAllVisibleTasksSelected = visibleTaskIds.length > 0 && selectedVisibleTaskCount === visibleTaskIds.length;
   const areSomeVisibleTasksSelected = selectedVisibleTaskCount > 0 && !areAllVisibleTasksSelected;
 
-  const handleToggleTaskSelection = useCallback((taskId: string, checked: boolean) => {
+  const handleToggleTaskSelection = useCallback((taskId: string, checked: boolean, extend: boolean) => {
     const nextSelectedTaskIds = new Set(effectiveSelectedTaskIds);
-    if (checked) {
-      nextSelectedTaskIds.add(taskId);
-    } else {
-      nextSelectedTaskIds.delete(taskId);
+    const anchorIndex = extend && selectionAnchor.current !== null
+      ? visibleTaskIds.indexOf(selectionAnchor.current)
+      : -1;
+    const targetIndex = visibleTaskIds.indexOf(taskId);
+    const range = anchorIndex < 0
+      ? [taskId]
+      : visibleTaskIds.slice(Math.min(anchorIndex, targetIndex), Math.max(anchorIndex, targetIndex) + 1);
+    if (anchorIndex < 0) selectionAnchor.current = taskId;
+    for (const id of range) {
+      if (checked) nextSelectedTaskIds.add(id);
+      else nextSelectedTaskIds.delete(id);
     }
     emitSelectedTaskIdsChange(nextSelectedTaskIds);
-  }, [effectiveSelectedTaskIds, emitSelectedTaskIdsChange]);
+  }, [effectiveSelectedTaskIds, emitSelectedTaskIdsChange, visibleTaskIds]);
 
   const handleToggleAllVisibleTaskSelection = useCallback((checked: boolean) => {
+    selectionAnchor.current = null;
     const nextSelectedTaskIds = new Set(effectiveSelectedTaskIds);
     for (const taskId of visibleTaskIds) {
       if (checked) {

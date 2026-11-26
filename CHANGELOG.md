@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.12] - 2026-11-26
+
+### Features
+
+- Shift-click task-list checkboxes to select or clear a range of visible rows.
+
 ## [0.146.11] - 2026-11-26
 
 ### Fixes

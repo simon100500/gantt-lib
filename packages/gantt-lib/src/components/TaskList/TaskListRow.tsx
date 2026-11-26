@@ -7,7 +7,7 @@
 // ROLE: RUNTIME
 // MAP_MODE: LOCALS
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
-// OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
+// OUTPUTS: Capability-checked row operations and checkbox changes that carry the Shift modifier.
 // END_MODULE_CONTRACT
 
 import React, {
@@ -884,7 +884,7 @@ export interface TaskListRowProps {
   /** Whether this task is currently selected by the multi-select checkbox column */
   isTaskSelected?: boolean;
   /** Callback when this task's multi-select checkbox changes */
-  onTaskSelectionChange?: (taskId: string, checked: boolean) => void;
+  onTaskSelectionChange?: (taskId: string, checked: boolean, extend: boolean) => void;
   /** Globally active custom cell in the task-list grid */
   activeCustomCell?: { taskId: string; columnId: string } | null;
   /** Updates the globally active custom cell */
@@ -2047,7 +2047,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-selection-checkbox"
           aria-label={`Выбрать работу ${taskNumber ? `${taskNumber}. ` : ""}${task.name}`}
           checked={isTaskSelected}
-          onChange={(event) => onTaskSelectionChange?.(task.id, event.target.checked)}
+          onChange={(event) => onTaskSelectionChange?.(
+            task.id,
+            event.currentTarget.checked,
+            event.nativeEvent instanceof MouseEvent && event.nativeEvent.shiftKey,
+          )}
         />
       </div>
     );
