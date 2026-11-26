@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.8] - 2026-11-26
+
+### Fixes
+
+- Make chart, table and calendar colors themeable with semantic CSS variables, including portal content and status states.
+- Improve contrast of timeline labels, task bars, dependency links, fixed-date markers and focus indicators across light and dark themes.
+
 ## [0.146.0] - 2026-10-06
 
 ### Features
