@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.9] - 2026-11-26
+
+### Fixes
+
+- Restore plain text labels on task and group bars, preserving the original light-theme label styling and supporting themed external labels.
+
 ## [0.146.8] - 2026-11-26
 
 ### Fixes
