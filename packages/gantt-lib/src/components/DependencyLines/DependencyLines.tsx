@@ -7,7 +7,7 @@
 // PAN_COST: Stable empty collapse state keeps geometry memoized during hover and horizontal scroll.
 // TOUCH_COUPLING: Only explicit same-lane FS activity edges with zero lag and coincident side ports render a visual-only joint; adjacency never infers an edge.
 // EDGE_IDENTITY: Exact visible edge replicas share one visual line; distinct lags retain independent React keys without changing public selection and dimming ids.
-// COUPLING_STYLE: One rounded white dash, 12x3px including caps at 50 percent opacity; no hit target or hover/click handlers.
+// COUPLING_STYLE: One outlined 12x3px rounded dash; no hit target or hover/click handlers.
 // ACTIVITY_PORTS: Cross-row/lane activities use ports inset 6px from the top/bottom like the flow-line demo; same-lane activities use side centers. Ordinary task row padding remains unchanged.
 // SCOPE: Directional upper/lower endpoints, markers, hover, virtual rows, cycles and optional lag labels; hidden dependencies stay in the graph but have no visual path.
 // INPUTS: Task-shaped nodes, explicit row geometry and label visibility.
@@ -147,13 +147,7 @@ const DependencyLineView = React.memo(function DependencyLineView({
   else if (line.isCritical) markerEnd = `url(#${markerPrefix}-arrowhead-critical)`;
   else markerEnd = `url(#${markerPrefix}-arrowhead)`;
 
-  const lagColor = selected
-    ? 'var(--gantt-dependency-selected-color, #ef4444)'
-    : hasCycle
-      ? 'var(--gantt-dependency-cycle-color, #ef4444)'
-      : line.isCritical
-        ? 'var(--gantt-critical-path-color, #dc2626)'
-        : 'var(--gantt-dependency-line-color, #666666)';
+  const lagColor = 'var(--gantt-text-color, #1f2937)';
 
   return (
     <React.Fragment>

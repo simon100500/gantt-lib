@@ -26,8 +26,8 @@
 
   --gantt-calendar-bg: #ffffff;
   --gantt-calendar-text: #1f2937;
-  --gantt-calendar-text-weekend: #ef4444;
-  --gantt-calendar-text-muted: #9ca3af;
+  --gantt-calendar-text-weekend: #b91c1c;
+  --gantt-calendar-text-muted: #6b7280;
   --gantt-calendar-day-today-border: #3b82f6;
   --gantt-calendar-day-range: #dbeafe;
   --gantt-calendar-day-disabled-text: #d1d5db;
@@ -55,7 +55,7 @@
 .gantt-input:focus {
   outline: none;
   border-color: var(--gantt-focus-color, #3b82f6);
-  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+  box-shadow: 0 0 0 2px var(--gantt-focus-color, #2563eb);
 }
 
 .gantt-input::placeholder {
@@ -95,7 +95,7 @@
 
 .gantt-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+  box-shadow: 0 0 0 2px var(--gantt-focus-color, #2563eb);
 }
 
 .gantt-btn:disabled {
@@ -137,6 +137,7 @@
  * ========================================================= */
 
 .gantt-popover {
+  color: var(--gantt-text-color, #1f2937);
   font-family: var(--gantt-font-family);
   background: var(--gantt-popover-bg);
   border: 1px solid var(--gantt-popover-border);
@@ -187,7 +188,7 @@
 
 .gantt-datepicker-trigger:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+  box-shadow: 0 0 0 2px var(--gantt-focus-color, #2563eb);
   border-radius: 2px;
 }
 
@@ -268,7 +269,7 @@
 
 .gantt-day-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+  box-shadow: 0 0 0 2px var(--gantt-focus-color, #2563eb);
 }
 
 .gantt-day-btn.today {
@@ -296,7 +297,7 @@
 }
 
 .gantt-day-btn.past.weekend:not(.selected) {
-  color: var(--gantt-warning-foreground, #fca5a5);
+  color: var(--gantt-calendar-text-weekend, #b91c1c);
 }
 
 .gantt-day-btn.disabled {

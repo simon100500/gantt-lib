@@ -1,13 +1,14 @@
 'use client';
 // START_MODULE_CONTRACT
 // PURPOSE: Render shared chart modes and native scheduling interactions.
-// SCOPE: Fixed-aware task hierarchy/date normalization, consumer date actions and manual display progress for projected parent rows.
+// SCOPE: Fixed-aware task hierarchy/date normalization, chart-wide cached color contrast resolution, consumer date actions and manual display progress for projected parent rows.
 // INPUTS: Chart props and task progressAggregation policies.
 // OUTPUTS: Parent dates and fixed boundaries remain consistent; manual percentages survive presentation grouping.
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
 // OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
 // END_MODULE_CONTRACT
 
+import { BarContrastContext, useBarContrast } from './useBarContrast';
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getDateRangeDays, getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
@@ -866,6 +867,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const matrixDateOverlay = isTableMatrixMode ? props.matrixDateOverlay : undefined;
   const onPlanFactCellCommit = isPlanFactMode ? props.onPlanFactCellCommit : undefined;
   const containerRef = useRef<HTMLDivElement>(null);
+  const barContrast = useBarContrast(containerRef, tasks, !isTableMatrixMode && !isPlanFactMode);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
   const clearSelectedTaskTimeoutRef = useRef<number | null>(null);
@@ -2573,6 +2575,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, []);
 
   return (
+    <BarContrastContext.Provider value={barContrast}>
     <div
       ref={containerRef}
       className={isTableMatrixMode ? 'gantt-container gantt-container-tableMatrix' : isPlanFactMode ? 'gantt-container gantt-container-planFact' : 'gantt-container'}
@@ -2991,6 +2994,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         </div>
       </div>
     </div>
+    </BarContrastContext.Provider>
   );
 }
 

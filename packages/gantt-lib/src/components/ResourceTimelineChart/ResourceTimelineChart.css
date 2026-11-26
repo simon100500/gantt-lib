@@ -808,8 +808,8 @@
   gap: 3px;
   padding: 7px 9px;
   border-radius: 6px;
-  background: var(--gantt-inverse-background, rgba(15, 23, 42, 0.96));
-  color: var(--gantt-solid-foreground, #ffffff);
+  background: var(--gantt-tooltip-background, #111111);
+  color: var(--gantt-tooltip-foreground, #ffffff);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.25;
@@ -843,7 +843,7 @@
 
 .gantt-resourceTimeline-itemTooltipLineSecondary {
   gap: 5px;
-  color: var(--gantt-solid-foreground, rgba(255, 255, 255, 0.78));
+  color: var(--gantt-tooltip-muted-foreground, #bdbdbd);
   font-size: 11px;
   font-weight: 500;
 }

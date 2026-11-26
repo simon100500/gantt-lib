@@ -1361,8 +1361,8 @@
   max-width: min(360px, calc(100vw - 32px));
   padding: 5px 8px;
   border-radius: 4px;
-  background: var(--gantt-inverse-background, #111827);
-  color: var(--gantt-solid-foreground, #fff);
+  background: var(--gantt-tooltip-background, #111111);
+  color: var(--gantt-tooltip-foreground, #ffffff);
   font-size: 0.75rem;
   line-height: 1.3;
   white-space: normal;

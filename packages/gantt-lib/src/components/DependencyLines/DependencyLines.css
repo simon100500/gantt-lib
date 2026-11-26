@@ -1,6 +1,6 @@
 /* START_MODULE_CONTRACT
  PURPOSE: Style native dependency routes and visual-only touching-activity joints.
- SCOPE: SVG paths, hit areas, 12x3px rounded dash joints at 50 percent opacity and hover/selection states.
+ SCOPE: SVG paths, hit areas, 12x3px rounded dash joints with contrasting outline and hover/selection states.
  INPUTS: DependencyLines class names and theme variables.
  OUTPUTS: Visible routes; only editable non-coupling links have hit targets.
  END_MODULE_CONTRACT */
@@ -55,21 +55,15 @@
 /* Virtual dependency lines (for hidden tasks inside collapsed parents) */
 .gantt-dependency-virtual {
   stroke-dasharray: 4 2;
-  opacity: 0.6;
 }
 
-/* Chain focus: edges outside the selected chain stay visible but recede.
-   Hover restores full opacity so inspecting a dimmed link still works. */
-.gantt-dependency-line-dimmed {
-  opacity: var(--gantt-dependency-dim-opacity, 0.16);
-}
-
-.gantt-dependency-line-dimmed.gantt-dependency-line-hovered {
-  opacity: 1;
+/* Dashed routes recede without reducing the contrast of meaningful links. */
+.gantt-dependency-line-dimmed .gantt-dependency-path {
+  stroke-dasharray: 4 2;
 }
 
 .gantt-dependency-lag-dimmed {
-  opacity: 0.4;
+  opacity: 1;
 }
 
 /* Circular dependency highlighting */
@@ -118,7 +112,7 @@
   font-weight: 500;
   pointer-events: none;
   user-select: none;
-  opacity: 0.85;
+  opacity: 1;
 }
 
 /* START_BLOCK_TOUCH_COUPLING */
@@ -126,10 +120,11 @@
    handles and vertical resize grips. It never intercepts canvas panning. */
 .gantt-dependency-coupling {
   fill: none;
-  stroke: var(--gantt-solid-foreground, #fff);
+  stroke: var(--gantt-bar-marker-color, #fff);
   stroke-width: 3;
   stroke-linecap: round;
-  opacity: 0.5;
+  filter: drop-shadow(0 0 1px var(--gantt-bar-marker-outline, #000));
+  opacity: 1;
 }
 .gantt-dependency-line-hovered .gantt-dependency-coupling {
   stroke: var(--gantt-dependency-hover-color, #ef4444);
