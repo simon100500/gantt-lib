@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { needsBarOutline } from '../components/GanttChart/useBarContrast';
+import { darkBarLabelStyle, needsBarOutline } from '../components/GanttChart/useBarContrast';
 
 const css = readFileSync(resolve(process.cwd(), 'src/components/TaskRow/TaskRow.css'), 'utf8');
 
@@ -22,6 +22,18 @@ describe('chart contrast defaults', () => {
         expect(declarations).not.toMatch(/(?:^|;)\s*padding(?:-(?:left|right))?\s*:\s*(?!0(?:px)?\s*;)/m);
       }
     }
+  });
+
+  it('chooses plain dark-theme text against the base and progress without changing light', () => {
+    const light: [number, number, number, number] = [255, 255, 255, 1];
+    const dark: [number, number, number, number] = [29, 33, 43, 1];
+    const white: [number, number, number, number] = [255, 255, 255, 1];
+    const purple: [number, number, number, number] = [120, 47, 196, 1];
+    const gray: [number, number, number, number] = [102, 102, 102, 1];
+    expect(darkBarLabelStyle(white, undefined, light)).toEqual({});
+    expect(darkBarLabelStyle(white, undefined, dark)).toEqual({ color: '#111' });
+    expect(darkBarLabelStyle(white, gray, dark)).toEqual({ color: '#111', shadow: '0 1px 2px rgba(255,255,255,.9)' });
+    expect(darkBarLabelStyle(purple, undefined, dark)).toEqual({});
   });
 
   it('adds a boundary only when the actual base fill and canvas contrast below 3:1', () => {

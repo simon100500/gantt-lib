@@ -1,14 +1,16 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Resolve chart colors once per theme/data change and flag bar fills that blend into the canvas.
-// SCOPE: Cache browser-resolved colors and choose a contrasting boundary only on dark canvases below 3:1.
+// SCOPE: Cache browser-resolved colors for dark-canvas boundaries and plain label contrast across base and progress fills.
 // INPUTS: Chart root, task colors, computed inherited CSS variables, and ancestor theme attributes.
-// OUTPUTS: Map from original CSS color expressions to a suitable boundary color; no per-row DOM measurements.
+// OUTPUTS: Boundary choices and resolved colors keyed by original CSS expressions; no per-row DOM measurements.
 // END_MODULE_CONTRACT
 import React, { createContext, useEffect, useState } from 'react';
 import type { Task } from './GanttChart';
 
-export const BarContrastContext = createContext<ReadonlyMap<string, string>>(new Map());
 type RGBA = [number, number, number, number];
+interface BarContrastData { edges: ReadonlyMap<string, string>; colors: ReadonlyMap<string, RGBA>; canvas: RGBA; }
+const emptyContrast: BarContrastData = { edges: new Map(), colors: new Map(), canvas: [255, 255, 255, 1] };
+export const BarContrastContext = createContext<BarContrastData>(emptyContrast);
 const over = (foreground: RGBA, background: RGBA): RGBA => {
   const a = foreground[3] + background[3] * (1 - foreground[3]);
   if (!a) return [0, 0, 0, 0];
@@ -28,8 +30,20 @@ const contrast = (a: RGBA, b: RGBA): number => {
 
 export const needsBarOutline = (fill: RGBA, canvas: RGBA): boolean => contrast(over(fill, canvas), canvas) < 3;
 
-export function useBarContrast(root: React.RefObject<HTMLDivElement | null>, tasks: readonly Task[], enabled: boolean): ReadonlyMap<string, string> {
-  const [edges, setEdges] = useState<ReadonlyMap<string, string>>(() => new Map());
+export function darkBarLabelStyle(fill: RGBA, progress: RGBA | undefined, canvas: RGBA): { color?: string; shadow?: string } {
+  if (luminance(canvas) >= 0.18) return {};
+  const base = over(fill, canvas);
+  const surfaces = progress ? [base, over(progress, base)] : [base];
+  const white: RGBA = [255, 255, 255, 1], dark: RGBA = [17, 17, 17, 1];
+  const whiteMin = Math.min(...surfaces.map(surface => contrast(white, surface)));
+  const darkMin = Math.min(...surfaces.map(surface => contrast(dark, surface)));
+  const chooseDark = whiteMin < 4.5 && darkMin > whiteMin;
+  const best = chooseDark ? darkMin : whiteMin;
+  return { ...(chooseDark ? { color: '#111' } : {}), ...(best < 4.5 ? { shadow: chooseDark ? '0 1px 2px rgba(255,255,255,.9)' : '0 1px 2px rgba(0,0,0,.9)' } : {}) };
+}
+
+export function useBarContrast(root: React.RefObject<HTMLDivElement | null>, tasks: readonly Task[], enabled: boolean): BarContrastData {
+  const [data, setData] = useState<BarContrastData>(emptyContrast);
   useEffect(() => {
     const host = root.current;
     if (!host || !enabled || typeof CanvasRenderingContext2D === 'undefined') return;
@@ -62,6 +76,9 @@ export function useBarContrast(root: React.RefObject<HTMLDivElement | null>, tas
       candidates.add(`color-mix(in srgb, ${parent} 40%, black)`);
     }
     candidates.add('color-mix(in srgb, var(--gantt-expired-color) 40%, black)');
+    candidates.add('color-mix(in srgb, var(--gantt-task-bar-default-color) 40%, black)');
+    candidates.add('color-mix(in srgb, var(--gantt-critical-path-color, #dc2626) 40%, black)');
+    candidates.add('var(--gantt-activity-progress-color, rgba(0, 0, 0, 0.4))');
     const refresh = () => {
       const ancestors: HTMLElement[] = [];
       for (let element: HTMLElement | null = host; element; element = element.parentElement) ancestors.push(element);
@@ -73,17 +90,25 @@ export function useBarContrast(root: React.RefObject<HTMLDivElement | null>, tas
       const white: RGBA = [255, 255, 255, 1], black: RGBA = [0, 0, 0, 1];
       const edge = muted && contrast(over(muted, canvas), canvas) >= 3 ? muted : contrast(white, canvas) >= contrast(black, canvas) ? white : black;
       const edgeCss = `rgb(${edge.slice(0, 3).map(Math.round).join(' ')} / ${edge[3]})`;
-      const next = new Map<string, string>();
+      const edges = new Map<string, string>();
+      const colors = new Map<string, RGBA>();
       for (const color of candidates) {
         const resolved = resolve(color);
-        if (resolved && luminance(canvas) < 0.18 && needsBarOutline(resolved, canvas)) next.set(color, edgeCss);
+        if (!resolved) continue;
+        colors.set(color, resolved);
+        if (luminance(canvas) < 0.18 && needsBarOutline(resolved, canvas)) edges.set(color, edgeCss);
       }
-      setEdges(previous => previous.size === next.size && [...next].every(([key, value]) => previous.get(key) === value) ? previous : next);
+      setData(previous => previous.edges.size === edges.size
+        && [...edges].every(([key, value]) => previous.edges.get(key) === value)
+        && previous.colors.size === colors.size
+        && [...colors].every(([key, value]) => previous.colors.get(key)?.every((channel, index) => channel === value[index]))
+        && previous.canvas.every((channel, index) => channel === canvas[index])
+        ? previous : { edges, colors, canvas });
     };
     refresh();
     const observer = new MutationObserver(refresh);
     for (let element: HTMLElement | null = host; element; element = element.parentElement) observer.observe(element, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
     return () => { observer.disconnect(); probe.remove(); };
   }, [root, tasks, enabled]);
-  return edges;
+  return data;
 }

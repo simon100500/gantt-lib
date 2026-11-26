@@ -12,7 +12,7 @@ import { isTaskParent, getChildren, getBusinessDaysCount, DAY_MS } from '../../c
 import type { Task } from '../GanttChart';
 import type { GanttScheduleIntent, ActivityTooltipContext } from '../../types';
 import { activityOwnerKey, type TaskPreviewPositionStore, type ActivityPreviewStore, type ActivityBlockStore, type ActivityDragOwner, type ActivityActivationStore } from '../GanttChart/previewStore';
-import { BarContrastContext } from '../GanttChart/useBarContrast';
+import { BarContrastContext, darkBarLabelStyle } from '../GanttChart/useBarContrast';
 import './TaskRow.css';
 
 // Минимальный шаг между отсечками состава: реже — рисками мельчим.
@@ -266,7 +266,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
 const TaskRow: React.FC<TaskRowProps> = React.memo(
   ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore, activityClickToDrag = false, activityActivationMode = 'none', showActivityLinks = true, showActivityLag = true, activityTooltip, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
-    const contrastEdges = useContext(BarContrastContext);
+    const { edges: contrastEdges, colors: contrastColors, canvas: contrastCanvas } = useContext(BarContrastContext);
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
     const pointerStart = useRef<{ x: number; y: number } | null>(null);
@@ -408,7 +408,12 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       return { backgroundColor: barColor };
     }, [isCritical, defaultParentBarColor, isExpired, isVisualParent, progressWidth, barColor, progressColor, task.color]);
 
-    const taskBarEdge = contrastEdges.get(String(barStyle.backgroundColor ?? (isVisualParent ? task.color || defaultParentBarColor : barColor)));
+    const actualBarColor = String(barStyle.backgroundColor ?? (isVisualParent ? task.color || defaultParentBarColor : barColor));
+    const taskBarEdge = contrastEdges.get(actualBarColor);
+    const taskFill = contrastColors.get(actualBarColor);
+    const taskProgressFill = progressWidth > 0 && progressWidth < 100 ? contrastColors.get(progressColor) : undefined;
+    const taskLabel = taskFill && (progressWidth === 0 || progressWidth === 100 || taskProgressFill)
+      ? darkBarLabelStyle(taskFill, taskProgressFill, contrastCanvas) : {};
 
     // Handle drag end - call onTasksChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
@@ -1075,6 +1080,9 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 // Приглушение остальных видов / подсветка цепочки этого вида.
                 const isDimmed = dimOthers && activeWork !== null && !isSameWorkType;
                 const isChainHighlighted = highlightChain && activeWork !== null && isSameWorkType;
+                const activityFill = contrastColors.get(segment.color || 'var(--gantt-task-bar-default-color)');
+                const activityProgressFill = activityProgress > 0 ? contrastColors.get('var(--gantt-activity-progress-color, rgba(0, 0, 0, 0.4))') : undefined;
+                const activityLabel = activityFill && (activityProgress === 0 || activityProgressFill) ? darkBarLabelStyle(activityFill, activityProgressFill, contrastCanvas) : {};
                 const activityEdge = contrastEdges.get(segment.color || 'var(--gantt-task-bar-default-color)');
                 return (
                   <div
@@ -1087,6 +1095,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                       top: `${activityTopOffset + segment.lane * ACTIVITY_LANE_STEP + (ACTIVITY_LANE_STEP - ACTIVITY_LANE_BAR_HEIGHT) / 2}px`,
                       height: `${ACTIVITY_LANE_BAR_HEIGHT}px`,
                       backgroundColor: segment.color || 'var(--gantt-task-bar-default-color)',
+                      ...(activityLabel.color ? { '--gantt-auto-bar-label-color': activityLabel.color } as React.CSSProperties : {}),
+                      ...(activityLabel.shadow ? { '--gantt-auto-bar-label-shadow': activityLabel.shadow } as React.CSSProperties : {}),
                       ...(activityEdge ? { '--gantt-conditional-bar-outline': activityEdge } as React.CSSProperties : {}),
                     }}
                     onMouseDown={event => {
@@ -1126,7 +1136,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                         style={{ width: `${activityProgress}%` }}
                       />
                     )}
-                    <span className="gantt-tr-activityName" style={{ color: activityTextColor(segment.color) }}>{segment.name}</span>
+                    <span className="gantt-tr-activityName" style={{ color: `var(--gantt-auto-bar-label-color, ${activityTextColor(segment.color)})` }}>{segment.name}</span>
                     {activityDragEnabled && (
                       <>
                         <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
@@ -1175,6 +1185,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             style={{
               left: `${visualLeft}px`,
               ...barStyle,
+              ...(taskLabel.color ? { '--gantt-auto-bar-label-color': taskLabel.color } as React.CSSProperties : {}),
+              ...(taskLabel.shadow ? { '--gantt-auto-bar-label-shadow': taskLabel.shadow } as React.CSSProperties : {}),
               ...(taskBarEdge ? { '--gantt-conditional-bar-outline': taskBarEdge } as React.CSSProperties : {}),
               ...(milestone
                 ? {

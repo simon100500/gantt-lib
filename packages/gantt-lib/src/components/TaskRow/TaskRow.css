@@ -299,7 +299,7 @@
 }
 
 .gantt-tr-taskDuration {
-  color: var(--gantt-task-bar-text-color);
+  color: var(--gantt-auto-bar-label-color, var(--gantt-task-bar-text-color));
   font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
@@ -572,6 +572,13 @@
   z-index: 2;
 }
 
+/* Only dark-theme labels requiring help get a soft, background-free shadow. */
+.gantt-tr-taskDuration,
+.gantt-tr-progressText,
+.gantt-tr-activityName {
+  text-shadow: var(--gantt-auto-bar-label-shadow, none);
+}
+
 /* Disable transition during drag */
 .gantt-tr-taskBar.gantt-tr-dragging .gantt-tr-progressBar {
   transition: none !important;
@@ -579,7 +586,7 @@
 
 /* Progress text inside task bar */
 .gantt-tr-progressText {
-  color: var(--gantt-task-bar-text-color);
+  color: var(--gantt-auto-bar-label-color, var(--gantt-task-bar-text-color));
   font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
