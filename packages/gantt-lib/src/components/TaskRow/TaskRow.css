@@ -85,9 +85,9 @@
   background: var(--gantt-bar-marker-outline, #000);
 }
 .gantt-tr-fixedBoundary::after {
-  inset: 3px 1px;
-  width: 3px;
-  height: 6px;
+  inset: 2px 1px;
+  width: 4px;
+  height: 8px;
   background: var(--gantt-bar-marker-color, #fff);
 }
 .gantt-tr-fixedBoundary-start { left: 2px; }
