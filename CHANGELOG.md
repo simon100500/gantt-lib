@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.13] - 2026-11-26
+
+### Features
+
+- Identify fixed task dates in the calendar and edit the existing anchors with explicit confirmation.
+
 ## [0.146.12] - 2026-11-26
 
 ### Features

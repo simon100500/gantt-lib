@@ -5,7 +5,7 @@
 // INPUTS: Chart props and task progressAggregation policies.
 // OUTPUTS: Parent dates and fixed boundaries remain consistent; manual percentages survive presentation grouping.
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
-// OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
+// OUTPUTS: Capability-checked row operations and fixed-date field edits delivered to the host mutation callback.
 // END_MODULE_CONTRACT
 
 import { BarContrastContext, useBarContrast } from './useBarContrast';
@@ -63,6 +63,7 @@ import { DependencyLines } from '../DependencyLines';
 import { ActivityDependencyLines } from '../DependencyLines/ActivityDependencyLines';
 import { DependencyCreationOverlay, type DependencyCreationDrag } from '../DependencyCreationOverlay';
 import { TaskList } from '../TaskList';
+import { FixedDateCommitContext } from '../TaskList/TaskListRow';
 import { GenerationSkeletonRows } from '../GenerationSkeleton';
 import { ResourceTimelineChart } from '../ResourceTimelineChart';
 import { TableMatrix, type TableMatrixCellClickContext, type TableMatrixColumn, type TableMatrixColumnGroup, type TableMatrixDateOverlay } from '../TableMatrix';
@@ -2594,6 +2595,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
           onMouseLeave={clearHoveredRows}
         >
           {/* TaskList - sticky left, scrolls with content horizontally */}
+          <FixedDateCommitContext.Provider value={(onTasksChange as ((tasks: Task[]) => void) | undefined) ?? null}>
           <TaskList
             tasks={normalizedTasks}
             rowHeight={effectiveRowHeight}
@@ -2662,6 +2664,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             visibleRowIndices={visibleTaskWindowIndices}
             skeletonRowCount={skeletonRowCount}
           />
+          </FixedDateCommitContext.Provider>
 
           {/* Chart area */}
           <div

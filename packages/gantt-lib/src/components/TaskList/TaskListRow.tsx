@@ -2,12 +2,12 @@
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render one task-list row, including editable dependency controls and print-friendly dependency labels.
-// SCOPE: Render task fields, optional consumer date actions, hierarchy/actions, dependency editing and print labels.
+// SCOPE: Render task fields, optional consumer date actions, fixed-boundary editing, hierarchy/actions, dependency editing and print labels.
 // DEPENDS: GanttChart task types, scheduling helpers, TaskList column definitions, and UI popovers.
 // ROLE: RUNTIME
 // MAP_MODE: LOCALS
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
-// OUTPUTS: Capability-checked row operations and checkbox changes that carry the Shift modifier.
+// OUTPUTS: Capability-checked row operations, fixed-date field updates and checkbox changes that carry the Shift modifier.
 // END_MODULE_CONTRACT
 
 import React, {
@@ -40,7 +40,7 @@ import {
   recalculateIncomingLags,
 } from "../../core/scheduling";
 import { Input } from "../ui/Input";
-import { DatePicker } from "../ui/DatePicker";
+import { DatePicker, TaskDatePicker } from "../ui/DatePicker";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
 import { LINK_TYPE_ICONS } from "./DepIcons";
 import type { TaskListColumn as NewTaskListColumn } from "./columns/types";
@@ -49,6 +49,8 @@ import type { ReorderDropPlacement } from "../../utils/taskListReorder";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LINK_TYPE_ORDER: LinkType[] = ["FS", "SS", "FF", "SF"];
+
+export const FixedDateCommitContext = React.createContext<((tasks: Task[]) => void) | null | undefined>(undefined);
 
 const getInclusiveDurationDays = (
   startDate: string | Date,
@@ -1745,6 +1747,54 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       </label>
     ) : null;
 
+    const fixedDateCommit = React.useContext(FixedDateCommitContext);
+    const onFixedDateChange = fixedDateCommit === undefined ? onTasksChange : fixedDateCommit;
+    // START_BLOCK_FIXED_BOUNDARY_PICKER
+    const renderDatePicker = (boundary: 'start' | 'end') => {
+      const isStart = boundary === 'start';
+      const ownAnchor = isStart ? task.fixedStartDate : task.fixedEndDate;
+      const oppositeAnchor = isStart ? task.fixedEndDate : task.fixedStartDate;
+      const fixedDate = ownAnchor ?? (isMilestone ? oppositeAnchor : null);
+      const pickerProps = {
+        format: 'dd.MM.yy',
+        portal: true,
+        isWeekend: weekendPredicate,
+        businessDays,
+      };
+      if (!fixedDate) {
+        return (
+          <DatePicker
+            {...pickerProps}
+            value={isStart ? startDateISO : endDateISO}
+            onChange={isStart ? handleStartDateChange : handleEndDateChange}
+            disabled={task.locked}
+            footer={datePickerFooter}
+          />
+        );
+      }
+      return (
+        <TaskDatePicker
+          {...pickerProps}
+          value={fixedDate}
+          disabled={task.locked || !onFixedDateChange}
+          fixedDateEdit={{
+            title: isMilestone ? 'Закреплённая дата вехи' : isStart ? 'Закреплённое начало' : 'Закреплённое окончание',
+            validate: (date) => {
+              if (!oppositeAnchor || isMilestone) return;
+              if (isStart && date > oppositeAnchor) return 'Начало позже закреплённого окончания.';
+              if (!isStart && date < oppositeAnchor) return 'Окончание раньше закреплённого начала.';
+            },
+          }}
+          onChange={(date) => onFixedDateChange?.([{
+            ...task,
+            fixedStartDate: task.fixedStartDate && (isStart || isMilestone) ? date : task.fixedStartDate,
+            fixedEndDate: task.fixedEndDate && (!isStart || isMilestone) ? date : task.fixedEndDate,
+          }])}
+        />
+      );
+    };
+    // END_BLOCK_FIXED_BOUNDARY_PICKER
+
     const handleRowClickInternal = useCallback(() => {
       onRowClick?.(task.id);
     }, [task.id, onRowClick]);
@@ -2345,16 +2395,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         style={getColumnStyle('startDate', 90)}
         onClick={(e) => e.stopPropagation()}
       >
-        <DatePicker
-          value={startDateISO}
-          onChange={handleStartDateChange}
-          format="dd.MM.yy"
-          portal={true}
-          disabled={task.locked}
-          isWeekend={weekendPredicate}
-          businessDays={businessDays}
-          footer={datePickerFooter}
-        />
+        {renderDatePicker('start')}
         {renderTaskDateAction?.(task, 'start')}
       </div>
     );
@@ -2365,16 +2406,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         style={getColumnStyle('endDate', 90)}
         onClick={(e) => e.stopPropagation()}
       >
-        <DatePicker
-          value={endDateISO}
-          onChange={handleEndDateChange}
-          format="dd.MM.yy"
-          portal={true}
-          disabled={task.locked}
-          isWeekend={weekendPredicate}
-          businessDays={businessDays}
-          footer={datePickerFooter}
-        />
+        {renderDatePicker('end')}
         {renderTaskDateAction?.(task, 'end')}
       </div>
     );

@@ -2,6 +2,12 @@
  * UI Components CSS — gantt-lib theming
  * All classes use gantt- prefix to avoid collisions
  * ========================================================= */
+/* START_MODULE_CONTRACT
+ * PURPOSE: Style the shared chart inputs, popovers, calendars, and buttons.
+ * SCOPE: Core control states and the date picker's fixed-date notice and actions.
+ * INPUTS: Semantic theme variables and control markup.
+ * OUTPUTS: Theme-aware control layout and visible interaction states.
+ * END_MODULE_CONTRACT */
 
 /* CSS Variables for UI components */
 :root {
@@ -373,6 +379,25 @@
 .gantt-datepicker-footer {
   padding: 8px;
   border-top: 1px solid var(--gantt-input-border);
+}
+
+.gantt-datepicker-fixed-title {
+  padding: 8px 8px 0;
+  color: var(--gantt-calendar-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.gantt-datepicker-fixed-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gantt-datepicker-fixed-error {
+  margin-bottom: 8px;
+  color: var(--gantt-calendar-text-weekend);
+  font-size: 0.8rem;
 }
 
 .gantt-datepicker-mode-checkbox {
