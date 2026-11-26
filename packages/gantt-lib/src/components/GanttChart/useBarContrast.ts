@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Resolve chart colors once per theme/data change and flag bar fills that blend into the canvas.
-// SCOPE: Cache browser-resolved unique task/activity colors and choose a contrasting boundary only below 3:1.
+// SCOPE: Cache browser-resolved colors and choose a contrasting boundary only on dark canvases below 3:1.
 // INPUTS: Chart root, task colors, computed inherited CSS variables, and ancestor theme attributes.
 // OUTPUTS: Map from original CSS color expressions to a suitable boundary color; no per-row DOM measurements.
 // END_MODULE_CONTRACT
@@ -76,7 +76,7 @@ export function useBarContrast(root: React.RefObject<HTMLDivElement | null>, tas
       const next = new Map<string, string>();
       for (const color of candidates) {
         const resolved = resolve(color);
-        if (resolved && needsBarOutline(resolved, canvas)) next.set(color, edgeCss);
+        if (resolved && luminance(canvas) < 0.18 && needsBarOutline(resolved, canvas)) next.set(color, edgeCss);
       }
       setEdges(previous => previous.size === next.size && [...next].every(([key, value]) => previous.get(key) === value) ? previous : next);
     };

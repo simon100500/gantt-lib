@@ -28,6 +28,33 @@ const shiftActivityDay = (value: string | Date, days: number): Date =>
 const activityDurationDays = (activity: { startDate: string | Date; endDate: string | Date }): number =>
   Math.max(1, Math.round((parseUTCDate(activity.endDate).getTime() - parseUTCDate(activity.startDate).getTime()) / DAY_MS) + 1);
 
+// Порог яркости фона, выше которого текст инвертируется в тёмный.
+const ACTIVITY_TEXT_LUMINANCE_THRESHOLD = 0.55;
+
+/** Относительная яркость #RRGGBB (WCAG). */
+const relativeLuminance = (hex: string): number => {
+  const channels = [1, 3, 5].map(index => {
+    const value = parseInt(hex.slice(index, index + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+};
+
+/** Цвет подписи работы по яркости фона: тёмный на светлых полосах, светлый на тёмных. */
+const activityTextColor = (background?: string): string => {
+  const lightText = 'var(--gantt-task-bar-text-color, #ffffff)';
+  if (!background) return lightText;
+  const value = background.trim();
+  if (value.startsWith('#')) {
+    return relativeLuminance(value) > ACTIVITY_TEXT_LUMINANCE_THRESHOLD ? '#111111' : '#ffffff';
+  }
+  const oklch = /oklch\(\s*([0-9.]+)/i.exec(value);
+  if (oklch) {
+    return Number(oklch[1]) > 0.66 ? '#111111' : '#ffffff';
+  }
+  return lightText;
+};
+
 const formatCompositePreviewDate = (date: Date): string => {
   const month = new Intl.DateTimeFormat('ru-RU', { month: 'short', timeZone: 'UTC' })
     .format(date)
@@ -41,7 +68,7 @@ const formatCompositePreviewDate = (date: Date): string => {
 // START_MODULE_CONTRACT
 // ACTIVITY_LINKS: Bars and gestures live here; all activity dependency overlays are owned by GanttChart.
 // PURPOSE: Render one Gantt task row, including its bar, scheduling affordances, and optional external labels.
-// SCOPE: Calculate task geometry, render themeable task affordances, contrast-protected in-bar labels, duration/progress/name/date labels and fixed-boundary markers, and preserve drag/dependency interactions with optional deferred cascade preview.
+// SCOPE: Calculate task geometry, render themeable task affordances, plain in-bar labels, duration/progress/name/date labels and fixed-boundary markers, and preserve drag/dependency interactions with optional deferred cascade preview.
 // DEPENDS: core scheduling, geometry, useTaskDrag, GanttChart presentation props.
 // LINKS: M-SCHEDULE, GanttChart, type-TaskRowProps, fn-formatDateRangeLabel
 // ROLE: RUNTIME
@@ -345,6 +372,16 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       const baseColor = task.color || 'var(--gantt-task-bar-default-color)';
       return `color-mix(in srgb, ${baseColor} 40%, black)`;
     }, [isCritical, isExpired, progressWidth, task.accepted, task.color]);
+
+    const externalTaskNameColor = useMemo(() => {
+      if (isExpired) {
+        return 'color-mix(in srgb, var(--gantt-expired-color) 40%, black)';
+      }
+      const baseColor = isVisualParent
+        ? (task.color || defaultParentBarColor)
+        : (task.color || 'var(--gantt-task-bar-default-color)');
+      return `color-mix(in srgb, ${baseColor} 40%, black)`;
+    }, [defaultParentBarColor, isCritical, isExpired, isVisualParent, task.color]);
 
     // At 100% progress, tint the bar itself instead of rendering a fill overlay.
     const barStyle = useMemo(() => {
@@ -1089,7 +1126,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                         style={{ width: `${activityProgress}%` }}
                       />
                     )}
-                    <span className="gantt-tr-activityName">{segment.name}</span>
+                    <span className="gantt-tr-activityName" style={{ color: activityTextColor(segment.color) }}>{segment.name}</span>
                     {activityDragEnabled && (
                       <>
                         <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
@@ -1387,7 +1424,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           {compactDetail && !milestone && (
             <span
               className="gantt-tr-externalDuration gantt-tr-durationBeforeBar gantt-tr-compositeDuration"
-              style={{ left: `${visualLeft - 46}px`, color: 'var(--gantt-task-label-color, var(--gantt-text-color, #374151))' }}
+              style={{ left: `${visualLeft - 46}px`, color: `var(--gantt-task-label-color, ${isParent ? (task.color || defaultParentBarColor) : barColor})` }}
             >
               {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
             </span>
@@ -1397,7 +1434,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             className="gantt-tr-rightLabels"
             style={{
               left: `${visualLeft + Math.max(visualWidth, 20) - Math.min(6, Math.max(visualWidth, 20) / 2) + 8}px`,
-              color: 'var(--gantt-task-label-color, var(--gantt-text-color, #374151))',
+              color: `var(--gantt-task-label-color, ${isParent ? (task.color || defaultParentBarColor) : barColor})`,
             }}
           >
             {!compactDetail && !showDurationInside && !milestone && (
@@ -1413,7 +1450,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             {showTaskNames && (
               <span
                 className="gantt-tr-externalTaskName"
-                style={{ color: 'var(--gantt-task-label-color, var(--gantt-text-color, #374151))' }}
+                style={{ color: `var(--gantt-task-label-color, ${externalTaskNameColor})` }}
               >
                 {task.name}
               </span>
