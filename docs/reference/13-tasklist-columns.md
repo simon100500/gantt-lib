@@ -86,17 +86,27 @@ The `selection` column is only present when `enableTaskMultiSelect={true}`. It i
 
 ## Hiding Columns
 
-Use `hiddenTaskListColumns` to hide any resolved TaskList column by id. The prop works for both built-in columns and custom `additionalColumns`.
+Hover over a TaskList column header and click the triangle to show or hide built-in and custom columns. The TaskList stores visibility locally by default. To store visibility in the host, pass `hiddenTaskListColumns` and update it in `onHiddenTaskListColumnsChange`. Passing only the hidden IDs fixes visibility from the host.
 
 Column placement is resolved first, then hidden columns are filtered out. This means custom columns can still anchor to a column that is hidden in a particular view without changing their relative order.
 
 ```tsx
-<GanttChart
-  tasks={tasks}
-  showTaskList
-  additionalColumns={additionalColumns}
-  hiddenTaskListColumns={['duration', 'progress', 'assignee']}
-/>
+import { useState } from 'react';
+import { GanttChart, type TaskListColumnId } from 'gantt-lib';
+
+function TaskChart() {
+  const [hiddenColumns, setHiddenColumns] = useState<TaskListColumnId[]>(['duration']);
+
+  return (
+    <GanttChart
+      tasks={tasks}
+      showTaskList
+      additionalColumns={additionalColumns}
+      hiddenTaskListColumns={hiddenColumns}
+      onHiddenTaskListColumnsChange={setHiddenColumns}
+    />
+  );
+}
 ```
 
 Built-in column ids:

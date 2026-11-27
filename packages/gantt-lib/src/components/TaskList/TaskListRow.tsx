@@ -41,7 +41,7 @@ import {
 } from "../../core/scheduling";
 import { Input } from "../ui/Input";
 import { DatePicker, type TaskDatePicker } from "../ui/DatePicker";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "../ui/Popover";
 import { LINK_TYPE_ICONS } from "./DepIcons";
 import type { TaskListColumn as NewTaskListColumn } from "./columns/types";
 import { DEFAULT_TASK_DURATION_DAYS, buildDefaultTaskDateRange, getTodayISODate } from "./defaultTaskDates";
@@ -1138,7 +1138,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const [progressValue, setProgressValue] = useState(0);
     const progressInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
-    const [contextMenuOpen, setContextMenuOpen] = useState(false);
+    const [menuAnchor, setMenuAnchor] = useState<"trigger" | { x: number; y: number } | null>(null);
+    const pointerAnchor = useMemo(() => {
+      if (menuAnchor === null || menuAnchor === "trigger") return null;
+      const { x, y } = menuAnchor;
+      return { current: { getBoundingClientRect: () => new DOMRect(x, y, 0, 0) } };
+    }, [menuAnchor]);
     const nameConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const durationConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const progressConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
@@ -1377,6 +1382,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const handleRowKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
+        if (!e.currentTarget.contains(e.target as Node)) return;
         // Don't handle row keyboard events when editing progress
         if (editingProgress) return;
         // F2: enter edit mode with cursor at end of existing name
@@ -1832,7 +1838,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     };
     // END_BLOCK_FIXED_BOUNDARY_PICKER
 
-    const handleRowClickInternal = useCallback(() => {
+    const handleRowClickInternal = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+      if (!event.currentTarget.contains(event.target as Node)) {
+        event.stopPropagation();
+        return;
+      }
       onRowClick?.(task.id);
     }, [task.id, onRowClick]);
 
@@ -1882,7 +1892,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       duplicate: onDuplicateTask ? () => onDuplicateTask(task.id) : undefined,
       delete: onDelete ? () => onDelete(task.id) : undefined,
       ungroup: isParent && onUngroupTask ? () => onUngroupTask(task.id) : undefined,
-      closeMenu: () => setContextMenuOpen(false),
+      closeMenu: () => setMenuAnchor(null),
     };
     const commandContent = visibleCustomMenuCommands.length ? visibleCustomMenuCommands.map(command => (
       <React.Fragment key={command.id}>
@@ -1901,6 +1911,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const menuContent = hideTaskListRowActions ? null : renderTaskListMenu ? renderTaskListMenu(actionContext, commandContent) : commandContent;
     const actionContent = hideTaskListRowActions ? null : renderTaskListActions?.(actionContext);
     const hasContextMenu = menuContent !== null && menuContent !== undefined && menuContent !== false;
+    const contextMenuOpen = hasContextMenu && menuAnchor !== null;
+
+    const handleRowContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+      if (event.defaultPrevented || !(event.target instanceof Element) ||
+        !event.currentTarget.contains(event.target) ||
+        event.target.closest('input:not([type="checkbox"]), textarea, [contenteditable]:not([contenteditable="false"]), [data-custom-column-editor]')) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      setMenuAnchor({ x: event.clientX, y: event.clientY });
+    };
 
     // Dependency handlers
     const handleAddClick = useCallback(
@@ -2382,14 +2404,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           <div className={`gantt-tl-name-actions${contextMenuOpen ? " gantt-tl-name-actions-open" : ""}`} onClick={event => event.stopPropagation()}>
             {actionContent}
             {hasContextMenu ? (
-              <Popover open={contextMenuOpen} onOpenChange={setContextMenuOpen}>
-                <PopoverTrigger asChild>
-                  <button type="button" className="gantt-tl-name-action-btn gantt-tl-action-context"
-                    onClick={event => { event.stopPropagation(); setContextMenuOpen(value => !value); }}
-                    aria-label="Дополнительно"><VerticalDotsIcon /></button>
-                </PopoverTrigger>
-                <PopoverContent className="gantt-tl-context-menu" portal={true} align="end">{menuContent}</PopoverContent>
-              </Popover>
+              <PopoverTrigger asChild>
+                <button type="button" className="gantt-tl-name-action-btn gantt-tl-action-context"
+                  aria-label="Дополнительно"><VerticalDotsIcon /></button>
+              </PopoverTrigger>
             ) : null}
           </div>
         ) : null}
@@ -2783,7 +2801,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       });
     }, [focusCustomCell, onActiveCustomCellChange, resolvedColumns, task.id]);
 
-    return (
+    const row = (
       <div
         ref={rowRef}
         data-filter-match={isFilterMatch ? 'true' : 'false'}
@@ -2820,6 +2838,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         data-gantt-task-row-id={task.id}
         data-task-list-row-class={rowClassName ?? undefined}
         onClick={handleRowClickInternal}
+        onContextMenu={hasContextMenu ? handleRowContextMenu : undefined}
         onKeyDown={handleRowKeyDown}
         onDragOver={(e) => onDragOver?.(rowIndex, e)}
         onDrop={(e) => onDrop?.(rowIndex, e)}
@@ -2961,7 +2980,19 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             </div>
           );
         })}
+        {pointerAnchor ? <PopoverAnchor virtualRef={pointerAnchor} /> : null}
+        {hasContextMenu ? (
+          <PopoverContent className="gantt-tl-context-menu" align={pointerAnchor ? "start" : "end"}>
+            {menuContent}
+          </PopoverContent>
+        ) : null}
       </div>
+    );
+
+    return (
+      <Popover open={contextMenuOpen} onOpenChange={open => setMenuAnchor(open ? "trigger" : null)}>
+        {row}
+      </Popover>
     );
   },
   areTaskListRowPropsEqual

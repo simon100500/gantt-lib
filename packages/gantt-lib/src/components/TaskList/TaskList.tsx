@@ -245,13 +245,15 @@ export interface TaskListProps {
   criticalTaskIds?: Set<string>;
   /** Additional columns to display after built-in columns */
   additionalColumns?: TaskListColumn<any>[];
-  /** Built-in or custom TaskList column IDs to hide after column placement is resolved */
+  /** Controlled list of hidden built-in or custom TaskList column IDs. */
   hiddenTaskListColumns?: readonly TaskListColumnId[];
+  /** Called when column visibility changes. Enables the column menu in controlled mode. */
+  onHiddenTaskListColumnsChange?: (columnIds: TaskListColumnId[]) => void;
   /** Initial or controlled TaskList column widths keyed by built-in/custom column id. */
   taskListColumnWidths?: TaskListColumnWidthMap;
   /** Called when the user resizes TaskList columns. */
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
-  /** Additional commands rendered in each row three-dots menu */
+  /** Commands shared by the row context menu and three-dots trigger. */
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   renderTaskListActions?: (context: TaskListActionContext<Task>) => React.ReactNode;
   renderTaskListMenu?: (context: TaskListActionContext<Task>, commands: React.ReactNode) => React.ReactNode;
@@ -406,6 +408,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   criticalTaskIds,
   additionalColumns,
   hiddenTaskListColumns,
+  onHiddenTaskListColumnsChange,
   taskListColumnWidths,
   onTaskListColumnWidthsChange,
   taskListMenuCommands,
@@ -427,6 +430,10 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [internalSelectedTaskIds, setInternalSelectedTaskIds] = useState<Set<string>>(new Set());
   const [activeCustomCell, setActiveCustomCell] = useState<{ taskId: string; columnId: string } | null>(null);
   const [columnWidthOverrides, setColumnWidthOverrides] = useState<TaskListColumnWidthMap>(() => normalizeColumnWidthMap(taskListColumnWidths));
+  const [internalHiddenColumnIds, setInternalHiddenColumnIds] = useState<TaskListColumnId[]>([]);
+  const [columnMenuAnchor, setColumnMenuAnchor] = useState<TaskListColumnId | null>();
+  const hiddenColumnIds = hiddenTaskListColumns ?? internalHiddenColumnIds;
+  const canChangeColumnVisibility = hiddenTaskListColumns === undefined || onHiddenTaskListColumnsChange !== undefined;
   const [isColumnResizeMode, setIsColumnResizeMode] = useState(false);
   const columnResizeHeaderRef = useRef<HTMLDivElement>(null);
   const resizeStateRef = useRef<ColumnResizeState | null>(null);
@@ -1464,11 +1471,10 @@ export const TaskList: React.FC<TaskListProps> = ({
   useEffect(() => {
     setColumnWidthOverrides(normalizeColumnWidthMap(taskListColumnWidths));
   }, [taskListColumnWidths]);
-  const resolvedColumns = useMemo(
+  const allColumns = useMemo(
     () => resolveTaskListColumns(
       builtInColumns,
       (additionalColumns ?? []) as NewTaskListColumn<Task>[],
-      hiddenTaskListColumns,
     ).map((column) => {
       const configuredWidth = columnWidthOverrides[column.id];
       const baseWidth = configuredWidth ?? column.width ?? 120;
@@ -1479,7 +1485,12 @@ export const TaskList: React.FC<TaskListProps> = ({
         width,
       };
     }),
-    [builtInColumns, additionalColumns, hiddenTaskListColumns, columnWidthOverrides]
+    [builtInColumns, additionalColumns, columnWidthOverrides]
+  );
+  const hiddenColumnSet = useMemo(() => new Set(hiddenColumnIds), [hiddenColumnIds]);
+  const resolvedColumns = useMemo(
+    () => allColumns.filter(column => !hiddenColumnSet.has(column.id)),
+    [allColumns, hiddenColumnSet],
   );
   const resolvedColumnWidthTotal = useMemo(
     () => resolvedColumns.reduce((sum, col) => sum + (col.width ?? 120), 0),
@@ -1505,7 +1516,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   }, [resolvedColumns]);
 
   const requestedTaskListWidth = taskListWidth ?? Math.min(MIN_TASK_LIST_WIDTH, resolvedColumnWidthTotal);
-  const effectiveTaskListWidth = Math.max(requestedTaskListWidth, resolvedColumnWidthTotal);
+  const columnMenuOnly = canChangeColumnVisibility && resolvedColumns.length === 0;
+  const effectiveTaskListWidth = Math.max(requestedTaskListWidth, resolvedColumnWidthTotal, columnMenuOnly ? 36 : 0);
   const tableHeaderHeight = headerHeight + 1;
   const updateColumnWidth = useCallback((columnId: TaskListColumnId, width: number) => {
     setColumnWidthOverrides((prev) => {
@@ -1688,6 +1700,48 @@ export const TaskList: React.FC<TaskListProps> = ({
     </button>
   ), [startColumnResize]);
 
+  const renderColumnMenu = (anchorId: TaskListColumnId | null) => {
+    if (!canChangeColumnVisibility) return null;
+
+    const open = columnMenuAnchor === anchorId;
+    return (
+      <Popover open={open} onOpenChange={nextOpen => setColumnMenuAnchor(current => (
+        nextOpen ? anchorId : current === anchorId ? undefined : current
+      ))}>
+        <PopoverTrigger asChild>
+          <button type="button" className="gantt-tl-column-menu-trigger" aria-label="Видимость столбцов"
+            onClick={event => event.stopPropagation()}>
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+              <path d="M1 3h8L5 7z" fill="currentColor" />
+            </svg>
+          </button>
+        </PopoverTrigger>
+        {open ? (
+          <PopoverContent className="gantt-tl-context-menu gantt-tl-column-menu" align="end">
+            <div role="group" aria-label="Видимость столбцов" onClick={event => event.stopPropagation()}>
+              {allColumns.map(column => (
+                <label key={column.id} className="gantt-tl-context-menu-item">
+                  <input
+                    type="checkbox"
+                    checked={!hiddenColumnSet.has(column.id)}
+                    onChange={event => {
+                      const visible = event.currentTarget.checked;
+                      const next = visible ? hiddenColumnIds.filter(id => id !== column.id) : [...hiddenColumnIds, column.id];
+                      if (anchorId === null || (!visible && column.id === anchorId)) setColumnMenuAnchor(undefined);
+                      if (hiddenTaskListColumns === undefined) setInternalHiddenColumnIds(next);
+                      onHiddenTaskListColumnsChange?.(next);
+                    }}
+                  />
+                  <span>{column.header ?? column.id}</span>
+                </label>
+              ))}
+            </div>
+          </PopoverContent>
+        ) : null}
+      </Popover>
+    );
+  };
+
   return (
     <div
       ref={overlayRef}
@@ -1706,6 +1760,9 @@ export const TaskList: React.FC<TaskListProps> = ({
           style={{ height: `${tableHeaderHeight}px` }}
           onClick={() => setIsColumnResizeMode(true)}
         >
+          {columnMenuOnly ? (
+            <div className="gantt-tl-headerCell gantt-tl-column-menu-empty">{renderColumnMenu(null)}</div>
+          ) : null}
           {resolvedColumns.map(col => {
             if (col.id === 'selection') {
               return (
@@ -1718,6 +1775,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                     indeterminate={areSomeVisibleTasksSelected}
                     onChange={handleToggleAllVisibleTaskSelection}
                   />
+                  {renderColumnMenu(col.id)}
                   {renderResizeHandle(col.id)}
                 </div>
               );
@@ -1735,7 +1793,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                         disabled={disableDependencyEditing}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        Связи {React.createElement(LINK_TYPE_ICONS[activeLinkType])} &#9662;
+                        {col.header} {React.createElement(LINK_TYPE_ICONS[activeLinkType])} &#9662;
                       </button>
                     </PopoverTrigger>
                     <PopoverContent portal={true} align="start">
@@ -1756,6 +1814,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   {dependencyError && (
                     <div className="gantt-tl-dep-error">{dependencyError}</div>
                   )}
+                  {renderColumnMenu(col.id)}
                   {renderResizeHandle(col.id)}
                 </div>
               );
@@ -1769,6 +1828,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                      data-column-id={col.id}
                      style={{ width: col.width, minWidth: col.width, maxWidth: col.width, flex: `0 0 ${col.width}px`, position: 'relative' }}>
                   {col.header}
+                  {renderColumnMenu(col.id)}
                   {renderResizeHandle(col.id)}
                 </div>
               );
@@ -1781,6 +1841,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                    data-custom-column-id={col.id}
                    style={{ width: col.width, minWidth: col.width, maxWidth: col.width, flex: `0 0 ${col.width}px`, position: 'relative' }}>
                 {col.header}
+                {renderColumnMenu(col.id)}
                 {renderResizeHandle(col.id)}
               </div>
             );

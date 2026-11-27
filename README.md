@@ -162,6 +162,10 @@ export default function App() {
 
 Полный список актуальных пропсов смотрите в `docs/reference/04-props.md`.
 
+## Контекстное меню Task List
+
+ПКМ по строке и кнопка «…» открывают одно меню. Передайте `taskListMenuCommands` с названием `label`, необязательной иконкой `icon` и обработчиком `onSelect(task)`. Через `renderTaskListMenu(context, commands)` можно добавить свою разметку и вызвать операции строки, доступные в `context`. [Пример подключения](./packages/gantt-lib/README.md#task-list-context-menu)
+
 ## Кастомные колонки TaskList
 
 TaskList теперь расширяется через `additionalColumns` и единый API колонок:
@@ -172,6 +176,8 @@ TaskList теперь расширяется через `additionalColumns` и �
 - `width` только числом в пикселях
 - `hiddenTaskListColumns` для скрытия встроенных и кастомных колонок по `id`
 - `taskListColumnWidths` и `onTaskListColumnWidthsChange` для управления ширинами колонок, включая drag-resize из header
+
+Наведите курсор на заголовок и нажмите треугольник, чтобы скрыть или показать столбцы. Для хранения видимости в приложении передайте `hiddenTaskListColumns` вместе с `onHiddenTaskListColumnsChange`.
 
 Короткий пример:
 

@@ -634,26 +634,34 @@ activityDependencyHighlight={{
 Set TaskDependency.hidden to true to omit its arrow, predecessor chip and print label. The full dependency remains available to validation, drag constraints and cascading; this is a presentation flag, not a scheduling switch.
 
 
-### Consumer-owned task controls (0.145.0)
+### Task List context menu
 
-Task callbacks no longer add implicit menu items or row buttons. `taskListMenuCommands`
-continues to render explicitly configured commands (scope, visibility, disabled state,
-icons, dividers and close behavior). An empty command list produces no menu trigger.
-`enableAddTask` now defaults to `false`; set it to `true` with `onAdd` to show the footer.
+Right-click a Task List row or click its ellipsis to open the same menu.
+Pass `taskListMenuCommands` to add commands with a stable `id`, a `label`, an
+optional `icon`, and an `onSelect(task)` handler. Use `scope` and `isVisible`
+to choose which rows show a command, `isDisabled` to disable it, and
+`closeOnSelect: false` to keep the menu open after selection.
 
 Use `renderTaskListActions(context)` for arbitrary row buttons and
-`renderTaskListMenu(context, commands)` to replace or compose the entire menu.
-Return `null` to omit either surface for a row. `hideTaskListRowActions` suppresses
-both slots and commands. Context contains `task`, `isParent`, `canPromote`,
+`renderTaskListMenu(context, commands)` to compose the configured commands with
+your own markup or supply the entire menu. Return `null` to omit the menu for
+a row. `hideTaskListRowActions` hides the row buttons and disables both menu
+triggers. If a row has no menu content, right-click opens the browser menu.
+
+Context contains `task`, `isParent`, `canPromote`,
 `canDemote`, `closeMenu`, and optional `insertAfter`, `promote`, `demote`, `duplicate`,
 `delete`, `ungroup` operations. Unsupported operations are `undefined`.
-The library retains scheduling, hierarchy and inline-insert behavior; the consumer
-owns labels, icons, colors, menu composition and business actions.
 
 ```tsx
 <GanttChart tasks={tasks} showTaskList onTasksChange={setChangedTasks}
   onAdd={addTask} onInsertAfter={insertTask} onDelete={deleteTask}
   enableAddTask
+  taskListMenuCommands={[{
+    id: 'details',
+    label: 'Open task details',
+    icon: <span aria-hidden="true">↗</span>,
+    onSelect: task => openTaskDetails(task.id),
+  }]}
   renderTaskListActions={({ insertAfter, promote, demote }) => <>
     {insertAfter && <button onClick={insertAfter}>+</button>}
     {promote && <button onClick={promote}>Promote</button>}
@@ -666,7 +674,16 @@ owns labels, icons, colors, menu composition and business actions.
 />
 ```
 
-Migrate color selection into the application, emitting changed task copies through
-`onTasksChange`. To preserve the previous parent-color behavior, include descendants.
-Do not mutate the context task. Use the optional operation callbacks to preserve the
-library's descendant deletion, duplication and hierarchy scheduling semantics.
+`openTaskDetails` is an application handler. Use the optional context operations
+to keep the library's scheduling and hierarchy behavior. For custom edits such as
+color changes, pass updated task copies through `onTasksChange`. Include descendants
+if your color action applies to the whole group. Set `enableAddTask` with `onAdd`
+to show the add-task footer.
+
+### Task List column visibility
+
+Hover over a column header and click its triangle to show or hide built-in and custom
+columns. The Task List stores visibility locally by default. To manage it in the
+application, pass `hiddenTaskListColumns` and update it in
+`onHiddenTaskListColumnsChange(nextHiddenIds)`. Passing only `hiddenTaskListColumns`
+fixes visibility from the application.

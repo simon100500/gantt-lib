@@ -117,6 +117,7 @@ export default function AdditionalColumnsChart() {
           getTaskListRowClassName={(task) => task.status === 'closed' ? 'gantt-tl-row-closed' : undefined}
           additionalColumns={additionalColumns}
           hiddenTaskListColumns={hiddenTaskListColumns}
+          onHiddenTaskListColumnsChange={setHiddenTaskListColumns}
         />
       </div>
     </section>

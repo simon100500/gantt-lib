@@ -449,7 +449,7 @@ export interface TaskListActionContext<TTask extends Task = Task> {
 export interface TaskListMenuCommand<TTask extends Task = Task> {
   /** Stable command id for React keys and consumer bookkeeping */
   id: string;
-  /** Visible label in the three-dots menu */
+  /** Visible label in the row menu */
   label: string;
   /** Optional icon rendered before the label */
   icon?: React.ReactNode;
@@ -590,13 +590,15 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
   additionalColumns?: TaskListColumn<TTask>[];
-  /** Built-in or custom TaskList column IDs to hide after column placement is resolved */
+  /** Controlled list of hidden built-in or custom TaskList column IDs. */
   hiddenTaskListColumns?: readonly TaskListColumnId[];
+  /** Called when column visibility changes. Enables the column menu in controlled mode. */
+  onHiddenTaskListColumnsChange?: (columnIds: TaskListColumnId[]) => void;
   /** Initial or controlled TaskList column widths keyed by built-in/custom column id. */
   taskListColumnWidths?: TaskListColumnWidthMap;
   /** Called when the user resizes TaskList columns. */
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
-  /** Additional commands rendered in the TaskList row three-dots menu */
+  /** Commands shared by the TaskList row context menu and three-dots trigger. */
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
   /** No buttons render unless this slot is supplied. */
   renderTaskListActions?: (context: TaskListActionContext<TTask>) => React.ReactNode;
@@ -834,6 +836,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
+    onHiddenTaskListColumnsChange,
     taskListColumnWidths,
     onTaskListColumnWidthsChange,
     taskListMenuCommands,
@@ -2647,6 +2650,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             criticalTaskIds={criticalPathMode === 'hide' ? criticalTaskIds : undefined}
             additionalColumns={additionalColumns}
             hiddenTaskListColumns={hiddenTaskListColumns}
+            onHiddenTaskListColumnsChange={onHiddenTaskListColumnsChange}
             taskListColumnWidths={taskListColumnWidths}
             onTaskListColumnWidthsChange={onTaskListColumnWidthsChange}
             taskListMenuCommands={taskListMenuCommands as TaskListMenuCommand<Task>[] | undefined}
