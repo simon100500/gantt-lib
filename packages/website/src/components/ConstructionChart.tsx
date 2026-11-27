@@ -5,6 +5,7 @@ import {
   GanttChart,
   type Task,
   type GanttChartHandle,
+  type TaskListActionContext,
   type TaskListMenuCommand,
   type TimelineMarker,
   withoutDeps, expired, inDateRange, progressInRange, nameContains, or,
@@ -96,6 +97,35 @@ const HomeNameIcon = () => (
     <path d="M9 21v-6h6v6" />
   </svg>
 );
+
+function renderHierarchyActions({ promote, demote }: TaskListActionContext<Task>) {
+  return (
+    <>
+      {promote && (
+        <button
+          type="button"
+          className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
+          title="Повысить уровень"
+          aria-label="Повысить уровень"
+          onClick={promote}
+        >
+          ←
+        </button>
+      )}
+      {demote && (
+        <button
+          type="button"
+          className="gantt-tl-name-action-btn gantt-tl-action-hierarchy"
+          title="Понизить уровень"
+          aria-label="Понизить уровень"
+          onClick={demote}
+        >
+          →
+        </button>
+      )}
+    </>
+  );
+}
 
 export default function ConstructionChart() {
   const [tasks, setTasks] = useState<Task[]>(createSampleTasks);
@@ -460,6 +490,7 @@ export default function ConstructionChart() {
           onSelectedTaskIdsChange={setSelectedTaskIds}
           filterMode={filterMode}
           criticalPathMode={criticalPathMode}
+          renderTaskListActions={renderHierarchyActions}
           taskListMenuCommands={taskListMenuCommands}
           onSubtreeScaleResult={(result) => {
             if (!result.ok) {
