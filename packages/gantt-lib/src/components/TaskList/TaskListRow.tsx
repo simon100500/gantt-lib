@@ -2281,63 +2281,33 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 />
               </>
             )}
-            {task.composite && !isFilterHideMode && !isCollapsed && !editingName && (
-              <span
-                data-testid="gantt-tl-parent-connector-tail"
-                style={{
-                  position: "absolute",
-                  left: `${nestingDepth * 20 + 9}px`,
-                  top: `${rowHeight / 2 + 7}px`,
-                  height: `${rowHeight / 2 - 7}px`,
-                  width: "1.5px",
-                  background: getHierarchyLineColor(nestingDepth),
-                  borderRadius: "1px",
-                  pointerEvents: "none",
-                }}
-              />
-            )}
-            {isParent && !task.composite && !editingName && (
-              <>
-                <button
-                  type="button"
-                  className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
-                  onClick={handleToggleCollapse}
-                  style={{ left: `${nestingDepth * 20 - 2}px` }}
-                  aria-label={isCollapsed ? "Expand children" : "Collapse children"}
-                >
-                  <ChevronRightIcon />
-                </button>
-              </>
-            )}
           </>
         )}
-        {!isChild && isParent && !task.composite && !editingName && (
-          <>
-            {!isFilterHideMode && !isCollapsed && (
-              <span
-                data-testid="gantt-tl-parent-connector-tail"
-                style={{
-                  position: "absolute",
-                  left: `${nestingDepth * 20 + 9}px`,
-                  top: `${rowHeight / 2 + 7}px`,
-                  height: `${rowHeight / 2 - 7}px`,
-                  width: "1.5px",
-                  background: getHierarchyLineColor(nestingDepth),
-                  borderRadius: "1px",
-                  pointerEvents: "none",
-                }}
-              />
-            )}
-            <button
-              type="button"
-              className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
-              onClick={handleToggleCollapse}
-              style={{ left: `${nestingDepth * 20 - 2}px` }}
-              aria-label={isCollapsed ? "Expand children" : "Collapse children"}
-            >
-              <ChevronRightIcon />
-            </button>
-          </>
+        {!editingName && !isFilterHideMode && !isCollapsed && (task.composite ? isChild : isParent) && (
+          <span
+            data-testid="gantt-tl-parent-connector-tail"
+            style={{
+              position: "absolute",
+              left: `${nestingDepth * 20 + 9}px`,
+              top: `${rowHeight / 2 + 7}px`,
+              height: `${rowHeight / 2 - 7}px`,
+              width: "1.5px",
+              background: getHierarchyLineColor(nestingDepth),
+              borderRadius: "1px",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+        {isParent && !task.composite && !editingName && (
+          <button
+            type="button"
+            className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
+            onClick={handleToggleCollapse}
+            style={{ left: `${nestingDepth * 20 - 2}px` }}
+            aria-label={isCollapsed ? "Expand children" : "Collapse children"}
+          >
+            <ChevronRightIcon />
+          </button>
         )}
         {editingName ? (
           <Input

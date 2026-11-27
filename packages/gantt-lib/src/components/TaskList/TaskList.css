@@ -110,9 +110,14 @@
   transition: background-color 0.15s ease;
 }
 
-.gantt-tl-headerCell:hover .gantt-tl-column-resize-handle::before,
 .gantt-tl-column-resize-handle:focus-visible::before {
   background: var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.35));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .gantt-tl-header:hover .gantt-tl-column-resize-handle::before {
+    background: var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.35));
+  }
 }
 
 /* The visual touch affordance must never appear in the desktop table. */

@@ -284,13 +284,18 @@ describe('TaskListRow hierarchy rendering', () => {
     expect(onScrollToTask).toHaveBeenCalledWith('readonly-task');
   });
 
-  it('renders the parent connector tail below the chevron for a root parent task', () => {
+  it.each([
+    { depth: 0, ancestorId: undefined, left: '9px' },
+    { depth: 1, ancestorId: 'ancestor', left: '29px' },
+    { depth: 2, ancestorId: 'ancestor', left: '49px' },
+  ])('renders the connector below an expanded parent chevron at depth $depth', ({ depth, ancestorId, left }) => {
     const parent: Task = {
       id: 'parent',
       name: 'Parent task',
       startDate: '2026-03-01',
       endDate: '2026-03-05',
       progress: 0,
+      parentId: ancestorId,
     };
     const child: Task = {
       id: 'child',
@@ -301,19 +306,25 @@ describe('TaskListRow hierarchy rendering', () => {
       parentId: 'parent',
     };
 
-    render(
+    const renderRow = (isCollapsed: boolean) => (
       <TaskListRow
         task={parent}
         allTasks={[parent, child]}
         rowIndex={0}
         rowHeight={40}
+        nestingDepth={depth}
+        collapsedParentIds={isCollapsed ? new Set([parent.id]) : new Set()}
         onRowClick={() => {}}
         onChipSelect={() => {}}
         resolvedColumns={resolvedColumns}
       />
     );
 
-    expect(screen.getByTestId('gantt-tl-parent-connector-tail')).toBeTruthy();
+    const { rerender } = render(renderRow(false));
+    expect(screen.getByTestId('gantt-tl-parent-connector-tail').style.left).toBe(left);
+
+    rerender(renderRow(true));
+    expect(screen.queryByTestId('gantt-tl-parent-connector-tail')).toBeNull();
   });
 
   it('renders a color stripe at the end of the task name cell when the task has a custom color', () => {
