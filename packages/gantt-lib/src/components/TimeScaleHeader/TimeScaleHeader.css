@@ -88,9 +88,6 @@
 
 .gantt-tsh-markerDay .gantt-tsh-dayLabel {
   color: var(--gantt-bar-label-foreground, var(--gantt-task-bar-text-color, #fff));
-  background: var(--gantt-bar-label-background, rgba(0, 0, 0, 0.75));
-  border-radius: 3px;
-  padding: 0 2px;
 }
 
 .gantt-tsh-markerDay::before {
