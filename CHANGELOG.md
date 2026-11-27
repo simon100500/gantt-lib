@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.15] - 2026-11-27
+
+### Fixes
+
+- Show all column resize guides when hovering over the task list header.
+- Extend tree lines below the chevron of expanded groups at every nesting depth.
+
+### Demo
+
+- Add row controls for raising or lowering a task's hierarchy level in the Construction Project demo.
+
 ## [0.146.14] - 2026-11-26
 
 ### Fixes
