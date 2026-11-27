@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.16] - 2026-11-27
+
+### Features
+
+- Open the configured Task List row menu with a right-click or the ellipsis button.
+- Show or hide built-in and custom columns from the triangle in each Task List column header.
+
+### Fixes
+
+- Show the day number directly on the timeline marker flag.
+
+### Documentation
+
+- Document custom row menu commands, built-in task operations, and controlled column visibility.
+
 ## [0.146.15] - 2026-11-27
 
 ### Fixes
