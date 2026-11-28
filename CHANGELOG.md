@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0-alpha.4] - 2026-11-29
+
+### Fixes
+
+- Keep neighbouring task-list columns at their current widths during drag and on release.
+- Wrap task names at word boundaries within the configured line limit.
+
 ## [0.2.0-alpha.3] - 2026-11-28
 
 ### Fixes

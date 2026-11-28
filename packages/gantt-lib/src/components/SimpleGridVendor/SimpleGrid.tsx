@@ -974,10 +974,10 @@ export function SimpleGrid<T>({
         paintWidthPreview();
       });
     };
-    const cleanup = () => {
+    const cleanup = (restoreStyles = true) => {
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;
-      originalStyles.forEach(({element, width, minWidth, left}) => { element.style.width=width; element.style.minWidth=minWidth; element.style.left=left; });
+      if (restoreStyles) originalStyles.forEach(({element, width, minWidth, left}) => { element.style.width=width; element.style.minWidth=minWidth; element.style.left=left; });
       document.body.style.cursor = '';
       window.removeEventListener(moveEventName, onMove);
       window.removeEventListener(upEventName, onUp);
@@ -987,7 +987,8 @@ export function SimpleGrid<T>({
     };
     const onUp = (upEvent: Event) => {
       if (upEvent.type === 'pointerup' && (upEvent as PointerEvent).pointerId !== pointerId) return;
-      cleanup();
+      paintWidthPreview();
+      cleanup(false);
       setResizingColumn(null);
       // An override equal to the declared width is no override at all.
       const map = { ...widthOverridesRef.current };

@@ -1201,14 +1201,6 @@ function SimpleGridTaskListInner<TTask extends Task>({
     </Popover>
   ), [canChangeColumnVisibility, enableTaskMultiSelect, availableColumns, canShowRowActions, hiddenColumns, controlledHiddenColumns,
     onHiddenColumnsChange, columnMenuAnchor, visibleColumns.length]);
-  const columns = useMemo(() => canChangeColumnVisibility ? visibleColumns.map(column => ({
-    ...column,
-    headerContent: <span className="gantt-simple-grid-heading">
-      <span className="gantt-simple-grid-heading-label">{column.headerContent ?? column.title}</span>
-      {renderVisibilityMenu(column.id)}
-    </span>,
-  })) : visibleColumns, [canChangeColumnVisibility, visibleColumns, renderVisibilityMenu]);
-
   const configuredWidths = useMemo(() => columnWidths
     ? Object.fromEntries(Object.entries(columnWidths).filter((entry): entry is [string, number] => (
       typeof entry[1] === 'number' && Number.isFinite(entry[1]) && entry[1] > 0
@@ -1216,6 +1208,26 @@ function SimpleGridTaskListInner<TTask extends Task>({
     : undefined, [columnWidths]);
   const showNumbers = !hiddenColumns?.includes('number');
   const showSelection = !!enableTaskMultiSelect && !hiddenColumns?.includes('selection');
+  const showRowHeaders = showNumbers || showSelection || (canChangeColumnVisibility && visibleColumns.length === 0);
+  const rowHeaderWidth = configuredWidths?.number ?? (showNumbers ? 40 : 24);
+  const gutterWidth = showRowHeaders ? Math.max(24, rowHeaderWidth) + (showSelection ? 24 : 0) : 0;
+  const columns = useMemo(() => {
+    const hasConfiguredWidths = visibleColumns.some(column => configuredWidths?.[column.id] !== undefined);
+    // Assign the requested initial panel width to the name column. A table-wide
+    // minimum would stretch unrelated columns as soon as a drag makes it narrower.
+    const extraWidth = hasConfiguredWidths ? 0 : width - gutterWidth - visibleColumns.reduce((sum, column) => sum + column.width, 0);
+    return visibleColumns.map(column => {
+      const sized = column.id === 'name' && extraWidth > 0 ? { ...column, width: column.width + extraWidth } : column;
+      if (!canChangeColumnVisibility) return sized;
+      return {
+        ...sized,
+        headerContent: <span className="gantt-simple-grid-heading">
+          <span className="gantt-simple-grid-heading-label">{column.headerContent ?? column.title}</span>
+          {renderVisibilityMenu(column.id)}
+        </span>,
+      };
+    });
+  }, [canChangeColumnVisibility, configuredWidths, gutterWidth, renderVisibilityMenu, visibleColumns, width]);
   const handleGridSelection = (selected: string[]) => {
     const next = new Set(selectedTaskIds);
     for (const task of tasks) next.delete(task.id);
@@ -1267,8 +1279,8 @@ function SimpleGridTaskListInner<TTask extends Task>({
       ) : null : undefined}
       visibleRowIndices={visibleRowIndices}
       onRevealRow={onRevealRow}
-      showRowHeaders={showNumbers || showSelection || (canChangeColumnVisibility && columns.length === 0)}
-      rowHeaderWidth={configuredWidths?.number ?? (showNumbers ? 40 : 24)}
+      showRowHeaders={showRowHeaders}
+      rowHeaderWidth={rowHeaderWidth}
       cornerContent={<>{showNumbers ? '№' : null}{renderVisibilityMenu(null)}</>}
       rowSelectionMode={showSelection}
       rowSelectionLabel={task => `Выбрать работу ${numberMap[task.id]}. ${task.name}`}

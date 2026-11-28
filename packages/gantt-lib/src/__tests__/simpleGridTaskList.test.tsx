@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Verify native SimpleGrid task-list scheduling boundaries.
-// SCOPE: Insertion, rectangular paste, controlled rejection, and shared tree visibility.
+// SCOPE: Column sizing, insertion, rectangular paste, controlled rejection, and shared tree visibility.
 // INPUTS: User events on GanttChart.
 // OUTPUTS: Atomic update or rejection and aligned tree visibility.
 // END_MODULE_CONTRACT
@@ -27,6 +27,16 @@ function positionGridRows() {
 }
 
 describe('SimpleGrid inside GanttChart', () => {
+  it('uses the name column for the initial panel width and honors explicit column widths', () => {
+    const props = { tasks, showTaskList: true, taskListWidth: 420,
+      hiddenTaskListColumns: ['startDate', 'endDate', 'duration', 'progress', 'dependencies'] };
+    const { container, rerender } = render(<GanttChart {...props} />);
+    const table = container.querySelector<HTMLTableElement>('[data-sg] > table')!;
+    expect(table.style.width).toBe('420px');
+    rerender(<GanttChart {...props} taskListColumnWidths={{ name: 180 }} />);
+    expect(table.style.width).toBe('220px');
+  });
+
   it.each([
     ['a', 'a', 'group', 'b'],
     ['group', 'b', undefined, 'tail'],

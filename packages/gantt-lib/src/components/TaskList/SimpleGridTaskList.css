@@ -1,5 +1,7 @@
 .gantt-simple-grid.gantt-tl-overlay {
   width: max-content;
+  min-width: 0;
+  transition-property: opacity, transform, visibility;
   align-self: stretch;
   top: auto;
   --gantt-simple-grid-accent: var(--gantt-row-selected-border-color, #3974dc);
@@ -13,13 +15,11 @@
 
 .gantt-simple-grid [data-sg] {
   width: max-content;
-  min-width: 100%;
   overflow: visible;
   border-radius: 0;
 }
 
 .gantt-simple-grid [data-sg] > table {
-  min-width: 100%;
   color: var(--gantt-text-color, #374151);
   font: inherit;
   font-size: 0.8125rem;
@@ -247,6 +247,7 @@
 
 .gantt-simple-grid .gantt-tl-name-trigger-text {
   word-break: normal;
+  overflow-wrap: normal;
   text-overflow: ellipsis;
 }
 .gantt-simple-grid .gantt-tl-name-trigger-icon { display: inline-flex; align-items: center; }
