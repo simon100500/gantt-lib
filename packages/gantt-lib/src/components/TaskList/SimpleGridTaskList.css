@@ -92,7 +92,7 @@
   content: "";
   position: absolute;
   top: 50%;
-  right: 1px;
+  right: -1px;
   width: 2px;
   height: 16px;
   transform: translateY(-50%);
