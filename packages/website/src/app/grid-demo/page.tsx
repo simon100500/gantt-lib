@@ -58,23 +58,24 @@ const timelineMarkers: TimelineMarker[] = [
 export default function GridDemo() {
   const [tasks, setTasks] = useState(() => withOrder(initial));
   const [selected, setSelected] = useState(new Set<string>());
-  const [showTimelineMarkers, setShowTimelineMarkers] = useState(true);
+  const [showColumnSeparators, setShowColumnSeparators] = useState(false);
   const [widths, setWidths] = useState<TaskListColumnWidthMap>({
     name: 210, startDate: 84, endDate: 86, duration: 52, progress: 44, dependencies: 108,
   });
   return (
-    <main style={{ maxWidth: 1600, margin: '0 auto', padding: 'clamp(12px, 3vw, 40px)', fontFamily: 'system-ui, sans-serif' }}>
+    <main className={showColumnSeparators ? 'demo-task-list-separators' : undefined}
+      style={{ maxWidth: 1600, margin: '0 auto', padding: 'clamp(12px, 3vw, 40px)', fontFamily: 'system-ui, sans-serif' }}>
       <h1 style={{ margin: '0 0 8px', fontSize: 'clamp(24px, 3vw, 34px)', letterSpacing: '-0.035em' }}>График строительства</h1>
       <p style={{ color: '#526174', margin: '0 0 20px', fontSize: '0.875rem' }}>
         Перетаскивайте за номер строки. Enter открывает редактор выбранной ячейки.
       </p>
       <button type="button" className="demo-btn demo-btn-secondary" style={{ marginBottom: 12 }}
-        onClick={() => setShowTimelineMarkers(value => !value)}>
-        {showTimelineMarkers ? 'Выключить вертикальные полосы' : 'Включить вертикальные полосы'}
+        onClick={() => setShowColumnSeparators(value => !value)}>
+        {showColumnSeparators ? 'Выключить вертикальные полосы' : 'Включить вертикальные полосы'}
       </button>
       <GanttChart
         tasks={tasks}
-        timelineMarkers={showTimelineMarkers ? timelineMarkers : undefined}
+        timelineMarkers={timelineMarkers}
         showTaskList
         showTaskDateLabels={false}
         businessDays={false}

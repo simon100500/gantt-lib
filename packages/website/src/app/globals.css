@@ -131,6 +131,10 @@ body {
 }
 
 /* Chart card wrapper */
+.demo-task-list-separators {
+  --gantt-tl-vertical-separators: var(--gantt-tl-vertical-separators-width);
+}
+
 .demo-chart-card {
   border: 1px solid var(--demo-border);
   border-radius: 10px;

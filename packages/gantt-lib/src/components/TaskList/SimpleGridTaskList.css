@@ -33,6 +33,7 @@
 .gantt-simple-grid [data-sg] > table > thead th,
 .gantt-simple-grid [data-sg] > table > tbody > tr[data-row-index] > td {
   border-color: var(--gantt-grid-line-color, #e0e0e0);
+  border-right: var(--gantt-tl-vertical-separators, none);
 }
 
 .gantt-simple-grid [data-sg] > table > thead th {
