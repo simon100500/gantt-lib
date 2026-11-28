@@ -255,10 +255,10 @@ function canMoveTask(
     const predecessor = allTasks.find(t => t.id === dep.taskId);
     if (!predecessor) continue;
 
-    const predecessorStart = new Date(predecessor.startDate);
+    const predecessorStart = new Date(predecessor.startDate ?? NaN);
     const predecessorEnd = predecessor.type === 'milestone'
       ? predecessorStart
-      : new Date(predecessor.endDate);
+      : new Date(predecessor.endDate ?? NaN);
 
     // Calculate expected date based on link type (lag ignored, always 0)
     const expectedDate = calculateSuccessorDate(

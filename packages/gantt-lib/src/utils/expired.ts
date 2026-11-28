@@ -9,7 +9,7 @@ export const isTaskExpired = (
   task: Task | undefined,
   referenceDate: Date = new Date(),
 ): boolean => {
-  if (!task) return false;
+  if (!task?.startDate || !task.endDate) return false;
 
   const actualProgress = task.progress ?? 0;
   if (actualProgress >= 100) return false;

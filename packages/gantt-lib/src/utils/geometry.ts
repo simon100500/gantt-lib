@@ -80,8 +80,8 @@ export const calculateMilestoneConnectionBounds = (
 };
 
 type HorizontalGeometryTask = {
-  startDate: string | Date;
-  endDate: string | Date;
+  startDate?: string | Date;
+  endDate?: string | Date;
   type?: 'task' | 'milestone';
 };
 
@@ -95,8 +95,8 @@ export const resolveTaskHorizontalGeometry = (
   dayWidth: number,
   override?: { left: number; width: number }
 ): { left: number; right: number; centerX: number } => {
-  const startDate = new Date(task.startDate);
-  const endDate = new Date(task.endDate);
+  const startDate = new Date(task.startDate ?? NaN);
+  const endDate = new Date(task.endDate ?? NaN);
 
   if (task.type === 'milestone') {
     const size = 14;
@@ -127,7 +127,8 @@ export const resolveTaskHorizontalGeometry = (
   const bar = calculateTaskBar(startDate, endDate, monthStart, dayWidth);
   return {
     left: bar.left,
-    right: bar.left + bar.width,
+    right: task.startDate && task.endDate ? bar.left + bar.width
+      : task.endDate ? Math.round((getUTCDayDifference(endDate, monthStart) + 1) * dayWidth) : NaN,
     centerX: Math.round(bar.left + bar.width / 2),
   };
 };

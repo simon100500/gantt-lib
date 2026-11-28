@@ -14,6 +14,24 @@ import { cascadeByLinks } from '../core/scheduling/cascade';
 const isWeekend = (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6;
 
 describe('DependencyLines', () => {
+  it('draws a dependency as soon as its two linked boundaries are known', () => {
+    const tasks: Task[] = [
+      { id: 'a', name: 'A', endDate: '2026-03-04' },
+      { id: 'b', name: 'B', startDate: '2026-03-06', dependencies: [
+        { taskId: 'a', type: 'FS', lag: 1 }, { taskId: 'a', type: 'SS', lag: 0 },
+      ] },
+    ];
+    const props = { monthStart: new Date('2026-03-01'), dayWidth: 40, rowHeight: 40, gridWidth: 1240 };
+    const { container, rerender } = render(<DependencyLines {...props} tasks={tasks} />);
+    const paths = () => [...container.querySelectorAll('.gantt-dependency-path')];
+    expect(paths()).toHaveLength(1);
+    expect(paths()[0].getAttribute('d')).not.toContain('NaN');
+    rerender(<DependencyLines {...props} tasks={[{ ...tasks[0], startDate: '2026-03-02' }, tasks[1]]} />);
+    expect(paths()).toHaveLength(2);
+    rerender(<DependencyLines {...props} tasks={[tasks[0], { ...tasks[1], startDate: undefined }]} />);
+    expect(paths()).toHaveLength(0);
+  });
+
   it.each([false, true])('reconciles replicated edges and distinct lags after removal (activityEndpoints=%s)', (activityEndpoints) => {
     const tasks: Task[] = [
       { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-02' },

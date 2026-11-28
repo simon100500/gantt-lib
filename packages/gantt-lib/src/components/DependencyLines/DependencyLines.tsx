@@ -550,12 +550,15 @@ export const DependencyLines: React.FC<DependencyLinesProps> = React.memo(({
           ? successor.right
           : successor.left;
 
+      if (!Number.isFinite(fromX) || !Number.isFinite(toX)) continue;
+
       const stackedMilestonesSameDay = Boolean(
         predecessorTask &&
         successorTask &&
         isMilestoneTask(predecessorTask) &&
         isMilestoneTask(successorTask) &&
         edge.lag === 0 &&
+        predecessorTask.startDate && successorTask.startDate &&
         new Date(predecessorTask.startDate).toISOString().split('T')[0] ===
           new Date(successorTask.startDate).toISOString().split('T')[0] &&
         predecessor.rowTop !== successor.rowTop &&

@@ -284,8 +284,8 @@ interface PendingInsertState {
   anchorTaskId: string;
   insertAfterTaskId: string;
   parentId?: string;
-  startDate: string | Date;
-  endDate: string | Date;
+  startDate?: string | Date;
+  endDate?: string | Date;
   nestingDepth: number;
 }
 
@@ -883,7 +883,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
     // Snap successor dates to the predecessor position (lag=0)
     const predecessor = tasks.find(t => t.id === predecessorTaskId);
-    if (predecessor) {
+    if (predecessor?.startDate && predecessor.endDate && successor.startDate && successor.endDate) {
       const predStart = new Date(predecessor.startDate as string);
       const predEnd = predecessor.type === 'milestone'
         ? predStart

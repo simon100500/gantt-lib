@@ -51,7 +51,8 @@ export function computeCriticalPath(
   for (const task of tasks) {
     if (task.parentId) childIds.add(task.parentId);
   }
-  const leafTasks = tasks.filter((task) => !childIds.has(task.id));
+  const leafTasks = tasks.filter((task): task is ScheduleTask & Required<Pick<ScheduleTask, 'startDate' | 'endDate'>> =>
+    !childIds.has(task.id) && !!task.startDate && !!task.endDate);
   const leafIds = new Set(leafTasks.map((task) => task.id));
 
   // Map any task id (parent or not) to ALL of its leaf descendants (transitive).

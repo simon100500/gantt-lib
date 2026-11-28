@@ -702,7 +702,7 @@ export const createSampleTasks = (): Task[] => {
 
   return tasks.map((task) => ({
     ...task,
-    baselineStartDate: task.baselineStartDate ?? shiftIsoDate(task.startDate, -2),
-    baselineEndDate: task.baselineEndDate ?? shiftIsoDate(task.endDate, -2),
+    baselineStartDate: task.baselineStartDate ?? (task.startDate && shiftIsoDate(task.startDate, -2)),
+    baselineEndDate: task.baselineEndDate ?? (task.endDate && shiftIsoDate(task.endDate, -2)),
   }));
 };

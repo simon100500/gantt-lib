@@ -20,7 +20,8 @@ export function normalizeUTCDate(date: Date): Date {
  * Parse a date string or Date object to a UTC midnight Date.
  * Handles ISO strings like "2025-01-15" by appending T00:00:00.000Z.
  */
-export function parseDateOnly(date: string | Date): Date {
+export function parseDateOnly(date: string | Date | undefined): Date {
+  if (!date) return new Date(NaN);
   const parsed = typeof date === 'string'
     ? new Date(`${date.split('T')[0]}T00:00:00.000Z`)
     : normalizeUTCDate(date);
@@ -193,8 +194,8 @@ export function alignToWorkingDay(
  * Otherwise, counts calendar days.
  */
 export function getTaskDuration(
-  startDate: string | Date,
-  endDate: string | Date,
+  startDate: string | Date | undefined,
+  endDate: string | Date | undefined,
   businessDays: boolean = false,
   weekendPredicate?: (date: Date) => boolean
 ): number {

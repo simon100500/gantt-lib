@@ -3,8 +3,8 @@ import type { TaskDateChangeMode } from '../../types';
 import { parseUTCDate } from '../../utils/dateUtils';
 import type { Task } from '../GanttChart';
 
-export const taskDateISO = (date: string | Date) => (
-  date instanceof Date ? date.toISOString().slice(0, 10) : date.split('T')[0]
+export const taskDateISO = (date: string | Date | undefined): string => (
+  date instanceof Date ? date.toISOString().slice(0, 10) : date?.split('T')[0] ?? ''
 );
 
 export function getFixedTaskDate(task: Task, boundary: 'start' | 'end') {
@@ -32,7 +32,7 @@ export function getTaskDatePin<TTask extends Task>({ task, boundary, isParent, m
   const preserveDuration = mode === 'preserve-duration';
   const moveBothPins = !isMilestone && !!oppositeAnchor && preserveDuration;
   const keepOppositeDate = !isMilestone && !oppositeAnchor && !isParent && !preserveDuration;
-  const pinAction = onChange && !task.locked && canToggle ? {
+  const pinAction = onChange && !task.locked && canToggle && (fixedDate || currentDate) ? {
     label: fixedDate ? 'Снять закрепление' : 'Закрепить текущую дату',
     run: () => onChange(isMilestone && fixedDate
       ? { ...task, fixedStartDate: null, fixedEndDate: null }

@@ -267,9 +267,11 @@ export interface Task {
   /** Display name of the task */
   name: string;
   /** Task start date (ISO string or Date object) */
-  startDate: string | Date;
+  startDate?: string | Date;
   /** Task end date (ISO string or Date object) */
-  endDate: string | Date;
+  endDate?: string | Date;
+  /** Estimated duration in project days, used until both dates are set. */
+  durationDays?: number;
   /** Optional fixed date-only boundaries; null or absence leaves the boundary automatic. */
   fixedStartDate?: string | null;
   fixedEndDate?: string | null;
@@ -325,6 +327,8 @@ export interface Task {
   planByDate?: Record<string, number>;
   /** Optional actual quantities keyed by ISO date (YYYY-MM-DD), used by plan-fact mode. */
   factByDate?: Record<string, number>;
+  /** Optional horizontal divider line spanning the row. */
+  divider?: 'top' | 'bottom';
   /**
    * Optional list of works rendered as bars packed into sub-lanes of this row
    * (e.g. finishing works on one floor). Replaces the main bar for the row and

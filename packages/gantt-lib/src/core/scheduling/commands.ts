@@ -140,6 +140,7 @@ export function clampTaskRangeForIncomingFS(
     }
 
     const { predStart: predecessorStart, predEnd: predecessorEnd } = normalizePredecessorDates(predecessor, parseDateOnly);
+    if (!Number.isFinite(+predecessorStart) || !Number.isFinite(+predecessorEnd)) continue;
     const predecessorDuration = getTaskDuration(
       predecessorStart,
       predecessorEnd,
@@ -197,6 +198,9 @@ export function recalculateIncomingLags(
       predecessor,
       (d) => new Date(d instanceof Date ? d.getTime() : `${String(d).split('T')[0]}T00:00:00.000Z`)
     );
+    const source = dep.type[0] === 'S' ? predecessorStart : predecessorEnd;
+    const target = dep.type[1] === 'S' ? newStartDate : newEndDate;
+    if (!Number.isFinite(+source) || !Number.isFinite(+target)) return dep;
     const nextLag = computeLagFromDates(
       dep.type,
       predecessorStart,

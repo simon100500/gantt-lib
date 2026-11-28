@@ -37,6 +37,9 @@ export function resolveFixedDates(
     return { start: date, end: date };
   }
   if (fixedStart && fixedEnd) return { start: fixedStart, end: fixedEnd };
+  if (!Number.isFinite(+range.start) || !Number.isFinite(+range.end)) {
+    return { start: fixedStart ?? range.start, end: fixedEnd ?? range.end };
+  }
   if (!parent && preserveDuration) {
     const duration = getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
     if (fixedStart) return { start: fixedStart, end: buildTaskRangeFromStart(fixedStart, duration, businessDays, weekendPredicate).end };

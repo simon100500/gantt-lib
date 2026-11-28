@@ -14,6 +14,23 @@ import {
   recalculateTaskFromDependencies,
   recalculateProjectSchedule,
 } from '../execute';
+import { reflowTasksOnModeSwitch } from '../modeSwitch';
+
+it('keeps undated estimates and links when recalculating a project with open boundaries', () => {
+  const tasks: Task[] = [
+    { id: 'parent', name: 'Этап' },
+    { id: 'finish', name: 'Приёмка', parentId: 'parent', endDate: '2026-02-13', fixedEndDate: '2026-02-13' },
+    { id: 'draft', name: 'Подготовка', parentId: 'parent', durationDays: 4 },
+    { id: 'next', name: 'Пуск', startDate: '2026-02-20', endDate: '2026-02-20', dependencies: [
+      { taskId: 'finish', type: 'FS', lag: 0 }, { taskId: 'draft', type: 'SS', lag: 0 },
+    ] },
+  ];
+  const reflowed = reflowTasksOnModeSwitch(tasks, true, day => day.getUTCDay() === 0 || day.getUTCDay() === 6);
+  expect(reflowed[0]).toMatchObject({ startDate: undefined, endDate: '2026-02-13' });
+  expect(reflowed[1].startDate).toBeUndefined();
+  expect(reflowed[2]).toEqual(tasks[2]);
+  expect(reflowed[3]).toMatchObject({ startDate: '2026-02-16', endDate: '2026-02-16', dependencies: tasks[3].dependencies });
+});
 
 // Helpers
 function d(iso: string): Date {

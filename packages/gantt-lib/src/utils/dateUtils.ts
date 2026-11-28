@@ -11,7 +11,8 @@ import {
  * @returns Date object representing UTC midnight
  * @throws Error if date string is invalid
  */
-export const parseUTCDate = (date: string | Date): Date => {
+export const parseUTCDate = (date: string | Date | undefined): Date => {
+  if (!date) return new Date(NaN);
   if (typeof date === 'string') {
     // If already an ISO string (contains 'T'), parse directly
     // Otherwise, append UTC time for simple date strings (YYYY-MM-DD)

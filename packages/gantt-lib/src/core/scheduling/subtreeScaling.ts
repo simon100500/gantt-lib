@@ -229,7 +229,8 @@ function toIsoDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-function isoOfTaskDate(date: string | Date): string {
+function isoOfTaskDate(date?: string | Date): string {
+  if (!date) return '';
   return toIsoDate(parseDateOnly(date));
 }
 

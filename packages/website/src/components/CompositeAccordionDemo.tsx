@@ -41,7 +41,7 @@ const initialTasks: Task[] = [
 
 export default function CompositeAccordionDemo() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const latestEnd = Math.max(...tasks.map(task => new Date(task.endDate).getTime()));
+  const latestEnd = Math.max(...tasks.flatMap(task => task.endDate ? [new Date(task.endDate).getTime()] : []));
   const initialRangeEnd = Date.UTC(2026, 10, 30);
   const rangeEnd = new Date(latestEnd > initialRangeEnd ? latestEnd + 14 * 86400000 : initialRangeEnd);
 

@@ -41,7 +41,7 @@ function PinButton({ field, onClick }: { field: DatePickerField; onClick: () => 
 }
 
 function DurationLink({ days, businessDays, linked, onToggle }: NonNullable<SimpleGridDatePickerContext['duration']>) {
-  const durationLabel = `${days} ${businessDays ? 'раб.' : 'кал.'} дн.`;
+  const durationLabel = days === undefined ? 'Длительность не задана' : `${days} ${businessDays ? 'раб.' : 'кал.'} дн.`;
   const action = linked ? 'Отключить сохранение длительности' : 'Включить сохранение длительности';
   return <button type="button" className="gantt-grid-duration-link" aria-label="Сохранять длительность"
     aria-description={durationLabel} aria-pressed={linked} disabled={!onToggle} onClick={onToggle}
@@ -51,13 +51,14 @@ function DurationLink({ days, businessDays, linked, onToggle }: NonNullable<Simp
       <path d="M9 7H7a5 5 0 0 0 0 10h2m6-10h2a5 5 0 0 1 0 10h-2" />
       <path d={linked ? 'M8 12h8' : 'M8 12h2m4 0h2'} />
     </svg>
-    <span>{days} д</span>
+    <span>{days === undefined ? '–' : `${days} д`}</span>
   </button>;
 }
 
-export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose }: {
+export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, triggerLabel, advanceToEmptyField }: {
   fields: DatePickerField[]; initialFieldId: string;
-  beforeOpen: () => boolean; onClose: () => void;
+  beforeOpen: () => boolean; onClose: () => void; triggerLabel?: string;
+  advanceToEmptyField?: boolean;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -87,6 +88,8 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose }: 
   const pick = (iso: string) => {
     field.onPick(iso);
     changeDraft(field.id);
+    const next = advanceToEmptyField && iso && fields.find(candidate => candidate.id !== field.id && !candidate.value && !candidate.disabled);
+    if (next) showField(next, iso);
     if (fields.length === 1) close(true);
   };
   const selectDate = (iso: string) => {
@@ -190,7 +193,7 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose }: 
   }, [cursor, field.id]);
 
   return <>
-    <button ref={trigger} type="button" className="sg-calendar-trigger" aria-label={`Открыть календарь: ${openingField.title}`}
+    <button ref={trigger} type="button" className={triggerLabel ? 'gantt-unscheduled-picker' : 'sg-calendar-trigger'} aria-label={triggerLabel ?? `Открыть календарь: ${openingField.title}`}
       title="Открыть календарь" aria-haspopup="dialog" aria-expanded={open}
       onMouseDown={event => { event.preventDefault(); event.stopPropagation(); }}
       onDoubleClick={event => event.stopPropagation()}
@@ -202,7 +205,7 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose }: 
         setDrafts({});
         showField(openingField);
         setOpen(true);
-      }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 5h2m4 0h2"/></svg></button>
+      }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 5h2m4 0h2"/></svg>{triggerLabel}</button>
     {open && createPortal(<div ref={panel} className="gantt-popover gantt-grid-date-picker" data-sg-portal="" role="dialog" aria-label={`Календарь: ${title}`}
       style={{ ...position, position: 'fixed', zIndex: 1200 }}
       onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}
@@ -221,7 +224,7 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose }: 
           {index === 1 && context?.duration && <DurationLink {...context.duration} />}
           <div className="gantt-grid-date-boundary" data-active={next.id === field.id || undefined}>
             <button type="button" className="gantt-grid-date-boundary-select" disabled={next.disabled}
-              aria-label={`${next.title}, ${shortDate(drafts[next.id] ?? next.value)}`} aria-pressed={next.id === field.id}
+              aria-label={`${next.title}, ${shortDate(drafts[next.id] ?? next.value) || '–'}`} aria-pressed={next.id === field.id}
               title={next.context?.fixedDateEdit?.title ?? next.title}
               onClick={() => { if (next.id !== field.id) showField(next, drafts[next.id]); }}>
               <span>{next.title}</span>
@@ -272,8 +275,9 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose }: 
           })}
         </div>
       </section>)}</div>
-      {(context?.footer || (fields.length === 1 && context?.pinAction) || fixedDateEdit) && <div className="gantt-datepicker-footer">
+      {(context?.footer || (activeDate && context?.clearable) || (fields.length === 1 && context?.pinAction) || fixedDateEdit) && <div className="gantt-datepicker-footer">
         {context?.footer}
+        {activeDate && context?.clearable && <Button type="button" variant="ghost" size="sm" onClick={() => pick('')}>Очистить дату</Button>}
         {error && <div className="gantt-datepicker-fixed-error" role="alert">{error}</div>}
         {((fields.length === 1 && context?.pinAction) || fixedDateEdit) && <div className="gantt-datepicker-fixed-actions">
           {fields.length === 1 && <PinButton field={field} onClick={() => togglePin(field)} />}

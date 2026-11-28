@@ -12,6 +12,8 @@ import type { Task } from '../types';
 import { normalizeTaskDates } from './dateUtils';
 import { activityBounds } from './activities';
 import { resolveFixedDates, resolveParentFixedDates } from '../core/scheduling/fixedDates';
+import { getChildDateBounds, getChildDurationWeight } from '../core/scheduling/hierarchy';
+import { normalizeTaskDatesForType } from './taskType';
 
 type HierarchyTask = Task & {
   sortOrder?: number;
@@ -90,10 +92,16 @@ export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[], bus
     // activities. Иначе родитель (секция/этаж) считался бы от устаревших дат
     // задачи после переноса отдельной работы. Затем — обычная нормализация дат.
     const bounds = activityBounds(task.activities);
-    const { startDate, endDate } = normalizeTaskDates(
-      bounds?.startDate ?? task.startDate,
-      bounds?.endDate ?? task.endDate,
-    );
+    const start = bounds?.startDate ?? task.startDate;
+    const end = bounds?.endDate ?? task.endDate;
+    if (!start || !end) {
+      return normalizeTaskDatesForType({
+        ...task,
+        startDate: task.fixedStartDate ?? start,
+        endDate: task.fixedEndDate ?? end,
+      });
+    }
+    const { startDate, endDate } = normalizeTaskDates(start, end);
     if (!task.fixedStartDate && !task.fixedEndDate) {
       return { ...task, startDate: startDate as T['startDate'], endDate: endDate as T['endDate'] };
     }
@@ -111,32 +119,26 @@ export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[], bus
     childrenByParent.set(parentId, children);
   }
 
-  const DAY_MS = 24 * 60 * 60 * 1000;
   for (let index = orderedTasks.length - 1; index >= 0; index--) {
     const children = childrenByParent.get(orderedTasks[index].id);
     if (!children?.length) continue;
-    let minStart = Infinity;
-    let maxEnd = -Infinity;
+    const childTasks = children.map(childIndex => orderedTasks[childIndex]);
     let totalWeight = 0;
     let weightedProgress = 0;
-    for (const childIndex of children) {
-      const child = orderedTasks[childIndex];
-      const start = new Date(child.startDate).getTime();
-      const end = new Date(child.endDate).getTime();
-      minStart = Math.min(minStart, start);
-      maxEnd = Math.max(maxEnd, end);
-      const duration = (end - start + DAY_MS) / DAY_MS;
+    for (const child of childTasks) {
+      const duration = getChildDurationWeight(child);
       totalWeight += duration;
       weightedProgress += duration * (child.progress ?? 0);
     }
-    const range = resolveParentFixedDates(orderedTasks[index], { start: new Date(minStart), end: new Date(maxEnd) }, id => {
+    const task = orderedTasks[index];
+    const range = resolveParentFixedDates(task, getChildDateBounds(childTasks), id => {
       const predecessorIndex = taskIndex.get(id);
       return predecessorIndex === undefined ? undefined : orderedTasks[predecessorIndex];
     }, businessDays, weekendPredicate);
     orderedTasks[index] = {
-      ...orderedTasks[index],
-      startDate: range.start.toISOString().split('T')[0] as T['startDate'],
-      endDate: range.end.toISOString().split('T')[0] as T['endDate'],
+      ...task,
+      startDate: (Number.isFinite(+range.start) ? range.start.toISOString().slice(0, 10) : undefined) as T['startDate'],
+      endDate: (Number.isFinite(+range.end) ? range.end.toISOString().slice(0, 10) : undefined) as T['endDate'],
       progress: (orderedTasks[index].progressAggregation === 'manual'
         ? orderedTasks[index].progress
         : totalWeight === 0 ? 0 : Math.round((weightedProgress / totalWeight) * 10) / 10) as T['progress'],

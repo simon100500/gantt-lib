@@ -454,6 +454,7 @@ export default function ConstructionChart() {
           rowContentLines={0}
           onTasksChange={handleChange}
           onAdd={handleAdd}
+          enableAddTask
           onDelete={handleDelete}
           onInsertAfter={handleInsertAfter}
           onReorder={handleReorder}

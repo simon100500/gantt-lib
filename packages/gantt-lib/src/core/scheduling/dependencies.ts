@@ -30,7 +30,7 @@ import {
  */
 export function normalizePredecessorDates(
   predecessor: Pick<Task, 'startDate' | 'endDate' | 'type'>,
-  parseDateFn: (d: string | Date) => Date
+  parseDateFn: (d: string | Date | undefined) => Date
 ): { predStart: Date; predEnd: Date } {
   const predStart = parseDateFn(predecessor.startDate);
   const predEnd = predecessor.type === 'milestone'
@@ -70,7 +70,7 @@ export function normalizeDependencyLag(
   weekendPredicate?: (date: Date) => boolean,
   successorType?: Task['type']
 ): number {
-  if (linkType !== 'FS') {
+  if (linkType !== 'FS' || !Number.isFinite(+predecessorStart) || !Number.isFinite(+predecessorEnd)) {
     return lag;
   }
 
@@ -173,6 +173,8 @@ export function calculateSuccessorDate(
   weekendPredicate?: (date: Date) => boolean,
   successorType?: Task['type']
 ): Date {
+  const anchor = linkType[0] === 'S' ? predecessorStart : predecessorEnd;
+  if (!Number.isFinite(+anchor)) return new Date(NaN);
   const normalizedLag = normalizeDependencyLag(
     linkType,
     lag,

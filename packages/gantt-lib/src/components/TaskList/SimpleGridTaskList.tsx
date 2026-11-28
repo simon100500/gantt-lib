@@ -33,7 +33,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { PinIcon } from '../ui/PinIcon';
 import { getVisibleReorderPlan } from '../../utils/taskListReorder';
 import { NewTaskRow } from './NewTaskRow';
-import { buildDefaultTaskDateRange, getTodayISODate } from './defaultTaskDates';
 import { duplicateTaskSubtree } from './TaskList';
 import { resolveTaskListColumns } from './columns/resolveTaskListColumns';
 import type { TaskListColumn, TaskListColumnContext, TaskListColumnId, TaskListColumnWidthMap } from './columns/types';
@@ -77,7 +76,8 @@ function CustomColumnEditor<TTask extends Task>({ row, rowIndex, value, cancel, 
 type DependencyChipKey = { successorId: string; predecessorId: string; linkType: string };
 
 /** The legacy TaskList displayed dates as dd.MM.yy via its DatePicker. */
-const formatDateLabel = (value: string | Date): string => {
+const formatDateLabel = (value?: string | Date): string => {
+  if (!value) return '–';
   const iso = toISODate(value);
   const [year, month, day] = iso.split('-');
   if (!year || !month || !day) return iso;
@@ -331,7 +331,8 @@ export function SimpleGridTaskList<TTask extends Task>({
 
     const updatedTask = hypothetical.find(task => task.id === successorTaskId)!;
     const predecessor = byId.get(predecessorTaskId);
-    if (predecessor) {
+    if (predecessor && successor.startDate && successor.endDate
+      && (linkType[0] === 'S' || predecessor.type === 'milestone' ? predecessor.startDate : predecessor.endDate)) {
       const predStart = new Date(predecessor.startDate as string);
       const predEnd = predecessor.type === 'milestone' ? predStart : new Date(predecessor.endDate as string);
       const constraintDate = calculateSuccessorDate(
@@ -617,7 +618,9 @@ export function SimpleGridTaskList<TTask extends Task>({
   }, [depthMap, parents, collapsed, heights, rowHeight, ancestorLineModesMap, lastChildIds, visibleParentIds, onToggleCollapse, getTaskListNamePrefixIcon, nameInset]);
 
   const getDurationFor = useCallback((task: Task) => (
-    task.type === 'milestone' ? 0 : getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate)
+    task.type === 'milestone' ? 0 : task.startDate && task.endDate
+      ? getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate)
+      : task.durationDays
   ), [businessDays, weekendPredicate]);
 
   const getDatePin = useCallback((task: TTask, boundary: 'start' | 'end', hasAction: boolean) => getTaskDatePin({
@@ -658,7 +661,8 @@ export function SimpleGridTaskList<TTask extends Task>({
 
   const renderDurationCell = useCallback((task: Task) => {
     const isMilestone = task.type === 'milestone';
-    return <span className="gantt-tl-duration-display">{isMilestone ? '◆' : `${getDurationFor(task)} д`}</span>;
+    const days = getDurationFor(task);
+    return <span className="gantt-tl-duration-display">{isMilestone ? '◆' : days === undefined ? '–' : `${days} д`}</span>;
   }, [getDurationFor]);
 
   const renderProgressCell = useCallback((task: Task) => {
@@ -945,7 +949,7 @@ export function SimpleGridTaskList<TTask extends Task>({
     if (!newTaskAnchor) return;
     const task = {
       id: crypto.randomUUID(), name,
-      ...buildDefaultTaskDateRange(getTodayISODate(), { businessDays, defaultTaskDurationDays, weekendPredicate }),
+      durationDays: defaultTaskDurationDays,
     };
     if (newTaskAnchor === 'root') onAdd?.(task);
     else onInsertAfter?.(newTaskAnchor.id, { ...task, parentId: newTaskAnchor.parentId });
@@ -1051,9 +1055,10 @@ export function SimpleGridTaskList<TTask extends Task>({
               return toISODate(days > 0 ? addBusinessDays(date, days, weekendPredicate)
                 : subtractBusinessDays(date, -days, weekendPredicate));
             },
+            clearable: !getFixedTaskDate(task, boundary) && !parents.has(task.id),
             duration: {
-              days: getDurationFor(task), businessDays, linked: dateChangeMode === 'preserve-duration',
-              onToggle: !pin.disableDuration && onDateChangeModeChange ? () =>
+              days: getDurationFor(task), businessDays, linked: !!task.startDate && !!task.endDate && dateChangeMode === 'preserve-duration',
+              onToggle: task.startDate && task.endDate && !pin.disableDuration && onDateChangeModeChange ? () =>
                 onDateChangeModeChange(dateChangeMode === 'preserve-duration' ? 'free' : 'preserve-duration') : undefined,
             },
             footer: pin.note ? <div className="gantt-datepicker-fixed-note">{pin.note}</div> : undefined,
@@ -1062,15 +1067,23 @@ export function SimpleGridTaskList<TTask extends Task>({
           };
         },
         setValue: (task: TTask, value: string, source?: 'editor') => {
-          if (!value) return task;
           const isStart = id === 'startDate';
           const boundary = isStart ? 'start' : 'end';
           if (getFixedTaskDate(task, boundary)) {
-            return source === 'editor' ? getDatePin(task, boundary, false).updateFixedDate(value) : task;
+            return value && source === 'editor' ? getDatePin(task, boundary, false).updateFixedDate(value) : task;
+          }
+          if (!value) {
+            if (parents.has(task.id)) return task;
+            if (task.type === 'milestone') return { ...task, startDate: undefined, endDate: undefined };
+            return { ...task, [id]: undefined };
           }
           if (source !== 'editor') return { ...task, [id]: value };
           const date = businessDays ? alignToWorkingDay(parseUTCDate(value), isStart ? 1 : -1, weekendPredicate) : parseUTCDate(value);
-          const duration = getDurationFor(task);
+          if (!task.startDate || !task.endDate) {
+            const iso = toISODate(date);
+            return task.type === 'milestone' ? { ...task, startDate: iso, endDate: iso } : { ...task, [id]: iso };
+          }
+          const duration = getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
           const start = parseUTCDate(task.startDate);
           const end = parseUTCDate(task.endDate);
           const range = task.type === 'milestone' ? { start: date, end: date }
@@ -1106,8 +1119,12 @@ export function SimpleGridTaskList<TTask extends Task>({
         id: 'duration', title: businessDays ? 'Дн. (р)' : 'Дн.', width: 60, minWidth: 46, align: 'center',
         isDisabled: task => !!task.locked,
         validation: { type: 'number', min: 0, integer: true },
-        getValue: task => String(getDurationFor(task)),
+        getValue: task => String(getDurationFor(task) ?? ''),
         setValue: (task, value) => {
+          if (!task.startDate || !task.endDate) {
+            if (parents.has(task.id)) return task;
+            return { ...task, durationDays: value ? Number(value) : undefined };
+          }
           if (!value) return task;
           const duration = Number(value);
           const type = duration === 0 ? 'milestone' : task.type === 'milestone' ? 'task' : task.type;

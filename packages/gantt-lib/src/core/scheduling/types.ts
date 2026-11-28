@@ -22,8 +22,8 @@ export type {
 /** Minimal task shape for scheduling operations */
 export interface ScheduleTask {
   id: string;
-  startDate: string | Date;
-  endDate: string | Date;
+  startDate?: string | Date;
+  endDate?: string | Date;
   dependencies?: TaskDependency[];
   parentId?: string;
   locked?: boolean;

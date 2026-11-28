@@ -22,7 +22,7 @@ import { universalCascade } from './cascade';
 import { parseDateOnly } from './dateMath';
 import { calculateSuccessorDate, getDependencyLag, normalizePredecessorDates } from './dependencies';
 import { resolveFixedDates, resolveParentFixedDates } from './fixedDates';
-import { computeParentDates } from './hierarchy';
+import { getChildDateBounds, computeParentDates } from './hierarchy';
 
 function toIsoDate(date: Date): string {
   return date.toISOString().split('T')[0];
@@ -49,7 +49,7 @@ export function moveTaskWithCascade(
   options?: ScheduleCommandOptions
 ): ScheduleCommandResult {
   const task = snapshot.find(t => t.id === taskId);
-  if (!task) {
+  if (!task?.startDate || !task.endDate) {
     return { changedTasks: [], changedIds: [] };
   }
 
@@ -130,7 +130,7 @@ export function resizeTaskWithCascade(
   options?: ScheduleCommandOptions
 ): ScheduleCommandResult {
   const task = snapshot.find(t => t.id === taskId);
-  if (!task) {
+  if (!task?.startDate || !task.endDate) {
     return { changedTasks: [], changedIds: [] };
   }
 
@@ -215,7 +215,7 @@ export function recalculateTaskFromDependencies(
   const businessDays = options?.businessDays ?? false;
   const weekendPredicate = options?.weekendPredicate;
 
-  if (!task.dependencies || task.dependencies.length === 0) {
+  if (!task.startDate || !task.endDate || !task.dependencies?.length) {
     // No dependencies — return the task as-is
     return {
       changedTasks: [task],
@@ -242,6 +242,7 @@ export function recalculateTaskFromDependencies(
       task.type
     );
 
+    if (!Number.isFinite(+constraintDate)) continue;
     const duration = getTaskDuration(
       parseDateOnly(task.startDate),
       parseDateOnly(task.endDate),
@@ -291,8 +292,8 @@ export function recalculateTaskFromDependencies(
 
   const recalculatedTask: Task = {
     ...task,
-    startDate: constrainedStart.toISOString().split('T')[0],
-    endDate: constrainedEnd.toISOString().split('T')[0],
+    startDate: Number.isFinite(+constrainedStart) ? toIsoDate(constrainedStart) : undefined,
+    endDate: Number.isFinite(+constrainedEnd) ? toIsoDate(constrainedEnd) : undefined,
     dependencies: updatedDependencies,
   };
 
@@ -397,12 +398,9 @@ function recalculateFixedComponents(snapshot: Task[], options?: ScheduleCommandO
     if (!task.locked) {
       let range = { start: parseDateOnly(task.startDate), end: parseDateOnly(task.endDate) };
       if (childIds?.length) {
-        range = {
-          start: new Date(Math.min(...childIds.map(child => +parseDateOnly(next.get(child)!.startDate)))),
-          end: new Date(Math.max(...childIds.map(child => +parseDateOnly(next.get(child)!.endDate)))),
-        };
+        range = getChildDateBounds(childIds.map(child => next.get(child)!));
         range = resolveParentFixedDates(task, range, key => next.get(key), businessDays, weekendPredicate);
-      } else if (task.dependencies?.length) {
+      } else if (task.startDate && task.endDate && task.dependencies?.length) {
         const duration = getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
         let selected: { start: Date; end: Date } | undefined;
         for (const dependency of task.dependencies) {
@@ -415,6 +413,7 @@ function recalculateFixedComponents(snapshot: Task[], options?: ScheduleCommandO
             endDate: milestoneAnchor ?? predecessor.fixedEndDate ?? predecessor.endDate,
           }, parseDateOnly);
           const date = calculateSuccessorDate(predStart, predEnd, dependency.type, getDependencyLag(dependency), businessDays, weekendPredicate, task.type);
+          if (!Number.isFinite(+date)) continue;
           const candidate = dependency.type === 'FS' || dependency.type === 'SS'
             ? buildTaskRangeFromStart(date, duration, businessDays, weekendPredicate)
             : buildTaskRangeFromEnd(date, duration, businessDays, weekendPredicate);
@@ -423,7 +422,7 @@ function recalculateFixedComponents(snapshot: Task[], options?: ScheduleCommandO
         if (selected) range = selected;
       }
       range = resolveFixedDates(task, range, !!childIds?.length, businessDays, weekendPredicate);
-      next.set(id, { ...task, startDate: toIsoDate(range.start), endDate: toIsoDate(range.end) });
+      next.set(id, { ...task, startDate: Number.isFinite(+range.start) ? toIsoDate(range.start) : undefined, endDate: Number.isFinite(+range.end) ? toIsoDate(range.end) : undefined });
     }
     for (const successor of outgoing.get(id)!) {
       indegree.set(successor, indegree.get(successor)! - 1);
@@ -479,7 +478,7 @@ function recalculateProjectScheduleLegacy(
       }
 
       const currentTask = workingMap.get(successorId);
-      if (!currentTask || currentTask.locked || !currentTask.dependencies?.length) {
+      if (!currentTask || currentTask.locked || !currentTask.startDate || !currentTask.endDate || !currentTask.dependencies?.length) {
         queue.push(successorId);
         continue;
       }
@@ -510,6 +509,7 @@ function recalculateProjectScheduleLegacy(
           currentTask.type
         );
 
+        if (!Number.isFinite(+constraintDate)) continue;
         const candidateRange = dep.type === 'FS' || dep.type === 'SS'
           ? buildTaskRangeFromStart(constraintDate, duration, businessDays, weekendPredicate)
           : buildTaskRangeFromEnd(constraintDate, duration, businessDays, weekendPredicate);
@@ -566,16 +566,11 @@ function recalculateProjectScheduleLegacy(
       continue;
     }
 
-    let startTime = Infinity, endTime = -Infinity;
-    for (const childId of childrenByParent.get(taskId)!) {
-      const child = workingMap.get(childId)!;
-      startTime = Math.min(startTime, new Date(child.startDate).getTime());
-      endTime = Math.max(endTime, new Date(child.endDate).getTime());
-    }
+    const { start, end } = getChildDateBounds(childrenByParent.get(taskId)!.map(child => workingMap.get(child)!));
     workingMap.set(taskId, {
       ...parent,
-      startDate: toIsoDate(new Date(startTime)),
-      endDate: toIsoDate(new Date(endTime)),
+      startDate: Number.isFinite(+start) ? toIsoDate(start) : undefined,
+      endDate: Number.isFinite(+end) ? toIsoDate(end) : undefined,
     });
   }
   // END_BLOCK_PROJECT_PARENT_INDEX

@@ -283,8 +283,9 @@ More props, mode-specific APIs, and examples:
 interface Task {
   id: string;
   name: string;
-  startDate: string | Date;
-  endDate: string | Date;
+  startDate?: string | Date;
+  endDate?: string | Date;
+  durationDays?: number; // Estimate in project days while either date is missing
   fixedStartDate?: string | null; // YYYY-MM-DD; omit or null for automatic start
   fixedEndDate?: string | null;   // YYYY-MM-DD; omit or null for automatic end
   baselineStartDate?: string | Date;

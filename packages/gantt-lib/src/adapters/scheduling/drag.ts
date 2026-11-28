@@ -83,7 +83,7 @@ function resolveDateRangeFromPixelsRaw(
     return { start: anchorDate, end: anchorDate };
   }
 
-  if (!(businessDays && weekendPredicate)) {
+  if (!(businessDays && weekendPredicate) || !task.startDate || !task.endDate) {
     return { start: rawStartDate, end: rawEndDate };
   }
 

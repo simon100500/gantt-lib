@@ -33,13 +33,15 @@ function normalizeMilestoneStartDate(startDateInput: string | Date): string | Da
 }
 
 export function normalizeTaskDatesForType<
-  TTask extends { startDate: string | Date; endDate: string | Date; type?: 'task' | 'milestone' }
+  TTask extends { startDate?: string | Date; endDate?: string | Date; type?: 'task' | 'milestone' }
 >(task: TTask): TTask {
   if (!isMilestoneTask(task)) {
     return task;
   }
 
-  const startDate = normalizeMilestoneStartDate(task.startDate);
+  const anchor = task.startDate ?? task.endDate;
+  if (!anchor) return task;
+  const startDate = normalizeMilestoneStartDate(anchor);
 
   return {
     ...task,

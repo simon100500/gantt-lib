@@ -27,6 +27,97 @@ function positionGridRows() {
 }
 
 describe('SimpleGrid inside GanttChart', () => {
+  it('adds a task by name and edits its estimate before either date is known', () => {
+    function Project() {
+      const [items, setItems] = React.useState<Task[]>([]);
+      return <GanttChart tasks={items} showTaskList enableAddTask businessDays={false}
+        onAdd={task => setItems([...items, task])}
+        onTasksChange={updates => setItems(items.map(task => updates.find(update => update.id === task.id) ?? task))} />;
+    }
+    const { container } = render(<Project />);
+    fireEvent.click(screen.getByRole('button', { name: /Добавить работу/ }));
+    const name = screen.getByPlaceholderText('Название');
+    fireEvent.change(name, { target: { value: 'Подготовка' } });
+    fireEvent.keyDown(name, { key: 'Enter' });
+
+    const start = screen.getByTestId('sg-cell-0-startDate');
+    const end = screen.getByTestId('sg-cell-0-endDate');
+    expect(start).toHaveTextContent('–');
+    expect(end).toHaveTextContent('–');
+    expect(screen.getByRole('button', { name: 'Назначить даты' })).toBeVisible();
+    const duration = screen.getByTestId('sg-cell-0-duration');
+    fireEvent.click(duration);
+    fireEvent.keyDown(screen.getByRole('grid', { name: 'Список задач' }), { key: '7' });
+    fireEvent.keyDown(within(duration).getByTestId('sg-editor-input'), { key: 'Enter' });
+    expect(duration).toHaveTextContent('7 д');
+    expect(start).toHaveTextContent('–');
+    expect(end).toHaveTextContent('–');
+
+    fireEvent.click(within(start).getByRole('button', { name: /Открыть календарь/ }));
+    const calendar = screen.getByRole('dialog');
+    const first = calendar.querySelector<HTMLButtonElement>('[data-day]:not([disabled])')!;
+    const firstDate = first.dataset.day!;
+    fireEvent.click(first);
+    expect(container.querySelector('[data-open-edge="end"]')).toBeInTheDocument();
+    expect(end).toHaveTextContent('–');
+    expect(duration).toHaveTextContent('7 д');
+
+    fireEvent.click(within(calendar).getByRole('button', { name: /^Окончание,/ }));
+    const nextDate = new Date(firstDate);
+    nextDate.setUTCDate(nextDate.getUTCDate() + 3);
+    const nextDay = nextDate.toISOString().slice(0, 10);
+    fireEvent.click(calendar.querySelector(`[data-day="${nextDay}"]`)!);
+    expect(container.querySelector('.gantt-partial-task')).toBeNull();
+    expect(duration).toHaveTextContent('4 д');
+
+    fireEvent.click(within(calendar).getByRole('button', { name: /^Начало,/ }));
+    fireEvent.click(within(calendar).getByRole('button', { name: 'Очистить дату' }));
+    expect(container.querySelector('[data-open-edge="start"]')).toBeInTheDocument();
+    expect(duration).toHaveTextContent('7 д');
+  });
+
+  it('assigns both dates from the timeline and keeps row dividers before scheduling', () => {
+    function Project() {
+      const [task, setTask] = React.useState<Task>({ id: 'draft', name: 'Разметка' });
+      return <GanttChart tasks={[task]} businessDays={false} onTasksChange={([next]) => setTask(next)} />;
+    }
+    const { container } = render(<Project />);
+    expect(container.querySelector('.gantt-incomplete-row[data-gantt-task-row-id="draft"]')).toHaveClass('gantt-tr-row');
+    fireEvent.click(screen.getByRole('button', { name: 'Назначить даты' }));
+    const calendar = screen.getByRole('dialog');
+    const first = calendar.querySelector<HTMLButtonElement>('[data-day]:not([disabled])')!;
+    const firstDate = first.dataset.day!;
+    fireEvent.click(first);
+    expect(screen.getByRole('dialog')).toBe(calendar);
+    expect(within(calendar).getByRole('button', { name: /^Окончание,/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(container.querySelector('.gantt-incomplete-row[data-gantt-task-row-id="draft"]')).toHaveClass('gantt-tr-row');
+    const nextDate = new Date(firstDate);
+    nextDate.setUTCDate(nextDate.getUTCDate() + 3);
+    fireEvent.click(calendar.querySelector(`[data-day="${nextDate.toISOString().slice(0, 10)}"]`)!);
+    expect(container.querySelector('.gantt-incomplete-row')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it.each(['startDate', 'endDate'] as const)('moves only the known %s and displays a fixed marker when pinned', field => {
+    const task = { id: 'partial', name: 'Открытая работа', [field]: '2026-02-10', durationDays: 3 };
+    const onTasksChange = vi.fn();
+    const { container, rerender } = render(<GanttChart tasks={[task]} onTasksChange={onTasksChange} dayWidth={30} businessDays={false} />);
+    const bar = container.querySelector('.gantt-partial-task')!;
+    const pointer = (type: string, x: number) => Object.assign(
+      new MouseEvent(type, { bubbles: true, clientX: x }),
+      { pointerId: 1, isPrimary: true },
+    );
+    fireEvent(bar, pointer('pointerdown', 60));
+    fireEvent(bar, pointer('pointermove', 90));
+    fireEvent(bar, pointer('pointerup', 90));
+    expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([{ ...task, [field]: '2026-02-11' }]);
+
+    const fixed = field === 'startDate' ? 'fixedStartDate' : 'fixedEndDate';
+    rerender(<GanttChart tasks={[{ ...task, [fixed]: '2026-02-10' }]} onTasksChange={onTasksChange} dayWidth={30} businessDays={false} />);
+    expect(container.querySelector('.gantt-tr-fixedBoundary')).toBeInTheDocument();
+    expect(bar).not.toHaveAttribute('data-movable');
+  });
+
   it('moves a collapsed subtree via the native grid gutter and preserves its hidden child', () => {
     const tree = [{ ...tasks[0], id: 'p', name: 'Parent' }, { ...tasks[0], parentId: 'p' }, tasks[1]];
     const onReorder = vi.fn();

@@ -96,6 +96,82 @@
   overflow: hidden;
 }
 
+.gantt-partial-task {
+  position: absolute;
+  top: 50%;
+  height: min(22px, calc(100% - 8px));
+  width: 72px;
+  transform: translateY(-50%);
+  left: var(--gantt-partial-anchor);
+  border-radius: 4px 0 0 4px;
+  background: linear-gradient(to right, var(--gantt-partial-color, var(--gantt-task-bar-default-color, #3b82f6)), transparent);
+}
+
+.gantt-partial-task[data-open-edge='start'] {
+  left: calc(var(--gantt-partial-anchor) - 72px);
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(to left, var(--gantt-partial-color, var(--gantt-task-bar-default-color, #3b82f6)), transparent);
+}
+
+.gantt-incomplete-row {
+  height: 100%;
+}
+
+.gantt-partial-task[data-movable] {
+  cursor: grab;
+  touch-action: none;
+}
+
+.gantt-partial-task[data-dragging] {
+  cursor: grabbing;
+}
+
+.gantt-partial-task:focus-visible {
+  outline: 2px solid var(--gantt-focus-color, #2563eb);
+  outline-offset: 2px;
+}
+
+.gantt-unscheduled-task {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--gantt-visible-timeline-left, 0px) + 8px);
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gantt-muted-foreground, #64748b);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.gantt-unscheduled-task[data-has-anchor]:not(:has([aria-expanded='true'])) {
+  visibility: hidden;
+}
+
+.gantt-unscheduled-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border: 1px solid var(--gantt-grid-line-color, #cbd5e1);
+  border-radius: 5px;
+  background: var(--gantt-cell-background, #fff);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.gantt-unscheduled-picker:hover,
+.gantt-unscheduled-picker:focus-visible {
+  color: var(--gantt-accent, #2563eb);
+  border-color: currentColor;
+}
+
+[data-gantt-preliminary] :is(.gantt-tr-taskBar, .gantt-partial-task) {
+  outline: 1px dashed currentColor;
+  outline-offset: 1px;
+}
+
 .gantt-dependencyCreation-error {
   position: sticky;
   top: 12px;

@@ -16,6 +16,7 @@
 // END_MODULE_CONTRACT
 
 import type { Task } from './types';
+import { parseDateOnly, DAY_MS } from './dateMath';
 import { resolveFixedDates, resolveParentFixedDates } from './fixedDates';
 
 /**
@@ -34,6 +35,32 @@ export function isTaskParent(taskId: string, tasks: Task[]): boolean {
   return tasks.some(t => (t as any).parentId === taskId);
 }
 
+/** Bounds of recorded dates, keeping an unknown boundary open. */
+export function getChildDateBounds(children: Iterable<Pick<Task, 'startDate' | 'endDate'>>) {
+  let earliestStart = Infinity, latestEnd = -Infinity;
+  let earliestKnown = Infinity, latestKnown = -Infinity;
+  for (const child of children) {
+    const start = +parseDateOnly(child.startDate);
+    const end = +parseDateOnly(child.endDate);
+    if (Number.isFinite(start)) {
+      earliestStart = Math.min(earliestStart, start);
+      earliestKnown = Math.min(earliestKnown, start);
+      latestKnown = Math.max(latestKnown, start);
+    }
+    if (Number.isFinite(end)) {
+      latestEnd = Math.max(latestEnd, end);
+      earliestKnown = Math.min(earliestKnown, end);
+      latestKnown = Math.max(latestKnown, end);
+    }
+  }
+  const hasStart = Number.isFinite(earliestStart);
+  const hasEnd = Number.isFinite(latestEnd);
+  return {
+    start: new Date(hasStart && hasEnd ? earliestKnown : earliestStart),
+    end: new Date(hasStart && hasEnd ? latestKnown : latestEnd),
+  };
+}
+
 /**
  * Compute parent task dates from children.
  * Returns { startDate, endDate } where:
@@ -45,22 +72,21 @@ export function computeParentDates(parentId: string, tasks: Task[], businessDays
 
   if (children.length === 0) {
     const parent = tasks.find(t => t.id === parentId);
-    const start = parent ? new Date(parent.startDate) : new Date();
-    const end = parent ? new Date(parent.endDate) : new Date();
+    const start = parseDateOnly(parent?.startDate);
+    const end = parseDateOnly(parent?.endDate);
     const range = parent ? resolveFixedDates(parent, { start, end }, false) : { start, end };
     return { startDate: range.start, endDate: range.end };
   }
 
-  const startDates = children.map(c => new Date(c.startDate));
-  const endDates = children.map(c => new Date(c.endDate));
-
-  const minTime = Math.min(...startDates.map(d => d.getTime()));
-  const maxTime = Math.max(...endDates.map(d => d.getTime()));
-
   const parent = tasks.find(t => t.id === parentId);
-  const range = { start: new Date(minTime), end: new Date(maxTime) };
+  const range = getChildDateBounds(children);
   const resolved = parent ? resolveParentFixedDates(parent, range, id => tasks.find(task => task.id === id), businessDays, weekendPredicate) : range;
   return { startDate: resolved.start, endDate: resolved.end };
+}
+
+export function getChildDurationWeight(task: Task): number {
+  if (!task.startDate || !task.endDate) return task.durationDays ?? 0;
+  return (+parseDateOnly(task.endDate) - +parseDateOnly(task.startDate) + DAY_MS) / DAY_MS;
 }
 
 /**
@@ -75,15 +101,11 @@ export function computeParentProgress(parentId: string, tasks: Task[]): number {
     return 0;
   }
 
-  const DAY_MS = 24 * 60 * 60 * 1000;
   let totalWeight = 0;
   let weightedSum = 0;
 
   for (const child of children) {
-    const start = new Date(child.startDate).getTime();
-    const end = new Date(child.endDate).getTime();
-    // Inclusive duration: (end - start + 1 day) / DAY_MS
-    const duration = (end - start + DAY_MS) / DAY_MS;
+    const duration = getChildDurationWeight(child);
     const progress = (child.progress ?? 0);
 
     totalWeight += duration;

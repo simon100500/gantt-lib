@@ -388,6 +388,14 @@ export const DepChip: React.FC<DepChipProps> = ({
         task.type,
       );
 
+      if (!task.startDate || !task.endDate || !Number.isFinite(+constraintDate)) {
+        onTasksChange([{ ...task, dependencies: (task.dependencies ?? []).map(existingDep =>
+          existingDep.taskId === dep.taskId && existingDep.type === dep.type
+            ? { ...existingDep, lag: normalizedLag }
+            : existingDep) }]);
+        return;
+      }
+
       let newStart: Date, newEnd: Date;
       if (dep.type === "FS" || dep.type === "SS") {
         newStart = constraintDate;
@@ -491,6 +499,15 @@ export const DepChip: React.FC<DepChipProps> = ({
         weekendPredicate,
         task.type,
       );
+
+      if (!task.startDate || !task.endDate || !Number.isFinite(+constraintDate)) {
+        onTasksChange([{ ...task, dependencies: (task.dependencies ?? []).map(existingDep =>
+          existingDep.taskId === dep.taskId && existingDep.type === dep.type
+            ? { ...existingDep, type: newType, lag: normalizedLag }
+            : existingDep) }]);
+        onChipSelect?.({ successorId: taskId, predecessorId: dep.taskId, linkType: newType });
+        return;
+      }
 
       let newStart: Date, newEnd: Date;
       if (newType === "FS" || newType === "SS") {
@@ -915,12 +932,12 @@ export interface TaskListRowProps {
   printDependencyLabels?: boolean;
 }
 
-const toISODate = (value: string | Date): string => {
+const toISODate = (value?: string | Date): string => {
   if (value instanceof Date) return value.toISOString().split("T")[0];
   // Handle full ISO strings like "2026-02-12T00:00:00.000Z"
   if (typeof value === "string" && value.includes("T"))
     return value.split("T")[0];
-  return value as string;
+  return value ?? "";
 };
 
 const resolveSelectedChipRole = (props: TaskListRowProps): string | null => {
@@ -1132,7 +1149,9 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const [nameValue, setNameValue] = useState("");
     const nameInputRef = useRef<HTMLInputElement>(null);
     const [durationValue, setDurationValue] = useState(() =>
-      getInclusiveDurationDays(normalizedTask.startDate, normalizedTask.endDate),
+      normalizedTask.startDate && normalizedTask.endDate
+        ? getInclusiveDurationDays(normalizedTask.startDate, normalizedTask.endDate)
+        : normalizedTask.durationDays ?? 0,
     );
     const durationInputRef = useRef<HTMLInputElement>(null);
     const dependencySearchInputRef = useRef<HTMLInputElement>(null);
@@ -1174,12 +1193,13 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     // Memoized duration calculation function (business days vs calendar days)
     const getDuration = useCallback(
-      (start: string | Date, end: string | Date) => {
+      (start?: string | Date, end?: string | Date) => {
+        if (!start || !end) return task.durationDays ?? 0;
         return businessDays
           ? getBusinessDaysCount(start, end, weekendPredicate)
           : getInclusiveDurationDays(start, end);
       },
-      [businessDays, weekendPredicate]
+      [businessDays, weekendPredicate, task.durationDays]
     );
 
     // Memoized end date calculation function (business days vs calendar days)
@@ -1461,6 +1481,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         );
         return;
       }
+      if (!task.startDate || !task.endDate) {
+        onTasksChange?.([{ ...task, durationDays: rounded }]);
+        return;
+      }
       if (isMilestone && rounded > 0) {
         onTasksChange?.([
           { ...task, type: 'task' as const, endDate: getEndDate(task.startDate, rounded) },
@@ -1629,6 +1653,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         const normalizedInputStart = businessDays
           ? alignToWorkingDay(new Date(`${newDateISO}T00:00:00.000Z`), 1, weekendPredicate)
           : new Date(`${newDateISO}T00:00:00.000Z`);
+        if (!task.startDate || !task.endDate) {
+          onTasksChange?.([{ ...task, startDate: toISODate(normalizedInputStart) }]);
+          return;
+        }
         const { startDate: normalizedStart, endDate: normalizedEnd } =
           taskDateChangeMode === 'free'
             ? normalizeTaskDates(
@@ -1692,6 +1720,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         const normalizedInputEnd = businessDays
           ? alignToWorkingDay(new Date(`${newDateISO}T00:00:00.000Z`), -1, weekendPredicate)
           : new Date(`${newDateISO}T00:00:00.000Z`);
+        if (!task.startDate || !task.endDate) {
+          onTasksChange?.([{ ...task, endDate: toISODate(normalizedInputEnd) }]);
+          return;
+        }
         const { startDate: normalizedStart, endDate: normalizedEnd } =
           taskDateChangeMode === 'free'
             ? normalizeTaskDates(
@@ -2086,7 +2118,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       selectedChip != null && selectedChip.successorId === task.id;
 
     const startDateISO = toISODate(normalizedTask.startDate);
-    const endDateISO = editingDuration
+    const endDateISO = editingDuration && normalizedTask.startDate && normalizedTask.endDate
       ? getEndDate(normalizedTask.startDate, durationValue)
       : toISODate(normalizedTask.endDate);
 

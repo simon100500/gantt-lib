@@ -28,6 +28,7 @@ import {
   buildTaskRangeFromEnd,
   buildTaskRangeFromStart,
   getTaskDuration,
+  alignToWorkingDay,
   computeCriticalPath,
   extendCriticalIdsToParents,
   scaleTaskSubtreeDuration,
@@ -35,6 +36,8 @@ import {
   DAY_MS,
 } from '../../core/scheduling';
 import type { ScaleTaskSubtreeResult } from '../../core/scheduling';
+import { CellDatePicker } from '../SimpleGridVendor/DatePicker';
+import { PartialTaskBar } from './PartialTaskBar';
 import { normalizeHierarchyTasks, compactGroupBoundaryClasses } from '../../utils/hierarchyOrder';
 import type {
   ResourceTableColumnWidthMap,
@@ -204,7 +207,9 @@ function getPlanFactRangeTasks<TTask extends Task>(tasks: TTask[]): Array<{ star
   const rangeTasks: Array<{ startDate: string | Date; endDate: string | Date }> = [];
 
   for (const task of tasks) {
-    rangeTasks.push({ startDate: task.startDate, endDate: task.endDate });
+    const start = task.startDate ?? task.endDate;
+    const end = task.endDate ?? task.startDate;
+    if (start && end) rangeTasks.push({ startDate: start, endDate: end });
 
     for (const dateKey of Object.keys(task.planByDate ?? {})) {
       rangeTasks.push({ startDate: dateKey, endDate: dateKey });
@@ -296,9 +301,11 @@ export interface Task {
   /** Display name of the task */
   name: string;
   /** Task start date (ISO string or Date object) */
-  startDate: string | Date;
+  startDate?: string | Date;
   /** Task end date (ISO string or Date object) */
-  endDate: string | Date;
+  endDate?: string | Date;
+  /** Estimated duration in project days, used until both dates are set. */
+  durationDays?: number;
   /** Optional fixed date-only boundaries; null or absence leaves the boundary automatic. */
   fixedStartDate?: string | null;
   fixedEndDate?: string | null;
@@ -522,7 +529,7 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   enableAddTask?: boolean;
   /** Label text for the add task button (default: 'Добавить работу') */
   addTaskLabel?: string;
-  /** Default duration for newly created tasks, interpreted in the active day mode (default: 5). */
+  /** Optional duration estimate for newly created tasks, in the active day mode. */
   defaultTaskDurationDays?: number;
   /** View mode: 'day' renders one column per day, 'week' renders one column per 7 days, 'month' renders one column per month (default: 'day') */
   viewMode?: 'day' | 'week' | 'month';
@@ -1028,7 +1035,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       }
       const predecessor = tasks.find((task) => task.id === predecessorId);
       const updatedSuccessor = hypothetical.find((task) => task.id === successorId)!;
-      if (!predecessor) {
+      if (!predecessor || !successor.startDate || !successor.endDate) {
         onTasksChange?.([updatedSuccessor as TTask]);
         return;
       }
@@ -1044,6 +1051,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         isCustomWeekend,
         successor.type,
       );
+      if (!Number.isFinite(+constraintDate)) {
+        onTasksChange?.([updatedSuccessor as TTask]);
+        return;
+      }
       const duration = getTaskDuration(
         updatedSuccessor.startDate,
         updatedSuccessor.endDate,
@@ -1160,7 +1171,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const ordered = normalizeHierarchyTasks(tasks, businessDays, isCustomWeekend);
     const ranges = new Map<string, { start: number; end: number }>();
     for (const task of ordered) {
-      if (!task.parentId) continue;
+      if (!task.parentId || !task.startDate || !task.endDate) continue;
       const start = parseUTCDate(task.startDate).getTime();
       const end = parseUTCDate(task.endDate).getTime();
       const range = ranges.get(task.parentId);
@@ -1178,6 +1189,19 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       } : task;
     });
   }, [tasks, businessDays, isCustomWeekend]);
+  const preliminaryParentIds = useMemo(() => {
+    const byId = new Map(normalizedTasks.map(task => [task.id, task]));
+    const ids = new Set<string>();
+    for (const task of normalizedTasks) {
+      if (task.startDate && task.endDate) continue;
+      let parentId = task.parentId;
+      while (parentId && !ids.has(parentId)) {
+        ids.add(parentId);
+        parentId = byId.get(parentId)?.parentId;
+      }
+    }
+    return ids;
+  }, [normalizedTasks]);
   const collapsedParentIds = useMemo(() => {
     if (externalCollapsedParentIds) return externalCollapsedParentIds;
     const ids = new Set(internalCollapsedParentIds);
@@ -1220,17 +1244,19 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
     const rangeTasks: Array<{ startDate: string | Date; endDate: string | Date }> = [];
     for (const task of normalizedTasks) {
-      if (showBaseline) {
+      const start = task.startDate ?? task.endDate;
+      const end = task.endDate ?? task.startDate;
+      if (start && end) {
         rangeTasks.push({
-          startDate: task.baselineStartDate && parseUTCDate(task.baselineStartDate).getTime() < parseUTCDate(task.startDate).getTime()
+          startDate: showBaseline && task.baselineStartDate && parseUTCDate(task.baselineStartDate).getTime() < parseUTCDate(start).getTime()
             ? task.baselineStartDate
-            : task.startDate,
-          endDate: task.baselineEndDate && parseUTCDate(task.baselineEndDate).getTime() > parseUTCDate(task.endDate).getTime()
+            : start,
+          endDate: showBaseline && task.baselineEndDate && parseUTCDate(task.baselineEndDate).getTime() > parseUTCDate(end).getTime()
             ? task.baselineEndDate
-            : task.endDate,
+            : end,
         });
-      } else {
-        rangeTasks.push(task);
+      } else if (showBaseline && task.baselineStartDate && task.baselineEndDate) {
+        rangeTasks.push({ startDate: task.baselineStartDate, endDate: task.baselineEndDate });
       }
       // Row activities may reach outside the task's own dates — the grid must cover them.
       for (const activity of task.activities ?? []) {
@@ -1450,6 +1476,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       const nextViewportWidth = Math.max(0, container.clientWidth - coveredWidth);
       const nextScrollTop = container.scrollTop;
       const nextChartScrollLeft = pinTaskList ? nextScrollLeft : Math.max(0, nextScrollLeft - panelWidth);
+      scrollContentRef.current?.style.setProperty('--gantt-visible-timeline-left', `${nextChartScrollLeft}px`);
       // Бакеты: состояние (а значит и перерисовка графика + окно рендера)
       // обновляются раз в N px, а не на каждом кадре панорамирования.
       const bucketedScrollTop = Math.floor(nextScrollTop / SCROLL_TOP_BUCKET_PX) * SCROLL_TOP_BUCKET_PX;
@@ -1569,10 +1596,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const container = scrollContainerRef.current;
     if (!container || dateRange.length === 0) return;
 
-    const task = tasks.find(t => t.id === taskId);
+    const task = normalizedTasks.find(t => t.id === taskId);
     if (!task) return;
+    setSelectedTaskId(taskId);
+    const date = task.startDate ?? task.endDate;
+    if (!date) return;
 
-    const taskStart = new Date(task.startDate as string);
+    const taskStart = new Date(date);
     const taskStartUTC = new Date(Date.UTC(
       taskStart.getUTCFullYear(),
       taskStart.getUTCMonth(),
@@ -1586,7 +1616,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     );
     const taskOffset = Math.max(0, Math.round((taskIndex - 2) * dayWidth));
     container.scrollTo?.({ left: (unpinnedTaskList?.offsetWidth ?? 0) + taskOffset, behavior: 'smooth' });
-  }, [dateRange, dayWidth, effectiveRowHeight, compositeRowLayout, isTableMatrixMode, tasks, visibleTasks]);
+  }, [dateRange, dayWidth, effectiveRowHeight, compositeRowLayout, isTableMatrixMode, normalizedTasks, visibleTasks]);
 
   const scrollToRow = useCallback((taskId: string, options: ScrollToRowOptions = {}) => {
     const container = scrollContainerRef.current;
@@ -1690,7 +1720,17 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return;
     }
 
-    const origStart = new Date(originalTask.startDate as string);
+    if (!originalTask.startDate || !originalTask.endDate || !updatedTask.startDate || !updatedTask.endDate) {
+      const updates = updatedTask.startDate && updatedTask.endDate && !disableConstraints && !onScheduleIntent
+        ? universalCascade(updatedTask, parseUTCDate(updatedTask.startDate), parseUTCDate(updatedTask.endDate),
+          normalizedTasks, businessDays, isCustomWeekend)
+        : updatedTasks;
+      onTasksChange?.(updates as TTask[]);
+      if (editingTaskId === updatedTask.id) setEditingTaskId(null);
+      return;
+    }
+
+    const origStart = new Date(originalTask.startDate);
     const origEnd = new Date(originalTask.endDate as string);
     const newStart = new Date(updatedTask.startDate as string);
     const newEnd = new Date(updatedTask.endDate as string);
@@ -2410,8 +2450,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (wasParent) {
       const computedDates = computeParentDates(taskId, tasks);
       taskDates = {
-        startDate: computedDates.startDate.toISOString().split('T')[0],
-        endDate: computedDates.endDate.toISOString().split('T')[0]
+        startDate: Number.isFinite(+computedDates.startDate) ? computedDates.startDate.toISOString().slice(0, 10) : undefined,
+        endDate: Number.isFinite(+computedDates.endDate) ? computedDates.endDate.toISOString().slice(0, 10) : undefined
       };
     }
 
@@ -2598,7 +2638,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (nextVisible.length !== visibleTasks.length || nextVisible.some((task, index) => task.id !== visibleTasks[index]?.id)) {
       return reject('Список задач изменился. Повторите действие с текущими строками');
     }
-    const dateKey = (value: string | Date) => value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+    const dateKey = (value?: string | Date) => value instanceof Date ? value.toISOString().slice(0, 10) : value?.slice(0, 10) ?? '';
     const edits = nextVisible.flatMap((task, index) => {
       const original = visibleTasks[index];
       if (task === original) return [];
@@ -2623,13 +2663,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return true;
     }
     const dateEdits = edits.filter(edit => edit.starts || edit.ends || edit.kind);
-    if (dateEdits.some(({ task }) => dateKey(task.startDate) > dateKey(task.endDate))) {
+    if (dateEdits.some(({ task }) => task.startDate && task.endDate && dateKey(task.startDate) > dateKey(task.endDate))) {
       return reject('Начало задачи не может быть позже окончания');
     }
     if (dateEdits.some(({ task }) => task.type === 'milestone' && dateKey(task.startDate) !== dateKey(task.endDate))) {
       return reject('Для вехи начало и окончание должны совпадать');
     }
-    if (onScheduleIntent && dateEdits.length) {
+    if (onScheduleIntent && dateEdits.some(({ task }) => !!task.startDate && !!task.endDate)) {
       const [edit] = dateEdits;
       if (edits.length > 1 || edit.fields.length || edit.progress || (!editedColumnId && edit.starts && edit.ends)) {
         return reject('Пакетное изменение дат в управляемом режиме недоступно');
@@ -2639,7 +2679,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return reject('Пакетное изменение дат родительских задач недоступно');
     }
     setSimpleGridError('');
-    if (edits.length === 1 && (editedColumnId === 'duration' || edits[0].kind)) {
+    if (edits.length === 1 && edits[0].task.startDate && edits[0].task.endDate && (editedColumnId === 'duration' || edits[0].kind)) {
       const { task, starts, ends } = edits[0];
       const duration = task.type === 'milestone' ? 0 : getTaskDuration(task.startDate, task.endDate, businessDays, isCustomWeekend);
       if (!starts && !ends && onScheduleIntent) {
@@ -2670,7 +2710,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     for (const { task: edit } of dateEdits) {
       const current = snapshot.find(task => task.id === edit.id)!;
       const updated = { ...current, startDate: edit.startDate, endDate: edit.endDate };
-      apply(disableConstraints ? [updated] : universalCascade(
+      apply(disableConstraints || !updated.startDate || !updated.endDate ? [updated] : universalCascade(
         updated, parseUTCDate(updated.startDate), parseUTCDate(updated.endDate),
         snapshot.map(task => task.id === updated.id ? updated : task), businessDays, isCustomWeekend
       ));
@@ -2994,9 +3034,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                     />
                   )}
 
-                  {renderedChartTasks.map(({ task, index }) => (
-                    <div
+                  {renderedChartTasks.map(({ task, index }) => {
+                    const anchor = task.startDate ?? task.endDate;
+                    const hasRange = task.startDate && task.endDate;
+                    const isFilterMatch = (filterMode === 'highlight' && matchedTaskIds.has(task.id)) || (criticalPathMode === 'highlight' && criticalTaskIds.has(task.id));
+                    return <div
                       key={task.id}
+                      data-gantt-preliminary={preliminaryParentIds.has(task.id) || undefined}
+                      title={preliminaryParentIds.has(task.id) ? 'Предварительные даты: часть вложенных работ ещё без сроков' : undefined}
                       className={compactGroupBoundaryClasses(previewVisibleTasks, index, compositeParentsById)}
                       style={{
                         position: 'absolute',
@@ -3006,7 +3051,51 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         height: `${compositeRowLayout.heights[index]}px`,
                       }}
                     >
-                      <TaskRow
+                      {!hasRange ? (
+                        <div className={`gantt-tr-row gantt-incomplete-row${isFilterMatch ? ' gantt-tr-row-filter-match' : ''}`}
+                          data-gantt-task-row-id={task.id}>
+                          {anchor && <PartialTaskBar
+                            task={task}
+                            date={anchor}
+                            monthStart={monthStart}
+                            dayWidth={dayWidth}
+                            weekendPredicate={businessDays ? isCustomWeekend : undefined}
+                            onChange={onTasksChange && !disableTaskDrag && !preliminaryParentIds.has(task.id)
+                              ? update => handleTaskChange([update]) : undefined}
+                          />}
+                          <div className="gantt-unscheduled-task" data-has-anchor={!!anchor || undefined}>
+                            {onTasksChange && !task.locked && !preliminaryParentIds.has(task.id) ? <CellDatePicker
+                              fields={(['startDate', 'endDate'] as const).map(id => ({
+                                id, title: id === 'startDate' ? 'Начало' : 'Окончание',
+                                value: task[id] ? parseUTCDate(task[id]).toISOString().slice(0, 10) : '',
+                                disabled: false,
+                                min: id === 'endDate' && task.startDate ? parseUTCDate(task.startDate).toISOString().slice(0, 10) : undefined,
+                                max: id === 'startDate' && task.endDate ? parseUTCDate(task.endDate).toISOString().slice(0, 10) : undefined,
+                                context: {
+                                  initialDate: (dateRange[Math.floor(scrollViewport.chartScrollLeft / dayWidth)] ?? monthStart).toISOString().slice(0, 10),
+                                },
+                                onPick: date => {
+                                  const chosen = parseUTCDate(date);
+                                  const opposite = id === 'startDate' ? task.endDate : task.startDate;
+                                  const aligned = businessDays ? alignToWorkingDay(chosen, id === 'startDate' ? 1 : -1, isCustomWeekend) : chosen;
+                                  const crossesOther = opposite && (id === 'startDate' ? aligned > parseUTCDate(opposite) : aligned < parseUTCDate(opposite));
+                                  const iso = (crossesOther ? chosen : aligned).toISOString().slice(0, 10);
+                                  const update = task.type === 'milestone'
+                                    ? { ...task, startDate: iso, endDate: iso }
+                                    : { ...task, [id]: iso };
+                                  handleTaskChange([update]);
+                                },
+                              }))}
+                              initialFieldId="startDate"
+                              triggerLabel="Назначить даты"
+                              advanceToEmptyField
+                              beforeOpen={() => true}
+                              onClose={() => {}}
+                            /> : <span>Без дат</span>}
+                            {!anchor && task.durationDays !== undefined && <span>{task.durationDays} д</span>}
+                          </div>
+                        </div>
+                      ) : <TaskRow
                         task={task}
                         monthStart={monthStart}
                         dayWidth={dayWidth}
@@ -3067,7 +3156,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         onScheduleIntent={onScheduleIntent}
                         highlightExpiredTasks={highlightExpiredTasks}
                         showBaseline={showBaseline}
-                        isFilterMatch={(filterMode === 'highlight' ? matchedTaskIds.has(task.id) : false) || (criticalPathMode === 'highlight' ? criticalTaskIds.has(task.id) : false)}
+                        isFilterMatch={isFilterMatch}
                         isCritical={criticalTaskIds.has(task.id)}
                         businessDays={businessDays}
                         customDays={customDays}
@@ -3082,9 +3171,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         showCompositeSegments={showCompositeSegments}
                         onCompositeToggle={task.composite ? source => handleCompositeBarToggle(task.id, source) : undefined}
                         compositeExpanded={task.composite ? !collapsedParentIds.has(task.id) : undefined}
-                      />
+                      />}
                     </div>
-                  ))}
+                  })}
                   <GenerationSkeletonRows
                     count={skeletonRowCount}
                     rowHeight={effectiveRowHeight}

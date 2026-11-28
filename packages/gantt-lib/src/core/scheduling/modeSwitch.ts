@@ -34,10 +34,10 @@ export function reflowTasksOnModeSwitch(
     dependencies: task.dependencies?.map(dependency => ({ ...dependency })),
   }));
 
-  const toISO = (date: Date) => date.toISOString().split('T')[0];
+  const toISO = (date: Date) => Number.isFinite(+date) ? date.toISOString().slice(0, 10) : undefined;
 
   for (const task of tasks) {
-    if (isTaskParent(task.id, tasks)) continue;
+    if (isTaskParent(task.id, tasks) || !task.startDate || !task.endDate) continue;
 
     const start = normalizeUTCDate(new Date(`${task.startDate}T00:00:00.000Z`));
     // Measure the duration in the TARGET mode, not the source mode. When going
