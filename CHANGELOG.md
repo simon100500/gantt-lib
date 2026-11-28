@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0-alpha.2] - 2026-11-28
+
+### Fixes
+
+- Preserve horizontal task-list separators in applications that reset border styles.
+
 ## [0.2.0-alpha.1] - 2026-11-28
 
 ### Fixes
