@@ -10,9 +10,8 @@ import type { Task, TaskDependency } from '../GanttChart';
 import type { TaskListActionContext, TaskListMenuCommand } from '../GanttChart/GanttChart';
 import type { LinkType, TaskDateChangeMode } from '../../types';
 import type { CustomDayConfig } from '../../utils/dateUtils';
-import { parseUTCDate, createCustomDayPredicate } from '../../utils/dateUtils';
+import { parseUTCDate, createCustomDayPredicate, shiftPickerDate } from '../../utils/dateUtils';
 import {
-  addBusinessDays,
   alignToWorkingDay,
   areTasksHierarchicallyRelated,
   buildTaskRangeFromEnd,
@@ -23,7 +22,6 @@ import {
   getTaskDuration,
   normalizeDependencyLag,
   recalculateIncomingLags,
-  subtractBusinessDays,
   validateDependencies,
 } from '../../core/scheduling';
 import { SimpleGrid } from '../SimpleGridVendor/SimpleGrid';
@@ -1007,13 +1005,7 @@ export function SimpleGridTaskList<TTask extends Task>({
           return {
             range: { start: toISODate(task.startDate), end: toISODate(task.endDate) },
             isWeekend: (date: string) => weekendPredicate(parseUTCDate(date)),
-            shiftDate: (iso: string, days: number) => {
-              const date = parseUTCDate(iso);
-              date.setUTCDate(date.getUTCDate() + (businessDays ? Math.sign(days) : days));
-              if (!businessDays) return toISODate(date);
-              return toISODate(days > 0 ? addBusinessDays(date, days, weekendPredicate)
-                : subtractBusinessDays(date, -days, weekendPredicate));
-            },
+            shiftDate: (iso: string, days: number) => shiftPickerDate(iso, days, businessDays ? weekendPredicate : undefined),
             clearable: !getFixedTaskDate(task, boundary) && !parents.has(task.id),
             duration: {
               days: getDurationFor(task), businessDays, linked: !!task.startDate && !!task.endDate && dateChangeMode === 'preserve-duration',

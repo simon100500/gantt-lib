@@ -536,17 +536,28 @@
 }
 
 .gantt-grid-date-picker .gantt-datepicker-input-row {
-  padding-block: 6px 8px;
+  padding-block: 4px 6px;
 }
 
 .gantt-grid-date-picker .gantt-datepicker-shift-btn {
-  height: 32px;
+  height: 24px;
+  padding-inline: 4px;
   background-color: var(--gantt-calendar-day-hover);
   font-variant-numeric: tabular-nums;
 }
 
-.gantt-grid-date-picker .gantt-datepicker-shift-btn:hover {
+.gantt-grid-date-picker .gantt-datepicker-shift-btn:hover:not(:disabled) {
   background-color: var(--gantt-input-border);
+}
+
+.gantt-grid-date-picker .gantt-datepicker-shift-btn:disabled {
+  background-color: var(--gantt-calendar-day-hover);
+  opacity: 0.55;
+  cursor: default;
+}
+
+.gantt-grid-date-picker .gantt-grid-clear-date:disabled {
+  visibility: hidden;
 }
 
 .gantt-grid-date-picker .gantt-cal-container {

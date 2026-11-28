@@ -55,14 +55,18 @@ describe('SimpleGrid inside GanttChart', () => {
 
     fireEvent.click(within(start).getByRole('button', { name: /Открыть календарь/ }));
     const calendar = screen.getByRole('dialog');
+    const shifts = ['-7', '-1', '+1', '+7'].map(name => within(calendar).getByRole('button', { name, exact: true }));
+    shifts.forEach(button => expect(button).toBeDisabled());
     const first = calendar.querySelector<HTMLButtonElement>('[data-day]:not([disabled])')!;
     const firstDate = first.dataset.day!;
     fireEvent.click(first);
     expect(container.querySelector('[data-open-edge="end"]')).toBeInTheDocument();
     expect(end).toHaveTextContent('–');
     expect(duration).toHaveTextContent('7 д');
+    shifts.forEach(button => expect(button).toBeEnabled());
 
     fireEvent.click(within(calendar).getByRole('button', { name: /^Окончание,/ }));
+    shifts.forEach(button => expect(button).toBeDisabled());
     const nextDate = new Date(firstDate);
     nextDate.setUTCDate(nextDate.getUTCDate() + 3);
     const nextDay = nextDate.toISOString().slice(0, 10);
@@ -85,11 +89,13 @@ describe('SimpleGrid inside GanttChart', () => {
     expect(container.querySelector('.gantt-incomplete-row[data-gantt-task-row-id="draft"]')).toHaveClass('gantt-tr-row');
     fireEvent.click(screen.getByRole('button', { name: 'Назначить даты' }));
     const calendar = screen.getByRole('dialog');
+    expect(within(calendar).getByRole('button', { name: '+1', exact: true })).toBeDisabled();
     const first = calendar.querySelector<HTMLButtonElement>('[data-day]:not([disabled])')!;
     const firstDate = first.dataset.day!;
     fireEvent.click(first);
     expect(screen.getByRole('dialog')).toBe(calendar);
     expect(within(calendar).getByRole('button', { name: /^Окончание,/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(calendar).getByRole('button', { name: '+1', exact: true })).toBeDisabled();
     expect(container.querySelector('.gantt-incomplete-row[data-gantt-task-row-id="draft"]')).toHaveClass('gantt-tr-row');
     const nextDate = new Date(firstDate);
     nextDate.setUTCDate(nextDate.getUTCDate() + 3);

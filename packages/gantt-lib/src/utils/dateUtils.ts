@@ -3,6 +3,7 @@ import {
   getBusinessDaysCount as coreGetBusinessDaysCount,
   addBusinessDays as coreAddBusinessDays,
   subtractBusinessDays as coreSubtractBusinessDays,
+  shiftBusinessDayOffset,
 } from '../core/scheduling/dateMath';
 
 /**
@@ -25,6 +26,14 @@ export const parseUTCDate = (date: string | Date | undefined): Date => {
   }
   return date;
 };
+
+/** Move a date picker selection by calendar or working days. */
+export function shiftPickerDate(iso: string, days: number, isWeekend?: (date: Date) => boolean): string {
+  const date = parseUTCDate(iso);
+  if (isWeekend) return shiftBusinessDayOffset(date, days, isWeekend).toISOString().slice(0, 10);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
 /**
  * Get all days in the month of given date (UTC)

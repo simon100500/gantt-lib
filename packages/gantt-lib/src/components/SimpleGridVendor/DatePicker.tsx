@@ -74,6 +74,7 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
   const openingField = fields.find(field => field.id === initialFieldId)!;
   const field = fields.find(field => field.id === fieldId) ?? openingField;
   const { title, min, max, context } = field;
+  const shiftDate = context?.shiftDate;
   const activeDate = drafts[field.id] ?? parseGridDate(field.value);
   const fixedDateEdit = context?.fixedDateEdit;
   const today = isoDay(new Date());
@@ -234,11 +235,11 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
           </div>
         </React.Fragment>)}
       </div> : <div className="gantt-datepicker-fixed-title">{fixedDateEdit?.title ?? title}</div>}
-      {activeDate && context?.shiftDate && <div className="gantt-datepicker-input-row">
+      {shiftDate && <div className="gantt-datepicker-input-row">
         {[-7, -1, 1, 7].map(days => {
-          const date = context.shiftDate!(activeDate, days);
-          return <button key={days} type="button" className="gantt-datepicker-shift-btn" disabled={!allowed(date)}
-            onClick={() => selectDate(date)}>{days > 0 ? `+${days}` : days}</button>;
+          const date = activeDate ? shiftDate(activeDate, days) : undefined;
+          return <button key={days} type="button" className="gantt-datepicker-shift-btn" disabled={!date || !allowed(date)}
+            onClick={() => { if (date) selectDate(date); }}>{days > 0 ? `+${days}` : days}</button>;
         })}
       </div>}
       <div className="gantt-cal-container" ref={scroll} onScroll={() => {
@@ -275,9 +276,10 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
           })}
         </div>
       </section>)}</div>
-      {(context?.footer || (activeDate && context?.clearable) || (fields.length === 1 && context?.pinAction) || fixedDateEdit) && <div className="gantt-datepicker-footer">
+      {(context?.footer || context?.clearable || (fields.length === 1 && context?.pinAction) || fixedDateEdit) && <div className="gantt-datepicker-footer">
         {context?.footer}
-        {activeDate && context?.clearable && <Button type="button" variant="ghost" size="sm" onClick={() => pick('')}>Очистить дату</Button>}
+        {context?.clearable && <Button type="button" variant="ghost" size="sm" className="gantt-grid-clear-date"
+          disabled={!activeDate} onClick={() => pick('')}>Очистить дату</Button>}
         {error && <div className="gantt-datepicker-fixed-error" role="alert">{error}</div>}
         {((fields.length === 1 && context?.pinAction) || fixedDateEdit) && <div className="gantt-datepicker-fixed-actions">
           {fields.length === 1 && <PinButton field={field} onClick={() => togglePin(field)} />}

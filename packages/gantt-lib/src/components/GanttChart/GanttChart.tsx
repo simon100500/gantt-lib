@@ -10,7 +10,7 @@
 
 import { BarContrastContext, useBarContrast } from './useBarContrast';
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { getDateRangeDays, getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
+import { getDateRangeDays, getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, shiftPickerDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { activityLanesExtraHeight, computeActivityLanes } from '../../utils/activities';
 import {
@@ -3100,6 +3100,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                                 max: id === 'startDate' && task.endDate ? parseUTCDate(task.endDate).toISOString().slice(0, 10) : undefined,
                                 context: {
                                   initialDate: (dateRange[Math.floor(scrollViewport.chartScrollLeft / dayWidth)] ?? monthStart).toISOString().slice(0, 10),
+                                  shiftDate: (iso, days) => shiftPickerDate(iso, days, businessDays ? isCustomWeekend : undefined),
                                 },
                                 onPick: date => {
                                   const chosen = parseUTCDate(date);
