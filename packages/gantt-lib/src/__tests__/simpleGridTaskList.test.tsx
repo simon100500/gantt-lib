@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Verify native SimpleGrid task-list scheduling boundaries.
-// SCOPE: Rectangular paste, controlled rejection, and shared tree visibility.
+// SCOPE: Insertion, rectangular paste, controlled rejection, and shared tree visibility.
 // INPUTS: User events on GanttChart.
 // OUTPUTS: Atomic update or rejection and aligned tree visibility.
 // END_MODULE_CONTRACT
@@ -27,6 +27,35 @@ function positionGridRows() {
 }
 
 describe('SimpleGrid inside GanttChart', () => {
+  it.each([
+    ['a', 'a', 'group', 'b'],
+    ['group', 'b', undefined, 'tail'],
+  ])('opens the insertion after %s and shifts the next timeline row', (anchor, draftAfter, parentId, nextRowId) => {
+    const items: Task[] = [
+      { ...tasks[0], id: 'group', name: 'Group' },
+      ...tasks.map(task => ({ ...task, parentId: 'group' })),
+      { ...tasks[1], id: 'tail', name: 'Tail' },
+    ];
+    const onInsertAfter = vi.fn();
+    const { container } = render(<GanttChart tasks={items} showTaskList rowHeight={40} onInsertAfter={onInsertAfter}
+      renderTaskListActions={context => <button onClick={context.insertAfter}>Insert after {context.task.id}</button>} />);
+    const timelineRow = container.querySelector<HTMLElement>(`.gantt-tr-row[data-gantt-task-row-id="${nextRowId}"]`)!.parentElement!;
+    const initialTop = parseFloat(timelineRow.style.top);
+    fireEvent.click(screen.getByRole('button', { name: `Insert after ${anchor}` }));
+    const name = screen.getByPlaceholderText('Название');
+    const draftRow = name.closest('tr')!;
+    const draftHeight = parseFloat(name.closest<HTMLElement>('.gantt-tl-row-new')!.style.height);
+    expect(draftRow.previousElementSibling).toHaveAttribute('data-gantt-task-row-id', draftAfter);
+    expect(draftRow.nextElementSibling).toHaveAttribute('data-gantt-task-row-id', nextRowId);
+    expect(parseFloat(timelineRow.style.top)).toBe(initialTop + draftHeight);
+
+    fireEvent.change(name, { target: { value: 'Inserted' } });
+    fireEvent.keyDown(name, { key: 'Enter' });
+    expect(onInsertAfter).toHaveBeenCalledExactlyOnceWith(anchor, expect.objectContaining({ name: 'Inserted', parentId }));
+    expect(screen.queryByPlaceholderText('Название')).toBeNull();
+    expect(parseFloat(timelineRow.style.top)).toBe(initialTop);
+  });
+
   it('adds a task by name and edits its estimate before either date is known', () => {
     function Project() {
       const [items, setItems] = React.useState<Task[]>([]);

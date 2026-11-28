@@ -2,7 +2,7 @@
 // PURPOSE: Render the native SimpleGrid as GanttChart's task list with the full gantt-lib visual layer restored on top.
 // SCOPE: Present visible task rows, shared geometry, hierarchy connector lines, dependency chips, duration/progress/date displays and editable fields; delegate mutations to GanttChart.
 // INPUTS: Visible tasks and row geometry, collapsed tree state, selected dependency chip and host callbacks.
-// OUTPUTS: SimpleGrid row changes, dependency edits and expand/collapse events; no scheduling side effects beyond task updates.
+// OUTPUTS: SimpleGrid row changes, dependency edits, inline insertion and expand/collapse events.
 // DEPENDS: SimpleGridVendor, TaskList visuals (DepChip, DepIcons, TaskList.css), GanttChart task types.
 // END_MODULE_CONTRACT
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -140,6 +140,8 @@ interface Props<TTask extends Task> {
   enableAddTask?: boolean;
   addTaskLabel?: string;
   onInsertAfter?: (id: string, task: Task) => void;
+  insertDraft?: { anchor: Task; afterId: string };
+  onInsertDraftChange: (taskId: string | null) => void;
   onDelete?: (id: string) => void;
   onPromote?: (id: string) => void;
   onDemote?: (id: string, parentId: string) => void;
@@ -192,7 +194,7 @@ function SimpleGridTaskListInner<TTask extends Task>({
   printDependencyLabels, getTaskListNamePrefixIcon, hasRightShadow, visibleRowIndices, onRevealRow,
   onPasteOverflow, getRowScrollContainer,
   bodyMinHeight, skeletonRowCount = 0, rowContentLines = 1,
-  onReorder, disableReorder, onAdd, enableAddTask, addTaskLabel = 'Добавить задачу', onInsertAfter,
+  onReorder, disableReorder, onAdd, enableAddTask, addTaskLabel = 'Добавить задачу', onInsertAfter, insertDraft, onInsertDraftChange,
   onDelete, onPromote, onDemote, onUngroup, defaultTaskDurationDays, menuCommands, renderActions, renderMenu,
   hideActions, getRowClassName, dateChangeMode, onDateChangeModeChange, showTaskDatePins = true, renderTaskDateAction,
 }: Props<TTask>) {
@@ -218,7 +220,7 @@ function SimpleGridTaskListInner<TTask extends Task>({
     [allTasks],
   );
   const [actionMenuTaskId, setActionMenuTaskId] = useState<string | null>(null);
-  const [newTaskAnchor, setNewTaskAnchor] = useState<Task | 'root' | null>(null);
+  const [isAddingRoot, setIsAddingRoot] = useState(false);
   const [durationPreview, setDurationPreview] = useState<TTask | null>(null);
   const canReorder = !!onReorder && !disableReorder;
   const resolveRowDrop = useCallback((moved: TTask, target: TTask, placement: SimpleGridRowDropPlacement) => {
@@ -902,15 +904,19 @@ function SimpleGridTaskListInner<TTask extends Task>({
     handleSearchPick, renderSourcePicker,
   ]);
 
+  const closeNewTask = () => {
+    if (insertDraft) onInsertDraftChange(null);
+    else setIsAddingRoot(false);
+  };
+
   const submitNewTask = (name: string) => {
-    if (!newTaskAnchor) return;
     const task = {
       id: crypto.randomUUID(), name,
       durationDays: defaultTaskDurationDays,
     };
-    if (newTaskAnchor === 'root') onAdd?.(task);
-    else onInsertAfter?.(newTaskAnchor.id, { ...task, parentId: newTaskAnchor.parentId });
-    setNewTaskAnchor(null);
+    if (insertDraft) onInsertAfter?.(insertDraft.anchor.id, { ...task, parentId: insertDraft.anchor.parentId });
+    else onAdd?.(task);
+    closeNewTask();
   };
 
   const renderRowActions = useCallback((task: TTask, rowIndex: number) => {
@@ -930,7 +936,7 @@ function SimpleGridTaskListInner<TTask extends Task>({
       task, isParent, closeMenu,
       canPromote: !!task.parentId && !!onPromote,
       canDemote,
-      insertAfter: onInsertAfter ? () => { closeMenu(); setNewTaskAnchor(task); } : undefined,
+      insertAfter: onInsertAfter ? () => { closeMenu(); setIsAddingRoot(false); onInsertDraftChange(task.id); } : undefined,
       promote: task.parentId && onPromote ? () => onPromote(task.id) : undefined,
       demote: canDemote ? () => {
         if (demoteTarget) {
@@ -977,7 +983,7 @@ function SimpleGridTaskListInner<TTask extends Task>({
         <PopoverContent className="gantt-simple-grid-menu" align="end">{menu}</PopoverContent>
       </Popover>}
     </div>;
-  }, [actionMenuTaskId, allTasks, menuCommands, onDelete, onDemote, onInsertAfter, onPromote, onReorder, onUngroup, parents, renderActions, renderMenu, tasks]);
+  }, [actionMenuTaskId, allTasks, menuCommands, onDelete, onDemote, onInsertAfter, onInsertDraftChange, onPromote, onReorder, onUngroup, parents, renderActions, renderMenu, tasks]);
 
   const updateCustomTask = useCallback((task: TTask, patch: Partial<TTask>) => {
     const latest = byId.get(task.id);
@@ -1255,6 +1261,10 @@ function SimpleGridTaskListInner<TTask extends Task>({
       readOnly={readOnly}
       rowHeight={rowHeight}
       rowHeights={heights}
+      renderRowDetails={insertDraft ? row => row.id === insertDraft.afterId ? (
+        <NewTaskRow key={insertDraft.anchor.id} rowHeight={rowHeight} nestingDepth={depthMap.get(insertDraft.anchor.id)}
+          onConfirm={submitNewTask} onCancel={closeNewTask} />
+      ) : null : undefined}
       visibleRowIndices={visibleRowIndices}
       onRevealRow={onRevealRow}
       showRowHeaders={showNumbers || showSelection || (canChangeColumnVisibility && columns.length === 0)}
@@ -1293,8 +1303,8 @@ function SimpleGridTaskListInner<TTask extends Task>({
       style={{ minHeight: bodyMinHeight === undefined ? undefined : `max(0px, calc(${typeof bodyMinHeight === 'number' ? `${bodyMinHeight}px` : bodyMinHeight} - ${rowHeights.reduce((sum, height) => sum + height, 0)}px))` }}>
       <GenerationSkeletonRows variant="task-list" count={skeletonRowCount} rowHeight={rowHeight} startIndex={tasks.length} startTop={0} />
     </div>}
-    {newTaskAnchor ? <NewTaskRow rowHeight={rowHeight} onConfirm={submitNewTask} onCancel={() => setNewTaskAnchor(null)} />
-      : enableAddTask && onAdd && <button type="button" className="gantt-tl-add-btn" onClick={() => setNewTaskAnchor('root')}>+ {addTaskLabel}</button>}
+    {isAddingRoot ? <NewTaskRow rowHeight={rowHeight} onConfirm={submitNewTask} onCancel={closeNewTask} />
+      : !insertDraft && enableAddTask && onAdd && <button type="button" className="gantt-tl-add-btn" onClick={() => setIsAddingRoot(true)}>+ {addTaskLabel}</button>}
   </div>;
 }
 

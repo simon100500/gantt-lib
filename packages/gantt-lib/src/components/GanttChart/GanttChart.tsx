@@ -6,6 +6,7 @@
 // OUTPUTS: Parent dates and fixed boundaries remain consistent; manual percentages survive presentation grouping.
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
 // OUTPUTS: Capability-checked row operations and fixed-date field edits delivered to the host mutation callback.
+// INSERTION: Keep space for the inline draft in both panes without adding it to the task data or row indices.
 // END_MODULE_CONTRACT
 
 import { BarContrastContext, useBarContrast } from './useBarContrast';
@@ -918,6 +919,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskListHasRightShadow, setTaskListHasRightShadow] = useState(false);
   const [internalTaskDateChangeMode, setInternalTaskDateChangeMode] = useState<TaskDateChangeMode>('preserve-duration');
+  const [insertAnchorId, setInsertAnchorId] = useState<string | null>(null);
   const [scrollViewport, setScrollViewport] = useState(() => ({
     scrollTop: 0,
     viewportHeight: getInitialScrollViewportHeight(containerHeight, headerHeight + 1),
@@ -1226,6 +1228,27 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     return tasks;
   }, [normalizedTasks, collapsedParentIds, filterMode, taskFilter, criticalPathMode, criticalTaskIds]);
 
+  const insertDraft = useMemo(() => {
+    if (!insertAnchorId || !onInsertAfter || !showTaskList || isTableMatrixMode || isPlanFactMode) return undefined;
+    const anchorIndex = visibleTasks.findIndex(task => task.id === insertAnchorId);
+    if (anchorIndex < 0) return undefined;
+
+    const byId = new Map(normalizedTasks.map(task => [task.id, task]));
+    let afterIndex = anchorIndex;
+    for (let index = anchorIndex + 1; index < visibleTasks.length; index++) {
+      let parentId = visibleTasks[index].parentId;
+      while (parentId && parentId !== insertAnchorId) parentId = byId.get(parentId)?.parentId;
+      if (!parentId) break;
+      afterIndex = index;
+    }
+    return { anchor: visibleTasks[anchorIndex], afterId: visibleTasks[afterIndex].id };
+  }, [insertAnchorId, onInsertAfter, showTaskList, isTableMatrixMode, isPlanFactMode, visibleTasks, normalizedTasks]);
+  const insertAfterRowId = insertDraft?.afterId;
+
+  useEffect(() => {
+    if (insertAnchorId && !insertDraft) setInsertAnchorId(null);
+  }, [insertAnchorId, insertDraft]);
+
   // Get month start for calculations (first day of date range)
   const monthStart = useMemo(() => {
     if (dateRange.length === 0) {
@@ -1262,9 +1285,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         : Math.max(effectiveRowHeight, activityLanesExtraHeight(activityLaneCounts.get(task.id) ?? 0));
       heights.push(height);
       top += height;
+      if (task.id === insertAfterRowId) top += effectiveRowHeight;
     }
     return { tops, heights, totalHeight: top };
-  }, [normalizedTasks, visibleTasks, effectiveRowHeight, activityLaneCounts]);
+  }, [normalizedTasks, visibleTasks, effectiveRowHeight, activityLaneCounts, insertAfterRowId]);
   const compositeParentsById = useMemo(
     () => new Map(normalizedTasks.filter(task => task.composite).map(task => [task.id, task])),
     [normalizedTasks]
@@ -2069,8 +2093,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   );
 
   const forcedRenderedTaskIds = useMemo(() => new Set(
-    [draggedTaskOverride?.taskId, partialDragTaskId, dependencyCreationDrag?.sourceId].filter((id): id is string => !!id),
-  ), [draggedTaskOverride?.taskId, partialDragTaskId, dependencyCreationDrag?.sourceId]);
+    [draggedTaskOverride?.taskId, partialDragTaskId, dependencyCreationDrag?.sourceId, insertAfterRowId].filter((id): id is string => !!id),
+  ), [draggedTaskOverride?.taskId, partialDragTaskId, dependencyCreationDrag?.sourceId, insertAfterRowId]);
 
   // Горизонтальное окно рендера в координатах полосы графика: видимая часть плюс
   // запас. Пока ширина области неизвестна (скрытый график, SSR) — не отсекаем
@@ -2808,6 +2832,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             enableAddTask={enableAddTask}
             addTaskLabel={addTaskLabel}
             onInsertAfter={onInsertAfter ? handleInsertAfter : undefined}
+            insertDraft={insertDraft}
+            onInsertDraftChange={setInsertAnchorId}
             onDelete={onDelete ? handleDelete : undefined}
             onPromote={onPromoteTask ?? (onTasksChange ? handlePromoteTask : undefined)}
             onDemote={onDemoteTask ?? (onTasksChange ? handleDemoteTask : undefined)}

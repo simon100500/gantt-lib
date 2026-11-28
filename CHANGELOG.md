@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0-alpha.3] - 2026-11-28
+
+### Fixes
+
+- Open the insertion field directly after the selected task or its visible subtree and keep both panes aligned while editing.
+
 ## [0.2.0-alpha.2] - 2026-11-28
 
 ### Fixes
