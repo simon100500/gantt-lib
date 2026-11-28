@@ -310,6 +310,10 @@ Fixed dates independently anchor each boundary during scheduling. Parent boundar
 
 Date cells show a pin beside each fixed boundary. On editable rows, use the pin to fix or release that date. Set `showTaskDatePins={false}` to hide the built-in cell pins while keeping date pinning available in the calendar. Use `renderTaskDateAction(task, boundary)` to replace the built-in cell pins with application controls. The `boundary` is `'start'` or `'end'`.
 
+Start and end dates are independently optional. A task with a single date fades toward the open boundary. The known edge supports dragging and dependency links. Entering a duration with one date set derives the other date in project days. Clearing a date clears the estimate. With both dates empty, `durationDays` can be saved as an estimate. Use `enableAddTask` with `onAdd` to create undated tasks directly in the list.
+
+For large schedules, give the chart a bounded viewport with `containerHeight`, for example `containerHeight="80dvh"`. The chart and task list share one virtual row window. Timeline grid lines, dependency arrows, activity bars, and open-ended bars are culled horizontally with overscan.
+
 ### Dependencies
 
 Tasks can have dependencies on predecessor tasks using 4 link types following PM standards:

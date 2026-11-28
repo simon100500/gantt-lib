@@ -11,7 +11,9 @@ parent or a child.
 | Click and drag center of task bar | Move task. Both `startDate` and `endDate` shift by the same delta. Snaps to day boundaries. |
 | Click and drag left edge (12px zone) | Resize task start date (earlier or later). Right edge stays fixed. Snaps to day boundaries. |
 | Click and drag right edge (12px zone) | Resize task end date (earlier or later). Left edge stays fixed. Snaps to day boundaries. |
+| Drag a bar with one date | Move the known boundary. Links update during the drag. A pinned boundary stays fixed. |
 | Click and drag empty grid area | Pan (scroll) the chart horizontally and vertically. Cursor changes to `grabbing`. |
+| Drag the grip in the № column | Reorder the task or its subtree. Drop on the line between rows to insert, or on a row marked as a nesting target to move inside it. |
 
 **Edge zone priority:** Resize takes priority over move when the cursor is within 12px of either horizontal edge.
 
@@ -36,6 +38,7 @@ of these intents:
 |---|---|
 | Move a child or parent bar | `move_task` |
 | Resize a leaf edge | `resize_task` |
+| Move the known edge of a one-sided bar | `resize_task` |
 | Edit a leaf duration in the TaskList | `change_duration` |
 | Resize a parent edge or edit its duration | `change_duration` |
 

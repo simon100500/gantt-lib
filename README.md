@@ -222,8 +222,9 @@ const additionalColumns: TaskListColumn<MyTask>[] = [
 interface Task {
   id: string;               // Уникальный идентификатор
   name: string;             // Название, отображаемое на полосе
-  startDate: string | Date; // ISO-строка или Date (UTC)
-  endDate: string | Date;   // ISO-строка или Date (UTC)
+  startDate?: string | Date; // ISO-строка или Date (UTC)
+  endDate?: string | Date;   // ISO-строка или Date (UTC)
+  durationDays?: number;   // оценка длительности в днях проекта
   baselineStartDate?: string | Date;
   baselineEndDate?: string | Date;
   type?: 'task' | 'milestone';

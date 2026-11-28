@@ -4,8 +4,11 @@
 interface Task {
   id: string;
   name: string;
-  startDate: string | Date;
-  endDate: string | Date;
+  startDate?: string | Date;
+  endDate?: string | Date;
+  durationDays?: number;
+  fixedStartDate?: string | null;
+  fixedEndDate?: string | null;
   baselineStartDate?: string | Date;
   baselineEndDate?: string | Date;
   type?: 'task' | 'milestone';
@@ -27,8 +30,10 @@ interface Task {
 |---|---|---|---|---|
 | `id` | `string` | yes | — | Must be unique across all tasks in the array. Duplicate IDs cause undefined behavior in cascade and validation. |
 | `name` | `string` | yes | — | Displayed as text label on the task bar. No length limit enforced, but very long names may overflow the bar visually. |
-| `startDate` | `string \| Date` | yes | — | ISO string (`'2026-02-01'`) or `Date` object. All arithmetic is UTC. Prefer ISO strings to avoid local timezone off-by-one errors. |
-| `endDate` | `string \| Date` | yes | — | Same format rules as `startDate`. **endDate is inclusive:** a task where `startDate === endDate` occupies exactly 1 day column. |
+| `startDate` | `string \| Date` | no | `undefined` | ISO date (`'2026-02-01'`) or `Date` object. Omit it when the start is unknown. Date arithmetic uses UTC. |
+| `endDate` | `string \| Date` | no | `undefined` | Same format as `startDate`. The end is inclusive. A regular task with equal dates occupies one day column. |
+| `durationDays` | `number` | no | `undefined` | Duration estimate in project days while a boundary is missing. With both dates set, the chart calculates duration using the project calendar. |
+| `fixedStartDate`, `fixedEndDate` | `string \| null` | no | `undefined` | Pin the corresponding date with a `YYYY-MM-DD` value. Omission or `null` leaves that boundary movable. |
 | `baselineStartDate` | `string \| Date` | no | `undefined` | Optional baseline start for planned schedule visualization. Only used when `showBaseline={true}` on `GanttChart`. Does not affect scheduling, drag, or dependencies. |
 | `baselineEndDate` | `string \| Date` | no | `undefined` | Optional baseline end for planned schedule visualization. Rendered as a thin line under the main bar when both baseline dates are present. |
 | `type` | `'task' \| 'milestone'` | no | `'task'` | Explicit task subtype. `type: 'milestone'` renders the item as a diamond, keeps it single-date, and synchronizes `endDate` with `startDate`. Omitting the field keeps existing regular task behavior, including for same-day tasks. |
@@ -43,6 +48,21 @@ interface Task {
 | `parentId` | `string` | no | `undefined` | ID of the parent task for hierarchy (parent-child relationships). Child tasks are indented in the task list. Parent tasks display with a gradient background and collapse/expand button. Dragging a task between child tasks automatically assigns it the same parent. **Unlimited nesting depth** is supported. Hierarchical numbering (1, 1.1, 1.1.1, 2...) is displayed in the task list's № column. |
 | `activities` | `TaskActivity[]` | no | `undefined` | Optional list of work bars rendered as lanes packed into sub-lanes of this row (e.g. finishing works on one floor). Replaces the main bar for the row and grows the row height to fit concurrent activities. Works in gantt mode only — see [Row Activities](#row-activities-v01390). |
 | `activityChain` | `boolean \| 'push'` | no | `undefined` | ОН-конвейер (finish-to-start chain) for row activities. Inside the row every work follows the previous one; identical works of consecutive chained rows (floors) are linked too. `true` — hard conveyor: dragging shifts the whole chain below by the same delta. `'push'` — ASAP "pushing" mode: gaps fill when moving up the flow, a successor shifts down only after a collision; an activity's `lag` keeps its gap constant. |
+
+## Tasks with incomplete dates
+
+```typescript
+const tasks: Task[] = [
+  { id: 'survey', name: 'Site survey', durationDays: 3 },
+  { id: 'trenches', name: 'Excavate trenches', startDate: '2026-02-09' },
+  { id: 'inspection', name: 'Inspection', endDate: '2026-02-13' },
+];
+```
+
+- With neither date set, the chart shows an **Assign dates** action for editable tasks. The calendar lets the user set both dates in one session.
+- With one date set, the bar fades toward the open end. Its known edge can be moved or linked. Groups with incomplete children display their known date range as preliminary.
+- Entering a duration with one date set calculates the missing boundary in project days. Clearing a date also clears the duration estimate. With both dates empty, duration can be entered as an estimate.
+- TypeScript consumers should handle `undefined` before doing date arithmetic and in handlers that persist date changes.
 
 ---
 

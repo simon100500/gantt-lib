@@ -22,6 +22,8 @@ interface TaskDependency {
 
 Dependencies use standard project management link type semantics. All link types are relative to the predecessor task (A) and successor task (B).
 
+The task list can store a link before its dates are known. The timeline shows a connection point at each available boundary and draws the arrow as soon as both boundaries referenced by that link are set. Dragging a one-sided bar updates its known boundary and its links. Cascades use the dates required by the link and preserve the open boundaries.
+
 Milestones are zero-duration events. The successor type participates in FS
 date calculation: a milestone successor with `lag: 0` is placed on the
 predecessor's finish date, while a regular successor starts on the following

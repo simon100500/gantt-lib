@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Features
+
+- Integrate SimpleGrid with inline editing, range paste, and task subtree reorder and nesting.
+- Add tasks with either date omitted, show open-ended bars, and support moving and linking known boundaries.
+- Edit both dates and their pins in one calendar. Preview the range and derive a missing boundary from a duration edit.
+
+### Performance
+
+- Limit open-ended bars and their link handles to the viewport window. Mount date assignment controls only where they can be used.
+- Reuse the task list and ordinary bars during horizontal panning. Reuse each task's duration while evaluating its incoming constraints.
+
+### Documentation
+
+- Document optional dates, duration estimates, date pins, and dependency behavior with incomplete schedules.
+
 ## [0.146.16] - 2026-11-27
 
 ### Features
