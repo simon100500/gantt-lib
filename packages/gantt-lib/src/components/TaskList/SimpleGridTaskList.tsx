@@ -46,6 +46,12 @@ const NO_FILTERS: [] = [];
 const EMPTY_COLUMNS: [] = [];
 const taskKey = (task: Task) => task.id;
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
+const wrappedTextEditorStyle: React.CSSProperties = {
+  paddingBlock: 0,
+  whiteSpace: 'pre-wrap',
+  overflowWrap: 'break-word',
+  overflowY: 'auto',
+};
 
 type CustomEditorData<TTask extends Task> = {
   column: TaskListColumn<TTask>;
@@ -79,74 +85,6 @@ const formatDateLabel = (value: string | Date): string => {
   const [year, month, day] = iso.split('-');
   if (!year || !month || !day) return iso;
   return `${day}.${month}.${year.slice(2)}`;
-};
-
-const TaskNumberEditor: React.FC<SimpleGridEditorProps> = ({ value, onChange, commit, commitAndMove, cancel, editorData }) => {
-  const { label, max } = editorData as { label: string; max?: number };
-  const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, []);
-  const commitDraft = (direction?: 'left' | 'right') => {
-    if (direction && commitAndMove) commitAndMove(value, direction);
-    else commit(value);
-  };
-  return (
-    <div
-      className="gantt-tl-number-editor"
-      data-sg-editor=""
-      onClick={event => event.stopPropagation()}
-      onKeyDown={event => event.stopPropagation()}
-    >
-      <input
-        ref={inputRef}
-        type="number"
-        min={0}
-        max={max}
-        step={1}
-        className="gantt-tl-number-input"
-        data-testid="sg-editor-input"
-        value={value}
-        onChange={event => onChange(event.target.value)}
-        aria-label={label}
-        onKeyDown={event => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            commitDraft();
-          } else if (event.key === 'Escape') cancel();
-          else if (event.key === 'Tab') {
-            event.preventDefault();
-            commitDraft(event.shiftKey ? 'left' : 'right');
-          }
-        }}
-      />
-      <div className="gantt-tl-number-steppers" aria-hidden="true">
-        <button
-          type="button"
-          className="gantt-tl-number-stepper"
-          tabIndex={-1}
-          onMouseDown={event => event.preventDefault()}
-          onClick={() => onChange(String(Math.min(max ?? Infinity, (Number(value) || 0) + 1)))}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m18 15-6-6-6 6" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          className="gantt-tl-number-stepper"
-          tabIndex={-1}
-          onMouseDown={event => event.preventDefault()}
-          onClick={() => onChange(String(Math.max(0, (Number(value) || 0) - 1)))}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
 };
 
 const ChevronRightIcon = () => (
@@ -1066,7 +1004,11 @@ export function SimpleGridTaskList<TTask extends Task>({
     const list: SimpleGridColumn<TTask>[] = [
       {
         id: 'name', title: 'Имя', width: 202, minWidth: 120, readOnly: nameReadOnly,
-        editorStyle: task => ({ paddingLeft: nameInset(task), paddingRight: 8 }),
+        editorStyle: task => ({
+          ...wrappedTextEditorStyle,
+          paddingLeft: nameInset(task) + (getTaskListNamePrefixIcon?.(task) ? 20 : 0),
+          paddingRight: 8 + (showRowActions ? 30 : 0) + (task.color ? 12 : 0),
+        }),
         isDisabled: task => !!task.locked,
         getValue: task => task.name,
         setValue: (task, value) => ({ ...task, name: value.trim() || task.name }),
@@ -1148,8 +1090,6 @@ export function SimpleGridTaskList<TTask extends Task>({
         validation: { type: 'number', min: 0, max: 100 },
         getValue: task => String(task.progress ?? 0),
         setValue: (task, value) => ({ ...task, progress: Number(value) }),
-        editor: TaskNumberEditor,
-        editorData: { label: 'Прогресс', max: 100 },
         renderValue: renderProgressCell,
       },
       {
@@ -1175,12 +1115,17 @@ export function SimpleGridTaskList<TTask extends Task>({
         const native = byColumn.get(column.id);
         if (native) return native;
         const canEdit = !!column.editable && !!onTaskEdit;
+        const textEditor = column.renderEditor ? undefined : column.textEditor;
         return {
           id: column.id, title: typeof column.header === 'string' ? column.header : column.id,
           headerContent: column.header, width: Math.max(column.minWidth ?? 40, column.width ?? 120),
           minWidth: column.minWidth,
           align: column.align, readOnly: !canEdit, isDisabled: task => !!task.locked,
-          ...(canEdit && {
+          ...(textEditor ? {
+            getValue: textEditor.getValue,
+            setValue: (task: TTask, value: string) => ({ ...task, ...textEditor.setValue(task, value), id: task.id }),
+            editorStyle: () => ({ ...wrappedTextEditorStyle, paddingInline: 8 }),
+          } : canEdit && {
             getValue: () => '', setValue: (task: TTask) => task,
             editor: CustomColumnEditor<TTask>, editorData: { column, updateTask: updateCustomTask },
           }),
@@ -1197,7 +1142,7 @@ export function SimpleGridTaskList<TTask extends Task>({
     hiddenColumns, nameReadOnly, businessDays, additionalColumns, hideActions, menuCommands,
     renderActions, renderMenu, renderRowActions, onTaskEdit, updateCustomTask, onScrollToTask,
     activeLinkType, dependencyEditingDisabled, dateChangeMode, onDateChangeModeChange, allTasks, weekendPredicate, getDurationFor, nameInset,
-    renderNameCell, renderDateCell, renderEndDateCell, renderDurationCell, renderProgressCell, renderDependenciesCell,
+    renderNameCell, renderDateCell, renderEndDateCell, renderDurationCell, renderProgressCell, renderDependenciesCell, getTaskListNamePrefixIcon,
   ]);
 
   const configuredWidths = useMemo(() => columnWidths

@@ -2588,16 +2588,18 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const dateKey = (value: string | Date) => value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
     const edits = nextVisible.flatMap((task, index) => {
       const original = visibleTasks[index];
-      const starts = dateKey(original.startDate) !== dateKey(task.startDate);
-      const ends = dateKey(original.endDate) !== dateKey(task.endDate);
-      const name = original.name !== task.name;
-      const progress = (original.progress ?? 0) !== (task.progress ?? 0);
-      const kind = (original.type ?? 'task') !== (task.type ?? 'task');
-      if (!(starts || ends || name || progress || kind)) return [];
+      if (task === original) return [];
+      const { startDate, endDate, progress: taskProgress, type, dependencies: _dependencies, ...values } = task;
+      const starts = dateKey(original.startDate) !== dateKey(startDate);
+      const ends = dateKey(original.endDate) !== dateKey(endDate);
+      const fields = Object.entries(values).filter(([key, value]) => Reflect.get(original, key) !== value);
+      const progress = (original.progress ?? 0) !== (taskProgress ?? 0);
+      const kind = (original.type ?? 'task') !== (type ?? 'task');
+      if (!(starts || ends || fields.length || progress || kind)) return [];
       const editedTask = task.type === 'milestone' && starts !== ends
         ? { ...task, startDate: starts ? task.startDate : task.endDate, endDate: starts ? task.startDate : task.endDate }
         : task;
-      return [{ task: editedTask, starts, ends, name, progress, kind }];
+      return [{ task: editedTask, starts, ends, fields, progress, kind }];
     });
     if (!edits.length) return false;
     const dateEdits = edits.filter(edit => edit.starts || edit.ends || edit.kind);
@@ -2609,7 +2611,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
     if (onScheduleIntent && dateEdits.length) {
       const [edit] = dateEdits;
-      if (edits.length > 1 || edit.name || edit.progress || (!editedColumnId && edit.starts && edit.ends)) {
+      if (edits.length > 1 || edit.fields.length || edit.progress || (!editedColumnId && edit.starts && edit.ends)) {
         return reject('Пакетное изменение дат в управляемом режиме недоступно');
       }
     }
@@ -2638,8 +2640,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const byId = new Map(edits.map(edit => [edit.task.id, edit]));
     let snapshot: Task[] = normalizedTasks.map(task => {
       const edit = byId.get(task.id);
-      if (!edit || (!edit.name && !edit.kind)) return task;
-      return { ...task, name: edit.task.name, type: edit.task.type };
+      if (!edit || (!edit.fields.length && !edit.kind)) return task;
+      return { ...task, ...Object.fromEntries(edit.fields), ...(edit.kind && { type: edit.task.type }) };
     });
     const apply = (updates: Task[]) => {
       const updatesById = new Map(updates.map(task => [task.id, task]));

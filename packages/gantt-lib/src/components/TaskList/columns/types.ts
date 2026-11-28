@@ -33,5 +33,10 @@ export type TaskListColumn<TTask extends Task> = TaskListColumnAnchor & {
   editable?: boolean;
   renderCell: (ctx: TaskListColumnContext<TTask>) => ReactNode;
   renderEditor?: (ctx: TaskListColumnContext<TTask>) => ReactNode;
+  /** Bind an editable column to the grid's in-cell text editor when renderEditor is omitted. */
+  textEditor?: {
+    getValue: (task: TTask) => string;
+    setValue: (task: TTask, value: string) => Partial<TTask>;
+  };
   meta?: Record<string, unknown>;
 };

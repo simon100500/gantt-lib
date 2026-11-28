@@ -30,19 +30,10 @@ const ownerColumn: TaskListColumn<DemoTask> = {
   width: 105,
   editable: true,
   renderCell: ({ task }) => task.owner ?? '–',
-  renderEditor: ({ task, updateTask, closeEditor }) => <input
-    aria-label="Ответственный" defaultValue={task.owner} autoFocus
-    onKeyDown={event => {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        closeEditor();
-      } else if (event.key === 'Enter') {
-        event.stopPropagation();
-        updateTask({ owner: event.currentTarget.value.trim() });
-        closeEditor();
-      }
-    }}
-  />,
+  textEditor: {
+    getValue: task => task.owner ?? '',
+    setValue: (_, value) => ({ owner: value.trim() || undefined }),
+  },
 };
 
 const withOrder = (tasks: DemoTask[]) => tasks.map((task, sortOrder) => ({ ...task, sortOrder }));

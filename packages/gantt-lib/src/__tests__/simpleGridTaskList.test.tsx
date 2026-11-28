@@ -56,6 +56,49 @@ describe('SimpleGrid inside GanttChart', () => {
     expect(onTasksChange).not.toHaveBeenCalled();
   });
 
+  it('edits progress as native cell text', () => {
+    const onTasksChange = vi.fn();
+    render(<GanttChart tasks={tasks} showTaskList onTasksChange={onTasksChange} />);
+    const cell = screen.getByTestId('sg-cell-0-progress');
+    fireEvent.click(cell);
+    fireEvent.keyDown(screen.getByRole('grid', { name: 'Список задач' }), { key: '7' });
+    const editor = within(cell).getByTestId('sg-editor-input');
+    expect(editor).toHaveAttribute('contenteditable', 'true');
+    editor.textContent = '70';
+    fireEvent.input(editor);
+    fireEvent.keyDown(editor, { key: 'Enter' });
+    expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([{ ...tasks[0], progress: 70 }]);
+  });
+
+  it('edits and pastes additional text columns through the grid', () => {
+    const ownedTasks = tasks.map(task => ({ ...task, owner: 'Ким' }));
+    const onTasksChange = vi.fn();
+    render(<GanttChart tasks={ownedTasks} showTaskList onTasksChange={onTasksChange} additionalColumns={[{
+      id: 'owner', header: 'Ответственный', editable: true,
+      renderCell: ({ task }) => task.owner,
+      textEditor: { getValue: task => task.owner, setValue: (_, owner) => ({ owner }) },
+    }]} />);
+    const grid = screen.getByRole('grid', { name: 'Список задач' });
+    const cell = screen.getByTestId('sg-cell-0-owner');
+    fireEvent.click(cell);
+    fireEvent.keyDown(grid, { key: 'Enter' });
+    const editor = within(cell).getByTestId('sg-editor-input');
+    expect(editor).toHaveAttribute('contenteditable', 'true');
+    expect(editor).toHaveTextContent('Ким');
+    editor.textContent = 'Орлов';
+    fireEvent.input(editor);
+    fireEvent.keyDown(editor, { key: 'Enter' });
+    expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([{ ...ownedTasks[0], owner: 'Орлов' }]);
+
+    onTasksChange.mockClear();
+    fireEvent.click(cell);
+    fireEvent.paste(grid, { clipboardData: { getData: () => 'Орлов\nЛебедева' } });
+    expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([
+      { ...ownedTasks[0], owner: 'Орлов' },
+      { ...ownedTasks[1], owner: 'Лебедева' },
+    ]);
+  });
+
   it('scrolls to a clicked task name and opens its inline menu without scrolling again', () => {
     const onSelect = vi.fn();
     const { container } = render(<GanttChart tasks={tasks} showTaskList dayWidth={25}

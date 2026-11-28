@@ -179,19 +179,20 @@
   inset: 0;
 }
 
-.gantt-simple-grid [data-sg] [data-testid="sg-editor-input"] {
-  align-content: center;
+.gantt-simple-grid [data-sg] tr[data-row-index] > td[data-editing="true"] {
+  background: var(--gantt-cell-background, #fff) !important;
+  box-shadow: none;
+}
+
+.gantt-simple-grid [data-sg] [data-sg-editor][contenteditable="true"] {
+  align-content: safe center;
   font: inherit;
   font-variant-numeric: tabular-nums;
+  scrollbar-width: none;
 }
 
-.gantt-simple-grid td[data-sg-align="center"] [data-testid="sg-editor-input"]:not(.gantt-tl-number-input) {
+.gantt-simple-grid td[data-sg-align="center"] [data-sg-editor][contenteditable="true"] {
   padding: 0 !important;
-  text-align: center;
-}
-
-.gantt-simple-grid [data-sg] .gantt-tl-number-input {
-  padding: 0 16px;
   text-align: center;
 }
 
