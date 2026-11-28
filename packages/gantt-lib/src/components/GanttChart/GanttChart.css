@@ -101,7 +101,7 @@
   top: 50%;
   z-index: 1;
   height: min(var(--gantt-task-bar-height, 28px), calc(100% - 8px));
-  width: 72px;
+  width: var(--gantt-partial-width);
   transform: translateY(-50%);
   left: var(--gantt-partial-anchor);
   border-radius: var(--gantt-task-bar-border-radius, 6px) 0 0 var(--gantt-task-bar-border-radius, 6px);
@@ -109,7 +109,7 @@
 }
 
 .gantt-partial-task[data-open-edge='start'] {
-  left: calc(var(--gantt-partial-anchor) - 72px);
+  left: calc(var(--gantt-partial-anchor) - var(--gantt-partial-width));
   border-radius: 0 var(--gantt-task-bar-border-radius, 6px) var(--gantt-task-bar-border-radius, 6px) 0;
   background: linear-gradient(to left, var(--gantt-partial-color, var(--gantt-task-bar-default-color, #3b82f6)), transparent);
 }

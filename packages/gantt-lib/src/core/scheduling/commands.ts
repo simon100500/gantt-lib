@@ -117,13 +117,14 @@ export function buildDependencyRange(
   type: LinkType,
   date: Date,
   businessDays: boolean,
-  weekendPredicate?: (date: Date) => boolean
+  weekendPredicate?: (date: Date) => boolean,
+  scheduledDuration?: number,
 ): { start: Date; end: Date } | undefined {
   const targetsStart = type[1] === 'S';
   if (!Number.isFinite(+date) || !(targetsStart ? task.startDate : task.endDate)) return;
 
   if (task.startDate && task.endDate) {
-    const duration = getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
+    const duration = scheduledDuration ?? getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
     return targetsStart
       ? buildTaskRangeFromStart(date, duration, businessDays, weekendPredicate)
       : buildTaskRangeFromEnd(date, duration, businessDays, weekendPredicate);

@@ -19,7 +19,7 @@
 import type { Task, TaskDependency, ScheduleCommandResult, ScheduleCommandOptions } from './types';
 import { moveTaskRange, recalculateIncomingLags, buildDependencyRange } from './commands';
 import { universalCascade } from './cascade';
-import { alignToWorkingDay, parseDateOnly, formatOptionalDateOnly } from './dateMath';
+import { alignToWorkingDay, getTaskDuration, parseDateOnly, formatOptionalDateOnly } from './dateMath';
 import { calculateSuccessorDate, getDependencyLag, normalizePredecessorDates } from './dependencies';
 import { resolveFixedDates, resolveParentFixedDates } from './fixedDates';
 import { getChildDateBounds, computeParentDates } from './hierarchy';
@@ -412,6 +412,8 @@ function recalculateFixedComponents(snapshot: Task[], options?: ScheduleCommandO
         range = resolveParentFixedDates(task, range, key => next.get(key), businessDays, weekendPredicate);
       } else if (task.dependencies?.length) {
         let selected: { start: Date; end: Date } | undefined;
+        const duration = task.startDate && task.endDate
+          ? getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate) : undefined;
         for (const dependency of task.dependencies) {
           const predecessor = next.get(dependency.taskId);
           if (!predecessor) continue;
@@ -422,7 +424,7 @@ function recalculateFixedComponents(snapshot: Task[], options?: ScheduleCommandO
             endDate: milestoneAnchor ?? predecessor.fixedEndDate ?? predecessor.endDate,
           }, parseDateOnly);
           const date = calculateSuccessorDate(predStart, predEnd, dependency.type, getDependencyLag(dependency), businessDays, weekendPredicate, task.type);
-          const candidate = buildDependencyRange(task, dependency.type, date, businessDays, weekendPredicate);
+          const candidate = buildDependencyRange(task, dependency.type, date, businessDays, weekendPredicate, duration);
           if (candidate && isLaterRange(candidate, selected)) selected = candidate;
         }
         if (selected) range = selected;
@@ -490,6 +492,8 @@ function recalculateProjectScheduleLegacy(
       }
 
       let constrainedRange: { start: Date; end: Date } | null = null;
+      const duration = currentTask.startDate && currentTask.endDate
+        ? getTaskDuration(currentTask.startDate, currentTask.endDate, businessDays, weekendPredicate) : undefined;
 
       for (const dep of currentTask.dependencies) {
         const predecessor = workingMap.get(dep.taskId);
@@ -508,7 +512,7 @@ function recalculateProjectScheduleLegacy(
           currentTask.type
         );
 
-        const candidate = buildDependencyRange(currentTask, dep.type, constraintDate, businessDays, weekendPredicate);
+        const candidate = buildDependencyRange(currentTask, dep.type, constraintDate, businessDays, weekendPredicate, duration);
         if (candidate && isLaterRange(candidate, constrainedRange)) constrainedRange = candidate;
       }
 

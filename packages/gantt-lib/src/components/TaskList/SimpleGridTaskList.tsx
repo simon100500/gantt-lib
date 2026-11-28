@@ -5,7 +5,7 @@
 // OUTPUTS: SimpleGrid row changes, dependency edits and expand/collapse events; no scheduling side effects beyond task updates.
 // DEPENDS: SimpleGridVendor, TaskList visuals (DepChip, DepIcons, TaskList.css), GanttChart task types.
 // END_MODULE_CONTRACT
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Task, TaskDependency } from '../GanttChart';
 import type { TaskListActionContext, TaskListMenuCommand } from '../GanttChart/GanttChart';
 import type { LinkType, TaskDateChangeMode } from '../../types';
@@ -182,7 +182,7 @@ function formatDependencyPrintLabel(
   return `[${predecessorTaskNumber ?? dep.taskId}]${LINK_TYPE_LABELS[dep.type]}${lagSuffix}`;
 }
 
-export function SimpleGridTaskList<TTask extends Task>({
+function SimpleGridTaskListInner<TTask extends Task>({
   tasks, allTasks, rowHeight, rowHeights, headerHeight, width, show, collapsed, onToggleCollapse, onChange,
   nameReadOnly, readOnly, hiddenColumns: controlledHiddenColumns, onHiddenColumnsChange,
   columnWidths, onColumnWidthsChange, additionalColumns = EMPTY_COLUMNS,
@@ -1297,3 +1297,5 @@ export function SimpleGridTaskList<TTask extends Task>({
       : enableAddTask && onAdd && <button type="button" className="gantt-tl-add-btn" onClick={() => setNewTaskAnchor('root')}>+ {addTaskLabel}</button>}
   </div>;
 }
+
+export const SimpleGridTaskList = memo(SimpleGridTaskListInner) as typeof SimpleGridTaskListInner;

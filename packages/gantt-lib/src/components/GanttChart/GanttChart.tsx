@@ -10,7 +10,7 @@
 
 import { BarContrastContext, useBarContrast } from './useBarContrast';
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { getDateRangeDays, getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, shiftPickerDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
+import { getDateRangeDays, getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
 import { activityLanesExtraHeight, computeActivityLanes } from '../../utils/activities';
 import {
@@ -29,7 +29,6 @@ import {
   resizeTaskWithCascade,
   parseDateOnly,
   getTaskDuration,
-  alignToWorkingDay,
   computeCriticalPath,
   extendCriticalIdsToParents,
   scaleTaskSubtreeDuration,
@@ -37,7 +36,7 @@ import {
   DAY_MS,
 } from '../../core/scheduling';
 import type { ScaleTaskSubtreeResult } from '../../core/scheduling';
-import { CellDatePicker } from '../SimpleGridVendor/DatePicker';
+import { UnscheduledTaskDates } from './UnscheduledTaskDates';
 import { PartialTaskBar } from './PartialTaskBar';
 import { normalizeHierarchyTasks, compactGroupBoundaryClasses } from '../../utils/hierarchyOrder';
 import type {
@@ -884,6 +883,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const containerRef = useRef<HTMLDivElement>(null);
   const barContrast = useBarContrast(containerRef, tasks, !isTableMatrixMode && !isPlanFactMode);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const taskAreaRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
   const clearSelectedTaskTimeoutRef = useRef<number | null>(null);
   const hasAutoScrolledToTodayRef = useRef(false);
@@ -932,6 +932,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // Track selected dep chip for arrow highlighting in DependencyLines
   const [selectedChip, setSelectedChip] = useState<{ successorId: string; predecessorId: string; linkType: string } | null>(null);
   const [dependencyCreationDrag, setDependencyCreationDrag] = useState<DependencyCreationDrag | null>(null);
+  const [partialDragTaskId, setPartialDragTaskId] = useState<string | null>(null);
   const dependencyCreationRef = useRef<DependencyCreationDrag | null>(null);
   const [dependencyCreationError, setDependencyCreationError] = useState<string | null>(null);
   const [dependencyLineMenu, setDependencyLineMenu] = useState<{
@@ -1083,6 +1084,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       } : task;
     });
   }, [tasks, businessDays, isCustomWeekend]);
+  const hasIncompleteTasks = useMemo(
+    () => normalizedTasks.some(task => !task.startDate || !task.endDate),
+    [normalizedTasks],
+  );
   const preliminaryParentIds = useMemo(() => {
     const byId = new Map(normalizedTasks.map(task => [task.id, task]));
     const ids = new Set<string>();
@@ -1358,6 +1363,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
     const taskList = scrollContentRef.current?.querySelector<HTMLElement>('.gantt-simple-grid');
     let frameId: number | null = null;
+    let lastTimelineLeft: number | undefined;
     const updateViewport = () => {
       frameId = null;
       const nextScrollLeft = container.scrollLeft;
@@ -1370,7 +1376,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       const nextViewportWidth = Math.max(0, container.clientWidth - coveredWidth);
       const nextScrollTop = container.scrollTop;
       const nextChartScrollLeft = pinTaskList ? nextScrollLeft : Math.max(0, nextScrollLeft - panelWidth);
-      scrollContentRef.current?.style.setProperty('--gantt-visible-timeline-left', `${nextChartScrollLeft}px`);
+      if (hasIncompleteTasks && nextChartScrollLeft !== lastTimelineLeft && taskAreaRef.current) {
+        taskAreaRef.current.style.setProperty('--gantt-visible-timeline-left', `${nextChartScrollLeft}px`);
+        lastTimelineLeft = nextChartScrollLeft;
+      }
       // Бакеты: состояние (а значит и перерисовка графика + окно рендера)
       // обновляются раз в N px, а не на каждом кадре панорамирования.
       const bucketedScrollTop = Math.floor(nextScrollTop / SCROLL_TOP_BUCKET_PX) * SCROLL_TOP_BUCKET_PX;
@@ -1448,7 +1457,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       container.removeEventListener('scroll', scheduleUpdate);
       window.removeEventListener('resize', scheduleUpdate);
     };
-  }, [dateRange.length, dayWidth, isPlanFactMode, showTaskList, taskListWidth, timelineHeaderHeight]);
+  }, [dateRange.length, dayWidth, hasIncompleteTasks, isPlanFactMode, showChart, showTaskList, taskListWidth, timelineHeaderHeight]);
 
   /**
    * Scroll to today's date when the "Today" button is clicked
@@ -2059,15 +2068,9 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     [visibleTasks]
   );
 
-  const forcedRenderedTaskIds = useMemo(() => {
-    const ids = new Set<string>();
-
-    if (draggedTaskOverride) {
-      ids.add(draggedTaskOverride.taskId);
-    }
-
-    return ids;
-  }, [draggedTaskOverride]);
+  const forcedRenderedTaskIds = useMemo(() => new Set(
+    [draggedTaskOverride?.taskId, partialDragTaskId, dependencyCreationDrag?.sourceId].filter((id): id is string => !!id),
+  ), [draggedTaskOverride?.taskId, partialDragTaskId, dependencyCreationDrag?.sourceId]);
 
   // Горизонтальное окно рендера в координатах полосы графика: видимая часть плюс
   // запас. Пока ширина области неизвестна (скрытый график, SSR) — не отсекаем
@@ -2240,8 +2243,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
   // Hierarchy callbacks
   // Use external onToggleCollapse if provided (controlled mode), otherwise use internal handler
-  const handleToggleCollapse = externalOnToggleCollapse ?? ((parentId: string) => {
-    if (normalizedTasks.some(task => task.id === parentId && task.composite)) {
+  const handleInternalToggleCollapse = useCallback((parentId: string) => {
+    if (compositeParentsById.has(parentId)) {
       setExpandedCompositeIds(prev => {
         const next = new Set(prev);
         if (next.has(parentId)) next.delete(parentId);
@@ -2259,7 +2262,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       }
       return next;
     });
-  });
+  }, [compositeParentsById]);
+  const handleToggleCollapse = externalOnToggleCollapse ?? handleInternalToggleCollapse;
   const lastCompositeBarToggleRef = useRef<{ id: string; time: number; source: string } | null>(null);
   const handleCompositeBarToggle = (taskId: string, source: 'release' | 'click' | 'keyboard') => {
     const now = Date.now();
@@ -2925,6 +2929,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
                 {/* Task area */}
                 <div
+                  ref={taskAreaRef}
                   className={`gantt-taskArea${explicitDateRange && !isPlanFactMode ? ' gantt-taskArea-clipped' : ''}`}
                   style={{
                     position: 'relative',
@@ -3087,47 +3092,19 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                             weekendPredicate={businessDays ? isCustomWeekend : undefined}
                             onDependencyPortPointerDown={onTasksChange && !disableDependencyEditing ? handleDependencyPortPointerDown : undefined}
                             isDependencyDragActive={dependencyCreationDrag !== null}
+                            isDependencyDragSource={dependencyCreationDrag?.sourceId === task.id}
+                            horizontalWindow={forceFullRenderForPrint ? undefined : horizontalWindow}
+                            onDragActiveChange={active => setPartialDragTaskId(active ? task.id : null)}
                             onPreview={date => handlePartialTaskDrag(originalTask, date, true)}
                             onChange={(onTasksChange || onScheduleIntent) && !disableTaskDrag
                               ? date => handlePartialTaskDrag(originalTask, date, false) : undefined}
                           />}
-                          <div className="gantt-unscheduled-task" data-has-anchor={!!anchor || undefined}>
-                            {onTasksChange && !task.locked && !preliminaryParentIds.has(task.id) ? <CellDatePicker
-                              fields={(['startDate', 'endDate'] as const).map(id => ({
-                                id, title: id === 'startDate' ? 'Начало' : 'Окончание',
-                                value: task[id] ? parseUTCDate(task[id]).toISOString().slice(0, 10) : '',
-                                disabled: false,
-                                min: id === 'endDate' && task.startDate ? parseUTCDate(task.startDate).toISOString().slice(0, 10) : undefined,
-                                max: id === 'startDate' && task.endDate ? parseUTCDate(task.endDate).toISOString().slice(0, 10) : undefined,
-                                context: {
-                                  initialDate: (dateRange[Math.floor(scrollViewport.chartScrollLeft / dayWidth)] ?? monthStart).toISOString().slice(0, 10),
-                                  range: {
-                                    start: task.startDate ? parseDateOnly(task.startDate).toISOString().slice(0, 10) : undefined,
-                                    end: task.endDate ? parseDateOnly(task.endDate).toISOString().slice(0, 10) : undefined,
-                                    boundary: id === 'startDate' ? 'start' : 'end',
-                                  },
-                                  shiftDate: (iso, days) => shiftPickerDate(iso, days, businessDays ? isCustomWeekend : undefined),
-                                },
-                                onPick: date => {
-                                  const chosen = parseUTCDate(date);
-                                  const opposite = id === 'startDate' ? task.endDate : task.startDate;
-                                  const aligned = businessDays ? alignToWorkingDay(chosen, id === 'startDate' ? 1 : -1, isCustomWeekend) : chosen;
-                                  const crossesOther = opposite && (id === 'startDate' ? aligned > parseUTCDate(opposite) : aligned < parseUTCDate(opposite));
-                                  const iso = (crossesOther ? chosen : aligned).toISOString().slice(0, 10);
-                                  const update = task.type === 'milestone'
-                                    ? { ...task, startDate: iso, endDate: iso }
-                                    : { ...task, [id]: iso };
-                                  handleTaskChange([update]);
-                                },
-                              }))}
-                              initialFieldId="startDate"
-                              triggerLabel="Назначить даты"
-                              advanceToEmptyField
-                              beforeOpen={() => true}
-                              onClose={() => {}}
-                            /> : <span>Без дат</span>}
-                            {!anchor && task.durationDays !== undefined && <span>{task.durationDays} д</span>}
-                          </div>
+                          <UnscheduledTaskDates
+                            task={task}
+                            initialMonth={dateRange[Math.floor(scrollViewport.chartScrollLeft / dayWidth)] ?? monthStart}
+                            weekendPredicate={businessDays ? isCustomWeekend : undefined}
+                            onTasksChange={onTasksChange && !preliminaryParentIds.has(task.id) ? handleTaskChange : undefined}
+                          />
                         </div>
                       ) : <TaskRow
                         task={task}
@@ -3184,7 +3161,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         showActivityLinks={showActivityLinks && activityDependencies === undefined}
                         showActivityLag={showActivityLag}
                         activityTooltip={activityTooltip}
-                        horizontalWindow={forceFullRenderForPrint ? undefined : horizontalWindow}
+                        horizontalWindow={forceFullRenderForPrint || !task.activities?.length ? undefined : horizontalWindow}
                         onCascadeProgress={handleCascadeProgress as (overrides: Map<string, { left: number; width: number }>, previewTasks?: Task[]) => void}
                         onCascade={handleCascade as (cascadedTasks: Task[]) => void}
                         onScheduleIntent={onScheduleIntent}

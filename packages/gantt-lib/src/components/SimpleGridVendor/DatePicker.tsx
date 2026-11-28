@@ -55,9 +55,10 @@ function DurationLink({ days, businessDays, linked, onToggle }: NonNullable<Simp
   </button>;
 }
 
-export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, triggerLabel, advanceToEmptyField }: {
+export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, onOpenChange, triggerLabel, advanceToEmptyField }: {
   fields: DatePickerField[]; initialFieldId: string;
   beforeOpen: () => boolean; onClose: () => void; triggerLabel?: string;
+  onOpenChange?: (open: boolean) => void;
   advanceToEmptyField?: boolean;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
@@ -92,7 +93,7 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
   const preview = previewDate && canPreviewRange && allowed(previewDate) ? previewDate : undefined;
   const rangeStart = previewMax && preview ? preview : start;
   const rangeEnd = previewMin && preview ? preview : end;
-  const close = (restore: boolean) => { setOpen(false); if (restore) onClose(); };
+  const close = (restore: boolean) => { setOpen(false); onOpenChange?.(false); if (restore) onClose(); };
   const changeDraft = (id: string, value?: string) => setDrafts(previous => ({ ...previous, [id]: value }));
   const pick = (iso: string) => {
     setPreviewDate(undefined);
@@ -219,6 +220,7 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
         setDrafts({});
         showField(openingField);
         setOpen(true);
+        onOpenChange?.(true);
       }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 5h2m4 0h2"/></svg>{triggerLabel}</button>
     {open && createPortal(<div ref={panel} className="gantt-popover gantt-grid-date-picker" data-sg-portal="" role="dialog" aria-label={`Календарь: ${title}`}
       style={{ ...position, position: 'fixed', zIndex: 1200 }}

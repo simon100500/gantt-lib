@@ -80,6 +80,54 @@ describe('horizontal window rendering (pan optimization)', () => {
     expect(visibleLines).toBeLessThan(allLines);
   });
 
+  it('windows a mixed 1000-row schedule and mounts calendars only for visible unscheduled rows', () => {
+    const day = (offset: number) => new Date(Date.UTC(2026, 2, 1 + offset));
+    const tasks: Task[] = Array.from({ length: 1000 }, (_, index) => ({
+      id: `mixed-${index}`,
+      name: `Work ${index}`,
+      ...(index % 4 === 0 ? { startDate: day(5) }
+        : index % 4 === 1 ? { endDate: day(170) }
+          : index % 4 === 2 ? { durationDays: 3 } : { startDate: day(20), endDate: day(30) }),
+    }));
+    let frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => { frames.push(callback); return frames.length; });
+    const { container } = render(<GanttChart tasks={tasks} dayWidth={40} rowHeight={40} containerHeight={400}
+      businessDays={false} showTaskList dateRange={{ start: day(0), end: day(240) }} onTasksChange={vi.fn()} />);
+    const scroll = container.querySelector<HTMLElement>('.gantt-scrollContainer')!;
+    Object.defineProperty(scroll, 'clientWidth', { value: 1000 });
+    Object.defineProperty(scroll, 'clientHeight', { value: 400 });
+    const pan = (left: number, top: number) => {
+      scroll.scrollLeft = left;
+      scroll.scrollTop = top;
+      fireEvent.scroll(scroll);
+      act(() => { const pending = frames; frames = []; pending.forEach(callback => callback(0)); });
+      expect(container.querySelectorAll('.gantt-tr-row').length).toBeLessThan(32);
+      expect(container.querySelectorAll('[data-row-index]').length).toBeLessThan(32);
+      expect(container.querySelectorAll('.gantt-unscheduled-picker').length).toBeGreaterThan(0);
+      expect(container.querySelectorAll('.gantt-unscheduled-task[data-has-anchor]')).toHaveLength(0);
+    };
+    const bar = (id: number) => container.querySelector(`[data-gantt-task-row-id="mixed-${id}"] .gantt-partial-task`);
+
+    pan(0, 0);
+    expect(bar(0)).not.toBeNull();
+    expect(bar(1)).toBeNull();
+    pan(6400, 0);
+    expect(bar(0)).toBeNull();
+    expect(bar(1)).not.toBeNull();
+    expect(container.querySelector<HTMLElement>('.gantt-taskArea')!.style.getPropertyValue('--gantt-visible-timeline-left')).toBe('6400px');
+    const dragged = bar(1)!;
+    const pointer = (type: string) => Object.assign(
+      new MouseEvent(type, { bubbles: true, button: 0 }),
+      { pointerId: 1, isPrimary: true },
+    );
+    fireEvent(dragged, pointer('pointerdown'));
+    pan(6400, 16000);
+    expect(bar(1)).toBe(dragged);
+    fireEvent(dragged, pointer('pointercancel'));
+    expect(bar(1)).toBeNull();
+    expect(bar(401)).not.toBeNull();
+  });
+
   it('TaskRow renders only activity bars inside the window', () => {
     const task: Task = {
       id: 'floor-1',

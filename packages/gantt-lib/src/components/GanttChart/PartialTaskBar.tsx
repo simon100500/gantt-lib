@@ -4,6 +4,8 @@ import { resolveTaskHorizontalGeometry } from '../../utils/geometry';
 import type { Task } from './GanttChart';
 import { TaskDependencyPort, type DependencyPortPointerDown } from '../TaskRow/TaskDependencyPort';
 
+const PARTIAL_BAR_WIDTH = 72;
+
 interface PartialTaskBarProps {
   task: Task;
   originalDate: string | Date;
@@ -12,13 +14,16 @@ interface PartialTaskBarProps {
   weekendPredicate?: (date: Date) => boolean;
   onPreview: (date?: Date) => void;
   onChange?: (date: Date) => void;
+  onDragActiveChange: (active: boolean) => void;
   onDependencyPortPointerDown?: DependencyPortPointerDown;
   isDependencyDragActive?: boolean;
+  isDependencyDragSource?: boolean;
+  horizontalWindow?: { startPx: number; endPx: number };
 }
 
 export function PartialTaskBar({
-  task, originalDate, dayWidth, monthStart, weekendPredicate, onPreview, onChange,
-  onDependencyPortPointerDown, isDependencyDragActive,
+  task, originalDate, dayWidth, monthStart, weekendPredicate, onPreview, onChange, onDragActiveChange,
+  onDependencyPortPointerDown, isDependencyDragActive, isDependencyDragSource, horizontalWindow,
 }: PartialTaskBarProps) {
   const drag = useRef<{ id: number; x: number; scrollLeft: number; container: HTMLElement | null; lastDate?: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -27,6 +32,10 @@ export function PartialTaskBar({
   const movable = !!onChange && !task.locked && !pinned;
   const geometry = resolveTaskHorizontalGeometry(task, monthStart, dayWidth);
   const edgeX = isStart ? geometry.left : geometry.right;
+  const left = isStart ? edgeX : edgeX - PARTIAL_BAR_WIDTH;
+  const right = left + PARTIAL_BAR_WIDTH;
+  if (!isDragging && !isDependencyDragSource && horizontalWindow
+    && (right < horizontalWindow.startPx || left > horizontalWindow.endPx)) return null;
   const boundary = isStart ? 'начало' : 'окончание';
   const label = `${task.name} · ${pinned ? `Закреплено ${boundary}` : isStart ? 'Окончание не задано' : 'Начало не задано'}`;
 
@@ -47,6 +56,7 @@ export function PartialTaskBar({
     if (!drag.current) return;
     drag.current = null;
     setIsDragging(false);
+    onDragActiveChange(false);
     onPreview();
   };
   return <>
@@ -61,12 +71,15 @@ export function PartialTaskBar({
       title={label}
       style={{
         '--gantt-partial-anchor': `${edgeX}px`,
+        '--gantt-partial-width': `${PARTIAL_BAR_WIDTH}px`,
         '--gantt-partial-color': task.color,
       } as React.CSSProperties}
       onPointerDown={event => {
         if (!movable || !event.isPrimary || event.button !== 0) return;
         const container = event.currentTarget.closest<HTMLElement>('.gantt-scrollContainer');
         drag.current = { id: event.pointerId, x: event.clientX, scrollLeft: container?.scrollLeft ?? 0, container };
+        setIsDragging(true);
+        onDragActiveChange(true);
         event.currentTarget.setPointerCapture?.(event.pointerId);
       }}
       onPointerMove={event => {
@@ -75,7 +88,6 @@ export function PartialTaskBar({
         const next = shiftDate(getDelta(event));
         if (state.lastDate === +next) return;
         state.lastDate = +next;
-        setIsDragging(true);
         onPreview(+next === +parseDateOnly(originalDate) ? undefined : next);
       }}
       onPointerUp={event => {
