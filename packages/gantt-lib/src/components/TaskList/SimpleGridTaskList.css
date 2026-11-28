@@ -383,6 +383,89 @@
   max-height: calc(100dvh - 16px);
 }
 
+.gantt-grid-date-boundaries {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 6px 8px 0;
+}
+
+.gantt-grid-date-boundaries:has(.gantt-grid-duration-link) {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.gantt-grid-date-picker .gantt-grid-duration-link {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  min-width: 32px;
+  padding: 2px;
+  border-radius: 6px;
+  color: var(--gantt-calendar-text-muted);
+  background: transparent;
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.gantt-grid-date-picker .gantt-grid-duration-link:hover:not(:disabled) {
+  background: var(--gantt-calendar-day-hover);
+}
+
+.gantt-grid-date-picker .gantt-grid-duration-link[aria-pressed="true"]:not(:disabled) {
+  color: var(--gantt-calendar-day-today-color);
+  background: var(--gantt-calendar-day-today-bg);
+}
+
+.gantt-grid-date-picker .gantt-grid-duration-link:disabled {
+  cursor: default;
+}
+
+.gantt-grid-date-boundary {
+  position: relative;
+  border: 1px solid var(--gantt-input-border);
+  border-radius: 6px;
+}
+
+.gantt-grid-date-boundary[data-active] {
+  border-color: var(--gantt-calendar-day-selected);
+  background: color-mix(in srgb, var(--gantt-calendar-day-range) 40%, transparent);
+}
+
+.gantt-grid-date-boundary .gantt-grid-date-boundary-select {
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 7px;
+  border-radius: inherit;
+  background: transparent;
+  text-align: start;
+  color: var(--gantt-calendar-text);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.gantt-grid-date-boundary:has(.gantt-grid-date-pin) .gantt-grid-date-boundary-select {
+  padding-inline-end: 26px;
+}
+
+.gantt-grid-date-boundary-select span {
+  color: var(--gantt-calendar-text-muted);
+  font-size: 0.6875rem;
+}
+
+.gantt-grid-date-boundary-select strong {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.gantt-grid-date-boundary-select:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
 .gantt-grid-date-picker .gantt-datepicker-input-row {
   padding-block: 6px 8px;
 }
@@ -426,8 +509,30 @@
 }
 
 .gantt-grid-date-picker .gantt-grid-date-pin {
-  margin-inline-end: auto;
-  padding-inline: 2px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 28px;
+  border-radius: 4px;
+  color: var(--gantt-calendar-text-muted);
+  cursor: pointer;
+}
+
+.gantt-grid-date-boundary > .gantt-grid-date-pin {
+  position: absolute;
+  inset-inline-end: 2px;
+  top: 50%;
+  width: 22px;
+  transform: translateY(-50%);
+}
+
+.gantt-grid-date-picker .gantt-grid-date-pin:hover {
+  background: var(--gantt-calendar-day-hover);
+}
+
+.gantt-grid-date-picker .gantt-grid-date-pin[aria-pressed="true"] {
+  background: var(--gantt-calendar-day-range);
+  color: var(--gantt-calendar-day-today-color);
 }
 
 .gantt-grid-date-picker .gantt-day-btn[data-in-range] {

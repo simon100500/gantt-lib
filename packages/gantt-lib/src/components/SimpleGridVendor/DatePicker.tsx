@@ -16,24 +16,67 @@ import type { SimpleGridDatePickerContext } from './types';
 const isoDay = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const monthAt = (date: Date, offset: number) => new Date(date.getFullYear(), date.getMonth() + offset, 1);
 const monthLabel = new Intl.DateTimeFormat('ru', { month: 'long', year: 'numeric' });
+const shortDate = (iso: string) => iso.replace(/^(\d{2})(\d{2})-(\d{2})-(\d{2})$/, '$4.$3.$2');
 
-export function CellDatePicker({ value, title, min, max, context, beforeOpen, onPick, onClose }: {
-  value: string; title: string; min?: string; max?: string;
+interface DatePickerField {
+  id: string;
+  value: string;
+  title: string;
+  min?: string;
+  max?: string;
+  disabled: boolean;
   context?: SimpleGridDatePickerContext;
-  beforeOpen: () => boolean; onPick: (value: string) => void; onClose: () => void;
+  onPick: (value: string) => void;
+}
+
+function PinButton({ field, onClick }: { field: DatePickerField; onClick: () => void }) {
+  const pin = field.context?.pinAction;
+  if (!pin) return null;
+  const label = `${pin.label}: ${field.title.toLocaleLowerCase('ru')}`;
+  return <button type="button" className="gantt-grid-date-pin" aria-label={label}
+    aria-pressed={!!field.context?.fixedDateEdit} title={label} onClick={onClick}>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 17v5" />
+      <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+    </svg>
+  </button>;
+}
+
+function DurationLink({ days, businessDays, linked, onToggle }: NonNullable<SimpleGridDatePickerContext['duration']>) {
+  const durationLabel = `${days} ${businessDays ? 'раб.' : 'кал.'} дн.`;
+  const action = linked ? 'Отключить сохранение длительности' : 'Включить сохранение длительности';
+  return <button type="button" className="gantt-grid-duration-link" aria-label="Сохранять длительность"
+    aria-description={durationLabel} aria-pressed={linked} disabled={!onToggle} onClick={onToggle}
+    title={onToggle ? `${action} · ${durationLabel}` : durationLabel}>
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 7H7a5 5 0 0 0 0 10h2m6-10h2a5 5 0 0 1 0 10h-2" />
+      <path d={linked ? 'M8 12h8' : 'M8 12h2m4 0h2'} />
+    </svg>
+    <span>{days} д</span>
+  </button>;
+}
+
+export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose }: {
+  fields: DatePickerField[]; initialFieldId: string;
+  beforeOpen: () => boolean; onClose: () => void;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
   const prepend = useRef<{ height: number; top: number } | null>(null);
   const [open, setOpen] = useState(false);
+  const [fieldId, setFieldId] = useState(initialFieldId);
   const [months, setMonths] = useState<Date[]>([]);
   const [cursor, setCursor] = useState('');
-  const [draftDate, setDraftDate] = useState<string>();
+  const [drafts, setDrafts] = useState<Record<string, string | undefined>>({});
   const [error, setError] = useState<string>();
   const [position, setPosition] = useState({ left: 0, top: 0 });
-  const selected = parseGridDate(value);
-  const activeDate = draftDate ?? selected;
+  const openingField = fields.find(field => field.id === initialFieldId)!;
+  const field = fields.find(field => field.id === fieldId) ?? openingField;
+  const { title, min, max, context } = field;
+  const activeDate = drafts[field.id] ?? parseGridDate(field.value);
   const fixedDateEdit = context?.fixedDateEdit;
   const today = isoDay(new Date());
   const start = parseGridDate(context?.range?.start || '');
@@ -43,13 +86,18 @@ export function CellDatePicker({ value, title, min, max, context, beforeOpen, on
   const markers = (context?.markers || []).map(marker => ({ ...marker, iso: parseGridDate(marker.value) }));
   const allowed = (iso: string) => (!min || iso >= min) && (!max || iso <= max);
   const close = (restore: boolean) => { setOpen(false); if (restore) onClose(); };
+  const changeDraft = (id: string, value?: string) => setDrafts(previous => ({ ...previous, [id]: value }));
+  const pick = (iso: string) => {
+    field.onPick(iso);
+    changeDraft(field.id);
+    if (fields.length === 1) close(true);
+  };
   const selectDate = (iso: string) => {
     if (fixedDateEdit) {
-      setDraftDate(iso);
+      changeDraft(field.id, iso);
       setError(undefined);
     } else {
-      onPick(iso);
-      close(true);
+      pick(iso);
     }
   };
   const applyFixedDate = () => {
@@ -59,8 +107,26 @@ export function CellDatePicker({ value, title, min, max, context, beforeOpen, on
       setError(message);
       return;
     }
-    onPick(activeDate);
-    close(true);
+    pick(activeDate);
+  };
+
+  const showField = (next: DatePickerField, savedDraft?: string) => {
+    if (next.disabled) return;
+    const initial = savedDraft || parseGridDate(next.value) || parseGridDate(next.context?.initialDate || '') || today;
+    const bounded = next.min && initial < next.min ? next.min : next.max && initial > next.max ? next.max : initial;
+    const date = new Date(`${bounded}T12:00:00`);
+    prepend.current = null;
+    setFieldId(next.id);
+    setError(undefined);
+    setCursor(bounded);
+    setMonths([-1, 0, 1].map(offset => monthAt(date, offset)));
+  };
+
+  const togglePin = (next: DatePickerField) => {
+    next.context?.pinAction?.run();
+    changeDraft(next.id);
+    if (next.id === field.id) setError(undefined);
+    if (fields.length === 1) close(true);
   };
 
   useLayoutEffect(() => {
@@ -73,16 +139,16 @@ export function CellDatePicker({ value, title, min, max, context, beforeOpen, on
         top: rect.bottom + height + 4 <= window.innerHeight - 8 ? rect.bottom + 4 : Math.max(8, rect.top - height - 4) });
     };
     place();
-    const target = scroll.current?.querySelector<HTMLElement>(`[data-day="${cursor}"]`);
-    if (target && scroll.current) {
-      const month = target.closest<HTMLElement>('[data-month]');
-      scroll.current.scrollTop = month?.offsetTop ?? 0;
-      target.focus({ preventScroll: true });
-    }
     window.addEventListener('resize', place);
     window.addEventListener('scroll', place, true);
     return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
-  }, [open]);
+  }, [open, field.id, error, fixedDateEdit?.title, context?.footer]);
+
+  useLayoutEffect(() => {
+    if (!open || !scroll.current) return;
+    const month = scroll.current.querySelector(`[data-day="${cursor}"]`)?.closest<HTMLElement>('[data-month]');
+    scroll.current.scrollTop = month?.offsetTop ?? 0;
+  }, [open, field.id]);
 
   useLayoutEffect(() => {
     if (prepend.current && scroll.current) {
@@ -124,10 +190,10 @@ export function CellDatePicker({ value, title, min, max, context, beforeOpen, on
     else if (day.offsetTop + day.offsetHeight > container.scrollTop + container.clientHeight) {
       container.scrollTop = day.offsetTop + day.offsetHeight - container.clientHeight;
     }
-  }, [cursor]);
+  }, [cursor, field.id]);
 
   return <>
-    <button ref={trigger} type="button" className="sg-calendar-trigger" aria-label={`Открыть календарь: ${title}`}
+    <button ref={trigger} type="button" className="sg-calendar-trigger" aria-label={`Открыть календарь: ${openingField.title}`}
       title="Открыть календарь" aria-haspopup="dialog" aria-expanded={open}
       onMouseDown={event => { event.preventDefault(); event.stopPropagation(); }}
       onDoubleClick={event => event.stopPropagation()}
@@ -136,12 +202,9 @@ export function CellDatePicker({ value, title, min, max, context, beforeOpen, on
         event.stopPropagation();
         if (open) { close(true); return; }
         if (!beforeOpen()) return;
-        const initial = selected || parseGridDate(context?.initialDate || '') || isoDay(new Date());
-        const bounded = min && initial < min ? min : max && initial > max ? max : initial;
-        const date = new Date(`${bounded}T12:00:00`);
-        setDraftDate(undefined);
-        setError(undefined);
-        setCursor(bounded); setMonths([-1, 0, 1].map(offset => monthAt(date, offset))); setOpen(true);
+        setDrafts({});
+        showField(openingField);
+        setOpen(true);
       }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 5h2m4 0h2"/></svg></button>
     {open && createPortal(<div ref={panel} className="gantt-popover gantt-grid-date-picker" data-sg-portal="" role="dialog" aria-label={`Календарь: ${title}`}
       style={{ ...position, position: 'fixed', zIndex: 1200 }}
@@ -156,7 +219,21 @@ export function CellDatePicker({ value, title, min, max, context, beforeOpen, on
           event.preventDefault(); moveCursor(delta);
         }
       }}>
-      <div className="gantt-datepicker-fixed-title">{fixedDateEdit?.title ?? title}</div>
+      {fields.length > 1 ? <div className="gantt-grid-date-boundaries" role="group" aria-label="Границы задачи">
+        {fields.map((next, index) => <React.Fragment key={next.id}>
+          {index === 1 && context?.duration && <DurationLink {...context.duration} />}
+          <div className="gantt-grid-date-boundary" data-active={next.id === field.id || undefined}>
+            <button type="button" className="gantt-grid-date-boundary-select" disabled={next.disabled}
+              aria-label={`${next.title}, ${shortDate(drafts[next.id] ?? next.value)}`} aria-pressed={next.id === field.id}
+              title={next.context?.fixedDateEdit?.title ?? next.title}
+              onClick={() => { if (next.id !== field.id) showField(next, drafts[next.id]); }}>
+              <span>{next.title}</span>
+              <strong>{shortDate(drafts[next.id] ?? next.value)}</strong>
+            </button>
+            <PinButton field={next} onClick={() => togglePin(next)} />
+          </div>
+        </React.Fragment>)}
+      </div> : <div className="gantt-datepicker-fixed-title">{fixedDateEdit?.title ?? title}</div>}
       {activeDate && context?.shiftDate && <div className="gantt-datepicker-input-row">
         {[-7, -1, 1, 7].map(days => {
           const date = context.shiftDate!(activeDate, days);
@@ -198,12 +275,11 @@ export function CellDatePicker({ value, title, min, max, context, beforeOpen, on
           })}
         </div>
       </section>)}</div>
-      {(context?.footer || context?.pinAction || fixedDateEdit) && <div className="gantt-datepicker-footer">
+      {(context?.footer || (fields.length === 1 && context?.pinAction) || fixedDateEdit) && <div className="gantt-datepicker-footer">
         {context?.footer}
         {error && <div className="gantt-datepicker-fixed-error" role="alert">{error}</div>}
-        {(context?.pinAction || fixedDateEdit) && <div className="gantt-datepicker-fixed-actions">
-          {context?.pinAction && <Button type="button" variant="ghost" size="sm" className="gantt-grid-date-pin"
-            onClick={() => { context.pinAction?.run(); close(true); }}>{context.pinAction.label}</Button>}
+        {((fields.length === 1 && context?.pinAction) || fixedDateEdit) && <div className="gantt-datepicker-fixed-actions">
+          {fields.length === 1 && <PinButton field={field} onClick={() => togglePin(field)} />}
           {fixedDateEdit && <>
             <Button type="button" variant="ghost" size="sm" onClick={() => close(true)}>Отмена</Button>
             <Button type="button" size="sm" onClick={applyFixedDate}>Применить</Button>

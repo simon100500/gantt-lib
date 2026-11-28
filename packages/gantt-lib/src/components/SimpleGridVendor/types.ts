@@ -109,6 +109,7 @@ export interface SimpleGridDatePickerContext {
   range?: { start?: string; end?: string; startLabel?: string; endLabel?: string };
   markers?: { value: string; label: string }[];
   footer?: ReactNode;
+  duration?: { days: number; businessDays?: boolean; linked: boolean; onToggle?: () => void };
   fixedDateEdit?: { title: string; validate: (date: string) => string | undefined };
   pinAction?: { label: string; run: () => void };
   shiftDate?: (iso: string, days: number) => string;
@@ -167,7 +168,9 @@ export interface SimpleGridColumn<T> {
   chevron?: boolean;
   /** Show a calendar button, optionally per row (for transposed property tables). Only the button opens the picker; ordinary editing stays text-based. */
   datePicker?: boolean | ((row: T) => boolean);
-  /** Optional related period and labelled date markers; picking still changes only this column. */
+  /** Two date columns edited from one calendar, ordered from start to end. */
+  datePickerPair?: readonly SimpleGridColumn<T>[];
+  /** Optional related period and labelled date markers. */
   getDatePickerContext?: (row: T) => SimpleGridDatePickerContext;
   /** The column is a strict dropdown: the editor only picks from `getCandidates`, never free text. */
   selectOnly?: boolean;

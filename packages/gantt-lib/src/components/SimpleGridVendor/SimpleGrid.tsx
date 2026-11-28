@@ -1548,8 +1548,8 @@ export function SimpleGrid<T>({
   /** Write one value into a cell. `preview` is a custom editor's live apply:
    *  it mutates data without a history entry — the whole edit records one undo
    *  unit at commit, against the pre-edit snapshot. */
-  const applyValue = useCallback((target: CellIndex, value: string, preview = false) => {
-    const column = columns[navCols[target.navIndex]];
+  const applyValue = useCallback((target: CellIndex, value: string, preview = false, dateColumn?: SimpleGridColumn<T>) => {
+    const column = dateColumn ?? columns[navCols[target.navIndex]];
     const row = rows[target.row];
     if (!column?.setValue || column.chipsOnly || !row) return;
     if (bannerKeys.has(rowKey(row))) return; // banner rows never accept cell writes
@@ -3690,20 +3690,27 @@ export function SimpleGrid<T>({
                     )}
                     {hasCellNotes && !isEditing && <CommentMarker comments={cellNotes} target={commentTarget}
                       testId={`sg-comment-marker-${rowIndex}-${column.id}`} onOpen={onCellCommentOpen}/>}
-                    {hasCalendar && <CellDatePicker value={isEditing ? draft : display} title={column.title}
-                      context={column.getDatePickerContext?.(row)}
-                      min={column.validation?.type === 'date' ? column.validation.min : undefined}
-                      max={column.validation?.type === 'date' ? column.validation.max : undefined}
+                    {hasCalendar && <CellDatePicker initialFieldId={column.id}
+                      fields={(column.datePickerPair ?? [column]).map(dateColumn => ({
+                        id: dateColumn.id,
+                        title: dateColumn.title,
+                        value: dateColumn.id === column.id && isEditing ? draft : (dateColumn.getValue?.(row) ?? ''),
+                        disabled: !!dateColumn.readOnly || !dateColumn.setValue || cellLocked(row, sourceIndex(rowIndex), dateColumn),
+                        context: dateColumn.getDatePickerContext?.(row),
+                        min: dateColumn.validation?.type === 'date' ? dateColumn.validation.min : undefined,
+                        max: dateColumn.validation?.type === 'date' ? dateColumn.validation.max : undefined,
+                        onPick: next => {
+                          const error = validateGridValue(dateColumn.validation, next);
+                          if (error) { setEditError(error); return; }
+                          applyValue({ row: rowIndex, navIndex }, next, false, dateColumn);
+                        },
+                      }))}
                       beforeOpen={() => {
                         if (editing && !commitEdit()) return false;
                         setActive({ row: rowIndex, navIndex }); setFocus({ row: rowIndex, navIndex });
                         return true;
                       }}
-                      onPick={next => {
-                        const error = validateGridValue(column.validation, next);
-                        if (error) { setEditError(error); return; }
-                        applyValue({ row: rowIndex, navIndex }, next);
-                      }} onClose={focusGrid}/>}
+                      onClose={focusGrid}/>}
                     {!hasCalendar && !isEditing && !column.render && column.chevron && (
                       <button
                         aria-label="Открыть список"

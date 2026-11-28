@@ -624,14 +624,6 @@ export function SimpleGridTaskList<TTask extends Task>({
     onChange: onFixedDateChange ? update => onFixedDateChange([update]) : undefined,
   }), [parents, dateChangeMode, businessDays, weekendPredicate, renderTaskDateAction, onFixedDateChange]);
 
-  const renderDurationMode = useCallback((disabled: boolean) => onDateChangeModeChange && (
-    <label className="gantt-datepicker-mode-checkbox">
-      <input type="checkbox" disabled={disabled} checked={dateChangeMode === 'preserve-duration'}
-        onChange={event => onDateChangeModeChange(event.target.checked ? 'preserve-duration' : 'free')} />
-      <span>Сохранять длительность</span>
-    </label>
-  ), [dateChangeMode, onDateChangeModeChange]);
-
   const renderDateCell = useCallback((task: TTask, boundary: 'start' | 'end') => {
     const action = renderTaskDateAction?.(task, boundary);
     const fixedDate = getFixedTaskDate(task, boundary);
@@ -1015,21 +1007,7 @@ export function SimpleGridTaskList<TTask extends Task>({
   const availableColumns = useMemo<SimpleGridColumn<TTask>[]>(() => {
     const showRowActions = !hideActions && !hiddenColumns?.includes('actions')
       && (renderActions || renderMenu || menuCommands?.length);
-    const list: SimpleGridColumn<TTask>[] = [
-      {
-        id: 'name', title: 'Имя', width: 202, minWidth: 120, readOnly: nameReadOnly,
-        editorStyle: task => ({
-          ...wrappedTextEditorStyle,
-          paddingLeft: nameInset(task) + (getTaskListNamePrefixIcon?.(task) ? 20 : 0),
-          paddingRight: task.color ? 20 : 8,
-        }),
-        isDisabled: task => !!task.locked,
-        getValue: task => task.name,
-        setValue: (task, value) => ({ ...task, name: value.trim() || task.name }),
-        onCellClick: onScrollToTask ? task => onScrollToTask(task.id) : undefined,
-        renderValue: (task, rowIndex) => renderNameCell(task, showRowActions ? renderRowActions(task, rowIndex) : null),
-      },
-      ...(['startDate', 'endDate'] as const).map(id => ({
+    const dateColumns = (['startDate', 'endDate'] as const).map<SimpleGridColumn<TTask>>(id => ({
         id,
         title: id === 'startDate' ? 'Начало' : 'Окончание',
         width: 90,
@@ -1054,10 +1032,12 @@ export function SimpleGridTaskList<TTask extends Task>({
               return toISODate(days > 0 ? addBusinessDays(date, days, weekendPredicate)
                 : subtractBusinessDays(date, -days, weekendPredicate));
             },
-            footer: <>
-              {renderDurationMode(pin.disableDuration)}
-              {pin.note && <div className="gantt-datepicker-fixed-note">{pin.note}</div>}
-            </>,
+            duration: {
+              days: getDurationFor(task), businessDays, linked: dateChangeMode === 'preserve-duration',
+              onToggle: !pin.disableDuration && onDateChangeModeChange ? () =>
+                onDateChangeModeChange(dateChangeMode === 'preserve-duration' ? 'free' : 'preserve-duration') : undefined,
+            },
+            footer: pin.note ? <div className="gantt-datepicker-fixed-note">{pin.note}</div> : undefined,
             fixedDateEdit: pin.fixedDateEdit,
             pinAction: pin.pinAction,
           };
@@ -1087,7 +1067,22 @@ export function SimpleGridTaskList<TTask extends Task>({
           };
         },
         renderValue: (task: TTask) => renderDateCell(task, id === 'startDate' ? 'start' : 'end'),
-      })),
+    }));
+    const list: SimpleGridColumn<TTask>[] = [
+      {
+        id: 'name', title: 'Имя', width: 202, minWidth: 120, readOnly: nameReadOnly,
+        editorStyle: task => ({
+          ...wrappedTextEditorStyle,
+          paddingLeft: nameInset(task) + (getTaskListNamePrefixIcon?.(task) ? 20 : 0),
+          paddingRight: task.color ? 20 : 8,
+        }),
+        isDisabled: task => !!task.locked,
+        getValue: task => task.name,
+        setValue: (task, value) => ({ ...task, name: value.trim() || task.name }),
+        onCellClick: onScrollToTask ? task => onScrollToTask(task.id) : undefined,
+        renderValue: (task, rowIndex) => renderNameCell(task, showRowActions ? renderRowActions(task, rowIndex) : null),
+      },
+      ...dateColumns.map(column => ({ ...column, datePickerPair: dateColumns })),
       {
         id: 'duration', title: businessDays ? 'Дн. (р)' : 'Дн.', width: 60, minWidth: 46, align: 'center',
         isDisabled: task => !!task.locked,
@@ -1161,7 +1156,7 @@ export function SimpleGridTaskList<TTask extends Task>({
   }, [
     hiddenColumns, nameReadOnly, businessDays, additionalColumns, hideActions, menuCommands,
     renderActions, renderMenu, renderRowActions, onTaskEdit, updateCustomTask, onScrollToTask,
-    activeLinkType, dependencyEditingDisabled, dateChangeMode, renderDurationMode, allTasks, weekendPredicate, getDurationFor, nameInset,
+    activeLinkType, dependencyEditingDisabled, dateChangeMode, onDateChangeModeChange, allTasks, weekendPredicate, getDurationFor, nameInset,
     renderNameCell, renderDateCell, getDatePin, renderTaskDateAction, onFixedDateChange, renderDurationCell, renderProgressCell, renderDependenciesCell, getTaskListNamePrefixIcon,
   ]);
 
