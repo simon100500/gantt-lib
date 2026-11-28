@@ -135,6 +135,10 @@ body {
   --gantt-tl-vertical-separators: var(--gantt-tl-vertical-separators-width);
 }
 
+.demo-construction-chart .gantt-tl-name-trigger-text {
+  --gantt-row-content-lines: 2;
+}
+
 .demo-chart-card {
   border: 1px solid var(--demo-border);
   border-radius: 10px;

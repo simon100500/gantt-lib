@@ -417,7 +417,7 @@ export default function ConstructionChart() {
         На таймлайне добавлены вертикальные маркеры дат. Наведите на кружок у линии, чтобы увидеть название контрольной точки.
       </p>
 
-      <div className={showColumnSeparators ? 'demo-chart-card demo-task-list-separators' : 'demo-chart-card'}>
+      <div className={`demo-chart-card demo-construction-chart${showColumnSeparators ? ' demo-task-list-separators' : ''}`}>
         {scaleNotice && (
           <div
             role="status"
@@ -447,7 +447,8 @@ export default function ConstructionChart() {
           )}
           dayWidth={viewMode === 'month' ? 2.5 : viewMode === 'week' ? 8 : 24}
           rowHeight={36}
-          rowContentLines={2}
+          // Keep the exact row height. The demo's CSS sets the name line limit.
+          rowContentLines={0}
           onTasksChange={handleChange}
           onAdd={handleAdd}
           onDelete={handleDelete}
