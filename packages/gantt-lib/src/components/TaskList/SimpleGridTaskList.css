@@ -73,6 +73,13 @@
   width: 12px;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .gantt-simple-grid thead th:not(:hover) .gantt-tl-column-menu-trigger:not(:focus-visible, [data-state="open"]) {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
 .gantt-simple-grid [data-sg-corner-content] {
   gap: 2px;
 }
