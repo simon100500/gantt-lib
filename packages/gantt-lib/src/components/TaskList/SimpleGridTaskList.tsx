@@ -276,7 +276,7 @@ export function SimpleGridTaskList<TTask extends Task>({
       className="gantt-simple-grid-number"
       title={canReorder && !task.locked ? 'Перетащить задачу' : undefined}
     >
-      {numberMap[task.id] || ''}
+      <span>{numberMap[task.id] || ''}</span>
     </span>
   ), [canReorder, numberMap]);
 

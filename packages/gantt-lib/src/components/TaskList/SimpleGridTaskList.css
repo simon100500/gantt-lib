@@ -180,6 +180,7 @@
 }
 
 .gantt-simple-grid-number {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -194,6 +195,27 @@
 .gantt-simple-grid-number[data-sg-row-drag-handle] {
   cursor: grab !important;
   touch-action: none;
+}
+
+@media screen and (hover: hover) and (pointer: fine) {
+  .gantt-simple-grid [data-testid^="sg-rowheader-"]:not([title])
+    .gantt-simple-grid-number[data-sg-row-drag-handle]:is(:hover, [data-sg-row-dragging] *) > span {
+    opacity: 0;
+  }
+
+  .gantt-simple-grid [data-testid^="sg-rowheader-"]:not([title])
+    .gantt-simple-grid-number[data-sg-row-drag-handle]:is(:hover, [data-sg-row-dragging] *)::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc(50% - 4.5px);
+    top: calc(50% - 6.5px);
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 6px 0, 0 5px, 6px 5px, 0 10px, 6px 10px;
+    pointer-events: none;
+  }
 }
 
 .gantt-simple-grid [data-testid^="sg-rowheader-"] > span > span {
