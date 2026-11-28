@@ -88,17 +88,22 @@
   padding-inline-end: 20px;
 }
 
-.gantt-simple-grid thead:hover th:not(:has(> .sg-column-resize-marker)) > [data-sg-column-resize="right"]::after {
+.gantt-simple-grid thead:hover [data-sg-column-resize="right"]::after,
+.gantt-simple-grid thead [data-sg-column-resize="right"][data-sg-resize-highlighted]::after {
   content: "";
   position: absolute;
   top: 50%;
-  right: -1px;
+  right: 0;
   width: 2px;
   height: 16px;
   transform: translateY(-50%);
   border-radius: 1px;
   background: #8996a9;
   pointer-events: none;
+}
+
+.gantt-simple-grid thead [data-sg-column-resize="right"][data-sg-resize-highlighted]::after {
+  background: var(--gantt-simple-grid-accent);
 }
 
 .gantt-simple-grid :is(th[data-column-id="startDate"], th[data-column-id="endDate"], th[data-column-id="duration"], th[data-column-id="progress"]) .sg-column-title {

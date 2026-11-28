@@ -3274,6 +3274,7 @@ export function SimpleGrid<T>({
                   aria-label={`Изменить ширину колонки ${targetTitle || targetId}`}
                   className={`absolute inset-y-0 ${side}-0 z-20 ${extraWidth} cursor-col-resize`}
                   data-sg-column-resize={side}
+                  data-sg-resize-highlighted={side === 'right' && !reorder && (resizingColumn === targetId || hoveredResizeColumn === targetId) ? '' : undefined}
                   data-resizing={resizingColumn === targetId ? 'true' : undefined}
                   data-testid={side === 'right' ? `sg-resize-${targetId}` : `sg-resize-${targetId}-left`}
                   onDoubleClick={(event) => { event.stopPropagation(); if (!reorderRef.current) resetColumnWidth(targetId); }}
@@ -3338,14 +3339,6 @@ export function SimpleGrid<T>({
                   </span>
                   {prev && prev.resizable !== false ? resizeHandle(prev.id, prev.title || prev.id, 'left', 'w-1.5') : null}
                   {column.resizable === false ? null : resizeHandle(column.id, column.title || column.id, 'right', isLast ? 'w-3' : 'w-1.5')}
-                  {!reorder && column.resizable !== false && (resizingColumn === column.id || hoveredResizeColumn === column.id) && (
-                    <div aria-hidden="true" className="sg-column-resize-marker" data-testid={`sg-resize-marker-${column.id}`}
-                      style={{ position: 'absolute', pointerEvents: 'none', top: '50%', right: 0, width: 10, height: 14,
-                        transform: 'translate(50%, -50%)', display: 'flex', justifyContent: 'space-between', zIndex: 21 }}>
-                      {[0, 1].map((bar) => <span key={bar} style={{ width: 2, height: '100%', borderRadius: 1,
-                        background: resizingColumn === column.id ? '#4c9aff' : '#97a0af' }} />)}
-                    </div>
-                  )}
                   {reorderMarkOverlay(reorderMark('col', visibleCols.indexOf(columnIndex), visibleCols.length - 1))}
                 </th>
               );
