@@ -17,18 +17,24 @@ function paste(container: HTMLElement) {
   fireEvent.click(container.querySelector('[data-testid="sg-cell-0-name"]')!);
   fireEvent.paste(container.querySelector('[data-sg]')!, { clipboardData: { getData: () => 'Site\t2026-02-03\t2026-02-07\nFoundation\t2026-02-10\t2026-02-19' } });
 }
+
+function positionGridRows() {
+  const rows = screen.getAllByTestId(/^sg-row-\d+$/);
+  rows.forEach((row, index) => {
+    vi.spyOn(row, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 40 + index * 40, 600, 40));
+  });
+  return rows;
+}
+
 describe('SimpleGrid inside GanttChart', () => {
   it('moves a collapsed subtree via the native grid gutter and preserves its hidden child', () => {
     const tree = [{ ...tasks[0], id: 'p', name: 'Parent' }, { ...tasks[0], parentId: 'p' }, tasks[1]];
     const onReorder = vi.fn();
     const { container } = render(<GanttChart tasks={tree} showTaskList collapsedParentIds={new Set(['p'])} onReorder={onReorder} />);
-    const grid = screen.getByRole('grid', { name: 'Список задач' });
-    const [parent, target] = within(grid).getAllByTestId(/^sg-row-\d+$/);
-    vi.spyOn(parent, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 40, 600, 40));
-    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 80, 600, 40));
+    const [parent, target] = positionGridRows();
     fireEvent.mouseDown(parent.querySelector('[data-sg-row-drag-handle]')!, { button: 0, clientY: 60 });
     fireEvent.mouseMove(window, { clientY: 116 });
-    expect(target).toHaveAttribute('data-sg-row-drop', 'after');
+    expect(target).toHaveAttribute('data-sg-row-drop', 'end');
     fireEvent.mouseUp(window, { button: 0, clientY: 116 });
     expect(onReorder).toHaveBeenCalledOnce();
     const [ordered, moved, nextParent] = onReorder.mock.calls[0];
@@ -36,6 +42,46 @@ describe('SimpleGrid inside GanttChart', () => {
     expect(ordered[2].parentId).toBe('p');
     expect([moved, nextParent]).toEqual(['p', undefined]);
     expect(container.querySelector('[data-sg-row-drop]')).toBeNull();
+  });
+
+  it.each([118, 122])('uses the same gap target and parent on either side of y=120 (released at %s)', dropY => {
+    const tree = [
+      { ...tasks[0], id: 'p', name: 'Parent' }, { ...tasks[0], parentId: 'p' },
+      tasks[1], { ...tasks[1], id: 'c', name: 'Moved' },
+    ];
+    const onReorder = vi.fn();
+    render(<GanttChart tasks={tree} showTaskList onReorder={onReorder} />);
+    const [, lastChild, nextRoot, moved] = positionGridRows();
+    fireEvent.mouseDown(moved.querySelector('[data-sg-row-drag-handle]')!, { button: 0, clientY: 180 });
+    for (const clientY of [118, 122]) {
+      fireEvent.mouseMove(window, { clientY });
+      expect(lastChild).not.toHaveAttribute('data-sg-row-drop');
+      expect(nextRoot).toHaveAttribute('data-sg-row-drop', 'before');
+    }
+    fireEvent.mouseUp(window, { button: 0, clientY: dropY });
+    expect(onReorder).toHaveBeenCalledOnce();
+    const [ordered, movedId, nextParent] = onReorder.mock.calls[0];
+    expect(ordered.map((task: Task) => task.id)).toEqual(['p', 'a', 'c', 'b']);
+    expect([movedId, nextParent]).toEqual(['c', undefined]);
+  });
+
+  it.each([false, true])('nests the dragged row when hovering the middle of the target (collapsed group: %s)', isGroup => {
+    const tree = isGroup
+      ? [tasks[1], { ...tasks[0], id: 'child', parentId: 'b' }, tasks[0]]
+      : [tasks[1], tasks[0]];
+    const onReorder = vi.fn();
+    render(<GanttChart tasks={tree} showTaskList onReorder={onReorder}
+      collapsedParentIds={isGroup ? new Set(['b']) : undefined} />);
+    const [target, moved] = positionGridRows();
+    fireEvent.mouseDown(moved.querySelector('[data-sg-row-drag-handle]')!, { button: 0, clientY: 100 });
+    fireEvent.mouseMove(window, { clientY: 60 });
+    expect(target).toHaveAttribute('data-sg-row-drop', 'inside');
+    fireEvent.mouseUp(window, { button: 0, clientY: 60 });
+    expect(onReorder).toHaveBeenCalledOnce();
+    const [ordered, movedId, nextParent] = onReorder.mock.calls[0];
+    expect(ordered.map((task: Task) => task.id)).toEqual(isGroup ? ['b', 'child', 'a'] : ['b', 'a']);
+    expect([movedId, nextParent]).toEqual(['a', 'b']);
+    expect(ordered.at(-1).parentId).toBe('b');
   });
 
   it('selects duration on click and routes native keyboard edits through the scheduling intent', () => {

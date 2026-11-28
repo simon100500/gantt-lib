@@ -272,6 +272,8 @@ export interface SimpleGridViewState {
   selection?: {active:{rowKey?:string;rowIndex:number;columnId:string};focus:{rowKey?:string;rowIndex:number;columnId:string}} | null;
 }
 
+export type SimpleGridRowDropPlacement = 'before' | 'inside' | 'end';
+
 export interface SimpleGridProps<T> {
   rows: T[];
   columns: SimpleGridColumn<T>[];
@@ -383,8 +385,8 @@ export interface SimpleGridProps<T> {
   allowRowReorder?: boolean;
   /** Override reorder persistence (includes hidden members when dragging a collapsed banner). */
   onRowReorder?: (rows: T[], movedKeys: string[]) => void;
-  /** Host resolves a single row drop against its own hierarchy. */
-  rowDropTarget?: (row: T, target: T, placement: 'before' | 'inside' | 'after' | 'end') => (() => void) | undefined;
+  /** Host resolves a row drop: before the lower row of a gap, inside a row, or at the end. */
+  rowDropTarget?: (row: T, target: T, placement: SimpleGridRowDropPlacement) => (() => void) | undefined;
   getRowScrollContainer?: () => HTMLElement | null;
   allowRowInsert?: boolean;
   onPasteOverflow?: () => void;

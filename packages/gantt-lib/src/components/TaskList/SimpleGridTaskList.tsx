@@ -27,7 +27,7 @@ import {
   validateDependencies,
 } from '../../core/scheduling';
 import { SimpleGrid } from '../SimpleGridVendor/SimpleGrid';
-import type { SimpleGridColumn, SimpleGridEditorProps } from '../SimpleGridVendor/types';
+import type { SimpleGridColumn, SimpleGridEditorProps, SimpleGridRowDropPlacement } from '../SimpleGridVendor/types';
 import { GenerationSkeletonRows } from '../GenerationSkeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { getVisibleReorderPlan } from '../../utils/taskListReorder';
@@ -218,10 +218,13 @@ export function SimpleGridTaskList<TTask extends Task>({
   const [newTaskAnchor, setNewTaskAnchor] = useState<Task | 'root' | null>(null);
   const [durationPreview, setDurationPreview] = useState<TTask | null>(null);
   const canReorder = !!onReorder && !disableReorder;
-  const resolveRowDrop = useCallback((moved: TTask, target: TTask, placement: 'before' | 'inside' | 'after' | 'end') => {
+  const resolveRowDrop = useCallback((moved: TTask, target: TTask, placement: SimpleGridRowDropPlacement) => {
     if (!onReorder || moved.locked || (moved.id === target.id && placement !== 'end')) return;
+    if (placement === 'inside' && target.type === 'milestone') return;
     const targetIndex = tasks.indexOf(target);
-    const plan = getVisibleReorderPlan(allTasks, tasks, moved.id, { index: targetIndex, placement });
+    const plan = getVisibleReorderPlan(allTasks, tasks, moved.id, {
+      index: targetIndex, placement, allowExistingParent: true,
+    });
     if (!plan || (plan.originOrderedIndex === plan.insertIndex && (moved.parentId || undefined) === plan.inferredParentId)) return;
     const subtree = new Set([moved.id]);
     for (const task of allTasks) {

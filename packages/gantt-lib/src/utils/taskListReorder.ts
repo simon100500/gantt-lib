@@ -7,6 +7,7 @@ export type ReorderDropPlacement = 'before' | 'inside' | 'after' | 'end';
 export interface ReorderDropTarget {
   index: number;
   placement: ReorderDropPlacement;
+  allowExistingParent?: boolean;
 }
 
 export interface VisibleReorderPosition {
@@ -218,7 +219,7 @@ export function getVisibleReorderPlan(
       break;
     }
     case 'inside': {
-      if (isTaskParent(targetTask.id, orderedTasks)) {
+      if (!target.allowExistingParent && isTaskParent(targetTask.id, orderedTasks)) {
         return null;
       }
 

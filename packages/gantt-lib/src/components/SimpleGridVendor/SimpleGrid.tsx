@@ -66,7 +66,7 @@ import { createPortal } from 'react-dom';
 import {resolveViewCell,useGridViewState} from './viewState';
 
 import { SimpleGridAutocompleteEditor, SimpleGridChipDisplay, SimpleGridMultiSelectEditor, SimpleGridTextEditor } from './editors';
-import type { SimpleGridColumn, SimpleGridColumnGroup, SimpleGridColumnFilter, SimpleGridSort, SimpleGridMerge, SimpleGridProps, SimpleGridEditorProps, SimpleGridContextMenuContext, SimpleGridContextMenuItem, SimpleGridCellComment, SimpleGridCommentTarget } from './types';
+import type { SimpleGridColumn, SimpleGridColumnGroup, SimpleGridColumnFilter, SimpleGridSort, SimpleGridMerge, SimpleGridProps, SimpleGridEditorProps, SimpleGridContextMenuContext, SimpleGridContextMenuItem, SimpleGridCellComment, SimpleGridCommentTarget, SimpleGridRowDropPlacement } from './types';
 import { ContextMenu } from './ContextMenu';
 import { CommentMarker } from './comments';
 import { CellDatePicker } from './DatePicker';
@@ -178,7 +178,7 @@ interface ReorderDrag {
   fromStart: number;
   fromEnd: number;
   drop: number;
-  rowTarget?: { index: number; placement: 'before' | 'inside' | 'after' | 'end'; commit?: () => void };
+  rowTarget?: { index: number; placement: SimpleGridRowDropPlacement; commit?: () => void };
 }
 
 /** One undo unit: the state before (undo) or after (redo) an operation. `null` marks the untouched side. */
@@ -2620,31 +2620,34 @@ export function SimpleGrid<T>({
       const headerBottom = root.querySelector('thead th')?.getBoundingClientRect().bottom ?? -Infinity;
       const scroller = getRowScrollContainer?.();
       const viewportBottom = scroller?.clientHeight ? scroller.getBoundingClientRect().top + scroller.clientHeight : Infinity;
-      let rowTarget: ReorderDrag['rowTarget'];
+      let target: { index: number; placement: SimpleGridRowDropPlacement } | undefined;
       if (y >= headerBottom && y <= viewportBottom) {
         for (const element of targets) {
           const rect = element.getBoundingClientRect();
           if (y < rect.top || y > rect.bottom) continue;
           const index = Number(element.getAttribute('data-row-index'));
-          const offset = (y - rect.top) / rect.height;
-          const placement = offset < 0.28 ? 'before' : offset > 0.72 ? 'after' : 'inside';
-          if (drag.rowTarget?.index === index && drag.rowTarget.placement === placement) return;
-          rowTarget = { index, placement, commit: rowDropTarget(rows[drag.fromStart], rows[index], placement) };
+          const edge = Math.min(12, rect.height / 4);
+          // Both sides of any shared boundary belong to the row below it.
+          if (y >= rect.bottom - edge) {
+            target = index === rows.length - 1
+              ? { index, placement: 'end' }
+              : { index: index + 1, placement: 'before' };
+          } else {
+            target = { index, placement: y < rect.top + edge ? 'before' : 'inside' };
+          }
           break;
         }
         const last = targets[targets.length - 1];
-        if (!rowTarget && last && Number(last.getAttribute('data-row-index')) === rows.length - 1
+        if (!target && last && Number(last.getAttribute('data-row-index')) === rows.length - 1
           && y > last.getBoundingClientRect().bottom) {
-          const index = rows.length - 1;
-          if (drag.rowTarget?.placement === 'end') return;
-          rowTarget = { index, placement: 'end', commit: rowDropTarget(rows[drag.fromStart], rows[index], 'end') };
+          target = { index: rows.length - 1, placement: 'end' };
         }
       }
-      if (rowTarget || drag.rowTarget) {
-        const next = { ...drag, rowTarget };
-        reorderRef.current = next;
-        setReorder(next);
-      }
+      if (drag.rowTarget?.index === target?.index && drag.rowTarget?.placement === target?.placement) return;
+      const rowTarget = target && { ...target, commit: rowDropTarget(rows[drag.fromStart], rows[target.index], target.placement) };
+      const next = { ...drag, rowTarget };
+      reorderRef.current = next;
+      setReorder(next);
       return;
     }
     const mids: number[] = [];
@@ -3390,7 +3393,7 @@ export function SimpleGrid<T>({
             <RowContainer key={rowKey(row)} {...(grouped ? {'data-sg-row-surface':hasDetails ? 'raised' : 'flat'} : {})}>
             <tr {...rowAttributes?.(row, sourceIndex(rowIndex))} className={rowClassName?.(row, sourceIndex(rowIndex))}
               data-sg-row-drop={reorder?.rowTarget?.index === rowIndex && reorder.rowTarget.commit
-                ? reorder.rowTarget.placement === 'end' ? 'after' : reorder.rowTarget.placement : undefined}
+                ? reorder.rowTarget.placement : undefined}
               data-sg-row-dragging={reorder?.kind === 'row' && reorder.fromStart === rowIndex ? '' : undefined}
               data-sg-row-expanded={hasDetails ? rowDetailsAppearance : undefined} data-testid={`sg-row-${rowIndex}`} data-row-index={rowIndex} aria-rowindex={virtual || visibleRowIndices ? rowIndex + 1 + Number(showColumnHeaders) : undefined} key={rowKey(row)}
               style={{ height: getRowHeight(rowKey(row)), ...(virtual ? { '--sg-row-height': `${getRowHeight(rowKey(row)) - 1}px` } : {}) } as CSSProperties}>
