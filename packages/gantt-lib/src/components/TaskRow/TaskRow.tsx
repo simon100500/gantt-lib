@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { parseUTCDate, formatDateRangeLabel, createCustomDayPredicate } from '../../utils/dateUtils';
 import { calculateMilestoneGeometry, calculateTaskBar, calculateDependencyPath, pixelsToDate } from '../../utils/geometry';
@@ -12,6 +12,7 @@ import { isTaskParent, getChildren, getBusinessDaysCount, DAY_MS } from '../../c
 import type { Task } from '../GanttChart';
 import type { GanttScheduleIntent, ActivityTooltipContext } from '../../types';
 import { activityOwnerKey, type TaskPreviewPositionStore, type ActivityPreviewStore, type ActivityBlockStore, type ActivityDragOwner, type ActivityActivationStore } from '../GanttChart/previewStore';
+import { BarContrastContext, darkBarLabelStyle } from '../GanttChart/useBarContrast';
 import './TaskRow.css';
 
 // Минимальный шаг между отсечками состава: реже — рисками мельчим.
@@ -67,7 +68,7 @@ const formatCompositePreviewDate = (date: Date): string => {
 // START_MODULE_CONTRACT
 // ACTIVITY_LINKS: Bars and gestures live here; all activity dependency overlays are owned by GanttChart.
 // PURPOSE: Render one Gantt task row, including its bar, scheduling affordances, and optional external labels.
-// SCOPE: Calculate task geometry, render duration/progress/name/date labels, and preserve drag/dependency interactions with optional deferred cascade preview.
+// SCOPE: Calculate task geometry, render themeable task affordances, plain in-bar labels, duration/progress/name/date labels and fixed-boundary markers, and preserve drag/dependency interactions with optional deferred cascade preview.
 // DEPENDS: core scheduling, geometry, useTaskDrag, GanttChart presentation props.
 // LINKS: M-SCHEDULE, GanttChart, type-TaskRowProps, fn-formatDateRangeLabel
 // ROLE: RUNTIME
@@ -265,6 +266,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
 const TaskRow: React.FC<TaskRowProps> = React.memo(
   ({ task, monthStart, dayWidth, rowHeight, onTasksChange, onScheduleIntent, onDragStateChange, rowIndex, allTasks, enableAutoSchedule, disableConstraints, deferCascadePreview = false, overridePosition, previewPositionStore, activityPreviewStore, activityBlockStore, activityDragOwner, activityActivationStore, activityClickToDrag = false, activityActivationMode = 'none', showActivityLinks = true, showActivityLag = true, activityTooltip, horizontalWindow, onCascadeProgress, onCascade, divider, highlightExpiredTasks, isCritical = false, showBaseline = false, isFilterMatch = false, businessDays, customDays, isWeekend, disableTaskDrag = false, disableDependencyEditing = false, onDependencyPortPointerDown, isDependencyDragActive = false, viewMode = 'day', showTaskDateLabels = true, showTaskNames = true, showCompositeSegments: showCompositeSegmentsProp = true, onCompositeToggle, compactDetail = false, compositeParentColor, compositeExpanded = false }) => {
     const defaultParentBarColor = '#782FC4';
+    const { edges: contrastEdges, colors: contrastColors, canvas: contrastCanvas } = useContext(BarContrastContext);
     const [showCompositePreview, setShowCompositePreview] = useState(false);
     const [compositePreviewPosition, setCompositePreviewPosition] = useState<{ left: number; top: number } | null>(null);
     const pointerStart = useRef<{ x: number; y: number } | null>(null);
@@ -405,6 +407,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
       }
       return { backgroundColor: barColor };
     }, [isCritical, defaultParentBarColor, isExpired, isVisualParent, progressWidth, barColor, progressColor, task.color]);
+
+    const actualBarColor = String(barStyle.backgroundColor ?? (isVisualParent ? task.color || defaultParentBarColor : barColor));
+    const taskBarEdge = contrastEdges.get(actualBarColor);
+    const taskFill = contrastColors.get(actualBarColor);
+    const taskProgressFill = progressWidth > 0 && progressWidth < 100 ? contrastColors.get(progressColor) : undefined;
+    const taskLabel = taskFill && (progressWidth === 0 || progressWidth === 100 || taskProgressFill)
+      ? darkBarLabelStyle(taskFill, taskProgressFill, contrastCanvas) : {};
 
     // Handle drag end - call onTasksChange with updated task
     const handleDragEnd = (result: { id: string; startDate: Date; endDate: Date; updatedDependencies?: Task['dependencies'] }) => {
@@ -1071,17 +1080,24 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 // Приглушение остальных видов / подсветка цепочки этого вида.
                 const isDimmed = dimOthers && activeWork !== null && !isSameWorkType;
                 const isChainHighlighted = highlightChain && activeWork !== null && isSameWorkType;
+                const activityFill = contrastColors.get(segment.color || 'var(--gantt-task-bar-default-color)');
+                const activityProgressFill = activityProgress > 0 ? contrastColors.get('var(--gantt-activity-progress-color, rgba(0, 0, 0, 0.4))') : undefined;
+                const activityLabel = activityFill && (activityProgress === 0 || activityProgressFill) ? darkBarLabelStyle(activityFill, activityProgressFill, contrastCanvas) : {};
+                const activityEdge = contrastEdges.get(segment.color || 'var(--gantt-task-bar-default-color)');
                 return (
                   <div
                     key={segment.id}
                     data-activity-id={segment.id}
-                    className={`gantt-tr-activityBar${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${isBlockingActivity ? ' gantt-tr-activityBar-blocking' : ''}${isAtLimit ? ' gantt-tr-activityBar-atLimit' : ''}${isActiveActivity ? ' gantt-tr-activityBar-active' : ''}${isDimmed ? ' gantt-tr-activityBar-dimmed' : ''}${isChainHighlighted ? ' gantt-tr-activityBar-chain' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
+                    className={`gantt-tr-activityBar${activityEdge ? ' gantt-tr-needs-contrast' : ''}${isDraggingActivity ? ' gantt-tr-activityBar-dragging' : ''}${isBlockingActivity ? ' gantt-tr-activityBar-blocking' : ''}${isAtLimit ? ' gantt-tr-activityBar-atLimit' : ''}${isActiveActivity ? ' gantt-tr-activityBar-active' : ''}${isDimmed ? ' gantt-tr-activityBar-dimmed' : ''}${isChainHighlighted ? ' gantt-tr-activityBar-chain' : ''}${activityDragEnabled ? '' : ' gantt-tr-activityBar-locked'}`}
                     style={{
                       left: `${liveLeft}px`,
                       width: `${live.width}px`,
                       top: `${activityTopOffset + segment.lane * ACTIVITY_LANE_STEP + (ACTIVITY_LANE_STEP - ACTIVITY_LANE_BAR_HEIGHT) / 2}px`,
                       height: `${ACTIVITY_LANE_BAR_HEIGHT}px`,
                       backgroundColor: segment.color || 'var(--gantt-task-bar-default-color)',
+                      ...(activityLabel.color ? { '--gantt-auto-bar-label-color': activityLabel.color } as React.CSSProperties : {}),
+                      ...(activityLabel.shadow ? { '--gantt-auto-bar-label-shadow': activityLabel.shadow } as React.CSSProperties : {}),
+                      ...(activityEdge ? { '--gantt-conditional-bar-outline': activityEdge } as React.CSSProperties : {}),
                     }}
                     onMouseDown={event => {
                       if (!activityDragEnabled) return; // заблокированную полосу не тащим и не активируем
@@ -1120,7 +1136,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                         style={{ width: `${activityProgress}%` }}
                       />
                     )}
-                    <span className="gantt-tr-activityName" style={{ color: activityTextColor(segment.color) }}>{segment.name}</span>
+                    <span className="gantt-tr-activityName" style={{ color: `var(--gantt-auto-bar-label-color, ${activityTextColor(segment.color)})` }}>{segment.name}</span>
                     {activityDragEnabled && (
                       <>
                         <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />
@@ -1165,10 +1181,13 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             tabIndex={task.composite ? 0 : undefined}
             aria-label={task.composite ? `${task.name}: ${compositeExpanded ? 'свернуть' : 'раскрыть'} детали` : undefined}
             aria-expanded={task.composite ? compositeExpanded : undefined}
-            className={`gantt-tr-taskBar ${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${task.synced === false ? 'gantt-tr-unsynced' : ''} ${isVisualParent ? 'gantt-tr-parentBar' : ''} ${task.composite ? 'gantt-tr-compositeBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''} ${isCritical ? 'gantt-tr-critical' : ''}`}
+            className={`gantt-tr-taskBar ${taskBarEdge ? 'gantt-tr-needs-contrast ' : ''}${isDragging ? 'gantt-tr-dragging' : ''} ${task.locked ? 'gantt-tr-locked' : ''} ${task.synced === false ? 'gantt-tr-unsynced' : ''} ${isVisualParent ? 'gantt-tr-parentBar' : ''} ${task.composite ? 'gantt-tr-compositeBar' : ''} ${milestone ? 'gantt-tr-milestone' : ''} ${isCritical ? 'gantt-tr-critical' : ''}`}
             style={{
               left: `${visualLeft}px`,
               ...barStyle,
+              ...(taskLabel.color ? { '--gantt-auto-bar-label-color': taskLabel.color } as React.CSSProperties : {}),
+              ...(taskLabel.shadow ? { '--gantt-auto-bar-label-shadow': taskLabel.shadow } as React.CSSProperties : {}),
+              ...(taskBarEdge ? { '--gantt-conditional-bar-outline': taskBarEdge } as React.CSSProperties : {}),
               ...(milestone
                 ? {
                   height: `${displayMilestoneGeometry.size}px`,
@@ -1240,6 +1259,8 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 }}
               />
             )}
+            {!milestone && task.fixedStartDate && <span className="gantt-tr-fixedBoundary gantt-tr-fixedBoundary-start" aria-hidden="true" />}
+            {!milestone && task.fixedEndDate && <span className="gantt-tr-fixedBoundary gantt-tr-fixedBoundary-end" aria-hidden="true" />}
             {/* Parents are resizable: the resize scales the whole subtree proportionally. */}
             {!milestone && <div className="gantt-tr-resizeHandle gantt-tr-resizeHandleLeft" />}
             {shouldRenderCompositeSegments && (
@@ -1401,7 +1422,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
                 transform: 'translateY(-50%)',
                 width: '12px',
                 height: '12px',
-                color: '#444',
+                color: 'var(--gantt-text-muted-color, #444)',
                 pointerEvents: 'none',
               }}
               viewBox="0 0 24 24"
@@ -1415,7 +1436,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
           {compactDetail && !milestone && (
             <span
               className="gantt-tr-externalDuration gantt-tr-durationBeforeBar gantt-tr-compositeDuration"
-              style={{ left: `${visualLeft - 46}px`, color: isParent ? (task.color || defaultParentBarColor) : barColor }}
+              style={{ left: `${visualLeft - 46}px`, color: `var(--gantt-task-label-color, ${isParent ? (task.color || defaultParentBarColor) : barColor})` }}
             >
               {isVisualParent ? getChildCountLabel(childCount) : `${durationDays} д`}
             </span>
@@ -1425,7 +1446,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             className="gantt-tr-rightLabels"
             style={{
               left: `${visualLeft + Math.max(visualWidth, 20) - Math.min(6, Math.max(visualWidth, 20) / 2) + 8}px`,
-              color: isParent ? (task.color || defaultParentBarColor) : barColor,
+              color: `var(--gantt-task-label-color, ${isParent ? (task.color || defaultParentBarColor) : barColor})`,
             }}
           >
             {!compactDetail && !showDurationInside && !milestone && (
@@ -1441,7 +1462,7 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             {showTaskNames && (
               <span
                 className="gantt-tr-externalTaskName"
-                style={{ color: externalTaskNameColor }}
+                style={{ color: `var(--gantt-task-label-color, ${externalTaskNameColor})` }}
               >
                 {task.name}
               </span>

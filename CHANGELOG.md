@@ -2,6 +2,75 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.146.16] - 2026-11-27
+
+### Features
+
+- Open the configured Task List row menu with a right-click or the ellipsis button.
+- Show or hide built-in and custom columns from the triangle in each Task List column header.
+
+### Fixes
+
+- Show the day number directly on the timeline marker flag.
+
+### Documentation
+
+- Document custom row menu commands, built-in task operations, and controlled column visibility.
+
+## [0.146.15] - 2026-11-27
+
+### Fixes
+
+- Show all column resize guides when hovering over the task list header.
+- Extend tree lines below the chevron of expanded groups at every nesting depth.
+
+### Demo
+
+- Add row controls for raising or lowering a task's hierarchy level in the Construction Project demo.
+
+## [0.146.14] - 2026-11-26
+
+### Fixes
+
+- Restore duration controls and let users pin or unpin the current date directly from the task calendar.
+
+## [0.146.13] - 2026-11-26
+
+### Features
+
+- Identify fixed task dates in the calendar and edit the existing anchors with explicit confirmation.
+
+## [0.146.12] - 2026-11-26
+
+### Features
+
+- Shift-click task-list checkboxes to select or clear a range of visible rows.
+
+## [0.146.11] - 2026-11-26
+
+### Fixes
+
+- Restore original light-theme resize grips, dependency ports and fixed-date markers while allowing dark-specific styling.
+
+## [0.146.10] - 2026-11-26
+
+### Fixes
+
+- Keep plain task and activity labels readable on light-colored bars in dark themes without changing the light theme.
+
+## [0.146.9] - 2026-11-26
+
+### Fixes
+
+- Restore plain text labels on task and group bars, preserving the original light-theme label styling and supporting themed external labels.
+
+## [0.146.8] - 2026-11-26
+
+### Fixes
+
+- Make chart, table and calendar colors themeable with semantic CSS variables, including portal content and status states.
+- Improve contrast of timeline labels, task bars, dependency links, fixed-date markers and focus indicators across light and dark themes.
+
 ## [0.146.0] - 2026-10-06
 
 ### Features

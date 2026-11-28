@@ -24,7 +24,7 @@
   padding: 0.1rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--gantt-text-color, #1f2937);
   text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -62,7 +62,7 @@
 .gantt-tsh-dayLabel {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
 }
 
 .gantt-tsh-weekendDay {
@@ -70,16 +70,16 @@
 }
 
 .gantt-tsh-weekendDay .gantt-tsh-dayLabel {
-  color: #ef4444;
+  color: var(--gantt-calendar-text-weekend, #b91c1c);
 }
 
 .gantt-tsh-today {
-  background-color: #dc2626;
+  background-color: var(--gantt-danger-solid-background, #dc2626);
   border-radius: 4px 4px 4px 0;
 }
 
 .gantt-tsh-today .gantt-tsh-dayLabel {
-  color: #ffffff;
+  color: var(--gantt-solid-foreground, #ffffff);
 }
 
 .gantt-tsh-markerDay {
@@ -87,7 +87,7 @@
 }
 
 .gantt-tsh-markerDay .gantt-tsh-dayLabel {
-  color: #ffffff;
+  color: var(--gantt-bar-label-foreground, var(--gantt-task-bar-text-color, #fff));
 }
 
 .gantt-tsh-markerDay::before {

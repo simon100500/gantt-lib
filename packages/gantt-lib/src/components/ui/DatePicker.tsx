@@ -1,9 +1,16 @@
 'use client';
 
+// START_MODULE_CONTRACT
+// PURPOSE: Edit calendar dates through the segmented input, quick shifts, and calendar.
+// SCOPE: Ordinary date commits, fixed-boundary confirmation, and the internal task pin action.
+// INPUTS: Selected ISO date, calendar preferences, and an optional internal fixed boundary label and validator.
+// OUTPUTS: A date change callback with the chosen ISO day and inline feedback for invalid fixed dates.
+// END_MODULE_CONTRACT
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { format, isValid, parse, addDays, addMonths, addYears, subMonths, subYears, subDays } from 'date-fns';
 import { Calendar } from './Calendar';
 import { Popover, PopoverTrigger, PopoverContent } from './Popover';
+import { Button } from './Button';
 
 export interface DatePickerProps {
   /** Current date value as ISO string (YYYY-MM-DD) */
@@ -26,6 +33,11 @@ export interface DatePickerProps {
   businessDays?: boolean;
   /** Optional footer content rendered below the calendar popup */
   footer?: React.ReactNode;
+}
+
+interface TaskDatePickerProps extends DatePickerProps {
+  fixedDateEdit?: { title: string; validate: (date: string) => string | undefined };
+  pinAction?: { label: string; run: () => void };
 }
 
 const segments = [
@@ -81,7 +93,7 @@ const formatUTCDate = (date: Date, pattern: string): string => {
  * The popup includes a keyboard-navigable date input field above the calendar.
  * Accepts and returns ISO date strings (YYYY-MM-DD)
  */
-export const DatePicker: React.FC<DatePickerProps> = ({
+export const TaskDatePicker: React.FC<TaskDatePickerProps> = ({
   value,
   onChange,
   format: displayFormat = 'dd.MM.yyyy',
@@ -92,10 +104,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   isWeekend,
   businessDays = true,
   footer,
+  fixedDateEdit,
+  pinAction,
 }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [draftDate, setDraftDate] = useState<Date | undefined>(undefined);
+  const [fixedDateError, setFixedDateError] = useState<string | undefined>(undefined);
   const dateInputRef = useRef<HTMLInputElement>(null);
   // Refs для синхронного отслеживания позиции — не зависят от DOM/rAF
   const segIdxRef = useRef(0);   // текущий сегмент (0=day, 1=month, 2=year)
@@ -178,6 +193,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     if (!isValid(newDate)) return;
     setInputValue(formatUTCDate(newDate, 'dd.MM.yy'));
     setDraftDate(newDate);
+    setFixedDateError(undefined);
   }, []);
 
   const commitDate = useCallback((dateToCommit?: Date) => {
@@ -192,16 +208,32 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     onChange?.(iso);
   }, [draftDate, onChange, selectedDate, value]);
 
+  const applyFixedDate = () => {
+    if (!activeDate || formatUTCDate(activeDate, 'dd.MM.yy') !== inputValue) {
+      setFixedDateError('Введите корректную дату.');
+      return;
+    }
+    const error = fixedDateEdit?.validate(formatUTCDate(activeDate, 'yyyy-MM-dd'));
+    if (error) {
+      setFixedDateError(error);
+      return;
+    }
+    commitDate(activeDate);
+    setOpen(false);
+  };
+
   const handleCalendarSelect = useCallback(
     (day: Date) => {
-      const normalizedDay = businessDays && isWeekend && isWeekend(day)
+      const normalizedDay = !fixedDateEdit && businessDays && isWeekend && isWeekend(day)
         ? snapToBusinessDay(day, 1, isWeekend)
         : day;
       updateFromDate(normalizedDay);
-      commitDate(normalizedDay);
-      setOpen(false);
+      if (!fixedDateEdit) {
+        commitDate(normalizedDay);
+        setOpen(false);
+      }
     },
-    [businessDays, commitDate, isWeekend, updateFromDate]
+    [businessDays, commitDate, fixedDateEdit, isWeekend, updateFromDate]
   );
 
   const handleDayShift = useCallback(
@@ -250,6 +282,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
     if (e.key === 'Enter') {
       e.preventDefault(); e.stopPropagation();
+      if (fixedDateEdit) {
+        applyFixedDate();
+        return;
+      }
       commitDate();
       setOpen(false);
       return;
@@ -262,7 +298,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       if (seg.label === 'day')   newDate = e.key === 'ArrowUp' ? addDays(base, 1)   : subDays(base, 1);
       if (seg.label === 'month') newDate = e.key === 'ArrowUp' ? addMonths(base, 1) : subMonths(base, 1);
       if (seg.label === 'year')  newDate = e.key === 'ArrowUp' ? addYears(base, 1)  : subYears(base, 1);
-      if (businessDays && isWeekend && isWeekend(newDate)) {
+      if (!fixedDateEdit && businessDays && isWeekend && isWeekend(newDate)) {
         newDate = snapToBusinessDay(newDate, e.key === 'ArrowUp' ? 1 : -1, isWeekend);
       }
       charPosRef.current = 0;
@@ -340,20 +376,23 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       if (isValid(parsed) && !updated.includes('00.00')) {
         const normalizedDate = new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
         updateFromDate(
-          businessDays && isWeekend && isWeekend(normalizedDate)
+          !fixedDateEdit && businessDays && isWeekend && isWeekend(normalizedDate)
             ? snapToBusinessDay(normalizedDate, 1, isWeekend)
             : normalizedDate
         );
       }
     }
-  }, [activeDate, businessDays, commitDate, isWeekend, selectSegByIdx, updateFromDate]);
+  }, [activeDate, applyFixedDate, businessDays, commitDate, fixedDateEdit, isWeekend, selectSegByIdx, updateFromDate]);
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
-    if (!nextOpen && open) {
+    if (nextOpen && fixedDateEdit && selectedDate) {
+      updateFromDate(selectedDate);
+    }
+    if (!nextOpen && open && !fixedDateEdit) {
       commitDate();
     }
     setOpen(nextOpen);
-  }, [commitDate, open]);
+  }, [commitDate, fixedDateEdit, open, selectedDate, updateFromDate]);
 
   return (
     <Popover open={open} onOpenChange={disabled ? undefined : handleOpenChange}>
@@ -375,12 +414,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         align="start"
         side="bottom"
       >
+        {fixedDateEdit && <div className="gantt-datepicker-fixed-title">{fixedDateEdit.title}</div>}
         <div className="gantt-datepicker-input-row">
           <button type="button" className="gantt-datepicker-shift-btn" onMouseDown={handleShiftButtonMouseDown} onClick={() => handleDayShift(-7)} tabIndex={-1}>-7</button>
           <button type="button" className="gantt-datepicker-shift-btn" onMouseDown={handleShiftButtonMouseDown} onClick={() => handleDayShift(-1)} tabIndex={-1}>-1</button>
           <input
             ref={dateInputRef}
             type="text"
+            aria-label={fixedDateEdit?.title}
+            aria-invalid={fixedDateError ? true : undefined}
             className="gantt-datepicker-date-input"
             value={inputValue}
             onChange={() => {}}
@@ -388,7 +430,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             onMouseDown={handleMouseDown}
             onKeyDown={handleKeyDown}
             onBlur={() => {
-              commitDate();
+              if (!fixedDateEdit) commitDate();
             }}
             spellCheck={false}
             autoComplete="off"
@@ -403,11 +445,31 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           initialDate={activeDate}
           isWeekend={isWeekend}
         />
-        {footer ? <div className="gantt-datepicker-footer">{footer}</div> : null}
+        {(fixedDateEdit || pinAction || footer) && (
+          <div className="gantt-datepicker-footer">
+            {footer}
+            {fixedDateError && <div className="gantt-datepicker-fixed-error" role="alert">{fixedDateError}</div>}
+            {(pinAction || fixedDateEdit) && (
+              <div className="gantt-datepicker-fixed-actions">
+                {pinAction && (
+                  <Button type="button" variant="ghost" size="sm" onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => { pinAction.run(); setOpen(false); }}>
+                    {pinAction.label}
+                  </Button>
+                )}
+                {fixedDateEdit && <>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>Отмена</Button>
+                  <Button type="button" size="sm" onClick={applyFixedDate}>Применить</Button>
+                </>}
+              </div>
+            )}
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
 };
 
-DatePicker.displayName = 'DatePicker';
+TaskDatePicker.displayName = 'DatePicker';
+export const DatePicker: React.FC<DatePickerProps> = TaskDatePicker;
 export default DatePicker;

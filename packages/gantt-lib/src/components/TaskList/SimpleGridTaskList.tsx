@@ -30,15 +30,17 @@ import { SimpleGrid } from '../SimpleGridVendor/SimpleGrid';
 import type { SimpleGridColumn, SimpleGridEditorProps, SimpleGridRowDropPlacement } from '../SimpleGridVendor/types';
 import { GenerationSkeletonRows } from '../GenerationSkeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
+import { DatePicker, type TaskDatePicker } from '../ui/DatePicker';
 import { getVisibleReorderPlan } from '../../utils/taskListReorder';
 import { NewTaskRow } from './NewTaskRow';
 import { buildDefaultTaskDateRange, getTodayISODate } from './defaultTaskDates';
 import { duplicateTaskSubtree } from './TaskList';
 import { resolveTaskListColumns } from './columns/resolveTaskListColumns';
-import type { TaskListColumn, TaskListColumnContext, TaskListColumnWidthMap } from './columns/types';
+import type { TaskListColumn, TaskListColumnContext, TaskListColumnId, TaskListColumnWidthMap } from './columns/types';
 import { buildTaskNumberMap } from './taskNumbering';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
 import { DepChip } from './TaskListRow';
+import { getTaskDatePin, taskDateISO as toISODate } from './taskDatePin';
 import './TaskList.css';
 import './SimpleGridTaskList.css';
 
@@ -46,6 +48,7 @@ const NO_FILTERS: [] = [];
 const EMPTY_COLUMNS: [] = [];
 const taskKey = (task: Task) => task.id;
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
+const TaskPicker = DatePicker as React.FC<React.ComponentProps<typeof TaskDatePicker>>;
 const wrappedTextEditorStyle: React.CSSProperties = {
   paddingBlock: 0,
   whiteSpace: 'pre-wrap',
@@ -73,11 +76,6 @@ function CustomColumnEditor<TTask extends Task>({ row, rowIndex, value, cancel, 
 }
 
 type DependencyChipKey = { successorId: string; predecessorId: string; linkType: string };
-
-const toISODate = (value: string | Date): string => {
-  if (value instanceof Date) return value.toISOString().split('T')[0];
-  return typeof value === 'string' && value.includes('T') ? value.split('T')[0] : value;
-};
 
 /** The legacy TaskList displayed dates as dd.MM.yy via its DatePicker. */
 const formatDateLabel = (value: string | Date): string => {
@@ -124,7 +122,8 @@ interface Props<TTask extends Task> {
   onPasteOverflow?: () => void;
   nameReadOnly: boolean;
   readOnly: boolean;
-  hiddenColumns?: readonly string[];
+  hiddenColumns?: readonly TaskListColumnId[];
+  onHiddenColumnsChange?: (ids: TaskListColumnId[]) => void;
   columnWidths?: TaskListColumnWidthMap;
   onColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   additionalColumns?: TaskListColumn<TTask>[];
@@ -136,6 +135,7 @@ interface Props<TTask extends Task> {
   onSelectedTaskIdsChange?: (ids: Set<string>) => void;
   /** Edits that SimpleGrid's rectangular change channel cannot express (dependencies, lags, link types). */
   onTaskEdit?: (updatedTasks: Task[]) => void;
+  onFixedDateChange?: (updatedTasks: TTask[]) => void;
   /** Legacy scheduling boundary for duration edits (GanttChart.handleTaskDurationChange). */
   onReorder?: (tasks: Task[], movedTaskId?: string, parentId?: string) => void;
   disableReorder?: boolean;
@@ -151,6 +151,7 @@ interface Props<TTask extends Task> {
   menuCommands?: TaskListMenuCommand<TTask>[];
   renderActions?: (context: TaskListActionContext<TTask>) => React.ReactNode;
   renderMenu?: (context: TaskListActionContext<TTask>, commands: React.ReactNode) => React.ReactNode;
+  renderTaskDateAction?: (task: TTask, boundary: 'start' | 'end') => React.ReactNode;
   hideActions?: boolean;
   getRowClassName?: (task: TTask) => string | undefined;
   dateChangeMode?: TaskDateChangeMode;
@@ -185,18 +186,22 @@ function formatDependencyPrintLabel(
 
 export function SimpleGridTaskList<TTask extends Task>({
   tasks, allTasks, rowHeight, rowHeights, headerHeight, width, show, collapsed, onToggleCollapse, onChange,
-  nameReadOnly, readOnly, hiddenColumns, columnWidths, onColumnWidthsChange, additionalColumns = EMPTY_COLUMNS,
+  nameReadOnly, readOnly, hiddenColumns: controlledHiddenColumns, onHiddenColumnsChange,
+  columnWidths, onColumnWidthsChange, additionalColumns = EMPTY_COLUMNS,
   error, onTaskSelect, selectedTaskId, enableTaskMultiSelect,
-  selectedTaskIds, onSelectedTaskIdsChange, onTaskEdit, selectedChip, onSelectedChipChange, onScrollToTask,
+  selectedTaskIds, onSelectedTaskIdsChange, onTaskEdit, onFixedDateChange, selectedChip, onSelectedChipChange, onScrollToTask,
   businessDays, customDays, isWeekend, highlightedTaskIds, fillParentRows, disableDependencyEditing,
   printDependencyLabels, getTaskListNamePrefixIcon, hasRightShadow, visibleRowIndices, onRevealRow,
   onPasteOverflow, getRowScrollContainer,
   bodyMinHeight, skeletonRowCount = 0, rowContentLines = 1,
   onReorder, disableReorder, onAdd, enableAddTask, addTaskLabel = 'Добавить задачу', onInsertAfter,
   onDelete, onPromote, onDemote, onUngroup, defaultTaskDurationDays, menuCommands, renderActions, renderMenu,
-  hideActions, getRowClassName, dateChangeMode, onDateChangeModeChange,
+  hideActions, getRowClassName, dateChangeMode, onDateChangeModeChange, renderTaskDateAction,
 }: Props<TTask>) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [internalHiddenColumns, setInternalHiddenColumns] = useState<TaskListColumnId[]>([]);
+  const [columnVisibilityOpen, setColumnVisibilityOpen] = useState(false);
+  const hiddenColumns = controlledHiddenColumns ?? internalHiddenColumns;
   const weekendPredicate = useMemo(
     () => createCustomDayPredicate({ customDays, isWeekend }),
     [customDays, isWeekend],
@@ -550,19 +555,9 @@ export function SimpleGridTaskList<TTask extends Task>({
                 borderRadius: '50%', background: hierarchyLineColor(depth - 1), pointerEvents: 'none',
               }}
             />
-            {task.composite && !isCollapsed && (
-              <span
-                data-testid="gantt-tl-parent-connector-tail"
-                style={{
-                  position: 'absolute', left: depth * 20 + 9, top: lineCenter + 7,
-                  height: Math.max(0, rowHeightPx - lineCenter - 7), width: '1.5px',
-                  background: hierarchyLineColor(depth), borderRadius: '1px', pointerEvents: 'none',
-                }}
-              />
-            )}
           </>
         )}
-        {!isChild && isParent && !task.composite && !isCollapsed && (
+        {hasVisibleChildren && !isCollapsed && (task.composite ? isChild : isParent) && (
           <span
             data-testid="gantt-tl-parent-connector-tail"
             style={{
@@ -625,14 +620,39 @@ export function SimpleGridTaskList<TTask extends Task>({
     task.type === 'milestone' ? 0 : getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate)
   ), [businessDays, weekendPredicate]);
 
-  const renderDateCell = useCallback((task: Task) => (
-    <span className="gantt-tl-date-display">{formatDateLabel(task.startDate)}</span>
-  ), []);
+  const getDatePin = useCallback((task: TTask, boundary: 'start' | 'end', hasAction: boolean) => getTaskDatePin({
+    task, boundary, isParent: parents.has(task.id), mode: dateChangeMode, businessDays, isWeekend: weekendPredicate,
+    canToggle: !renderTaskDateAction || hasAction,
+    onChange: onFixedDateChange ? update => onFixedDateChange([update]) : undefined,
+  }), [parents, dateChangeMode, businessDays, weekendPredicate, renderTaskDateAction, onFixedDateChange]);
 
-  const renderEndDateCell = useCallback((task: Task) => {
-    const previewEnd = durationPreview?.id === task.id ? durationPreview.endDate : task.endDate;
-    return <span className="gantt-tl-date-display">{formatDateLabel(previewEnd)}</span>;
-  }, [durationPreview]);
+  const renderDurationMode = useCallback((disabled: boolean) => onDateChangeModeChange && (
+    <label className="gantt-datepicker-mode-checkbox">
+      <input type="checkbox" disabled={disabled} checked={dateChangeMode === 'preserve-duration'}
+        onChange={event => onDateChangeModeChange(event.target.checked ? 'preserve-duration' : 'free')} />
+      <span>Сохранять длительность</span>
+    </label>
+  ), [dateChangeMode, onDateChangeModeChange]);
+
+  const renderDateCell = useCallback((task: TTask, boundary: 'start' | 'end') => {
+    const action = renderTaskDateAction?.(task, boundary);
+    const pin = getDatePin(task, boundary, !!action);
+    const displayDate = boundary === 'end' && durationPreview?.id === task.id ? durationPreview.endDate : pin.value;
+    return <>
+      {pin.fixedDateEdit ? <span onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}
+        onDoubleClick={event => event.stopPropagation()}
+        onKeyDown={event => event.stopPropagation()}><TaskPicker value={pin.value} format="dd.MM.yy" className="gantt-tl-date-display"
+        isWeekend={weekendPredicate} businessDays={businessDays} disabled={task.locked || !onFixedDateChange}
+        onChange={pin.changeFixedDate} fixedDateEdit={pin.fixedDateEdit} pinAction={pin.pinAction}
+        footer={<>
+          {renderDurationMode(pin.disableDuration)}
+          {pin.note && <div className="gantt-datepicker-fixed-note">{pin.note}</div>}
+        </>} /></span> : <span className="gantt-tl-date-display">{formatDateLabel(displayDate)}</span>}
+      {action && <span className="gantt-simple-grid-date-action" onMouseDown={event => event.stopPropagation()}
+        onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}
+        onKeyDown={event => event.stopPropagation()}>{action}</span>}
+    </>;
+  }, [renderTaskDateAction, getDatePin, durationPreview, weekendPredicate, businessDays, onFixedDateChange, renderDurationMode]);
 
   const renderDurationCell = useCallback((task: Task) => {
     const isMilestone = task.type === 'milestone';
@@ -1001,7 +1021,7 @@ export function SimpleGridTaskList<TTask extends Task>({
     if (latest && !latest.locked) onTaskEdit?.([{ ...latest, ...patch, id: latest.id }]);
   }, [byId, onTaskEdit]);
 
-  const columns = useMemo<SimpleGridColumn<TTask>[]>(() => {
+  const availableColumns = useMemo<SimpleGridColumn<TTask>[]>(() => {
     const showRowActions = !hideActions && !hiddenColumns?.includes('actions')
       && (renderActions || renderMenu || menuCommands?.length);
     const list: SimpleGridColumn<TTask>[] = [
@@ -1028,7 +1048,8 @@ export function SimpleGridTaskList<TTask extends Task>({
         validation: { type: 'date' as const },
         format: { kind: 'date' as const },
         datePicker: true,
-        isDisabled: (task: Task) => !!task.locked,
+        isDisabled: (task: TTask) => !!task.locked || !!(id === 'startDate' ? task.fixedStartDate : task.fixedEndDate)
+          || (task.type === 'milestone' && !!(task.fixedStartDate || task.fixedEndDate)),
         getValue: (task: TTask) => toISODate(task[id]),
         getDatePickerContext: (task: TTask) => ({
           selectionRole: id === 'startDate' ? 'start' as const : 'end' as const,
@@ -1042,13 +1063,9 @@ export function SimpleGridTaskList<TTask extends Task>({
             date.setUTCDate(date.getUTCDate() + days);
             return toISODate(date);
           },
-          footer: onDateChangeModeChange && task.type !== 'milestone' && (
-            <label className="gantt-datepicker-mode-checkbox">
-              <input type="checkbox" checked={dateChangeMode === 'preserve-duration'}
-                onChange={event => onDateChangeModeChange(event.target.checked ? 'preserve-duration' : 'free')} />
-              <span>Сохранять длительность</span>
-            </label>
-          ),
+          footer: renderDurationMode(task.type === 'milestone'),
+          pinAction: getDatePin(task, id === 'startDate' ? 'start' : 'end',
+            !!renderTaskDateAction?.(task, id === 'startDate' ? 'start' : 'end')).pinAction,
         }),
         setValue: (task: TTask, value: string, source?: 'editor') => {
           if (!value) return task;
@@ -1070,7 +1087,7 @@ export function SimpleGridTaskList<TTask extends Task>({
             ...(task.dependencies && { dependencies: recalculateIncomingLags(task, clamped.start, clamped.end, allTasks, businessDays, weekendPredicate) }),
           };
         },
-        renderValue: id === 'startDate' ? renderDateCell : renderEndDateCell,
+        renderValue: (task: TTask) => renderDateCell(task, id === 'startDate' ? 'start' : 'end'),
       })),
       {
         id: 'duration', title: businessDays ? 'Дн. (р)' : 'Дн.', width: 60, minWidth: 46, align: 'center',
@@ -1113,7 +1130,7 @@ export function SimpleGridTaskList<TTask extends Task>({
     const builtIns = ['selection', 'number', ...list.map(column => column.id)].map(id => ({
       id, header: null, renderCell: () => null,
     }));
-    return resolveTaskListColumns<TTask>(builtIns, additionalColumns, hiddenColumns)
+    return resolveTaskListColumns<TTask>(builtIns, additionalColumns)
       .filter(column => column.id !== 'number' && column.id !== 'selection')
       .map(column => {
         const native = byColumn.get(column.id);
@@ -1145,9 +1162,49 @@ export function SimpleGridTaskList<TTask extends Task>({
   }, [
     hiddenColumns, nameReadOnly, businessDays, additionalColumns, hideActions, menuCommands,
     renderActions, renderMenu, renderRowActions, onTaskEdit, updateCustomTask, onScrollToTask,
-    activeLinkType, dependencyEditingDisabled, dateChangeMode, onDateChangeModeChange, allTasks, weekendPredicate, getDurationFor, nameInset,
-    renderNameCell, renderDateCell, renderEndDateCell, renderDurationCell, renderProgressCell, renderDependenciesCell, getTaskListNamePrefixIcon,
+    activeLinkType, dependencyEditingDisabled, dateChangeMode, renderDurationMode, allTasks, weekendPredicate, getDurationFor, nameInset,
+    renderNameCell, renderDateCell, getDatePin, renderTaskDateAction, renderDurationCell, renderProgressCell, renderDependenciesCell, getTaskListNamePrefixIcon,
   ]);
+
+  const canChangeColumnVisibility = controlledHiddenColumns === undefined || !!onHiddenColumnsChange;
+  const canShowRowActions = !hideActions && !!(renderActions || renderMenu || menuCommands?.length);
+  const visibleColumns = useMemo(() => availableColumns.filter(column => !hiddenColumns.includes(column.id)), [availableColumns, hiddenColumns]);
+  const visibilityHeader = visibleColumns.find(column => column.id === 'name')?.id ?? visibleColumns[0]?.id;
+  const visibilityMenu = useMemo(() => canChangeColumnVisibility && (
+    <Popover open={columnVisibilityOpen} onOpenChange={setColumnVisibilityOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="gantt-tl-column-menu-trigger" aria-label="Видимость столбцов"
+          title="Видимость столбцов" onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3h8L5 7z" fill="currentColor" /></svg>
+        </button>
+      </PopoverTrigger>
+      {columnVisibilityOpen && <PopoverContent className="gantt-tl-context-menu gantt-tl-column-menu" align="end">
+        <div role="group" aria-label="Видимость столбцов" onMouseDown={event => event.stopPropagation()}
+          onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+          {[
+            ...(enableTaskMultiSelect ? [{ id: 'selection', title: 'Выбор' }] : []),
+            { id: 'number', title: '№' }, ...availableColumns,
+            ...(canShowRowActions ? [{ id: 'actions', title: 'Действия' }] : []),
+          ].map(({ id, title }) => (
+            <label key={id} className="gantt-tl-context-menu-item">
+              <input type="checkbox" checked={!hiddenColumns.includes(id)} onChange={event => {
+                const checked = event.currentTarget.checked;
+                const next = checked ? hiddenColumns.filter(hidden => hidden !== id) : [...hiddenColumns, id];
+                if (!visibilityHeader || (!checked && id === visibilityHeader)) setColumnVisibilityOpen(false);
+                if (controlledHiddenColumns === undefined) setInternalHiddenColumns(next);
+                onHiddenColumnsChange?.(next);
+              }} />
+              <span>{title}</span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>}
+    </Popover>
+  ), [canChangeColumnVisibility, enableTaskMultiSelect, availableColumns, canShowRowActions, hiddenColumns, controlledHiddenColumns,
+    onHiddenColumnsChange, columnVisibilityOpen, visibilityHeader]);
+  const columns = useMemo(() => visibleColumns.map(column => visibilityMenu && column.id === visibilityHeader
+    ? { ...column, headerContent: <>{column.headerContent ?? column.title}{visibilityMenu}</> } : column),
+  [visibleColumns, visibilityHeader, visibilityMenu]);
 
   const configuredWidths = useMemo(() => columnWidths
     ? Object.fromEntries(Object.entries(columnWidths).filter((entry): entry is [string, number] => (
@@ -1165,6 +1222,16 @@ export function SimpleGridTaskList<TTask extends Task>({
 
   return <div ref={overlayRef}
     className={`gantt-tl-overlay gantt-simple-grid${show ? '' : ' gantt-tl-hidden'}${hasRightShadow ? ' gantt-tl-overlay-shadowed' : ''}`}
+    onContextMenuCapture={event => {
+      if (!(event.target instanceof Element) || !event.target.closest('td[data-column-id="name"], [data-testid^="sg-rowheader-"]')) return;
+      const row = event.target.closest('tr[data-gantt-task-row-id]');
+      const trigger = row?.querySelector('.gantt-simple-grid-action');
+      const taskId = row?.getAttribute('data-gantt-task-row-id');
+      if (!trigger || !taskId || row?.querySelector('[data-editing="true"]')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setActionMenuTaskId(taskId);
+    }}
     style={{
       '--tasklist-width': `${width}px`,
       '--gantt-grid-header-height': `${headerHeight + 1}px`,
@@ -1193,9 +1260,9 @@ export function SimpleGridTaskList<TTask extends Task>({
       rowHeights={heights}
       visibleRowIndices={visibleRowIndices}
       onRevealRow={onRevealRow}
-      showRowHeaders={showNumbers || showSelection}
+      showRowHeaders={showNumbers || showSelection || (!!visibilityMenu && !visibilityHeader)}
       rowHeaderWidth={configuredWidths?.number ?? (showNumbers ? 40 : 24)}
-      cornerContent={showNumbers ? '№' : undefined}
+      cornerContent={<>{showNumbers ? '№' : null}{!visibilityHeader ? visibilityMenu : null}</>}
       rowSelectionMode={showSelection}
       rowSelectionLabel={task => `Выбрать работу ${numberMap[task.id]}. ${task.name}`}
       selectAllRowsLabel="Выбрать все видимые работы"

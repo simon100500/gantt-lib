@@ -168,6 +168,10 @@ export function CellDatePicker({ value, title, min, max, context, beforeOpen, on
         })}
       </div>}
       {context?.footer}
+      {context?.pinAction && <div className="gantt-datepicker-fixed-actions">
+        <button type="button" className="gantt-datepicker-shift-btn"
+          onClick={() => { context.pinAction?.run(); close(true); }}>{context.pinAction.label}</button>
+      </div>}
     </div>, document.body)}
   </>;
 }

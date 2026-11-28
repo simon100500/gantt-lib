@@ -288,7 +288,7 @@ const TimeScaleHeader: React.FC<TimeScaleHeaderProps> = ({
                   onTimelineHover?.({
                     label: tooltipText,
                     left: index * dayWidth,
-                    color: isTodayDate ? '#dc2626' : (markerColor || 'var(--gantt-timeline-marker-color, #dc2626)'),
+                    color: isTodayDate ? 'var(--gantt-danger-solid-background, #dc2626)' : (markerColor || 'var(--gantt-timeline-marker-color, #dc2626)'),
                   });
                 }}
                 onMouseLeave={onTimelineHoverEnd}

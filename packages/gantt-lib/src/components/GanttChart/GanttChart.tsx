@@ -1,13 +1,14 @@
 'use client';
 // START_MODULE_CONTRACT
 // PURPOSE: Render shared chart modes and native scheduling interactions.
-// SCOPE: Task hierarchy/date normalization and opt-in manual display progress for projected parent rows.
+// SCOPE: Fixed-aware task hierarchy/date normalization, chart-wide cached color contrast resolution, consumer date actions and manual display progress for projected parent rows.
 // INPUTS: Chart props and task progressAggregation policies.
-// OUTPUTS: Parent dates continue to roll up; manual percentages survive presentation grouping.
+// OUTPUTS: Parent dates and fixed boundaries remain consistent; manual percentages survive presentation grouping.
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
-// OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
+// OUTPUTS: Capability-checked row operations and fixed-date field edits delivered to the host mutation callback.
 // END_MODULE_CONTRACT
 
+import { BarContrastContext, useBarContrast } from './useBarContrast';
 import React, { useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getDateRangeDays, getMultiMonthDays, createCustomDayPredicate, getTodayLocalUtcDate, parseUTCDate, type CustomDayConfig, type CustomDayPredicateConfig } from '../../utils/dateUtils';
 import { calculateGridWidth } from '../../utils/geometry';
@@ -34,7 +35,7 @@ import {
   DAY_MS,
 } from '../../core/scheduling';
 import type { ScaleTaskSubtreeResult } from '../../core/scheduling';
-import { normalizeHierarchyTasks } from '../../utils/hierarchyOrder';
+import { normalizeHierarchyTasks, compactGroupBoundaryClasses } from '../../utils/hierarchyOrder';
 import type {
   ResourceTableColumnWidthMap,
   ResourcePlannerChartProps,
@@ -73,6 +74,7 @@ import './GanttChart.css';
 
 // START_MODULE_CONTRACT
 // SHARED_ACTIVITY_EDGES: Explicit graphs and legacy within-row sequences share DependencyLines; explicit empty graphs never infer adjacency.
+// COMPACT_EDGES: Mark first and last compact rows from full visible order before virtual slicing.
 // PAN_COST: Row virtualization depends on vertical position/height only, keeping row identity stable during horizontal pan.
 // PRESENTATION_INVARIANT: TaskDependency.hidden suppresses arrows/chips/print labels only; the full graph remains the input to scheduling and validation.
 // PURPOSE: Render the public Gantt chart API and adapt completed UI scheduling actions to persistence callbacks.
@@ -297,6 +299,9 @@ export interface Task {
   startDate: string | Date;
   /** Task end date (ISO string or Date object) */
   endDate: string | Date;
+  /** Optional fixed date-only boundaries; null or absence leaves the boundary automatic. */
+  fixedStartDate?: string | null;
+  fixedEndDate?: string | null;
   /** Optional baseline start date for planned schedule visualization */
   baselineStartDate?: string | Date;
   /** Optional baseline end date for planned schedule visualization */
@@ -444,7 +449,7 @@ export interface TaskListActionContext<TTask extends Task = Task> {
 export interface TaskListMenuCommand<TTask extends Task = Task> {
   /** Stable command id for React keys and consumer bookkeeping */
   id: string;
-  /** Visible label in the three-dots menu */
+  /** Visible label in the row menu */
   label: string;
   /** Optional icon rendered before the label */
   icon?: React.ReactNode;
@@ -585,18 +590,22 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   timelineMarkers?: TimelineMarker[];
   /** Additional custom columns to render in the TaskList after built-in columns */
   additionalColumns?: TaskListColumn<TTask>[];
-  /** Built-in or custom TaskList column IDs to hide after column placement is resolved */
+  /** Controlled list of hidden built-in or custom TaskList column IDs. */
   hiddenTaskListColumns?: readonly TaskListColumnId[];
+  /** Called when column visibility changes. Enables the column menu in controlled mode. */
+  onHiddenTaskListColumnsChange?: (columnIds: TaskListColumnId[]) => void;
   /** Initial or controlled TaskList column widths keyed by built-in/custom column id. */
   taskListColumnWidths?: TaskListColumnWidthMap;
   /** Called when the user resizes TaskList columns. */
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
-  /** Additional commands rendered in the TaskList row three-dots menu */
+  /** Commands shared by the TaskList row context menu and three-dots trigger. */
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
   /** No buttons render unless this slot is supplied. */
   renderTaskListActions?: (context: TaskListActionContext<TTask>) => React.ReactNode;
   /** Replace/compose the menu; commands contains the configured taskListMenuCommands UI. */
   renderTaskListMenu?: (context: TaskListActionContext<TTask>, commands: React.ReactNode) => React.ReactNode;
+  /** Optional consumer-owned action beside each task date. */
+  renderTaskDateAction?: (task: TTask, boundary: 'start' | 'end') => React.ReactNode;
   /** Hide row action controls in the TaskList for table-like read/edit presentations. */
   hideTaskListRowActions?: boolean;
   /** Returns an extra CSS class name for a TaskList row. */
@@ -827,11 +836,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     timelineMarkers,
     additionalColumns,
     hiddenTaskListColumns,
+    onHiddenTaskListColumnsChange,
     taskListColumnWidths,
     onTaskListColumnWidthsChange,
     taskListMenuCommands,
     renderTaskListActions,
     renderTaskListMenu,
+    renderTaskDateAction,
     hideTaskListRowActions = false,
     getTaskListRowClassName,
     getTaskListNamePrefixIcon,
@@ -860,6 +871,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   const matrixDateOverlay = isTableMatrixMode ? props.matrixDateOverlay : undefined;
   const onPlanFactCellCommit = isPlanFactMode ? props.onPlanFactCellCommit : undefined;
   const containerRef = useRef<HTMLDivElement>(null);
+  const barContrast = useBarContrast(containerRef, tasks, !isTableMatrixMode && !isPlanFactMode);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
   const clearSelectedTaskTimeoutRef = useRef<number | null>(null);
@@ -1137,8 +1149,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     [isPlanFactMode, resolvedRowContentLines, rowContentLines, rowHeight]
   );
 
+  const isCustomWeekend = useMemo(
+    () => createCustomDayPredicate({ customDays, isWeekend }),
+    [customDays, isWeekend]
+  );
   const normalizedTasks = useMemo(() => {
-    const ordered = normalizeHierarchyTasks(tasks);
+    const ordered = normalizeHierarchyTasks(tasks, businessDays, isCustomWeekend);
     const ranges = new Map<string, { start: number; end: number }>();
     for (const task of ordered) {
       if (!task.parentId) continue;
@@ -1151,14 +1167,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       });
     }
     return ordered.map(task => {
-      const range = task.composite ? ranges.get(task.id) : undefined;
+      const range = task.composite && !task.fixedStartDate && !task.fixedEndDate ? ranges.get(task.id) : undefined;
       return range ? {
         ...task,
         startDate: new Date(range.start).toISOString().slice(0, 10),
         endDate: new Date(range.end).toISOString().slice(0, 10),
       } : task;
     });
-  }, [tasks]);
+  }, [tasks, businessDays, isCustomWeekend]);
   const collapsedParentIds = useMemo(() => {
     if (externalCollapsedParentIds) return externalCollapsedParentIds;
     const ids = new Set(internalCollapsedParentIds);
@@ -1182,12 +1198,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (controlledScheduleChanged || previewTasksById.size === 0) return normalizedTasks;
     return normalizedTasks.map(task => previewTasksById.get(task.id) ?? task);
   }, [controlledScheduleChanged, normalizedTasks, previewTasksById]);
-
-  // Create custom weekend predicate from props (memoized for performance)
-  const isCustomWeekend = useMemo(
-    () => createCustomDayPredicate({ customDays, isWeekend }),
-    [customDays, isWeekend]
-  );
 
   // Critical path task ids (leaves via CPM + parents lifted up the chain).
   const criticalTaskIds = useMemo(() => {
@@ -1921,14 +1931,14 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       ...task,
       sortOrder: index,
     }));
-    const normalized = normalizeHierarchyTasks(orderedForCallback);
+    const normalized = normalizeHierarchyTasks(orderedForCallback, businessDays, isCustomWeekend);
     if (onReorder) {
       onReorder(normalized as unknown as TTask[], movedTaskId, inferredParentId);
       return;
     }
 
     onTasksChange?.(normalized as unknown as TTask[]);
-  }, [onTasksChange, onReorder]);
+  }, [onTasksChange, onReorder, businessDays, isCustomWeekend]);
 
   // Build merged pixel overrides for DependencyLines: dragged task + cascade chain members
   const dependencyOverrides = useMemo(() => {
@@ -2352,10 +2362,10 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       ...tasksWithoutPromoted.slice(0, insertIndex),
       promotedTask,
       ...tasksWithoutPromoted.slice(insertIndex)
-    ]);
+    ], businessDays, isCustomWeekend);
 
     onTasksChange?.(reorderedTasks as TTask[]);
-  }, [tasks, onTasksChange, onPromoteTask]);
+  }, [tasks, onTasksChange, onPromoteTask, businessDays, isCustomWeekend]);
 
   const handleDemoteTask = useCallback((taskId: string, newParentId: string) => {
     // If consumer provided custom callback, use it
@@ -2668,6 +2678,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // END_BLOCK_SIMPLEGRID_TASK_UPDATES
 
   return (
+    <BarContrastContext.Provider value={barContrast}>
     <div
       ref={containerRef}
       className={isTableMatrixMode ? 'gantt-container gantt-container-tableMatrix' : isPlanFactMode ? 'gantt-container gantt-container-planFact' : 'gantt-container'}
@@ -2702,6 +2713,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             nameReadOnly={disableTaskNameEditing || !onTasksChange}
             readOnly={!onTasksChange && !onScheduleIntent}
             hiddenColumns={hiddenTaskListColumns}
+            onHiddenColumnsChange={onHiddenTaskListColumnsChange}
             columnWidths={taskListColumnWidths}
             onColumnWidthsChange={onTaskListColumnWidthsChange}
             additionalColumns={additionalColumns}
@@ -2712,6 +2724,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             selectedTaskIds={selectedTaskIds}
             onSelectedTaskIdsChange={onSelectedTaskIdsChange}
             onTaskEdit={onTasksChange ? handleTaskChange : undefined}
+            onFixedDateChange={onTasksChange}
             onReorder={onReorder || onTasksChange ? handleReorder : undefined}
             disableReorder={disableTaskDrag || disableTaskListReorder || (filterMode === 'hide' && !!taskFilter) || criticalPathMode === 'hide'}
             onAdd={onAdd as ((task: Task) => void) | undefined}
@@ -2726,6 +2739,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             menuCommands={taskListMenuCommands}
             renderActions={renderTaskListActions}
             renderMenu={renderTaskListMenu}
+            renderTaskDateAction={renderTaskDateAction}
             hideActions={hideTaskListRowActions}
             getRowClassName={getTaskListRowClassName}
             dateChangeMode={taskDateChangeMode}
@@ -2972,6 +2986,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                   {renderedChartTasks.map(({ task, index }) => (
                     <div
                       key={task.id}
+                      className={compactGroupBoundaryClasses(previewVisibleTasks, index, compositeParentsById)}
                       style={{
                         position: 'absolute',
                         top: `${compositeRowLayout.tops[index]}px`,
@@ -3078,6 +3093,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         </div>
       </div>
     </div>
+    </BarContrastContext.Provider>
   );
 }
 

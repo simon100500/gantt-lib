@@ -57,7 +57,8 @@ interface GanttModeProps<TTask extends Task = Task> {
   isWeekend?: (date: Date) => boolean;
   businessDays?: boolean;
   additionalColumns?: TaskListColumn<TTask>[];
-  hiddenTaskListColumns?: TaskListColumnId[];
+  hiddenTaskListColumns?: readonly TaskListColumnId[];
+  onHiddenTaskListColumnsChange?: (columnIds: TaskListColumnId[]) => void;
   taskListColumnWidths?: TaskListColumnWidthMap;
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
@@ -112,7 +113,8 @@ interface TableMatrixModeProps<TTask extends Task = Task> {
   selectedTaskIds?: Set<string>;
   onSelectedTaskIdsChange?: (taskIds: Set<string>) => void;
   additionalColumns?: TaskListColumn<TTask>[];
-  hiddenTaskListColumns?: TaskListColumnId[];
+  hiddenTaskListColumns?: readonly TaskListColumnId[];
+  onHiddenTaskListColumnsChange?: (columnIds: TaskListColumnId[]) => void;
   taskListColumnWidths?: TaskListColumnWidthMap;
   onTaskListColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
   taskListMenuCommands?: TaskListMenuCommand<TTask>[];
@@ -235,10 +237,11 @@ interface ResourcePlannerChartProps<TItem extends ResourceTimelineItem = Resourc
 | `isWeekend` | `(date: Date) => boolean` | `undefined` | Optional base weekend predicate for flexible logic (e.g., Sunday-only weekends, 4-day work week). **Checked BEFORE customDays overrides** — use for base patterns, then override specific dates with `customDays`. Receives a UTC `Date` object, return `true` for weekends, `false` for workdays. |
 | `businessDays` | `boolean` | `true` | Когда `true` (default), длительность задачи (duration) считается в рабочих днях, исключая выходные. Когда `false`, длительность считается в календарных днях. Влияет на расчёт зависимостей, перетаскивание задач и отображение длительности. См. раздел 7.5. |
 | `additionalColumns` | `TaskListColumn<TTask>[]` | `undefined` | Additional TaskList columns resolved together with the built-in columns. Use `renderCell` / `renderEditor` and place them with `before` / `after`. See [TaskList Columns](./13-tasklist-columns.md). |
-| `hiddenTaskListColumns` | `TaskListColumnId[]` | `undefined` | Built-in or custom TaskList column IDs to hide after column placement is resolved. Works for built-in columns such as `'duration'` and custom `additionalColumns` ids. |
+| `hiddenTaskListColumns` | `readonly TaskListColumnId[]` | `undefined` | Controls which built-in and custom TaskList columns are hidden. |
+| `onHiddenTaskListColumnsChange` | `(columnIds: TaskListColumnId[]) => void` | `undefined` | Receives the next hidden IDs from the column visibility menu. Enables the menu when visibility is controlled. |
 | `taskListColumnWidths` | `TaskListColumnWidthMap` | `undefined` | Initial or controlled width overrides for built-in and custom TaskList columns, keyed by column id. Example: `{ name: 280, assignee: 180 }`. |
 | `onTaskListColumnWidthsChange` | `(widths: TaskListColumnWidthMap) => void` | `undefined` | Called when the user drags a TaskList header resize handle. Use with `taskListColumnWidths` to persist widths outside the component. |
-| `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Explicit commands for the optional TaskList three-dots menu. Each command receives the current row in `onSelect(row)`, can render an `icon`, may render a visual `divider: 'top' | 'bottom'`, and may be restricted by `scope`: `'group'`, `'linear'`, `'milestone'`, or `'all'`. When `scope` is omitted, the command is shown for all task types. |
+| `taskListMenuCommands` | `TaskListMenuCommand<TTask>[]` | `undefined` | Commands shared by the right-click and three-dots row menu. Each command receives the current row in `onSelect(row)` and accepts an icon, optional divider, and row scope. |
 | `hideTaskListRowActions` | `boolean` | `false` | Hides row-level TaskList actions such as insert/delete/hierarchy buttons. Useful in spreadsheet-like or read-only table presentations. |
 | `fillParentRowsInTaskList` | `boolean \| ((task: TTask) => boolean)` | `plan-fact: true`, otherwise `false` | Controls parent-row background fill in the left `TaskList`. Pass `true` to fill every parent row, `false` to disable it, or a predicate to fill only selected parent rows such as top-level sections. The predicate is ignored for non-parent rows. |
 | `getTaskListNamePrefixIcon` | `(task: TTask) => React.ReactNode` | `undefined` | Returns an optional icon rendered before the task name in the left `TaskList` row. The callback is evaluated per row, so you can target only root tasks, only milestones, only parents, or any custom condition. Return `undefined` / `null` to render no icon for that row. |
@@ -477,7 +480,7 @@ Resource mode intentionally does not render dependency lines, task list editing,
 
 ## TaskList Menu Commands
 
-Use `taskListMenuCommands` to configure the optional TaskList row menu (`...`). No color, duplicate, ungroup or delete items are injected.
+Use `taskListMenuCommands` to configure the TaskList row menu. Right-click the row or use its three-dots button to open the same menu.
 
 Use `renderTaskListActions(context)` to supply row controls and `renderTaskListMenu(context, commands)` to compose or replace menu contents. Both receive `TaskListActionContext<TTask>`: the current task, hierarchy flags, `closeMenu`, and supported `insertAfter`, `promote`, `demote`, `duplicate`, `delete`, `ungroup` operations. Unsupported operations are undefined. Return null to omit a surface per row; `hideTaskListRowActions` suppresses both surfaces. See the package README for a migration example.
 

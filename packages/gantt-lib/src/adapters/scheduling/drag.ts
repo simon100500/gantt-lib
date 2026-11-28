@@ -7,7 +7,16 @@
  * primitives but are NOT part of the domain core themselves.
  */
 
+// START_MODULE_CONTRACT
+// PURPOSE: Convert drag geometry into scheduling date ranges.
+// SCOPE: Calendar alignment, dependency clamping and fixed boundary gestures.
+// INPUTS: Task, drag geometry and calendar.
+// OUTPUTS: Proposed dates preserving fixed anchors.
+// DEPENDS: scheduling commands, dateMath, fixedDates
+// LINKS: M-SCHEDULING
+// END_MODULE_CONTRACT
 import type { Task } from '../../core/scheduling/types';
+import { resolveFixedDates } from '../../core/scheduling/fixedDates';
 import {
   moveTaskRange,
   buildTaskRangeFromStart,
@@ -27,6 +36,15 @@ import { clampTaskRangeForIncomingFS } from '../../core/scheduling/commands';
  * Extracted from useTaskDrag.ts resolveDraggedRange.
  */
 export function resolveDateRangeFromPixels(
+  mode: 'move' | 'resize-left' | 'resize-right',
+  left: number, width: number, monthStart: Date, dayWidth: number, task: Task,
+  businessDays?: boolean, weekendPredicate?: (date: Date) => boolean
+): { start: Date; end: Date } {
+  const range = resolveDateRangeFromPixelsRaw(mode, left, width, monthStart, dayWidth, task, businessDays, weekendPredicate);
+  return resolveFixedDates(task, range, false, businessDays, weekendPredicate, mode === 'move');
+}
+
+function resolveDateRangeFromPixelsRaw(
   mode: 'move' | 'resize-left' | 'resize-right',
   left: number,
   width: number,
@@ -114,11 +132,11 @@ export function clampDateRangeForIncomingFS(
   weekendPredicate?: (date: Date) => boolean,
   taskById?: Map<string, Task>
 ): { start: Date; end: Date } {
-  if (mode === 'resize-right') {
+  if (mode === 'resize-right' || task.fixedStartDate || (task.type === 'milestone' && task.fixedEndDate)) {
     return range;
   }
 
-  return clampTaskRangeForIncomingFS(
+  const clamped = clampTaskRangeForIncomingFS(
     task,
     range.start,
     range.end,
@@ -127,4 +145,5 @@ export function clampDateRangeForIncomingFS(
     weekendPredicate,
     taskById
   );
+  return resolveFixedDates(task, clamped, false, businessDays, weekendPredicate, mode === 'move');
 }

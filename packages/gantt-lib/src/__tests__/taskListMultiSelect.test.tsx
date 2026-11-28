@@ -1,3 +1,9 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Verify Gantt task-list checkbox selection through the rendered chart.
+// SCOPE: Individual rows, visible Shift ranges through collapsed branches, and the header checkbox.
+// INPUTS: Task hierarchies, collapse state and checkbox clicks.
+// OUTPUTS: Checked rows and emitted selection IDs.
+// END_MODULE_CONTRACT
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -105,6 +111,33 @@ describe('GanttChart task multi-select', () => {
 
     expect((screen.getByRole('checkbox', { name: /task alpha/i }) as HTMLInputElement).checked).toBe(false);
     expect((screen.getByRole('checkbox', { name: /task beta/i }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('selects and clears a Shift range in visible order across a collapsed section', () => {
+    const onSelectedTaskIdsChange = vi.fn();
+    const rows = [
+      ...tasks,
+      { ...tasks[0], id: 'hidden', name: 'Hidden child', parentId: 'task-2' },
+      { ...tasks[1], id: 'last', name: 'Last row' },
+    ];
+    render(
+      <GanttChart
+        tasks={rows}
+        showTaskList
+        enableTaskMultiSelect
+        collapsedParentIds={new Set(['task-2'])}
+        onSelectedTaskIdsChange={onSelectedTaskIdsChange}
+      />,
+    );
+
+    const first = screen.getByRole('checkbox', { name: /task alpha/i });
+    const last = screen.getByRole('checkbox', { name: /last row/i });
+    fireEvent.click(last);
+    fireEvent.click(first, { shiftKey: true });
+    expect(onSelectedTaskIdsChange).toHaveBeenLastCalledWith(new Set(['last', 'task-1', 'task-2']));
+    expect(screen.queryByRole('checkbox', { name: /hidden child/i })).toBeNull();
+    fireEvent.click(first, { shiftKey: true });
+    expect(onSelectedTaskIdsChange).toHaveBeenLastCalledWith(new Set());
   });
 });
 

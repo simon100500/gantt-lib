@@ -27,14 +27,14 @@
 .gantt-generation-skeleton-bar {
   display: block;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(148, 163, 184, 0.13), rgba(148, 163, 184, 0.28), rgba(148, 163, 184, 0.13));
+  background: linear-gradient(90deg, var(--gantt-skeleton-base-color, rgba(148, 163, 184, 0.13)), var(--gantt-skeleton-highlight-color, rgba(148, 163, 184, 0.28)), var(--gantt-skeleton-base-color, rgba(148, 163, 184, 0.13)));
   background-size: 220% 100%;
   animation: gantt-generation-skeleton-shimmer 1.45s ease-in-out infinite;
   animation-delay: var(--skeleton-shimmer-delay, 0ms);
 }
 
 .gantt-generation-skeleton-chart .gantt-generation-skeleton-bar {
-  background: linear-gradient(90deg, #d9dee7, #eef1f5, #d9dee7);
+  background: linear-gradient(90deg, var(--gantt-skeleton-base-color, #d9dee7), var(--gantt-skeleton-highlight-color, #eef1f5), var(--gantt-skeleton-base-color, #d9dee7));
   background-size: 220% 100%;
   height: var(--gantt-task-bar-height, 24px);
   border-radius: var(--gantt-task-bar-border-radius, 4px);

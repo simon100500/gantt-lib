@@ -28,7 +28,9 @@ import { resolveDateRangeFromPixels, clampDateRangeForIncomingFS } from '../adap
 
 // START_MODULE_CONTRACT
 // PURPOSE: Detect completed bar move/resize interactions and calculate local preview cascades.
-// SCOPE: Emit one semantic intent at drop; cancel obsolete gestures when controlled dates change; defer expensive live cascade previews for large charts while preserving drop semantics; legacy cascade callbacks remain available when no intent boundary is supplied.
+// SCOPE: Emit one semantic intent at drop; preserve fixed boundaries and calendar rules in previews and completed gestures; retain legacy cascade callbacks.
+// INPUTS: Task geometry, controlled tasks and scheduling calendar.
+// OUTPUTS: Gesture intents, preview ranges and cascade callbacks.
 // DEPENDS: pixel/date adapters and existing scheduling preview functions.
 // INVARIANT: A controlled date replacement cancels the owned gesture before stale pixel coordinates can emit an intent or survive as preview geometry.
 // END_MODULE_CONTRACT
@@ -379,7 +381,7 @@ function handleGlobalMouseMove(e: MouseEvent) {
       const previewRange = resolveDragRangeForInteraction(activeDrag, draggedTask, mode, newLeft, newWidth);
 
       const anchor: 'start' | 'end' = mode === 'resize-left' ? 'end' : 'start';
-      const parentRange = computeParentDates(activeDrag.taskId, allTasks);
+      const parentRange = computeParentDates(activeDrag.taskId, allTasks, activeDrag.businessDays, activeDrag.weekendPredicate);
       const targetDuration = Math.max(1, getTaskDuration(
         anchor === 'start' ? parentRange.startDate : previewRange.start,
         anchor === 'start' ? previewRange.end : parentRange.endDate,
@@ -909,7 +911,7 @@ export const useTaskDrag = (options: UseTaskDragOptions): UseTaskDragReturn => {
           });
         } else if (currentTask && isTaskParent(taskId, allTasks)) {
           const anchor: 'start' | 'end' = finalMode === 'resize-left' ? 'end' : 'start';
-          const parentRange = computeParentDates(taskId, allTasks);
+          const parentRange = computeParentDates(taskId, allTasks, businessDays, weekendPredicate);
           const targetDuration = getTaskDuration(
             anchor === 'start' ? parentRange.startDate : newStartDate,
             anchor === 'start' ? newEndDate : parentRange.endDate,

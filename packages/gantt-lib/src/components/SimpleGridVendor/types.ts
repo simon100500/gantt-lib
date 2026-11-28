@@ -111,6 +111,7 @@ export interface SimpleGridDatePickerContext {
   range?: { start?: string; end?: string; startLabel?: string; endLabel?: string };
   markers?: { value: string; label: string }[];
   footer?: ReactNode;
+  pinAction?: { label: string; run: () => void };
   shiftDate?: (iso: string, days: number) => string;
   isWeekend?: (iso: string) => boolean;
 }

@@ -52,6 +52,14 @@
   padding-inline: 2px;
 }
 
+.gantt-simple-grid thead th .gantt-tl-column-menu-trigger {
+  inset-inline-end: 8px;
+}
+
+.gantt-simple-grid thead th:has(.gantt-tl-column-menu-trigger) .sg-column-header-content {
+  padding-inline-end: 20px;
+}
+
 .gantt-simple-grid thead:hover th:not(:has(> .sg-column-resize-marker)) > [data-sg-column-resize="right"]::after {
   content: "";
   position: absolute;
@@ -203,6 +211,14 @@
 }
 
 .gantt-simple-grid .gantt-tl-progress-display[data-complete] { color: #14704b; }
+
+.gantt-simple-grid-date-action {
+  position: absolute;
+  z-index: 2;
+  inset-inline-start: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
 
 .gantt-simple-grid [data-sg] .sg-calendar-trigger {
   top: 50%;

@@ -2,6 +2,12 @@
  * UI Components CSS — gantt-lib theming
  * All classes use gantt- prefix to avoid collisions
  * ========================================================= */
+/* START_MODULE_CONTRACT
+ * PURPOSE: Style the shared chart inputs, popovers, calendars, and buttons.
+ * SCOPE: Core control states and the date picker's fixed-date notice and actions.
+ * INPUTS: Semantic theme variables and control markup.
+ * OUTPUTS: Theme-aware control layout and visible interaction states.
+ * END_MODULE_CONTRACT */
 
 /* CSS Variables for UI components */
 :root {
@@ -26,8 +32,8 @@
 
   --gantt-calendar-bg: #ffffff;
   --gantt-calendar-text: #1f2937;
-  --gantt-calendar-text-weekend: #ef4444;
-  --gantt-calendar-text-muted: #9ca3af;
+  --gantt-calendar-text-weekend: #b91c1c;
+  --gantt-calendar-text-muted: #6b7280;
   --gantt-calendar-day-today-border: #3b82f6;
   --gantt-calendar-day-range: #dbeafe;
   --gantt-calendar-day-disabled-text: #d1d5db;
@@ -54,8 +60,8 @@
 
 .gantt-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+  border-color: var(--gantt-focus-color, #3b82f6);
+  box-shadow: 0 0 0 2px var(--gantt-focus-color, #2563eb);
 }
 
 .gantt-input::placeholder {
@@ -95,7 +101,7 @@
 
 .gantt-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+  box-shadow: 0 0 0 2px var(--gantt-focus-color, #2563eb);
 }
 
 .gantt-btn:disabled {
@@ -137,6 +143,7 @@
  * ========================================================= */
 
 .gantt-popover {
+  color: var(--gantt-text-color, #1f2937);
   font-family: var(--gantt-font-family);
   background: var(--gantt-popover-bg);
   border: 1px solid var(--gantt-popover-border);
@@ -187,7 +194,7 @@
 
 .gantt-datepicker-trigger:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+  box-shadow: 0 0 0 2px var(--gantt-focus-color, #2563eb);
   border-radius: 2px;
 }
 
@@ -268,7 +275,7 @@
 
 .gantt-day-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--gantt-input-focus-ring);
+  box-shadow: 0 0 0 2px var(--gantt-focus-color, #2563eb);
 }
 
 .gantt-day-btn.today {
@@ -296,7 +303,7 @@
 }
 
 .gantt-day-btn.past.weekend:not(.selected) {
-  color: #fca5a5;
+  color: var(--gantt-calendar-text-weekend, #b91c1c);
 }
 
 .gantt-day-btn.disabled {
@@ -340,12 +347,12 @@
 }
 
 .gantt-datepicker-date-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  border-color: var(--gantt-focus-color, #3b82f6);
+  box-shadow: 0 0 0 2px var(--gantt-focus-overlay, rgba(59, 130, 246, 0.2));
 }
 
 .gantt-datepicker-date-input::selection {
-  background: rgba(59, 130, 246, 0.25);
+  background: var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.25));
 }
 
 .gantt-datepicker-shift-btn {
@@ -372,6 +379,32 @@
 .gantt-datepicker-footer {
   padding: 8px;
   border-top: 1px solid var(--gantt-input-border);
+}
+
+.gantt-datepicker-fixed-title {
+  padding: 8px 8px 0;
+  color: var(--gantt-calendar-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.gantt-datepicker-fixed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gantt-datepicker-fixed-note {
+  margin: 4px 0;
+  color: var(--gantt-calendar-text-muted);
+  font-size: 0.8rem;
+}
+
+.gantt-datepicker-fixed-error {
+  margin-bottom: 8px;
+  color: var(--gantt-calendar-text-weekend);
+  font-size: 0.8rem;
 }
 
 .gantt-datepicker-mode-checkbox {

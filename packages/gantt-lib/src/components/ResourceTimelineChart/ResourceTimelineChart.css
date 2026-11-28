@@ -2,7 +2,7 @@
   --gantt-resourceTimeline-row-header-width: var(--gantt-resource-row-header-width, 240px);
   --gantt-resourceTimeline-lane-height: var(--gantt-resource-lane-height, 40px);
   --gantt-resourceTimeline-bar-radius: var(--gantt-resource-bar-radius, 4px);
-  --gantt-resource-item-duration-chip-bg: rgba(255, 255, 255, 0.22);
+  --gantt-resource-item-duration-chip-bg: var(--gantt-bar-highlight-color, rgba(255, 255, 255, 0.22));
   --gantt-resource-item-title-font-size: 0.75rem;
   --gantt-resource-item-title-font-weight: 700;
   --gantt-resource-item-subtitle-font-size: 0.6875rem;
@@ -36,7 +36,7 @@
 }
 
 .gantt-resourceTimeline-resourceColumnShadowed {
-  box-shadow: 10px 0 18px -14px rgba(15, 23, 42, 0.45);
+  box-shadow: 10px 0 18px -14px var(--gantt-shadow-color, rgba(15, 23, 42, 0.45));
 }
 
 .gantt-resourceTimeline-corner {
@@ -49,7 +49,7 @@
   background: var(--gantt-cell-background, #ffffff);
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   box-sizing: border-box;
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
 }
 
 .gantt-resourceTimeline-resourceHeaderCell {
@@ -96,7 +96,7 @@
 
 .gantt-resourceTimeline-resourceHeaderCell:hover .gantt-resourceTimeline-columnResizeHandle::before,
 .gantt-resourceTimeline-columnResizeHandle:focus-visible::before {
-  background: rgba(59, 130, 246, 0.35);
+  background: var(--gantt-selection-overlay-strong, rgba(59, 130, 246, 0.35));
 }
 
 .gantt-resourceTimeline-columnResizeHandle:focus-visible {
@@ -122,8 +122,8 @@
   padding: 0 10px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
-  background: #f7f8fa;
-  color: #44546f;
+  background: var(--gantt-header-background, #f7f8fa);
+  color: var(--gantt-text-muted-color, #44546f);
 }
 
 .gantt-resourceTimeline-resourceGroupToggle {
@@ -137,15 +137,15 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #5e6c84;
+  color: var(--gantt-text-muted-color, #5e6c84);
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
 }
 
 .gantt-resourceTimeline-resourceGroupToggle:hover,
 .gantt-resourceTimeline-resourceGroupToggle:focus-visible {
-  background: #ebecf0;
-  color: #172b4d;
+  background: var(--gantt-hover-background, #ebecf0);
+  color: var(--gantt-text-color, #172b4d);
   outline: none;
 }
 
@@ -179,8 +179,8 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background: #dfe1e6;
-  color: #42526e;
+  background: var(--gantt-header-background, #dfe1e6);
+  color: var(--gantt-text-muted-color, #42526e);
   font-size: 11px;
   font-weight: 700;
   line-height: 18px;
@@ -198,7 +198,7 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #2563eb;
+  color: var(--gantt-info-foreground, #2563eb);
   cursor: pointer;
   font: inherit;
   font-size: 18px;
@@ -215,8 +215,8 @@
 
 .gantt-resourceTimeline-resourceGroupAddButton:hover,
 .gantt-resourceTimeline-resourceGroupAddButton:focus-visible {
-  background: #deebff;
-  color: #0747a6;
+  background: var(--gantt-info-background, #deebff);
+  color: var(--gantt-info-foreground, #0747a6);
   outline: none;
 }
 
@@ -228,7 +228,7 @@
   padding: 6px 0 0;
   box-sizing: border-box;
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
-  color: #172b4d;
+  color: var(--gantt-text-color, #172b4d);
   font-size: 14px;
   font-weight: 500;
   background: var(--gantt-cell-background, #ffffff);
@@ -237,19 +237,19 @@
 
 .gantt-resourceTimeline-resourceHeader:hover,
 .gantt-resourceTimeline-resourceHeaderMenuOpen {
-  background: #f4f8ff;
-  box-shadow: inset 0 0 0 9999px rgba(9, 30, 66, 0.015);
+  background: var(--gantt-hover-background, #f4f8ff);
+  box-shadow: inset 0 0 0 9999px var(--gantt-shadow-color, rgba(9, 30, 66, 0.015));
 }
 
 .gantt-resourceTimeline-resourceHeaderInactive {
-  color: #6b778c;
+  color: var(--gantt-text-muted-color, #6b778c);
 }
 
 .gantt-resourceTimeline-resourceHeaderInactive .gantt-resourceTimeline-resourceNumber,
 .gantt-resourceTimeline-resourceHeaderInactive .gantt-resourceTimeline-resourceNameButton,
 .gantt-resourceTimeline-resourceHeaderInactive .gantt-resourceTimeline-resourceAssignments,
 .gantt-resourceTimeline-resourceHeaderInactive .gantt-resourceTimeline-resourceScopeChip {
-  color: #6b778c;
+  color: var(--gantt-text-muted-color, #6b778c);
 }
 
 .gantt-resourceTimeline-resourceHeaderInactive .gantt-resourceTimeline-resourceTypeIconButton,
@@ -265,7 +265,7 @@
 .gantt-resourceTimeline-resourceNumber {
   min-width: 0;
   padding: 1px 6px 0 10px;
-  color: #8993a4;
+  color: var(--gantt-text-muted-color, #8993a4);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   line-height: 1.25;
@@ -298,7 +298,7 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #172b4d;
+  color: var(--gantt-text-color, #172b4d);
   font: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -332,7 +332,7 @@
 }
 
 .gantt-resourceTimeline-resourceNameButton:focus-visible {
-  box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.22);
+  box-shadow: 0 0 0 2px var(--gantt-focus-overlay, rgba(76, 154, 255, 0.22));
 }
 
 .gantt-resourceTimeline-resourceNameInput {
@@ -347,7 +347,7 @@
 .gantt-resourceTimeline-resourceStatusMarker {
   display: inline-flex;
   align-items: center;
-  color: #5e6c84;
+  color: var(--gantt-text-muted-color, #5e6c84);
   flex: 0 0 auto;
 }
 
@@ -371,21 +371,21 @@
   margin-top: -1px;
   border: 1px solid transparent;
   border-radius: 4px;
-  background: #ffffff;
-  color: #6b778c;
+  background: var(--gantt-cell-background, #ffffff);
+  color: var(--gantt-text-muted-color, #6b778c);
   cursor: pointer;
   padding: 0;
 }
 
 .gantt-resourceTimeline-resourceTypeIconButton:hover:not(:disabled),
 .gantt-resourceTimeline-resourceTypeIconButton:focus-visible {
-  background: #ffffff;
-  border-color: #4c9aff;
+  background: var(--gantt-cell-background, #ffffff);
+  border-color: var(--gantt-focus-color, #4c9aff);
   outline: none;
 }
 
 .gantt-resourceTimeline-resourceTypeIconButton:focus-visible {
-  box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.22);
+  box-shadow: 0 0 0 2px var(--gantt-focus-overlay, rgba(76, 154, 255, 0.22));
 }
 
 .gantt-resourceTimeline-resourceTypeIconButton:disabled {
@@ -412,19 +412,19 @@
 }
 
 .gantt-resourceTimeline-resourceTypeIconPeople {
-  color: #0052cc;
+  color: var(--gantt-info-foreground, #0052cc);
 }
 
 .gantt-resourceTimeline-resourceTypeIconEquipment {
-  color: #172b4d;
+  color: var(--gantt-text-color, #172b4d);
 }
 
 .gantt-resourceTimeline-resourceTypeIconMaterials {
-  color: #de350b;
+  color: var(--gantt-danger-foreground, #de350b);
 }
 
 .gantt-resourceTimeline-resourceTypeIconOther {
-  color: #6b778c;
+  color: var(--gantt-text-muted-color, #6b778c);
 }
 
 .gantt-resourceTimeline-resourceScopeChip span,
@@ -450,14 +450,14 @@
 }
 
 .gantt-resourceTimeline-resourceScopeChip:hover:not(:disabled) {
-  background-color: #ffffff;
-  border-color: #dfe1e6;
+  background-color: var(--gantt-cell-background, #ffffff);
+  border-color: var(--gantt-grid-line-color, #dfe1e6);
 }
 
 .gantt-resourceTimeline-resourceScopeChip:focus-visible {
-  background: #ffffff;
-  border-color: #4c9aff;
-  box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.22);
+  background: var(--gantt-cell-background, #ffffff);
+  border-color: var(--gantt-focus-color, #4c9aff);
+  box-shadow: 0 0 0 2px var(--gantt-focus-overlay, rgba(76, 154, 255, 0.22));
   outline: none;
 }
 
@@ -481,13 +481,13 @@
 }
 
 .gantt-resourceTimeline-resourceScopeShared {
-  background: #deebff;
-  color: #0747a6;
+  background: var(--gantt-info-background, #deebff);
+  color: var(--gantt-info-foreground, #0747a6);
 }
 
 .gantt-resourceTimeline-resourceScopeProject {
-  background: #e3fcef;
-  color: #006644;
+  background: var(--gantt-success-background, #e3fcef);
+  color: var(--gantt-success-foreground, #006644);
 }
 
 .gantt-resourceTimeline-resourceAssignments {
@@ -503,7 +503,7 @@
   min-height: 34px;
   margin: 0 6px;
   overflow: hidden;
-  color: #5e6c84;
+  color: var(--gantt-text-muted-color, #5e6c84);
   padding: 0;
   font-size: 11px;
   line-height: 1.3;
@@ -517,7 +517,7 @@
   align-items: center;
   column-gap: 4px;
   width: 100%;
-  color: #97a0af;
+  color: var(--gantt-text-muted-color, #97a0af);
   font-size: 11px;
   font-weight: 500;
 }
@@ -536,7 +536,7 @@
   align-items: center;
   column-gap: 4px;
   width: 100%;
-  color: #172b4d;
+  color: var(--gantt-text-color, #172b4d);
   font-size: 12px;
   font-weight: 700;
   margin-bottom: 1px;
@@ -571,7 +571,7 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #172b4d;
+  color: var(--gantt-text-color, #172b4d);
   cursor: pointer;
   font: inherit;
   font-size: 12px;
@@ -582,8 +582,8 @@
 
 .gantt-resourceTimeline-resourceOption:hover,
 .gantt-resourceTimeline-resourceOptionActive {
-  background: #deebff;
-  color: #0747a6;
+  background: var(--gantt-info-background, #deebff);
+  color: var(--gantt-info-foreground, #0747a6);
 }
 
 .gantt-resourceTimeline-resourceOptionIcon {
@@ -622,8 +622,8 @@
   padding: 0 5px;
   border: 0;
   border-radius: 3px;
-  background: #de350b;
-  color: #ffffff;
+  background: var(--gantt-danger-solid-background, #de350b);
+  color: var(--gantt-solid-foreground, #ffffff);
   cursor: pointer;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -633,13 +633,13 @@
 
 .gantt-resourceTimeline-conflictBadge:hover,
 .gantt-resourceTimeline-conflictBadge:focus-visible {
-  background: #bf2600;
-  color: #ffffff;
+  background: var(--gantt-danger-solid-background, #bf2600);
+  color: var(--gantt-solid-foreground, #ffffff);
   outline: none;
 }
 
 .gantt-resourceTimeline-conflictBadge:focus-visible {
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+  box-shadow: 0 0 0 2px var(--gantt-danger-overlay, rgba(239, 68, 68, 0.25));
 }
 
 .gantt-resourceTimeline-resourceMenuButton {
@@ -652,7 +652,7 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #6b7280;
+  color: var(--gantt-text-muted-color, #6b7280);
   cursor: pointer;
   font: inherit;
   font-size: 18px;
@@ -669,8 +669,8 @@
 
 .gantt-resourceTimeline-resourceMenuButton:hover,
 .gantt-resourceTimeline-resourceMenuButton:focus-visible {
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--gantt-hover-background, #e5e7eb);
+  color: var(--gantt-text-color, #374151);
   outline: none;
 }
 
@@ -691,7 +691,7 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #374151;
+  color: var(--gantt-text-color, #374151);
   cursor: pointer;
   font: inherit;
   font-size: 0.8rem;
@@ -701,7 +701,7 @@
 
 .gantt-resourceTimeline-resourceMenuItem:hover:not(:disabled),
 .gantt-resourceTimeline-resourceMenuItem:focus-visible:not(:disabled) {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--gantt-hover-background, rgba(0, 0, 0, 0.05));
   outline: none;
 }
 
@@ -711,13 +711,13 @@
 }
 
 .gantt-resourceTimeline-resourceMenuItemDanger {
-  color: #ef4444;
+  color: var(--gantt-danger-foreground, #ef4444);
 }
 
 .gantt-resourceTimeline-resourceMenuItemDanger:hover:not(:disabled),
 .gantt-resourceTimeline-resourceMenuItemDanger:focus-visible:not(:disabled) {
-  background-color: rgba(239, 68, 68, 0.08);
-  color: #dc2626;
+  background-color: var(--gantt-danger-overlay, rgba(239, 68, 68, 0.08));
+  color: var(--gantt-danger-foreground, #dc2626);
 }
 
 .gantt-resourceTimeline-resourceInput {
@@ -734,7 +734,7 @@
   border: 0;
   border-bottom: 1px solid var(--gantt-grid-line-color, #e0e0e0);
   background: var(--gantt-cell-background, #ffffff);
-  color: #2563eb;
+  color: var(--gantt-info-foreground, #2563eb);
   cursor: pointer;
   font: inherit;
   font-size: 14px;
@@ -744,8 +744,8 @@
 
 .gantt-resourceTimeline-addResourceButton:hover,
 .gantt-resourceTimeline-addResourceButton:focus-visible {
-  background: #f8fafc;
-  color: #1d4ed8;
+  background: var(--gantt-hover-background, #f8fafc);
+  color: var(--gantt-info-foreground, #1d4ed8);
   outline: none;
 }
 
@@ -782,7 +782,7 @@
 }
 
 .gantt-resourceTimeline-groupRow {
-  background: #f7f8fa;
+  background: var(--gantt-header-background, #f7f8fa);
 }
 
 .gantt-resourceTimeline-item {
@@ -808,8 +808,8 @@
   gap: 3px;
   padding: 7px 9px;
   border-radius: 6px;
-  background: rgba(15, 23, 42, 0.96);
-  color: #ffffff;
+  background: var(--gantt-tooltip-background, #111111);
+  color: var(--gantt-tooltip-foreground, #ffffff);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.25;
@@ -843,7 +843,7 @@
 
 .gantt-resourceTimeline-itemTooltipLineSecondary {
   gap: 5px;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--gantt-tooltip-muted-foreground, #bdbdbd);
   font-size: 11px;
   font-weight: 500;
 }
@@ -875,7 +875,7 @@
 
 .gantt-resourceTimeline-itemActive {
   z-index: 31;
-  box-shadow: 0px 0 0px 2px rgb(0 0 0);
+  box-shadow: 0px 0 0px 2px var(--gantt-shadow-color, rgb(0 0 0));
 }
 
 .gantt-resourceTimeline-itemMenuButton {
@@ -891,7 +891,7 @@
   padding: 0;
   border: 0;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--gantt-bar-highlight-color, rgba(255, 255, 255, 0.22));
   color: inherit;
   cursor: pointer;
   font: inherit;
@@ -915,7 +915,7 @@
 
 .gantt-resourceTimeline-itemMenuButton:hover,
 .gantt-resourceTimeline-itemMenuButton:focus-visible {
-  background: rgba(255, 255, 255, 0.34);
+  background: var(--gantt-bar-highlight-color, rgba(255, 255, 255, 0.34));
   outline: none;
 }
 
@@ -927,8 +927,8 @@
   pointer-events: none;
   border-radius: inherit;
   background-image: repeating-linear-gradient(135deg,
-      rgba(255, 255, 255, 0.26) 0,
-      rgba(255, 255, 255, 0.26) 2px,
+      var(--gantt-bar-highlight-color, rgba(255, 255, 255, 0.26)) 0,
+      var(--gantt-bar-highlight-color, rgba(255, 255, 255, 0.26)) 2px,
       transparent 2px,
       transparent 5px);
   mix-blend-mode: screen;
@@ -941,7 +941,7 @@
   z-index: 0;
   pointer-events: none;
   border-radius: inherit;
-  background-color: rgba(239, 68, 68, 1);
+  background-color: var(--gantt-danger-solid-background, rgba(239, 68, 68, 1));
 }
 
 .gantt-resourceTimeline-resizeHandle {
@@ -969,14 +969,14 @@
   z-index: 5;
   cursor: grabbing;
   opacity: 0.85;
-  box-shadow: 0 4px 12px rgba(31, 41, 55, 0.2);
+  box-shadow: 0 4px 12px var(--gantt-shadow-color, rgba(31, 41, 55, 0.2));
 }
 
 .gantt-resourceTimeline-itemConflictActive {
   z-index: 31;
   box-shadow:
-    0 0 0 2px rgba(239, 68, 68, 0.85),
-    0 4px 12px rgba(31, 41, 55, 0.2);
+    0 0 0 2px var(--gantt-danger-overlay, rgba(239, 68, 68, 0.85)),
+    0 4px 12px var(--gantt-shadow-color, rgba(31, 41, 55, 0.2));
 }
 
 .gantt-resourceTimeline-itemDisabled {

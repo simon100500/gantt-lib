@@ -2,12 +2,12 @@
 
 // START_MODULE_CONTRACT
 // PURPOSE: Render one task-list row, including editable dependency controls and print-friendly dependency labels.
-// SCOPE: Render task fields, hierarchy/actions, dependency editing, and print labels; hidden dependencies remain in editing/scheduling inputs but are excluded from predecessor chips and print labels.
+// SCOPE: Render task fields, optional consumer date actions, fixed-boundary editing, hierarchy/actions, dependency editing and print labels.
 // DEPENDS: GanttChart task types, scheduling helpers, TaskList column definitions, and UI popovers.
 // ROLE: RUNTIME
 // MAP_MODE: LOCALS
 // INPUTS: Optional consumer action/menu renderers and task callbacks.
-// OUTPUTS: No implicit task action UI; renderers receive capability-checked row operations.
+// OUTPUTS: Capability-checked row operations, date pin toggles and duration-aware boundary edits, and Shift-range selection.
 // END_MODULE_CONTRACT
 
 import React, {
@@ -40,15 +40,19 @@ import {
   recalculateIncomingLags,
 } from "../../core/scheduling";
 import { Input } from "../ui/Input";
-import { DatePicker } from "../ui/DatePicker";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
+import { DatePicker, type TaskDatePicker } from "../ui/DatePicker";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "../ui/Popover";
 import { LINK_TYPE_ICONS } from "./DepIcons";
+import { getTaskDatePin } from "./taskDatePin";
 import type { TaskListColumn as NewTaskListColumn } from "./columns/types";
 import { DEFAULT_TASK_DURATION_DAYS, buildDefaultTaskDateRange, getTodayISODate } from "./defaultTaskDates";
 import type { ReorderDropPlacement } from "../../utils/taskListReorder";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LINK_TYPE_ORDER: LinkType[] = ["FS", "SS", "FF", "SF"];
+
+export const FixedDateCommitContext = React.createContext<((tasks: Task[]) => void) | null | undefined>(undefined);
+const TaskPicker = DatePicker as React.FC<React.ComponentProps<typeof TaskDatePicker>>;
 
 const getInclusiveDurationDays = (
   startDate: string | Date,
@@ -885,7 +889,7 @@ export interface TaskListRowProps {
   /** Whether this task is currently selected by the multi-select checkbox column */
   isTaskSelected?: boolean;
   /** Callback when this task's multi-select checkbox changes */
-  onTaskSelectionChange?: (taskId: string, checked: boolean) => void;
+  onTaskSelectionChange?: (taskId: string, checked: boolean, extend: boolean) => void;
   /** Globally active custom cell in the task-list grid */
   activeCustomCell?: { taskId: string; columnId: string } | null;
   /** Updates the globally active custom cell */
@@ -894,6 +898,7 @@ export interface TaskListRowProps {
   taskListMenuCommands?: TaskListMenuCommand<Task>[];
   renderTaskListActions?: (context: TaskListActionContext<Task>) => React.ReactNode;
   renderTaskListMenu?: (context: TaskListActionContext<Task>, commands: React.ReactNode) => React.ReactNode;
+  renderTaskDateAction?: (task: Task, boundary: 'start' | 'end') => React.ReactNode;
   /** Hide row action controls such as insert, hierarchy action buttons, and context menu trigger. */
   hideTaskListRowActions?: boolean;
   /** Extra CSS class name for the rendered task-list row. */
@@ -943,6 +948,8 @@ const areTaskListRowPropsEqual = (prevProps: TaskListRowProps, nextProps: TaskLi
     prevTask.name === nextTask.name &&
     prevTask.startDate === nextTask.startDate &&
     prevTask.endDate === nextTask.endDate &&
+    prevTask.fixedStartDate === nextTask.fixedStartDate &&
+    prevTask.fixedEndDate === nextTask.fixedEndDate &&
     prevTask.type === nextTask.type &&
     prevTask.parentId === nextTask.parentId &&
     prevTask.progress === nextTask.progress &&
@@ -1008,6 +1015,7 @@ const areTaskListRowPropsEqual = (prevProps: TaskListRowProps, nextProps: TaskLi
     prevProps.onUngroupTask === nextProps.onUngroupTask &&
     prevProps.renderTaskListActions === nextProps.renderTaskListActions &&
     prevProps.renderTaskListMenu === nextProps.renderTaskListMenu &&
+    prevProps.renderTaskDateAction === nextProps.renderTaskDateAction &&
     prevProps.hideTaskListRowActions === nextProps.hideTaskListRowActions &&
     prevProps.rowClassName === nextProps.rowClassName &&
     prevProps.getTaskListNamePrefixIcon === nextProps.getTaskListNamePrefixIcon &&
@@ -1080,6 +1088,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     taskListMenuCommands = [],
     renderTaskListActions,
     renderTaskListMenu,
+    renderTaskDateAction,
     hideTaskListRowActions = false,
     rowClassName,
     compositeParentColor,
@@ -1131,7 +1140,12 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const [progressValue, setProgressValue] = useState(0);
     const progressInputRef = useRef<HTMLInputElement>(null);
     const [overflowOpen, setOverflowOpen] = useState(false);
-    const [contextMenuOpen, setContextMenuOpen] = useState(false);
+    const [menuAnchor, setMenuAnchor] = useState<"trigger" | { x: number; y: number } | null>(null);
+    const pointerAnchor = useMemo(() => {
+      if (menuAnchor === null || menuAnchor === "trigger") return null;
+      const { x, y } = menuAnchor;
+      return { current: { getBoundingClientRect: () => new DOMRect(x, y, 0, 0) } };
+    }, [menuAnchor]);
     const nameConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const durationConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
     const progressConfirmedRef = useRef(false); // Prevent double-save on Enter + blur
@@ -1213,7 +1227,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const getHierarchyLineColor = useCallback((columnDepth: number) => {
       return columnDepth % 2 === 0
-        ? "#93c5fd"
+        ? "var(--gantt-focus-color, #93c5fd)"
         : "var(--gantt-hierarchy-line-color)";
     }, []);
 
@@ -1370,6 +1384,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
 
     const handleRowKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
+        if (!e.currentTarget.contains(e.target as Node)) return;
         // Don't handle row keyboard events when editing progress
         if (editingProgress) return;
         // F2: enter edit mode with cursor at end of existing name
@@ -1730,10 +1745,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       [task, onTasksChange, businessDays, getDuration, weekendPredicate, allTasks, isMilestone, emitMilestoneDateChange, taskDateChangeMode],
     );
 
-    const datePickerFooter = onTaskDateChangeModeChange ? (
+    const datePickerFooter = (durationDisabled = isMilestone) => onTaskDateChangeModeChange ? (
       <label className="gantt-datepicker-mode-checkbox">
         <input
           type="checkbox"
+          disabled={durationDisabled}
           checked={taskDateChangeMode === 'preserve-duration'}
           onChange={(event) => onTaskDateChangeModeChange(event.target.checked ? 'preserve-duration' : 'free')}
         />
@@ -1741,7 +1757,38 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       </label>
     ) : null;
 
-    const handleRowClickInternal = useCallback(() => {
+    const fixedDateCommit = React.useContext(FixedDateCommitContext);
+    const onFixedDateChange = fixedDateCommit === undefined ? onTasksChange : fixedDateCommit;
+    // START_BLOCK_FIXED_BOUNDARY_PICKER
+    const renderDatePicker = (boundary: 'start' | 'end', dateAction: React.ReactNode) => {
+      const pin = getTaskDatePin({
+        task, boundary, isParent, mode: taskDateChangeMode, businessDays, isWeekend: weekendPredicate,
+        canToggle: !renderTaskDateAction || !!dateAction,
+        onChange: onFixedDateChange ? update => onFixedDateChange([update]) : undefined,
+      });
+      const footer = datePickerFooter(pin.disableDuration);
+      return (
+        <TaskPicker
+          value={pin.value}
+          format="dd.MM.yy"
+          portal
+          isWeekend={weekendPredicate}
+          businessDays={businessDays}
+          disabled={task.locked || (!!pin.fixedDateEdit && !onFixedDateChange)}
+          onChange={pin.fixedDateEdit ? pin.changeFixedDate : boundary === 'start' ? handleStartDateChange : handleEndDateChange}
+          pinAction={pin.pinAction}
+          fixedDateEdit={pin.fixedDateEdit}
+          footer={pin.note ? <>{footer}<div className="gantt-datepicker-fixed-note">{pin.note}</div></> : footer}
+        />
+      );
+    };
+    // END_BLOCK_FIXED_BOUNDARY_PICKER
+
+    const handleRowClickInternal = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+      if (!event.currentTarget.contains(event.target as Node)) {
+        event.stopPropagation();
+        return;
+      }
       onRowClick?.(task.id);
     }, [task.id, onRowClick]);
 
@@ -1791,7 +1838,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       duplicate: onDuplicateTask ? () => onDuplicateTask(task.id) : undefined,
       delete: onDelete ? () => onDelete(task.id) : undefined,
       ungroup: isParent && onUngroupTask ? () => onUngroupTask(task.id) : undefined,
-      closeMenu: () => setContextMenuOpen(false),
+      closeMenu: () => setMenuAnchor(null),
     };
     const commandContent = visibleCustomMenuCommands.length ? visibleCustomMenuCommands.map(command => (
       <React.Fragment key={command.id}>
@@ -1810,6 +1857,18 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
     const menuContent = hideTaskListRowActions ? null : renderTaskListMenu ? renderTaskListMenu(actionContext, commandContent) : commandContent;
     const actionContent = hideTaskListRowActions ? null : renderTaskListActions?.(actionContext);
     const hasContextMenu = menuContent !== null && menuContent !== undefined && menuContent !== false;
+    const contextMenuOpen = hasContextMenu && menuAnchor !== null;
+
+    const handleRowContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+      if (event.defaultPrevented || !(event.target instanceof Element) ||
+        !event.currentTarget.contains(event.target) ||
+        event.target.closest('input:not([type="checkbox"]), textarea, [contenteditable]:not([contenteditable="false"]), [data-custom-column-editor]')) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      setMenuAnchor({ x: event.clientX, y: event.clientY });
+    };
 
     // Dependency handlers
     const handleAddClick = useCallback(
@@ -2043,7 +2102,11 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           className="gantt-tl-selection-checkbox"
           aria-label={`Выбрать работу ${taskNumber ? `${taskNumber}. ` : ""}${task.name}`}
           checked={isTaskSelected}
-          onChange={(event) => onTaskSelectionChange?.(task.id, event.target.checked)}
+          onChange={(event) => onTaskSelectionChange?.(
+            task.id,
+            event.currentTarget.checked,
+            event.nativeEvent instanceof MouseEvent && event.nativeEvent.shiftKey,
+          )}
         />
       </div>
     );
@@ -2186,63 +2249,33 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
                 />
               </>
             )}
-            {task.composite && !isFilterHideMode && !isCollapsed && !editingName && (
-              <span
-                data-testid="gantt-tl-parent-connector-tail"
-                style={{
-                  position: "absolute",
-                  left: `${nestingDepth * 20 + 9}px`,
-                  top: `${rowHeight / 2 + 7}px`,
-                  height: `${rowHeight / 2 - 7}px`,
-                  width: "1.5px",
-                  background: getHierarchyLineColor(nestingDepth),
-                  borderRadius: "1px",
-                  pointerEvents: "none",
-                }}
-              />
-            )}
-            {isParent && !task.composite && !editingName && (
-              <>
-                <button
-                  type="button"
-                  className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
-                  onClick={handleToggleCollapse}
-                  style={{ left: `${nestingDepth * 20 - 2}px` }}
-                  aria-label={isCollapsed ? "Expand children" : "Collapse children"}
-                >
-                  <ChevronRightIcon />
-                </button>
-              </>
-            )}
           </>
         )}
-        {!isChild && isParent && !task.composite && !editingName && (
-          <>
-            {!isFilterHideMode && !isCollapsed && (
-              <span
-                data-testid="gantt-tl-parent-connector-tail"
-                style={{
-                  position: "absolute",
-                  left: `${nestingDepth * 20 + 9}px`,
-                  top: `${rowHeight / 2 + 7}px`,
-                  height: `${rowHeight / 2 - 7}px`,
-                  width: "1.5px",
-                  background: getHierarchyLineColor(nestingDepth),
-                  borderRadius: "1px",
-                  pointerEvents: "none",
-                }}
-              />
-            )}
-            <button
-              type="button"
-              className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
-              onClick={handleToggleCollapse}
-              style={{ left: `${nestingDepth * 20 - 2}px` }}
-              aria-label={isCollapsed ? "Expand children" : "Collapse children"}
-            >
-              <ChevronRightIcon />
-            </button>
-          </>
+        {!editingName && !isFilterHideMode && !isCollapsed && (task.composite ? isChild : isParent) && (
+          <span
+            data-testid="gantt-tl-parent-connector-tail"
+            style={{
+              position: "absolute",
+              left: `${nestingDepth * 20 + 9}px`,
+              top: `${rowHeight / 2 + 7}px`,
+              height: `${rowHeight / 2 - 7}px`,
+              width: "1.5px",
+              background: getHierarchyLineColor(nestingDepth),
+              borderRadius: "1px",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+        {isParent && !task.composite && !editingName && (
+          <button
+            type="button"
+            className={`gantt-tl-collapse-btn ${isCollapsed ? "gantt-tl-collapse-btn-collapsed" : ""}`}
+            onClick={handleToggleCollapse}
+            style={{ left: `${nestingDepth * 20 - 2}px` }}
+            aria-label={isCollapsed ? "Expand children" : "Collapse children"}
+          >
+            <ChevronRightIcon />
+          </button>
         )}
         {editingName ? (
           <Input
@@ -2317,36 +2350,26 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
           <div className={`gantt-tl-name-actions${contextMenuOpen ? " gantt-tl-name-actions-open" : ""}`} onClick={event => event.stopPropagation()}>
             {actionContent}
             {hasContextMenu ? (
-              <Popover open={contextMenuOpen} onOpenChange={setContextMenuOpen}>
-                <PopoverTrigger asChild>
-                  <button type="button" className="gantt-tl-name-action-btn gantt-tl-action-context"
-                    onClick={event => { event.stopPropagation(); setContextMenuOpen(value => !value); }}
-                    aria-label="Дополнительно"><VerticalDotsIcon /></button>
-                </PopoverTrigger>
-                <PopoverContent className="gantt-tl-context-menu" portal={true} align="end">{menuContent}</PopoverContent>
-              </Popover>
+              <PopoverTrigger asChild>
+                <button type="button" className="gantt-tl-name-action-btn gantt-tl-action-context"
+                  aria-label="Дополнительно"><VerticalDotsIcon /></button>
+              </PopoverTrigger>
             ) : null}
           </div>
         ) : null}
       </div>
     );
 
+    const startDateAction = renderTaskDateAction?.(task, 'start');
+    const endDateAction = renderTaskDateAction?.(task, 'end');
     const startDateCell = (
       <div
         className="gantt-tl-cell gantt-tl-cell-date"
         style={getColumnStyle('startDate', 90)}
         onClick={(e) => e.stopPropagation()}
       >
-        <DatePicker
-          value={startDateISO}
-          onChange={handleStartDateChange}
-          format="dd.MM.yy"
-          portal={true}
-          disabled={task.locked}
-          isWeekend={weekendPredicate}
-          businessDays={businessDays}
-          footer={datePickerFooter}
-        />
+        {renderDatePicker('start', startDateAction)}
+        {startDateAction}
       </div>
     );
 
@@ -2356,16 +2379,8 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         style={getColumnStyle('endDate', 90)}
         onClick={(e) => e.stopPropagation()}
       >
-        <DatePicker
-          value={endDateISO}
-          onChange={handleEndDateChange}
-          format="dd.MM.yy"
-          portal={true}
-          disabled={task.locked}
-          isWeekend={weekendPredicate}
-          businessDays={businessDays}
-          footer={datePickerFooter}
-        />
+        {renderDatePicker('end', endDateAction)}
+        {endDateAction}
       </div>
     );
 
@@ -2530,10 +2545,10 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
               ? { visibility: "hidden", pointerEvents: "none" }
               : task.progress === 100
                 ? {
-                  backgroundColor: "#17c864",
+                  backgroundColor: "var(--gantt-success-solid-background, #17c864)",
                   borderRadius: "4px",
                   padding: "2px 4px",
-                  color: "#ffffff",
+                  color: "var(--gantt-solid-foreground, #ffffff)",
                 }
                 : undefined
           }
@@ -2732,7 +2747,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
       });
     }, [focusCustomCell, onActiveCustomCellChange, resolvedColumns, task.id]);
 
-    return (
+    const row = (
       <div
         ref={rowRef}
         data-filter-match={isFilterMatch ? 'true' : 'false'}
@@ -2769,6 +2784,7 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
         data-gantt-task-row-id={task.id}
         data-task-list-row-class={rowClassName ?? undefined}
         onClick={handleRowClickInternal}
+        onContextMenu={hasContextMenu ? handleRowContextMenu : undefined}
         onKeyDown={handleRowKeyDown}
         onDragOver={(e) => onDragOver?.(rowIndex, e)}
         onDrop={(e) => onDrop?.(rowIndex, e)}
@@ -2910,7 +2926,19 @@ export const TaskListRow: React.FC<TaskListRowProps> = React.memo(
             </div>
           );
         })}
+        {pointerAnchor ? <PopoverAnchor virtualRef={pointerAnchor} /> : null}
+        {hasContextMenu ? (
+          <PopoverContent className="gantt-tl-context-menu" align={pointerAnchor ? "start" : "end"}>
+            {menuContent}
+          </PopoverContent>
+        ) : null}
       </div>
+    );
+
+    return (
+      <Popover open={contextMenuOpen} onOpenChange={open => setMenuAnchor(open ? "trigger" : null)}>
+        {row}
+      </Popover>
     );
   },
   areTaskListRowPropsEqual

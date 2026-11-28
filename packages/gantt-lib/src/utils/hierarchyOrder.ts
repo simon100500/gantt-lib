@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Order task hierarchies and roll parent dates/progress from direct children.
-// SCOPE: Stable depth-first ordering and one indexed bottom-up normalization pass; manual progress preserves a projected parent percentage without changing rolled-up dates.
+// SCOPE: Compact group boundary classes from full visible order, stable depth-first ordering and one indexed bottom-up normalization pass; preserve fixed date boundaries and optional manual parent progress.
 // INPUTS: Task hierarchy and optional per-parent progressAggregation.
 // OUTPUTS: Normalized hierarchy with unchanged default duration-weighted progress semantics.
 // DEPENDS: scheduling types, dateUtils
@@ -11,6 +11,7 @@
 import type { Task } from '../types';
 import { normalizeTaskDates } from './dateUtils';
 import { activityBounds } from './activities';
+import { resolveFixedDates, resolveParentFixedDates } from '../core/scheduling/fixedDates';
 
 type HierarchyTask = Task & {
   sortOrder?: number;
@@ -82,7 +83,8 @@ export function flattenHierarchy<T extends HierarchyTask>(tasks: T[]): T[] {
  * taking precedence over any hardcoded parent values from the input.
  * Also normalizes task dates to ensure startDate is always before or equal to endDate.
  */
-export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[]): T[] {
+export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[], businessDays = false, weekendPredicate?: (date: Date) => boolean): T[] {
+  const parentIds = new Set(tasks.map(task => task.parentId).filter(Boolean));
   const orderedTasks = flattenHierarchy(tasks).map((task) => {
     // Строка с работами сама зависит сроками от них: её границы — это охват
     // activities. Иначе родитель (секция/этаж) считался бы от устаревших дат
@@ -92,10 +94,15 @@ export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[]): T[
       bounds?.startDate ?? task.startDate,
       bounds?.endDate ?? task.endDate,
     );
-    return { ...task, startDate: startDate as T['startDate'], endDate: endDate as T['endDate'] };
+    if (!task.fixedStartDate && !task.fixedEndDate) {
+      return { ...task, startDate: startDate as T['startDate'], endDate: endDate as T['endDate'] };
+    }
+    const range = resolveFixedDates(task, { start: new Date(startDate), end: new Date(endDate) }, parentIds.has(task.id));
+    return { ...task, startDate: range.start.toISOString().slice(0, 10) as T['startDate'], endDate: range.end.toISOString().slice(0, 10) as T['endDate'] };
   }) as T[];
 
   const childrenByParent = new Map<string, number[]>();
+  const taskIndex = new Map(orderedTasks.map((task, index) => [task.id, index]));
   for (let index = 0; index < orderedTasks.length; index++) {
     const parentId = orderedTasks[index].parentId;
     if (!parentId) continue;
@@ -122,10 +129,14 @@ export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[]): T[
       totalWeight += duration;
       weightedProgress += duration * (child.progress ?? 0);
     }
+    const range = resolveParentFixedDates(orderedTasks[index], { start: new Date(minStart), end: new Date(maxEnd) }, id => {
+      const predecessorIndex = taskIndex.get(id);
+      return predecessorIndex === undefined ? undefined : orderedTasks[predecessorIndex];
+    }, businessDays, weekendPredicate);
     orderedTasks[index] = {
       ...orderedTasks[index],
-      startDate: new Date(minStart).toISOString().split('T')[0] as T['startDate'],
-      endDate: new Date(maxEnd).toISOString().split('T')[0] as T['endDate'],
+      startDate: range.start.toISOString().split('T')[0] as T['startDate'],
+      endDate: range.end.toISOString().split('T')[0] as T['endDate'],
       progress: (orderedTasks[index].progressAggregation === 'manual'
         ? orderedTasks[index].progress
         : totalWeight === 0 ? 0 : Math.round((weightedProgress / totalWeight) * 10) / 10) as T['progress'],
@@ -133,4 +144,17 @@ export function normalizeHierarchyTasks<T extends HierarchyTask>(tasks: T[]): T[
   }
 
   return orderedTasks;
+}
+
+/** Group edges use the full visible order, not the virtualized DOM window. */
+export function compactGroupBoundaryClasses<T extends { parentId?: string | null }>(
+  tasks: readonly T[], index: number, compositeParents: { has(id: string): boolean },
+): string | undefined {
+  const parentId = tasks[index]?.parentId;
+  if (!parentId || !compositeParents.has(parentId)) return undefined;
+  const classes = [
+    tasks[index - 1]?.parentId !== parentId ? 'gantt-compact-group-start' : '',
+    tasks[index + 1]?.parentId !== parentId ? 'gantt-compact-group-end' : '',
+  ].filter(Boolean).join(' ');
+  return classes || undefined;
 }

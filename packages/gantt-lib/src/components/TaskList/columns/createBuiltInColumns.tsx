@@ -24,13 +24,13 @@ export function createBuiltInColumns<TTask extends Task>(opts?: {
     { id: 'endDate', header: '\u041E\u043A\u043E\u043D\u0447\u0430\u043D\u0438\u0435', width: BUILT_IN_COLUMN_WIDTHS.endDate, renderCell: () => null },
     { id: 'duration', header: opts?.businessDays ? '\u0414\u043D. (\u0440)' : '\u0414\u043D.', width: BUILT_IN_COLUMN_WIDTHS.duration, renderCell: () => null },
     { id: 'progress', header: '%', width: BUILT_IN_COLUMN_WIDTHS.progress, renderCell: () => null },
-    { id: 'dependencies', header: null, width: BUILT_IN_COLUMN_WIDTHS.dependencies, renderCell: () => null },
+    { id: 'dependencies', header: 'Связи', width: BUILT_IN_COLUMN_WIDTHS.dependencies, renderCell: () => null },
   ];
 
   if (opts?.enableTaskMultiSelect) {
     columns.unshift({
       id: 'selection',
-      header: null,
+      header: 'Выбор задач',
       width: BUILT_IN_COLUMN_WIDTHS.selection,
       renderCell: () => null,
     });

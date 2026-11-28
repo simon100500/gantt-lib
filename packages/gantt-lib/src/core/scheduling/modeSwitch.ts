@@ -1,8 +1,17 @@
+// START_MODULE_CONTRACT
+// PURPOSE: Recalculate tasks for a calendar mode change.
+// SCOPE: Leaf duration, parent rollup, dependency reflow and fixed date boundaries.
+// INPUTS: Tasks, target calendar mode and weekend predicate.
+// OUTPUTS: Reflowed task snapshot with fixed dates retained.
+// DEPENDS: scheduling types, dateMath, commands, hierarchy, execute, fixedDates
+// LINKS: M-SCHEDULING
+// END_MODULE_CONTRACT
 import type { Task } from './types';
 import { normalizeUTCDate, getTaskDuration, alignToWorkingDay } from './dateMath';
 import { buildTaskRangeFromStart } from './commands';
 import { computeParentDates, isTaskParent } from './hierarchy';
 import { recalculateProjectSchedule } from './execute';
+import { resolveFixedDates } from './fixedDates';
 
 /**
  * Recalculate all task dates when switching between business/calendar day modes.
@@ -47,13 +56,14 @@ export function reflowTasksOnModeSwitch(
         )
       : buildTaskRangeFromStart(start, duration, false);
 
-    task.startDate = toISO(range.start);
-    task.endDate = toISO(range.end);
+    const resolved = resolveFixedDates(task, range, false, toBusinessDays, weekendPredicate);
+    task.startDate = toISO(resolved.start);
+    task.endDate = toISO(resolved.end);
   }
 
   for (const task of tasks) {
     if (!isTaskParent(task.id, tasks)) continue;
-    const { startDate, endDate } = computeParentDates(task.id, tasks);
+    const { startDate, endDate } = computeParentDates(task.id, tasks, toBusinessDays, weekendPredicate);
     task.startDate = toISO(startDate);
     task.endDate = toISO(endDate);
   }

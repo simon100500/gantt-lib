@@ -40,7 +40,7 @@
   --gantt-resource-bar-conflict-color: #ef4444;
 
   /* Today Indicator */
-  --gantt-today-indicator-color: rgba(255, 0, 0, 0.6);
+  --gantt-today-indicator-color: #dc2626;
   --gantt-today-indicator-width: 2px;
 
   /* Calendar Grid - Weekend */

@@ -285,6 +285,8 @@ interface Task {
   name: string;
   startDate: string | Date;
   endDate: string | Date;
+  fixedStartDate?: string | null; // YYYY-MM-DD; omit or null for automatic start
+  fixedEndDate?: string | null;   // YYYY-MM-DD; omit or null for automatic end
   baselineStartDate?: string | Date;
   baselineEndDate?: string | Date;
   type?: 'task' | 'milestone';
@@ -302,6 +304,10 @@ interface Task {
 ```
 
 Tasks accept ISO strings or `Date` objects, but internal calculations are UTC-safe. Milestones use `type: 'milestone'`. Hierarchy uses `parentId`. Locked tasks cannot be dragged or edited.
+
+Fixed dates independently anchor each boundary during scheduling. Parent boundaries without an anchor follow their children and applicable incoming constraints; children may extend outside fixed boundaries. A milestone has one date. Inverted fixed dates are rejected, as are subtree scaling results that would move an anchor (`FIXED_DATE_CONFLICT`). Existing tasks without fixed dates retain their existing behavior.
+
+Use `renderTaskDateAction(task, boundary)` to render a consumer-owned control next to the start or end date in the task list. The `boundary` is `'start'` or `'end'`.
 
 ### Dependencies
 
@@ -492,10 +498,34 @@ interface DependencyError {
 
 ### CSS Variables
 
-Override these CSS variables to customize the appearance:
+Override these CSS variables to customize the appearance. Set theme variables on `:root` when using popovers or task tooltips: these render in a portal under `document.body` and do not inherit variables from a chart container.
 
 ```css
 :root {
+  /* Shared UI colors (each use retains its original light fallback) */
+  --gantt-text-color: #1f2937;
+  --gantt-text-muted-color: #6b7280;
+  --gantt-header-background: #f9fafb;
+  --gantt-hover-background: #f3f4f6;
+  --gantt-control-background: #ffffff;
+  --gantt-control-border-color: #d1d5db;
+  --gantt-focus-color: #3b82f6;
+  --gantt-task-label-color: #1f2937;
+  --gantt-action-solid-background: #3b82f6;
+  --gantt-danger-solid-background: #dc2626;
+  --gantt-success-solid-background: #059669;
+  --gantt-solid-foreground: #ffffff;
+  --gantt-inverse-background: #111827;
+  --gantt-shadow-color: rgba(15, 23, 42, 0.18);
+  --gantt-info-background: #deebff;
+  --gantt-info-foreground: #0747a6;
+  --gantt-success-background: #e3fcef;
+  --gantt-success-foreground: #006644;
+  --gantt-danger-background: #fef2f2;
+  --gantt-danger-foreground: #991b1b;
+  --gantt-selection-background: rgba(37, 99, 235, 0.12);
+  --gantt-selection-foreground: #2563eb;
+
   /* Grid Colors */
   --gantt-grid-line-color: #e0e0e0;
   --gantt-cell-background: #ffffff;
@@ -534,6 +564,14 @@ Override these CSS variables to customize the appearance:
   --gantt-day-line-color: #f3f4f6;
 }
 ```
+
+The legacy input, calendar and popover variables are independent and must also be set for a complete theme: `--gantt-input-bg`, `--gantt-input-text`, `--gantt-input-border`, `--gantt-input-focus-ring`, `--gantt-input-placeholder`, `--gantt-popover-bg`, `--gantt-popover-border`, `--gantt-calendar-bg`, `--gantt-calendar-text`, and the `--gantt-calendar-day-*` and `--gantt-calendar-text-*` state colors. Set `--gantt-task-label-color` for labels outside bars; the bar and its contrast text remain independent. `--gantt-plan-fact-day-line-color` and `--gantt-dependency-selected-color` override those specialized features. `--gantt-bar-highlight-color` controls translucent marks over colored bars.
+
+For translucent states and gradients, supply alpha colors for `--gantt-neutral-overlay`, `--gantt-warning-overlay`, `--gantt-danger-overlay`, `--gantt-success-overlay`, `--gantt-focus-overlay`, `--gantt-selection-overlay` and `--gantt-selection-overlay-strong`; keep `--gantt-selection-overlay-clear` transparent. `--gantt-skeleton-base-color` and `--gantt-skeleton-highlight-color` style loading gradients, while `--gantt-bar-highlight-color` and `--gantt-bar-highlight-soft-color` style marks over colored bars. Each use retains its historical light fallback when a variable is unset. `--gantt-warning-background` styles highlighted rows and `--gantt-warning-foreground` styles warning text.
+
+Labels inside bars are plain text. `--gantt-task-bar-text-color` controls task duration and progress labels; activity labels retain their original color selection in light themes. On dark chart backgrounds, plain labels choose a readable foreground against the bar and progress, with a soft text shadow when needed. On dark chart backgrounds, bars that contrast less than 3:1 with the background receive a thin boundary. `--gantt-fixed-marker-width`, `--gantt-fixed-marker-height`, `--gantt-fixed-marker-outline-color`, `--gantt-fixed-marker-inner-display` and `--gantt-bar-marker-color` control fixed-date markers; defaults preserve the original light marker.
+
+Inverse tooltip surfaces use `--gantt-tooltip-background`, `--gantt-tooltip-foreground`, `--gantt-tooltip-muted-foreground` and `--gantt-tooltip-danger-foreground`; override each foreground with an accessible value against the chosen background.
 
 ### Example: Dark Theme
 
@@ -596,26 +634,34 @@ activityDependencyHighlight={{
 Set TaskDependency.hidden to true to omit its arrow, predecessor chip and print label. The full dependency remains available to validation, drag constraints and cascading; this is a presentation flag, not a scheduling switch.
 
 
-### Consumer-owned task controls (0.145.0)
+### Task List context menu
 
-Task callbacks no longer add implicit menu items or row buttons. `taskListMenuCommands`
-continues to render explicitly configured commands (scope, visibility, disabled state,
-icons, dividers and close behavior). An empty command list produces no menu trigger.
-`enableAddTask` now defaults to `false`; set it to `true` with `onAdd` to show the footer.
+Right-click a Task List row or click its ellipsis to open the same menu.
+Pass `taskListMenuCommands` to add commands with a stable `id`, a `label`, an
+optional `icon`, and an `onSelect(task)` handler. Use `scope` and `isVisible`
+to choose which rows show a command, `isDisabled` to disable it, and
+`closeOnSelect: false` to keep the menu open after selection.
 
 Use `renderTaskListActions(context)` for arbitrary row buttons and
-`renderTaskListMenu(context, commands)` to replace or compose the entire menu.
-Return `null` to omit either surface for a row. `hideTaskListRowActions` suppresses
-both slots and commands. Context contains `task`, `isParent`, `canPromote`,
+`renderTaskListMenu(context, commands)` to compose the configured commands with
+your own markup or supply the entire menu. Return `null` to omit the menu for
+a row. `hideTaskListRowActions` hides the row buttons and disables both menu
+triggers. If a row has no menu content, right-click opens the browser menu.
+
+Context contains `task`, `isParent`, `canPromote`,
 `canDemote`, `closeMenu`, and optional `insertAfter`, `promote`, `demote`, `duplicate`,
 `delete`, `ungroup` operations. Unsupported operations are `undefined`.
-The library retains scheduling, hierarchy and inline-insert behavior; the consumer
-owns labels, icons, colors, menu composition and business actions.
 
 ```tsx
 <GanttChart tasks={tasks} showTaskList onTasksChange={setChangedTasks}
   onAdd={addTask} onInsertAfter={insertTask} onDelete={deleteTask}
   enableAddTask
+  taskListMenuCommands={[{
+    id: 'details',
+    label: 'Open task details',
+    icon: <span aria-hidden="true">↗</span>,
+    onSelect: task => openTaskDetails(task.id),
+  }]}
   renderTaskListActions={({ insertAfter, promote, demote }) => <>
     {insertAfter && <button onClick={insertAfter}>+</button>}
     {promote && <button onClick={promote}>Promote</button>}
@@ -628,7 +674,16 @@ owns labels, icons, colors, menu composition and business actions.
 />
 ```
 
-Migrate color selection into the application, emitting changed task copies through
-`onTasksChange`. To preserve the previous parent-color behavior, include descendants.
-Do not mutate the context task. Use the optional operation callbacks to preserve the
-library's descendant deletion, duplication and hierarchy scheduling semantics.
+`openTaskDetails` is an application handler. Use the optional context operations
+to keep the library's scheduling and hierarchy behavior. For custom edits such as
+color changes, pass updated task copies through `onTasksChange`. Include descendants
+if your color action applies to the whole group. Set `enableAddTask` with `onAdd`
+to show the add-task footer.
+
+### Task List column visibility
+
+Hover over a column header and click its triangle to show or hide built-in and custom
+columns. The Task List stores visibility locally by default. To manage it in the
+application, pass `hiddenTaskListColumns` and update it in
+`onHiddenTaskListColumnsChange(nextHiddenIds)`. Passing only `hiddenTaskListColumns`
+fixes visibility from the application.

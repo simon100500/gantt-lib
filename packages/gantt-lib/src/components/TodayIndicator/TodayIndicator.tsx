@@ -48,7 +48,7 @@ const TodayIndicator: React.FC<TodayIndicatorProps> = ({ monthStart, dayWidth, o
     >
       <div
         className="gantt-ti-hitArea"
-        onMouseEnter={() => onHover?.({ label: todayLabel, left: position, color: '#dc2626' })}
+        onMouseEnter={() => onHover?.({ label: todayLabel, left: position, color: 'var(--gantt-danger-solid-background, #dc2626)' })}
         onMouseLeave={onHoverEnd}
       />
     </div>

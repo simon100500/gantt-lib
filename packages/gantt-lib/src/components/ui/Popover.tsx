@@ -46,6 +46,7 @@ export const Popover: React.FC<PopoverProps> = ({ open, onOpenChange, children }
  * Popover trigger — wraps the element that opens the popover
  */
 export const PopoverTrigger = RadixPopover.Trigger;
+export const PopoverAnchor = RadixPopover.Anchor;
 
 /**
  * Popover content — the floating panel

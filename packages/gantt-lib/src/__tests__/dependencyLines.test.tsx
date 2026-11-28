@@ -1,7 +1,7 @@
 // START_MODULE_CONTRACT
 // PURPOSE: Verify dependency rendering, isolation across mounted charts and hover marker ownership.
-// INPUTS: Hidden and visible charts with the same linked tasks.
-// OUTPUTS: Unique stable markers resolving inside each owning SVG, including hover and selected edges.
+// INPUTS: Hidden and visible charts with linked tasks, including replicated and distinct edges and row removal.
+// OUTPUTS: Unique stable markers and rendered edges that reconcile correctly after graph changes.
 // END_MODULE_CONTRACT
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -14,6 +14,28 @@ import { cascadeByLinks } from '../core/scheduling/cascade';
 const isWeekend = (date: Date) => date.getUTCDay() === 0 || date.getUTCDay() === 6;
 
 describe('DependencyLines', () => {
+  it.each([false, true])('reconciles replicated edges and distinct lags after removal (activityEndpoints=%s)', (activityEndpoints) => {
+    const tasks: Task[] = [
+      { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-02' },
+      { id: 'b', name: 'B', startDate: '2026-03-03', endDate: '2026-03-04', dependencies: [{ taskId: 'a', type: 'FS' }, { taskId: 'a', type: 'FS', lag: 0 }] },
+      { id: 'c', name: 'C', startDate: '2026-03-01', endDate: '2026-03-02' },
+      { id: 'd', name: 'D', startDate: '2026-03-03', endDate: '2026-03-04', dependencies: [{ taskId: 'c', type: 'FS', lag: 0 }, { taskId: 'c', type: 'FS', lag: 2 }] },
+    ];
+    const props = { monthStart: new Date('2026-03-01T00:00:00Z'), dayWidth: 40, rowHeight: 40, gridWidth: 1240, activityEndpoints };
+    const error = vi.spyOn(console, 'error');
+    const { container, rerender } = render(<DependencyLines {...props} tasks={tasks} />);
+    const paths = () => Array.from(container.querySelectorAll('.gantt-dependency-path'));
+    expect(paths()).toHaveLength(3);
+    const oldSurvivor = paths()[1].getAttribute('d');
+    expect(container.textContent).toContain('+2');
+    const remaining = tasks.filter(task => task.id !== 'b');
+    rerender(<DependencyLines {...props} tasks={remaining} />);
+    expect(paths()).toHaveLength(2);
+    expect(paths()[0].getAttribute('d')).not.toBe(oldSurvivor);
+    expect(container.textContent).toContain('+2');
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
   it('keeps couplings visual-only even when ordinary dependency clicks are enabled', () => {
     const tasks: Task[] = [
       { id: 'a', name: 'A', startDate: '2026-03-01', endDate: '2026-03-01' },
