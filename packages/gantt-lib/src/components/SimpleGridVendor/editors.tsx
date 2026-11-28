@@ -34,8 +34,8 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
-import type { SimpleGridEditorProps, SimpleGridOption } from './types.js';
-import { SG_OPTION_HEIGHT, fuzzyRankOptions, parseGridMultiValue, serializeGridMultiValue } from './utils.js';
+import type { SimpleGridEditorProps, SimpleGridOption } from './types';
+import { SG_OPTION_HEIGHT, fuzzyRankOptions, parseGridMultiValue, serializeGridMultiValue } from './utils';
 
 const MENU_OVERSCAN = 6;
 
@@ -174,7 +174,7 @@ interface InPlaceTextProps {
   selectOnly?: boolean;
   textStyle?: SimpleGridEditorProps['textStyle'];
   caretAt?: SimpleGridEditorProps['caretAt'];
-  inputRef: RefObject<HTMLSpanElement>;
+  inputRef: RefObject<HTMLSpanElement | null>;
   onPaste?: (event: ReactClipboardEvent<HTMLElement>) => void;
   allowLineBreak?: boolean;
 }

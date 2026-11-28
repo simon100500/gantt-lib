@@ -36,7 +36,7 @@
 // normalization, display formatting and the forgiving candidate search.
 // No React, no DOM — everything here is unit-testable as is.
 
-import type { SimpleGridColumn, SimpleGridColumnFilter, SimpleGridSort, SimpleGridOption, SimpleGridValidation, SimpleGridFormat } from './types.js';
+import type { SimpleGridColumn, SimpleGridColumnFilter, SimpleGridSort, SimpleGridOption, SimpleGridValidation, SimpleGridFormat } from './types';
 
 // START_BLOCK_ROW_PROJECTION
 /** Parse the JSON string array used by multiselect cells; malformed values are empty. */

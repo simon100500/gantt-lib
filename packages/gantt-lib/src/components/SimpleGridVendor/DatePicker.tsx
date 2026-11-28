@@ -9,9 +9,8 @@
 // END_MODULE_MAP
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDays } from 'lucide-react';
-import { parseGridDate } from './utils.js';
-import type { SimpleGridDatePickerContext } from './types.js';
+import { parseGridDate } from './utils';
+import type { SimpleGridDatePickerContext } from './types';
 
 const isoDay = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const monthAt = (date: Date, offset: number) => new Date(date.getFullYear(), date.getMonth() + offset, 1);
@@ -117,7 +116,7 @@ export function CellDatePicker({ value, title, min, max, context, beforeOpen, on
         const bounded = min && initial < min ? min : max && initial > max ? max : initial;
         const date = new Date(`${bounded}T12:00:00`);
         setCursor(bounded); setMonths([-1, 0, 1].map(offset => monthAt(date, offset))); setOpen(true);
-      }}><CalendarDays size={14} aria-hidden="true"/></button>
+      }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 5h2m4 0h2"/></svg></button>
     {open && createPortal(<div ref={panel} className="sg-calendar" data-selection-role={context?.selectionRole} data-context={hasContext || undefined} data-sg-portal="" role="dialog" aria-label={`Календарь: ${title}`}
       style={{ ...position, position: 'fixed', zIndex: 1200 }}
       onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}
@@ -154,13 +153,21 @@ export function CellDatePicker({ value, title, min, max, context, beforeOpen, on
               data-marked={markers.some(marker => marker.iso === iso) || undefined}
               aria-pressed={iso === selected} aria-current={iso === isoDay(new Date()) ? 'date' : undefined}
               disabled={!allowed(iso)} tabIndex={iso === cursor ? 0 : -1}
-              className={`sg-calendar-day${date.getDay() === 0 || date.getDay() === 6 ? ' is-weekend' : ''}`}
+              className={`sg-calendar-day${(context?.isWeekend?.(iso) ?? (date.getDay() === 0 || date.getDay() === 6)) ? ' is-weekend' : ''}`}
               onFocus={() => setCursor(iso)} onClick={() => { onPick(iso); close(true); }}>
               {index + 1}
             </button>;
           })}
         </div>
       </section>)}</div>
+      {selected && context?.shiftDate && <div className="gantt-simple-grid-calendar-shifts">
+        {[-7, -1, 1, 7].map(days => {
+          const date = context.shiftDate!(selected, days);
+          return <button key={days} type="button" className="gantt-datepicker-shift-btn" disabled={!allowed(date)}
+            onClick={() => { onPick(date); close(true); }}>{days > 0 ? `+${days}` : days}</button>;
+        })}
+      </div>}
+      {context?.footer}
     </div>, document.body)}
   </>;
 }

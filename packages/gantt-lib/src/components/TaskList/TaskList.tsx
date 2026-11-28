@@ -84,7 +84,7 @@ function getAllDescendants(parentId: string, tasks: Task[]): Task[] {
   return descendants;
 }
 
-function duplicateTaskSubtree(anchorTaskId: string, orderedTasks: Task[]): Task[] {
+export function duplicateTaskSubtree(anchorTaskId: string, orderedTasks: Task[]): Task[] {
   const anchorTask = orderedTasks.find(task => task.id === anchorTaskId);
   if (!anchorTask) return orderedTasks;
 

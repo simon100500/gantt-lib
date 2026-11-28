@@ -273,6 +273,7 @@ function createPrintStyle(targetDocument: Document, orientation?: PrintGanttChar
     }
 
     .gantt-print-root .gantt-stickyHeader,
+    .gantt-print-root .gantt-simple-grid thead th,
     .gantt-print-root .gantt-tl-header {
       position: static !important;
       top: auto !important;
@@ -299,6 +300,7 @@ function createPrintStyle(targetDocument: Document, orientation?: PrintGanttChar
     .gantt-print-root .gantt-tl-dep-type-menu,
     .gantt-print-root .gantt-tl-dep-type-trigger,
     .gantt-print-root .gantt-tl-number-steppers,
+    .gantt-print-root .gantt-simple-grid :is(.sg-calendar-trigger, .sg-column-actions-button, [data-sg-editor], [data-testid^="sg-resize-"], [data-testid$="-fill-handle"], [data-column-id="actions"] > *, input[type="checkbox"]),
     .gantt-print-root .gantt-tr-resizeHandle {
       display: none !important;
     }

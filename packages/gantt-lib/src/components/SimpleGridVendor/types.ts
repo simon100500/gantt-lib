@@ -56,7 +56,7 @@ export interface SimpleGridEditorProps {
   rowIndex?: number;
   /** The column's `editorData`, passed through untouched. */
   editorData?: unknown;
-  align?: 'left' | 'right';
+  align?: 'left' | 'center' | 'right';
   placeholder?: string;
   inputMode?: 'text' | 'decimal';
   /** Allow Alt+Enter to insert a newline in the built-in text editor. */
@@ -110,6 +110,9 @@ export interface SimpleGridDatePickerContext {
   initialDate?: string;
   range?: { start?: string; end?: string; startLabel?: string; endLabel?: string };
   markers?: { value: string; label: string }[];
+  footer?: ReactNode;
+  shiftDate?: (iso: string, days: number) => string;
+  isWeekend?: (iso: string) => boolean;
 }
 
 export interface SimpleGridColumn<T> {
@@ -122,7 +125,10 @@ export interface SimpleGridColumn<T> {
   /** Позиция headerIcon: 'before' (по умолчанию) или 'after' текста заголовка. */
   headerIconPosition?: 'before' | 'after';
   width: number;
-  align?: 'left' | 'right';
+  align?: 'left' | 'center' | 'right';
+  headerContent?: ReactNode;
+  minWidth?: number;
+  editorStyle?: (row: T) => CSSProperties;
   placeholder?: string;
   /** Display lines inside the cell (2 enables a two-line clamp; editing stays single-line). */
   maxLines?: number;
@@ -143,7 +149,7 @@ export interface SimpleGridColumn<T> {
   /** Render a multiselect value as static chips: no dropdown editor, remove buttons, or grid mutations. */
   chipsOnly?: boolean;
   getValue?: (row: T) => string;
-  setValue?: (row: T, value: string) => T;
+  setValue?: (row: T, value: string, source?: 'editor') => T;
   /** Per-row lock (a catalog unit is owned by the catalog, not typed). */
   isDisabled?: (row: T, rowIndex: number) => boolean;
   /** Per-row loading state: the cell shows an animated placeholder instead of the value
@@ -170,7 +176,7 @@ export interface SimpleGridColumn<T> {
   /** Opaque data handed to a custom editor. */
   editorData?: unknown;
   /** Custom view-mode rendering (e.g. a greyed derived value); overrides the default text span. */
-  renderValue?: (row: T, rowIndex: number) => ReactNode;
+  renderValue?: (row: T, rowIndex: number, openEditor: () => void) => ReactNode;
   /** Иконка в ячейках в режиме просмотра: узел или (row, rowIndex) => узел | undefined (можно помечать отдельные строки).
    * Не показывается в render/renderValue/multiselect/checkbox ячейках и на время правки скрывается. */
   icon?: ReactNode | ((row: T, rowIndex: number) => ReactNode | undefined);
@@ -273,9 +279,9 @@ export interface SimpleGridProps<T> {
   defaultCollapsedGroupIds?: string[];
   onCollapsedGroupIdsChange?: (ids: string[]) => void;
   rowKey: (row: T) => string;
-  onChange: (rows: T[]) => void;
+  onChange: (rows: T[], editedColumnId?: string) => void | boolean;
   /** Transient edited row, including the current draft; null when editing ends. */
-  onEditPreview?: (row: T | null) => void;
+  onEditPreview?: (row: T | null, columnId?: string) => void;
   createRow: () => T;
   readOnly?: boolean;
   /** Cell menu: true for built-in commands, an array for custom commands, or a
@@ -303,6 +309,8 @@ export interface SimpleGridProps<T> {
   freezeRowHeader?: boolean;
   /** Show selection checkboxes beside row numbers (default false). */
   rowSelectionMode?: boolean;
+  rowSelectionLabel?: (row: T, rowIndex: number) => string;
+  selectAllRowsLabel?: string;
   /** Row identities selected independently of cell ranges and checkbox data columns. */
   selectedRowKeys?: string[];
   defaultSelectedRowKeys?: string[];
@@ -343,6 +351,7 @@ export interface SimpleGridProps<T> {
   onColumnWidthsChange?: (widths: Record<string, number>) => void;
   /** Initial resize overrides, keyed by column id. */
   defaultColumnWidths?: Record<string, number>;
+  columnWidths?: Record<string, number>;
   /**
    * Called after a header drag-and-drop reorder with the new order of column
    * ids. Works without it — the order lives in the grid state; new columns
@@ -372,6 +381,17 @@ export interface SimpleGridProps<T> {
   allowRowReorder?: boolean;
   /** Override reorder persistence (includes hidden members when dragging a collapsed banner). */
   onRowReorder?: (rows: T[], movedKeys: string[]) => void;
+  /** Host resolves a single row drop against its own hierarchy. */
+  rowDropTarget?: (row: T, target: T, placement: 'before' | 'inside' | 'after' | 'end') => (() => void) | undefined;
+  getRowScrollContainer?: () => HTMLElement | null;
+  allowRowInsert?: boolean;
+  onPasteOverflow?: () => void;
+  rowClassName?: (row: T, rowIndex: number) => string | undefined;
+  rowAttributes?: (row: T, rowIndex: number) => Record<`data-${string}`, string | undefined>;
+  onActiveRowChange?: (row: T) => void;
+  /** Row window owned by the shared Gantt viewport. */
+  visibleRowIndices?: readonly number[];
+  onRevealRow?: (index: number) => void;
     /** Optional detail content directly after a data row. Return null when collapsed.
      * The host owns expansion state. Details have no data-row index and are excluded
      * from parent selection, editing and clipboard. Nested grids own their events.

@@ -7,24 +7,35 @@
 // END_MODULE_CONTRACT
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Task, TaskDependency } from '../GanttChart';
-import type { LinkType } from '../../types';
+import type { TaskListActionContext, TaskListMenuCommand } from '../GanttChart/GanttChart';
+import type { LinkType, TaskDateChangeMode } from '../../types';
 import type { CustomDayConfig } from '../../utils/dateUtils';
 import { parseUTCDate, createCustomDayPredicate } from '../../utils/dateUtils';
 import {
   addBusinessDays,
+  alignToWorkingDay,
   areTasksHierarchicallyRelated,
   buildTaskRangeFromEnd,
   buildTaskRangeFromStart,
   calculateSuccessorDate,
-  getBusinessDaysCount,
+  clampTaskRangeForIncomingFS,
   getDependencyLag,
   getTaskDuration,
   normalizeDependencyLag,
+  recalculateIncomingLags,
   subtractBusinessDays,
   validateDependencies,
 } from '../../core/scheduling';
-import { SimpleGrid } from '../SimpleGridVendor/runtime.js';
+import { SimpleGrid } from '../SimpleGridVendor/SimpleGrid';
 import type { SimpleGridColumn, SimpleGridEditorProps } from '../SimpleGridVendor/types';
+import { GenerationSkeletonRows } from '../GenerationSkeleton';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
+import { getVisibleReorderPlan } from '../../utils/taskListReorder';
+import { NewTaskRow } from './NewTaskRow';
+import { buildDefaultTaskDateRange, getTodayISODate } from './defaultTaskDates';
+import { duplicateTaskSubtree } from './TaskList';
+import { resolveTaskListColumns } from './columns/resolveTaskListColumns';
+import type { TaskListColumn, TaskListColumnContext, TaskListColumnWidthMap } from './columns/types';
 import { buildTaskNumberMap } from './taskNumbering';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
 import { DepChip } from './TaskListRow';
@@ -32,8 +43,28 @@ import './TaskList.css';
 import './SimpleGridTaskList.css';
 
 const NO_FILTERS: [] = [];
+const EMPTY_COLUMNS: [] = [];
+const taskKey = (task: Task) => task.id;
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
-const DAY_MS = 24 * 60 * 60 * 1000;
+
+type CustomEditorData<TTask extends Task> = {
+  column: TaskListColumn<TTask>;
+  updateTask: (task: TTask, patch: Partial<TTask>) => void;
+};
+
+function CustomColumnEditor<TTask extends Task>({ row, rowIndex, value, cancel, editorData }: SimpleGridEditorProps) {
+  const { column, updateTask } = editorData as CustomEditorData<TTask>;
+  const task = row as TTask;
+  const render = column.renderEditor ?? column.renderCell;
+  return <div className="gantt-simple-grid-custom" data-sg-editor="" data-custom-column-editor={column.id}
+    onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
+    {render({
+      task, rowIndex: rowIndex ?? 0, isEditing: true, editStartValue: value,
+      openEditor: () => {}, closeEditor: cancel,
+      updateTask: patch => updateTask(task, patch),
+    })}
+  </div>;
+}
 
 type DependencyChipKey = { successorId: string; predecessorId: string; linkType: string };
 
@@ -50,41 +81,21 @@ const formatDateLabel = (value: string | Date): string => {
   return `${day}.${month}.${year.slice(2)}`;
 };
 
-const getInclusiveDurationDays = (startDate: string | Date, endDate: string | Date): number => {
-  const start = parseUTCDate(startDate);
-  const end = parseUTCDate(endDate);
-  return Math.max(1, Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1);
-};
-
-interface DurationEditorData {
-  onDurationEdit?: (task: Task, duration: number) => void;
-}
-
-/**
- * Legacy TaskList duration editor: a number input with the up/down steppers
- * overlaying the cell. Duration edits are scheduling mutations, so they are
- * routed through `editorData.onDurationEdit` (GanttChart's scheduling adapter)
- * instead of the rectangular grid change channel.
- */
-const DurationEditor: React.FC<SimpleGridEditorProps> = ({ value, commit, cancel, row, editorData }) => {
-  const data = (editorData ?? {}) as DurationEditorData;
-  const initialDuration = Math.max(0, Math.round(parseInt(value, 10) || 0));
-  const [draft, setDraft] = useState(String(initialDuration));
+const TaskNumberEditor: React.FC<SimpleGridEditorProps> = ({ value, onChange, commit, commitAndMove, cancel, editorData }) => {
+  const { label, max } = editorData as { label: string; max?: number };
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     inputRef.current?.focus();
     inputRef.current?.select();
   }, []);
-  const commitDraft = useCallback(() => {
-    const next = Math.max(0, Math.round(parseInt(draft, 10) || 0));
-    if (next !== initialDuration) data.onDurationEdit?.(row as Task, next);
-    commit();
-  }, [draft, initialDuration, data, row, commit]);
+  const commitDraft = (direction?: 'left' | 'right') => {
+    if (direction && commitAndMove) commitAndMove(value, direction);
+    else commit(value);
+  };
   return (
     <div
       className="gantt-tl-number-editor"
       data-sg-editor=""
-      data-testid="sg-duration-editor"
       onClick={event => event.stopPropagation()}
       onKeyDown={event => event.stopPropagation()}
     >
@@ -92,15 +103,22 @@ const DurationEditor: React.FC<SimpleGridEditorProps> = ({ value, commit, cancel
         ref={inputRef}
         type="number"
         min={0}
+        max={max}
         step={1}
         className="gantt-tl-number-input"
         data-testid="sg-editor-input"
-        value={draft}
-        onChange={event => setDraft(event.target.value)}
-        onBlur={commitDraft}
+        value={value}
+        onChange={event => onChange(event.target.value)}
+        aria-label={label}
         onKeyDown={event => {
-          if (event.key === 'Enter') commitDraft();
-          else if (event.key === 'Escape') cancel();
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            commitDraft();
+          } else if (event.key === 'Escape') cancel();
+          else if (event.key === 'Tab') {
+            event.preventDefault();
+            commitDraft(event.shiftKey ? 'left' : 'right');
+          }
         }}
       />
       <div className="gantt-tl-number-steppers" aria-hidden="true">
@@ -109,7 +127,7 @@ const DurationEditor: React.FC<SimpleGridEditorProps> = ({ value, commit, cancel
           className="gantt-tl-number-stepper"
           tabIndex={-1}
           onMouseDown={event => event.preventDefault()}
-          onClick={() => setDraft(current => String((parseInt(current, 10) || 0) + 1))}
+          onClick={() => onChange(String(Math.min(max ?? Infinity, (Number(value) || 0) + 1)))}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m18 15-6-6-6 6" />
@@ -120,7 +138,7 @@ const DurationEditor: React.FC<SimpleGridEditorProps> = ({ value, commit, cancel
           className="gantt-tl-number-stepper"
           tabIndex={-1}
           onMouseDown={event => event.preventDefault()}
-          onClick={() => setDraft(current => String(Math.max(0, (parseInt(current, 10) || 0) - 1)))}
+          onClick={() => onChange(String(Math.max(0, (Number(value) || 0) - 1)))}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m6 9 6 6 6-6" />
@@ -155,22 +173,50 @@ interface Props<TTask extends Task> {
   headerHeight: number;
   width: number;
   show: boolean;
+  hasRightShadow?: boolean;
+  bodyMinHeight?: number | string;
+  skeletonRowCount?: number;
+  rowContentLines?: number;
+  visibleRowIndices?: readonly number[];
+  onRevealRow?: (index: number) => void;
+  getRowScrollContainer?: () => HTMLElement | null;
   collapsed: Set<string>;
   onToggleCollapse: (id: string) => void;
-  onChange: (rows: Task[]) => void;
+  onChange: (rows: Task[], editedColumnId?: string) => boolean;
+  onPasteOverflow?: () => void;
   nameReadOnly: boolean;
   readOnly: boolean;
   hiddenColumns?: readonly string[];
-  columnWidths?: Record<string, number | undefined>;
+  columnWidths?: TaskListColumnWidthMap;
+  onColumnWidthsChange?: (widths: TaskListColumnWidthMap) => void;
+  additionalColumns?: TaskListColumn<TTask>[];
   error: string;
   onTaskSelect: (id: string | null) => void;
+  selectedTaskId?: string | null;
   enableTaskMultiSelect?: boolean;
   selectedTaskIds?: Set<string>;
   onSelectedTaskIdsChange?: (ids: Set<string>) => void;
   /** Edits that SimpleGrid's rectangular change channel cannot express (dependencies, lags, link types). */
   onTaskEdit?: (updatedTasks: Task[]) => void;
   /** Legacy scheduling boundary for duration edits (GanttChart.handleTaskDurationChange). */
-  onDurationEdit?: (task: Task, duration: number) => void;
+  onReorder?: (tasks: Task[], movedTaskId?: string, parentId?: string) => void;
+  disableReorder?: boolean;
+  onAdd?: (task: Task) => void;
+  enableAddTask?: boolean;
+  addTaskLabel?: string;
+  onInsertAfter?: (id: string, task: Task) => void;
+  onDelete?: (id: string) => void;
+  onPromote?: (id: string) => void;
+  onDemote?: (id: string, parentId: string) => void;
+  onUngroup?: (id: string) => void;
+  defaultTaskDurationDays?: number;
+  menuCommands?: TaskListMenuCommand<TTask>[];
+  renderActions?: (context: TaskListActionContext<TTask>) => React.ReactNode;
+  renderMenu?: (context: TaskListActionContext<TTask>, commands: React.ReactNode) => React.ReactNode;
+  hideActions?: boolean;
+  getRowClassName?: (task: TTask) => string | undefined;
+  dateChangeMode?: TaskDateChangeMode;
+  onDateChangeModeChange?: (mode: TaskDateChangeMode) => void;
   /** Selected dependency chip shared with the chart arrows. */
   selectedChip?: DependencyChipKey | null;
   onSelectedChipChange?: (chip: DependencyChipKey | null) => void;
@@ -201,10 +247,16 @@ function formatDependencyPrintLabel(
 
 export function SimpleGridTaskList<TTask extends Task>({
   tasks, allTasks, rowHeight, rowHeights, headerHeight, width, show, collapsed, onToggleCollapse, onChange,
-  nameReadOnly, readOnly, hiddenColumns, columnWidths, error, onTaskSelect, enableTaskMultiSelect,
-  selectedTaskIds, onSelectedTaskIdsChange, onTaskEdit, onDurationEdit, selectedChip, onSelectedChipChange, onScrollToTask,
+  nameReadOnly, readOnly, hiddenColumns, columnWidths, onColumnWidthsChange, additionalColumns = EMPTY_COLUMNS,
+  error, onTaskSelect, selectedTaskId, enableTaskMultiSelect,
+  selectedTaskIds, onSelectedTaskIdsChange, onTaskEdit, selectedChip, onSelectedChipChange, onScrollToTask,
   businessDays, customDays, isWeekend, highlightedTaskIds, fillParentRows, disableDependencyEditing,
-  printDependencyLabels, getTaskListNamePrefixIcon,
+  printDependencyLabels, getTaskListNamePrefixIcon, hasRightShadow, visibleRowIndices, onRevealRow,
+  onPasteOverflow, getRowScrollContainer,
+  bodyMinHeight, skeletonRowCount = 0, rowContentLines = 1,
+  onReorder, disableReorder, onAdd, enableAddTask, addTaskLabel = 'Добавить задачу', onInsertAfter,
+  onDelete, onPromote, onDemote, onUngroup, defaultTaskDurationDays, menuCommands, renderActions, renderMenu,
+  hideActions, getRowClassName, dateChangeMode, onDateChangeModeChange,
 }: Props<TTask>) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const weekendPredicate = useMemo(
@@ -221,9 +273,29 @@ export function SimpleGridTaskList<TTask extends Task>({
     [tasks, rowHeights, rowHeight],
   );
   const numberMap = useMemo(
-    () => Object.fromEntries(buildTaskNumberMap(tasks)) as Record<string, string>,
-    [tasks],
+    () => Object.fromEntries(buildTaskNumberMap(allTasks)) as Record<string, string>,
+    [allTasks],
   );
+  const [actionMenuTaskId, setActionMenuTaskId] = useState<string | null>(null);
+  const [newTaskAnchor, setNewTaskAnchor] = useState<Task | 'root' | null>(null);
+  const [durationPreview, setDurationPreview] = useState<TTask | null>(null);
+  const canReorder = !!onReorder && !disableReorder;
+  const resolveRowDrop = useCallback((moved: TTask, target: TTask, placement: 'before' | 'inside' | 'after' | 'end') => {
+    if (!onReorder || moved.locked || (moved.id === target.id && placement !== 'end')) return;
+    const targetIndex = tasks.indexOf(target);
+    const plan = getVisibleReorderPlan(allTasks, tasks, moved.id, { index: targetIndex, placement });
+    if (!plan || (plan.originOrderedIndex === plan.insertIndex && (moved.parentId || undefined) === plan.inferredParentId)) return;
+    const subtree = new Set([moved.id]);
+    for (const task of allTasks) {
+      if (task.parentId && subtree.has(task.parentId)) subtree.add(task.id);
+    }
+    const reordered = allTasks.filter(task => !subtree.has(task.id));
+    reordered.splice(plan.insertIndex, 0, ...allTasks.filter(task => subtree.has(task.id)));
+    return () => {
+      onReorder(reordered, moved.id, plan.inferredParentId);
+      onTaskSelect(moved.id);
+    };
+  }, [allTasks, tasks, onReorder, onTaskSelect]);
 
   // --- Dependency editing state (ported from TaskList) ---
   const [activeLinkType, setActiveLinkType] = useState<LinkType>('FS');
@@ -244,24 +316,23 @@ export function SimpleGridTaskList<TTask extends Task>({
       return 'rgba(37, 99, 235, 0.12)';
     }
     if (highlightedTaskIds?.has(task.id)) return 'rgba(250, 204, 21, 0.24)';
+    if (task.id === selectedTaskId) return 'var(--gantt-row-selected-background, rgba(59, 130, 246, 0.10))';
     const fillParent = typeof fillParentRows === 'function' ? fillParentRows(task as TTask) : fillParentRows;
     if (fillParent && parents.has(task.id)) {
       return 'var(--gantt-plan-fact-parent-row-background, rgba(148, 163, 184, 0.22))';
     }
     if (selectingPredecessorFor != null) return 'rgba(59, 130, 246, 0.04)';
     return undefined;
-  }, [selectedChip, highlightedTaskIds, fillParentRows, parents, selectingPredecessorFor]);
+  }, [selectedChip, highlightedTaskIds, selectedTaskId, fillParentRows, parents, selectingPredecessorFor]);
   const rowHeaderLabel = useCallback((task: Task) => (
     <span
-      data-gantt-task-row-id={task.id}
-      data-gantt-row-hover-host=""
-      data-gantt-row-parent={parents.has(task.id) || undefined}
-      data-gantt-row-filter-match={highlightedTaskIds?.has(task.id) || undefined}
-      className="gantt-tl-num-label"
+      data-sg-row-drag-handle={canReorder && !task.locked ? '' : undefined}
+      className="gantt-simple-grid-number"
+      title={canReorder && !task.locked ? 'Перетащить задачу' : undefined}
     >
       {numberMap[task.id] || ''}
     </span>
-  ), [parents, highlightedTaskIds, numberMap]);
+  ), [canReorder, numberMap]);
 
   const handleRemoveDependency = useCallback((taskId: string, predecessorTaskId: string, linkType: LinkType) => {
     const task = allTasks.find(item => item.id === taskId);
@@ -280,12 +351,12 @@ export function SimpleGridTaskList<TTask extends Task>({
     linkType: LinkType,
   ) => {
     if (successorTaskId === predecessorTaskId) return;
-    if (areTasksHierarchicallyRelated(successorTaskId, predecessorTaskId, tasks)) {
+    if (areTasksHierarchicallyRelated(successorTaskId, predecessorTaskId, allTasks)) {
       reportDependencyError('Связи между родителем и потомком запрещены');
       setSelectingPredecessorFor(null);
       return;
     }
-    const successor = tasks.find(task => task.id === successorTaskId);
+    const successor = byId.get(successorTaskId);
     if (!successor) return;
     const alreadyExists = (successor.dependencies ?? []).some(
       dep => dep.taskId === predecessorTaskId && dep.type === linkType,
@@ -296,7 +367,7 @@ export function SimpleGridTaskList<TTask extends Task>({
     }
 
     const newDep: TaskDependency = { taskId: predecessorTaskId, type: linkType, lag: 0 };
-    const hypothetical = tasks.map(task =>
+    const hypothetical = allTasks.map(task =>
       task.id === successorTaskId
         ? { ...task, dependencies: [...(task.dependencies ?? []), newDep] }
         : task,
@@ -313,7 +384,7 @@ export function SimpleGridTaskList<TTask extends Task>({
     }
 
     const updatedTask = hypothetical.find(task => task.id === successorTaskId)!;
-    const predecessor = tasks.find(task => task.id === predecessorTaskId);
+    const predecessor = byId.get(predecessorTaskId);
     if (predecessor) {
       const predStart = new Date(predecessor.startDate as string);
       const predEnd = predecessor.type === 'milestone' ? predStart : new Date(predecessor.endDate as string);
@@ -326,10 +397,9 @@ export function SimpleGridTaskList<TTask extends Task>({
         weekendPredicate,
         updatedTask.type,
       );
-      const origSuccessor = tasks.find(task => task.id === successorTaskId)!;
       const duration = getTaskDuration(
-        origSuccessor.startDate,
-        origSuccessor.endDate,
+        successor.startDate,
+        successor.endDate,
         businessDays ?? true,
         weekendPredicate,
       );
@@ -359,7 +429,7 @@ export function SimpleGridTaskList<TTask extends Task>({
       onTaskEdit?.([updatedTask]);
     }
     setSelectingPredecessorFor(null);
-  }, [tasks, businessDays, weekendPredicate, onTaskEdit, reportDependencyError]);
+  }, [allTasks, byId, businessDays, weekendPredicate, onTaskEdit, reportDependencyError]);
 
   const handleChipSelect = useCallback((chip: DependencyChipKey | null) => {
     onSelectedChipChange?.(chip);
@@ -470,22 +540,22 @@ export function SimpleGridTaskList<TTask extends Task>({
     columnDepth % 2 === 0 ? '#93c5fd' : 'var(--gantt-hierarchy-line-color)'
   );
 
+  const nameInset = useCallback((task: Task) => {
+    const depth = depthMap.get(task.id) ?? 0;
+    if (task.composite) return depth * 20 + 30;
+    if (parents.has(task.id)) return depth * 20 + 28;
+    return depth * 20 + 8;
+  }, [depthMap, parents]);
   const renderNameCell = useCallback((task: Task) => {
     const depth = depthMap.get(task.id) ?? 0;
     const isParent = parents.has(task.id);
     const isChild = depth > 0;
     const isCollapsed = collapsed.has(task.id);
     const rowHeightPx = heights[task.id] ?? rowHeight;
+    const lineCenter = Math.min(rowHeightPx, rowHeight) / 2;
     const modes = ancestorLineModesMap.get(task.id) ?? [];
     const isLastChild = lastChildIds.has(task.id);
     const hasVisibleChildren = visibleParentIds.has(task.id);
-    const paddingLeft = task.composite
-      ? depth * 20 + 30
-      : isParent
-        ? depth * 20 + 28
-        : depth > 0
-          ? depth * 20 + 8
-          : 4;
     const prefixIcon = getTaskListNamePrefixIcon?.(task as TTask) ?? null;
     return (
       <>
@@ -497,7 +567,7 @@ export function SimpleGridTaskList<TTask extends Task>({
                   data-testid={`gantt-tl-ancestor-connector-${index}`}
                   style={{
                     position: 'absolute', left: index * 20 + 9, top: 0,
-                    height: mode === 'half' ? rowHeightPx / 2 : rowHeightPx,
+                    height: mode === 'half' ? lineCenter : rowHeightPx,
                     width: '1.5px', background: hierarchyLineColor(index),
                     borderRadius: '1px', pointerEvents: 'none',
                   }}
@@ -507,7 +577,7 @@ export function SimpleGridTaskList<TTask extends Task>({
                     data-testid={`gantt-tl-ancestor-connector-cap-${index}`}
                     style={{
                       position: 'absolute', left: index * 20 + 9,
-                      top: rowHeightPx / 2 - 0.75, width: '5px', height: '1.5px',
+                      top: lineCenter - 0.75, width: '5px', height: '1.5px',
                       background: hierarchyLineColor(index), borderRadius: '1px', pointerEvents: 'none',
                     }}
                   />
@@ -519,7 +589,7 @@ export function SimpleGridTaskList<TTask extends Task>({
                 data-testid="gantt-tl-child-connector-vertical"
                 style={{
                   position: 'absolute', left: (depth - 1) * 20 + 9, top: 0,
-                  height: isLastChild && !hasVisibleChildren ? rowHeightPx / 2 : rowHeightPx,
+                  height: isLastChild && !hasVisibleChildren ? lineCenter : rowHeightPx,
                   width: '1.5px', background: hierarchyLineColor(depth - 1),
                   borderRadius: '1px', pointerEvents: 'none',
                 }}
@@ -528,14 +598,14 @@ export function SimpleGridTaskList<TTask extends Task>({
             <span
               style={{
                 position: 'absolute', left: (depth - 1) * 20 + 9,
-                top: rowHeightPx / 2 - 0.75, width: '8px', height: '1.5px',
+                top: lineCenter - 0.75, width: '8px', height: '1.5px',
                 background: hierarchyLineColor(depth - 1), borderRadius: '1px', pointerEvents: 'none',
               }}
             />
             <span
               style={{
                 position: 'absolute', left: (depth - 1) * 20 + 15,
-                top: rowHeightPx / 2 - 2, width: '4px', height: '4px',
+                top: lineCenter - 2, width: '4px', height: '4px',
                 borderRadius: '50%', background: hierarchyLineColor(depth - 1), pointerEvents: 'none',
               }}
             />
@@ -543,8 +613,8 @@ export function SimpleGridTaskList<TTask extends Task>({
               <span
                 data-testid="gantt-tl-parent-connector-tail"
                 style={{
-                  position: 'absolute', left: depth * 20 + 9, top: rowHeightPx / 2 + 7,
-                  height: rowHeightPx / 2 - 7, width: '1.5px',
+                  position: 'absolute', left: depth * 20 + 9, top: lineCenter + 7,
+                  height: Math.max(0, rowHeightPx - lineCenter - 7), width: '1.5px',
                   background: hierarchyLineColor(depth), borderRadius: '1px', pointerEvents: 'none',
                 }}
               />
@@ -555,8 +625,8 @@ export function SimpleGridTaskList<TTask extends Task>({
           <span
             data-testid="gantt-tl-parent-connector-tail"
             style={{
-              position: 'absolute', left: depth * 20 + 9, top: rowHeightPx / 2 + 7,
-              height: rowHeightPx / 2 - 7, width: '1.5px',
+              position: 'absolute', left: depth * 20 + 9, top: lineCenter + 7,
+              height: Math.max(0, rowHeightPx - lineCenter - 7), width: '1.5px',
               background: hierarchyLineColor(depth), borderRadius: '1px', pointerEvents: 'none',
             }}
           />
@@ -584,6 +654,7 @@ export function SimpleGridTaskList<TTask extends Task>({
             className={`gantt-tl-collapse-btn${isCollapsed ? ' gantt-tl-collapse-btn-collapsed' : ''}`}
             style={{ left: depth * 20 - 2 }}
             aria-label={`${isCollapsed ? 'Раскрыть' : 'Свернуть'} ${task.name}`}
+            aria-expanded={!isCollapsed}
             onMouseDown={event => event.stopPropagation()}
             onClick={event => { event.stopPropagation(); onToggleCollapse(task.id); }}
           >
@@ -591,17 +662,13 @@ export function SimpleGridTaskList<TTask extends Task>({
           </button>
         ) : null}
         <span
-          className="gantt-tl-name-trigger-text"
-          style={{
-            position: 'absolute', left: 0, right: 0, top: 0,
-            display: 'flex', alignItems: 'center', gap: 6,
-            paddingLeft, fontSize: '0.8rem', color: '#374151', minWidth: 0, boxSizing: 'border-box',
-          }}
+          className="gantt-simple-grid-name"
+          style={{ paddingLeft: nameInset(task) }}
         >
           {prefixIcon ? (
             <span className="gantt-tl-name-trigger-icon" aria-hidden="true">{prefixIcon}</span>
           ) : null}
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto', minWidth: 0 }} title={task.name}>
+          <span className="gantt-tl-name-trigger-text" title={task.name}>
             {task.name}
           </span>
         </span>
@@ -610,49 +677,31 @@ export function SimpleGridTaskList<TTask extends Task>({
         )}
       </>
     );
-  }, [depthMap, parents, collapsed, heights, rowHeight, ancestorLineModesMap, lastChildIds, visibleParentIds, onToggleCollapse, getTaskListNamePrefixIcon]);
+  }, [depthMap, parents, collapsed, heights, rowHeight, ancestorLineModesMap, lastChildIds, visibleParentIds, onToggleCollapse, getTaskListNamePrefixIcon, nameInset]);
 
   const getDurationFor = useCallback((task: Task) => (
-    businessDays
-      ? getBusinessDaysCount(task.startDate, task.endDate, weekendPredicate)
-      : getInclusiveDurationDays(task.startDate, task.endDate)
+    task.type === 'milestone' ? 0 : getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate)
   ), [businessDays, weekendPredicate]);
 
   const renderDateCell = useCallback((task: Task) => (
     <span className="gantt-tl-date-display">{formatDateLabel(task.startDate)}</span>
   ), []);
 
-  const renderEndDateCell = useCallback((task: Task) => (
-    <span className="gantt-tl-date-display">{formatDateLabel(task.endDate)}</span>
-  ), []);
+  const renderEndDateCell = useCallback((task: Task) => {
+    const previewEnd = durationPreview?.id === task.id ? durationPreview.endDate : task.endDate;
+    return <span className="gantt-tl-date-display">{formatDateLabel(previewEnd)}</span>;
+  }, [durationPreview]);
 
   const renderDurationCell = useCallback((task: Task) => {
     const isMilestone = task.type === 'milestone';
-    return (
-      <span style={{ display: 'block', textAlign: 'center' }}>
-        <span className="gantt-tl-duration-display">
-          {isMilestone ? '◆' : `${getDurationFor(task)}д`}
-        </span>
-      </span>
-    );
+    return <span className="gantt-tl-duration-display">{isMilestone ? '◆' : `${getDurationFor(task)} д`}</span>;
   }, [getDurationFor]);
 
   const renderProgressCell = useCallback((task: Task) => {
     const progress = task.progress ?? 0;
-    return (
-      <span style={{ display: 'block', textAlign: 'center' }}>
-        <span
-          className="gantt-tl-progress-display"
-          style={progress === 100
-            ? { backgroundColor: '#17c864', borderRadius: '4px', padding: '2px 4px', color: '#ffffff' }
-            : undefined}
-        >
-          {progress
-            ? Math.round(progress) === 100 ? '100' : `${Math.round(progress)}%`
-            : '-'}
-        </span>
-      </span>
-    );
+    return <span className="gantt-tl-progress-display" data-complete={progress === 100 || undefined}>
+      {progress ? `${Math.round(progress)}%` : '–'}
+    </span>;
   }, []);
 
   const handleSearchPick = useCallback((pickedTaskId: string, taskId: string) => {
@@ -664,21 +713,14 @@ export function SimpleGridTaskList<TTask extends Task>({
   }, [dependencyPickMode, handleAddDependency, activeLinkType]);
 
   const handleSearchRemove = useCallback((pickedTaskId: string, task: Task) => {
-    const matchingTypes = dependencyPickMode === 'predecessor'
-      ? (task.dependencies ?? [])
-        .filter(dep => dep.taskId === pickedTaskId)
-        .map(dep => dep.type)
-      : ((allTasks.find(candidate => candidate.id === pickedTaskId)?.dependencies ?? []))
-        .filter(dep => dep.taskId === task.id)
-        .map(dep => dep.type);
-    for (const linkType of matchingTypes) {
-      if (dependencyPickMode === 'predecessor') {
-        handleRemoveDependency(task.id, pickedTaskId, linkType);
-      } else {
-        handleRemoveDependency(pickedTaskId, task.id, linkType);
-      }
-    }
-  }, [allTasks, dependencyPickMode, handleRemoveDependency]);
+    const successor = dependencyPickMode === 'predecessor' ? task : byId.get(pickedTaskId);
+    const predecessorId = dependencyPickMode === 'predecessor' ? pickedTaskId : task.id;
+    if (!successor) return;
+    onTaskEdit?.([{
+      ...successor,
+      dependencies: (successor.dependencies ?? []).filter(dep => dep.hidden || dep.taskId !== predecessorId),
+    }]);
+  }, [byId, dependencyPickMode, onTaskEdit]);
 
   const renderSourcePicker = useCallback((task: Task) => {
     const normalizedQuery = dependencySearchQuery.trim().toLowerCase();
@@ -688,8 +730,8 @@ export function SimpleGridTaskList<TTask extends Task>({
         const number = numberMap[candidate.id];
         const label = `${number ? `${number}. ` : ''}${candidate.name}`;
         const matchingDependencies = dependencyPickMode === 'predecessor'
-          ? (task.dependencies ?? []).filter(dep => dep.taskId === candidate.id)
-          : (candidate.dependencies ?? []).filter(dep => dep.taskId === task.id);
+          ? (task.dependencies ?? []).filter(dep => !dep.hidden && dep.taskId === candidate.id)
+          : (candidate.dependencies ?? []).filter(dep => !dep.hidden && dep.taskId === task.id);
         return {
           task: candidate,
           label,
@@ -700,7 +742,8 @@ export function SimpleGridTaskList<TTask extends Task>({
       .filter(candidate => normalizedQuery === '' ? true : candidate.searchable.includes(normalizedQuery));
 
     return (
-      <div className="gantt-tl-dep-source-picker" onClick={event => event.stopPropagation()}>
+      <div className="gantt-tl-dep-source-picker" onClick={event => event.stopPropagation()}
+        onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
         <div className="gantt-tl-dep-source-direction">
           <button
             type="button"
@@ -852,18 +895,14 @@ export function SimpleGridTaskList<TTask extends Task>({
       weekendPredicate,
     });
     return (
-      <span
+      <div
         className="gantt-tl-cell-deps"
         onClick={isSourceRow
           ? (event => { if (event.target === event.currentTarget) setSelectingPredecessorFor(null); })
           : isPicking
             ? (event => {
               event.stopPropagation();
-              if (dependencyPickMode === 'predecessor') {
-                handleAddDependency(task.id, selectingPredecessorFor!, activeLinkType);
-              } else {
-                handleAddDependency(selectingPredecessorFor!, task.id, activeLinkType);
-              }
+              handleSearchPick(task.id, selectingPredecessorFor!);
             })
             : undefined}
       >
@@ -929,52 +968,185 @@ export function SimpleGridTaskList<TTask extends Task>({
             )}
           </>
         )}
-      </span>
+      </div>
     );
   }, [
     selectingPredecessorFor, dependencyEditingDisabled, onTaskEdit, byId, numberMap, selectedChip,
     handleChipSelect, onTaskSelect, onScrollToTask, handleRemoveDependency, onSelectedChipChange,
     allTasks, businessDays, weekendPredicate, printDependencyLabels, overflowOpenTaskId,
-    dependencyPickMode, activeLinkType, handleAddDependency, renderSourcePicker,
+    handleSearchPick, renderSourcePicker,
   ]);
 
+  const submitNewTask = (name: string) => {
+    if (!newTaskAnchor) return;
+    const task = {
+      id: crypto.randomUUID(), name,
+      ...buildDefaultTaskDateRange(getTodayISODate(), { businessDays, defaultTaskDurationDays, weekendPredicate }),
+    };
+    if (newTaskAnchor === 'root') onAdd?.(task);
+    else onInsertAfter?.(newTaskAnchor.id, { ...task, parentId: newTaskAnchor.parentId });
+    setNewTaskAnchor(null);
+  };
+
+  const renderRowActions = useCallback((task: TTask, rowIndex: number) => {
+    const isParent = parents.has(task.id);
+    const previous = tasks[rowIndex - 1];
+    let demoteTarget: TTask | undefined;
+    for (let index = rowIndex - 1; index >= 0; index--) {
+      if (tasks[index].parentId === task.parentId) {
+        demoteTarget = tasks[index];
+        break;
+      }
+    }
+    const canCreateSection = rowIndex === 0 && !task.parentId && !!onReorder;
+    const canDemote = !!onDemote && (canCreateSection || !!demoteTarget && previous?.id !== task.parentId);
+    const closeMenu = () => setActionMenuTaskId(null);
+    const context: TaskListActionContext<TTask> = {
+      task, isParent, closeMenu,
+      canPromote: !!task.parentId && !!onPromote,
+      canDemote,
+      insertAfter: onInsertAfter ? () => { closeMenu(); setNewTaskAnchor(task); } : undefined,
+      promote: task.parentId && onPromote ? () => onPromote(task.id) : undefined,
+      demote: canDemote ? () => {
+        if (demoteTarget) {
+          onDemote(task.id, demoteTarget.id);
+          return;
+        }
+        const section = { id: crypto.randomUUID(), name: 'Новый раздел', startDate: task.startDate, endDate: task.endDate };
+        onReorder?.([section, ...allTasks], task.id, section.id);
+      } : undefined,
+      duplicate: onReorder ? () => onReorder(duplicateTaskSubtree(task.id, allTasks)) : undefined,
+      delete: onDelete ? () => onDelete(task.id) : undefined,
+      ungroup: isParent && onUngroup ? () => onUngroup(task.id) : undefined,
+    };
+    const commands = menuCommands?.filter(command => {
+      if (command.scope === 'group' && !isParent) return false;
+      if (command.scope === 'linear' && (isParent || task.type === 'milestone')) return false;
+      if (command.scope === 'milestone' && task.type !== 'milestone') return false;
+      return command.isVisible?.(task) ?? true;
+    }).map(command => (
+      <React.Fragment key={command.id}>
+        {command.divider === 'top' && <hr className="gantt-tl-context-menu-divider" />}
+        <button type="button" className={`gantt-tl-context-menu-item${command.danger ? ' gantt-tl-context-menu-item-danger' : ''}`}
+          disabled={command.isDisabled?.(task)} onClick={() => {
+            if (command.closeOnSelect !== false) closeMenu();
+            command.onSelect(task);
+          }}>{command.icon}{command.label}</button>
+        {command.divider === 'bottom' && <hr className="gantt-tl-context-menu-divider" />}
+      </React.Fragment>
+    ));
+    const commandContent = commands?.length ? commands : null;
+    const menu = renderMenu ? renderMenu(context, commandContent) : commandContent;
+    return <div className="gantt-simple-grid-actions" onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
+      {renderActions?.(context)}
+      {menu && <Popover open={actionMenuTaskId === task.id} onOpenChange={open => setActionMenuTaskId(open ? task.id : null)}>
+        <PopoverTrigger asChild>
+          <button type="button" className="gantt-simple-grid-action" aria-label={`Действия: ${task.name}`}>⋯</button>
+        </PopoverTrigger>
+        <PopoverContent className="gantt-simple-grid-menu" align="end">{menu}</PopoverContent>
+      </Popover>}
+    </div>;
+  }, [actionMenuTaskId, allTasks, menuCommands, onDelete, onDemote, onInsertAfter, onPromote, onReorder, onUngroup, parents, renderActions, renderMenu, tasks]);
+
+  const updateCustomTask = useCallback((task: TTask, patch: Partial<TTask>) => {
+    const latest = byId.get(task.id);
+    if (latest && !latest.locked) onTaskEdit?.([{ ...latest, ...patch, id: latest.id }]);
+  }, [byId, onTaskEdit]);
+
   const columns = useMemo<SimpleGridColumn<TTask>[]>(() => {
-    const list: SimpleGridColumn<Task>[] = [      {
-        id: 'name', title: 'Имя', width: columnWidths?.name ?? 220, readOnly: nameReadOnly,
+    const list: SimpleGridColumn<TTask>[] = [
+      {
+        id: 'name', title: 'Имя', width: 202, minWidth: 120, readOnly: nameReadOnly,
+        editorStyle: task => ({ paddingLeft: nameInset(task), paddingRight: 8 }),
         isDisabled: task => !!task.locked,
         getValue: task => task.name,
-        setValue: (task, value) => ({ ...task, name: value }),
+        setValue: (task, value) => ({ ...task, name: value.trim() || task.name }),
         renderValue: renderNameCell,
       },
       ...(['startDate', 'endDate'] as const).map(id => ({
         id,
         title: id === 'startDate' ? 'Начало' : 'Окончание',
-        width: columnWidths?.[id] ?? 120,
+        width: 90,
+        minWidth: 76,
+        align: 'center' as const,
         validation: { type: 'date' as const },
         format: { kind: 'date' as const },
         datePicker: true,
         isDisabled: (task: Task) => !!task.locked,
-        getValue: (task: Task) => toISODate(task[id]),
-        setValue: (task: Task, value: string) => ({ ...task, [id]: value }),
+        getValue: (task: TTask) => toISODate(task[id]),
+        getDatePickerContext: (task: TTask) => ({
+          selectionRole: id === 'startDate' ? 'start' as const : 'end' as const,
+          range: { start: toISODate(task.startDate), end: toISODate(task.endDate) },
+          isWeekend: (date: string) => weekendPredicate(parseUTCDate(date)),
+          shiftDate: (iso: string, days: number) => {
+            const date = parseUTCDate(iso);
+            if (businessDays) return toISODate(days > 0
+              ? addBusinessDays(date, days, weekendPredicate)
+              : subtractBusinessDays(date, -days, weekendPredicate));
+            date.setUTCDate(date.getUTCDate() + days);
+            return toISODate(date);
+          },
+          footer: onDateChangeModeChange && task.type !== 'milestone' && (
+            <label className="gantt-datepicker-mode-checkbox">
+              <input type="checkbox" checked={dateChangeMode === 'preserve-duration'}
+                onChange={event => onDateChangeModeChange(event.target.checked ? 'preserve-duration' : 'free')} />
+              <span>Сохранять длительность</span>
+            </label>
+          ),
+        }),
+        setValue: (task: TTask, value: string, source?: 'editor') => {
+          if (!value) return task;
+          if (source !== 'editor') return { ...task, [id]: value };
+          const isStart = id === 'startDate';
+          const date = businessDays ? alignToWorkingDay(parseUTCDate(value), isStart ? 1 : -1, weekendPredicate) : parseUTCDate(value);
+          const duration = getDurationFor(task);
+          const start = parseUTCDate(task.startDate);
+          const end = parseUTCDate(task.endDate);
+          const range = task.type === 'milestone' ? { start: date, end: date }
+            : dateChangeMode === 'preserve-duration'
+              ? isStart
+                ? buildTaskRangeFromStart(date, duration, businessDays, weekendPredicate)
+                : buildTaskRangeFromEnd(date, duration, businessDays, weekendPredicate)
+              : isStart ? { start: date, end: end < date ? date : end } : { start: start > date ? date : start, end: date };
+          const clamped = clampTaskRangeForIncomingFS(task, range.start, range.end, allTasks, businessDays, weekendPredicate);
+          return {
+            ...task, startDate: toISODate(clamped.start), endDate: toISODate(clamped.end),
+            ...(task.dependencies && { dependencies: recalculateIncomingLags(task, clamped.start, clamped.end, allTasks, businessDays, weekendPredicate) }),
+          };
+        },
         renderValue: id === 'startDate' ? renderDateCell : renderEndDateCell,
       })),
       {
-        id: 'duration', title: businessDays ? 'Дн. (р)' : 'Дн.', width: columnWidths?.duration ?? 60,
+        id: 'duration', title: businessDays ? 'Дн. (р)' : 'Дн.', width: 60, minWidth: 46, align: 'center',
         isDisabled: task => !!task.locked,
+        validation: { type: 'number', min: 0, integer: true },
         openOnActivate: true,
         getValue: task => String(getDurationFor(task)),
-        setValue: task => task,
-        editor: DurationEditor,
-        editorData: { onDurationEdit } as DurationEditorData,
+        setValue: (task, value) => {
+          if (!value) return task;
+          const duration = Number(value);
+          const type = duration === 0 ? 'milestone' : task.type === 'milestone' ? 'task' : task.type;
+          const endDate = type === 'milestone' ? task.startDate : toISODate(
+            buildTaskRangeFromStart(parseUTCDate(task.startDate), duration, businessDays, weekendPredicate).end
+          );
+          return { ...task, type, endDate };
+        },
+        editor: TaskNumberEditor,
+        editorData: { label: 'Длительность' },
         renderValue: renderDurationCell,
       },
       {
-        id: 'progress', title: '%', width: columnWidths?.progress ?? 65, readOnly: true,
+        id: 'progress', title: '%', width: 50, align: 'center', readOnly: !onTaskEdit,
+        isDisabled: task => !onTaskEdit || !!task.locked,
+        validation: { type: 'number', min: 0, max: 100 },
         getValue: task => String(task.progress ?? 0),
+        setValue: (task, value) => ({ ...task, progress: Number(value) }),
+        editor: TaskNumberEditor,
+        editorData: { label: 'Прогресс', max: 100 },
         renderValue: renderProgressCell,
       },
       {
-        id: 'dependencies', title: 'Связи', width: columnWidths?.dependencies ?? 100, readOnly: true,
+        id: 'dependencies', title: 'Связи', width: 128, readOnly: true,
         getValue: task => (task.dependencies ?? []).map(dep => dep.taskId).join(', '),
         renderValue: renderDependenciesCell,
         columnActions: dependencyEditingDisabled ? undefined : LINK_TYPE_ORDER.map(linkType => ({
@@ -985,21 +1157,67 @@ export function SimpleGridTaskList<TTask extends Task>({
           onSelect: () => setActiveLinkType(linkType),
         })),
       },
-    ] as SimpleGridColumn<Task>[];
-    return list.filter(column => !hiddenColumns?.includes(column.id)) as unknown as SimpleGridColumn<TTask>[];
+    ];
+    if (!hideActions && (renderActions || renderMenu || menuCommands?.length)) {
+      list.push({ id: 'actions', title: '', width: 80, resizable: false, render: renderRowActions });
+    }
+    const byColumn = new Map(list.map(column => [column.id, column]));
+    const builtIns = ['selection', 'number', ...list.map(column => column.id)].map(id => ({
+      id, header: null, renderCell: () => null,
+    }));
+    return resolveTaskListColumns<TTask>(builtIns, additionalColumns, hiddenColumns)
+      .filter(column => column.id !== 'number' && column.id !== 'selection')
+      .map(column => {
+        const native = byColumn.get(column.id);
+        if (native) return native;
+        const canEdit = !!column.editable && !!onTaskEdit;
+        return {
+          id: column.id, title: typeof column.header === 'string' ? column.header : column.id,
+          headerContent: column.header, width: Math.max(column.minWidth ?? 40, column.width ?? 120),
+          minWidth: column.minWidth,
+          align: column.align, readOnly: !canEdit, isDisabled: task => !!task.locked,
+          ...(canEdit && {
+            getValue: () => '', setValue: (task: TTask) => task,
+            editor: CustomColumnEditor<TTask>, editorData: { column, updateTask: updateCustomTask },
+          }),
+          renderValue: (task, rowIndex, openEditor) => {
+            const context: TaskListColumnContext<TTask> = {
+              task, rowIndex, isEditing: false, openEditor: canEdit && !task.locked ? openEditor : () => {}, closeEditor: () => {},
+              updateTask: patch => updateCustomTask(task, patch),
+            };
+            return <div className="gantt-simple-grid-custom" data-custom-column={column.id}>{column.renderCell(context)}</div>;
+          },
+        };
+      });
   }, [
-    columnWidths, hiddenColumns, nameReadOnly, businessDays,
-    onDurationEdit, activeLinkType, dependencyEditingDisabled,
+    hiddenColumns, nameReadOnly, businessDays, additionalColumns, hideActions, menuCommands,
+    renderActions, renderMenu, renderRowActions, onTaskEdit, updateCustomTask,
+    activeLinkType, dependencyEditingDisabled, dateChangeMode, onDateChangeModeChange, allTasks, weekendPredicate, getDurationFor, nameInset,
     renderNameCell, renderDateCell, renderEndDateCell, renderDurationCell, renderProgressCell, renderDependenciesCell,
   ]);
 
-  return <div ref={overlayRef} className={`gantt-tl-overlay gantt-simple-grid${show ? '' : ' gantt-tl-hidden'}`} style={{ '--tasklist-width': `${width}px`, '--gantt-grid-header-height': `${headerHeight + 1}px` } as React.CSSProperties}>
-    <div onClickCapture={event => {
-      const target = event.target as HTMLElement;
-      if (target.closest('button, input')) return;
-      const row = target.closest<HTMLElement>('[data-row-index]');
-      if (row && target.closest('[data-testid^="sg-cell-"]')) onTaskSelect(tasks[Number(row.dataset.rowIndex)]?.id ?? null);
-    }}>
+  const configuredWidths = useMemo(() => columnWidths
+    ? Object.fromEntries(Object.entries(columnWidths).filter((entry): entry is [string, number] => (
+      typeof entry[1] === 'number' && Number.isFinite(entry[1]) && entry[1] > 0
+    )))
+    : undefined, [columnWidths]);
+  const showNumbers = !hiddenColumns?.includes('number');
+  const showSelection = !!enableTaskMultiSelect && !hiddenColumns?.includes('selection');
+  const handleGridSelection = (selected: string[]) => {
+    const next = new Set(selectedTaskIds);
+    for (const task of tasks) next.delete(task.id);
+    for (const key of selected) next.add(key);
+    onSelectedTaskIdsChange?.(next);
+  };
+
+  return <div ref={overlayRef}
+    className={`gantt-tl-overlay gantt-simple-grid${show ? '' : ' gantt-tl-hidden'}${hasRightShadow ? ' gantt-tl-overlay-shadowed' : ''}`}
+    style={{
+      '--tasklist-width': `${width}px`,
+      '--gantt-grid-header-height': `${headerHeight + 1}px`,
+      '--gantt-row-content-lines': rowContentLines,
+      '--gantt-grid-base-row-height': `${rowHeight}px`,
+    } as React.CSSProperties}>
     {error && <div role="status" className="gantt-simple-grid-error">{error}</div>}
     {dependencyError && (
       <div className="gantt-tl-dep-error" style={{ top: headerHeight + 8, left: 8 }} role="alert">
@@ -1007,23 +1225,58 @@ export function SimpleGridTaskList<TTask extends Task>({
       </div>
     )}
     <SimpleGrid
+      ariaLabel="Список задач"
       rows={tasks}
       columns={columns}
-      rowKey={task => task.id}
+      rowKey={taskKey}
       onChange={onChange}
-      createRow={() => ({ id: '', name: '', startDate: '', endDate: '' } as TTask)}
+      onEditPreview={(task, columnId) => setDurationPreview(columnId === 'duration' ? task : null)}
+      createRow={() => { throw new Error('Добавление задач выполняется через GanttChart'); }}
+      allowRowInsert={false}
+      onPasteOverflow={onPasteOverflow}
+      contextMenu
       readOnly={readOnly}
       rowHeight={rowHeight}
       rowHeights={heights}
-      showRowHeaders={!hiddenColumns?.includes('number')}
-      rowSelectionMode={enableTaskMultiSelect}
-      allowRowReorder={false}
+      visibleRowIndices={visibleRowIndices}
+      onRevealRow={onRevealRow}
+      showRowHeaders={showNumbers || showSelection}
+      rowHeaderWidth={configuredWidths?.number ?? (showNumbers ? 40 : 24)}
+      cornerContent={showNumbers ? '№' : undefined}
+      rowSelectionMode={showSelection}
+      rowSelectionLabel={task => `Выбрать работу ${numberMap[task.id]}. ${task.name}`}
+      selectAllRowsLabel="Выбрать все видимые работы"
+      allowRowReorder={canReorder}
+      rowDropTarget={resolveRowDrop}
+      getRowScrollContainer={getRowScrollContainer}
       columnFilters={NO_FILTERS}
       sort={null}
+      columnWidths={configuredWidths}
+      onColumnWidthsChange={widths => onColumnWidthsChange?.({
+        ...Object.fromEntries(Object.entries(configuredWidths ?? {}).filter(([id]) => !columns.some(column => column.id === id))),
+        ...widths,
+      })}
+      selectionColor="var(--gantt-row-selected-border-color, #3974dc)"
+      selectionFill="var(--gantt-row-selected-background, #eaf2ff)"
       rowFill={rowFillFor}
-      rowHeaderLabel={rowHeaderLabel}
+      rowClassName={getRowClassName}
+      rowAttributes={(task, index) => ({
+        'data-gantt-task-row-id': task.id,
+        'data-gantt-row-hover-host': '',
+        'data-gantt-row-parent': parents.has(task.id) ? '' : undefined,
+        'data-gantt-row-filter-match': highlightedTaskIds?.has(task.id) ? '' : undefined,
+        'data-gantt-row-selected': selectedTaskId === task.id ? '' : undefined,
+        'data-gantt-row-tall': rowHeights[index] > rowHeight ? '' : undefined,
+      })}
+      onActiveRowChange={task => onTaskSelect(task.id)}
+      rowHeaderLabel={showNumbers ? rowHeaderLabel : () => null}
       selectedRowKeys={selectedTaskIds ? Array.from(selectedTaskIds) : undefined}
-      onSelectedRowKeysChange={onSelectedTaskIdsChange ? keys => onSelectedTaskIdsChange(new Set(keys)) : undefined} />
-    </div>
+      onSelectedRowKeysChange={onSelectedTaskIdsChange ? handleGridSelection : undefined} />
+    {(bodyMinHeight !== undefined || skeletonRowCount > 0) && <div className="gantt-simple-grid-tail"
+      style={{ minHeight: bodyMinHeight === undefined ? undefined : `max(0px, calc(${typeof bodyMinHeight === 'number' ? `${bodyMinHeight}px` : bodyMinHeight} - ${rowHeights.reduce((sum, height) => sum + height, 0)}px))` }}>
+      <GenerationSkeletonRows variant="task-list" count={skeletonRowCount} rowHeight={rowHeight} startIndex={tasks.length} startTop={0} />
+    </div>}
+    {newTaskAnchor ? <NewTaskRow rowHeight={rowHeight} onConfirm={submitNewTask} onCancel={() => setNewTaskAnchor(null)} />
+      : enableAddTask && onAdd && <button type="button" className="gantt-tl-add-btn" onClick={() => setNewTaskAnchor('root')}>+ {addTaskLabel}</button>}
   </div>;
 }

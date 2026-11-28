@@ -9,7 +9,7 @@
 //   useGridViewState - capture and restore a native grid viewport
 // END_MODULE_MAP
 import {useLayoutEffect,useRef,type RefObject} from 'react';
-import type {SimpleGridViewState} from './types.js';
+import type {SimpleGridViewState} from './types';
 
 type Cell={row:number;navIndex:number};
 type Address=NonNullable<SimpleGridViewState['selection']>['active'];
@@ -35,7 +35,7 @@ function boundary(root:HTMLElement,list:HTMLElement[]) {
  return {top,left};
 }
 // START_BLOCK_NATIVE_VIEW_STATE
-export function useGridViewState(rootRef:RefObject<HTMLDivElement>,options:{state:SimpleGridViewState|null|undefined;onChange:((state:SimpleGridViewState)=>void)|undefined;keys:string[];ids:string[];active:Cell|null;focus:Cell|null}) {
+export function useGridViewState(rootRef:RefObject<HTMLDivElement | null>,options:{state:SimpleGridViewState|null|undefined;onChange:((state:SimpleGridViewState)=>void)|undefined;keys:string[];ids:string[];active:Cell|null;focus:Cell|null}) {
  const latest=useRef(options);latest.current=options;
  const restoring=useRef(Boolean(options.state?.viewport));
  const correctRef=useRef<()=>number>(()=>0);

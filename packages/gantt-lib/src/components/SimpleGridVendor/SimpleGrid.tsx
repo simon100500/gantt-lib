@@ -1,4 +1,4 @@
-import type {SimpleGridCellTableProps} from "./types.js";
+import type {SimpleGridCellTableProps} from "./types";
 // START_MODULE_CONTRACT
 //   PURPOSE: Controlled Excel-like editable grid: table rendering, Excel-style range/row/column selection with autofill, header/gutter drag reorder of columns and rows, checkbox columns, merged cells (rowSpan/colSpan anchors with Excel-like navigation), keyboard-first in-place editing, Excel-compatible TSV clipboard, column resize, snapshot undo/redo (Ctrl+Z / Ctrl+Y) that survives host-side row transforms.
 //   SCOPE: Owns grid state (selection, active cell, editing, widths, column order, collapsed groups, fill/reorder drags, undo/redo history), visible column projection and nested sticky headers with summaries (read-only unless the host supplies summaryColumn.setValue), the frozen leading-columns pane (prop frozenColumnIds); delegates cell editors to M-GRID-EDITORS, value parsing/validation/formatting (incl. checkbox canon) and fill-series rules to M-GRID-UTILS.
@@ -63,13 +63,13 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import {resolveViewCell,useGridViewState} from './viewState.js';
+import {resolveViewCell,useGridViewState} from './viewState';
 
-import { SimpleGridAutocompleteEditor, SimpleGridChipDisplay, SimpleGridMultiSelectEditor, SimpleGridTextEditor } from './editors.js';
-import type { SimpleGridColumn, SimpleGridColumnGroup, SimpleGridColumnFilter, SimpleGridSort, SimpleGridMerge, SimpleGridProps, SimpleGridEditorProps, SimpleGridContextMenuContext, SimpleGridContextMenuItem, SimpleGridCellComment, SimpleGridCommentTarget } from './types.js';
-import { ContextMenu } from './ContextMenu.js';
-import { CommentMarker } from './comments.js';
-import { CellDatePicker } from './DatePicker.js';
+import { SimpleGridAutocompleteEditor, SimpleGridChipDisplay, SimpleGridMultiSelectEditor, SimpleGridTextEditor } from './editors';
+import type { SimpleGridColumn, SimpleGridColumnGroup, SimpleGridColumnFilter, SimpleGridSort, SimpleGridMerge, SimpleGridProps, SimpleGridEditorProps, SimpleGridContextMenuContext, SimpleGridContextMenuItem, SimpleGridCellComment, SimpleGridCommentTarget } from './types';
+import { ContextMenu } from './ContextMenu';
+import { CommentMarker } from './comments';
+import { CellDatePicker } from './DatePicker';
 import {
   SG_MIN_COLUMN_WIDTH,
   SG_OPTION_HEIGHT,
@@ -86,7 +86,7 @@ import {
   parseGridMultiValue,
   serializeGridMultiValue,
   validateGridValue,
-} from './utils.js';
+} from './utils';
 
 /** Nested detail grids must not contribute cells to the parent's geometry. */
 function ownGridElements<E extends Element = HTMLElement>(root: HTMLElement | null, selector: string): E[] {
@@ -173,7 +173,13 @@ const headerIconNode = (icon: ReactNode | undefined, position: 'before' | 'after
 );
 
 /** A live header/gutter drag: the moving ordered-index block and the hovered insertion slot. */
-interface ReorderDrag { kind: 'col' | 'row'; fromStart: number; fromEnd: number; drop: number }
+interface ReorderDrag {
+  kind: 'col' | 'row';
+  fromStart: number;
+  fromEnd: number;
+  drop: number;
+  rowTarget?: { index: number; placement: 'before' | 'inside' | 'after' | 'end'; commit?: () => void };
+}
 
 /** One undo unit: the state before (undo) or after (redo) an operation. `null` marks the untouched side. */
 interface HistoryEntry<T> {
@@ -394,6 +400,8 @@ export function SimpleGrid<T>({
   cornerContent,
   freezeRowHeader = true,
   rowSelectionMode = false,
+  rowSelectionLabel,
+  selectAllRowsLabel = 'Выбрать все строки',
   selectedRowKeys,
   defaultSelectedRowKeys = [],
   onSelectedRowKeysChange,
@@ -414,6 +422,7 @@ export function SimpleGrid<T>({
   onTabOut,
   onColumnWidthsChange,
   defaultColumnWidths = {},
+  columnWidths,
   onEditPreview,
   onColumnOrderChange,
   rowBanner,
@@ -429,6 +438,15 @@ export function SimpleGrid<T>({
   stickyRowBanners = false,
   allowRowReorder = true,
   onRowReorder,
+  rowDropTarget,
+  getRowScrollContainer,
+  allowRowInsert = true,
+  onPasteOverflow,
+  rowClassName,
+  rowAttributes,
+  onActiveRowChange,
+  visibleRowIndices,
+  onRevealRow,
   renderRowDetails,
   rowDetailsAppearance = 'flat',
   selectionColor = SG_DEFAULT_SELECTION_LINE,
@@ -475,7 +493,8 @@ export function SimpleGrid<T>({
   };
   const getRowHeight = (key: string) => {
     const value = heightPreview?.keys.has(key) ? heightPreview.height : heightOverrides[key];
-    return Math.max(22, Number.isFinite(value) ? value : (Number.isFinite(rowHeight) ? rowHeight : 22));
+    const minimum = rowHeights ? 1 : 22;
+    return Math.max(minimum, Number.isFinite(value) ? value : (Number.isFinite(rowHeight) ? rowHeight : 22));
   };
   // END_BLOCK_ROW_HEIGHTS
   const presentRowKeys = useMemo(() => sourceRows.map(rowKey), [sourceRows, rowKey]);
@@ -666,6 +685,13 @@ export function SimpleGrid<T>({
   // target and the anchor Excel keeps while the range grows. `focus` is the
   // moving corner (the same as `active` for a single cell).
   const [active, setActive] = useState<CellIndex | null>(()=>resolveViewCell(viewState?.selection?.active,visibleRowKeys,navCols.map(index=>columns[index].id)));
+  const activeRowKey = active ? visibleRowKeys[active.row] : undefined;
+  const notifiedRowKey = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (notifiedRowKey.current === activeRowKey) return;
+    notifiedRowKey.current = activeRowKey;
+    if (active && rows[active.row]) onActiveRowChange?.(rows[active.row]);
+  }, [active, activeRowKey, onActiveRowChange, rows]);
   const [groupRowEditor, setGroupRowEditor] = useState<{ key: string; groupId: string; anchor: HTMLElement; seed?: { columnId: string; value: string }; focus?: { columnId: string } } | null>(null);
   useEffect(() => { if (!groupRowEditor) setGroupRowPreview(null); }, [groupRowEditor]);
   useEffect(() => {
@@ -706,9 +732,16 @@ export function SimpleGrid<T>({
   const editPreviewRef = useRef(onEditPreview);
   editPreviewRef.current = onEditPreview;
   useEffect(() => {
-    const column = active ? columns[navCols[active.navIndex]] : undefined;
-    const row = active ? rows[active.row] : undefined;
-    editPreviewRef.current?.(editing && row && column?.setValue ? column.setValue(row, normalizeGridValue(column, draft)) : null);
+    const preview = editPreviewRef.current;
+    if (!preview) return;
+    const column = active && editing ? columns[navCols[active.navIndex]] : undefined;
+    const row = active && editing ? rows[active.row] : undefined;
+    if (row && column?.setValue) {
+      const value = normalizeGridValue(column, draft);
+      preview(validateGridValue(column.validation, value) ? null : column.setValue(row, value), column.id);
+    } else {
+      preview(null);
+    }
     // Only draft/selection transitions emit previews; host renders must not replay them.
   }, [editing, draft, active?.row, active?.navIndex]);
   // Row snapshot taken when editing starts, so a live-applied draft can be rolled
@@ -770,9 +803,9 @@ export function SimpleGrid<T>({
   }), [captureSelection]);
 
   /** Record the pre-op state and drop the redo branch — call right before a mutating onChange/setOrderIds. */
-  const pushUndoSnapshot = useCallback((kind: 'rows' | 'order') => {
+  const pushUndoSnapshot = useCallback((kind: 'rows' | 'order', snapshot = snapshotOf(kind)) => {
     const stack = historyRef.current;
-    stack.undo.push(snapshotOf(kind));
+    stack.undo.push(snapshot);
     if (stack.undo.length > SG_HISTORY_LIMIT) stack.undo.shift();
     stack.redo = [];
   }, [snapshotOf]);
@@ -781,23 +814,24 @@ export function SimpleGrid<T>({
   // append service rows) — the history survives such round-trips, and an undo
   // restores the last state the grid produced, reverting any foreign host
   // edits made in between.
-  const emit = useCallback((next: T[]) => {
-    if (!projected) { rowsRef.current = next; onChange(next); return; }
-    const mapped = sourceRows.slice();
-    next.forEach((row, index) => {
-      if (index < rowIndexes.length) mapped[rowIndexes[index]] = row;
-      else mapped.push(row);
-    });
+  const emit = useCallback((next: T[], editedColumnId?: string, sourceRowsDirect = false) => {
+    const mapped = !projected || sourceRowsDirect ? next : sourceRows.slice();
+    if (projected && !sourceRowsDirect) {
+      next.forEach((row, index) => {
+        if (index < rowIndexes.length) mapped[rowIndexes[index]] = row;
+        else mapped.push(row);
+      });
+    }
+    if (onChange(mapped, editedColumnId) === false) return false;
     rowsRef.current = mapped;
-    onChange(mapped);
+    return true;
   }, [onChange, projected, sourceRows, rowIndexes]);
 
   /** Commit a data mutation with one undo unit; structural edits use source rows directly. */
-  const emitRows = useCallback((next: T[], source = false) => {
-    pushUndoSnapshot('rows');
-    if (source) { rowsRef.current = next; onChange(next); }
-    else emit(next);
-  }, [emit, onChange, pushUndoSnapshot]);
+  const emitRows = useCallback((next: T[], sourceRowsDirect = false, editedColumnId?: string) => {
+    const snapshot = snapshotOf('rows');
+    if (emit(next, editedColumnId, sourceRowsDirect)) pushUndoSnapshot('rows', snapshot);
+  }, [emit, pushUndoSnapshot, snapshotOf]);
 
   /** Put the selection back where an operation found it, clamped to the sheet. */
   const restoreSelection = useCallback((snap: HistoryEntry<T>['selection'], keys: string[], order = columns) => {
@@ -854,8 +888,13 @@ export function SimpleGrid<T>({
   // Preview at most once per animation frame; notify the host only on completion.
   // The ref mirrors the state so the window-level drag listeners always read
   // the latest map without re-subscribing on every move.
-  const [widthOverrides, setWidthOverrides] = useState<Record<string, number>>(() => ({...defaultColumnWidths}));
-  const widthOverridesRef = useRef<Record<string, number>>({...defaultColumnWidths});
+  const [widthOverrides, setWidthOverrides] = useState<Record<string, number>>(() => ({...columnWidths ?? defaultColumnWidths}));
+  const widthOverridesRef = useRef<Record<string, number>>(widthOverrides);
+  useLayoutEffect(() => {
+    if (!columnWidths) return;
+    widthOverridesRef.current = columnWidths;
+    setWidthOverrides(columnWidths);
+  }, [columnWidths]);
   // Both halves of a boundary share one marker, including during a drag.
   const updateResizeGeometry = useRef<(() => void) | null>(null);
   const [resizingColumn, setResizingColumn] = useState<string | null>(null);
@@ -883,6 +922,10 @@ export function SimpleGrid<T>({
     resizeCleanup.current?.();
     const targets = resizeColumnsFor(columnId);
     if (!targets.length) return;
+    const pointerId = 'pointerId' in event ? event.pointerId : undefined;
+    const moveEventName = pointerId === undefined ? 'mousemove' : 'pointermove';
+    const upEventName = pointerId === undefined ? 'mouseup' : 'pointerup';
+    const initialWidths = widthOverridesRef.current;
     const declared = columns.find((column) => column.id === columnId)?.width ?? 0;
     // A grow column can be wider than its declared minimum. Resize from the
     // painted edge, not from the declaration, so the first move cannot jump.
@@ -919,10 +962,11 @@ export function SimpleGrid<T>({
     };
     let frame: number | null = null;
     const onMove = (moveEvent: MouseEvent) => {
-      const next = Math.max(SG_MIN_COLUMN_WIDTH, start.startWidth + (moveEvent.clientX - start.startX));
-      if (targets.every((column) => widthOverridesRef.current[column.id] === next)) return;
+      if (pointerId !== undefined && (moveEvent as PointerEvent).pointerId !== pointerId) return;
+      const requested = Math.round(start.startWidth + (moveEvent.clientX - start.startX));
       const map = { ...widthOverridesRef.current };
-      targets.forEach((column) => { map[column.id] = next; });
+      targets.forEach(column => { map[column.id] = Math.max(column.minWidth ?? SG_MIN_COLUMN_WIDTH, requested); });
+      if (targets.every(column => widthOverridesRef.current[column.id] === map[column.id])) return;
       // Preview locally once per frame; persistence belongs to the completed drag.
       widthOverridesRef.current = map;
       if (frame === null) frame = requestAnimationFrame(() => {
@@ -935,12 +979,14 @@ export function SimpleGrid<T>({
       frame = null;
       originalStyles.forEach(({element, width, minWidth, left}) => { element.style.width=width; element.style.minWidth=minWidth; element.style.left=left; });
       document.body.style.cursor = '';
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener(moveEventName, onMove);
+      window.removeEventListener(upEventName, onUp);
+      window.removeEventListener('pointercancel', onCancel);
       window.removeEventListener('blur', onUp);
       resizeCleanup.current = null;
     };
-    const onUp = () => {
+    const onUp = (upEvent: Event) => {
+      if (upEvent.type === 'pointerup' && (upEvent as PointerEvent).pointerId !== pointerId) return;
       cleanup();
       setResizingColumn(null);
       // An override equal to the declared width is no override at all.
@@ -948,9 +994,17 @@ export function SimpleGrid<T>({
       targets.forEach((column) => { if (map[column.id] === column.width) delete map[column.id]; });
       commitWidthOverrides(map);
     };
+    const onCancel = (cancelEvent: PointerEvent) => {
+      if (cancelEvent.pointerId !== pointerId) return;
+      cleanup();
+      widthOverridesRef.current = initialWidths;
+      setWidthOverrides(initialWidths);
+      setResizingColumn(null);
+    };
     resizeCleanup.current = cleanup;
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    window.addEventListener(moveEventName, onMove);
+    window.addEventListener(upEventName, onUp);
+    if (pointerId !== undefined) window.addEventListener('pointercancel', onCancel);
     window.addEventListener('blur', onUp);
   }, [columns, commitWidthOverrides, resizeColumnsFor, visibleCols, gutterWidth, showRowHeaders]);
 
@@ -1311,12 +1365,13 @@ export function SimpleGrid<T>({
     return result;
   }, [renderedColumns, visibleCols, columnProjection, columns]);
   const renderedRows = useMemo(() => {
-    if (!virtual) return rows.map((_, index) => ({ index, height: 0, key: `row-${index}` }));
+    if (!virtual && !visibleRowIndices) return rows.map((_, index) => ({ index, height: 0, key: `row-${index}` }));
     const start = Math.max(0, rowAtOffset(viewport.top) - 4);
     const end = Math.min(rows.length, rowAtOffset(viewport.top + viewport.height) + 5);
     const indexes = new Set<number>();
     if(viewRestore.restoring.current&&viewRestore.rowIndex!==undefined&&viewRestore.rowIndex<rows.length)indexes.add(viewRestore.rowIndex);
-    for (let index = start; index < end; index += 1) indexes.add(index);
+    if (visibleRowIndices) visibleRowIndices.forEach(index => indexes.add(index));
+    else for (let index = start; index < end; index += 1) indexes.add(index);
     if (editing && active && active.row < rows.length) indexes.add(active.row);
     const entries: { index: number | null; height: number; key: string }[] = [];
     let previous = 0;
@@ -1327,7 +1382,7 @@ export function SimpleGrid<T>({
     }
     if (previous < rows.length) entries.push({ index: null, height: rowTop(rows.length) - rowTop(previous), key: 'gap-end' });
     return entries;
-  }, [active, editing, fixedRowHeight, rowOffsets, rows, viewport.height, viewport.top, virtual, viewState]);
+  }, [active, editing, fixedRowHeight, rowOffsets, rows, viewport.height, viewport.top, virtual, viewState, visibleRowIndices]);
   // END_BLOCK_VIRTUAL_VIEWPORT
 
   const focusGrid = useCallback(() => {
@@ -1340,6 +1395,10 @@ export function SimpleGrid<T>({
   /** Excel-style reveal for selected cells: a cell hidden (or half hidden
    *  behind the sticky header) scrolls until its top edge clears the header. */
   const scrollCellIntoView = useCallback((rowIndex: number, navIndex: number) => {
+    if (onRevealRow) {
+      onRevealRow(rowIndex);
+      return;
+    }
     if (virtual && wrapperRef.current) {
       const root = wrapperRef.current;
       const visibleIndex = visibleCols.indexOf(navCols[navIndex]);
@@ -1402,7 +1461,7 @@ export function SimpleGrid<T>({
       ancestor = ancestor.parentElement;
     }
     window.scrollBy(0, -overlap);
-  }, [columnOffsets, columns, fixedRowHeight, rowOffsets, freezeRowHeader, frozenCount, gutterWidth, navCols, readViewport, viewport.width, virtual, virtualHeight, visibleCols, showColumnHeaders]);
+  }, [columnOffsets, columns, fixedRowHeight, rowOffsets, freezeRowHeader, frozenCount, gutterWidth, navCols, readViewport, viewport.width, virtual, virtualHeight, visibleCols, showColumnHeaders, onRevealRow]);
 
   // START_BLOCK_CELL_COMMENT_REVEAL
   // Host navigation (a comment card, a search result) asks the grid to bring a
@@ -1506,7 +1565,7 @@ export function SimpleGrid<T>({
       return;
     }
     if (preview) editAppliedRef.current = true;
-    else emitRows(rows.map((item, index) => (index === target.row ? column.setValue!(item, normalized) : item)));
+    else emitRows(rows.map((item, index) => (index === target.row ? column.setValue!(item, normalized, 'editor') : item)), false, column.id);
   }, [bannerKeys, rowKey, columns, emitRows, navCols, rows]);
 
   /** Flip a checkbox cell (kind: 'checkbox') without opening any editor. */
@@ -1567,7 +1626,7 @@ export function SimpleGrid<T>({
   /** Abandon the edit: roll a live-applied draft back to the row snapshot, drop the error. */
   const cancelEdit = useCallback(() => {
     const snapshot = editSnapshotRef.current;
-    if (snapshot && rows[snapshot.row] !== snapshot.value) {
+    if (editAppliedRef.current && snapshot && rows[snapshot.row] !== snapshot.value) {
       // A rollback, not a user operation: it never enters the undo history.
       emit(rows.map((row, index) => (index === snapshot.row ? snapshot.value : row)));
     }
@@ -2087,6 +2146,10 @@ export function SimpleGrid<T>({
     const tileCols = spanCols > clipCols;
     const blockRows = tileRows ? spanRows : Math.max(spanRows, clipRows);
     const blockCols = tileCols ? spanCols : Math.max(spanCols, clipCols);
+    if (!allowRowInsert && origin.row + blockRows > rows.length) {
+      onPasteOverflow?.();
+      return;
+    }
     if (!navCols.slice(origin.navIndex, origin.navIndex + blockCols).some((index) => {
       const column = columns[index];
       return column.setValue && !column.readOnly && !column.chipsOnly;
@@ -2132,7 +2195,7 @@ export function SimpleGrid<T>({
     setActive({ ...origin });
     setFocus({ row: origin.row + blockRows - 1, navIndex: Math.min(navCols.length - 1, origin.navIndex + blockCols - 1) });
     setEditError(null);
-  }, [active, bannerKeys, rowKey, columns, createRow, emitRows, editing, merges, navCols, readOnly, rows, selection, summaryGroups]);
+  }, [active, allowRowInsert, bannerKeys, rowKey, columns, createRow, emitRows, editing, merges, navCols, onPasteOverflow, readOnly, rows, selection, summaryGroups]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.nativeEvent.isComposing) return;
@@ -2407,11 +2470,33 @@ export function SimpleGrid<T>({
     block: { fromStart: number; fromEnd: number },
     start: number,
     onClick: () => void,
+    pointerId?: number,
   ) => {
     headerGrabCleanup.current?.();
     let moved = false;
+    let pointer: { x: number; y: number } | undefined;
+    let scrollFrame: number | undefined;
+    const scroller = kind === 'row' ? getRowScrollContainer?.() : null;
+    const moveEventName = pointerId === undefined ? 'mousemove' : 'pointermove';
+    const upEventName = pointerId === undefined ? 'mouseup' : 'pointerup';
+    const scrollRowsAtEdge = () => {
+      if (!pointer || !scroller || !reorderRef.current) return;
+      const bounds = scroller.getBoundingClientRect();
+      const headerBottom = wrapperRef.current?.querySelector('thead th')?.getBoundingClientRect().bottom ?? bounds.top;
+      const bottom = bounds.top + scroller.clientHeight;
+      const edge = 26;
+      const delta = pointer.y < headerBottom + edge ? Math.max(-16, (pointer.y - headerBottom - edge) / 2)
+        : pointer.y > bottom - edge ? Math.min(16, (pointer.y - bottom + edge) / 2) : 0;
+      if (delta && pointer.y >= bounds.top && pointer.y <= bounds.bottom) {
+        scroller.scrollTop += delta;
+        updateDropFromPointer(kind, pointer.x, pointer.y);
+      }
+      scrollFrame = requestAnimationFrame(scrollRowsAtEdge);
+    };
     const axis = kind === 'col' ? 'clientX' : 'clientY';
     const onMove = (moveEvent: MouseEvent) => {
+      if (pointerId !== undefined && (moveEvent as PointerEvent).pointerId !== pointerId) return;
+      pointer = { x: moveEvent.clientX, y: moveEvent.clientY };
       if (!moved) {
         if (Math.abs(moveEvent[axis] - start) < SG_REORDER_THRESHOLD) return;
         moved = true;
@@ -2419,33 +2504,42 @@ export function SimpleGrid<T>({
         reorderRef.current = drag;
         setHoveredResizeColumn(null);
         setReorder(drag);
+        if (scroller) scrollFrame = requestAnimationFrame(scrollRowsAtEdge);
       }
       // The insertion line follows the raw pointer position — anywhere on the
       // page, not only over the header/gutter strip — clamped by the grid edges.
       updateDropFromPointer(kind, moveEvent.clientX, moveEvent.clientY);
     };
-    const onUp = () => {
+    const onUp = (event: MouseEvent) => {
+      if (pointerId !== undefined && (event as PointerEvent).pointerId !== pointerId) return;
       cleanup();
-      if (moved) finishReorder(kind);
+      if (moved) {
+        updateDropFromPointer(kind, event.clientX, event.clientY);
+        finishReorder(kind);
+      }
       else onClick();
     };
     const cleanup = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
+      if (scrollFrame !== undefined) cancelAnimationFrame(scrollFrame);
+      window.removeEventListener(moveEventName, onMove);
+      window.removeEventListener(upEventName, onUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
       window.removeEventListener('blur', cancel);
       window.removeEventListener('keydown', onKey);
       headerGrabCleanup.current = null;
     };
     const cancel = () => { cleanup(); reorderRef.current = null; setReorder(null); };
+    const onPointerCancel = (event: PointerEvent) => { if (event.pointerId === pointerId) cancel(); };
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') cancel(); };
     headerGrabCleanup.current = cleanup;
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    window.addEventListener(moveEventName, onMove);
+    window.addEventListener(upEventName, onUp);
+    if (pointerId !== undefined) window.addEventListener('pointercancel', onPointerCancel);
     window.addEventListener('blur', cancel);
     window.addEventListener('keydown', onKey);
   };
 
-  const beginRowGrab = (event: ReactMouseEvent<HTMLTableCellElement>, rowIndex: number) => {
+  const beginRowGrab = (event: ReactMouseEvent<HTMLTableCellElement>, rowIndex: number, pointerId?: number) => {
     if (!navCols.length) return;
     if (event.button !== 0) return;
     event.preventDefault();
@@ -2469,13 +2563,13 @@ export function SimpleGrid<T>({
     const directHandle=event.target instanceof Element&&Boolean(event.target.closest('[data-sg-row-drag-handle]'));
     if (!inBlock) selectRow(rowIndex);
     focusGrid();
-    if ((inBlock||directHandle) && !readOnly && !rowViewProjected && (!rowSelectionMode||directHandle) && allowRowReorder) {
-      const start=directHandle?rowIndex:selection!.min.row;
-      let end=directHandle?rowIndex:selection!.max.row;
+    if ((inBlock||directHandle) && (!readOnly || rowDropTarget) && !rowViewProjected && (!rowSelectionMode||directHandle) && allowRowReorder) {
+      const start=directHandle||rowDropTarget?rowIndex:selection!.min.row;
+      let end=directHandle||rowDropTarget?rowIndex:selection!.max.row;
       for(let index=start;index<=end;index++){
         if(rowGroupKey&&bannerKeys.has(rowKey(rows[index]))){const id=rowGroupKey(rows[index]);while(end+1<rows.length&&rowGroupKey(rows[end+1])===id)end++;}
       }
-      startReorderGrab('row', { fromStart: start, fromEnd: end }, event.clientY, () => selectRow(rowIndex));
+      startReorderGrab('row', { fromStart: start, fromEnd: end }, event.clientY, () => selectRow(rowIndex), pointerId);
     } else startHeaderSelection('row', rowIndex);
   };
 
@@ -2517,6 +2611,38 @@ export function SimpleGrid<T>({
     const drag = reorderRef.current;
     const root = wrapperRef.current;
     if (!drag || drag.kind !== kind || !root) return;
+    if (kind === 'row' && rowDropTarget) {
+      const targets = ownGridElements(root, 'tbody tr[data-row-index]');
+      const headerBottom = root.querySelector('thead th')?.getBoundingClientRect().bottom ?? -Infinity;
+      const scroller = getRowScrollContainer?.();
+      const viewportBottom = scroller?.clientHeight ? scroller.getBoundingClientRect().top + scroller.clientHeight : Infinity;
+      let rowTarget: ReorderDrag['rowTarget'];
+      if (y >= headerBottom && y <= viewportBottom) {
+        for (const element of targets) {
+          const rect = element.getBoundingClientRect();
+          if (y < rect.top || y > rect.bottom) continue;
+          const index = Number(element.getAttribute('data-row-index'));
+          const offset = (y - rect.top) / rect.height;
+          const placement = offset < 0.28 ? 'before' : offset > 0.72 ? 'after' : 'inside';
+          if (drag.rowTarget?.index === index && drag.rowTarget.placement === placement) return;
+          rowTarget = { index, placement, commit: rowDropTarget(rows[drag.fromStart], rows[index], placement) };
+          break;
+        }
+        const last = targets[targets.length - 1];
+        if (!rowTarget && last && Number(last.getAttribute('data-row-index')) === rows.length - 1
+          && y > last.getBoundingClientRect().bottom) {
+          const index = rows.length - 1;
+          if (drag.rowTarget?.placement === 'end') return;
+          rowTarget = { index, placement: 'end', commit: rowDropTarget(rows[drag.fromStart], rows[index], 'end') };
+        }
+      }
+      if (rowTarget || drag.rowTarget) {
+        const next = { ...drag, rowTarget };
+        reorderRef.current = next;
+        setReorder(next);
+      }
+      return;
+    }
     const mids: number[] = [];
     // All-columns insertion indexes matching `mids` one to one: system
     // (presentational) headers contribute no insertion edge of their own.
@@ -2553,6 +2679,10 @@ export function SimpleGrid<T>({
     reorderRef.current = null;
     setReorder(null);
     if (!drag || drag.kind !== kind) return;
+    if (kind === 'row' && rowDropTarget) {
+      drag.rowTarget?.commit?.();
+      return;
+    }
     const len = drag.fromEnd - drag.fromStart + 1;
     if (drag.drop > drag.fromStart && drag.drop <= drag.fromEnd) return; // dropped back inside the block: no move
     const insertAt = drag.drop > drag.fromEnd ? drag.drop - len : drag.drop;
@@ -2629,6 +2759,7 @@ export function SimpleGrid<T>({
   /** Which edge of this column/row wears the insertion line during a reorder drag. */
   const reorderMark = (kind: 'col' | 'row', index: number, lastIndex: number): 'left' | 'right' | 'top' | 'bottom' | null => {
     if (!reorder || reorder.kind !== kind) return null;
+    if (kind === 'row' && rowDropTarget) return null;
     if (reorder.drop > reorder.fromStart && reorder.drop <= reorder.fromEnd) {
       return index === reorder.fromStart ? (kind === 'col' ? 'left' : 'top') : null; // no-op drop: the line rests at the block start
     }
@@ -2954,7 +3085,7 @@ export function SimpleGrid<T>({
   return (
     <div
       aria-label={ariaLabel}
-      aria-rowcount={virtual ? rows.length + Number(showColumnHeaders) : undefined}
+      aria-rowcount={virtual || visibleRowIndices ? rows.length + Number(showColumnHeaders) : undefined}
       aria-colcount={virtual ? visibleCols.length + Number(showRowHeaders) : undefined}
       className="relative w-full rounded-md outline-none"
       data-sg
@@ -2992,7 +3123,7 @@ export function SimpleGrid<T>({
           isDisabled: column.isDisabled ? (row: T) => column.isDisabled!(row, rowIndex) : undefined,
           isSkeleton: column.isSkeleton ? (row: T) => column.isSkeleton!(row, rowIndex) : undefined,
           render: column.render ? (row: T) => column.render!(row, rowIndex) : undefined,
-          renderValue: column.renderValue ? (row: T) => column.renderValue!(row, rowIndex) : column.getValue && column.kind !== 'multiselect' ? (row: T) => {
+          renderValue: column.renderValue ? (row: T, _index: number, openEditor: () => void) => column.renderValue!(row, rowIndex, openEditor) : column.getValue && column.kind !== 'multiselect' ? (row: T) => {
             const value = column.getValue!(row);
             const display = column.kind !== 'checkbox' && value.startsWith('=') && value.length > 1
               ? sourceEvaluator(rowIndex, physicalColumns.indexOf(column)) : value;
@@ -3086,7 +3217,7 @@ export function SimpleGrid<T>({
               {rowSelectionMode && (
                 <input
                   ref={selectAllRowsRef}
-                  aria-label="Выбрать все строки"
+                  aria-label={selectAllRowsLabel}
                   onKeyDown={(event) => event.stopPropagation()}
                   type="checkbox"
                   checked={visibleRowKeys.length > 0 && visibleSelectedCount === visibleRowKeys.length}
@@ -3138,10 +3269,11 @@ export function SimpleGrid<T>({
                   data-testid={side === 'right' ? `sg-resize-${targetId}` : `sg-resize-${targetId}-left`}
                   onDoubleClick={(event) => { event.stopPropagation(); if (!reorderRef.current) resetColumnWidth(targetId); }}
                   onMouseDown={(event) => beginColumnResize(targetId, event)}
+                  onPointerDown={event => { if (event.pointerType !== 'mouse') beginColumnResize(targetId, event); }}
                   onMouseEnter={(event) => { if (!reorderRef.current && event.buttons === 0) setHoveredResizeColumn(targetId); }}
                   onMouseLeave={() => setHoveredResizeColumn((previous) => previous === targetId ? null : previous)}
                   role="separator"
-                  style={{ pointerEvents: reorder ? 'none' : undefined }}
+                  style={{ pointerEvents: reorder ? 'none' : undefined, touchAction: 'none' }}
                   title="Потяните, чтобы изменить ширину; двойной клик — исходная"
                 />
               );
@@ -3153,6 +3285,7 @@ export function SimpleGrid<T>({
                   className={`sticky top-0 ${systemColumn ? '' : 'cursor-grab'} border-b border-r border-t border-[#dfe1e6] px-1.5 text-[11px] font-semibold tracking-wide text-[#6b778c] ${column.align === 'right' ? 'text-right' : 'text-left'}`}
                   data-sg-system={systemColumn ? '' : undefined}
                   data-column-index={columnIndex}
+                  data-column-id={column.id}
                   data-sg-frozen-position={headerFrozen ? entry.start : undefined}
                   data-testid={`sg-colheader-${column.id}`}
                   key={column.id}
@@ -3176,8 +3309,9 @@ export function SimpleGrid<T>({
                         const summaryGroup = summaryGroups.get(column.id);
                         const icon = headerIconNode(summaryGroup ? summaryGroup.definition.headerIcon : column.headerIcon,
                           (summaryGroup ? summaryGroup.definition.headerIconPosition : column.headerIconPosition) ?? 'before', column.id);
+                        const title = column.headerContent ?? column.title;
                         return (summaryGroup ? summaryGroup.definition.headerIconPosition : column.headerIconPosition) === 'after'
-                          ? <>{column.title}{icon}</> : <>{icon}{column.title}</>;
+                          ? <>{title}{icon}</> : <>{icon}{title}</>;
                       })()}
                     </span>
                     {summaryGroups.has(column.id) ? groupToggle(summaryGroups.get(column.id)!) : <>
@@ -3250,13 +3384,21 @@ export function SimpleGrid<T>({
               const hasDetails = details != null && details !== false;
               return (
             <RowContainer key={rowKey(row)} {...(grouped ? {'data-sg-row-surface':hasDetails ? 'raised' : 'flat'} : {})}>
-            <tr data-sg-row-expanded={hasDetails ? rowDetailsAppearance : undefined} data-testid={`sg-row-${rowIndex}`} data-row-index={rowIndex} aria-rowindex={virtual ? rowIndex + 1 + Number(showColumnHeaders) : undefined} key={rowKey(row)}
+            <tr {...rowAttributes?.(row, sourceIndex(rowIndex))} className={rowClassName?.(row, sourceIndex(rowIndex))}
+              data-sg-row-drop={reorder?.rowTarget?.index === rowIndex && reorder.rowTarget.commit
+                ? reorder.rowTarget.placement === 'end' ? 'after' : reorder.rowTarget.placement : undefined}
+              data-sg-row-dragging={reorder?.kind === 'row' && reorder.fromStart === rowIndex ? '' : undefined}
+              data-sg-row-expanded={hasDetails ? rowDetailsAppearance : undefined} data-testid={`sg-row-${rowIndex}`} data-row-index={rowIndex} aria-rowindex={virtual || visibleRowIndices ? rowIndex + 1 + Number(showColumnHeaders) : undefined} key={rowKey(row)}
               style={{ height: getRowHeight(rowKey(row)), ...(virtual ? { '--sg-row-height': `${getRowHeight(rowKey(row)) - 1}px` } : {}) } as CSSProperties}>
               {showRowHeaders && <td
                 className={`${cellBase} cursor-grab border-l text-center text-[11px] text-[#6b778c]`}
                 data-testid={`sg-rowheader-${rowIndex}`}
-                onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); openRowMenu(rowIndex, event.clientX, event.clientY); }}
+                onContextMenu={allowRowInsert ? (event) => { event.preventDefault(); event.stopPropagation(); openRowMenu(rowIndex, event.clientX, event.clientY); } : undefined}
                 onMouseDown={(event) => beginRowGrab(event, rowIndex)}
+                onPointerDown={event => {
+                  if (event.pointerType !== 'mouse' && event.target instanceof Element
+                    && event.target.closest('[data-sg-row-drag-handle]')) beginRowGrab(event, rowIndex, event.pointerId);
+                }}
                 title={rowViewProjected||!allowRowReorder ? 'Перемещение строк недоступно при сортировке или фильтрации' : undefined}
                 style={{
                   ...rowHeaderStyle?.(row,sourceIndex(rowIndex)),
@@ -3275,7 +3417,8 @@ export function SimpleGrid<T>({
                   style={rowSelectionMode ? { justifyContent: 'flex-start', paddingLeft: 5 } : undefined}>
                   {rowSelectionMode && (
                     <input
-                      aria-label={`Выбрать строку ${rowHeaderLabel&&(typeof rowHeaderLabel(row,sourceIndex(rowIndex))==='string'||typeof rowHeaderLabel(row,sourceIndex(rowIndex))==='number')?rowHeaderLabel(row,sourceIndex(rowIndex)):rowIndex+1}`}
+                      aria-label={rowSelectionLabel?.(row, sourceIndex(rowIndex))
+                        ?? `Выбрать строку ${rowIndex + 1}`}
                       onMouseDown={(event) => event.stopPropagation()}
                       onKeyDown={(event) => event.stopPropagation()}
                       checked={rowChecked}
@@ -3409,6 +3552,8 @@ export function SimpleGrid<T>({
                     data-invalid={invalid ? 'true' : undefined}
                     data-calendar={hasCalendar ? 'true' : undefined}
                     data-testid={`sg-cell-${rowIndex}-${column.id}`}
+                    data-column-id={column.id}
+                    data-sg-align={column.align}
                     data-sg-frozen-position={frozenCell ? visiblePosition : undefined}
                     aria-colindex={virtual ? visibleCols.indexOf(columnIndex) + 1 + Number(showRowHeaders) : undefined}
                     key={frozenCell ? `${column.id}:${rowIndex}` : column.id}
@@ -3427,7 +3572,7 @@ export function SimpleGrid<T>({
                       cursor: isEditing ? 'text' : undefined,
                       position: frozenCell ? 'sticky' : 'relative',
                       ...(frozenCell ? { left: frozenLefts[visiblePosition] } : {}),
-                      textAlign: column.align === 'right' ? 'right' : 'left',
+                      textAlign: column.align ?? 'left',
                       // Values anchor to the top edge: text top-left, numbers top-right.
                       verticalAlign: 'top',
                       scrollMarginLeft: freezeRowHeader ? gutterWidth : undefined,
@@ -3460,7 +3605,7 @@ export function SimpleGrid<T>({
                       <>
                         <Editor
                           align={column.align}
-                          displayValue={column.selectOnly ? column.renderValue?.(row, sourceIndex(rowIndex)) : undefined}
+                          displayValue={column.selectOnly ? column.renderValue?.(row, sourceIndex(rowIndex), () => {}) : undefined}
                           alwaysOpen={isList || Boolean(column.openOnActivate)}
                           applyDraft={(next) => { setSearchStarted(true); setDraft(isNumber ? canonicalGridDecimal(next) : next); if (active) applyValue(active, next, true); }}
                           cancel={() => { cancelEdit(); focusGrid(); }}
@@ -3487,12 +3632,12 @@ export function SimpleGrid<T>({
                           row={row}
                           rowIndex={sourceIndex(rowIndex)}
                           selectOnly={column.selectOnly}
-                          textStyle={editingTextStyle}
+                          textStyle={{ ...editingTextStyle, ...column.editorStyle?.(row) }}
                           value={draft}
                         />
                       </>
                     ) : column.renderValue ? (
-                      column.renderValue(row, sourceIndex(rowIndex))
+                      column.renderValue(row, sourceIndex(rowIndex), () => startEditingAt(rowIndex, navIndex))
                     ) : column.kind === 'multiselect' ? (
                       <SimpleGridChipDisplay
                         candidates={candidates}

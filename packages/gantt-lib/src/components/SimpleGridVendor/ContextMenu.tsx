@@ -11,7 +11,7 @@
 // END_MODULE_MAP
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { SimpleGridContextMenuItem } from './types.js';
+import type { SimpleGridContextMenuItem } from './types';
 
 export function ContextMenu<T>({ x, y, items, onClose, onSelect, ariaLabel = "Действия с ячейками" }: {
   ariaLabel?: string;

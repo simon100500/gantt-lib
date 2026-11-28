@@ -18,6 +18,7 @@ import {
   universalCascade,
   computeParentDates,
   computeParentProgress,
+  cascadeTaskProgress,
   getChildren,
   removeDependenciesBetweenTasks,
   isTaskParent,
@@ -61,7 +62,6 @@ import DragGuideLines from '../DragGuideLines/DragGuideLines';
 import { DependencyLines } from '../DependencyLines';
 import { ActivityDependencyLines } from '../DependencyLines/ActivityDependencyLines';
 import { DependencyCreationOverlay, type DependencyCreationDrag } from '../DependencyCreationOverlay';
-import { TaskList } from '../TaskList';
 import { SimpleGridTaskList } from '../TaskList/SimpleGridTaskList';
 import { GenerationSkeletonRows } from '../GenerationSkeleton';
 import { ResourceTimelineChart } from '../ResourceTimelineChart';
@@ -1423,15 +1423,20 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const container = scrollContainerRef.current;
     if (!container) return;
 
+    const taskList = scrollContentRef.current?.querySelector<HTMLElement>('.gantt-simple-grid');
     let frameId: number | null = null;
     const updateViewport = () => {
       frameId = null;
-      const nextHasRightShadow = container.scrollLeft > 0;
-      const nextViewportHeight = Math.max(0, container.clientHeight - timelineHeaderHeight);
-      const nextViewportWidth = Math.max(0, container.clientWidth - (showTaskList ? taskListWidth : 0));
-      const nextScrollTop = container.scrollTop;
       const nextScrollLeft = container.scrollLeft;
-      const nextChartScrollLeft = Math.max(0, nextScrollLeft);
+      const panelWidth = showTaskList ? taskList?.offsetWidth ?? taskListWidth : 0;
+      const pinTaskList = container.clientWidth === 0 || container.clientWidth - panelWidth >= Math.max(96, dayWidth * 2);
+      if (taskList) taskList.toggleAttribute('data-gantt-grid-unpinned', !pinTaskList);
+      const nextHasRightShadow = pinTaskList && nextScrollLeft > 0;
+      const nextViewportHeight = Math.max(0, container.clientHeight - timelineHeaderHeight);
+      const coveredWidth = pinTaskList ? panelWidth : Math.max(0, panelWidth - nextScrollLeft);
+      const nextViewportWidth = Math.max(0, container.clientWidth - coveredWidth);
+      const nextScrollTop = container.scrollTop;
+      const nextChartScrollLeft = pinTaskList ? nextScrollLeft : Math.max(0, nextScrollLeft - panelWidth);
       // Бакеты: состояние (а значит и перерисовка графика + окно рендера)
       // обновляются раз в N px, а не на каждом кадре панорамирования.
       const bucketedScrollTop = Math.floor(nextScrollTop / SCROLL_TOP_BUCKET_PX) * SCROLL_TOP_BUCKET_PX;
@@ -1499,6 +1504,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
         })
       : null;
     resizeObserver?.observe(container);
+    if (taskList) resizeObserver?.observe(taskList);
 
     return () => {
       if (frameId !== null) {
@@ -1839,21 +1845,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       onTasksChange?.(cascadedTasks as TTask[]);
     }
   }, [tasks, normalizedTasks, onTasksChange, onScheduleIntent, disableConstraints, editingTaskId, businessDays, isCustomWeekend, onSubtreeScaleResult]);
-
-  const handleTaskDurationChange = useCallback((task: Task, duration: number) => {
-    const updatedTask = {
-      ...task,
-      endDate: task.type === 'milestone'
-        ? task.startDate
-        : buildTaskRangeFromStart(
-          parseUTCDate(task.startDate),
-          duration,
-          businessDays,
-          isCustomWeekend
-        ).end.toISOString(),
-    };
-    handleTaskChange([updatedTask], { duration, anchor: 'start' });
-  }, [businessDays, handleTaskChange, isCustomWeekend]);
 
   /**
    * Handle task deletion: collect all changed tasks (with cleaned dependencies),
@@ -2571,46 +2562,104 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   // START_BLOCK_SIMPLEGRID_TASK_UPDATES
   // One grid change is one transaction; controlled scheduling accepts only one date intent.
   const [simpleGridError, setSimpleGridError] = useState('');
-  const handleSimpleGridChange = useCallback((nextVisible: Task[]) => {
+  const handleGridPasteOverflow = useCallback(() => {
+    setSimpleGridError('Вставка выходит за пределы существующих задач');
+  }, []);
+  const getGridScrollContainer = useCallback(() => scrollContainerRef.current, []);
+  const revealGridRow = useCallback((index: number) => {
+    const container = scrollContainerRef.current;
+    const top = compositeRowLayout.tops[index];
+    if (!container || top === undefined || container.clientHeight <= timelineHeaderHeight) return;
+    const bottom = top + compositeRowLayout.heights[index];
+    const viewportHeight = container.clientHeight - timelineHeaderHeight;
+    if (top < container.scrollTop) container.scrollTop = top;
+    else if (bottom > container.scrollTop + viewportHeight) container.scrollTop = bottom - viewportHeight;
+  }, [compositeRowLayout, timelineHeaderHeight]);
+  const handleSimpleGridChange = useCallback((nextVisible: Task[], editedColumnId?: string) => {
+    const reject = (message: string) => {
+      setSimpleGridError(message);
+      return false;
+    };
     if (nextVisible.length !== visibleTasks.length || nextVisible.some((task, index) => task.id !== visibleTasks[index]?.id)) {
-      setSimpleGridError('Вставка за пределы существующих задач пока недоступна'); return;
+      return reject('Список задач изменился. Повторите действие с текущими строками');
     }
-    const prior = new Map(visibleTasks.map(task => [task.id, task]));
     const dateKey = (value: string | Date) => value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
-    const changed = nextVisible.filter(task => {
-      const old = prior.get(task.id);
-      return old && (old.name !== task.name || dateKey(old.startDate) !== dateKey(task.startDate) || dateKey(old.endDate) !== dateKey(task.endDate));
+    const edits = nextVisible.flatMap((task, index) => {
+      const original = visibleTasks[index];
+      const starts = dateKey(original.startDate) !== dateKey(task.startDate);
+      const ends = dateKey(original.endDate) !== dateKey(task.endDate);
+      const name = original.name !== task.name;
+      const progress = (original.progress ?? 0) !== (task.progress ?? 0);
+      const kind = (original.type ?? 'task') !== (task.type ?? 'task');
+      if (!(starts || ends || name || progress || kind)) return [];
+      const editedTask = task.type === 'milestone' && starts !== ends
+        ? { ...task, startDate: starts ? task.startDate : task.endDate, endDate: starts ? task.startDate : task.endDate }
+        : task;
+      return [{ task: editedTask, starts, ends, name, progress, kind }];
     });
-    if (!changed.length) return;
-    const dated = changed.filter(task => {
-      const old = prior.get(task.id)!;
-      return dateKey(old.startDate) !== dateKey(task.startDate) || dateKey(old.endDate) !== dateKey(task.endDate);
-    });
-    if (changed.some(task => dateKey(task.startDate) > dateKey(task.endDate))) {
-      setSimpleGridError('Начало задачи не может быть позже окончания'); return;
+    if (!edits.length) return false;
+    const dateEdits = edits.filter(edit => edit.starts || edit.ends || edit.kind);
+    if (dateEdits.some(({ task }) => dateKey(task.startDate) > dateKey(task.endDate))) {
+      return reject('Начало задачи не может быть позже окончания');
     }
-    if (onScheduleIntent && dated.length && (changed.length !== 1 || dated[0].name !== prior.get(dated[0].id)!.name || (dateKey(prior.get(dated[0].id)!.startDate) !== dateKey(dated[0].startDate) && dateKey(prior.get(dated[0].id)!.endDate) !== dateKey(dated[0].endDate)))) {
-      setSimpleGridError('Пакетное изменение дат в управляемом режиме пока недоступно'); return;
+    if (dateEdits.some(({ task }) => task.type === 'milestone' && dateKey(task.startDate) !== dateKey(task.endDate))) {
+      return reject('Для вехи начало и окончание должны совпадать');
     }
-    if (changed.length > 1 && dated.some(task => isTaskParent(task.id, normalizedTasks))) {
-      setSimpleGridError('Пакетное изменение дат родительских задач пока недоступно'); return;
+    if (onScheduleIntent && dateEdits.length) {
+      const [edit] = dateEdits;
+      if (edits.length > 1 || edit.name || edit.progress || (!editedColumnId && edit.starts && edit.ends)) {
+        return reject('Пакетное изменение дат в управляемом режиме недоступно');
+      }
+    }
+    if (edits.length > 1 && dateEdits.some(({ task }) => isTaskParent(task.id, normalizedTasks))) {
+      return reject('Пакетное изменение дат родительских задач недоступно');
     }
     setSimpleGridError('');
-    if (changed.length === 1) { handleTaskChange(changed); return; }
-    if (!dated.length) { onTasksChange?.(changed as TTask[]); return; }
+    if (edits.length === 1 && (editedColumnId === 'duration' || edits[0].kind)) {
+      const { task, starts, ends } = edits[0];
+      const duration = task.type === 'milestone' ? 0 : getTaskDuration(task.startDate, task.endDate, businessDays, isCustomWeekend);
+      if (!starts && !ends && onScheduleIntent) {
+        onScheduleIntent({ type: 'change_duration', taskId: task.id, duration, anchor: 'start', taskType: task.type ?? 'task' });
+      } else {
+        handleTaskChange([task], { duration, anchor: 'start' });
+      }
+      return true;
+    }
+    if (edits.length === 1 && (dateEdits.length || !edits[0].progress)) {
+      handleTaskChange([edits[0].task]);
+      return true;
+    }
+    if (edits.length === 1) {
+      handleTaskChange(cascadeTaskProgress(edits[0].task, normalizedTasks));
+      return true;
+    }
+    const byId = new Map(edits.map(edit => [edit.task.id, edit]));
     let snapshot: Task[] = normalizedTasks.map(task => {
-      const edit = changed.find(item => item.id === task.id);
-      return edit && edit.name !== task.name ? { ...task, name: edit.name } : task;
+      const edit = byId.get(task.id);
+      if (!edit || (!edit.name && !edit.kind)) return task;
+      return { ...task, name: edit.task.name, type: edit.task.type };
     });
-    for (const edit of dated) {
+    const apply = (updates: Task[]) => {
+      const updatesById = new Map(updates.map(task => [task.id, task]));
+      snapshot = snapshot.map(task => updatesById.get(task.id) ?? task);
+    };
+    for (const { task: edit } of dateEdits) {
       const current = snapshot.find(task => task.id === edit.id)!;
       const updated = { ...current, startDate: edit.startDate, endDate: edit.endDate };
-      const next = disableConstraints ? [updated] : universalCascade(updated, new Date(updated.startDate), new Date(updated.endDate), snapshot.map(task => task.id === updated.id ? updated : task), businessDays, isCustomWeekend);
-      const updates = new Map(next.map(task => [task.id, task]));
-      snapshot = snapshot.map(task => updates.get(task.id) ?? task);
+      apply(disableConstraints ? [updated] : universalCascade(
+        updated, parseUTCDate(updated.startDate), parseUTCDate(updated.endDate),
+        snapshot.map(task => task.id === updated.id ? updated : task), businessDays, isCustomWeekend
+      ));
     }
-    const original = new Map(normalizedTasks.map(task => [task.id, task]));
-    onTasksChange?.(snapshot.filter(task => JSON.stringify(task) !== JSON.stringify(original.get(task.id))) as TTask[]);
+    for (const { task: edit, progress } of edits) {
+      if (!progress) continue;
+      const current = snapshot.find(task => task.id === edit.id)!;
+      apply(cascadeTaskProgress({ ...current, progress: edit.progress }, snapshot));
+    }
+    const updates = snapshot.filter((task, index) => task !== normalizedTasks[index]
+      && JSON.stringify(task) !== JSON.stringify(normalizedTasks[index]));
+    if (updates.length) onTasksChange?.(updates as TTask[]);
+    return updates.length > 0;
   }, [visibleTasks, normalizedTasks, onScheduleIntent, onTasksChange, handleTaskChange, disableConstraints, businessDays, isCustomWeekend]);
   // END_BLOCK_SIMPLEGRID_TASK_UPDATES
 
@@ -2641,20 +2690,42 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             headerHeight={headerHeight}
             width={taskListWidth}
             show={showTaskList}
+            hasRightShadow={taskListHasRightShadow}
             collapsed={collapsedParentIds}
             onToggleCollapse={handleToggleCollapse}
             onChange={handleSimpleGridChange}
+            onPasteOverflow={handleGridPasteOverflow}
             nameReadOnly={disableTaskNameEditing || !onTasksChange}
             readOnly={!onTasksChange && !onScheduleIntent}
             hiddenColumns={hiddenTaskListColumns}
             columnWidths={taskListColumnWidths}
+            onColumnWidthsChange={onTaskListColumnWidthsChange}
+            additionalColumns={additionalColumns}
             error={simpleGridError}
             onTaskSelect={handleTaskSelect}
+            selectedTaskId={selectedTaskId}
             enableTaskMultiSelect={enableTaskMultiSelect}
             selectedTaskIds={selectedTaskIds}
             onSelectedTaskIdsChange={onSelectedTaskIdsChange}
-            onTaskEdit={handleTaskChange}
-            onDurationEdit={handleTaskDurationChange}
+            onTaskEdit={onTasksChange ? handleTaskChange : undefined}
+            onReorder={onReorder || onTasksChange ? handleReorder : undefined}
+            disableReorder={disableTaskDrag || disableTaskListReorder || (filterMode === 'hide' && !!taskFilter) || criticalPathMode === 'hide'}
+            onAdd={onAdd as ((task: Task) => void) | undefined}
+            enableAddTask={enableAddTask}
+            addTaskLabel={addTaskLabel}
+            onInsertAfter={onInsertAfter ? handleInsertAfter : undefined}
+            onDelete={onDelete ? handleDelete : undefined}
+            onPromote={onPromoteTask ?? (onTasksChange ? handlePromoteTask : undefined)}
+            onDemote={onDemoteTask ?? (onTasksChange ? handleDemoteTask : undefined)}
+            onUngroup={onUngroupTask ?? (onTasksChange ? handleUngroupTask : undefined)}
+            defaultTaskDurationDays={defaultTaskDurationDays}
+            menuCommands={taskListMenuCommands}
+            renderActions={renderTaskListActions}
+            renderMenu={renderTaskListMenu}
+            hideActions={hideTaskListRowActions}
+            getRowClassName={getTaskListRowClassName}
+            dateChangeMode={taskDateChangeMode}
+            onDateChangeModeChange={handleTaskDateChangeMode}
             selectedChip={selectedChip}
             onSelectedChipChange={setSelectedChip}
             onScrollToTask={scrollToTask}
@@ -2664,6 +2735,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             fillParentRows={shouldFillParentRowsInTaskList}
             disableDependencyEditing={disableDependencyEditing}
             getTaskListNamePrefixIcon={getTaskListNamePrefixIcon}
+            printDependencyLabels={printDependencyLabels || forceFullRenderForPrint}
+            rowContentLines={resolvedRowContentLines}
+            bodyMinHeight={tableBodyMinHeight}
+            skeletonRowCount={skeletonRowCount}
+            visibleRowIndices={visibleTaskWindowIndices}
+            onRevealRow={revealGridRow}
+            getRowScrollContainer={getGridScrollContainer}
           />
 
           {/* Chart area */}

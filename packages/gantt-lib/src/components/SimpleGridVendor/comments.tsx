@@ -16,7 +16,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { SimpleGridCellComment, SimpleGridCommentTarget } from './types.js';
+import type { SimpleGridCellComment, SimpleGridCommentTarget } from './types';
 
 const HOVER_DELAY = 180;
 const CLOSE_DELAY = 160;

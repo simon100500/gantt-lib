@@ -6,7 +6,7 @@
 // END_MODULE_CONTRACT
 import '@testing-library/jest-dom/vitest';
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { GanttChart, type Task } from '../components/GanttChart';
 const tasks: Task[] = [
@@ -18,6 +18,69 @@ function paste(container: HTMLElement) {
   fireEvent.paste(container.querySelector('[data-sg]')!, { clipboardData: { getData: () => 'Site\t2026-02-03\t2026-02-07\nFoundation\t2026-02-10\t2026-02-19' } });
 }
 describe('SimpleGrid inside GanttChart', () => {
+  it('moves a collapsed subtree via the native grid gutter and preserves its hidden child', () => {
+    const tree = [{ ...tasks[0], id: 'p', name: 'Parent' }, { ...tasks[0], parentId: 'p' }, tasks[1]];
+    const onReorder = vi.fn();
+    const { container } = render(<GanttChart tasks={tree} showTaskList collapsedParentIds={new Set(['p'])} onReorder={onReorder} />);
+    const grid = screen.getByRole('grid', { name: 'Список задач' });
+    const [parent, target] = within(grid).getAllByTestId(/^sg-row-\d+$/);
+    vi.spyOn(parent, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 40, 600, 40));
+    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 80, 600, 40));
+    fireEvent.mouseDown(parent.querySelector('[data-sg-row-drag-handle]')!, { button: 0, clientY: 60 });
+    fireEvent.mouseMove(window, { clientY: 116 });
+    expect(target).toHaveAttribute('data-sg-row-drop', 'after');
+    fireEvent.mouseUp(window, { button: 0, clientY: 116 });
+    expect(onReorder).toHaveBeenCalledOnce();
+    const [ordered, moved, nextParent] = onReorder.mock.calls[0];
+    expect(ordered.map((task: Task) => task.id)).toEqual(['b', 'p', 'a']);
+    expect(ordered[2].parentId).toBe('p');
+    expect([moved, nextParent]).toEqual(['p', undefined]);
+    expect(container.querySelector('[data-sg-row-drop]')).toBeNull();
+  });
+
+  it('keeps the leaf duration edit on the scheduling intent path', () => {
+    const onScheduleIntent = vi.fn();
+    const onTasksChange = vi.fn();
+    render(<GanttChart tasks={tasks} showTaskList businessDays={false} onScheduleIntent={onScheduleIntent} onTasksChange={onTasksChange} />);
+    fireEvent.click(screen.getByTestId('sg-cell-0-duration'));
+    const input = screen.getByRole('spinbutton', { name: 'Длительность' });
+    fireEvent.change(input, { target: { value: '7' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onScheduleIntent).toHaveBeenCalledExactlyOnceWith({
+      type: 'change_duration', taskId: 'a', duration: 7, anchor: 'start', taskType: 'task',
+    });
+    expect(onTasksChange).not.toHaveBeenCalled();
+  });
+
+  it('cascades a pasted progress value from a parent to its collapsed children', () => {
+    const tree = [{ ...tasks[0], id: 'p', name: 'Parent', endDate: tasks[1].endDate }, { ...tasks[0], parentId: 'p' }, { ...tasks[1], parentId: 'p' }];
+    const onTasksChange = vi.fn();
+    render(<GanttChart tasks={tree} showTaskList collapsedParentIds={new Set(['p'])} onTasksChange={onTasksChange} />);
+    fireEvent.click(screen.getByTestId('sg-cell-0-progress'));
+    fireEvent.paste(screen.getByRole('grid', { name: 'Список задач' }), { clipboardData: { getData: () => '100' } });
+    expect(onTasksChange).toHaveBeenCalledExactlyOnceWith(tree.map(task => ({ ...task, progress: 100 })));
+  });
+
+  it('leaves hidden selected tasks selected when a visible row is checked', () => {
+    const tree = [{ ...tasks[0], id: 'p', name: 'Parent' }, { ...tasks[0], parentId: 'p' }, tasks[1]];
+    const onSelectedTaskIdsChange = vi.fn();
+    render(<GanttChart tasks={tree} showTaskList enableTaskMultiSelect collapsedParentIds={new Set(['p'])}
+      selectedTaskIds={new Set(['a'])} onSelectedTaskIdsChange={onSelectedTaskIdsChange} />);
+    fireEvent.click(within(screen.getByTestId('sg-rowheader-1')).getByRole('checkbox'));
+    expect(onSelectedTaskIdsChange).toHaveBeenCalledExactlyOnceWith(new Set(['a', 'b']));
+  });
+
+  it('creates a dependency with the clicked row as the successor in the default pick mode', () => {
+    const onTasksChange = vi.fn();
+    const { container } = render(<GanttChart tasks={tasks} showTaskList businessDays={false} onTasksChange={onTasksChange} />);
+    fireEvent.click(within(screen.getByTestId('sg-cell-0-dependencies')).getByRole('button', { name: 'Добавить связь' }));
+    fireEvent.click(container.querySelector('[data-testid="sg-cell-1-dependencies"] .gantt-tl-cell-deps')!);
+    expect(onTasksChange).toHaveBeenCalledOnce();
+    expect(onTasksChange.mock.calls[0][0]).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'b', dependencies: [{ taskId: 'a', type: 'FS', lag: 0 }] }),
+    ]));
+  });
+
   it('applies a rectangular paste once with both task changes', () => {
     const onTasksChange = vi.fn();
     const { container } = render(<GanttChart tasks={tasks} showTaskList businessDays={false} onTasksChange={onTasksChange} />);

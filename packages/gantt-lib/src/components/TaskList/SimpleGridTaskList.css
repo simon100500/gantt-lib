@@ -1,101 +1,253 @@
-/* Gantt task-list adapter for the vendored SimpleGrid. */
-.gantt-simple-grid [data-sg] { overflow: visible; }
-.gantt-simple-grid thead tr { height: var(--gantt-grid-header-height) !important; }
-.gantt-simple-grid thead th { position: sticky; top: 0; z-index: 5; }
-.gantt-simple-grid-error { position: absolute; top: 0; right: 0; z-index: 20; padding: 4px 8px; background: white; color: #9b1c1c; }
-
-/* Grid lines use the shared gantt palette so the task-list lines sit exactly
-   on the chart row lines. */
-.gantt-simple-grid td,
-.gantt-simple-grid thead th {
-  border-color: var(--gantt-grid-line-color, #e0e0e0) !important;
+.gantt-simple-grid.gantt-tl-overlay {
+  width: max-content;
+  align-self: stretch;
+  top: auto;
+  --gantt-simple-grid-accent: var(--gantt-row-selected-border-color, #3974dc);
 }
 
-/* The header row keeps the legacy TaskList header look: white, grey labels. */
-.gantt-simple-grid thead th {
-  background: var(--gantt-cell-background, #ffffff) !important;
-  color: #6b7280;
+.gantt-simple-grid.gantt-tl-overlay[data-gantt-grid-unpinned] { left: auto; }
+
+.gantt-simple-grid[data-gantt-grid-unpinned] :is(thead th, [data-testid^="sg-rowheader-"]) {
+  left: auto !important;
+}
+
+.gantt-simple-grid [data-sg] {
+  width: max-content;
+  min-width: 100%;
+  overflow: visible;
+  border-radius: 0;
+}
+
+.gantt-simple-grid [data-sg] > table {
+  min-width: 100%;
+  color: var(--gantt-text-color, #374151);
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+}
+
+.gantt-simple-grid [data-sg] > table > thead > tr {
+  height: var(--gantt-grid-header-height) !important;
+}
+
+.gantt-simple-grid [data-sg] > table > thead th,
+.gantt-simple-grid [data-sg] > table > tbody > tr[data-row-index] > td {
+  border-color: var(--gantt-grid-line-color, #e0e0e0);
+}
+
+.gantt-simple-grid [data-sg] > table > thead th {
+  position: sticky;
+  top: 0;
+  border-top-width: 0;
+  vertical-align: middle;
+  background: var(--gantt-cell-background, #fff) !important;
+  color: var(--gantt-text-muted-color, #6b7280);
+  font-weight: 600;
   font-size: 0.75rem;
+  letter-spacing: 0;
 }
 
-/* Keep row projection and heights owned by the shared Gantt layout. */
-.gantt-simple-grid [data-testid^='sg-menu-'], .gantt-simple-grid .sg-row-resize { display: none; }
-
-/* --- gantt-lib TaskList visuals rendered inside SimpleGrid cells --- */
-
-/* Hierarchy connector lines, chevrons and color stripes are absolutely
-   positioned against the cell; the cell itself must not clip them. */
-.gantt-simple-grid td { overflow: visible; }
-.gantt-simple-grid .gantt-tl-collapse-btn,
-.gantt-simple-grid .gantt-tl-compositeToggle { z-index: 3; }
-
-/* The name text keeps the legacy TaskList metrics inside the grid cell. */
-.gantt-simple-grid .gantt-tl-name-trigger-text { min-width: 0; }
-.gantt-simple-grid .gantt-tl-name-trigger-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  color: inherit;
-  pointer-events: none;
-}
-.gantt-simple-grid .gantt-tl-name-trigger-icon > * {
-  width: 14px;
-  height: 14px;
+.gantt-simple-grid .sg-column-header-content {
+  padding-inline: 2px;
 }
 
-/* Dates, duration and progress reuse the legacy cell look. */
-.gantt-simple-grid .gantt-tl-date-display {
-  display: block;
+.gantt-simple-grid :is(th[data-column-id="startDate"], th[data-column-id="endDate"], th[data-column-id="duration"], th[data-column-id="progress"]) .sg-column-title {
   text-align: center;
-  font-variant-numeric: tabular-nums;
-  padding-top: 3px;
-  font-size: 0.85rem;
-  color: #374151;
-}
-.gantt-simple-grid .gantt-tl-duration-display,
-.gantt-simple-grid .gantt-tl-progress-display {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  min-height: 22px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
-  color: #374151;
 }
 
-/* The dependencies cell is a full-height overlay inside the cell. */
-.gantt-simple-grid .gantt-tl-cell-deps {
-  width: auto;
-  flex-shrink: 1;
-  box-sizing: border-box;
+.gantt-simple-grid [data-testid^="sg-menu-"],
+.gantt-simple-grid .sg-row-resize,
+.gantt-simple-grid .sg-columns-restore {
+  display: none;
+}
+
+.gantt-simple-grid tr[data-row-index] > td {
   overflow: visible;
 }
-.gantt-simple-grid .gantt-tl-dep-source-picker { z-index: 40; }
-.gantt-simple-grid .gantt-tl-dep-overflow-list {
-  position: absolute;
-  left: 4px;
-  top: 2px;
-  z-index: 40;
-  min-width: 140px;
-  padding: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+
+.gantt-simple-grid tr[data-gantt-row-parent] > td {
+  font-weight: 600;
 }
 
-/* Parent rows are bold across the grid like the legacy TaskList rows. */
-.gantt-simple-grid tbody tr:has([data-gantt-row-parent]) td { font-weight: 600; }
-
-/* Shared row hover with the chart: GanttChart marks the row host in the
-   gutter, and the whole grid row receives the same hover tint as the bars. */
-.gantt-simple-grid tbody tr:has([data-gantt-row-hover-host].gantt-tl-row-hovered) td {
+.gantt-simple-grid tr.gantt-tl-row-hovered > td {
   box-shadow: inset 0 0 0 9999px var(--gantt-row-hover-background, rgba(59, 130, 246, 0.04));
 }
-.gantt-simple-grid tbody tr:has([data-gantt-row-hover-host].gantt-tl-row-hovered[data-gantt-row-filter-match]) td {
-  box-shadow: inset 0 0 0 9999px rgba(250, 204, 21, 0.3);
+
+.gantt-simple-grid tr.gantt-tl-row-hovered[data-gantt-row-filter-match] > td {
+  box-shadow: inset 0 0 0 9999px rgba(250, 204, 21, 0.18);
+}
+
+.gantt-simple-grid tr[data-sg-row-dragging] > td {
+  opacity: 0.6;
+}
+
+.gantt-simple-grid tr[data-sg-row-drop="before"] > td {
+  box-shadow: inset 0 2px var(--gantt-simple-grid-accent);
+}
+
+.gantt-simple-grid tr[data-sg-row-drop="after"] > td {
+  box-shadow: inset 0 -2px var(--gantt-simple-grid-accent);
+}
+
+.gantt-simple-grid tr[data-sg-row-drop="inside"] > td {
+  box-shadow: inset 0 0 0 9999px rgba(57, 116, 220, 0.15);
+}
+
+.gantt-simple-grid [data-testid^="sg-rowheader-"] > span {
+  position: absolute;
+  inset: 0;
+}
+
+.gantt-simple-grid-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 2px;
+  min-width: 24px;
+  height: 100%;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.gantt-simple-grid [data-testid^="sg-rowheader-"]:has([data-sg-row-drag-handle]),
+.gantt-simple-grid-number[data-sg-row-drag-handle] {
+  cursor: grab !important;
+  touch-action: none;
+}
+
+.gantt-simple-grid [data-testid^="sg-rowheader-"] > span > span {
+  height: 100%;
+  min-width: 0;
+}
+
+.gantt-simple-grid :is(.gantt-simple-grid-name, .gantt-simple-grid-custom, .gantt-simple-grid-actions, .gantt-tl-cell-deps) {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.gantt-simple-grid .gantt-simple-grid-name { padding-right: 8px; }
+.gantt-simple-grid tr[data-gantt-row-tall] .gantt-simple-grid-name {
+  bottom: auto;
+  height: var(--gantt-grid-base-row-height);
+}
+.gantt-simple-grid tr[data-gantt-row-tall] td[data-column-id="name"] :is(.gantt-tl-collapse-btn, .gantt-tl-compositeToggle) {
+  top: calc(var(--gantt-grid-base-row-height) / 2);
+}
+.gantt-simple-grid .gantt-simple-grid-custom { padding-inline: 8px; overflow: hidden; }
+.gantt-simple-grid td[data-sg-align="right"] .gantt-simple-grid-custom { justify-content: flex-end; }
+.gantt-simple-grid td[data-sg-align="center"] .gantt-simple-grid-custom,
+.gantt-simple-grid .gantt-simple-grid-actions { justify-content: center; }
+
+.gantt-simple-grid .gantt-tl-name-trigger-text { min-width: 0; }
+.gantt-simple-grid .gantt-tl-name-trigger-icon { display: inline-flex; align-items: center; }
+.gantt-simple-grid :is(.gantt-tl-collapse-btn, .gantt-tl-compositeToggle) { z-index: 3; }
+
+.gantt-simple-grid :is(.gantt-tl-date-display, .gantt-tl-duration-display, .gantt-tl-progress-display) {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: auto;
+  min-height: 0;
+  padding: 0 !important;
+  white-space: nowrap;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+
+.gantt-simple-grid .gantt-tl-progress-display[data-complete] { color: #14704b; }
+
+.gantt-simple-grid [data-sg] .sg-calendar-trigger {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  max-height: 100%;
+}
+
+.gantt-simple-grid [data-sg] td > [data-sg-editor] {
+  position: absolute;
+  inset: 0;
+}
+
+.gantt-simple-grid [data-sg] [data-testid="sg-editor-input"] {
+  align-content: center;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.gantt-simple-grid td[data-sg-align="center"] [data-testid="sg-editor-input"]:not(.gantt-tl-number-input) {
+  padding: 0 !important;
+  text-align: center;
+}
+
+.gantt-simple-grid [data-sg] .gantt-tl-number-input {
+  padding: 0 16px;
+  text-align: center;
+}
+
+.gantt-simple-grid .gantt-tl-cell-deps {
+  padding: 0 6px;
+  width: auto;
+  flex-wrap: nowrap;
+}
+
+.gantt-simple-grid td:has(.gantt-tl-dep-overflow-list, .gantt-tl-dep-source-picker) { z-index: 27 !important; }
+
+.gantt-simple-grid .gantt-tl-dep-overflow-list {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 2px);
+  right: 3px;
+  min-width: 132px;
+  max-width: min(240px, var(--tasklist-width));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--gantt-grid-line-color, #e0e0e0);
+  border-radius: 6px;
+  background: var(--gantt-cell-background, #fff);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.10), 0 12px 24px rgba(15, 23, 42, 0.10);
+}
+
+.gantt-simple-grid-tail { position: relative; }
+
+.gantt-simple-grid-action {
+  border-radius: 5px;
+  min-width: 24px;
+  min-height: 22px;
+  color: var(--gantt-text-muted-color, #6b7280);
+  cursor: pointer;
+}
+
+.gantt-simple-grid-action:is(:hover, :focus-visible, [aria-expanded="true"]) {
+  background: var(--gantt-control-hover-background, rgba(15, 23, 42, 0.08));
+}
+
+.gantt-simple-grid-menu { padding: 4px; }
+.gantt-simple-grid-menu .gantt-tl-context-menu-item { min-height: 30px; }
+
+.gantt-simple-grid-calendar-shifts {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding-top: 6px;
+  border-top-width: 1px;
+}
+
+.gantt-simple-grid-error {
+  position: absolute;
+  top: var(--gantt-grid-header-height);
+  right: 0;
+  z-index: 41;
+  max-width: 100%;
+  padding: 6px 10px;
+  background: #fff5f5;
+  color: #9b1c1c;
+  pointer-events: none;
 }
