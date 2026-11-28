@@ -323,7 +323,7 @@
   inset-inline-end: 20px;
 }
 
-.gantt-simple-grid .gantt-simple-grid-name:has(> .gantt-tl-name-color-stripe) > .gantt-simple-grid-actions:has(> .gantt-simple-grid-action) {
+.gantt-simple-grid .gantt-simple-grid-name > .gantt-simple-grid-actions:has(> .gantt-simple-grid-action) {
   inset-inline-end: 0;
 }
 
