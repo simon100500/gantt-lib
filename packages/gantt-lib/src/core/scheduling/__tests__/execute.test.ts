@@ -32,6 +32,47 @@ it('keeps undated estimates and links when recalculating a project with open bou
   expect(reflowed[3]).toMatchObject({ startDate: '2026-02-16', endDate: '2026-02-16', dependencies: tasks[3].dependencies });
 });
 
+it('cascades through known start and end boundaries and preserves open boundaries, pins and estimates', () => {
+  const tasks: Task[] = [
+    { id: 'a', name: 'A', startDate: '2026-02-02', endDate: '2026-02-03' },
+    { id: 'b', name: 'B', startDate: '2026-02-04', durationDays: 5, dependencies: [{ taskId: 'a', type: 'FS', lag: 0 }] },
+    { id: 'c', name: 'C', endDate: '2026-02-05', dependencies: [{ taskId: 'b', type: 'SF', lag: 2 }] },
+    { id: 'd', name: 'D', startDate: '2026-02-06', endDate: '2026-02-09', dependencies: [{ taskId: 'c', type: 'FS', lag: 0 }] },
+    { id: 'e', name: 'E', endDate: '2026-02-08', dependencies: [{ taskId: 'b', type: 'FF', lag: 0 }] },
+    { id: 'fixed', name: 'Fixed', startDate: '2026-02-06', fixedStartDate: '2026-02-06', dependencies: [{ taskId: 'a', type: 'FS', lag: 0 }] },
+  ];
+  const moved = moveTaskWithCascade('a', d('2026-02-05'), tasks);
+  const byId = new Map(moved.changedTasks.map(task => [task.id, task]));
+  expect(byId.get('b')).toMatchObject({ startDate: '2026-02-07', endDate: undefined, durationDays: 5 });
+  expect(byId.get('c')).toMatchObject({ startDate: undefined, endDate: '2026-02-08' });
+  expect(byId.get('d')).toMatchObject({ startDate: '2026-02-09', endDate: '2026-02-12' });
+  expect(byId.get('e')).toBeUndefined();
+  expect(byId.get('fixed')).toMatchObject({ startDate: '2026-02-06', endDate: undefined });
+
+  const resized = resizeTaskWithCascade('c', 'start', d('2026-02-09'), tasks);
+  expect(resized.changedTasks.find(task => task.id === 'c')).toMatchObject({
+    startDate: undefined, endDate: '2026-02-09', dependencies: [{ taskId: 'b', type: 'SF', lag: 6 }],
+  });
+  expect(resized.changedTasks.find(task => task.id === 'd')).toMatchObject({ startDate: '2026-02-10', endDate: '2026-02-13' });
+});
+
+it('moves open child boundaries with their parent in the project calendar', () => {
+  const tasks: Task[] = [
+    { id: 'parent', name: 'Parent', startDate: '2026-02-12', endDate: '2026-02-17' },
+    { id: 'start', name: 'Start', parentId: 'parent', startDate: '2026-02-12' },
+    { id: 'end', name: 'End', parentId: 'parent', endDate: '2026-02-17' },
+    { id: 'draft', name: 'Draft', parentId: 'parent', durationDays: 4 },
+  ];
+  const { changedTasks } = moveTaskWithCascade('parent', d('2026-02-16'), tasks, {
+    businessDays: true, weekendPredicate: date => [0, 6].includes(date.getUTCDay()),
+  });
+  expect(changedTasks.map(task => [task.id, task.startDate, task.endDate])).toEqual([
+    ['parent', '2026-02-16', '2026-02-19'],
+    ['start', '2026-02-16', undefined],
+    ['end', undefined, '2026-02-19'],
+  ]);
+});
+
 // Helpers
 function d(iso: string): Date {
   return new Date(`${iso}T00:00:00.000Z`);

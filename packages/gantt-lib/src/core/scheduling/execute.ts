@@ -17,15 +17,17 @@
 // END_MODULE_CONTRACT
 
 import type { Task, ScheduleCommandResult, ScheduleCommandOptions } from './types';
-import { moveTaskRange, recalculateIncomingLags, buildTaskRangeFromEnd, buildTaskRangeFromStart, getTaskDuration } from './commands';
+import { moveTaskRange, recalculateIncomingLags, buildDependencyRange } from './commands';
 import { universalCascade } from './cascade';
-import { parseDateOnly } from './dateMath';
+import { alignToWorkingDay, parseDateOnly, formatOptionalDateOnly } from './dateMath';
 import { calculateSuccessorDate, getDependencyLag, normalizePredecessorDates } from './dependencies';
 import { resolveFixedDates, resolveParentFixedDates } from './fixedDates';
 import { getChildDateBounds, computeParentDates } from './hierarchy';
 
-function toIsoDate(date: Date): string {
-  return date.toISOString().split('T')[0];
+function isLaterRange(candidate: { start: Date; end: Date }, current?: { start: Date; end: Date } | null): boolean {
+  if (!current) return true;
+  if (!Number.isFinite(+candidate.start)) return candidate.end > current.end;
+  return candidate.start > current.start || (+candidate.start === +current.start && candidate.end > current.end);
 }
 
 function createChangedResult(snapshot: Task[], nextTasks: Task[]): ScheduleCommandResult {
@@ -49,7 +51,7 @@ export function moveTaskWithCascade(
   options?: ScheduleCommandOptions
 ): ScheduleCommandResult {
   const task = snapshot.find(t => t.id === taskId);
-  if (!task?.startDate || !task.endDate) {
+  if (!task?.startDate) {
     return { changedTasks: [], changedIds: [] };
   }
 
@@ -57,13 +59,12 @@ export function moveTaskWithCascade(
   const weekendPredicate = options?.weekendPredicate;
 
   // Step 1: Calculate new range preserving duration
-  let newRange = moveTaskRange(
-    task.startDate,
-    task.endDate,
-    newStart,
-    businessDays,
-    weekendPredicate
-  );
+  let newRange = task.endDate
+    ? moveTaskRange(task.startDate, task.endDate, newStart, businessDays, weekendPredicate)
+    : {
+      start: businessDays && weekendPredicate ? alignToWorkingDay(newStart, 1, weekendPredicate) : newStart,
+      end: parseDateOnly(undefined),
+    };
   newRange = resolveFixedDates(task, newRange, snapshot.some(t => t.parentId === task.id), businessDays, weekendPredicate);
 
   // Step 2: Recalculate incoming dependency lags
@@ -79,8 +80,8 @@ export function moveTaskWithCascade(
   // Step 3: Create moved task with updated deps
   const movedTask: Task = {
     ...task,
-    startDate: newRange.start.toISOString().split('T')[0],
-    endDate: newRange.end.toISOString().split('T')[0],
+    startDate: formatOptionalDateOnly(newRange.start),
+    endDate: formatOptionalDateOnly(newRange.end),
     dependencies: updatedDependencies,
   };
 
@@ -130,7 +131,7 @@ export function resizeTaskWithCascade(
   options?: ScheduleCommandOptions
 ): ScheduleCommandResult {
   const task = snapshot.find(t => t.id === taskId);
-  if (!task?.startDate || !task.endDate) {
+  if (!task || !(anchor === 'start' ? task.endDate : task.startDate)) {
     return { changedTasks: [], changedIds: [] };
   }
 
@@ -163,8 +164,8 @@ export function resizeTaskWithCascade(
   // Create resized task
   const resizedTask: Task = {
     ...task,
-    startDate: newRange.start.toISOString().split('T')[0],
-    endDate: newRange.end.toISOString().split('T')[0],
+    startDate: formatOptionalDateOnly(newRange.start),
+    endDate: formatOptionalDateOnly(newRange.end),
     dependencies: updatedDependencies,
   };
 
@@ -215,7 +216,7 @@ export function recalculateTaskFromDependencies(
   const businessDays = options?.businessDays ?? false;
   const weekendPredicate = options?.weekendPredicate;
 
-  if (!task.startDate || !task.endDate || !task.dependencies?.length) {
+  if (!task.dependencies?.length) {
     // No dependencies — return the task as-is
     return {
       changedTasks: [task],
@@ -242,23 +243,12 @@ export function recalculateTaskFromDependencies(
       task.type
     );
 
-    if (!Number.isFinite(+constraintDate)) continue;
-    const duration = getTaskDuration(
-      parseDateOnly(task.startDate),
-      parseDateOnly(task.endDate),
-      businessDays,
-      weekendPredicate
-    );
+    const range = buildDependencyRange(task, dep.type, constraintDate, businessDays, weekendPredicate);
+    if (!range) continue;
 
-    let range: { start: Date; end: Date };
-    if (dep.type === 'FS' || dep.type === 'SS') {
-      range = buildTaskRangeFromStart(constraintDate, duration, businessDays, weekendPredicate);
-    } else {
-      range = buildTaskRangeFromEnd(constraintDate, duration, businessDays, weekendPredicate);
-    }
-
-    // Take the latest start as the effective constraint
-    if (!constrainedStart || range.start.getTime() > constrainedStart.getTime()) {
+    // Compare the first available boundary, including finish-only tasks.
+    const earliest = constrainedStart && (task.startDate ? constrainedStart : constrainedEnd);
+    if (!earliest || (task.startDate ? range.start : range.end) > earliest) {
       constrainedStart = range.start;
       constrainedEnd = range.end;
     }
@@ -292,8 +282,8 @@ export function recalculateTaskFromDependencies(
 
   const recalculatedTask: Task = {
     ...task,
-    startDate: Number.isFinite(+constrainedStart) ? toIsoDate(constrainedStart) : undefined,
-    endDate: Number.isFinite(+constrainedEnd) ? toIsoDate(constrainedEnd) : undefined,
+    startDate: formatOptionalDateOnly(constrainedStart),
+    endDate: formatOptionalDateOnly(constrainedEnd),
     dependencies: updatedDependencies,
   };
 
@@ -400,8 +390,7 @@ function recalculateFixedComponents(snapshot: Task[], options?: ScheduleCommandO
       if (childIds?.length) {
         range = getChildDateBounds(childIds.map(child => next.get(child)!));
         range = resolveParentFixedDates(task, range, key => next.get(key), businessDays, weekendPredicate);
-      } else if (task.startDate && task.endDate && task.dependencies?.length) {
-        const duration = getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
+      } else if (task.dependencies?.length) {
         let selected: { start: Date; end: Date } | undefined;
         for (const dependency of task.dependencies) {
           const predecessor = next.get(dependency.taskId);
@@ -413,16 +402,13 @@ function recalculateFixedComponents(snapshot: Task[], options?: ScheduleCommandO
             endDate: milestoneAnchor ?? predecessor.fixedEndDate ?? predecessor.endDate,
           }, parseDateOnly);
           const date = calculateSuccessorDate(predStart, predEnd, dependency.type, getDependencyLag(dependency), businessDays, weekendPredicate, task.type);
-          if (!Number.isFinite(+date)) continue;
-          const candidate = dependency.type === 'FS' || dependency.type === 'SS'
-            ? buildTaskRangeFromStart(date, duration, businessDays, weekendPredicate)
-            : buildTaskRangeFromEnd(date, duration, businessDays, weekendPredicate);
-          if (!selected || candidate.start > selected.start || (+candidate.start === +selected.start && candidate.end > selected.end)) selected = candidate;
+          const candidate = buildDependencyRange(task, dependency.type, date, businessDays, weekendPredicate);
+          if (candidate && isLaterRange(candidate, selected)) selected = candidate;
         }
         if (selected) range = selected;
       }
       range = resolveFixedDates(task, range, !!childIds?.length, businessDays, weekendPredicate);
-      next.set(id, { ...task, startDate: Number.isFinite(+range.start) ? toIsoDate(range.start) : undefined, endDate: Number.isFinite(+range.end) ? toIsoDate(range.end) : undefined });
+      next.set(id, { ...task, startDate: formatOptionalDateOnly(range.start), endDate: formatOptionalDateOnly(range.end) });
     }
     for (const successor of outgoing.get(id)!) {
       indegree.set(successor, indegree.get(successor)! - 1);
@@ -478,17 +464,10 @@ function recalculateProjectScheduleLegacy(
       }
 
       const currentTask = workingMap.get(successorId);
-      if (!currentTask || currentTask.locked || !currentTask.startDate || !currentTask.endDate || !currentTask.dependencies?.length) {
+      if (!currentTask || currentTask.locked || !currentTask.dependencies?.length) {
         queue.push(successorId);
         continue;
       }
-
-      const duration = getTaskDuration(
-        parseDateOnly(currentTask.startDate),
-        parseDateOnly(currentTask.endDate),
-        businessDays,
-        weekendPredicate
-      );
 
       let constrainedRange: { start: Date; end: Date } | null = null;
 
@@ -509,21 +488,8 @@ function recalculateProjectScheduleLegacy(
           currentTask.type
         );
 
-        if (!Number.isFinite(+constraintDate)) continue;
-        const candidateRange = dep.type === 'FS' || dep.type === 'SS'
-          ? buildTaskRangeFromStart(constraintDate, duration, businessDays, weekendPredicate)
-          : buildTaskRangeFromEnd(constraintDate, duration, businessDays, weekendPredicate);
-
-        if (
-          !constrainedRange ||
-          candidateRange.start.getTime() > constrainedRange.start.getTime() ||
-          (
-            candidateRange.start.getTime() === constrainedRange.start.getTime() &&
-            candidateRange.end.getTime() > constrainedRange.end.getTime()
-          )
-        ) {
-          constrainedRange = candidateRange;
-        }
+        const candidate = buildDependencyRange(currentTask, dep.type, constraintDate, businessDays, weekendPredicate);
+        if (candidate && isLaterRange(candidate, constrainedRange)) constrainedRange = candidate;
       }
 
       if (!constrainedRange) {
@@ -533,8 +499,8 @@ function recalculateProjectScheduleLegacy(
 
       workingMap.set(successorId, {
         ...currentTask,
-        startDate: toIsoDate(constrainedRange.start),
-        endDate: toIsoDate(constrainedRange.end),
+        startDate: formatOptionalDateOnly(constrainedRange.start),
+        endDate: formatOptionalDateOnly(constrainedRange.end),
       });
       queue.push(successorId);
     }
@@ -569,8 +535,8 @@ function recalculateProjectScheduleLegacy(
     const { start, end } = getChildDateBounds(childrenByParent.get(taskId)!.map(child => workingMap.get(child)!));
     workingMap.set(taskId, {
       ...parent,
-      startDate: Number.isFinite(+start) ? toIsoDate(start) : undefined,
-      endDate: Number.isFinite(+end) ? toIsoDate(end) : undefined,
+      startDate: formatOptionalDateOnly(start),
+      endDate: formatOptionalDateOnly(end),
     });
   }
   // END_BLOCK_PROJECT_PARENT_INDEX

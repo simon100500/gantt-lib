@@ -27,6 +27,9 @@ import {
   calculateSuccessorDate,
   buildTaskRangeFromEnd,
   buildTaskRangeFromStart,
+  clampTaskRangeForIncomingFS,
+  resizeTaskWithCascade,
+  parseDateOnly,
   getTaskDuration,
   alignToWorkingDay,
   computeCriticalPath,
@@ -1721,9 +1724,12 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
 
     if (!originalTask.startDate || !originalTask.endDate || !updatedTask.startDate || !updatedTask.endDate) {
-      const updates = updatedTask.startDate && updatedTask.endDate && !disableConstraints && !onScheduleIntent
-        ? universalCascade(updatedTask, parseUTCDate(updatedTask.startDate), parseUTCDate(updatedTask.endDate),
-          normalizedTasks, businessDays, isCustomWeekend)
+      const start = parseDateOnly(updatedTask.startDate);
+      const end = parseDateOnly(updatedTask.endDate);
+      const knownDateChanged = (Number.isFinite(+start) && +start !== +parseDateOnly(originalTask.startDate))
+        || (Number.isFinite(+end) && +end !== +parseDateOnly(originalTask.endDate));
+      const updates = knownDateChanged && !disableConstraints && !onScheduleIntent
+        ? universalCascade(updatedTask, start, end, normalizedTasks, businessDays, isCustomWeekend)
         : updatedTasks;
       onTasksChange?.(updates as TTask[]);
       if (editingTaskId === updatedTask.id) setEditingTaskId(null);
@@ -2026,6 +2032,35 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return arePreviewTaskMapsEqual(current, next) ? current : next;
     });
   }, [previewPositionStore]);
+
+  const handlePartialTaskDrag = useCallback((task: Task, date: Date | undefined, preview: boolean) => {
+    if (!date) {
+      handleCascadeProgress(new Map());
+      return;
+    }
+    const movesStart = !!task.startDate;
+    const anchor = movesStart ? 'end' : 'start';
+    const localOverride = !!task.parentId && compositeParentsById.has(task.parentId);
+    const targetDate = movesStart && !onScheduleIntent
+      ? clampTaskRangeForIncomingFS(task, date, parseDateOnly(undefined), normalizedTasks, businessDays, isCustomWeekend).start
+      : date;
+    if (!preview && onScheduleIntent) {
+      onScheduleIntent({
+        type: 'resize_task', taskId: task.id, anchor, date: targetDate.toISOString().slice(0, 10),
+        ...(localOverride && { localOverride: true }),
+      });
+      return;
+    }
+    const { changedTasks } = resizeTaskWithCascade(task.id, anchor, targetDate, normalizedTasks, {
+      businessDays,
+      weekendPredicate: isCustomWeekend,
+      skipCascade: disableConstraints || (preview && normalizedTasks.length >= 1000),
+    });
+    if (preview) handleCascadeProgress(new Map(), changedTasks);
+    else onTasksChange?.((localOverride
+      ? changedTasks.map(changed => changed.id === task.id ? { ...changed, synced: false } : changed)
+      : changedTasks) as TTask[]);
+  }, [normalizedTasks, handleCascadeProgress, disableConstraints, businessDays, isCustomWeekend, onScheduleIntent, onTasksChange, compositeParentsById]);
 
   const previewVisibleTasks = useMemo(() => {
     if (controlledScheduleChanged || previewTasksById.size === 0) return visibleTasks;
@@ -2710,7 +2745,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     for (const { task: edit } of dateEdits) {
       const current = snapshot.find(task => task.id === edit.id)!;
       const updated = { ...current, startDate: edit.startDate, endDate: edit.endDate };
-      apply(disableConstraints || !updated.startDate || !updated.endDate ? [updated] : universalCascade(
+      apply(disableConstraints ? [updated] : universalCascade(
         updated, parseUTCDate(updated.startDate), parseUTCDate(updated.endDate),
         snapshot.map(task => task.id === updated.id ? updated : task), businessDays, isCustomWeekend
       ));
@@ -3036,6 +3071,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
 
                   {renderedChartTasks.map(({ task, index }) => {
                     const anchor = task.startDate ?? task.endDate;
+                    const originalTask = visibleTasks[index];
+                    const originalAnchor = originalTask?.startDate ?? originalTask?.endDate;
                     const hasRange = task.startDate && task.endDate;
                     const isFilterMatch = (filterMode === 'highlight' && matchedTaskIds.has(task.id)) || (criticalPathMode === 'highlight' && criticalTaskIds.has(task.id));
                     return <div
@@ -3054,14 +3091,15 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                       {!hasRange ? (
                         <div className={`gantt-tr-row gantt-incomplete-row${isFilterMatch ? ' gantt-tr-row-filter-match' : ''}`}
                           data-gantt-task-row-id={task.id}>
-                          {anchor && <PartialTaskBar
+                          {anchor && originalAnchor && <PartialTaskBar
                             task={task}
-                            date={anchor}
+                            originalDate={originalAnchor}
                             monthStart={monthStart}
                             dayWidth={dayWidth}
                             weekendPredicate={businessDays ? isCustomWeekend : undefined}
-                            onChange={onTasksChange && !disableTaskDrag && !preliminaryParentIds.has(task.id)
-                              ? update => handleTaskChange([update]) : undefined}
+                            onPreview={date => handlePartialTaskDrag(originalTask, date, true)}
+                            onChange={(onTasksChange || onScheduleIntent) && !disableTaskDrag
+                              ? date => handlePartialTaskDrag(originalTask, date, false) : undefined}
                           />}
                           <div className="gantt-unscheduled-task" data-has-anchor={!!anchor || undefined}>
                             {onTasksChange && !task.locked && !preliminaryParentIds.has(task.id) ? <CellDatePicker

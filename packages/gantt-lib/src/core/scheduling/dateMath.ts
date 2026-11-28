@@ -28,6 +28,10 @@ export function parseDateOnly(date: string | Date | undefined): Date {
   return normalizeUTCDate(parsed);
 }
 
+export function formatOptionalDateOnly(date: Date): string | undefined {
+  return Number.isFinite(+date) ? date.toISOString().slice(0, 10) : undefined;
+}
+
 /**
  * Compute the business-day offset between two dates.
  * Steps through each calendar day, counting only non-weekend days.

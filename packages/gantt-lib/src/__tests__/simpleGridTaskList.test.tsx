@@ -6,7 +6,7 @@
 // END_MODULE_CONTRACT
 import '@testing-library/jest-dom/vitest';
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { GanttChart, type Task } from '../components/GanttChart';
 const tasks: Task[] = [
@@ -110,12 +110,77 @@ describe('SimpleGrid inside GanttChart', () => {
     fireEvent(bar, pointer('pointerdown', 60));
     fireEvent(bar, pointer('pointermove', 90));
     fireEvent(bar, pointer('pointerup', 90));
-    expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([{ ...task, [field]: '2026-02-11' }]);
+    expect(onTasksChange).toHaveBeenCalledOnce();
+    expect(onTasksChange.mock.calls[0][0]).toMatchObject([{
+      ...task, [field]: '2026-02-11', [field === 'startDate' ? 'endDate' : 'startDate']: undefined,
+    }]);
 
     const fixed = field === 'startDate' ? 'fixedStartDate' : 'fixedEndDate';
     rerender(<GanttChart tasks={[{ ...task, [fixed]: '2026-02-10' }]} onTasksChange={onTasksChange} dayWidth={30} businessDays={false} />);
     expect(container.querySelector('.gantt-tr-fixedBoundary')).toBeInTheDocument();
     expect(bar).not.toHaveAttribute('data-movable');
+  });
+
+  it.each(['startDate', 'endDate'] as const)('moves dependency arrows during a drag of a %s-only bar and restores them on cancel', field => {
+    const type = field === 'startDate' ? 'SS' : 'FF';
+    const partial: Task = {
+      id: 'partial', name: 'Open', [field]: '2026-02-10',
+      dependencies: [{ taskId: 'a', type, lag: 0 }],
+    };
+    const onTasksChange = vi.fn();
+    const { container } = render(<GanttChart tasks={[tasks[0], partial]}
+      onTasksChange={onTasksChange} dayWidth={30} businessDays={false} />);
+    const bar = container.querySelector<HTMLElement>('.gantt-partial-task')!;
+    const position = () => bar.style.getPropertyValue('--gantt-partial-anchor');
+    const path = () => container.querySelector('.gantt-dependency-path')?.getAttribute('d');
+    const originalPath = path();
+    const originalPosition = position();
+    expect(originalPath).toBeTruthy();
+    const pointer = (type: string, x: number) => Object.assign(
+      new MouseEvent(type, { bubbles: true, clientX: x }),
+      { pointerId: 1, isPrimary: true },
+    );
+
+    fireEvent(bar, pointer('pointerdown', 60));
+    fireEvent(bar, pointer('pointermove', 90));
+    expect(path()).not.toBe(originalPath);
+    expect(parseFloat(position())).toBe(parseFloat(originalPosition) + 30);
+    expect(onTasksChange).not.toHaveBeenCalled();
+    fireEvent(bar, pointer('pointercancel', 90));
+    expect(path()).toBe(originalPath);
+    expect(position()).toBe(originalPosition);
+
+    fireEvent(bar, pointer('pointerdown', 60));
+    fireEvent(bar, pointer('pointermove', 90));
+    fireEvent(bar, pointer('pointerup', 90));
+    expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([{
+      ...partial, [field]: '2026-02-11',
+      dependencies: [{ taskId: 'a', type, lag: field === 'startDate' ? 9 : 5 }],
+    }]);
+  });
+
+  it('moves an open successor during a regular bar drag and commits its known date', async () => {
+    const open: Task = {
+      id: 'open', name: 'Открытая работа', startDate: '2026-02-07',
+      dependencies: [{ taskId: 'a', type: 'FS', lag: 0 }],
+    };
+    const onTasksChange = vi.fn();
+    const { container } = render(<GanttChart tasks={[tasks[0], open]} onTasksChange={onTasksChange}
+      dayWidth={30} businessDays={false} />);
+    const predecessor = container.querySelector<HTMLElement>('.gantt-tr-taskBar[data-taskbar]')!;
+    const bar = container.querySelector<HTMLElement>('.gantt-partial-task')!;
+    const position = () => parseFloat(bar.style.getPropertyValue('--gantt-partial-anchor'));
+    const before = position();
+    vi.spyOn(predecessor, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 150, 24));
+    fireEvent.mouseDown(predecessor, { clientX: 75, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 105, buttons: 1 });
+    await waitFor(() => expect(position()).toBe(before + 30));
+    expect(onTasksChange).not.toHaveBeenCalled();
+    fireEvent.mouseUp(window, { clientX: 105, button: 0 });
+    expect(onTasksChange).toHaveBeenCalledOnce();
+    expect(onTasksChange.mock.calls[0][0]).toContainEqual(expect.objectContaining({
+      id: 'open', startDate: '2026-02-08', endDate: undefined,
+    }));
   });
 
   it('moves a collapsed subtree via the native grid gutter and preserves its hidden child', () => {

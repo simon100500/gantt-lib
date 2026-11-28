@@ -17,9 +17,10 @@
 
 import type { Task, LinkType } from './types';
 import { resolveFixedDates, resolveParentFixedDates } from './fixedDates';
+import { getChildDateBounds } from './hierarchy';
 import {
   normalizeUTCDate,
-  getTaskDuration,
+  formatOptionalDateOnly,
   alignToWorkingDay,
   parseDateOnly,
   getBusinessDayOffset,
@@ -33,8 +34,7 @@ import {
   normalizePredecessorDates,
 } from './dependencies';
 import {
-  buildTaskRangeFromStart,
-  buildTaskRangeFromEnd,
+  buildDependencyRange,
   moveTaskRange,
 } from './commands';
 
@@ -46,6 +46,12 @@ function parseCascadeDateInput(date: string | Date | undefined): Date {
   return normalizeUTCDate(new Date(`${date.split('T')[0]}T00:00:00.000Z`));
 }
 
+function shiftBoundary(date: Date, delta: number, weekendPredicate?: (date: Date) => boolean): Date {
+  if (!Number.isFinite(+date) || !Number.isFinite(delta) || delta === 0) return date;
+  const proposed = new Date(+date + delta);
+  return weekendPredicate ? alignToWorkingDay(proposed, delta < 0 ? -1 : 1, weekendPredicate) : proposed;
+}
+
 /** Проектная (бизнес- или календарная) дельта в днях между двумя датами. */
 function projectDayDelta(
   from: Date,
@@ -53,6 +59,7 @@ function projectDayDelta(
   businessDays: boolean,
   weekendPredicate?: (date: Date) => boolean,
 ): number {
+  if (!Number.isFinite(+from) || !Number.isFinite(+to)) return 0;
   if (businessDays && weekendPredicate) {
     return getBusinessDayOffset(from, to, weekendPredicate);
   }
@@ -190,30 +197,30 @@ export function cascadeByLinks(
     if (!skipChildCascade) {
       const children = childrenByParentId.get(currentId) ?? [];
       for (const child of children) {
-        if (visited.has(child.id) || child.locked || !child.startDate || !child.endDate) continue;
+        if (visited.has(child.id) || child.locked || (!child.startDate && !child.endDate)) continue;
 
         const origStart = new Date(child.startDate as string);
         const origEnd = new Date(child.endDate as string);
-        const durationMs = origEnd.getTime() - origStart.getTime();
 
         const parentOrig = taskById.get(currentId)!;
-        if (!parentOrig.startDate || !parentOrig.endDate) continue;
         const parentOrigStart = new Date(parentOrig.startDate as string);
         const parentOrigEnd = new Date(parentOrig.endDate as string);
 
         const parentStartDelta = predStart.getTime() - parentOrigStart.getTime();
         const parentEndDelta = predEnd.getTime() - parentOrigEnd.getTime();
 
-        const newChildStart = new Date(origStart.getTime() + parentStartDelta);
-        const newChildEnd = new Date(origEnd.getTime() + parentEndDelta);
+        const { start: newChildStart, end: newChildEnd } = resolveFixedDates(child, {
+          start: shiftBoundary(origStart, parentStartDelta),
+          end: shiftBoundary(origEnd, parentEndDelta),
+        }, childrenByParentId.has(child.id));
 
         visited.add(child.id);
         updatedDates.set(child.id, { start: newChildStart, end: newChildEnd });
         result.push(normalizeTaskDependencyLags({
           ...child,
-          startDate: newChildStart.toISOString().split('T')[0],
-          endDate: newChildEnd.toISOString().split('T')[0],
-          ...shiftedActivitiesPatch(child.activities, Math.round(parentStartDelta / DAY_MS), false),
+          startDate: formatOptionalDateOnly(newChildStart),
+          endDate: formatOptionalDateOnly(newChildEnd),
+          ...shiftedActivitiesPatch(child.activities, Number.isFinite(parentStartDelta) ? Math.round(parentStartDelta / DAY_MS) : 0, false),
         }));
         queue.push(child.id);
       }
@@ -221,14 +228,10 @@ export function cascadeByLinks(
 
     const dependents = dependentsByPredecessorId.get(currentId) ?? [];
     for (const { task, dependencyIndex } of dependents) {
-      if (visited.has(task.id) || !task.dependencies || task.locked || !task.startDate || !task.endDate) continue;
+      if (visited.has(task.id) || !task.dependencies || task.locked) continue;
       const dep = task.dependencies[dependencyIndex];
       if (!dep) continue;
 
-      const orig = taskById.get(task.id)!;
-      const origStart = new Date(orig.startDate as string);
-      const origEnd = new Date(orig.endDate as string);
-      const duration = getTaskDuration(origStart, origEnd);
       const currentTask = taskById.get(currentId)!;
       const { predStart: normalizedPredStart, predEnd: normalizedPredEnd } = normalizePredecessorDates(
         {
@@ -248,22 +251,16 @@ export function cascadeByLinks(
         task.type
       );
 
-      if (!Number.isFinite(+constraintDate)) continue;
-      let newSuccStart: Date;
-      let newSuccEnd: Date;
-
-      if (dep.type === 'FS' || dep.type === 'SS') {
-        ({ start: newSuccStart, end: newSuccEnd } = buildTaskRangeFromStart(constraintDate, duration));
-      } else {
-        ({ start: newSuccStart, end: newSuccEnd } = buildTaskRangeFromEnd(constraintDate, duration));
-      }
+      const range = buildDependencyRange(task, dep.type, constraintDate, false);
+      if (!range) continue;
+      const { start: newSuccStart, end: newSuccEnd } = resolveFixedDates(task, range, childrenByParentId.has(task.id));
 
       visited.add(task.id);
       updatedDates.set(task.id, { start: newSuccStart, end: newSuccEnd });
       result.push(normalizeTaskDependencyLags({
         ...task,
-        startDate: newSuccStart.toISOString().split('T')[0],
-        endDate: newSuccEnd.toISOString().split('T')[0],
+        startDate: formatOptionalDateOnly(newSuccStart),
+        endDate: formatOptionalDateOnly(newSuccEnd),
       }));
       queue.push(task.id);
     }
@@ -338,13 +335,13 @@ export function universalCascade(
 ): Task[] {
   const { childrenByParentId, dependentsByPredecessorId, taskById } = context;
   const originalMovedTask = taskById.get(movedTask.id) ?? movedTask;
-  if (!Number.isFinite(+newStart) || !Number.isFinite(+newEnd)) return [movedTask];
+  if (!Number.isFinite(+newStart) && !Number.isFinite(+newEnd)) return [movedTask];
   const sameDelta = +newStart - +parseDateOnly(originalMovedTask.startDate) === +newEnd - +parseDateOnly(originalMovedTask.endDate);
   ({ start: newStart, end: newEnd } = resolveFixedDates(originalMovedTask, { start: newStart, end: newEnd }, childrenByParentId.has(movedTask.id), businessDays, weekendPredicate, sameDelta));
   const normalizedMovedTask = normalizeTaskDependencyLags({
     ...movedTask,
-    startDate: newStart.toISOString().split('T')[0],
-    endDate: newEnd.toISOString().split('T')[0],
+    startDate: formatOptionalDateOnly(newStart),
+    endDate: formatOptionalDateOnly(newEnd),
   });
 
   if (
@@ -363,7 +360,11 @@ export function universalCascade(
   const getCurrentTask = (id: string) => {
     const task = taskById.get(id);
     const range = updatedDates.get(id);
-    return task && range ? { ...task, startDate: range.start, endDate: range.end } : task;
+    return task && range ? {
+      ...task,
+      startDate: Number.isFinite(+range.start) ? range.start : undefined,
+      endDate: Number.isFinite(+range.end) ? range.end : undefined,
+    } : task;
   };
 
   const queue: Array<[string, ArrivalMode]> = [[movedTask.id, rootIsRollup ? 'parent-recalc' : 'direct']];
@@ -383,8 +384,7 @@ export function universalCascade(
     if (arrivalMode !== 'parent-recalc' && !(arrivalMode === 'dependency' && (currentOriginal.fixedStartDate || currentOriginal.fixedEndDate))) {
       const children = childrenByParentId.get(currentId) ?? [];
       for (const child of children) {
-        if (childShifted.has(child.id) || child.locked || !child.startDate || !child.endDate
-          || !currentOriginal.startDate || !currentOriginal.endDate) continue;
+        if (childShifted.has(child.id) || child.locked || (!child.startDate && !child.endDate)) continue;
 
         const parentOrigStart = new Date(currentOriginal.startDate as string);
         const parentOrigEnd   = new Date(currentOriginal.endDate   as string);
@@ -398,7 +398,7 @@ export function universalCascade(
         let childNewStart: Date;
         let childNewEnd: Date;
 
-        if (businessDays && weekendPredicate) {
+        if (businessDays && weekendPredicate && child.startDate && child.endDate && Number.isFinite(startDeltaMs)) {
           const proposedStart = new Date(childOrigStart.getTime() + startDeltaMs);
           const snapDirection: 1 | -1 = currStart.getTime() >= parentOrigStart.getTime() ? 1 : -1;
           const movedRange = moveTaskRange(
@@ -412,13 +412,14 @@ export function universalCascade(
           childNewStart = movedRange.start;
           childNewEnd = movedRange.end;
         } else {
-          childNewStart = new Date(childOrigStart.getTime() + startDeltaMs);
-          childNewEnd = new Date(childOrigEnd.getTime() + endDeltaMs);
+          const snap = businessDays ? weekendPredicate : undefined;
+          childNewStart = shiftBoundary(childOrigStart, startDeltaMs, snap);
+          childNewEnd = shiftBoundary(childOrigEnd, endDeltaMs, snap);
         }
 
         ({ start: childNewStart, end: childNewEnd } = resolveFixedDates(child, { start: childNewStart, end: childNewEnd }, childrenByParentId.has(child.id), businessDays, weekendPredicate));
         const prev = updatedDates.get(child.id);
-        if (prev && prev.start.getTime() === childNewStart.getTime() && prev.end.getTime() === childNewEnd.getTime()) {
+        if (prev && Object.is(+prev.start, +childNewStart) && Object.is(+prev.end, +childNewEnd)) {
           continue;
         }
 
@@ -427,8 +428,8 @@ export function universalCascade(
         queue.push([child.id, 'child-delta']);
         resultMap.set(child.id, normalizeTaskDependencyLags({
           ...child,
-          startDate: childNewStart.toISOString().split('T')[0],
-          endDate:   childNewEnd.toISOString().split('T')[0],
+          startDate: formatOptionalDateOnly(childNewStart),
+          endDate: formatOptionalDateOnly(childNewEnd),
           // Дети едут параллельно: вместе с датами строки сдвигаются и её работы.
           ...shiftedActivitiesPatch(
             child.activities,
@@ -448,27 +449,19 @@ export function universalCascade(
     if (parentId && parentId !== movedTask.id) {
       const parent = taskById.get(parentId);
       if (parent && !parent.locked) {
-        const siblings = childrenByParentId.get(parentId) ?? [];
-
-        const siblingPositions = siblings.filter(sib => updatedDates.has(sib.id) || (sib.startDate && sib.endDate)).map(sib => {
-          if (updatedDates.has(sib.id)) return updatedDates.get(sib.id)!;
-          return { start: new Date(sib.startDate as string), end: new Date(sib.endDate as string) };
-        });
-
-        if (!siblingPositions.length) continue;
-        const { start: minStart, end: maxEnd } = resolveParentFixedDates(parent, {
-          start: new Date(Math.min(...siblingPositions.map(p => p.start.getTime()))),
-          end: new Date(Math.max(...siblingPositions.map(p => p.end.getTime()))),
-        }, getCurrentTask, businessDays, weekendPredicate);
+        const children = (childrenByParentId.get(parentId) ?? []).map(child => getCurrentTask(child.id) ?? child);
+        const { start: minStart, end: maxEnd } = resolveParentFixedDates(
+          parent, getChildDateBounds(children), getCurrentTask, businessDays, weekendPredicate,
+        );
 
         const prev = updatedDates.get(parentId);
-        if (!prev || prev.start.getTime() !== minStart.getTime() || prev.end.getTime() !== maxEnd.getTime()) {
+        if (!prev || !Object.is(+prev.start, +minStart) || !Object.is(+prev.end, +maxEnd)) {
           updatedDates.set(parentId, { start: minStart, end: maxEnd });
           queue.push([parentId, 'parent-recalc']);
           resultMap.set(parentId, normalizeTaskDependencyLags({
             ...parent,
-            startDate: minStart.toISOString().split('T')[0],
-            endDate:   maxEnd.toISOString().split('T')[0],
+            startDate: formatOptionalDateOnly(minStart),
+            endDate: formatOptionalDateOnly(maxEnd),
           }));
         }
       }
@@ -481,13 +474,11 @@ export function universalCascade(
     // them drift out of the moved parent by that amount. Preserve internal offsets.
     const dependents = dependentsByPredecessorId.get(currentId) ?? [];
     for (const { task, dependencyIndex } of dependents) {
-      if (task.locked || !task.dependencies || !task.startDate || !task.endDate) continue;
+      if (task.locked || !task.dependencies) continue;
       if (childShifted.has(task.id)) continue;
       const dep = task.dependencies[dependencyIndex];
       if (!dep) continue;
 
-      const origStart  = new Date(task.startDate as string);
-      const origEnd    = new Date(task.endDate   as string);
       const { predStart: normalizedPredStart, predEnd: normalizedPredEnd } = normalizePredecessorDates(
         {
           startDate: currStart,
@@ -501,39 +492,18 @@ export function universalCascade(
         businessDays, weekendPredicate, task.type
       );
 
-      if (!Number.isFinite(+constraintDate)) continue;
-      let succNewStart: Date;
-      let succNewEnd: Date;
-      const duration = getTaskDuration(origStart, origEnd, businessDays, weekendPredicate);
-
-      if (dep.type === 'FS' || dep.type === 'SS') {
-        ({ start: succNewStart, end: succNewEnd } = buildTaskRangeFromStart(
-          constraintDate,
-          duration,
-          businessDays,
-          weekendPredicate
-        ));
-      } else {
-        ({ start: succNewStart, end: succNewEnd } = buildTaskRangeFromEnd(
-          constraintDate,
-          duration,
-          businessDays,
-          weekendPredicate
-        ));
-      }
-
+      const candidate = buildDependencyRange(task, dep.type, constraintDate, businessDays, weekendPredicate);
+      if (!candidate) continue;
       const dependentChildren = childrenByParentId.get(task.id);
-      if (dependentChildren?.length && (task.fixedStartDate || task.fixedEndDate)) {
-        const positions = dependentChildren.filter(child => updatedDates.has(child.id) || (child.startDate && child.endDate)).map(child => updatedDates.get(child.id) ?? { start: parseDateOnly(child.startDate), end: parseDateOnly(child.endDate) });
-        if (positions.length) ({ start: succNewStart, end: succNewEnd } = resolveParentFixedDates(task, {
-          start: new Date(Math.min(...positions.map(position => +position.start))),
-          end: new Date(Math.max(...positions.map(position => +position.end))),
-        }, getCurrentTask, businessDays, weekendPredicate));
-      }
+      const range = dependentChildren?.length && (task.fixedStartDate || task.fixedEndDate)
+        ? resolveParentFixedDates(task, getChildDateBounds(dependentChildren.map(child => getCurrentTask(child.id) ?? child)), getCurrentTask, businessDays, weekendPredicate)
+        : candidate;
 
-      ({ start: succNewStart, end: succNewEnd } = resolveFixedDates(task, { start: succNewStart, end: succNewEnd }, !!dependentChildren?.length, businessDays, weekendPredicate));
+      const { start: succNewStart, end: succNewEnd } = resolveFixedDates(
+        task, range, !!dependentChildren?.length, businessDays, weekendPredicate,
+      );
       const prev = updatedDates.get(task.id);
-      if (prev && prev.start.getTime() === succNewStart.getTime() && prev.end.getTime() === succNewEnd.getTime()) {
+      if (prev && Object.is(+prev.start, +succNewStart) && Object.is(+prev.end, +succNewEnd)) {
         continue;
       }
 
@@ -541,11 +511,11 @@ export function universalCascade(
       queue.push([task.id, 'dependency']);
       resultMap.set(task.id, normalizeTaskDependencyLags({
         ...task,
-        startDate: succNewStart.toISOString().split('T')[0],
-        endDate:   succNewEnd.toISOString().split('T')[0],
+        startDate: formatOptionalDateOnly(succNewStart),
+        endDate: formatOptionalDateOnly(succNewEnd),
         ...shiftedActivitiesPatch(
           task.activities,
-          projectDayDelta(origStart, succNewStart, businessDays, weekendPredicate),
+          projectDayDelta(parseDateOnly(task.startDate), succNewStart, businessDays, weekendPredicate),
           businessDays,
           weekendPredicate,
         ),

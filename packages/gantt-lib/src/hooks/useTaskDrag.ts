@@ -519,9 +519,10 @@ function handleGlobalMouseMove(e: MouseEvent) {
       overrides.set(dragId, { left: newLeft, width: newWidth });
 
       for (const task of cascadeResult) {
-        if (task.id === dragId) continue;
-        const taskStart = new Date(task.startDate as string);
-        const taskEnd = new Date(task.endDate as string);
+        // Open bars are positioned from previewTasks, which carries only their known edge.
+        if (task.id === dragId || !task.startDate || !task.endDate) continue;
+        const taskStart = new Date(task.startDate);
+        const taskEnd = new Date(task.endDate);
         const startOff = Math.round(
           (Date.UTC(taskStart.getUTCFullYear(), taskStart.getUTCMonth(), taskStart.getUTCDate()) -
             Date.UTC(mStart.getUTCFullYear(), mStart.getUTCMonth(), mStart.getUTCDate()))

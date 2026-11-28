@@ -99,17 +99,18 @@
 .gantt-partial-task {
   position: absolute;
   top: 50%;
-  height: min(22px, calc(100% - 8px));
+  z-index: 1;
+  height: min(var(--gantt-task-bar-height, 28px), calc(100% - 8px));
   width: 72px;
   transform: translateY(-50%);
   left: var(--gantt-partial-anchor);
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--gantt-task-bar-border-radius, 6px) 0 0 var(--gantt-task-bar-border-radius, 6px);
   background: linear-gradient(to right, var(--gantt-partial-color, var(--gantt-task-bar-default-color, #3b82f6)), transparent);
 }
 
 .gantt-partial-task[data-open-edge='start'] {
   left: calc(var(--gantt-partial-anchor) - 72px);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--gantt-task-bar-border-radius, 6px) var(--gantt-task-bar-border-radius, 6px) 0;
   background: linear-gradient(to left, var(--gantt-partial-color, var(--gantt-task-bar-default-color, #3b82f6)), transparent);
 }
 

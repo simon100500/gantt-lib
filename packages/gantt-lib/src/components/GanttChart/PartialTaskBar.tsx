@@ -5,32 +5,31 @@ import type { Task } from './GanttChart';
 
 interface PartialTaskBarProps {
   task: Task;
-  date: string | Date;
+  originalDate: string | Date;
   dayWidth: number;
   monthStart: Date;
   weekendPredicate?: (date: Date) => boolean;
-  onChange?: (task: Task) => void;
+  onPreview: (date?: Date) => void;
+  onChange?: (date: Date) => void;
 }
 
-export function PartialTaskBar({ task, date, dayWidth, monthStart, weekendPredicate, onChange }: PartialTaskBarProps) {
-  const drag = useRef<{ id: number; x: number; scrollLeft: number; container: HTMLElement | null } | null>(null);
-  const [preview, setPreview] = useState<Date>();
+export function PartialTaskBar({ task, originalDate, dayWidth, monthStart, weekendPredicate, onPreview, onChange }: PartialTaskBarProps) {
+  const drag = useRef<{ id: number; x: number; scrollLeft: number; container: HTMLElement | null; lastDate?: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const isStart = !!task.startDate;
   const pinned = isStart ? task.fixedStartDate : task.fixedEndDate;
   const movable = !!onChange && !task.locked && !pinned;
-  const field = isStart ? 'startDate' : 'endDate';
-  const displayedDate = preview ?? date;
-  const geometry = resolveTaskHorizontalGeometry({ ...task, [field]: displayedDate }, monthStart, dayWidth);
+  const geometry = resolveTaskHorizontalGeometry(task, monthStart, dayWidth);
   const boundary = isStart ? 'начало' : 'окончание';
   const label = `${task.name} · ${pinned ? `Закреплено ${boundary}` : isStart ? 'Окончание не задано' : 'Начало не задано'}`;
 
   const shiftDate = (days: number) => {
-    const shifted = parseDateOnly(date);
+    const shifted = parseDateOnly(originalDate);
     shifted.setUTCDate(shifted.getUTCDate() + days);
     return days && weekendPredicate ? alignToWorkingDay(shifted, days < 0 ? -1 : 1, weekendPredicate) : shifted;
   };
   const commit = (next: Date) => {
-    if (+next !== +parseDateOnly(date)) onChange?.({ ...task, [field]: next.toISOString().slice(0, 10) });
+    if (+next !== +parseDateOnly(originalDate)) onChange?.(next);
   };
   const getDelta = (event: React.PointerEvent) => {
     const state = drag.current!;
@@ -38,15 +37,17 @@ export function PartialTaskBar({ task, date, dayWidth, monthStart, weekendPredic
     return Math.round((event.clientX - state.x + scrollDelta) / dayWidth);
   };
   const reset = () => {
+    if (!drag.current) return;
     drag.current = null;
-    setPreview(undefined);
+    setIsDragging(false);
+    onPreview();
   };
   return <div
     className="gantt-partial-task"
     data-taskbar={movable || undefined}
     data-open-edge={isStart ? 'end' : 'start'}
     data-movable={movable || undefined}
-    data-dragging={preview !== undefined || undefined}
+    data-dragging={isDragging || undefined}
     tabIndex={movable ? 0 : undefined}
     aria-label={movable ? `${label}. Дата перемещается стрелками влево и вправо` : label}
     title={label}
@@ -61,7 +62,13 @@ export function PartialTaskBar({ task, date, dayWidth, monthStart, weekendPredic
       event.currentTarget.setPointerCapture?.(event.pointerId);
     }}
     onPointerMove={event => {
-      if (drag.current?.id === event.pointerId) setPreview(shiftDate(getDelta(event)));
+      const state = drag.current;
+      if (state?.id !== event.pointerId) return;
+      const next = shiftDate(getDelta(event));
+      if (state.lastDate === +next) return;
+      state.lastDate = +next;
+      setIsDragging(true);
+      onPreview(+next === +parseDateOnly(originalDate) ? undefined : next);
     }}
     onPointerUp={event => {
       if (drag.current?.id !== event.pointerId) return;

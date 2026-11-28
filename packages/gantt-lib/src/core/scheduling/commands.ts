@@ -15,7 +15,7 @@
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 
-import type { Task } from './types';
+import type { LinkType, Task } from './types';
 import {
   normalizeUTCDate,
   parseDateOnly,
@@ -111,6 +111,31 @@ export function moveTaskRange(
   );
 }
 
+/** Place the linked boundary and preserve the available dates of the successor. */
+export function buildDependencyRange(
+  task: Pick<Task, 'startDate' | 'endDate'>,
+  type: LinkType,
+  date: Date,
+  businessDays: boolean,
+  weekendPredicate?: (date: Date) => boolean
+): { start: Date; end: Date } | undefined {
+  const targetsStart = type[1] === 'S';
+  if (!Number.isFinite(+date) || !(targetsStart ? task.startDate : task.endDate)) return;
+
+  if (task.startDate && task.endDate) {
+    const duration = getTaskDuration(task.startDate, task.endDate, businessDays, weekendPredicate);
+    return targetsStart
+      ? buildTaskRangeFromStart(date, duration, businessDays, weekendPredicate)
+      : buildTaskRangeFromEnd(date, duration, businessDays, weekendPredicate);
+  }
+
+  const boundary = businessDays && weekendPredicate
+    ? alignToWorkingDay(date, targetsStart ? 1 : -1, weekendPredicate)
+    : normalizeUTCDate(date);
+  const missing = parseDateOnly(undefined);
+  return targetsStart ? { start: boundary, end: missing } : { start: missing, end: boundary };
+}
+
 /**
  * Clamp task range start date based on incoming FS dependencies.
  */
@@ -162,9 +187,11 @@ export function clampTaskRangeForIncomingFS(
     }
   }
 
-  if (!minAllowedStart || proposedStart.getTime() >= minAllowedStart.getTime()) {
+  if (!Number.isFinite(+proposedStart) || !minAllowedStart || proposedStart >= minAllowedStart) {
     return { start: proposedStart, end: proposedEnd };
   }
+
+  if (!Number.isFinite(+proposedEnd)) return { start: minAllowedStart, end: proposedEnd };
 
   return buildTaskRangeFromStart(
     minAllowedStart,
