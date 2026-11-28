@@ -252,7 +252,12 @@
   padding-inline: 6px !important;
 }
 
-.gantt-simple-grid .gantt-tl-progress-display[data-complete] { color: #14704b; }
+.gantt-simple-grid .gantt-tl-progress-chip {
+  padding: 2px 4px;
+  border-radius: 4px;
+  background-color: var(--gantt-success-solid-background, #17c864);
+  color: var(--gantt-solid-foreground, #fff);
+}
 
 .gantt-simple-grid-date-action {
   position: absolute;

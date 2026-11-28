@@ -644,8 +644,8 @@ export function SimpleGridTaskList<TTask extends Task>({
 
   const renderProgressCell = useCallback((task: Task) => {
     const progress = task.progress ?? 0;
-    return <span className="gantt-tl-progress-display" data-complete={progress === 100 || undefined}>
-      {progress ? `${Math.round(progress)}%` : '–'}
+    return <span className="gantt-tl-progress-display">
+      {progress === 100 ? <span className="gantt-tl-progress-chip">100</span> : progress ? `${Math.round(progress)}%` : '–'}
     </span>;
   }, []);
 
