@@ -52,11 +52,32 @@
   padding-inline: 2px;
 }
 
-.gantt-simple-grid thead th .gantt-tl-column-menu-trigger {
-  inset-inline-end: 8px;
+.gantt-simple-grid .gantt-simple-grid-heading {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
-.gantt-simple-grid thead th:has(.gantt-tl-column-menu-trigger) .sg-column-header-content {
+.gantt-simple-grid .gantt-simple-grid-heading-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt-simple-grid thead .gantt-tl-column-menu-trigger {
+  position: static;
+  transform: none;
+  flex: none;
+  width: 12px;
+}
+
+.gantt-simple-grid [data-sg-corner-content] {
+  gap: 2px;
+}
+
+.gantt-simple-grid .sg-column-header-content:has(.gantt-simple-grid-heading):has(.sg-column-actions-button) {
   padding-inline-end: 20px;
 }
 
@@ -75,6 +96,10 @@
 
 .gantt-simple-grid :is(th[data-column-id="startDate"], th[data-column-id="endDate"], th[data-column-id="duration"], th[data-column-id="progress"]) .sg-column-title {
   text-align: center;
+}
+
+.gantt-simple-grid [data-sg] th:is([data-column-id="startDate"], [data-column-id="endDate"], [data-column-id="duration"], [data-column-id="progress"]):has(.gantt-simple-grid-heading) {
+  padding-inline: 2px;
 }
 
 .gantt-simple-grid [data-testid^="sg-menu-"],
@@ -285,12 +310,15 @@
   align-items: center;
   gap: 4px;
   transform: translateY(-50%);
-  border-radius: 5px;
-  background: var(--gantt-cell-background, #fff);
 }
 
 .gantt-simple-grid .gantt-simple-grid-name:has(> .gantt-tl-name-color-stripe) > .gantt-simple-grid-actions {
   inset-inline-end: 20px;
+}
+
+.gantt-simple-grid .gantt-simple-grid-actions > .gantt-tl-name-action-btn {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 @media (hover: hover) {
@@ -298,18 +326,25 @@
     opacity: 0;
     pointer-events: none;
   }
+
+  .gantt-simple-grid td[data-column-id="name"]:not(:hover, :focus-within) .gantt-simple-grid-actions > .gantt-tl-name-action-btn {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 .gantt-simple-grid-action {
   border-radius: 5px;
-  min-width: 24px;
-  min-height: 22px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--gantt-cell-background, #fff);
   color: var(--gantt-text-muted-color, #6b7280);
   cursor: pointer;
 }
 
 .gantt-simple-grid-action:is(:hover, :focus-visible, [aria-expanded="true"]) {
-  background: var(--gantt-control-hover-background, rgba(15, 23, 42, 0.08));
+  box-shadow: inset 0 0 0 22px var(--gantt-control-hover-background, rgba(15, 23, 42, 0.08));
 }
 
 .gantt-simple-grid-menu { padding: 4px; }

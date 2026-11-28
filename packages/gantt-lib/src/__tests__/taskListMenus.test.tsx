@@ -54,8 +54,18 @@ describe('Task List menus', () => {
 
   it('hides and restores a column without a host visibility handler', () => {
     const { container } = render(<GanttChart tasks={tasks} showTaskList />);
-    const header = screen.getByTestId('sg-colheader-name');
-    fireEvent.click(within(header).getByRole('button', { name: 'Видимость столбцов' }));
+    const headers = Array.from(container.querySelectorAll('thead th'));
+    expect(headers.length).toBeGreaterThan(2);
+    for (const header of headers) {
+      expect(within(header).getByRole('button', { name: 'Видимость столбцов' })).toBeTruthy();
+    }
+    const start = within(screen.getByTestId('sg-colheader-startDate')).getByRole('button', { name: 'Видимость столбцов' });
+    const end = within(screen.getByTestId('sg-colheader-endDate')).getByRole('button', { name: 'Видимость столбцов' });
+    fireEvent.click(start);
+    expect(start.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(end);
+    expect(start.getAttribute('aria-expanded')).toBe('false');
+    expect(end.getAttribute('aria-expanded')).toBe('true');
 
     const progress = screen.getByRole('checkbox', { name: '%' });
     expect(progress).toHaveProperty('checked', true);

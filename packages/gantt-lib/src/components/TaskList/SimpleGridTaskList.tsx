@@ -200,7 +200,7 @@ export function SimpleGridTaskList<TTask extends Task>({
 }: Props<TTask>) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [internalHiddenColumns, setInternalHiddenColumns] = useState<TaskListColumnId[]>([]);
-  const [columnVisibilityOpen, setColumnVisibilityOpen] = useState(false);
+  const [columnMenuAnchor, setColumnMenuAnchor] = useState<TaskListColumnId | null>();
   const hiddenColumns = controlledHiddenColumns ?? internalHiddenColumns;
   const weekendPredicate = useMemo(
     () => createCustomDayPredicate({ customDays, isWeekend }),
@@ -1168,16 +1168,18 @@ export function SimpleGridTaskList<TTask extends Task>({
   const canChangeColumnVisibility = controlledHiddenColumns === undefined || !!onHiddenColumnsChange;
   const canShowRowActions = !hideActions && !!(renderActions || renderMenu || menuCommands?.length);
   const visibleColumns = useMemo(() => availableColumns.filter(column => !hiddenColumns.includes(column.id)), [availableColumns, hiddenColumns]);
-  const visibilityHeader = visibleColumns.find(column => column.id === 'name')?.id ?? visibleColumns[0]?.id;
-  const visibilityMenu = useMemo(() => canChangeColumnVisibility && (
-    <Popover open={columnVisibilityOpen} onOpenChange={setColumnVisibilityOpen}>
+  const renderVisibilityMenu = useCallback((anchor: TaskListColumnId | null) => canChangeColumnVisibility && (
+    <Popover open={columnMenuAnchor === anchor} onOpenChange={open => setColumnMenuAnchor(current => (
+      open ? anchor : current === anchor ? undefined : current
+    ))}>
       <PopoverTrigger asChild>
         <button type="button" className="gantt-tl-column-menu-trigger" aria-label="Видимость столбцов"
-          title="Видимость столбцов" onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+          title="Видимость столбцов" onMouseDown={event => event.stopPropagation()}
+          onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3h8L5 7z" fill="currentColor" /></svg>
         </button>
       </PopoverTrigger>
-      {columnVisibilityOpen && <PopoverContent className="gantt-tl-context-menu gantt-tl-column-menu" align="end">
+      {columnMenuAnchor === anchor && <PopoverContent className="gantt-tl-context-menu gantt-tl-column-menu" align="end">
         <div role="group" aria-label="Видимость столбцов" onMouseDown={event => event.stopPropagation()}
           onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
           {[
@@ -1189,7 +1191,9 @@ export function SimpleGridTaskList<TTask extends Task>({
               <input type="checkbox" checked={!hiddenColumns.includes(id)} onChange={event => {
                 const checked = event.currentTarget.checked;
                 const next = checked ? hiddenColumns.filter(hidden => hidden !== id) : [...hiddenColumns, id];
-                if (!visibilityHeader || (!checked && id === visibilityHeader)) setColumnVisibilityOpen(false);
+                if ((!checked && id === anchor) || (anchor === null && (id === 'number' || id === 'selection' || visibleColumns.length === 0))) {
+                  setColumnMenuAnchor(undefined);
+                }
                 if (controlledHiddenColumns === undefined) setInternalHiddenColumns(next);
                 onHiddenColumnsChange?.(next);
               }} />
@@ -1200,10 +1204,14 @@ export function SimpleGridTaskList<TTask extends Task>({
       </PopoverContent>}
     </Popover>
   ), [canChangeColumnVisibility, enableTaskMultiSelect, availableColumns, canShowRowActions, hiddenColumns, controlledHiddenColumns,
-    onHiddenColumnsChange, columnVisibilityOpen, visibilityHeader]);
-  const columns = useMemo(() => visibleColumns.map(column => visibilityMenu && column.id === visibilityHeader
-    ? { ...column, headerContent: <>{column.headerContent ?? column.title}{visibilityMenu}</> } : column),
-  [visibleColumns, visibilityHeader, visibilityMenu]);
+    onHiddenColumnsChange, columnMenuAnchor, visibleColumns.length]);
+  const columns = useMemo(() => canChangeColumnVisibility ? visibleColumns.map(column => ({
+    ...column,
+    headerContent: <span className="gantt-simple-grid-heading">
+      <span className="gantt-simple-grid-heading-label">{column.headerContent ?? column.title}</span>
+      {renderVisibilityMenu(column.id)}
+    </span>,
+  })) : visibleColumns, [canChangeColumnVisibility, visibleColumns, renderVisibilityMenu]);
 
   const configuredWidths = useMemo(() => columnWidths
     ? Object.fromEntries(Object.entries(columnWidths).filter((entry): entry is [string, number] => (
@@ -1259,9 +1267,9 @@ export function SimpleGridTaskList<TTask extends Task>({
       rowHeights={heights}
       visibleRowIndices={visibleRowIndices}
       onRevealRow={onRevealRow}
-      showRowHeaders={showNumbers || showSelection || (!!visibilityMenu && !visibilityHeader)}
+      showRowHeaders={showNumbers || showSelection || (canChangeColumnVisibility && columns.length === 0)}
       rowHeaderWidth={configuredWidths?.number ?? (showNumbers ? 40 : 24)}
-      cornerContent={<>{showNumbers ? '№' : null}{!visibilityHeader ? visibilityMenu : null}</>}
+      cornerContent={<>{showNumbers ? '№' : null}{renderVisibilityMenu(null)}</>}
       rowSelectionMode={showSelection}
       rowSelectionLabel={task => `Выбрать работу ${numberMap[task.id]}. ${task.name}`}
       selectAllRowsLabel="Выбрать все видимые работы"
