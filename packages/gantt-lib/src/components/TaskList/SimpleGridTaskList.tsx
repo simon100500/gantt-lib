@@ -1031,7 +1031,6 @@ export function SimpleGridTaskList<TTask extends Task>({
           ...wrappedTextEditorStyle,
           paddingLeft: nameInset(task) + (getTaskListNamePrefixIcon?.(task) ? 20 : 0),
           paddingRight: task.color ? 20 : 8,
-          wordBreak: 'break-all',
         }),
         isDisabled: task => !!task.locked,
         getValue: task => task.name,

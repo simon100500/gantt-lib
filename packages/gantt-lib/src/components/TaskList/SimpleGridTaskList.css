@@ -185,8 +185,8 @@
 .gantt-simple-grid td[data-sg-align="center"] .gantt-simple-grid-custom { justify-content: center; }
 
 .gantt-simple-grid .gantt-tl-name-trigger-text {
-  min-width: 0;
-  word-break: break-all;
+  word-break: normal;
+  text-overflow: ellipsis;
 }
 .gantt-simple-grid .gantt-tl-name-trigger-icon { display: inline-flex; align-items: center; }
 .gantt-simple-grid :is(.gantt-tl-collapse-btn, .gantt-tl-compositeToggle) { z-index: 3; }
