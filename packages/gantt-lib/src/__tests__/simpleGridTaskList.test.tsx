@@ -80,6 +80,45 @@ describe('SimpleGrid inside GanttChart', () => {
     expect(duration).toHaveTextContent('7 д');
   });
 
+  it('marks the known date and previews a continuous range while picking the missing end', () => {
+    function Project() {
+      const [task, setTask] = React.useState<Task>({ id: 'open', name: 'Опалубка', startDate: '2026-02-11' });
+      return <GanttChart tasks={[task]} showTaskList businessDays={false} onTasksChange={([next]) => setTask(next)} />;
+    }
+    render(<Project />);
+    const cell = screen.getByTestId('sg-cell-0-endDate');
+    fireEvent.click(within(cell).getByRole('button', { name: /Открыть календарь/ }));
+    const calendar = screen.getByRole('dialog');
+    const day = (iso: string) => calendar.querySelector(`button[data-day="${iso}"]`)!;
+    const start = day('2026-02-11');
+    const middle = day('2026-02-28');
+    const finish = day('2026-03-02');
+    expect(start).toHaveAttribute('data-range-start');
+    expect(start).toHaveAttribute('tabindex', '0');
+    expect(start).not.toHaveAttribute('data-in-range');
+    expect(day('2026-02-10')).toBeDisabled();
+
+    fireEvent.pointerOver(finish);
+    expect(start).toHaveAttribute('data-in-range');
+    expect(middle).toHaveAttribute('data-in-range');
+    expect(middle).not.toHaveAttribute('data-range-start');
+    expect(middle).not.toHaveAttribute('data-range-end');
+    expect(finish).toHaveAttribute('data-range-end');
+    expect(finish).toHaveAttribute('data-range-preview');
+    expect(day('2026-03-03')).not.toHaveAttribute('data-in-range');
+    expect(cell).toHaveTextContent('–');
+
+    fireEvent.pointerOut(finish, { relatedTarget: within(calendar).getByRole('button', { name: /^Начало,/ }) });
+    expect(finish).not.toHaveAttribute('data-range-end');
+    fireEvent.keyDown(start, { key: 'ArrowRight' });
+    expect(day('2026-02-12')).toHaveAttribute('data-range-preview');
+    fireEvent.click(finish);
+    expect(cell).toHaveTextContent('02.03.26');
+    expect(middle).toHaveAttribute('data-in-range');
+    expect(finish).toHaveAttribute('data-range-end');
+    expect(finish).not.toHaveAttribute('data-range-preview');
+  });
+
   it('assigns both dates from the timeline and keeps row dividers before scheduling', () => {
     function Project() {
       const [task, setTask] = React.useState<Task>({ id: 'draft', name: 'Разметка' });
@@ -95,6 +134,7 @@ describe('SimpleGrid inside GanttChart', () => {
     fireEvent.click(first);
     expect(screen.getByRole('dialog')).toBe(calendar);
     expect(within(calendar).getByRole('button', { name: /^Окончание,/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(calendar.querySelector(`[data-day="${firstDate}"]`)).toHaveAttribute('data-range-start');
     expect(within(calendar).getByRole('button', { name: '+1', exact: true })).toBeDisabled();
     expect(container.querySelector('.gantt-incomplete-row[data-gantt-task-row-id="draft"]')).toHaveClass('gantt-tr-row');
     const nextDate = new Date(firstDate);

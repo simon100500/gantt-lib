@@ -68,6 +68,7 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
   const [fieldId, setFieldId] = useState(initialFieldId);
   const [months, setMonths] = useState<Date[]>([]);
   const [cursor, setCursor] = useState('');
+  const [previewDate, setPreviewDate] = useState<string>();
   const [drafts, setDrafts] = useState<Record<string, string | undefined>>({});
   const [error, setError] = useState<string>();
   const [position, setPosition] = useState({ left: 0, top: 0 });
@@ -80,13 +81,21 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
   const today = isoDay(new Date());
   const start = parseGridDate(context?.range?.start || '');
   const end = parseGridDate(context?.range?.end || '');
+  const previewMin = !activeDate && context?.range?.boundary === 'end' ? start : null;
+  const previewMax = !activeDate && context?.range?.boundary === 'start' ? end : null;
+  const canPreviewRange = !!(previewMin || previewMax);
   const startLabel = context?.range?.startLabel || 'Начало периода';
   const endLabel = context?.range?.endLabel || 'Окончание периода';
   const markers = (context?.markers || []).map(marker => ({ ...marker, iso: parseGridDate(marker.value) }));
-  const allowed = (iso: string) => (!min || iso >= min) && (!max || iso <= max);
+  const allowed = (iso: string) => (!min || iso >= min) && (!max || iso <= max)
+    && (!previewMin || iso >= previewMin) && (!previewMax || iso <= previewMax);
+  const preview = previewDate && canPreviewRange && allowed(previewDate) ? previewDate : undefined;
+  const rangeStart = previewMax && preview ? preview : start;
+  const rangeEnd = previewMin && preview ? preview : end;
   const close = (restore: boolean) => { setOpen(false); if (restore) onClose(); };
   const changeDraft = (id: string, value?: string) => setDrafts(previous => ({ ...previous, [id]: value }));
   const pick = (iso: string) => {
+    setPreviewDate(undefined);
     field.onPick(iso);
     changeDraft(field.id);
     const next = advanceToEmptyField && iso && fields.find(candidate => candidate.id !== field.id && !candidate.value && !candidate.disabled);
@@ -113,12 +122,15 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
 
   const showField = (next: DatePickerField, savedDraft?: string) => {
     if (next.disabled) return;
-    const initial = savedDraft || parseGridDate(next.value) || parseGridDate(next.context?.initialDate || '') || today;
+    const range = next.context?.range;
+    const opposite = range?.boundary === 'start' ? range.end : range?.boundary === 'end' ? range.start : undefined;
+    const initial = savedDraft || parseGridDate(next.value) || parseGridDate(opposite ?? '') || parseGridDate(next.context?.initialDate || '') || today;
     const bounded = next.min && initial < next.min ? next.min : next.max && initial > next.max ? next.max : initial;
     const date = new Date(`${bounded}T12:00:00`);
     prepend.current = null;
     setFieldId(next.id);
     setError(undefined);
+    setPreviewDate(undefined);
     setCursor(bounded);
     setMonths([-1, 0, 1].map(offset => monthAt(date, offset)));
   };
@@ -172,6 +184,7 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
     next.setDate(next.getDate() + delta);
     const iso = isoDay(next);
     if (!allowed(iso)) return;
+    if (canPreviewRange) setPreviewDate(iso);
     setCursor(iso);
     setMonths(previous => {
       if (monthAt(next, 0) < previous[0]) return [monthAt(next, 0), ...previous];
@@ -242,7 +255,11 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
             onClick={() => { if (date) selectDate(date); }}>{days > 0 ? `+${days}` : days}</button>;
         })}
       </div>}
-      <div className="gantt-cal-container" ref={scroll} onScroll={() => {
+      <div className="gantt-cal-container" ref={scroll} onPointerOver={event => {
+        if (!canPreviewRange || event.pointerType === 'touch') return;
+        const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('button[data-day]') : null;
+        setPreviewDate(target && !target.disabled ? target.dataset.day : undefined);
+      }} onPointerLeave={() => setPreviewDate(undefined)} onScroll={() => {
         const element = scroll.current;
         if (!element || prepend.current) return;
         if (element.scrollTop < 80) {
@@ -264,8 +281,9 @@ export function CellDatePicker({ fields, initialFieldId, beforeOpen, onClose, tr
               !allowed(iso) && 'disabled'].filter(Boolean).join(' ');
             return <button type="button" key={iso} data-day={iso} aria-label={[date.toLocaleDateString('ru'), ...labels].join(', ')}
               title={labels.length ? labels.join(' · ') : undefined}
-              data-range-start={iso === start || undefined} data-range-end={iso === end || undefined}
-              data-in-range={!!start && !!end && start <= end && iso >= start && iso <= end || undefined}
+              data-range-start={iso === rangeStart || undefined} data-range-end={iso === rangeEnd || undefined}
+              data-in-range={!!rangeStart && !!rangeEnd && iso >= rangeStart && iso <= rangeEnd || undefined}
+              data-range-preview={iso === preview || undefined}
               data-marked={markers.some(marker => marker.iso === iso) || undefined}
               aria-pressed={iso === activeDate} aria-current={iso === today ? 'date' : undefined}
               disabled={!allowed(iso)} tabIndex={iso === cursor ? 0 : -1}

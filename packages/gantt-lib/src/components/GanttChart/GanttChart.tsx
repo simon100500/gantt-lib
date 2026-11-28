@@ -3100,6 +3100,11 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                                 max: id === 'startDate' && task.endDate ? parseUTCDate(task.endDate).toISOString().slice(0, 10) : undefined,
                                 context: {
                                   initialDate: (dateRange[Math.floor(scrollViewport.chartScrollLeft / dayWidth)] ?? monthStart).toISOString().slice(0, 10),
+                                  range: {
+                                    start: task.startDate ? parseDateOnly(task.startDate).toISOString().slice(0, 10) : undefined,
+                                    end: task.endDate ? parseDateOnly(task.endDate).toISOString().slice(0, 10) : undefined,
+                                    boundary: id === 'startDate' ? 'start' : 'end',
+                                  },
                                   shiftDate: (iso, days) => shiftPickerDate(iso, days, businessDays ? isCustomWeekend : undefined),
                                 },
                                 onPick: date => {

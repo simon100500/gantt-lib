@@ -107,7 +107,7 @@ export interface SimpleGridDatePickerContext {
   /** Month to open when the edited cell is empty or invalid. Existing cell dates take priority. */
   initialDate?: string;
   clearable?: boolean;
-  range?: { start?: string; end?: string; startLabel?: string; endLabel?: string };
+  range?: { start?: string; end?: string; startLabel?: string; endLabel?: string; boundary?: 'start' | 'end' };
   markers?: { value: string; label: string }[];
   footer?: ReactNode;
   duration?: { days?: number; businessDays?: boolean; linked: boolean; onToggle?: () => void };

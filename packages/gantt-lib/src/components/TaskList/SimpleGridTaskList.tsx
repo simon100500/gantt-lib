@@ -1003,7 +1003,7 @@ export function SimpleGridTaskList<TTask extends Task>({
           const boundary = id === 'startDate' ? 'start' : 'end';
           const pin = getDatePin(task, boundary, !!renderTaskDateAction?.(task, boundary));
           return {
-            range: { start: toISODate(task.startDate), end: toISODate(task.endDate) },
+            range: { start: toISODate(task.startDate), end: toISODate(task.endDate), boundary },
             isWeekend: (date: string) => weekendPredicate(parseUTCDate(date)),
             shiftDate: (iso: string, days: number) => shiftPickerDate(iso, days, businessDays ? weekendPredicate : undefined),
             clearable: !getFixedTaskDate(task, boundary) && !parents.has(task.id),

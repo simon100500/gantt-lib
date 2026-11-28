@@ -636,6 +636,16 @@
   background: var(--gantt-calendar-day-range);
 }
 
+.gantt-grid-date-picker .gantt-day-btn:is([data-range-start], [data-range-end]):not([data-in-range], .selected) {
+  background: var(--gantt-calendar-day-range);
+}
+
+.gantt-grid-date-picker .gantt-day-btn[data-range-preview][data-in-range]:is([data-range-start], [data-range-end]) {
+  background: var(--gantt-calendar-day-selected);
+  color: var(--gantt-calendar-day-selected-text);
+  font-weight: 600;
+}
+
 .gantt-simple-grid-error {
   position: absolute;
   top: var(--gantt-grid-header-height);
