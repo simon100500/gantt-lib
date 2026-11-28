@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0-alpha.1] - 2026-11-28
+
+### Fixes
+
+- Scope SimpleGrid utility styles to the grid and its popups so responsive layouts in host applications keep their own styles.
+
 ## [0.2.0-alpha.0] - 2026-11-28
 
 ### Features
