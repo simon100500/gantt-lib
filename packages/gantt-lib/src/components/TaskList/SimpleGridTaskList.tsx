@@ -589,8 +589,8 @@ export function SimpleGridTaskList<TTask extends Task>({
   const renderDateCell = useCallback((task: TTask, boundary: 'start' | 'end') => {
     const action = renderTaskDateAction?.(task, boundary);
     const fixedDate = getFixedTaskDate(task, boundary);
-    const displayDate = fixedDate ?? (boundary === 'start' ? task.startDate
-      : durationPreview?.id === task.id ? durationPreview.endDate : task.endDate);
+    const displayTask = durationPreview?.id === task.id ? durationPreview : task;
+    const displayDate = fixedDate ?? (boundary === 'start' ? displayTask.startDate : displayTask.endDate);
     const showPin = showTaskDatePins && !renderTaskDateAction;
     const pin = showPin ? getDatePin(task, boundary, false).pinAction : undefined;
     const boundaryName = boundary === 'start' ? 'начало' : 'окончание';
@@ -1024,9 +1024,9 @@ export function SimpleGridTaskList<TTask extends Task>({
             return value && source === 'editor' ? getDatePin(task, boundary, false).updateFixedDate(value) : task;
           }
           if (!value) {
-            if (parents.has(task.id)) return task;
-            if (task.type === 'milestone') return { ...task, startDate: undefined, endDate: undefined };
-            return { ...task, [id]: undefined };
+            if (parents.has(task.id) || !task[id]) return task;
+            if (task.type === 'milestone') return { ...task, startDate: undefined, endDate: undefined, durationDays: undefined };
+            return { ...task, [id]: undefined, durationDays: undefined };
           }
           if (source !== 'editor') return { ...task, [id]: value };
           const date = businessDays ? alignToWorkingDay(parseUTCDate(value), isStart ? 1 : -1, weekendPredicate) : parseUTCDate(value);
@@ -1071,18 +1071,26 @@ export function SimpleGridTaskList<TTask extends Task>({
         isDisabled: task => !!task.locked,
         validation: { type: 'number', min: 0, integer: true },
         getValue: task => String(getDurationFor(task) ?? ''),
+        commitEqualValue: (task, value) => !!value && !!task.startDate !== !!task.endDate && !parents.has(task.id),
         setValue: (task, value) => {
-          if (!task.startDate || !task.endDate) {
-            if (parents.has(task.id)) return task;
+          const hasRange = !!task.startDate && !!task.endDate;
+          if (!hasRange && parents.has(task.id)) return task;
+          if ((!task.startDate && !task.endDate) || (!hasRange && !value)) {
             return { ...task, durationDays: value ? Number(value) : undefined };
           }
           if (!value) return task;
           const duration = Number(value);
           const type = duration === 0 ? 'milestone' : task.type === 'milestone' ? 'task' : task.type;
-          const endDate = type === 'milestone' ? task.startDate : toISODate(
-            buildTaskRangeFromStart(parseUTCDate(task.startDate), duration, businessDays, weekendPredicate).end
+          if (task.startDate) {
+            const endDate = type === 'milestone' ? task.startDate : toISODate(
+              buildTaskRangeFromStart(parseUTCDate(task.startDate), duration, businessDays, weekendPredicate).end
+            );
+            return { ...task, type, endDate };
+          }
+          const startDate = type === 'milestone' ? task.endDate : toISODate(
+            buildTaskRangeFromEnd(parseUTCDate(task.endDate), duration, businessDays, weekendPredicate).start
           );
-          return { ...task, type, endDate };
+          return { ...task, type, startDate };
         },
         renderValue: renderDurationCell,
       },

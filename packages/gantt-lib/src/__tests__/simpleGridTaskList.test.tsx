@@ -77,7 +77,56 @@ describe('SimpleGrid inside GanttChart', () => {
     fireEvent.click(within(calendar).getByRole('button', { name: /^Начало,/ }));
     fireEvent.click(within(calendar).getByRole('button', { name: 'Очистить дату' }));
     expect(container.querySelector('[data-open-edge="start"]')).toBeInTheDocument();
-    expect(duration).toHaveTextContent('7 д');
+    expect(duration).toHaveTextContent('–');
+  });
+
+  it.each([
+    ['startDate', '13.02.26', 'endDate', '16.02.26'],
+    ['endDate', '16.02.26', 'startDate', '13.02.26'],
+  ] as const)('clears %s and restores it from a new working-day duration', (field, value, opposite, oppositeValue) => {
+    const onChange = vi.fn();
+    function Project() {
+      const [task, setTask] = React.useState<Task>({
+        id: 'work', name: 'Работа', startDate: '2026-02-13', endDate: '2026-02-16', durationDays: 9,
+      });
+      return <GanttChart tasks={[task]} showTaskList businessDays onTasksChange={([next]) => {
+        onChange(next);
+        setTask(next);
+      }} />;
+    }
+    const { container } = render(<Project />);
+    const missing = screen.getByTestId(`sg-cell-0-${field}`);
+    const known = screen.getByTestId(`sg-cell-0-${opposite}`);
+    const duration = screen.getByTestId('sg-cell-0-duration');
+    const grid = screen.getByRole('grid', { name: 'Список задач' });
+    fireEvent.click(missing);
+    fireEvent.keyDown(grid, { key: 'Delete' });
+    expect(missing).toHaveTextContent('–');
+    expect(duration).toHaveTextContent('–');
+    expect(known).toHaveTextContent(oppositeValue);
+    expect(onChange.mock.lastCall?.[0].durationDays).toBeUndefined();
+
+    fireEvent.click(duration);
+    fireEvent.keyDown(grid, { key: '2' });
+    const editor = within(duration).getByTestId('sg-editor-input');
+    expect(missing).toHaveTextContent(value);
+    fireEvent.keyDown(editor, { key: 'Enter' });
+    expect(missing).toHaveTextContent(value);
+    expect(known).toHaveTextContent(oppositeValue);
+    expect(duration).toHaveTextContent('2 д');
+    expect(container.querySelector('.gantt-partial-task')).toBeNull();
+  });
+
+  it('uses the existing estimate when the same duration is entered for an open task', () => {
+    const onTasksChange = vi.fn();
+    render(<GanttChart tasks={[{ id: 'open', name: 'Работа', startDate: '2026-02-13', durationDays: 2 }]}
+      showTaskList businessDays onTasksChange={onTasksChange} />);
+    const duration = screen.getByTestId('sg-cell-0-duration');
+    fireEvent.click(duration);
+    fireEvent.keyDown(screen.getByRole('grid', { name: 'Список задач' }), { key: '2' });
+    fireEvent.keyDown(within(duration).getByTestId('sg-editor-input'), { key: 'Enter' });
+    expect(onTasksChange).toHaveBeenCalledOnce();
+    expect(onTasksChange.mock.calls[0][0]).toMatchObject([{ startDate: '2026-02-13', endDate: '2026-02-16' }]);
   });
 
   it('marks the known date and previews a continuous range while picking the missing end', () => {
@@ -300,6 +349,21 @@ describe('SimpleGrid inside GanttChart', () => {
     fireEvent.keyDown(editor, { key: 'Enter' });
     expect(onScheduleIntent).toHaveBeenCalledExactlyOnceWith({
       type: 'change_duration', taskId: 'a', duration: 7, anchor: 'start', taskType: 'task',
+    });
+    expect(onTasksChange).not.toHaveBeenCalled();
+  });
+
+  it('uses the known finish as the duration anchor in controlled scheduling', () => {
+    const onScheduleIntent = vi.fn();
+    const onTasksChange = vi.fn();
+    render(<GanttChart tasks={[{ id: 'end-only', name: 'Работа', endDate: '2026-02-16' }]}
+      showTaskList businessDays onScheduleIntent={onScheduleIntent} onTasksChange={onTasksChange} />);
+    const duration = screen.getByTestId('sg-cell-0-duration');
+    fireEvent.click(duration);
+    fireEvent.keyDown(screen.getByRole('grid', { name: 'Список задач' }), { key: '2' });
+    fireEvent.keyDown(within(duration).getByTestId('sg-editor-input'), { key: 'Enter' });
+    expect(onScheduleIntent).toHaveBeenCalledExactlyOnceWith({
+      type: 'change_duration', taskId: 'end-only', duration: 2, anchor: 'end', taskType: 'task',
     });
     expect(onTasksChange).not.toHaveBeenCalled();
   });

@@ -152,6 +152,8 @@ export interface SimpleGridColumn<T> {
   chipsOnly?: boolean;
   getValue?: (row: T) => string;
   setValue?: (row: T, value: string, source?: 'editor') => T;
+  /** Commit an equal cell value when it can still change other fields. */
+  commitEqualValue?: (row: T, value: string) => boolean;
   /** A plain click on the cell, independent of its editing behavior. */
   onCellClick?: (row: T) => void;
   /** Per-row lock (a catalog unit is owned by the catalog, not typed). */

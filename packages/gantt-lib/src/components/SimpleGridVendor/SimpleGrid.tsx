@@ -1554,7 +1554,7 @@ export function SimpleGrid<T>({
     if (!column?.setValue || column.chipsOnly || !row) return;
     if (bannerKeys.has(rowKey(row))) return; // banner rows never accept cell writes
     const normalized = normalizeGridValue(column, value);
-    if ((column.getValue?.(row) ?? '') === normalized) {
+    if ((column.getValue?.(row) ?? '') === normalized && !column.commitEqualValue?.(row, normalized)) {
       if (!preview && editAppliedRef.current) {
         // The value is already in place from a live-applied draft; the commit
         // still records the edit as one undo unit against the pre-edit rows.

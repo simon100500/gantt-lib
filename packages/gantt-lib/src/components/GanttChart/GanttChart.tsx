@@ -2674,7 +2674,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       const editedTask = task.type === 'milestone' && starts !== ends
         ? { ...task, startDate: starts ? task.startDate : task.endDate, endDate: starts ? task.startDate : task.endDate }
         : task;
-      return [{ task: editedTask, starts, ends, fields, progress, kind }];
+      return [{ task: editedTask, original, starts, ends, fields, progress, kind }];
     });
     if (!edits.length) return false;
     const [onlyEdit] = edits;
@@ -2702,12 +2702,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     }
     setSimpleGridError('');
     if (edits.length === 1 && edits[0].task.startDate && edits[0].task.endDate && (editedColumnId === 'duration' || edits[0].kind)) {
-      const { task, starts, ends } = edits[0];
+      const { task, original, starts, ends } = edits[0];
       const duration = task.type === 'milestone' ? 0 : getTaskDuration(task.startDate, task.endDate, businessDays, isCustomWeekend);
-      if (!starts && !ends && onScheduleIntent) {
-        onScheduleIntent({ type: 'change_duration', taskId: task.id, duration, anchor: 'start', taskType: task.type ?? 'task' });
+      const anchor = original.startDate ? 'start' : 'end';
+      if (onScheduleIntent && ((!starts && !ends) || !original.startDate || !original.endDate)) {
+        onScheduleIntent({ type: 'change_duration', taskId: task.id, duration, anchor, taskType: task.type ?? 'task' });
       } else {
-        handleTaskChange([task], { duration, anchor: 'start' });
+        handleTaskChange([task], { duration, anchor });
       }
       return true;
     }
