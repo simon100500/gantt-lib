@@ -23,7 +23,8 @@
 .gantt-scrollContainer[data-panning='true'] .gantt-tr-activityBar,
 .gantt-scrollContainer[data-panning='true'] .gantt-tr-activityBar *,
 .gantt-scrollContainer[data-panning='true'] .gantt-tr-taskBar,
-.gantt-scrollContainer[data-panning='true'] .gantt-tr-taskBar * {
+.gantt-scrollContainer[data-panning='true'] .gantt-tr-taskBar *,
+.gantt-scrollContainer[data-panning='true'] :is(.gantt-partial-task, .gantt-tr-dependencyPort, .gantt-unscheduled-task) {
   pointer-events: none;
 }
 /* END_BLOCK_PAN_POINTER_SUPPRESSION */
