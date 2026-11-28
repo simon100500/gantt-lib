@@ -2612,6 +2612,13 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       return [{ task: editedTask, starts, ends, fields, progress, kind }];
     });
     if (!edits.length) return false;
+    const [onlyEdit] = edits;
+    if (edits.length === 1 && (editedColumnId === 'startDate' || editedColumnId === 'endDate')
+      && onlyEdit.fields.some(([key]) => key === 'fixedStartDate' || key === 'fixedEndDate')) {
+      setSimpleGridError('');
+      onTasksChange?.([onlyEdit.task as TTask]);
+      return true;
+    }
     const dateEdits = edits.filter(edit => edit.starts || edit.ends || edit.kind);
     if (dateEdits.some(({ task }) => dateKey(task.startDate) > dateKey(task.endDate))) {
       return reject('Начало задачи не может быть позже окончания');

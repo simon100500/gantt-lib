@@ -20,12 +20,14 @@ const child: Task = {
 };
 
 function dateTriggers(container: HTMLElement) {
-  return container.querySelectorAll<HTMLButtonElement>('[data-testid="sg-row-0"] :is(.gantt-datepicker-trigger, .sg-calendar-trigger)');
+  return container.querySelectorAll<HTMLButtonElement>('[data-testid="sg-row-0"] .sg-calendar-trigger');
 }
 
 async function openDate(trigger: HTMLButtonElement) {
   fireEvent.click(trigger);
-  return within(await screen.findByRole('dialog'));
+  const picker = within(await screen.findByRole('dialog'));
+  expect(picker.queryByRole('textbox')).toBeNull();
+  return picker;
 }
 
 it.each([
@@ -45,7 +47,6 @@ it.each([
   const picker = await openDate(dateTriggers(container)[column]!);
   expect(picker.getByText(label)).toBeTruthy();
   fireEvent.click(picker.getByRole('button', { name: '+1' }));
-  fireEvent.blur(picker.getByRole('textbox', { name: label }));
   expect(onTasksChange).not.toHaveBeenCalled();
   fireEvent.click(picker.getByRole('button', { name: 'Применить' }));
   expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([expect.objectContaining({ ...task, ...changed })]);
@@ -57,15 +58,12 @@ it('keeps the picker open on a conflicting date and discards the draft on Escape
   const { container } = render(<GanttChart tasks={[task]} showTaskList businessDays={false} taskDateChangeMode="free" onTasksChange={onTasksChange} />);
   const trigger = dateTriggers(container)[0]!;
   const picker = await openDate(trigger);
-  fireEvent.keyDown(picker.getByRole('textbox'), { key: 'Backspace' });
-  fireEvent.click(picker.getByRole('button', { name: 'Применить' }));
-  expect(picker.getByRole('alert').textContent).toBe('Введите корректную дату.');
   fireEvent.click(picker.getByRole('button', { name: '+7' }));
   fireEvent.click(picker.getByRole('button', { name: 'Применить' }));
   expect(picker.getByRole('alert').textContent).toBe('Начало позже закреплённого окончания.');
-  fireEvent.keyDown(picker.getByRole('textbox'), { key: 'Escape' });
+  fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
   const reopened = await openDate(trigger);
-  expect(reopened.getByDisplayValue('05.10.26')).toBeTruthy();
+  expect(screen.getByRole('dialog').querySelector('[aria-pressed="true"]')?.getAttribute('data-day')).toBe('2026-10-05');
   expect(reopened.queryByRole('alert')).toBeNull();
   expect(onTasksChange).not.toHaveBeenCalled();
 });
@@ -78,11 +76,11 @@ it('applies one exact calendar date to both existing anchors of a milestone', as
   const { container } = render(<GanttChart tasks={[milestone]} showTaskList businessDays onTasksChange={onTasksChange} />);
   const picker = await openDate(dateTriggers(container)[1]!);
   expect(picker.getByText('Закреплённая дата вехи')).toBeTruthy();
-  const october = screen.getByRole('dialog').querySelector<HTMLElement>('[data-month="2026-10"]')!;
-  fireEvent.click(within(october).getByRole('button', { name: '10' }));
-  expect(picker.getByDisplayValue('10.10.26')).toBeTruthy();
+  const saturday = screen.getByRole('dialog').querySelector<HTMLButtonElement>('[data-day="2026-10-10"]')!;
+  fireEvent.click(saturday);
+  expect(saturday.getAttribute('aria-pressed')).toBe('true');
   expect(onTasksChange).not.toHaveBeenCalled();
-  fireEvent.keyDown(picker.getByRole('textbox'), { key: 'Enter' });
+  fireEvent.click(picker.getByRole('button', { name: 'Применить' }));
   expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([expect.objectContaining({
     ...milestone, fixedStartDate: '2026-10-10', fixedEndDate: '2026-10-10',
   })]);
@@ -90,7 +88,28 @@ it('applies one exact calendar date to both existing anchors of a milestone', as
 
 it('disables an anchored picker when the chart has only a scheduling callback', () => {
   const { container } = render(<GanttChart tasks={[task]} showTaskList onScheduleIntent={vi.fn()} />);
-  expect([...dateTriggers(container)].map((button) => button.disabled)).toEqual([true, true]);
+  expect(dateTriggers(container)).toHaveLength(0);
+});
+
+it('validates and commits a pinned boundary from the cell editor', () => {
+  const onTasksChange = vi.fn();
+  const onScheduleIntent = vi.fn();
+  render(<GanttChart tasks={[task]} showTaskList businessDays={false} taskDateChangeMode="free"
+    onTasksChange={onTasksChange} onScheduleIntent={onScheduleIntent} />);
+  const cell = screen.getByTestId('sg-cell-0-startDate');
+  fireEvent.click(cell);
+  fireEvent.keyDown(screen.getByRole('grid', { name: 'Список задач' }), { key: 'Enter' });
+  const editor = within(cell).getByTestId('sg-editor-input');
+  editor.textContent = '12.10.2026';
+  fireEvent.input(editor);
+  fireEvent.keyDown(editor, { key: 'Enter' });
+  expect(within(cell).getByRole('alert').textContent).toBe('Начало позже закреплённого окончания.');
+  expect(onTasksChange).not.toHaveBeenCalled();
+  editor.textContent = '06.10.2026';
+  fireEvent.input(editor);
+  fireEvent.keyDown(editor, { key: 'Enter' });
+  expect(onTasksChange).toHaveBeenCalledExactlyOnceWith([expect.objectContaining({ ...task, fixedStartDate: '2026-10-06' })]);
+  expect(onScheduleIntent).not.toHaveBeenCalled();
 });
 
 it('shows the duration checkbox and shifts both existing anchors when it is on', async () => {

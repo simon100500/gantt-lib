@@ -361,12 +361,81 @@
 .gantt-simple-grid-menu { padding: 4px; }
 .gantt-simple-grid-menu .gantt-tl-context-menu-item { min-height: 30px; }
 
-.gantt-simple-grid-calendar-shifts {
+.gantt-grid-date-picker {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  width: 264px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+}
+
+.gantt-grid-date-picker .gantt-datepicker-input-row {
+  padding-block: 6px 8px;
+}
+
+.gantt-grid-date-picker .gantt-datepicker-shift-btn {
+  flex: 0 0 40px;
+  height: 32px;
+  background-color: var(--gantt-calendar-day-hover);
+  font-variant-numeric: tabular-nums;
+}
+
+.gantt-grid-date-picker .gantt-datepicker-shift-btn:hover {
+  background-color: var(--gantt-input-border);
+}
+
+.gantt-grid-date-picker .gantt-cal-container {
+  position: relative;
+  min-height: 0;
+  max-height: 256px;
+  scrollbar-gutter: stable;
+}
+
+.gantt-grid-date-picker .gantt-cal-month-days {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  column-gap: 0;
+}
+
+.gantt-grid-date-picker :is(.gantt-cal-weekday, .gantt-cal-empty-day, .gantt-day-btn) {
+  width: 100%;
+}
+
+.gantt-grid-date-picker .gantt-datepicker-fixed-actions {
   gap: 4px;
-  padding-top: 6px;
-  border-top-width: 1px;
+  margin-top: 6px;
+}
+
+.gantt-grid-date-picker .gantt-btn-sm {
+  padding-inline: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.gantt-grid-date-picker .gantt-grid-date-pin {
+  margin-inline-end: auto;
+  padding-inline: 2px;
+}
+
+.gantt-grid-date-picker .gantt-day-btn[data-in-range] {
+  border-radius: 0;
+}
+
+.gantt-grid-date-picker .gantt-day-btn[data-in-range]:not(.selected, :hover) {
+  background: color-mix(in srgb, var(--gantt-calendar-day-range) 55%, transparent);
+}
+
+.gantt-grid-date-picker .gantt-day-btn[data-in-range][data-range-start] {
+  border-start-start-radius: 6px;
+  border-end-start-radius: 6px;
+}
+
+.gantt-grid-date-picker .gantt-day-btn[data-in-range][data-range-end] {
+  border-start-end-radius: 6px;
+  border-end-end-radius: 6px;
+}
+
+.gantt-grid-date-picker .gantt-day-btn[data-in-range]:is([data-range-start], [data-range-end]):not(.selected, :hover) {
+  background: var(--gantt-calendar-day-range);
 }
 
 .gantt-simple-grid-error {

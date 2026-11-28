@@ -1608,7 +1608,8 @@ export function SimpleGrid<T>({
     const column = columns[navCols[active.navIndex]];
     const raw = override ?? draftRef.current;
     const normalized = normalizeGridValue(column, raw);
-    const error = validateGridValue(column.validation, normalized);
+    const error = validateGridValue(column.validation, normalized) || (normalized && rows[active.row]
+      ? column.getDatePickerContext?.(rows[active.row])?.fixedDateEdit?.validate(normalized) : undefined);
     if (error) { setEditError(error); return false; } // Excel "Stop": keep the editor open
     if (fill) {
       if (!fillSelection(normalized)) return false;
@@ -1621,7 +1622,7 @@ export function SimpleGrid<T>({
     setEditError(null);
     editSnapshotRef.current = null;
     return true;
-  }, [active, applyValue, columns, editing, fillSelection, navCols]);
+  }, [active, applyValue, columns, editing, fillSelection, navCols, rows]);
 
   /** Abandon the edit: roll a live-applied draft back to the row snapshot, drop the error. */
   const cancelEdit = useCallback(() => {

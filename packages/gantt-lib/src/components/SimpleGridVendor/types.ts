@@ -104,13 +104,12 @@ export type SimpleGridFormat =
 
 /** Related dates shown as context while picking a single cell value. */
 export interface SimpleGridDatePickerContext {
-  /** Rounded period edge or date dot on selected and hovered days. */
-  selectionRole?: 'start' | 'end' | 'marker';
   /** Month to open when the edited cell is empty or invalid. Existing cell dates take priority. */
   initialDate?: string;
   range?: { start?: string; end?: string; startLabel?: string; endLabel?: string };
   markers?: { value: string; label: string }[];
   footer?: ReactNode;
+  fixedDateEdit?: { title: string; validate: (date: string) => string | undefined };
   pinAction?: { label: string; run: () => void };
   shiftDate?: (iso: string, days: number) => string;
   isWeekend?: (iso: string) => boolean;

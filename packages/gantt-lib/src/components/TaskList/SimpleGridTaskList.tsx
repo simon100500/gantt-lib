@@ -30,7 +30,6 @@ import { SimpleGrid } from '../SimpleGridVendor/SimpleGrid';
 import type { SimpleGridColumn, SimpleGridEditorProps, SimpleGridRowDropPlacement } from '../SimpleGridVendor/types';
 import { GenerationSkeletonRows } from '../GenerationSkeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
-import { DatePicker, type TaskDatePicker } from '../ui/DatePicker';
 import { getVisibleReorderPlan } from '../../utils/taskListReorder';
 import { NewTaskRow } from './NewTaskRow';
 import { buildDefaultTaskDateRange, getTodayISODate } from './defaultTaskDates';
@@ -40,7 +39,7 @@ import type { TaskListColumn, TaskListColumnContext, TaskListColumnId, TaskListC
 import { buildTaskNumberMap } from './taskNumbering';
 import { LINK_TYPE_ICONS, LINK_TYPE_LABELS } from './DepIcons';
 import { DepChip } from './TaskListRow';
-import { getTaskDatePin, taskDateISO as toISODate } from './taskDatePin';
+import { getFixedTaskDate, getTaskDatePin, taskDateISO as toISODate } from './taskDatePin';
 import './TaskList.css';
 import './SimpleGridTaskList.css';
 
@@ -48,7 +47,6 @@ const NO_FILTERS: [] = [];
 const EMPTY_COLUMNS: [] = [];
 const taskKey = (task: Task) => task.id;
 const LINK_TYPE_ORDER: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
-const TaskPicker = DatePicker as React.FC<React.ComponentProps<typeof TaskDatePicker>>;
 const wrappedTextEditorStyle: React.CSSProperties = {
   paddingBlock: 0,
   whiteSpace: 'pre-wrap',
@@ -636,23 +634,16 @@ export function SimpleGridTaskList<TTask extends Task>({
 
   const renderDateCell = useCallback((task: TTask, boundary: 'start' | 'end') => {
     const action = renderTaskDateAction?.(task, boundary);
-    const pin = getDatePin(task, boundary, !!action);
-    const displayDate = boundary === 'end' && durationPreview?.id === task.id ? durationPreview.endDate : pin.value;
+    const fixedDate = getFixedTaskDate(task, boundary);
+    const displayDate = fixedDate ?? (boundary === 'start' ? task.startDate
+      : durationPreview?.id === task.id ? durationPreview.endDate : task.endDate);
     return <>
-      {pin.fixedDateEdit ? <span onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}
-        onDoubleClick={event => event.stopPropagation()}
-        onKeyDown={event => event.stopPropagation()}><TaskPicker value={pin.value} format="dd.MM.yy" className="gantt-tl-date-display"
-        isWeekend={weekendPredicate} businessDays={businessDays} disabled={task.locked || !onFixedDateChange}
-        onChange={pin.changeFixedDate} fixedDateEdit={pin.fixedDateEdit} pinAction={pin.pinAction}
-        footer={<>
-          {renderDurationMode(pin.disableDuration)}
-          {pin.note && <div className="gantt-datepicker-fixed-note">{pin.note}</div>}
-        </>} /></span> : <span className="gantt-tl-date-display">{formatDateLabel(displayDate)}</span>}
+      <span className="gantt-tl-date-display">{formatDateLabel(displayDate)}</span>
       {action && <span className="gantt-simple-grid-date-action" onMouseDown={event => event.stopPropagation()}
         onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}
         onKeyDown={event => event.stopPropagation()}>{action}</span>}
     </>;
-  }, [renderTaskDateAction, getDatePin, durationPreview, weekendPredicate, businessDays, onFixedDateChange, renderDurationMode]);
+  }, [renderTaskDateAction, durationPreview]);
 
   const renderDurationCell = useCallback((task: Task) => {
     const isMilestone = task.type === 'milestone';
@@ -1047,29 +1038,37 @@ export function SimpleGridTaskList<TTask extends Task>({
         validation: { type: 'date' as const },
         format: { kind: 'date' as const },
         datePicker: true,
-        isDisabled: (task: TTask) => !!task.locked || !!(id === 'startDate' ? task.fixedStartDate : task.fixedEndDate)
-          || (task.type === 'milestone' && !!(task.fixedStartDate || task.fixedEndDate)),
-        getValue: (task: TTask) => toISODate(task[id]),
-        getDatePickerContext: (task: TTask) => ({
-          selectionRole: id === 'startDate' ? 'start' as const : 'end' as const,
-          range: { start: toISODate(task.startDate), end: toISODate(task.endDate) },
-          isWeekend: (date: string) => weekendPredicate(parseUTCDate(date)),
-          shiftDate: (iso: string, days: number) => {
-            const date = parseUTCDate(iso);
-            if (businessDays) return toISODate(days > 0
-              ? addBusinessDays(date, days, weekendPredicate)
-              : subtractBusinessDays(date, -days, weekendPredicate));
-            date.setUTCDate(date.getUTCDate() + days);
-            return toISODate(date);
-          },
-          footer: renderDurationMode(task.type === 'milestone'),
-          pinAction: getDatePin(task, id === 'startDate' ? 'start' : 'end',
-            !!renderTaskDateAction?.(task, id === 'startDate' ? 'start' : 'end')).pinAction,
-        }),
+        isDisabled: (task: TTask) => !!task.locked || (!onFixedDateChange && !!getFixedTaskDate(task, id === 'startDate' ? 'start' : 'end')),
+        getValue: (task: TTask) => getFixedTaskDate(task, id === 'startDate' ? 'start' : 'end') ?? toISODate(task[id]),
+        getDatePickerContext: (task: TTask) => {
+          const boundary = id === 'startDate' ? 'start' : 'end';
+          const pin = getDatePin(task, boundary, !!renderTaskDateAction?.(task, boundary));
+          return {
+            range: { start: toISODate(task.startDate), end: toISODate(task.endDate) },
+            isWeekend: (date: string) => weekendPredicate(parseUTCDate(date)),
+            shiftDate: (iso: string, days: number) => {
+              const date = parseUTCDate(iso);
+              date.setUTCDate(date.getUTCDate() + (businessDays ? Math.sign(days) : days));
+              if (!businessDays) return toISODate(date);
+              return toISODate(days > 0 ? addBusinessDays(date, days, weekendPredicate)
+                : subtractBusinessDays(date, -days, weekendPredicate));
+            },
+            footer: <>
+              {renderDurationMode(pin.disableDuration)}
+              {pin.note && <div className="gantt-datepicker-fixed-note">{pin.note}</div>}
+            </>,
+            fixedDateEdit: pin.fixedDateEdit,
+            pinAction: pin.pinAction,
+          };
+        },
         setValue: (task: TTask, value: string, source?: 'editor') => {
           if (!value) return task;
-          if (source !== 'editor') return { ...task, [id]: value };
           const isStart = id === 'startDate';
+          const boundary = isStart ? 'start' : 'end';
+          if (getFixedTaskDate(task, boundary)) {
+            return source === 'editor' ? getDatePin(task, boundary, false).updateFixedDate(value) : task;
+          }
+          if (source !== 'editor') return { ...task, [id]: value };
           const date = businessDays ? alignToWorkingDay(parseUTCDate(value), isStart ? 1 : -1, weekendPredicate) : parseUTCDate(value);
           const duration = getDurationFor(task);
           const start = parseUTCDate(task.startDate);
@@ -1162,7 +1161,7 @@ export function SimpleGridTaskList<TTask extends Task>({
     hiddenColumns, nameReadOnly, businessDays, additionalColumns, hideActions, menuCommands,
     renderActions, renderMenu, renderRowActions, onTaskEdit, updateCustomTask, onScrollToTask,
     activeLinkType, dependencyEditingDisabled, dateChangeMode, renderDurationMode, allTasks, weekendPredicate, getDurationFor, nameInset,
-    renderNameCell, renderDateCell, getDatePin, renderTaskDateAction, renderDurationCell, renderProgressCell, renderDependenciesCell, getTaskListNamePrefixIcon,
+    renderNameCell, renderDateCell, getDatePin, renderTaskDateAction, onFixedDateChange, renderDurationCell, renderProgressCell, renderDependenciesCell, getTaskListNamePrefixIcon,
   ]);
 
   const canChangeColumnVisibility = controlledHiddenColumns === undefined || !!onHiddenColumnsChange;
