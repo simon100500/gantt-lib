@@ -52,6 +52,19 @@
   padding-inline: 2px;
 }
 
+.gantt-simple-grid thead:hover th:not(:has(> .sg-column-resize-marker)) > [data-sg-column-resize="right"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 1px;
+  width: 2px;
+  height: 16px;
+  transform: translateY(-50%);
+  border-radius: 1px;
+  background: #8996a9;
+  pointer-events: none;
+}
+
 .gantt-simple-grid :is(th[data-column-id="startDate"], th[data-column-id="endDate"], th[data-column-id="duration"], th[data-column-id="progress"]) .sg-column-title {
   text-align: center;
 }
