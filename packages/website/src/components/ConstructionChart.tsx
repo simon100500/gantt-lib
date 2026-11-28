@@ -145,6 +145,10 @@ export default function ConstructionChart() {
 
   const ganttChartRef = useRef<GanttChartHandle>(null);
 
+  useEffect(() => {
+    ganttChartRef.current?.scrollToTask('g1-1');
+  }, []);
+
   const searchResultIds = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
     if (!normalizedQuery) return [];
@@ -438,9 +442,12 @@ export default function ConstructionChart() {
           tasks={tasks}
           timelineMarkers={timelineMarkers}
           taskFilter={taskFilter}
-          getTaskListNamePrefixIcon={(task) => (!task.parentId ? <HomeNameIcon /> : undefined)}
+          getTaskListNamePrefixIcon={(task) => (
+            task.type === 'milestone' ? <MilestoneCommandIcon /> : !task.parentId ? <HomeNameIcon /> : undefined
+          )}
           dayWidth={viewMode === 'month' ? 2.5 : viewMode === 'week' ? 8 : 24}
           rowHeight={36}
+          rowContentLines={2}
           onTasksChange={handleChange}
           onAdd={handleAdd}
           onDelete={handleDelete}
