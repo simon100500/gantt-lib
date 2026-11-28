@@ -242,6 +242,11 @@
   color: inherit;
 }
 
+.gantt-simple-grid .gantt-tl-date-display {
+  justify-items: end;
+  padding-inline: 6px !important;
+}
+
 .gantt-simple-grid .gantt-tl-progress-display[data-complete] { color: #14704b; }
 
 .gantt-simple-grid-date-action {
@@ -257,6 +262,15 @@
   transform: translateY(-50%);
   width: 20px;
   max-height: 100%;
+  background-color: var(--gantt-cell-background, #fff);
+}
+
+.gantt-simple-grid [data-sg] .sg-calendar-trigger:is(:hover, [aria-expanded="true"]) {
+  background-color: var(--gantt-calendar-day-hover, #f3f4f6);
+}
+
+.gantt-simple-grid [data-sg] td[data-editing="true"] > .sg-calendar-trigger {
+  visibility: hidden;
 }
 
 .gantt-simple-grid [data-sg] td > [data-sg-editor] {
