@@ -22,6 +22,53 @@ vi.mock('../components/ui/Calendar', () => ({
 }));
 
 describe('manual dependency linking', () => {
+  it.each([
+    ['left', 'left', 'SS', '2026-03-02'],
+    ['left', 'right', 'SF', '2026-03-01'],
+    ['right', 'left', 'FS', '2026-03-05'],
+    ['right', 'right', 'FF', '2026-03-04'],
+  ] as const)('links the known edges %s → %s as %s', (sourceSide, targetSide, type, expectedDate) => {
+    const sourceField = sourceSide === 'left' ? 'startDate' : 'endDate';
+    const targetField = targetSide === 'left' ? 'startDate' : 'endDate';
+    const unknownField = targetSide === 'left' ? 'endDate' : 'startDate';
+    const tasks: Task[] = [
+      { id: 'source', name: 'Источник', [sourceField]: sourceSide === 'left' ? '2026-03-02' : '2026-03-04' },
+      { id: 'target', name: 'Приёмник', [targetField]: '2026-03-12', durationDays: 5 },
+      { id: 'draft', name: 'Без дат' },
+    ];
+    const onTasksChange = vi.fn();
+    const { container } = render(<GanttChart tasks={tasks} businessDays={false} onTasksChange={onTasksChange} />);
+    const ports = [...container.querySelectorAll<HTMLButtonElement>('[data-gantt-dependency-port]')];
+    expect(ports.map(port => [port.dataset.taskId, port.dataset.portSide])).toEqual([
+      ['source', sourceSide], ['target', targetSide],
+    ]);
+
+    const [source, target] = ports;
+    const original = Object.getOwnPropertyDescriptor(document, 'elementFromPoint');
+    Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => target });
+    const pointer = (event: string) => Object.assign(new MouseEvent(event, { bubbles: true, button: 0 }), { pointerId: 1 });
+    try {
+      fireEvent(source, pointer('pointerdown'));
+      fireEvent(target, pointer('pointermove'));
+      fireEvent(target, pointer('pointerup'));
+    } finally {
+      if (original) Object.defineProperty(document, 'elementFromPoint', original);
+      else Reflect.deleteProperty(document, 'elementFromPoint');
+    }
+
+    expect(onTasksChange).toHaveBeenCalledOnce();
+    expect(onTasksChange.mock.calls[0][0]).toEqual([expect.objectContaining({
+      id: 'target', [targetField]: expectedDate, [unknownField]: undefined, durationDays: 5,
+      dependencies: [{ taskId: 'source', type, lag: 0 }],
+    })]);
+  });
+
+  it('respects dependency editing settings for known edges', () => {
+    const { container } = render(<GanttChart tasks={[{ id: 'open', name: 'Open', endDate: '2026-03-04' }]}
+      disableDependencyEditing onTasksChange={vi.fn()} />);
+    expect(container.querySelector('[data-gantt-dependency-port]')).toBeNull();
+  });
+
   it.each(['predecessor', 'successor'] as const)('preserves a column-created edge before its schedule intent in %s mode', direction => {
     Element.prototype.scrollIntoView = vi.fn();
     const onTasksChange = vi.fn();

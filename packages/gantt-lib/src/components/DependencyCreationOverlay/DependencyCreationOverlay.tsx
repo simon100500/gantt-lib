@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import type { LinkType } from '../../types';
 import './DependencyCreationOverlay.css';
 
 const LINK_TYPE_LABELS_RU: Record<string, string> = {
@@ -16,7 +17,7 @@ export interface DependencyCreationDrag {
   source: { x: number; y: number };
   current: { x: number; y: number };
   target?: { taskId: string; side: 'left' | 'right' };
-  linkType?: string;
+  linkType?: LinkType;
 }
 
 interface DependencyCreationOverlayProps {

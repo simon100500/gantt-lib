@@ -16,13 +16,33 @@
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 
-import type { Task, ScheduleCommandResult, ScheduleCommandOptions } from './types';
+import type { Task, TaskDependency, ScheduleCommandResult, ScheduleCommandOptions } from './types';
 import { moveTaskRange, recalculateIncomingLags, buildDependencyRange } from './commands';
 import { universalCascade } from './cascade';
 import { alignToWorkingDay, parseDateOnly, formatOptionalDateOnly } from './dateMath';
 import { calculateSuccessorDate, getDependencyLag, normalizePredecessorDates } from './dependencies';
 import { resolveFixedDates, resolveParentFixedDates } from './fixedDates';
 import { getChildDateBounds, computeParentDates } from './hierarchy';
+
+/** Snap a newly linked task when the two boundaries used by the link are set. */
+export function snapTaskToDependency<TTask extends Task>(
+  task: TTask,
+  predecessor: Task | undefined,
+  dependency: TaskDependency,
+  isParent: boolean,
+  businessDays: boolean,
+  weekendPredicate?: (date: Date) => boolean,
+): TTask {
+  if (!predecessor || task.locked) return task;
+  const { predStart, predEnd } = normalizePredecessorDates(predecessor, parseDateOnly);
+  const date = calculateSuccessorDate(
+    predStart, predEnd, dependency.type, getDependencyLag(dependency), businessDays, weekendPredicate, task.type,
+  );
+  const range = buildDependencyRange(task, dependency.type, date, businessDays, weekendPredicate);
+  if (!range) return task;
+  const { start, end } = resolveFixedDates(task, range, isParent, businessDays, weekendPredicate);
+  return { ...task, startDate: formatOptionalDateOnly(start), endDate: formatOptionalDateOnly(end) };
+}
 
 function isLaterRange(candidate: { start: Date; end: Date }, current?: { start: Date; end: Date } | null): boolean {
   if (!current) return true;

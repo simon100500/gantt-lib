@@ -24,9 +24,7 @@ import {
   removeDependenciesBetweenTasks,
   isTaskParent,
   areTasksHierarchicallyRelated,
-  calculateSuccessorDate,
-  buildTaskRangeFromEnd,
-  buildTaskRangeFromStart,
+  snapTaskToDependency,
   clampTaskRangeForIncomingFS,
   resizeTaskWithCascade,
   parseDateOnly,
@@ -985,113 +983,6 @@ function TaskGanttChartInner<TTask extends Task = Task>(
   }, [disableDependencyEditing, getDependencyPortPoint]);
 
   useEffect(() => {
-    if (!dependencyCreationDrag) return;
-
-    const handlePointerMove = (event: PointerEvent) => {
-      const activeDrag = dependencyCreationRef.current;
-      const chartElement = scrollContentRef.current?.querySelector('.gantt-taskArea');
-      if (!activeDrag || !(chartElement instanceof HTMLElement)) return;
-      const chartRect = chartElement.getBoundingClientRect();
-      const targetElement = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-gantt-dependency-port]');
-      const targetTaskId = targetElement?.getAttribute('data-task-id') ?? undefined;
-      const targetSide = targetElement?.getAttribute('data-port-side') as 'left' | 'right' | null;
-      const target = targetTaskId && targetSide && targetTaskId !== activeDrag.sourceId
-        ? { taskId: targetTaskId, side: targetSide }
-        : undefined;
-      const current = targetElement
-        ? getDependencyPortPoint(targetElement, chartRect)
-        : { x: Math.round(event.clientX - chartRect.left), y: Math.round(event.clientY - chartRect.top) };
-      const nextDrag = {
-        ...activeDrag,
-        current,
-        target,
-        linkType: target ? getVisualDependencyType(activeDrag.sourceSide, target.side) : undefined,
-      };
-      dependencyCreationRef.current = nextDrag;
-      setDependencyCreationDrag(nextDrag);
-    };
-
-    const handlePointerUp = () => {
-      const activeDrag = dependencyCreationRef.current;
-      dependencyCreationRef.current = null;
-      setDependencyCreationDrag(null);
-      if (!activeDrag?.target || !activeDrag.linkType) return;
-
-      const predecessorId = activeDrag.sourceId;
-      const successorId = activeDrag.target.taskId;
-      const successor = tasks.find((task) => task.id === successorId);
-      if (!successor || areTasksHierarchicallyRelated(predecessorId, successorId, tasks)) {
-        setDependencyCreationError('Связи между родителем и потомком запрещены');
-        return;
-      }
-      const nextDependency: TaskDependency = { taskId: predecessorId, type: activeDrag.linkType as TaskDependency['type'], lag: 0 };
-      if ((successor.dependencies ?? []).some((dependency) => dependency.taskId === predecessorId && dependency.type === nextDependency.type)) return;
-      const hypothetical = tasks.map((task) => task.id === successorId
-        ? { ...task, dependencies: [...(task.dependencies ?? []), nextDependency] }
-        : task);
-      const validation = validateDependencies(hypothetical);
-      if (!validation.isValid) {
-        setDependencyCreationError(validation.errors.some((error) => error.type === 'constraint')
-          ? 'Связи между родителем и потомком запрещены'
-          : 'Цикл зависимостей!');
-        return;
-      }
-      const predecessor = tasks.find((task) => task.id === predecessorId);
-      const updatedSuccessor = hypothetical.find((task) => task.id === successorId)!;
-      if (!predecessor || !successor.startDate || !successor.endDate) {
-        onTasksChange?.([updatedSuccessor as TTask]);
-        return;
-      }
-
-      const constraintDate = calculateSuccessorDate(
-        parseUTCDate(predecessor.startDate),
-        predecessor.type === 'milestone'
-          ? parseUTCDate(predecessor.startDate)
-          : parseUTCDate(predecessor.endDate),
-        nextDependency.type,
-        0,
-        businessDays,
-        isCustomWeekend,
-        successor.type,
-      );
-      if (!Number.isFinite(+constraintDate)) {
-        onTasksChange?.([updatedSuccessor as TTask]);
-        return;
-      }
-      const duration = getTaskDuration(
-        updatedSuccessor.startDate,
-        updatedSuccessor.endDate,
-        businessDays,
-        isCustomWeekend,
-      );
-      const range = nextDependency.type === 'FS' || nextDependency.type === 'SS'
-        ? buildTaskRangeFromStart(constraintDate, duration, businessDays, createCustomDayPredicate({ customDays, isWeekend }))
-        : buildTaskRangeFromEnd(constraintDate, duration, businessDays, createCustomDayPredicate({ customDays, isWeekend }));
-      onTasksChange?.([{
-        ...updatedSuccessor,
-        startDate: range.start.toISOString().split('T')[0],
-        endDate: range.end.toISOString().split('T')[0],
-      } as TTask]);
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        dependencyCreationRef.current = null;
-        setDependencyCreationDrag(null);
-      }
-    };
-
-    document.addEventListener('pointermove', handlePointerMove);
-    document.addEventListener('pointerup', handlePointerUp);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointermove', handlePointerMove);
-      document.removeEventListener('pointerup', handlePointerUp);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [businessDays, customDays, dependencyCreationDrag !== null, getDependencyPortPoint, getVisualDependencyType, isWeekend, onTasksChange, tasks]);
-
-  useEffect(() => {
     if (!dependencyCreationError) return;
     const timeout = window.setTimeout(() => setDependencyCreationError(null), 3000);
     return () => window.clearTimeout(timeout);
@@ -1726,9 +1617,21 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     if (!originalTask.startDate || !originalTask.endDate || !updatedTask.startDate || !updatedTask.endDate) {
       const start = parseDateOnly(updatedTask.startDate);
       const end = parseDateOnly(updatedTask.endDate);
-      const knownDateChanged = (Number.isFinite(+start) && +start !== +parseDateOnly(originalTask.startDate))
-        || (Number.isFinite(+end) && +end !== +parseDateOnly(originalTask.endDate));
-      const updates = knownDateChanged && !disableConstraints && !onScheduleIntent
+      const startChanged = Number.isFinite(+start) && +start !== +parseDateOnly(originalTask.startDate);
+      const endChanged = Number.isFinite(+end) && +end !== +parseDateOnly(originalTask.endDate);
+      const movesOpenStart = startChanged && originalTask.startDate && !originalTask.endDate && !updatedTask.endDate;
+      const movesOpenEnd = endChanged && originalTask.endDate && !originalTask.startDate && !updatedTask.startDate;
+      if (onScheduleIntent && (movesOpenStart || movesOpenEnd)
+        && JSON.stringify(originalTask.dependencies ?? []) !== JSON.stringify(updatedTask.dependencies ?? [])) {
+        onTasksChange?.([{ ...updatedTask, startDate: originalTask.startDate, endDate: originalTask.endDate } as TTask]);
+        onScheduleIntent({
+          type: 'resize_task', taskId: updatedTask.id, anchor: movesOpenStart ? 'end' : 'start',
+          date: (movesOpenStart ? start : end).toISOString().slice(0, 10),
+        });
+        if (editingTaskId === updatedTask.id) setEditingTaskId(null);
+        return;
+      }
+      const updates = (startChanged || endChanged) && !disableConstraints && !onScheduleIntent
         ? universalCascade(updatedTask, start, end, normalizedTasks, businessDays, isCustomWeekend)
         : updatedTasks;
       onTasksChange?.(updates as TTask[]);
@@ -1906,6 +1809,90 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       onTasksChange?.(cascadedTasks as TTask[]);
     }
   }, [tasks, normalizedTasks, onTasksChange, onScheduleIntent, disableConstraints, editingTaskId, businessDays, isCustomWeekend, onSubtreeScaleResult]);
+
+  useEffect(() => {
+    if (!dependencyCreationDrag) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const activeDrag = dependencyCreationRef.current;
+      const chartElement = scrollContentRef.current?.querySelector('.gantt-taskArea');
+      if (!activeDrag || !(chartElement instanceof HTMLElement)) return;
+      const chartRect = chartElement.getBoundingClientRect();
+      const hit = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-gantt-dependency-port]');
+      const targetElement = hit && chartElement.contains(hit) ? hit : undefined;
+      const targetTaskId = targetElement?.getAttribute('data-task-id') ?? undefined;
+      const targetSide = targetElement?.getAttribute('data-port-side') as 'left' | 'right' | null;
+      const target = targetTaskId && targetSide && targetTaskId !== activeDrag.sourceId
+        ? { taskId: targetTaskId, side: targetSide }
+        : undefined;
+      const current = targetElement
+        ? getDependencyPortPoint(targetElement, chartRect)
+        : { x: Math.round(event.clientX - chartRect.left), y: Math.round(event.clientY - chartRect.top) };
+      const nextDrag = {
+        ...activeDrag,
+        current,
+        target,
+        linkType: target ? getVisualDependencyType(activeDrag.sourceSide, target.side) : undefined,
+      };
+      dependencyCreationRef.current = nextDrag;
+      setDependencyCreationDrag(nextDrag);
+    };
+
+    const handlePointerUp = () => {
+      const activeDrag = dependencyCreationRef.current;
+      dependencyCreationRef.current = null;
+      setDependencyCreationDrag(null);
+      if (!activeDrag?.target || !activeDrag.linkType) return;
+
+      const predecessorId = activeDrag.sourceId;
+      const successorId = activeDrag.target.taskId;
+      const predecessor = normalizedTasks.find(task => task.id === predecessorId);
+      const successor = normalizedTasks.find(task => task.id === successorId);
+      if (!predecessor || !successor) return;
+      if (!(activeDrag.sourceSide === 'left' ? predecessor.startDate : predecessor.endDate)
+        || !(activeDrag.target.side === 'left' ? successor.startDate : successor.endDate)) return;
+      if (areTasksHierarchicallyRelated(predecessorId, successorId, normalizedTasks)) {
+        setDependencyCreationError('Связи между родителем и потомком запрещены');
+        return;
+      }
+      const nextDependency: TaskDependency = { taskId: predecessorId, type: activeDrag.linkType, lag: 0 };
+      if ((successor.dependencies ?? []).some((dependency) => dependency.taskId === predecessorId && dependency.type === nextDependency.type)) return;
+      const hypothetical = normalizedTasks.map((task) => task.id === successorId
+        ? { ...task, dependencies: [...(task.dependencies ?? []), nextDependency] }
+        : task);
+      const validation = validateDependencies(hypothetical);
+      if (!validation.isValid) {
+        setDependencyCreationError(validation.errors.some((error) => error.type === 'constraint')
+          ? 'Связи между родителем и потомком запрещены'
+          : 'Цикл зависимостей!');
+        return;
+      }
+      const updatedSuccessor = hypothetical.find(task => task.id === successorId)!;
+      handleTaskChange([snapTaskToDependency(
+        updatedSuccessor, predecessor, nextDependency,
+        isTaskParent(successorId, normalizedTasks), businessDays, isCustomWeekend,
+      )]);
+    };
+
+    const cancelDependencyDrag = () => {
+      dependencyCreationRef.current = null;
+      setDependencyCreationDrag(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') cancelDependencyDrag();
+    };
+
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointercancel', cancelDependencyDrag);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', cancelDependencyDrag);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [businessDays, dependencyCreationDrag !== null, getDependencyPortPoint, getVisualDependencyType, handleTaskChange, isCustomWeekend, normalizedTasks]);
 
   /**
    * Handle task deletion: collect all changed tasks (with cleaned dependencies),
@@ -3097,6 +3084,8 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                             monthStart={monthStart}
                             dayWidth={dayWidth}
                             weekendPredicate={businessDays ? isCustomWeekend : undefined}
+                            onDependencyPortPointerDown={onTasksChange && !disableDependencyEditing ? handleDependencyPortPointerDown : undefined}
+                            isDependencyDragActive={dependencyCreationDrag !== null}
                             onPreview={date => handlePartialTaskDrag(originalTask, date, true)}
                             onChange={(onTasksChange || onScheduleIntent) && !disableTaskDrag
                               ? date => handlePartialTaskDrag(originalTask, date, false) : undefined}
@@ -3201,7 +3190,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
                         isWeekend={isWeekend}
                         disableTaskDrag={disableTaskDrag}
                         disableDependencyEditing={disableDependencyEditing}
-                        onDependencyPortPointerDown={handleDependencyPortPointerDown}
+                        onDependencyPortPointerDown={onTasksChange ? handleDependencyPortPointerDown : undefined}
                         isDependencyDragActive={dependencyCreationDrag !== null}
                         viewMode={viewMode}
                         showTaskDateLabels={showTaskDateLabels}

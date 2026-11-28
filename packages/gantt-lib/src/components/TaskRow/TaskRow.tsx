@@ -13,6 +13,7 @@ import type { Task } from '../GanttChart';
 import type { GanttScheduleIntent, ActivityTooltipContext } from '../../types';
 import { activityOwnerKey, type TaskPreviewPositionStore, type ActivityPreviewStore, type ActivityBlockStore, type ActivityDragOwner, type ActivityActivationStore } from '../GanttChart/previewStore';
 import { BarContrastContext, darkBarLabelStyle } from '../GanttChart/useBarContrast';
+import { TaskDependencyPort, type DependencyPortPointerDown } from './TaskDependencyPort';
 import './TaskRow.css';
 
 // Минимальный шаг между отсечками состава: реже — рисками мельчим.
@@ -157,12 +158,7 @@ export interface TaskRowProps {
   /** Disable visual dependency creation ports */
   disableDependencyEditing?: boolean;
   /** Called when a user starts dragging a dependency from a task edge */
-  onDependencyPortPointerDown?: (
-    taskId: string,
-    side: 'left' | 'right',
-    event: React.PointerEvent<HTMLButtonElement>
-  ) => void;
-  /** Whether a dependency drag is currently active */
+  onDependencyPortPointerDown?: DependencyPortPointerDown;
   isDependencyDragActive?: boolean;
   /** Active chart view mode */
   viewMode?: 'day' | 'week' | 'month';
@@ -248,6 +244,7 @@ const arePropsEqual = (prevProps: TaskRowProps, nextProps: TaskRowProps) => {
     prevProps.isWeekend === nextProps.isWeekend &&
     prevProps.disableTaskDrag === nextProps.disableTaskDrag &&
     prevProps.disableDependencyEditing === nextProps.disableDependencyEditing &&
+    !!prevProps.onDependencyPortPointerDown === !!nextProps.onDependencyPortPointerDown &&
     prevProps.isDependencyDragActive === nextProps.isDependencyDragActive &&
     prevProps.viewMode === nextProps.viewMode &&
     prevProps.showTaskDateLabels === nextProps.showTaskDateLabels &&
@@ -1375,30 +1372,17 @@ const TaskRow: React.FC<TaskRowProps> = React.memo(
             document.body
           )}
           {!disableDependencyEditing && onDependencyPortPointerDown && !renderActivities && (
-            <>
-              <button
-                type="button"
-                data-gantt-dependency-port
-                data-task-id={task.id}
-                data-port-side="left"
-                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortLeft ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isVisualParent ? 'gantt-tr-dependencyPortParent' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
-                style={{ left: `${visualLeft - 24}px` }}
-                aria-label={`Начать связь от левого края: ${task.name}`}
-                title="Потяните к краю другой полосы, чтобы создать связь"
-                onPointerDown={(event) => onDependencyPortPointerDown(task.id, 'left', event)}
-              />
-              <button
-                type="button"
-                data-gantt-dependency-port
-                data-task-id={task.id}
-                data-port-side="right"
-                className={`gantt-tr-dependencyPort gantt-tr-dependencyPortRight ${milestone ? 'gantt-tr-dependencyPortMilestone' : ''} ${isVisualParent ? 'gantt-tr-dependencyPortParent' : ''} ${isDependencyDragActive ? 'gantt-tr-dependencyPortDragActive' : ''}`}
-                style={{ left: `${visualLeft + visualWidth}px` }}
-                aria-label={`Начать связь от правого края: ${task.name}`}
-                title="Потяните к краю другой полосы, чтобы создать связь"
-                onPointerDown={(event) => onDependencyPortPointerDown(task.id, 'right', event)}
-              />
-            </>
+            (['left', 'right'] as const).map(side => <TaskDependencyPort
+              key={side}
+              taskId={task.id}
+              taskName={task.name}
+              side={side}
+              edgeX={side === 'left' ? visualLeft : visualLeft + visualWidth}
+              active={isDependencyDragActive}
+              milestone={milestone}
+              parent={isVisualParent}
+              onPointerDown={onDependencyPortPointerDown}
+            />)
           )}
           {showTaskDateLabels && !renderActivities && (
             <div

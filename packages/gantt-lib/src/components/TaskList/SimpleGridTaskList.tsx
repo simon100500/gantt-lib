@@ -17,7 +17,7 @@ import {
   areTasksHierarchicallyRelated,
   buildTaskRangeFromEnd,
   buildTaskRangeFromStart,
-  calculateSuccessorDate,
+  snapTaskToDependency,
   clampTaskRangeForIncomingFS,
   getDependencyLag,
   getTaskDuration,
@@ -331,52 +331,11 @@ export function SimpleGridTaskList<TTask extends Task>({
 
     const updatedTask = hypothetical.find(task => task.id === successorTaskId)!;
     const predecessor = byId.get(predecessorTaskId);
-    if (predecessor && successor.startDate && successor.endDate
-      && (linkType[0] === 'S' || predecessor.type === 'milestone' ? predecessor.startDate : predecessor.endDate)) {
-      const predStart = new Date(predecessor.startDate as string);
-      const predEnd = predecessor.type === 'milestone' ? predStart : new Date(predecessor.endDate as string);
-      const constraintDate = calculateSuccessorDate(
-        predStart,
-        predEnd,
-        linkType,
-        0,
-        businessDays ?? true,
-        weekendPredicate,
-        updatedTask.type,
-      );
-      const duration = getTaskDuration(
-        successor.startDate,
-        successor.endDate,
-        businessDays ?? true,
-        weekendPredicate,
-      );
-      let newStart: Date;
-      let newEnd: Date;
-      if (linkType === 'FS' || linkType === 'SS') {
-        ({ start: newStart, end: newEnd } = buildTaskRangeFromStart(
-          constraintDate,
-          duration,
-          businessDays ?? true,
-          weekendPredicate,
-        ));
-      } else {
-        ({ start: newStart, end: newEnd } = buildTaskRangeFromEnd(
-          constraintDate,
-          duration,
-          businessDays ?? true,
-          weekendPredicate,
-        ));
-      }
-      onTaskEdit?.([{
-        ...updatedTask,
-        startDate: newStart.toISOString().split('T')[0],
-        endDate: newEnd.toISOString().split('T')[0],
-      }]);
-    } else {
-      onTaskEdit?.([updatedTask]);
-    }
+    onTaskEdit?.([snapTaskToDependency(
+      updatedTask, predecessor, newDep, parents.has(successorTaskId), businessDays ?? true, weekendPredicate,
+    )]);
     setSelectingPredecessorFor(null);
-  }, [allTasks, byId, businessDays, weekendPredicate, onTaskEdit, reportDependencyError]);
+  }, [allTasks, byId, parents, businessDays, weekendPredicate, onTaskEdit, reportDependencyError]);
 
   const handleChipSelect = useCallback((chip: DependencyChipKey | null) => {
     onSelectedChipChange?.(chip);

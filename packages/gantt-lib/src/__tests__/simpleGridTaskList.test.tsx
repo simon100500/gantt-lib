@@ -351,6 +351,45 @@ describe('SimpleGrid inside GanttChart', () => {
     ]));
   });
 
+  it.each([
+    [{ startDate: '2026-02-10' }, { startDate: '2026-02-07', endDate: undefined }],
+    [{ endDate: '2026-02-10' }, { startDate: undefined, endDate: '2026-02-10' }],
+  ])('adds a table link while preserving open dates (%j)', (bounds, expected) => {
+    const items: Task[] = [
+      { id: 'a', name: 'A', endDate: '2026-02-06' },
+      { id: 'b', name: 'B', ...bounds },
+    ];
+    const onTasksChange = vi.fn();
+    const { container } = render(<GanttChart tasks={items} showTaskList businessDays={false} onTasksChange={onTasksChange} />);
+    fireEvent.click(within(screen.getByTestId('sg-cell-0-dependencies')).getByRole('button', { name: 'Добавить связь' }));
+    fireEvent.click(container.querySelector('[data-testid="sg-cell-1-dependencies"] .gantt-tl-cell-deps')!);
+    expect(onTasksChange).toHaveBeenCalledOnce();
+    expect(onTasksChange.mock.calls[0][0]).toMatchObject([{
+      id: 'b', ...expected, dependencies: [{ taskId: 'a', type: 'FS', lag: 0 }],
+    }]);
+  });
+
+  it('persists a link before requesting a schedule update for a single known date', () => {
+    const items: Task[] = [
+      { id: 'a', name: 'A', endDate: '2026-02-06' },
+      { id: 'b', name: 'B', startDate: '2026-02-10' },
+    ];
+    const onTasksChange = vi.fn();
+    const onScheduleIntent = vi.fn();
+    const { container } = render(<GanttChart tasks={items} showTaskList businessDays={false}
+      onTasksChange={onTasksChange} onScheduleIntent={onScheduleIntent} />);
+    fireEvent.click(within(screen.getByTestId('sg-cell-0-dependencies')).getByRole('button', { name: 'Добавить связь' }));
+    fireEvent.click(container.querySelector('[data-testid="sg-cell-1-dependencies"] .gantt-tl-cell-deps')!);
+    expect(onTasksChange).toHaveBeenCalledOnce();
+    expect(onTasksChange.mock.calls[0][0]).toMatchObject([{
+      id: 'b', startDate: '2026-02-10', endDate: undefined, dependencies: [{ taskId: 'a', type: 'FS', lag: 0 }],
+    }]);
+    expect(onScheduleIntent).toHaveBeenCalledExactlyOnceWith({
+      type: 'resize_task', taskId: 'b', anchor: 'end', date: '2026-02-07',
+    });
+    expect(onTasksChange.mock.invocationCallOrder[0]).toBeLessThan(onScheduleIntent.mock.invocationCallOrder[0]);
+  });
+
   it('applies a rectangular paste once with both task changes', () => {
     const onTasksChange = vi.fn();
     const { container } = render(<GanttChart tasks={tasks} showTaskList businessDays={false} onTasksChange={onTasksChange} />);
