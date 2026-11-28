@@ -38,18 +38,43 @@ describe('SimpleGrid inside GanttChart', () => {
     expect(container.querySelector('[data-sg-row-drop]')).toBeNull();
   });
 
-  it('keeps the leaf duration edit on the scheduling intent path', () => {
+  it('selects duration on click and routes native keyboard edits through the scheduling intent', () => {
     const onScheduleIntent = vi.fn();
     const onTasksChange = vi.fn();
     render(<GanttChart tasks={tasks} showTaskList businessDays={false} onScheduleIntent={onScheduleIntent} onTasksChange={onTasksChange} />);
-    fireEvent.click(screen.getByTestId('sg-cell-0-duration'));
-    const input = screen.getByRole('spinbutton', { name: 'Длительность' });
-    fireEvent.change(input, { target: { value: '7' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
+    const cell = screen.getByTestId('sg-cell-0-duration');
+    fireEvent.click(cell);
+    expect(cell).toHaveAttribute('data-active', 'true');
+    expect(within(cell).queryByTestId('sg-editor-input')).toBeNull();
+    fireEvent.keyDown(screen.getByRole('grid', { name: 'Список задач' }), { key: '7' });
+    const editor = within(cell).getByTestId('sg-editor-input');
+    expect(editor).toHaveAttribute('contenteditable');
+    fireEvent.keyDown(editor, { key: 'Enter' });
     expect(onScheduleIntent).toHaveBeenCalledExactlyOnceWith({
       type: 'change_duration', taskId: 'a', duration: 7, anchor: 'start', taskType: 'task',
     });
     expect(onTasksChange).not.toHaveBeenCalled();
+  });
+
+  it('scrolls to a clicked task name and opens its inline menu without scrolling again', () => {
+    const onSelect = vi.fn();
+    const { container } = render(<GanttChart tasks={tasks} showTaskList dayWidth={25}
+      dateRange={{ start: new Date('2026-02-02'), end: new Date('2026-02-28') }}
+      taskListMenuCommands={[{ id: 'details', label: 'Детали', onSelect }]} />);
+    const scrollTo = vi.fn();
+    Object.defineProperty(container.querySelector('.gantt-scrollContainer')!, 'scrollTo', { value: scrollTo });
+
+    expect(screen.queryByTestId('sg-colheader-actions')).toBeNull();
+    const nameCell = screen.getByTestId('sg-cell-1-name');
+    fireEvent.click(nameCell);
+    expect(nameCell).toHaveAttribute('data-active', 'true');
+    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ left: 125, behavior: 'smooth' });
+
+    const menuTrigger = within(nameCell).getByRole('button', { name: 'Действия: B' });
+    fireEvent.click(menuTrigger);
+    fireEvent.click(screen.getByRole('button', { name: 'Детали' }));
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: 'b' }));
+    expect(scrollTo).toHaveBeenCalledOnce();
   });
 
   it('cascades a pasted progress value from a parent to its collapsed children', () => {

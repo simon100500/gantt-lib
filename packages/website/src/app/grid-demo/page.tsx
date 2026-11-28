@@ -5,7 +5,7 @@
 'use client';
 
 import { useState } from 'react';
-import { GanttChart, type Task, type TaskListColumn, type TaskListColumnWidthMap } from 'gantt-lib';
+import { GanttChart, type Task, type TaskListColumn, type TaskListColumnWidthMap, type TimelineMarker } from 'gantt-lib';
 
 type DemoTask = Task & { owner?: string; sortOrder?: number };
 
@@ -50,12 +50,17 @@ const projectRange = {
   start: new Date('2026-02-02T00:00:00Z'),
   end: new Date('2026-03-16T00:00:00Z'),
 };
+const timelineMarkers: TimelineMarker[] = [
+  { date: '2026-02-18', color: '#2563eb', name: 'Приёмка основания' },
+  { date: '2026-03-04', color: '#0f766e', name: 'Готовность каркаса' },
+];
 
 export default function GridDemo() {
   const [tasks, setTasks] = useState(() => withOrder(initial));
   const [selected, setSelected] = useState(new Set<string>());
+  const [showTimelineMarkers, setShowTimelineMarkers] = useState(true);
   const [widths, setWidths] = useState<TaskListColumnWidthMap>({
-    name: 210, startDate: 84, endDate: 86, duration: 52, progress: 44, dependencies: 108, actions: 44,
+    name: 210, startDate: 84, endDate: 86, duration: 52, progress: 44, dependencies: 108,
   });
   return (
     <main style={{ maxWidth: 1600, margin: '0 auto', padding: 'clamp(12px, 3vw, 40px)', fontFamily: 'system-ui, sans-serif' }}>
@@ -63,8 +68,13 @@ export default function GridDemo() {
       <p style={{ color: '#526174', margin: '0 0 20px', fontSize: '0.875rem' }}>
         Перетаскивайте за номер строки. Enter открывает редактор выбранной ячейки.
       </p>
+      <button type="button" className="demo-btn demo-btn-secondary" style={{ marginBottom: 12 }}
+        onClick={() => setShowTimelineMarkers(value => !value)}>
+        {showTimelineMarkers ? 'Выключить вертикальные полосы' : 'Включить вертикальные полосы'}
+      </button>
       <GanttChart
         tasks={tasks}
+        timelineMarkers={showTimelineMarkers ? timelineMarkers : undefined}
         showTaskList
         showTaskDateLabels={false}
         businessDays={false}

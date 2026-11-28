@@ -150,6 +150,8 @@ export interface SimpleGridColumn<T> {
   chipsOnly?: boolean;
   getValue?: (row: T) => string;
   setValue?: (row: T, value: string, source?: 'editor') => T;
+  /** A plain click on the cell, independent of its editing behavior. */
+  onCellClick?: (row: T) => void;
   /** Per-row lock (a catalog unit is owned by the catalog, not typed). */
   isDisabled?: (row: T, rowIndex: number) => boolean;
   /** Per-row loading state: the cell shows an animated placeholder instead of the value

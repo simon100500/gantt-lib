@@ -546,7 +546,7 @@ export function SimpleGridTaskList<TTask extends Task>({
     if (parents.has(task.id)) return depth * 20 + 28;
     return depth * 20 + 8;
   }, [depthMap, parents]);
-  const renderNameCell = useCallback((task: Task) => {
+  const renderNameCell = useCallback((task: TTask, actions: React.ReactNode) => {
     const depth = depthMap.get(task.id) ?? 0;
     const isParent = parents.has(task.id);
     const isChild = depth > 0;
@@ -556,7 +556,7 @@ export function SimpleGridTaskList<TTask extends Task>({
     const modes = ancestorLineModesMap.get(task.id) ?? [];
     const isLastChild = lastChildIds.has(task.id);
     const hasVisibleChildren = visibleParentIds.has(task.id);
-    const prefixIcon = getTaskListNamePrefixIcon?.(task as TTask) ?? null;
+    const prefixIcon = getTaskListNamePrefixIcon?.(task);
     return (
       <>
         {isChild && (
@@ -661,7 +661,7 @@ export function SimpleGridTaskList<TTask extends Task>({
             <ChevronRightIcon />
           </button>
         ) : null}
-        <span
+        <div
           className="gantt-simple-grid-name"
           style={{ paddingLeft: nameInset(task) }}
         >
@@ -671,10 +671,11 @@ export function SimpleGridTaskList<TTask extends Task>({
           <span className="gantt-tl-name-trigger-text" title={task.name}>
             {task.name}
           </span>
-        </span>
-        {task.color && (
-          <span className="gantt-tl-name-color-stripe" style={{ backgroundColor: task.color }} aria-hidden="true" />
-        )}
+          {actions}
+          {task.color && (
+            <span className="gantt-tl-name-color-stripe" style={{ backgroundColor: task.color }} aria-hidden="true" />
+          )}
+        </div>
       </>
     );
   }, [depthMap, parents, collapsed, heights, rowHeight, ancestorLineModesMap, lastChildIds, visibleParentIds, onToggleCollapse, getTaskListNamePrefixIcon, nameInset]);
@@ -1037,8 +1038,14 @@ export function SimpleGridTaskList<TTask extends Task>({
     ));
     const commandContent = commands?.length ? commands : null;
     const menu = renderMenu ? renderMenu(context, commandContent) : commandContent;
-    return <div className="gantt-simple-grid-actions" onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
-      {renderActions?.(context)}
+    const actions = renderActions?.(context);
+    if (!menu && !actions) return null;
+    return <div className="gantt-simple-grid-actions"
+      onMouseDown={event => event.stopPropagation()}
+      onClick={event => event.stopPropagation()}
+      onDoubleClick={event => event.stopPropagation()}
+      onKeyDown={event => event.stopPropagation()}>
+      {actions}
       {menu && <Popover open={actionMenuTaskId === task.id} onOpenChange={open => setActionMenuTaskId(open ? task.id : null)}>
         <PopoverTrigger asChild>
           <button type="button" className="gantt-simple-grid-action" aria-label={`Действия: ${task.name}`}>⋯</button>
@@ -1054,6 +1061,8 @@ export function SimpleGridTaskList<TTask extends Task>({
   }, [byId, onTaskEdit]);
 
   const columns = useMemo<SimpleGridColumn<TTask>[]>(() => {
+    const showRowActions = !hideActions && !hiddenColumns?.includes('actions')
+      && (renderActions || renderMenu || menuCommands?.length);
     const list: SimpleGridColumn<TTask>[] = [
       {
         id: 'name', title: 'Имя', width: 202, minWidth: 120, readOnly: nameReadOnly,
@@ -1061,7 +1070,8 @@ export function SimpleGridTaskList<TTask extends Task>({
         isDisabled: task => !!task.locked,
         getValue: task => task.name,
         setValue: (task, value) => ({ ...task, name: value.trim() || task.name }),
-        renderValue: renderNameCell,
+        onCellClick: onScrollToTask ? task => onScrollToTask(task.id) : undefined,
+        renderValue: (task, rowIndex) => renderNameCell(task, showRowActions ? renderRowActions(task, rowIndex) : null),
       },
       ...(['startDate', 'endDate'] as const).map(id => ({
         id,
@@ -1120,7 +1130,6 @@ export function SimpleGridTaskList<TTask extends Task>({
         id: 'duration', title: businessDays ? 'Дн. (р)' : 'Дн.', width: 60, minWidth: 46, align: 'center',
         isDisabled: task => !!task.locked,
         validation: { type: 'number', min: 0, integer: true },
-        openOnActivate: true,
         getValue: task => String(getDurationFor(task)),
         setValue: (task, value) => {
           if (!value) return task;
@@ -1131,8 +1140,6 @@ export function SimpleGridTaskList<TTask extends Task>({
           );
           return { ...task, type, endDate };
         },
-        editor: TaskNumberEditor,
-        editorData: { label: 'Длительность' },
         renderValue: renderDurationCell,
       },
       {
@@ -1158,9 +1165,6 @@ export function SimpleGridTaskList<TTask extends Task>({
         })),
       },
     ];
-    if (!hideActions && (renderActions || renderMenu || menuCommands?.length)) {
-      list.push({ id: 'actions', title: '', width: 80, resizable: false, render: renderRowActions });
-    }
     const byColumn = new Map(list.map(column => [column.id, column]));
     const builtIns = ['selection', 'number', ...list.map(column => column.id)].map(id => ({
       id, header: null, renderCell: () => null,
@@ -1191,7 +1195,7 @@ export function SimpleGridTaskList<TTask extends Task>({
       });
   }, [
     hiddenColumns, nameReadOnly, businessDays, additionalColumns, hideActions, menuCommands,
-    renderActions, renderMenu, renderRowActions, onTaskEdit, updateCustomTask,
+    renderActions, renderMenu, renderRowActions, onTaskEdit, updateCustomTask, onScrollToTask,
     activeLinkType, dependencyEditingDisabled, dateChangeMode, onDateChangeModeChange, allTasks, weekendPredicate, getDurationFor, nameInset,
     renderNameCell, renderDateCell, renderEndDateCell, renderDurationCell, renderProgressCell, renderDependenciesCell,
   ]);

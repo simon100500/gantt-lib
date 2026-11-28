@@ -1549,7 +1549,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
       if (rowIndex === -1) return;
 
       const paddedRowIndex = Math.max(0, rowIndex - SCROLL_TO_ROW_CONTEXT_ROWS);
-      container.scrollTo({ top: Math.max(0, compositeRowLayout.tops[paddedRowIndex] ?? 0), behavior: 'smooth' });
+      container.scrollTo?.({ top: Math.max(0, compositeRowLayout.tops[paddedRowIndex] ?? 0), behavior: 'smooth' });
       setSelectedTaskId(taskId);
       return;
     }
@@ -1568,9 +1568,11 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     const taskIndex = dateRange.findIndex(day => day.getTime() === taskStartUTC.getTime());
     if (taskIndex === -1) return;
 
-    const taskOffset = taskIndex * dayWidth;
-    const scrollLeft = Math.round(taskOffset - dayWidth * 2);
-    container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
+    const unpinnedTaskList = scrollContentRef.current?.querySelector<HTMLElement>(
+      '.gantt-simple-grid[data-gantt-grid-unpinned]:not(.gantt-tl-hidden)'
+    );
+    const taskOffset = Math.max(0, Math.round((taskIndex - 2) * dayWidth));
+    container.scrollTo?.({ left: (unpinnedTaskList?.offsetWidth ?? 0) + taskOffset, behavior: 'smooth' });
   }, [dateRange, dayWidth, effectiveRowHeight, compositeRowLayout, isTableMatrixMode, tasks, visibleTasks]);
 
   const scrollToRow = useCallback((taskId: string, options: ScrollToRowOptions = {}) => {

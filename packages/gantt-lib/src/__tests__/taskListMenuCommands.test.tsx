@@ -106,7 +106,7 @@ describe('GanttChart taskListMenuCommands', () => {
       },
     ];
 
-    const { container } = render(
+    render(
       <GanttChart
         tasks={tasks}
         showTaskList
@@ -117,7 +117,7 @@ describe('GanttChart taskListMenuCommands', () => {
       />
     );
 
-    const rows = container.querySelectorAll('.gantt-tl-row');
+    const rows = screen.getAllByTestId(/^sg-cell-\d+-name$/);
     expect(rows).toHaveLength(3);
 
     expect(within(rows[0] as HTMLElement).getByRole('button', { name: /команда группы/i })).toBeTruthy();
@@ -163,7 +163,7 @@ describe('GanttChart taskListMenuCommands', () => {
       },
     ];
 
-    const { container } = render(
+    render(
       <GanttChart
         tasks={tasks}
         showTaskList
@@ -174,7 +174,7 @@ describe('GanttChart taskListMenuCommands', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /дополнительно/i }));
+    fireEvent.click(within(screen.getByTestId('sg-cell-0-name')).getByRole('button', { name: 'Действия: Разобрать этап' }));
 
     expect(document.querySelectorAll('.gantt-tl-context-menu-divider')).toHaveLength(2);
   });
@@ -182,7 +182,7 @@ describe('GanttChart taskListMenuCommands', () => {
   it('renders no implicit action UI even when mutation callbacks exist', () => {
     render(<GanttChart tasks={[{ id: 'one', name: 'One', startDate: '2026-04-10', endDate: '2026-04-15' }]}
       showTaskList onTasksChange={vi.fn()} onAdd={vi.fn()} onDelete={vi.fn()} onReorder={vi.fn()} />);
-    expect(screen.queryByRole('button', { name: /дополнительно/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Действия:/ })).toBeNull();
     expect(screen.queryByText('Цвет')).toBeNull();
     expect(screen.queryByText('Дублировать')).toBeNull();
     expect(screen.queryByText('Удалить работу')).toBeNull();

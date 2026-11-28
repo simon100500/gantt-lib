@@ -120,7 +120,7 @@
   min-width: 0;
 }
 
-.gantt-simple-grid :is(.gantt-simple-grid-name, .gantt-simple-grid-custom, .gantt-simple-grid-actions, .gantt-tl-cell-deps) {
+.gantt-simple-grid :is(.gantt-simple-grid-name, .gantt-simple-grid-custom, .gantt-tl-cell-deps) {
   position: absolute;
   inset: 0;
   display: flex;
@@ -139,12 +139,16 @@
 }
 .gantt-simple-grid .gantt-simple-grid-custom { padding-inline: 8px; overflow: hidden; }
 .gantt-simple-grid td[data-sg-align="right"] .gantt-simple-grid-custom { justify-content: flex-end; }
-.gantt-simple-grid td[data-sg-align="center"] .gantt-simple-grid-custom,
-.gantt-simple-grid .gantt-simple-grid-actions { justify-content: center; }
+.gantt-simple-grid td[data-sg-align="center"] .gantt-simple-grid-custom { justify-content: center; }
 
 .gantt-simple-grid .gantt-tl-name-trigger-text { min-width: 0; }
 .gantt-simple-grid .gantt-tl-name-trigger-icon { display: inline-flex; align-items: center; }
 .gantt-simple-grid :is(.gantt-tl-collapse-btn, .gantt-tl-compositeToggle) { z-index: 3; }
+.gantt-simple-grid .gantt-tl-name-color-stripe {
+  position: static;
+  flex: 0 0 6px;
+  transform: none;
+}
 
 .gantt-simple-grid :is(.gantt-tl-date-display, .gantt-tl-duration-display, .gantt-tl-progress-display) {
   position: absolute;
@@ -216,6 +220,20 @@
 }
 
 .gantt-simple-grid-tail { position: relative; }
+
+.gantt-simple-grid .gantt-simple-grid-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (hover: hover) {
+  .gantt-simple-grid td[data-column-id="name"]:not(:hover, :focus-within) .gantt-simple-grid-action:not([aria-expanded="true"]) {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
 
 .gantt-simple-grid-action {
   border-radius: 5px;

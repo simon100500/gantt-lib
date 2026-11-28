@@ -2395,9 +2395,13 @@ export function SimpleGrid<T>({
       focusGrid();
       return;
     }
-    if (columns[navCols[navIndex]]?.openOnActivate && !pointerMovedRef.current && cellEditable(navCols[navIndex], rowIndex)) {
-      startEditingAt(rowIndex, navIndex);
-      return;
+    const column = columns[navCols[navIndex]];
+    if (!pointerMovedRef.current) {
+      if (event.detail <= 1) column?.onCellClick?.(rows[rowIndex]);
+      if (column?.openOnActivate && cellEditable(navCols[navIndex], rowIndex)) {
+        startEditingAt(rowIndex, navIndex);
+        return;
+      }
     }
     if (active?.row === rowIndex && active?.navIndex === navIndex) return;
     setActive({ row: rowIndex, navIndex });

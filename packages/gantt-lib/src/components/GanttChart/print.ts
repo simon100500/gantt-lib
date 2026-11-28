@@ -300,7 +300,7 @@ function createPrintStyle(targetDocument: Document, orientation?: PrintGanttChar
     .gantt-print-root .gantt-tl-dep-type-menu,
     .gantt-print-root .gantt-tl-dep-type-trigger,
     .gantt-print-root .gantt-tl-number-steppers,
-    .gantt-print-root .gantt-simple-grid :is(.sg-calendar-trigger, .sg-column-actions-button, [data-sg-editor], [data-testid^="sg-resize-"], [data-testid$="-fill-handle"], [data-column-id="actions"] > *, input[type="checkbox"]),
+    .gantt-print-root .gantt-simple-grid :is(.sg-calendar-trigger, .sg-column-actions-button, [data-sg-editor], [data-testid^="sg-resize-"], [data-testid$="-fill-handle"], .gantt-simple-grid-actions, input[type="checkbox"]),
     .gantt-print-root .gantt-tr-resizeHandle {
       display: none !important;
     }

@@ -103,6 +103,7 @@ export default function ConstructionChart() {
   const [showTaskList, setShowTaskList] = useState(true);
   const [showChart, setShowChart] = useState(true);
   const [showBaseline, setShowBaseline] = useState(true);
+  const [showTimelineMarkers, setShowTimelineMarkers] = useState(true);
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
   const [disableDependencyEditing, setDisableDependencyEditing] = useState(false);
   const [highlightExpired, setHighlightExpired] = useState(true);
@@ -403,11 +404,16 @@ export default function ConstructionChart() {
         <button onClick={() => setViewMode('day')} style={filterBtnStyle(viewMode === 'day')}>По дням</button>
         <button onClick={() => setViewMode('week')} style={filterBtnStyle(viewMode === 'week')}>По неделям</button>
         <button onClick={() => setViewMode('month')} style={filterBtnStyle(viewMode === 'month')}>По месяцам</button>
+        <button type="button" onClick={() => setShowTimelineMarkers(value => !value)} style={filterBtnStyle()}>
+          {showTimelineMarkers ? 'Выключить вертикальные полосы' : 'Включить вертикальные полосы'}
+        </button>
       </div>
 
-      <p style={{ margin: '0 0 12px', color: '#6b7280', fontSize: '0.9rem' }}>
-        На таймлайне добавлены вертикальные маркеры дат. Наведите на кружок у линии, чтобы увидеть название контрольной точки.
-      </p>
+      {showTimelineMarkers && (
+        <p style={{ margin: '0 0 12px', color: '#6b7280', fontSize: '0.9rem' }}>
+          Наведите на кружок у вертикального маркера, чтобы увидеть название контрольной точки.
+        </p>
+      )}
 
       <div className="demo-chart-card">
         {scaleNotice && (
@@ -432,7 +438,7 @@ export default function ConstructionChart() {
         <GanttChart
           ref={ganttChartRef}
           tasks={tasks}
-          timelineMarkers={timelineMarkers}
+          timelineMarkers={showTimelineMarkers ? timelineMarkers : undefined}
           taskFilter={taskFilter}
           getTaskListNamePrefixIcon={(task) => (!task.parentId ? <HomeNameIcon /> : undefined)}
           dayWidth={viewMode === 'month' ? 2.5 : viewMode === 'week' ? 8 : 24}
