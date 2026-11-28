@@ -142,7 +142,10 @@
 .gantt-simple-grid td[data-sg-align="right"] .gantt-simple-grid-custom { justify-content: flex-end; }
 .gantt-simple-grid td[data-sg-align="center"] .gantt-simple-grid-custom { justify-content: center; }
 
-.gantt-simple-grid .gantt-tl-name-trigger-text { min-width: 0; }
+.gantt-simple-grid .gantt-tl-name-trigger-text {
+  min-width: 0;
+  word-break: break-all;
+}
 .gantt-simple-grid .gantt-tl-name-trigger-icon { display: inline-flex; align-items: center; }
 .gantt-simple-grid :is(.gantt-tl-collapse-btn, .gantt-tl-compositeToggle) { z-index: 3; }
 .gantt-simple-grid .gantt-tl-name-color-stripe {
@@ -224,14 +227,24 @@
 .gantt-simple-grid-tail { position: relative; }
 
 .gantt-simple-grid .gantt-simple-grid-actions {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 8px;
+  z-index: 1;
   display: flex;
-  flex: 0 0 auto;
   align-items: center;
   gap: 4px;
+  transform: translateY(-50%);
+  border-radius: 5px;
+  background: var(--gantt-cell-background, #fff);
+}
+
+.gantt-simple-grid .gantt-simple-grid-name:has(> .gantt-tl-name-color-stripe) > .gantt-simple-grid-actions {
+  inset-inline-end: 20px;
 }
 
 @media (hover: hover) {
-  .gantt-simple-grid td[data-column-id="name"]:not(:hover, :focus-within) .gantt-simple-grid-action:not([aria-expanded="true"]) {
+  .gantt-simple-grid td[data-column-id="name"]:not(:hover, :focus-within) .gantt-simple-grid-actions:not(:has([aria-expanded="true"])) {
     opacity: 0;
     pointer-events: none;
   }
