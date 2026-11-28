@@ -476,7 +476,6 @@
 }
 
 .gantt-grid-date-picker .gantt-datepicker-shift-btn {
-  flex: 0 0 40px;
   height: 32px;
   background-color: var(--gantt-calendar-day-hover);
   font-variant-numeric: tabular-nums;
