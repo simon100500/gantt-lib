@@ -307,7 +307,7 @@ Tasks accept ISO strings or `Date` objects, but internal calculations are UTC-sa
 
 Fixed dates independently anchor each boundary during scheduling. Parent boundaries without an anchor follow their children and applicable incoming constraints; children may extend outside fixed boundaries. A milestone has one date. Inverted fixed dates are rejected, as are subtree scaling results that would move an anchor (`FIXED_DATE_CONFLICT`). Existing tasks without fixed dates retain their existing behavior.
 
-Use `renderTaskDateAction(task, boundary)` to render a consumer-owned control next to the start or end date in the task list. The `boundary` is `'start'` or `'end'`.
+Date cells show a pin beside each fixed boundary. On editable rows, use the pin to fix or release that date. Set `showTaskDatePins={false}` to hide the built-in cell pins while keeping date pinning available in the calendar. Use `renderTaskDateAction(task, boundary)` to replace the built-in cell pins with application controls. The `boundary` is `'start'` or `'end'`.
 
 ### Dependencies
 

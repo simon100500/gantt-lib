@@ -604,7 +604,9 @@ interface TaskChartSharedProps<TTask extends Task = Task> {
   renderTaskListActions?: (context: TaskListActionContext<TTask>) => React.ReactNode;
   /** Replace/compose the menu; commands contains the configured taskListMenuCommands UI. */
   renderTaskListMenu?: (context: TaskListActionContext<TTask>, commands: React.ReactNode) => React.ReactNode;
-  /** Optional consumer-owned action beside each task date. */
+  /** Show pin controls and indicators in task-list date cells (default: true). */
+  showTaskDatePins?: boolean;
+  /** Optional consumer-owned action beside each task date, replacing the built-in cell pins. */
   renderTaskDateAction?: (task: TTask, boundary: 'start' | 'end') => React.ReactNode;
   /** Hide row action controls in the TaskList for table-like read/edit presentations. */
   hideTaskListRowActions?: boolean;
@@ -842,6 +844,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
     taskListMenuCommands,
     renderTaskListActions,
     renderTaskListMenu,
+    showTaskDatePins = true,
     renderTaskDateAction,
     hideTaskListRowActions = false,
     getTaskListRowClassName,
@@ -2746,6 +2749,7 @@ function TaskGanttChartInner<TTask extends Task = Task>(
             menuCommands={taskListMenuCommands}
             renderActions={renderTaskListActions}
             renderMenu={renderTaskListMenu}
+            showTaskDatePins={showTaskDatePins}
             renderTaskDateAction={renderTaskDateAction}
             hideActions={hideTaskListRowActions}
             getRowClassName={getTaskListRowClassName}

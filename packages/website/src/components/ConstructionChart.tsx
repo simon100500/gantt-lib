@@ -104,6 +104,7 @@ export default function ConstructionChart() {
   const [showChart, setShowChart] = useState(true);
   const [showBaseline, setShowBaseline] = useState(true);
   const [showColumnSeparators, setShowColumnSeparators] = useState(false);
+  const [showTaskDatePins, setShowTaskDatePins] = useState(true);
   const [disableTaskNameEditing, setDisableTaskNameEditing] = useState(false);
   const [disableDependencyEditing, setDisableDependencyEditing] = useState(false);
   const [highlightExpired, setHighlightExpired] = useState(true);
@@ -411,6 +412,8 @@ export default function ConstructionChart() {
         <button type="button" onClick={() => setShowColumnSeparators(value => !value)} style={filterBtnStyle()}>
           {showColumnSeparators ? 'Выключить вертикальные полосы' : 'Включить вертикальные полосы'}
         </button>
+        <button type="button" aria-pressed={showTaskDatePins} onClick={() => setShowTaskDatePins(value => !value)}
+          style={filterBtnStyle(showTaskDatePins)}>Пины дат</button>
       </div>
 
       <p style={{ margin: '0 0 12px', color: '#6b7280', fontSize: '0.9rem' }}>
@@ -456,6 +459,7 @@ export default function ConstructionChart() {
           onReorder={handleReorder}
           containerHeight={"80dvh"}
           showTaskList={showTaskList}
+          showTaskDatePins={showTaskDatePins}
           showChart={showChart}
           showBaseline={showBaseline}
           taskListWidth={600}

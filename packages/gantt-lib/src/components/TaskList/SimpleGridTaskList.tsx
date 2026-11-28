@@ -30,6 +30,7 @@ import { SimpleGrid } from '../SimpleGridVendor/SimpleGrid';
 import type { SimpleGridColumn, SimpleGridEditorProps, SimpleGridRowDropPlacement } from '../SimpleGridVendor/types';
 import { GenerationSkeletonRows } from '../GenerationSkeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
+import { PinIcon } from '../ui/PinIcon';
 import { getVisibleReorderPlan } from '../../utils/taskListReorder';
 import { NewTaskRow } from './NewTaskRow';
 import { buildDefaultTaskDateRange, getTodayISODate } from './defaultTaskDates';
@@ -149,6 +150,7 @@ interface Props<TTask extends Task> {
   menuCommands?: TaskListMenuCommand<TTask>[];
   renderActions?: (context: TaskListActionContext<TTask>) => React.ReactNode;
   renderMenu?: (context: TaskListActionContext<TTask>, commands: React.ReactNode) => React.ReactNode;
+  showTaskDatePins?: boolean;
   renderTaskDateAction?: (task: TTask, boundary: 'start' | 'end') => React.ReactNode;
   hideActions?: boolean;
   getRowClassName?: (task: TTask) => string | undefined;
@@ -194,7 +196,7 @@ export function SimpleGridTaskList<TTask extends Task>({
   bodyMinHeight, skeletonRowCount = 0, rowContentLines = 1,
   onReorder, disableReorder, onAdd, enableAddTask, addTaskLabel = 'Добавить задачу', onInsertAfter,
   onDelete, onPromote, onDemote, onUngroup, defaultTaskDurationDays, menuCommands, renderActions, renderMenu,
-  hideActions, getRowClassName, dateChangeMode, onDateChangeModeChange, renderTaskDateAction,
+  hideActions, getRowClassName, dateChangeMode, onDateChangeModeChange, showTaskDatePins = true, renderTaskDateAction,
 }: Props<TTask>) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [internalHiddenColumns, setInternalHiddenColumns] = useState<TaskListColumnId[]>([]);
@@ -629,13 +631,30 @@ export function SimpleGridTaskList<TTask extends Task>({
     const fixedDate = getFixedTaskDate(task, boundary);
     const displayDate = fixedDate ?? (boundary === 'start' ? task.startDate
       : durationPreview?.id === task.id ? durationPreview.endDate : task.endDate);
+    const showPin = showTaskDatePins && !renderTaskDateAction;
+    const pin = showPin ? getDatePin(task, boundary, false).pinAction : undefined;
+    const boundaryName = boundary === 'start' ? 'начало' : 'окончание';
+    const pinLabel = `${fixedDate ? 'Открепить' : 'Закрепить'} ${boundaryName}`;
+    const status = boundary === 'start' ? 'Начало закреплено' : 'Окончание закреплено';
     return <>
-      <span className="gantt-tl-date-display">{formatDateLabel(displayDate)}</span>
+      <span className="gantt-tl-date-display">
+        <span className="gantt-tl-date-value">
+          {pin ? <button type="button" className="gantt-tl-date-pin" aria-label={pinLabel} title={pinLabel}
+            aria-pressed={!!fixedDate} onMouseDown={event => event.stopPropagation()}
+            onClick={event => { event.stopPropagation(); pin.run(); }}
+            onDoubleClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+            <PinIcon size={13} filled={!!fixedDate} />
+          </button> : showPin && fixedDate && <span className="gantt-tl-date-pin" role="img" aria-label={status} title={status}>
+            <PinIcon size={13} filled />
+          </span>}
+          <span>{formatDateLabel(displayDate)}</span>
+        </span>
+      </span>
       {action && <span className="gantt-simple-grid-date-action" onMouseDown={event => event.stopPropagation()}
         onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}
         onKeyDown={event => event.stopPropagation()}>{action}</span>}
     </>;
-  }, [renderTaskDateAction, durationPreview]);
+  }, [renderTaskDateAction, durationPreview, showTaskDatePins, getDatePin]);
 
   const renderDurationCell = useCallback((task: Task) => {
     const isMilestone = task.type === 'milestone';

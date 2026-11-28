@@ -252,6 +252,42 @@
   padding-inline: 6px !important;
 }
 
+.gantt-simple-grid .gantt-tl-date-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.gantt-simple-grid .gantt-tl-date-pin {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--gantt-text-muted-color, #6b7280);
+}
+
+.gantt-simple-grid button.gantt-tl-date-pin { cursor: pointer; }
+
+.gantt-simple-grid button.gantt-tl-date-pin:hover {
+  background: var(--gantt-calendar-day-hover, #f3f4f6);
+}
+
+.gantt-simple-grid .gantt-tl-date-pin:is([aria-pressed="true"], [role="img"]) {
+  color: var(--gantt-date-pin-color, #5b4be7);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .gantt-simple-grid td:not(:hover, :focus-within) .gantt-tl-date-pin[aria-pressed="false"] {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
 .gantt-simple-grid .gantt-tl-progress-chip {
   padding: 2px 4px;
   border-radius: 4px;

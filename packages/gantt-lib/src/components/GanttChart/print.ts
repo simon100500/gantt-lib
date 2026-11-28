@@ -296,6 +296,7 @@ function createPrintStyle(targetDocument: Document, orientation?: PrintGanttChar
     .gantt-print-root .gantt-tl-context-menu,
     .gantt-print-root .gantt-tl-column-menu-trigger,
     .gantt-print-root .gantt-simple-grid-date-action,
+    .gantt-print-root .gantt-tl-date-pin[aria-pressed="false"],
     .gantt-print-root .gantt-tl-dep-add,
     .gantt-print-root .gantt-tl-dep-delete-label,
     .gantt-print-root .gantt-tl-dep-source-picker,
